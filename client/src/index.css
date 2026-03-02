@@ -1,0 +1,601 @@
+/* Import CSS variable theme system (must be first) */
+@import './styles/theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    font-family: 'Times New Roman', Times, serif;
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: 'Times New Roman', Times, serif;
+  }
+}
+
+@layer utilities {
+  .bg-dark-primary {
+    background-color: #0a0a0f;
+  }
+
+  .bg-dark-secondary {
+    background-color: #13131a;
+  }
+
+  .bg-dark-card {
+    background-color: #1a1a24;
+  }
+
+  .bg-purple-primary {
+    background-color: #7c3aed;
+  }
+
+  .bg-purple-hover {
+    background-color: #6d28d9;
+  }
+
+  .text-purple-primary {
+    color: #7c3aed;
+  }
+
+  .border-dark {
+    border-color: #2a2a35;
+  }
+
+  .font-script {
+    font-family: 'Dancing Script', 'Great Vibes', 'Allura', 'Playball', cursive;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-12deg);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease-out;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(26, 26, 36, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* High contrast mode */
+.high-contrast {
+  filter: contrast(1.2) brightness(1.1);
+}
+
+.high-contrast * {
+  border-color: currentColor !important;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus visible for accessibility — color defined in theme.css */
+*:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Keyboard navigation styles */
+.keyboard-nav:focus {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Smooth scroll for filter bar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Filter transition animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Price Slider Styles */
+input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f97316;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+input[type="range"].slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"].slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f97316;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+input[type="range"].slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark input[type="range"].slider::-webkit-slider-thumb {
+  border-color: #1a1a24;
+}
+
+.dark input[type="range"].slider::-moz-range-thumb {
+  border-color: #1a1a24;
+}
+
+/* Responsive media queries for Login/Signup pages */
+/* Mobile devices (320px - 640px) */
+@media screen and (max-width: 640px) {
+  .login-signup-container {
+    padding: 1rem 0.75rem;
+    min-height: 100vh;
+  }
+  
+  .login-signup-form {
+    padding: 1rem;
+    margin: 0.5rem 0;
+    max-width: 100%;
+  }
+  
+  .login-signup-footer {
+    padding-bottom: 1rem;
+    margin-top: 1rem;
+  }
+}
+
+/* Tablet devices (641px - 1024px) */
+@media screen and (min-width: 641px) and (max-width: 1024px) {
+  .login-signup-container {
+    padding: 1.5rem 1rem;
+    min-height: 100vh;
+  }
+  
+  .login-signup-form {
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+  
+  .login-signup-footer {
+    padding-bottom: 1.5rem;
+    margin-top: 1.25rem;
+  }
+}
+
+/* Desktop devices (1025px and above) */
+@media screen and (min-width: 1025px) {
+  .login-signup-container {
+    padding: 2rem 1.5rem;
+    min-height: 100vh;
+  }
+  
+  .login-signup-form {
+    padding: 2rem 2.5rem;
+    margin: 1.5rem 0;
+  }
+  
+  .login-signup-footer {
+    padding-bottom: 2rem;
+    margin-top: 1.5rem;
+  }
+}
+
+/* Zoom support - ensures footer is visible when zoomed */
+@media screen and (min-resolution: 1.5dppx) {
+  .login-signup-form {
+    min-height: auto;
+    max-height: none;
+  }
+}
+
+/* High zoom levels (150% and above) */
+@media screen and (min-width: 1px) {
+  @media (min-resolution: 144dpi) {
+    .login-signup-container {
+      padding-bottom: 2rem;
+    }
+    
+    .login-signup-footer {
+      padding-bottom: 2rem;
+      position: relative;
+      z-index: 10;
+    }
+  }
+}
+
+/* Landscape orientation on mobile */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+  .login-signup-container {
+    padding: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .login-signup-form {
+    margin: 0.5rem 0;
+    padding: 1rem;
+  }
+  
+  .login-signup-footer {
+    padding-bottom: 1rem;
+    margin-top: 0.75rem;
+  }
+}
+
+/* Ensure scrollable content on all devices */
+.login-signup-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Print media query */
+@media print {
+  .login-signup-container {
+    min-height: auto;
+    padding: 1rem;
+  }
+  
+  .login-signup-footer {
+    page-break-inside: avoid;
+  }
+}
+
+/* ── Product listing & animations ─────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer-skeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes discountPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes truckWiggle {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes filterIconPulse {
+  0%, 90%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  92%, 96% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes bgGradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.search-card-group:hover .free-ship-truck {
+  animation: truckWiggle 0.4s ease-in-out infinite;
+}
+
+.filter-icon-pulse {
+  animation: filterIconPulse 5s ease-in-out infinite;
+}
+
+/* ─── Track Order page animations ─── */
+@keyframes track-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(249, 115, 22, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+}
+@keyframes track-truck-drive {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+@keyframes track-progress-fill {
+  from { width: 0; }
+}
+@keyframes track-dash-move {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes track-lock-rock {
+  0%, 90%, 100% { transform: rotate(0deg); }
+  92% { transform: rotate(-3deg); }
+  96% { transform: rotate(3deg); }
+}
+@keyframes track-map-truck {
+  0% { left: 12%; }
+  100% { left: 60%; }
+}
+.track-pulse-ring { animation: track-pulse-ring 2s ease-in-out infinite; }
+.track-truck-drive { animation: track-truck-drive 1.5s ease-in-out infinite; }
+.track-lock-rock { animation: track-lock-rock 5s ease-in-out infinite; }
+.track-map-truck { animation: track-map-truck 0.1s linear forwards; }
+
+/* ─── Messages page ─── */
+@keyframes messages-typing-dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+@keyframes messages-online-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { opacity: 1; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+@keyframes messages-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes messages-unread-badge {
+  0%, 90%, 100% { transform: scale(1); }
+  95% { transform: scale(1.15); }
+}
+.messages-typing-dot { animation: messages-typing-dot 1.4s ease-in-out infinite; }
+.messages-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.messages-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.messages-online-pulse { animation: messages-online-pulse 3s ease-in-out infinite; }
+.messages-float { animation: messages-float 3s ease-in-out infinite; }
+.messages-unread-badge { animation: messages-unread-badge 5s ease-in-out infinite; }
+
+/* ─── Saved Addresses (account) ─── */
+@keyframes address-default-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+@keyframes address-pin-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.address-default-pulse { animation: address-default-pulse 4s ease-in-out infinite; }
+.address-pin-bounce { animation: address-pin-bounce 2s ease-in-out infinite; }
+
+/* ─── Auth Modal ─── */
+@keyframes auth-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.auth-shake { animation: auth-shake 0.4s ease-in-out; }
+
+/* ─── Global scrollbar styling (handled by theme.css CSS vars) ─── */
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* ─── Notifications dropdown ─── */
+@keyframes notif-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+}
+@keyframes notif-bell-ring {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-15deg); }
+  30% { transform: rotate(15deg); }
+  45% { transform: rotate(-15deg); }
+  60% { transform: rotate(15deg); }
+  75% { transform: rotate(-5deg); }
+}
+@keyframes notif-empty-bell-swing {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+}
+.notif-badge-pulse { animation: notif-badge-pulse 3s ease-in-out infinite; }
+.notif-bell-ring { animation: notif-bell-ring 0.5s ease-in-out; }
+.notif-empty-bell-swing { animation: notif-empty-bell-swing 2s ease-in-out infinite; }
+
+/* Notifications list scrollbar */
+.notif-list-scroll::-webkit-scrollbar { width: 6px; }
+.notif-list-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+.notif-list-scroll::-webkit-scrollbar-thumb { background: #f97316; border-radius: 3px; }
+.notif-list-scroll::-webkit-scrollbar-thumb:hover { background: #ea580c; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
