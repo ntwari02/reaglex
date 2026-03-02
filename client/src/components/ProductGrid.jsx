@@ -1,0 +1,243 @@
+import { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { SlidersHorizontal, ChevronDown } from 'lucide-react';
+import ProductCard from './ProductCard';
+import { productAPI } from '../services/api';
+
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'price_asc', label: 'Price: Low → High' },
+  { value: 'price_desc', label: 'Price: High → Low' },
+  { value: 'rating', label: 'Top Rated' },
+];
+
+export default function ProductGrid({ searchQuery = '' }) {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [sort, setSort] = useState('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const LIMIT = 12;
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = { page, limit: LIMIT };
+      if (searchQuery) params.search = searchQuery;
+      if (sort === 'price_asc') params.sortBy = 'price';
+      if (sort === 'price_desc') { params.sortBy = 'price'; params.sortOrder = 'desc'; }
+      if (sort === 'rating') params.sortBy = 'rating';
+
+      const data = await productAPI.getProducts(params);
+
+      // Flexible response shape
+      const items = Array.isArray(data)
+        ? data
+        : data.products || data.data || data.items || [];
+
+      const total = data.pagination?.totalPages || data.totalPages || 1;
+
+      setProducts(items);
+      setTotalPages(total);
+    } catch (err) {
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+      setError(
+        isTimeout
+          ? 'Server is slow or offline — make sure the backend is running on port 5000.'
+          : 'Could not load products. Please try again.'
+      );
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, sort, searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, sort]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const currentSort = SORT_OPTIONS.find((o) => o.value === sort)?.label || 'Sort';
+
+  return (
+    <section>
+      {/* Section header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.4 }}
+        className="flex items-center justify-between mb-6 flex-wrap gap-4"
+      >
+        <div>
+          <h2 className="text-2xl font-black" style={{ color: '#1a1a1a', letterSpacing: '-0.5px' }}>
+            {searchQuery ? `Results for "${searchQuery}"` : 'All Products'}
+          </h2>
+          {!loading && (
+            <p className="text-sm mt-0.5" style={{ color: '#9ca3af' }}>
+              {products.length} item{products.length !== 1 ? 's' : ''} found
+            </p>
+          )}
+        </div>
+
+        {/* Sort dropdown */}
+        <div className="relative">
+          <motion.button
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowSortMenu(!showSortMenu)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{
+              background: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.07)',
+              color: '#1a1a1a',
+            }}
+          >
+            <SlidersHorizontal className="w-4 h-4" style={{ color: '#ff8c42' }} />
+            {currentSort}
+            <ChevronDown className="w-3.5 h-3.5" style={{ color: '#9ca3af' }} />
+          </motion.button>
+
+          <AnimatePresence>
+            {showSortMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-full mt-2 w-48 rounded-2xl overflow-hidden z-20"
+                style={{ background: 'white', boxShadow: '0 12px 36px rgba(0,0,0,0.12)' }}
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setSort(opt.value); setShowSortMenu(false); }}
+                    className="block w-full px-4 py-2.5 text-left text-sm hover:bg-orange-50 transition"
+                    style={{
+                      color: sort === opt.value ? '#ff8c42' : '#374151',
+                      fontWeight: sort === opt.value ? 600 : 400,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+
+      {/* Error */}
+      {error && (
+        <div className="text-center py-16">
+          <p className="text-sm mb-4" style={{ color: '#9ca3af' }}>{error}</p>
+          <button
+            onClick={fetchProducts}
+            className="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold"
+            style={{ background: 'linear-gradient(135deg, #ff8c42, #ff5f00)' }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="rounded-3xl overflow-hidden animate-pulse" style={{ background: 'white' }}>
+              <div style={{ paddingTop: '72%', background: '#f3f4f6' }} />
+              <div className="p-4 space-y-2">
+                <div className="h-4 rounded-lg" style={{ background: '#f3f4f6', width: '70%' }} />
+                <div className="h-3 rounded-lg" style={{ background: '#f3f4f6', width: '50%' }} />
+                <div className="h-5 rounded-lg" style={{ background: '#f3f4f6', width: '40%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && !error && products.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-20"
+        >
+          <div className="text-6xl mb-4">🛍️</div>
+          <h3 className="text-lg font-bold mb-2" style={{ color: '#1a1a1a' }}>No products found</h3>
+          <p className="text-sm" style={{ color: '#9ca3af' }}>
+            {searchQuery ? `No results for "${searchQuery}"` : 'No products available yet.'}
+          </p>
+        </motion.div>
+      )}
+
+      {/* Product grid */}
+      {!loading && !error && products.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {products.map((product, idx) => (
+            <ProductCard key={product._id || product.id || idx} product={product} index={idx} />
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && !loading && !error && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="flex justify-center items-center gap-2 mt-10 flex-wrap"
+        >
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
+            style={{ background: 'white', color: '#374151', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}
+          >
+            ← Prev
+          </motion.button>
+
+          {[...Array(Math.min(totalPages, 7))].map((_, i) => {
+            const p = i + 1;
+            return (
+              <motion.button
+                key={p}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setPage(p)}
+                className="w-9 h-9 rounded-xl text-sm font-semibold"
+                style={{
+                  background: page === p ? 'linear-gradient(135deg, #ff8c42, #ff5f00)' : 'white',
+                  color: page === p ? 'white' : '#374151',
+                  boxShadow: page === p ? '0 4px 14px rgba(255,140,66,0.35)' : '0 2px 8px rgba(0,0,0,0.07)',
+                }}
+              >
+                {p}
+              </motion.button>
+            );
+          })}
+
+          <motion.button
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
+            style={{ background: 'white', color: '#374151', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}
+          >
+            Next →
+          </motion.button>
+        </motion.div>
+      )}
+    </section>
+  );
+}
