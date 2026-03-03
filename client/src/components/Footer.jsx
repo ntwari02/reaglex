@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 const PRIMARY = '#f97316';
-const FOOTER_BG = '#0f0f1a';
+const FOOTER_BG = 'linear-gradient(180deg, #020617, #0f172a)';
 const BOTTOM_BG = '#080810';
 const BODY_COLOR = '#9ca3af';
 const HEADING_COLOR = '#ffffff';
@@ -17,7 +17,7 @@ function ColumnHeading({ children }) {
   return (
     <div className="mb-6">
       <h4
-        className="font-bold uppercase tracking-[2px] mb-2"
+        className="footer-heading font-bold uppercase tracking-[0.24em] mb-2"
         style={{ color: HEADING_COLOR, fontSize: 12 }}
       >
         {children}
@@ -39,13 +39,12 @@ function FooterLink({ to, children }) {
   return (
     <Link
       to={to}
-      className="block text-sm leading-[2] transition-all duration-200 ease-out hover:translate-x-1"
-      style={{ color: BODY_COLOR }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = PRIMARY;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = BODY_COLOR;
+      className="footer-link block text-sm leading-[2] transition-all duration-200 ease-out hover:translate-x-1"
+      style={{
+        color: BODY_COLOR,
+        border: 'none',
+        outline: 'none',
+        boxShadow: 'none',
       }}
     >
       {children}
@@ -61,20 +60,12 @@ function SocialIcon({ href, icon: Icon, label }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className="flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ease-out hover:scale-110"
+      className="footer-social-icon flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ease-out"
       style={{
-        boxShadow: '0 0 0 1px rgba(255,255,255,0.2)',
+        boxShadow: 'none',
         color: BODY_COLOR,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = PRIMARY;
-        e.currentTarget.style.color = 'white';
-        e.currentTarget.style.boxShadow = '0 0 12px rgba(249,115,22,0.6)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'transparent';
-        e.currentTarget.style.color = BODY_COLOR;
-        e.currentTarget.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.2)';
+        border: 'none',
+        outline: 'none',
       }}
     >
       <Icon className="w-4 h-4" strokeWidth={2} />
@@ -86,10 +77,15 @@ function SocialIcon({ href, icon: Icon, label }) {
 function TrustBadge({ icon: Icon, label }) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-      style={{ background: 'rgba(255,255,255,0.08)', color: BODY_COLOR }}
+      className="footer-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+      style={{
+        background: 'rgba(255,255,255,0.08)',
+        color: BODY_COLOR,
+        border: 'none',
+        boxShadow: 'none',
+      }}
     >
-      <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: PRIMARY }} />
+      <Icon className="footer-badge-icon w-3.5 h-3.5 flex-shrink-0" style={{ color: PRIMARY }} />
       {label}
     </span>
   );
@@ -167,10 +163,17 @@ export default function Footer() {
   };
 
   return (
-    <footer className="footer" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <motion.footer
+      className="footer"
+      style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+    >
       {/* ═══ TIER 2: Newsletter (above main footer) ═══ */}
       <div
-        className="w-full flex flex-col md:flex-row md:items-center md:justify-between gap-6 px-4 sm:px-6 lg:px-20 py-10"
+        className="relative w-full flex flex-col md:flex-row md:items-center md:justify-between gap-6 px-4 sm:px-6 lg:px-20 py-10"
         style={{
           background: 'linear-gradient(135deg, #f97316, #ea580c)',
           paddingLeft: 'clamp(1rem, 5vw, 80px)',
@@ -179,6 +182,18 @@ export default function Footer() {
           paddingBottom: 40,
         }}
       >
+        {/* Soft dot pattern overlay (matches account banner) */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.08]">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="footer-newsletter-dots" width="12" height="12" patternUnits="userSpaceOnUse">
+                <circle cx="1.5" cy="1.5" r="0.8" fill="white" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#footer-newsletter-dots)" />
+          </svg>
+        </div>
+
         <div>
           <h3 className="font-bold text-2xl text-white mb-1">
             Get the Best Deals First! 🔥
@@ -216,19 +231,24 @@ export default function Footer() {
 
       {/* ═══ TIER 1: Main footer body ═══ */}
       <div
-        className="w-full px-4 sm:px-6 lg:px-20"
+        className="footer-main w-full px-4 sm:px-6 lg:px-20"
         style={{
           background: FOOTER_BG,
-          paddingTop: 60,
-          paddingBottom: 40,
+          paddingTop: 72,
+          paddingBottom: 48,
           paddingLeft: 'clamp(1rem, 5vw, 80px)',
           paddingRight: 'clamp(1rem, 5vw, 80px)',
+          boxShadow: '0 -1px 0 rgba(255,255,255,0.05) inset',
         }}
       >
         <div className="footer-grid">
             {/* COLUMN 1 — Brand (wider on large) */}
             <div className="footer-brand-col">
-              <Link to="/" className="inline-flex items-center gap-2 mb-4">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 mb-4"
+                style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+              >
                 <img
                   src="/logo.jpg"
                   alt="Reaglex"
@@ -257,15 +277,25 @@ export default function Footer() {
               <div className="flex flex-wrap gap-2">
                 <a
                   href="#"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition opacity-90 hover:opacity-100"
-                  style={{ background: 'rgba(255,255,255,0.12)' }}
+                  className="footer-app-btn inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white transition opacity-90 hover:opacity-100"
+                  style={{
+                    background: 'rgba(255,255,255,0.12)',
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                  }}
                 >
                   🍎 App Store
                 </a>
                 <a
                   href="#"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition opacity-90 hover:opacity-100"
-                  style={{ background: 'rgba(255,255,255,0.12)' }}
+                  className="footer-app-btn inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white transition opacity-90 hover:opacity-100"
+                  style={{
+                    background: 'rgba(255,255,255,0.12)',
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                  }}
                 >
                   ▶ Google Play
                 </a>
@@ -302,10 +332,16 @@ export default function Footer() {
               </nav>
               <Link
                 to="/seller"
-                className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-white text-sm transition-all duration-200 hover:opacity-95"
-                style={{ background: PRIMARY }}
+                className="inline-flex items-center justify-center gap-2 w-full font-bold text-white text-[15px] tracking-[0.03em] footer-cta transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, #ff8c2a, ${PRIMARY}, #ea580c)`,
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none',
+                }}
               >
-                Start Selling Today <ChevronRight className="w-4 h-4" />
+                Start Selling Today
+                <ChevronRight className="w-4 h-4 footer-cta-icon" />
               </Link>
             </div>
 
@@ -356,7 +392,7 @@ export default function Footer() {
 
       {/* ═══ TIER 3: Bottom bar ═══ */}
       <div
-        className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 sm:px-6 lg:px-20 py-3 min-h-[52px]"
+        className="footer-bottom w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 sm:px-6 lg:px-20 py-3 min-h-[52px]"
         style={{
           background: BOTTOM_BG,
           boxShadow: '0 -1px 0 rgba(255,255,255,0.06)',
@@ -364,14 +400,14 @@ export default function Footer() {
           paddingRight: 'clamp(1rem, 5vw, 80px)',
         }}
       >
-        <p className="text-[13px] order-2 sm:order-1 text-center sm:text-left" style={{ color: BODY_COLOR }}>
-          © {currentYear} Reaglex. All rights reserved. Made with ❤️ in Rwanda 🇷🇼
+        <p className="footer-bottom-text text-[13px] order-2 sm:order-1 text-center sm:text-left" style={{ color: BODY_COLOR }}>
+          © {currentYear} Reaglex. All rights reserved. Made with <span className="footer-heart">❤️</span> in Rwanda 🇷🇼
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
           {PAYMENT_LABELS.map((label) => (
             <span
               key={label}
-              className="px-2.5 py-1 rounded-md text-[11px] font-medium"
+              className="footer-payment-badge px-2.5 py-1 rounded-full text-[11px] font-medium"
               style={{ background: 'rgba(255,255,255,0.08)', color: BODY_COLOR }}
             >
               {label}
@@ -385,7 +421,12 @@ export default function Footer() {
               <Link
                 to={href}
                 className="transition-colors duration-200 hover:text-white"
-                style={{ color: 'inherit' }}
+                style={{
+                  color: 'inherit',
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none',
+                }}
               >
                 {label}
               </Link>
@@ -393,6 +434,6 @@ export default function Footer() {
           ))}
         </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 }

@@ -154,7 +154,10 @@ export default function ProductDetail() {
   if (loading)
     return (
       <BuyerLayout>
-        <div className="min-h-[70vh] flex items-center justify-center" style={{ background: '#f9fafb' }}>
+        <div
+          className="min-h-[70vh] flex items-center justify-center"
+          style={{ background: 'var(--bg-page)' }}
+        >
           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
             className="w-14 h-14 rounded-full border-4 border-orange-200 border-t-orange-500" />
         </div>
@@ -164,9 +167,14 @@ export default function ProductDetail() {
   if (error)
     return (
       <BuyerLayout>
-        <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4" style={{ background: '#f9fafb' }}>
+        <div
+          className="flex flex-col items-center justify-center min-h-[70vh] gap-4"
+          style={{ background: 'var(--bg-page)' }}
+        >
           <span className="text-5xl">😕</span>
-          <p className="text-lg font-semibold" style={{ color: '#111827' }}>{error}</p>
+          <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {error}
+          </p>
           <button onClick={() => navigate(-1)} className="px-6 py-3 rounded-2xl text-white font-semibold" style={{ background: PRIMARY }}>
             Go Back
           </button>
@@ -213,7 +221,10 @@ export default function ProductDetail() {
 
   return (
     <BuyerLayout>
-      <div className="min-h-screen w-full px-4 sm:px-6 lg:px-10 xl:px-16 pt-6 pb-24" style={{ background: '#f9fafb', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div
+        className="min-h-screen w-full px-4 sm:px-6 lg:px-10 xl:px-16 pt-6 pb-24"
+        style={{ background: 'var(--bg-page)', fontFamily: 'Inter, system-ui, sans-serif' }}
+      >
         {/* ═══ TIER 1: Breadcrumb + Back to Results ═══ */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -221,17 +232,19 @@ export default function ProductDetail() {
           transition={{ duration: 0.3, ease }}
           className="flex flex-wrap items-center justify-between gap-3 mb-6"
         >
-          <div className="flex items-center gap-2 text-sm" style={{ color: '#6b7280' }}>
+          <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             <Link to="/" className="hover:text-orange-500 transition-colors duration-200 border-b border-transparent hover:border-orange-500">Home</Link>
             <span>›</span>
             <Link to="/search" className="hover:text-orange-500 transition-colors duration-200 border-b border-transparent hover:border-orange-500">{category}</Link>
             <span>›</span>
-            <span className="font-semibold" style={{ color: '#111827' }}>{title}</span>
+            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {title}
+            </span>
           </div>
           <Link
             to="/search"
             className="text-sm font-medium flex items-center gap-1 hover:text-orange-500 transition-colors"
-            style={{ color: '#6b7280' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             <ChevronLeft className="w-4 h-4" /> Back to Results
           </Link>
@@ -334,7 +347,12 @@ export default function ProductDetail() {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.title, duration: 0.4, ease }} className="flex flex-wrap items-center gap-2">
-              <h1 className="font-bold leading-tight" style={{ color: '#111827', fontSize: 32 }}>{title}</h1>
+              <h1
+                className="font-bold leading-tight product-title"
+                style={{ color: 'var(--text-primary)', fontSize: 32 }}
+              >
+                {title}
+              </h1>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-green-700 bg-green-50">Verified Product ✓</span>
             </motion.div>
 
@@ -606,8 +624,13 @@ export default function ProductDetail() {
 
         {/* Recently Viewed */}
         {recentFiltered.length > 0 && (
-          <section>
-            <h2 className="text-lg font-bold mb-4" style={{ color: '#111827' }}>Recently Viewed 👁️</h2>
+        <section>
+            <h2
+              className="text-lg font-bold mb-4 product-title"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Recently Viewed 👁️
+            </h2>
             <div className="flex gap-4 overflow-x-auto pb-4">
               {recentFiltered.map((p, idx) => (
                 <motion.div key={p._id || p.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }} className="flex-shrink-0 w-[200px]">
@@ -699,5 +722,9 @@ function PriceCountUp({ value, duration = 0.8, delay = 0 }) {
     };
     requestAnimationFrame(tick);
   }, [value, duration, delay]);
-  return <span className="font-black text-4xl" style={{ color: '#111827' }}>${display.toFixed(2)}</span>;
+  return (
+    <span className="font-black text-4xl product-price" style={{ color: 'var(--text-primary)' }}>
+      ${display.toFixed(2)}
+    </span>
+  );
 }

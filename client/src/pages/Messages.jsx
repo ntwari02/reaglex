@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, Paperclip, Search, ArrowLeft, MoreVertical, Package, Phone, Search as SearchIcon,
@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useAuthStore } from '../stores/authStore';
-import { useAuthModal } from '../stores/authModalStore';
 
 const PRIMARY = '#f97316';
 const ONLINE = '#10b981';
@@ -95,7 +94,7 @@ function formatDateKey(dateStr) {
 
 export default function Messages() {
   const user = useAuthStore((s) => s.user);
-  const openAuth = useAuthModal((s) => s.open);
+  const navigate = useNavigate();
   const [active, setActive] = useState(null);
   const [input, setInput] = useState('');
   const [convs, setConvs] = useState(MOCK_CONVERSATIONS);
@@ -284,7 +283,7 @@ export default function Messages() {
             Sign in to view messages
           </h2>
           <button
-            onClick={() => openAuth('login')}
+            onClick={() => navigate('/login')}
             className="px-6 py-2.5 rounded-2xl text-white font-semibold"
             style={{ background: PRIMARY }}
           >

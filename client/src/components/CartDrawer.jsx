@@ -63,10 +63,12 @@ export default function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 34, mass: 0.9 }}
-            className="fixed top-0 right-0 bottom-0 z-50 flex flex-col overflow-hidden bg-white"
+            className="fixed top-0 right-0 bottom-0 z-50 flex flex-col overflow-hidden"
             style={{
               width: 'min(100vw, 480px)',
               boxShadow: '-8px 0 60px rgba(0,0,0,0.18)',
+              background: 'var(--card-bg)',
+              color: 'var(--text-primary)',
             }}
           >
             {/* ── Cart panel (full width, no image) ── */}

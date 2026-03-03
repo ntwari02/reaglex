@@ -76,7 +76,7 @@ export default function OrderTracking() {
 
   return (
     <BuyerLayout>
-      <div className="min-h-screen" style={{ background: '#f4f5f7', fontFamily: 'Inter, sans-serif' }}>
+      <div className="min-h-screen track-page" style={{ background: 'var(--bg-page)', fontFamily: 'Inter, sans-serif' }}>
         {/* ═══ TIER 1: Hero banner ═══ */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -95,7 +95,7 @@ export default function OrderTracking() {
             </Link>
             <h1 className="text-2xl font-bold text-white" style={{ fontSize: 28 }}>Track Order</h1>
             <p className="text-sm mt-0.5" style={{ color: PRIMARY }}>Order #{displayOrderId}</p>
-            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Home › My Orders › Track Order</p>
+            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.7)' }}>Home › My Orders › Track Order</p>
           </div>
           <div className="flex items-center gap-4">
             <motion.span className="text-4xl" animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}>🚚</motion.span>
@@ -119,8 +119,8 @@ export default function OrderTracking() {
           >
             {/* ═══ TIER 3: Delivery Progress card ═══ */}
             <div
-              className="rounded-2xl p-6 bg-[var(--card-bg)] overflow-hidden"
-              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
+              className="rounded-2xl p-6 bg-[var(--card-bg)] overflow-hidden track-card track-main-card"
+              style={{ boxShadow: 'var(--shadow-md)' }}
             >
               <h2 className="font-bold text-base mb-6" style={{ color: '#111827' }}>Delivery Progress</h2>
 
@@ -128,7 +128,7 @@ export default function OrderTracking() {
               <div className="mb-8 relative overflow-x-auto scrollbar-hide">
                 <div className="flex justify-between relative z-10 min-w-[320px]">
                   {PROGRESS_STEPS.map((step, i) => {
-                    const done = i <= currentStepIndex;
+                    const completed = i < currentStepIndex;
                     const current = i === currentStepIndex;
                     const Icon = step.icon;
                     return (
@@ -137,22 +137,44 @@ export default function OrderTracking() {
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: 0.3 + i * 0.05, type: 'spring', stiffness: 400 }}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${current ? 'track-pulse-ring' : ''}`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${current ? 'track-pulse-ring' : ''} track-step-circle`}
                           style={{
-                            background: done ? PRIMARY : '#e5e7eb',
-                            border: current ? `2px solid ${PRIMARY}` : 'none',
-                            boxShadow: current ? '0 0 0 8px rgba(249,115,22,0.2)' : 'none',
+                            background: current || completed ? PRIMARY : 'var(--bg-tertiary)',
+                            boxShadow: current
+                              ? '0 0 16px rgba(249,115,22,0.50)'
+                              : completed
+                              ? '0 0 0 4px rgba(249,115,22,0.18)'
+                              : 'none',
                           }}
                         >
-                          {done && !current ? <Check className="w-5 h-5 text-white" /> : null}
-                          {current ? <Truck className="w-5 h-5 text-white" /> : !done ? <Icon className="w-5 h-5" style={{ color: '#9ca3af' }} /> : null}
+                          {completed && !current ? <Check className="w-5 h-5 text-white" /> : null}
+                          {current ? (
+                            <Truck className="w-5 h-5 text-white" />
+                          ) : !completed ? (
+                            <Icon className="w-5 h-5" style={{ color: 'var(--text-faint)' }} />
+                          ) : null}
                         </motion.div>
-                        <span className="text-[10px] mt-2 text-center font-medium max-w-[70px]" style={{ color: done ? '#374151' : '#9ca3af' }}>{step.label}</span>
+                        <span
+                          className="text-[10px] mt-2 text-center font-medium max-w-[70px]"
+                          style={{
+                            color: current
+                              ? 'var(--text-primary)'
+                              : completed
+                              ? 'var(--text-muted)'
+                              : 'var(--text-faint)',
+                            fontWeight: current ? 600 : 500,
+                          }}
+                        >
+                          {step.label}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
-                <div className="absolute top-5 left-0 right-0 h-0.5 rounded" style={{ marginLeft: '5%', marginRight: '5%', width: '90%', background: '#e5e7eb' }} />
+                <div
+                  className="absolute top-5 left-0 right-0 h-0.5 rounded"
+                  style={{ marginLeft: '5%', marginRight: '5%', width: '90%', background: 'var(--divider)' }}
+                />
                 <motion.div
                   className="absolute top-5 left-0 h-0.5 rounded"
                   style={{ background: PRIMARY, left: '5%' }}
@@ -164,33 +186,79 @@ export default function OrderTracking() {
 
               {/* Vertical timeline */}
               <div className="relative">
-                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" style={{ borderRadius: 2 }} />
+                <div
+                  className="absolute left-6 top-0 bottom-0 w-0.5"
+                  style={{ borderRadius: 2, background: 'var(--divider)' }}
+                />
                 {TIMELINE_STEPS.map((step, i) => (
                   <motion.div
                     key={step.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + i * 0.15, duration: 0.4, ease: EASE }}
-                    className="flex gap-4 pb-8 last:pb-0 relative"
+                    className={`flex gap-4 pb-8 last:pb-0 relative timeline-row ${
+                      step.active ? 'timeline-row-current' : step.done ? 'timeline-row-completed' : 'timeline-row-pending'
+                    }`}
                   >
                     <div
-                      className="relative z-10 flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+                      className="relative z-10 flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center timeline-icon"
                       style={{
-                        background: step.done ? `linear-gradient(135deg, ${PRIMARY}, #ea580c)` : step.active ? PRIMARY : '#f3f4f6',
-                        boxShadow: step.done ? '0 4px 12px rgba(249,115,22,0.3)' : step.active ? '0 0 0 8px rgba(249,115,22,0.2)' : 'none',
+                        background: step.done || step.active ? PRIMARY : 'var(--bg-tertiary)',
+                        boxShadow: step.active
+                          ? '0 0 20px rgba(249,115,22,0.50)'
+                          : step.done
+                          ? '0 0 12px rgba(249,115,22,0.35)'
+                          : 'none',
                       }}
                     >
-                      {step.done ? <Check className="w-6 h-6 text-white" /> : <step.icon className="w-6 h-6" style={{ color: step.done ? 'white' : step.active ? 'white' : '#9ca3af' }} />}
+                      {step.done ? (
+                        <Check className="w-6 h-6 text-white" />
+                      ) : (
+                        <step.icon
+                          className="w-6 h-6"
+                          style={{ color: step.active || step.done ? '#ffffff' : 'var(--text-faint)' }}
+                        />
+                      )}
                     </div>
                     <div className="pt-1 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-bold text-sm" style={{ color: step.done || step.active ? '#111827' : '#6b7280', fontSize: 15 }}>{step.label}</p>
-                          {step.active && <span className="px-2 py-0.5 rounded-full text-xs font-bold text-white" style={{ background: PRIMARY }}>CURRENT</span>}
+                          <p
+                            className="font-bold text-sm"
+                            style={{
+                              color: step.done || step.active ? 'var(--text-primary)' : 'var(--text-muted)',
+                              fontSize: 15,
+                            }}
+                          >
+                            {step.label}
+                          </p>
+                          {step.active && (
+                            <span
+                              className="px-2 py-0.5 rounded-full text-xs font-bold text-white"
+                              style={{ background: PRIMARY }}
+                            >
+                              CURRENT
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs" style={{ color: '#6b7280', fontStyle: step.expected ? 'italic' : 'normal' }}>{step.date}</p>
+                        <p
+                          className="text-xs"
+                          style={{ color: 'var(--text-faint)', fontStyle: step.expected ? 'italic' : 'normal' }}
+                        >
+                          {step.date}
+                        </p>
                       </div>
-                      {(step.done || step.active) && step.sub && <p className="text-sm mt-1" style={{ color: step.active ? '#374151' : '#6b7280', fontSize: 13 }}>{step.sub}</p>}
+                      {(step.done || step.active) && step.sub && (
+                        <p
+                          className="text-sm mt-1"
+                          style={{
+                            color: step.active ? 'var(--text-secondary)' : 'var(--text-muted)',
+                            fontSize: 13,
+                          }}
+                        >
+                          {step.sub}
+                        </p>
+                      )}
                       {step.tracking && (
                         <button type="button" onClick={copyTracking} className="inline-flex items-center gap-1 mt-2 text-sm font-medium hover:underline" style={{ color: PRIMARY }}>
                           Tracking: {step.tracking} <Copy className="w-3.5 h-3.5" />
@@ -207,18 +275,31 @@ export default function OrderTracking() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.4, ease: EASE }}
-              className="rounded-2xl overflow-hidden bg-[var(--card-bg)] relative"
-              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)', minHeight: 200 }}
+              className="rounded-2xl overflow-hidden bg-[var(--card-bg)] relative track-card"
+              style={{ boxShadow: 'var(--shadow-md)', minHeight: 200 }}
             >
               <div className="p-4 relative h-[160px] sm:h-[180px] md:h-[200px]">
                 <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-                  <line x1="10%" y1="50%" x2="90%" y2="50%" stroke="#e5e7eb" strokeWidth="3" strokeDasharray="8 6" />
+                  <line
+                    x1="10%"
+                    y1="50%"
+                    x2="90%"
+                    y2="50%"
+                    stroke="var(--divider)"
+                    strokeWidth="3"
+                    strokeDasharray="8 6"
+                  />
                   <line x1="10%" y1="50%" x2="60%" y2="50%" stroke={PRIMARY} strokeWidth="3" strokeLinecap="round" />
                 </svg>
                 <div className="absolute left-[8%] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center shadow-lg">
                   <Warehouse className="w-5 h-5 text-white" />
                 </div>
-                <div className="absolute left-[60%] top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[var(--card-bg)] border-4 shadow-lg track-map-truck flex items-center justify-center" style={{ borderColor: PRIMARY }}>
+                <div
+                  className="absolute left-[60%] top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[var(--card-bg)] shadow-lg track-map-truck flex items-center justify-center"
+                  style={{
+                    boxShadow: '0 0 20px rgba(249,115,22,0.50)',
+                  }}
+                >
                   <Truck className="w-6 h-6" style={{ color: PRIMARY }} />
                 </div>
                 <div className="absolute right-[8%] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-green-600 flex items-center justify-center shadow-lg">
@@ -226,13 +307,17 @@ export default function OrderTracking() {
                 </div>
               </div>
               <div className="px-4 pb-4 border-t border-[var(--divider)] pt-3">
-                <p className="text-sm" style={{ color: '#6b7280' }}>📦 Your package is on its way from Kigali → Delivery Address</p>
-                <p className="text-sm font-bold mt-1" style={{ color: PRIMARY }}>Estimated delivery: Mar 5, 2026</p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  📦 Your package is on its way from Kigali → Delivery Address
+                </p>
+                <p className="text-sm font-bold mt-1" style={{ color: PRIMARY }}>
+                  Estimated delivery: Mar 5, 2026
+                </p>
               </div>
             </motion.div>
           </motion.div>
 
-          {/* ═══ RIGHT COLUMN (40%) ═══ */}
+            {/* ═══ RIGHT COLUMN (40%) ═══ */}
           <motion.div
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
@@ -244,29 +329,65 @@ export default function OrderTracking() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 bg-[var(--card-bg)]"
-              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
+              className="rounded-2xl p-5 bg-[var(--card-bg)] track-card"
+              style={{ boxShadow: 'var(--shadow-md)' }}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-base" style={{ color: '#111827' }}>Order Summary</h3>
-                <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: '#fff7ed', color: PRIMARY }}>{displayOrderId}</span>
+                <h3 className="font-bold text-base" style={{ color: '#111827' }}>
+                  Order Summary
+                </h3>
+                <span
+                  className="px-2.5 py-1 rounded-full text-xs font-bold"
+                  style={{
+                    background: 'var(--brand-tint)',
+                    color: 'var(--brand-primary)',
+                    boxShadow: 'inset 0 0 0 1px var(--status-orange-ring)',
+                  }}
+                >
+                  {displayOrderId}
+                </span>
               </div>
               {ORDER_SUMMARY_ITEMS.map((item) => (
                 <div key={item.name} className="flex gap-3 py-3 border-b border-[var(--divider)]">
-                  <img src={item.image} alt="" className="w-15 h-15 rounded-lg object-cover flex-shrink-0" style={{ width: 60, height: 60 }} />
+                  <img
+                    src={item.image}
+                    alt=""
+                    className="w-15 h-15 rounded-lg object-cover flex-shrink-0"
+                    style={{ width: 60, height: 60, background: 'var(--bg-tertiary)' }}
+                  />
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm" style={{ color: '#111827' }}>{item.name}</p>
-                    <p className="text-xs" style={{ color: '#6b7280' }}>{item.variant}</p>
-                    <p className="text-sm mt-1" style={{ color: '#6b7280' }}>{item.qty} × ${item.price.toFixed(2)}</p>
+                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {item.name}
+                    </p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {item.variant}
+                    </p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                      {item.qty} × ${item.price.toFixed(2)}
+                    </p>
                   </div>
-                  <p className="font-semibold text-sm" style={{ color: '#111827' }}>${(item.qty * item.price).toFixed(2)}</p>
+                  <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                    ${(item.qty * item.price).toFixed(2)}
+                  </p>
                 </div>
               ))}
               <div className="space-y-2 pt-3 text-sm">
-                <div className="flex justify-between" style={{ color: '#6b7280' }}><span>Subtotal</span><span>$29.00</span></div>
-                <div className="flex justify-between" style={{ color: '#6b7280' }}><span>Shipping</span><span className="text-green-600">Free ✓</span></div>
-                <div className="flex justify-between" style={{ color: '#6b7280' }}><span>Escrow Fee</span><span>$0.00</span></div>
-                <div className="flex justify-between font-bold text-base pt-2" style={{ color: PRIMARY }}><span>Total</span><span>$29.00</span></div>
+                <div className="flex justify-between" style={{ color: 'var(--text-secondary)' }}>
+                  <span>Subtotal</span>
+                  <span>$29.00</span>
+                </div>
+                <div className="flex justify-between" style={{ color: 'var(--text-secondary)' }}>
+                  <span>Shipping</span>
+                  <span className="text-green-600">Free ✓</span>
+                </div>
+                <div className="flex justify-between" style={{ color: 'var(--text-secondary)' }}>
+                  <span>Escrow Fee</span>
+                  <span>$0.00</span>
+                </div>
+                <div className="flex justify-between font-bold text-base pt-2">
+                  <span style={{ color: 'var(--text-primary)' }}>Total</span>
+                  <span style={{ color: PRIMARY }}>$29.00</span>
+                </div>
               </div>
               <Link to={`/account?tab=orders`} className="inline-flex items-center gap-1 mt-3 text-sm font-semibold" style={{ color: PRIMARY }}>View Full Order <ChevronRight className="w-4 h-4" /></Link>
             </motion.div>
@@ -276,19 +397,25 @@ export default function OrderTracking() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.05, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 bg-[var(--card-bg)] transition-shadow hover:shadow-lg"
-              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
+              className="rounded-2xl p-5 bg-[var(--card-bg)] transition-shadow hover:shadow-lg track-card"
+              style={{ boxShadow: 'var(--shadow-md)' }}
             >
               <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>SELLER</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg" style={{ background: 'linear-gradient(135deg,#7c3aed,#a78bfa)' }}>P</div>
                 <div>
-                  <p className="font-bold text-base" style={{ color: '#111827' }}>Premium Store</p>
-                  <p className="text-xs" style={{ color: '#6b7280' }}>⭐ 4.9 · 247 sales</p>
+                  <p className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+                    Premium Store
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    ⭐ 4.9 · 247 sales
+                  </p>
                   <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: '#10b981' }}>🟢 Online Now</p>
                 </div>
               </div>
-              <p className="text-xs mt-2" style={{ color: '#6b7280' }}>Quality products with fast shipping.</p>
+              <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
+                Quality products with fast shipping.
+              </p>
               <Link to="/search" className="inline-block mt-3 text-sm font-semibold" style={{ color: PRIMARY }}>Visit Store →</Link>
             </motion.div>
 
@@ -297,16 +424,22 @@ export default function OrderTracking() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.1, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 bg-[var(--card-bg)]"
-              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
+              className="rounded-2xl p-5 bg-[var(--card-bg)] track-card"
+              style={{ boxShadow: 'var(--shadow-md)' }}
             >
               <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Shipping To</p>
               <div className="flex gap-2">
                 <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: PRIMARY }} />
                 <div>
-                  <p className="font-semibold text-sm" style={{ color: '#111827' }}>John Doe</p>
-                  <p className="text-sm" style={{ color: '#374151' }}>123 Main Street, City, State 12345</p>
-                  <button type="button" className="text-xs mt-1 hover:underline" style={{ color: '#6b7280' }}>Change Address</button>
+                  <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                    John Doe
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    123 Main Street, City, State 12345
+                  </p>
+                  <button type="button" className="text-xs mt-1 hover:underline" style={{ color: 'var(--text-muted)' }}>
+                    Change Address
+                  </button>
                   <p className="text-sm font-bold mt-2 flex items-center gap-1" style={{ color: SUCCESS }}>📅 Expected by March 5, 2026</p>
                 </div>
               </div>
@@ -322,9 +455,15 @@ export default function OrderTracking() {
             >
               <motion.span className="text-2xl flex-shrink-0 track-lock-rock" style={{ display: 'inline-block' }}>🛡️</motion.span>
               <div>
-                <p className="font-bold text-base" style={{ color: '#047857' }}>Escrow Protection Active</p>
-                <p className="text-xs mt-1" style={{ color: '#6b7280' }}>Payment is held securely. Funds released when you confirm delivery.</p>
-                <p className="text-xs font-semibold mt-3" style={{ color: '#374151' }}>Funds released when: You confirm delivery</p>
+                <p className="font-bold text-base" style={{ color: '#047857' }}>
+                  Escrow Protection Active
+                </p>
+                <p className="text-xs mt-1" style={{ color: '#6b7280' }}>
+                  Payment is held securely. Funds released when you confirm delivery.
+                </p>
+                <p className="text-xs font-semibold mt-3" style={{ color: '#374151' }}>
+                  Funds released when: You confirm delivery
+                </p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <span className="px-2 py-1 rounded-lg text-xs font-medium text-white" style={{ background: SUCCESS }}>Held ✓</span>
                   <span className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: '#e5e7eb', color: '#6b7280' }}>Delivered</span>
@@ -363,19 +502,32 @@ export default function OrderTracking() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.25, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 bg-[var(--card-bg)]"
-              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
+              className="rounded-2xl p-5 bg-[var(--card-bg)] track-card"
+              style={{ boxShadow: 'var(--shadow-md)' }}
             >
-              <h3 className="font-bold text-sm mb-4" style={{ color: '#111827' }}>Delivery Notifications</h3>
+              <h3 className="font-bold text-sm mb-4" style={{ color: '#111827' }}>
+                Delivery Notifications
+              </h3>
               {['sms', 'email', 'push'].map((key) => (
                 <div key={key} className="flex items-center justify-between py-2">
-                  <span className="text-sm capitalize" style={{ color: '#374151' }}>{key === 'sms' ? 'SMS updates' : key === 'email' ? 'Email updates' : 'Push notifications'}</span>
+                  <span className="text-sm capitalize" style={{ color: 'var(--text-secondary)' }}>
+                    {key === 'sms'
+                      ? 'SMS updates'
+                      : key === 'email'
+                      ? 'Email updates'
+                      : 'Push notifications'}
+                  </span>
                   <button type="button" onClick={() => setNotifications((n) => ({ ...n, [key]: !n[key] }))} className={`w-11 h-6 rounded-full transition-colors relative ${notifications[key] ? '' : 'bg-gray-300'}`} style={{ background: notifications[key] ? PRIMARY : undefined }}>
                     <motion.span layout className="absolute top-1 w-4 h-4 rounded-full bg-[var(--card-bg)] shadow" style={{ left: notifications[key] ? 22 : 4 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
                   </button>
                 </div>
               ))}
-              <p className="text-xs mt-2" style={{ color: '#6b7280' }}>Get notified at: thierryntwari02@gmail.com <button type="button" className="underline ml-1" style={{ color: PRIMARY }}>Edit</button></p>
+              <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                Get notified at: thierryntwari02@gmail.com{' '}
+                <button type="button" className="underline ml-1" style={{ color: PRIMARY }}>
+                  Edit
+                </button>
+              </p>
             </motion.div>
 
             {/* ═══ TIER 8: Need Help ═══ */}

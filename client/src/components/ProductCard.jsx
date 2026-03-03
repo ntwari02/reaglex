@@ -45,11 +45,11 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.45, delay: index * 0.07 }}
-      whileHover={{ y: -6, boxShadow: '0 24px 50px rgba(0,0,0,0.12)' }}
-      className="relative rounded-3xl overflow-hidden group"
+      whileHover={{ y: -4, scale: 1.02, boxShadow: 'var(--shadow-hover)' }}
+      className="relative rounded-3xl overflow-hidden group product-card"
       style={{
-        background: 'white',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.07)',
+        background: 'var(--card-bg)',
+        boxShadow: 'var(--shadow-md)',
         cursor: 'pointer',
       }}
       onClick={onViewProduct ? handleViewProduct : undefined}
@@ -115,8 +115,12 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
         <div className={compact ? 'p-2.5' : 'p-4'}>
           {/* Name */}
           <h3
-            className="font-semibold truncate"
-            style={{ color: '#1a1a1a', fontSize: compact ? '11px' : '14px', marginBottom: compact ? '2px' : '4px' }}
+            className="font-semibold truncate product-title"
+            style={{
+              color: 'var(--text-primary)',
+              fontSize: compact ? '11px' : '14px',
+              marginBottom: compact ? '2px' : '4px',
+            }}
           >
             {name}
           </h3>
@@ -134,7 +138,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
                   />
                 ))}
               </div>
-              <span style={{ fontSize: '11px', color: '#9ca3af' }}>({reviews})</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>({reviews})</span>
             </div>
           )}
 
@@ -142,8 +146,8 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
           <div className="flex items-center justify-between gap-1.5">
             <div className="min-w-0">
               <span
-                className="font-black"
-                style={{ color: '#1a1a1a', fontSize: compact ? '12px' : '16px' }}
+                className="font-black product-price"
+                style={{ color: 'var(--text-primary)', fontSize: compact ? '12px' : '16px' }}
               >
                 ${price.toFixed(2)}
               </span>
