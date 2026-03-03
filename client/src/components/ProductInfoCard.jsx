@@ -18,12 +18,11 @@ export default function ProductInfoCard({ product }) {
       animate={{ opacity: 1, x: 0, y: 0 }}
       transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
       whileHover={{ y: -6 }}
-      className="rounded-3xl overflow-hidden"
+      className="rounded-3xl overflow-hidden overview-card"
       style={{
-        background: 'rgba(255,255,255,0.95)',
-        backdropFilter: 'blur(20px)',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
-        border: '1px solid rgba(255,255,255,0.8)',
+        background: 'var(--card-bg)',
+        boxShadow: 'var(--shadow-md)',
+        border: 'none',
         width: '100%',
         maxWidth: '260px',
       }}
@@ -52,8 +51,10 @@ export default function ProductInfoCard({ product }) {
             <Star className="w-3 h-3 text-white mt-0.5" fill="white" />
           </motion.div>
           <div>
-            <p className="text-xs font-bold" style={{ color: '#1a1a1a' }}>{sellerName}</p>
-            <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>
+            <p className="text-xs font-bold product-title" style={{ color: 'var(--text-primary)' }}>
+              {sellerName}
+            </p>
+            <p className="text-xs mt-0.5 text-muted" style={{ color: 'var(--text-muted)' }}>
               {reviews} reviews
             </p>
             <div className="flex mt-1">
@@ -70,7 +71,7 @@ export default function ProductInfoCard({ product }) {
         </div>
 
         {/* Description */}
-        <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+        <p className="text-xs leading-relaxed product-description" style={{ color: 'var(--text-secondary)' }}>
           {description}
         </p>
 
@@ -92,7 +93,7 @@ export default function ProductInfoCard({ product }) {
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-            style={{ background: '#f9fafb', color: '#9ca3af' }}
+            style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}
           >
             <ThumbsDown className="w-3.5 h-3.5" />
             {Math.floor(likes * 0.08)}
@@ -103,11 +104,15 @@ export default function ProductInfoCard({ product }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Shield className="w-3.5 h-3.5" style={{ color: '#6c63ff' }} />
-            <span className="text-xs" style={{ color: '#6b7280' }}>Buyer protection guaranteed</span>
+            <span className="text-xs text-muted" style={{ color: 'var(--text-secondary)' }}>
+              Buyer protection guaranteed
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Truck className="w-3.5 h-3.5" style={{ color: '#6c63ff' }} />
-            <span className="text-xs" style={{ color: '#6b7280' }}>Fast & free shipping</span>
+            <span className="text-xs text-muted" style={{ color: 'var(--text-secondary)' }}>
+              Fast & free shipping
+            </span>
           </div>
         </div>
       </div>

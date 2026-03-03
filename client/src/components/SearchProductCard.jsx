@@ -63,20 +63,22 @@ export function SearchProductCard({ product, index = 0 }) {
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, ease, delay: index * 0.08 }}
       whileHover={{
-        y: -6,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+        y: -4,
+        scale: 1.02,
+        boxShadow: 'var(--shadow-hover)',
         transition: { duration: 0.3, ease },
       }}
-      className="relative rounded-2xl overflow-hidden bg-white dark:bg-gray-800 group search-card-group cursor-pointer transition-colors duration-300"
+      className="relative rounded-2xl overflow-hidden group search-card-group cursor-pointer transition-colors duration-300"
       style={{
-        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+        background: 'var(--card-bg)',
+        boxShadow: 'var(--shadow-md)',
         willChange: 'transform',
       }}
     >
       <Link to={`/products/${id}`} className="block">
         {/* Image container: 220px height, no padding */}
         <div
-          className="relative overflow-hidden bg-gray-50 dark:bg-gray-700"
+          className="relative overflow-hidden bg-[var(--bg-tertiary)]"
           style={{ height: 220 }}
         >
           <motion.img

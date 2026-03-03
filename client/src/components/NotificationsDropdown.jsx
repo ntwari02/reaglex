@@ -108,11 +108,22 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -5 }}
             transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
-            className="absolute right-0 top-full mt-2 w-[380px] max-h-[520px] flex flex-col rounded-[20px] bg-white border border-gray-100 overflow-hidden z-[200]"
-            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
+            className="absolute right-0 top-full mt-2 w-[380px] max-h-[520px] flex flex-col rounded-[20px] overflow-hidden z-[200]"
+            style={{
+              boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+              background: 'var(--card-bg)',
+              border: '1px solid var(--divider-strong)',
+              color: 'var(--text-primary)',
+            }}
           >
             {/* Arrow pointer */}
-            <div className="absolute -top-2 right-6 w-4 h-4 rotate-45 bg-white border-l border-t border-gray-100" />
+            <div
+              className="absolute -top-2 right-6 w-4 h-4 rotate-45 border-l border-t"
+              style={{
+                background: 'var(--card-bg)',
+                borderColor: 'var(--divider-strong)',
+              }}
+            />
 
             {/* Header */}
             <div className="flex-shrink-0 px-5 py-4 border-b" style={{ borderColor: '#f4f5f7' }}>

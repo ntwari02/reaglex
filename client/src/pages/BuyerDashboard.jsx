@@ -10,7 +10,6 @@ import {
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import AccountSettingsDashboard from '../components/AccountSettingsDashboard';
 import { useAuthStore } from '../stores/authStore';
-import { useAuthModal } from '../stores/authModalStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useWishlistStore } from '../stores/wishlistStore';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -1032,7 +1031,6 @@ export default function BuyerDashboard() {
 
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
-  const openAuth = useAuthModal((s) => s.open);
   const recentItems = useRecentlyViewed((s) => s.items);
   const clearRecent = useRecentlyViewed((s) => s.clear);
   const wishlistItems = useWishlistStore((s) => s.items);
@@ -1085,7 +1083,7 @@ export default function BuyerDashboard() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => openAuth('login')}
+            onClick={() => navigate('/login')}
             className="px-6 py-3 rounded-xl text-white text-sm font-semibold"
             style={{ background: PRIMARY, boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
           >

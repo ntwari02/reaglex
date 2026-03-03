@@ -116,8 +116,8 @@ function SidebarContent({
                   onClick={() => setPriceRange(active ? null : r)}
                   className={`relative w-full text-left px-3 py-2 rounded-full text-xs font-medium overflow-hidden transition-colors ${
                     active
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-[var(--bg-secondary)] dark:bg-gray-700 text-[var(--text-secondary)] dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:text-orange-600 dark:hover:text-orange-400'
+                      ? 'bg-[#3b82f6] text-white shadow-sm'
+                      : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[#bfdbfe]'
                   }`}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -172,13 +172,13 @@ function SidebarContent({
           </p>
           <div className="space-y-1.5">
             {ALL_CATEGORIES.map(cat => (
-              <label key={cat} className="flex items-center gap-2 cursor-pointer">
+              <label key={cat} className="flex items-center gap-2 cursor-pointer rounded-md px-1 py-1 hover:bg-[var(--bg-tertiary)] transition-colors">
                 <input
                   type="checkbox"
                   checked={categories?.includes(cat) || false}
                   onChange={() => toggleCategory(cat)}
-                  className="rounded border-gray-300 dark:border-gray-600"
-                  style={{ accentColor: '#f97316' }}
+                  className="rounded border-gray-500/60"
+                  style={{ accentColor: '#3b82f6' }}
                 />
                 <span className="text-xs text-[var(--text-secondary)] dark:text-gray-300">{cat}</span>
               </label>
@@ -191,13 +191,13 @@ function SidebarContent({
         {/* Free Shipping */}
         <div>
           <p className="text-xs font-bold uppercase tracking-wider mb-2 text-[var(--text-faint)]">Free Shipping</p>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 cursor-pointer rounded-md px-1 py-1 hover:bg-[var(--bg-tertiary)] transition-colors">
             <input
               type="checkbox"
               checked={freeShipping || false}
               onChange={(e) => setFreeShipping(e.target.checked)}
-              className="rounded border-gray-300 dark:border-gray-600"
-              style={{ accentColor: '#f97316' }}
+              className="rounded border-gray-500/60"
+              style={{ accentColor: '#3b82f6' }}
             />
             <span className="text-xs text-[var(--text-secondary)] dark:text-gray-300">Free Shipping Only</span>
           </label>
@@ -217,8 +217,8 @@ function SidebarContent({
                   onClick={() => setMinRating(active ? null : r)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors ${
                     active
-                      ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-400'
-                      : 'border border-transparent hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-700'
+                      ? 'bg-[#0b1120] border border-[#3b82f6]/80 shadow-sm'
+                      : 'border border-transparent hover:bg-[var(--bg-tertiary)]'
                   }`}
                   whileTap={active ? {} : { scale: 0.99 }}
                 >
@@ -506,7 +506,7 @@ export default function SearchResults() {
         }}
       >
         {/* Page background */}
-        <div className="absolute inset-0 -z-10 bg-[var(--bg-secondary)] dark:bg-gray-950 transition-colors duration-300" />
+        <div className="absolute inset-0 -z-10 bg-[var(--bg-page)] transition-colors duration-300" />
 
         {/* ════════ CONTENT AREA (sidebar + product list) — no duplicate search bar ════════ */}
         <div
@@ -568,7 +568,7 @@ export default function SearchResults() {
               style={{ ...CARD, paddingBottom: 12 }}
             >
                 {/* In-page search bar */}
-                <form onSubmit={handlePageSearchSubmit} className="flex-1 min-w-0 max-w-sm flex items-center gap-2 rounded-lg border border-[var(--divider-strong)] overflow-hidden bg-[var(--bg-secondary)] dark:bg-gray-700">
+                <form onSubmit={handlePageSearchSubmit} className="search-page-bar flex-1 min-w-0 max-w-sm flex items-center gap-2 rounded-lg border border-[var(--divider-strong)] overflow-hidden bg-[var(--bg-secondary)] dark:bg-gray-700">
                   <Search className="w-4 h-4 flex-shrink-0 ml-3 text-[var(--text-muted)]" />
                   <input
                     type="text"
@@ -603,7 +603,7 @@ export default function SearchResults() {
                   {/* Mobile filter button */}
                   <button
                     onClick={() => setDrawerOpen(!drawerOpen)}
-                    className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition text-[var(--text-secondary)] dark:text-gray-300 border-[var(--divider-strong)] ${hasFilters ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-[var(--card-bg)] dark:bg-gray-700'}`}
+                    className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition text-[var(--text-secondary)] border-[var(--divider-strong)] ${hasFilters ? 'bg-[#0b1120] text-[#bfdbfe] border-[#3b82f6]' : 'bg-[var(--card-bg)]'}`}
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
                     Filters{hasFilters ? ' •' : ''}
@@ -674,7 +674,7 @@ export default function SearchResults() {
                         key={tag.key}
                         layout
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                        style={{ background: '#fff7ed', color: '#f97316', border: '1px solid #fed7aa' }}
+                        style={{ background: '#020617', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.55)', boxShadow: '0 0 0 1px rgba(15,23,42,0.9)' }}
                       >
                         {tag.label}
                         <button type="button" onClick={tag.remove} className="p-0.5 rounded-full hover:bg-orange-200 transition" aria-label="Remove filter">
@@ -759,10 +759,10 @@ export default function SearchResults() {
                     🔍
                   </motion.div>
                   <h3 className="font-bold text-lg mb-2 text-[var(--text-primary)]">
-                    No products found 😔
+                    No products found
                   </h3>
                   <p className="text-sm mb-6 text-[var(--text-muted)]">
-                    Try adjusting your filters
+                    No products found. Try adjusting your filters.
                   </p>
                   {hasFilters && (
                     <motion.button
