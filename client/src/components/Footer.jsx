@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Facebook, Twitter, Instagram, Linkedin, Youtube, Music2, Mail, Phone, Clock,
   ChevronRight, Lock, CheckCircle, Building2, Send,
 } from 'lucide-react';
+import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 
 const PRIMARY = '#f97316';
 const FOOTER_BG = 'linear-gradient(180deg, #020617, #0f172a)';
@@ -49,6 +50,63 @@ function FooterLink({ to, children }) {
     >
       {children}
     </Link>
+  );
+}
+
+function SellerFooterLink({ label, href, protectedLink, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const baseColor = '#848aaa';
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Link
+        to={href}
+        onClick={onClick}
+        className="block text-sm leading-[2] transition-colors duration-200 ease-out"
+        style={{
+          color: hovered ? PRIMARY : baseColor,
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+        }}
+      >
+        <span>{label}</span>
+        {protectedLink && (
+          <span
+            style={{
+              fontSize: 11,
+              marginLeft: 6,
+              color: 'var(--text-faint)',
+            }}
+          >
+            🔒
+          </span>
+        )}
+      </Link>
+      {protectedLink && hovered && (
+        <div
+          className="absolute -top-2 -translate-y-full left-0 z-20"
+        >
+          <div
+            style={{
+              background: '#111420',
+              color: '#eceef8',
+              borderRadius: 8,
+              padding: '6px 12px',
+              fontSize: 12,
+              boxShadow: 'var(--shadow-md)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Seller account required
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -113,12 +171,12 @@ const ACCOUNT_LINKS = [
 ];
 
 const SELL_LINKS = [
-  { label: 'Become a Seller', href: '/seller' },
-  { label: 'Seller Dashboard', href: '/seller' },
-  { label: 'Seller Guidelines', href: '/seller#guidelines' },
-  { label: 'Fees & Pricing', href: '/seller#fees' },
-  { label: 'Seller Protection', href: '/seller#protection' },
-  { label: 'Advertise with Us', href: '/seller#advertise' },
+  { label: 'Become a Seller', href: '/become-seller', protected: false },
+  { label: 'Seller Dashboard', href: '/seller', protected: true },
+  { label: 'Seller Guidelines', href: '/seller/guidelines', protected: false },
+  { label: 'Fees & Pricing', href: '/seller/fees', protected: false },
+  { label: 'Seller Protection', href: '/seller/protection', protected: true },
+  { label: 'Advertise with Us', href: '/seller/advertise', protected: false },
 ];
 
 const SUPPORT_LINKS = [
@@ -126,10 +184,10 @@ const SUPPORT_LINKS = [
   { label: 'Contact Us', href: '/contact' },
   { label: 'Track My Order', href: '/track' },
   { label: 'FAQ', href: '/faq' },
-  { label: 'Report a Problem', href: '/report' },
-  { label: 'Buyer Protection', href: '/protection' },
+  { label: 'Report a Problem', href: '/report-problem' },
+  { label: 'Buyer Protection', href: '/buyer-protection' },
   { label: 'Privacy Policy', href: '/privacy' },
-  { label: 'Cookie Settings', href: '/cookies' },
+  { label: 'Cookie Settings', href: '/cookie-settings' },
 ];
 
 const SOCIAL_LINKS = [
@@ -153,6 +211,9 @@ const BOTTOM_LINKS = [
 export default function Footer() {
   const [email, setEmail] = useState('');
   const currentYear = new Date().getFullYear();
+  const navigate = useNavigate();
+  const { isLoggedIn, isSeller } = useSellerAccess();
+  const handleSellerLink = useHandleSellerLink();
 
   const handleNewsletterSubmit = (e) => {
     e.preventDefault();
@@ -326,12 +387,22 @@ export default function Footer() {
             <div>
               <ColumnHeading>Sell with us</ColumnHeading>
               <nav className="flex flex-col mb-4">
-                {SELL_LINKS.map(({ label, href }) => (
-                  <FooterLink key={label} to={href}>{label}</FooterLink>
+                {SELL_LINKS.map(({ label, href, protected: protectedLink }) => (
+                  <SellerFooterLink
+                    key={label}
+                    label={label}
+                    href={href}
+                    protectedLink={protectedLink}
+                    onClick={protectedLink
+                      ? (e) => {
+                          handleSellerLink(e, href);
+                        }
+                      : undefined}
+                  />
                 ))}
               </nav>
               <Link
-                to="/seller"
+                to={isSeller ? '/seller' : '/become-seller'}
                 className="inline-flex items-center justify-center gap-2 w-full font-bold text-white text-[15px] tracking-[0.03em] footer-cta transition-all duration-200"
                 style={{
                   background: `linear-gradient(135deg, #ff8c2a, ${PRIMARY}, #ea580c)`,
@@ -349,18 +420,33 @@ export default function Footer() {
             <div>
               <ColumnHeading>Support</ColumnHeading>
               <nav className="flex flex-col mb-6">
-                {SUPPORT_LINKS.map(({ label, href }) => (
-                  <FooterLink key={label} to={href}>{label}</FooterLink>
-                ))}
+                {SUPPORT_LINKS.map(({ label, href }) => {
+                  if (href === '/help') {
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => window.dispatchEvent(new Event('reaglex-open-help-chat'))}
+                        className="text-sm mb-1 text-left"
+                        style={{ color: BODY_COLOR, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  }
+                  return (
+                    <FooterLink key={label} to={href}>{label}</FooterLink>
+                  );
+                })}
               </nav>
               <div className="space-y-2 text-sm" style={{ color: BODY_COLOR }}>
                 <p className="flex items-center gap-2">
                   <Mail className="w-4 h-4 flex-shrink-0" style={{ color: PRIMARY }} />
-                  support@reaglex.com
+                  reaglerobust2020@gmail.com
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="w-4 h-4 flex-shrink-0" style={{ color: PRIMARY }} />
-                  +250 xxx xxx xxx
+                  +250787057751
                 </p>
                 <p className="flex items-center gap-2">
                   <Clock className="w-4 h-4 flex-shrink-0" style={{ color: PRIMARY }} />

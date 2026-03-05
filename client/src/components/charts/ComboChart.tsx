@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ComboChartData {
@@ -12,24 +12,43 @@ interface ComboChartProps {
   title?: string;
   barLabel?: string;
   lineLabel?: string;
-  barColor?: string;
   lineColor?: string;
   height?: number;
 }
 
 export function ComboChart({
-  data,
+  data: rawData,
   title,
   barLabel = 'Bar Data',
   lineLabel = 'Line Data',
-  barColor = 'from-orange-500 to-orange-600',
   lineColor = '#22c55e',
   height = 300,
 }: ComboChartProps) {
+  const data = Array.isArray(rawData) ? rawData.filter((d) => Number.isFinite(d.barValue) || Number.isFinite(d.lineValue)) : [];
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const maxBarValue = Math.max(...data.map(d => d.barValue));
-  const maxLineValue = Math.max(...data.map(d => d.lineValue));
-  const maxValue = Math.max(maxBarValue, maxLineValue);
+
+  // If there is no valid data, render a simple empty state instead of an SVG with NaN values
+  if (!data.length) {
+    return (
+      <div className="w-full">
+        {title && (
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            {title}
+          </h3>
+        )}
+        <div className="flex h-40 items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+          No data available.
+        </div>
+      </div>
+    );
+  }
+
+  const maxBarValue = Math.max(...data.map((d) => d.barValue));
+  const maxLineValue = Math.max(...data.map((d) => d.lineValue));
+  let maxValue = Math.max(maxBarValue, maxLineValue);
+  if (!Number.isFinite(maxValue) || maxValue <= 0) {
+    maxValue = 1;
+  }
   const chartHeight = height - 90;
   const chartWidth = Math.max(data.length * 80, 600);
   const barSpacing = chartWidth / data.length;
@@ -54,7 +73,8 @@ export function ComboChart({
     ? `${linePath} L ${linePoints[linePoints.length - 1].x} ${chartHeight} L ${linePoints[0].x} ${chartHeight} Z`
     : '';
 
-  const averageLineValue = data.reduce((sum, point) => sum + point.lineValue, 0) / data.length;
+  const averageLineValue =
+    data.reduce((sum, point) => sum + point.lineValue, 0) / data.length;
   const averageLineY = getLineY(averageLineValue);
   const tooltipPoint = hoveredIndex !== null ? data[hoveredIndex] : null;
   const tooltipXPercent =

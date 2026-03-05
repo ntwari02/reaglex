@@ -10,23 +10,47 @@ import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
 import SellerDashboard from './components/SellerDashboard';
+import SellerRoute from './components/SellerRoute';
 import AdminDashboard from './components/AdminDashboard';
 import { useAuthStore } from './stores/authStore';
 import { ToastNotification } from './components/ToastNotification';
+// @ts-ignore JSX module without TS typings
 import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
+import HelpChatWidget from './components/HelpChatWidget';
 
 // ── Buyer pages (lazy) ────────────────────────────────────────────────────────
+// @ts-ignore JSX modules without TS typings
 const BuyerHome            = lazy(() => import('./pages/Home'));
+// @ts-ignore JSX modules without TS typings
 const BuyerProductDetail   = lazy(() => import('./pages/ProductDetail'));
+// @ts-ignore JSX modules without TS typings
 const SearchResults        = lazy(() => import('./pages/SearchResults'));
+// @ts-ignore JSX modules without TS typings
 const Checkout             = lazy(() => import('./pages/Checkout'));
+// @ts-ignore JSX modules without TS typings
 const OrderConfirmation    = lazy(() => import('./pages/OrderConfirmation'));
+// @ts-ignore JSX modules without TS typings
 const OrderTracking        = lazy(() => import('./pages/OrderTracking'));
+// @ts-ignore JSX modules without TS typings
 const BuyerDashboard       = lazy(() => import('./pages/BuyerDashboard'));
+// @ts-ignore JSX modules without TS typings
 const Returns              = lazy(() => import('./pages/Returns'));
+// @ts-ignore JSX modules without TS typings
 const Messages             = lazy(() => import('./pages/Messages'));
+// @ts-ignore JSX modules without TS typings
 const BuyerNotifications   = lazy(() => import('./pages/BuyerNotifications'));
+// @ts-ignore JSX modules without TS typings
+const Contact              = lazy(() => import('./pages/Contact'));
+const ReportProblem        = lazy(() => import('./pages/ReportProblem'));
+const SellerFees           = lazy(() => import('./pages/SellerFees'));
+const BuyerProtection      = lazy(() => import('./pages/BuyerProtection'));
+const CookieSettings       = lazy(() => import('./pages/CookieSettings'));
+const BecomeSeller         = lazy(() => import('./pages/BecomeSeller'));
+const SellerProtection     = lazy(() => import('./pages/seller/SellerProtection'));
+const SellerGuidelines     = lazy(() => import('./pages/seller/SellerGuidelines'));
+const SellerAdvertise      = lazy(() => import('./pages/seller/AdvertiseWithUs'));
+const SellerPending        = lazy(() => import('./pages/seller/SellerPending'));
 
 const PageLoader = () => (
   <div
@@ -48,6 +72,7 @@ function App() {
         <ToastNotification />
         <CartDrawer />
         <AuthModal />
+        <HelpChatWidget />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* ── Buyer / Storefront ── */}
@@ -63,6 +88,23 @@ function App() {
             <Route path="/notifications"               element={<BuyerNotifications />} />
             <Route path="/returns"                     element={<Returns />} />
             <Route path="/messages"                    element={<Messages />} />
+            <Route path="/help"                        element={<BuyerHome />} />
+            <Route path="/contact"                     element={<Contact />} />
+            <Route path="/report-problem"              element={<ReportProblem />} />
+            <Route path="/report-problem/:ticketId"    element={<ReportProblem />} />
+            <Route path="/seller/fees"                 element={<SellerFees />} />
+            <Route path="/buyer-protection"            element={<BuyerProtection />} />
+            <Route path="/cookie-settings"             element={<CookieSettings />} />
+            <Route path="/seller/protection"           element={(
+              <SellerRoute>
+                <SellerProtection />
+              </SellerRoute>
+            )}
+            />
+            <Route path="/seller/guidelines"           element={<SellerGuidelines />} />
+            <Route path="/seller/advertise"            element={<SellerAdvertise />} />
+            <Route path="/seller/pending"              element={<SellerPending />} />
+            <Route path="/become-seller"               element={<BecomeSeller />} />
             <Route path="/cart"                        element={<Navigate to="/" replace />} />
 
             {/* ── Auth (full pages) ── */}
@@ -77,7 +119,14 @@ function App() {
             <Route path="/auth/google/select-role" element={<SelectRole />} />
 
             {/* ── Dashboards ── */}
-            <Route path="/seller/*" element={<SellerDashboard />} />
+            <Route
+              path="/seller/*"
+              element={(
+                <SellerRoute>
+                  <SellerDashboard />
+                </SellerRoute>
+              )}
+            />
             <Route path="/admin/*"  element={<AdminDashboard />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />

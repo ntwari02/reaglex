@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, EyeOff, User, Briefcase, Mail, Lock, Check, ArrowRight, AlertCircle } from 'lucide-react';
+import { X, Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuthModal } from '../stores/authModalStore';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';

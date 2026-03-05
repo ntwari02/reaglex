@@ -260,7 +260,7 @@ export default function ProductDetail() {
             className="space-y-4"
           >
             <div
-              className="relative rounded-2xl overflow-hidden bg-[var(--card-bg)] cursor-zoom-in"
+              className="relative rounded-2xl overflow-hidden bg-[var(--card-bg)] cursor-zoom-in product-image-wrapper"
               style={{ height: 480, boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
               onClick={() => setLightbox(true)}
             >
@@ -385,15 +385,15 @@ export default function ProductDetail() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: STAGGER.seller, duration: 0.4, ease }}
-              className="p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)] hover:shadow-md transition-shadow"
+              className="p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)] hover:shadow-md transition-shadow product-overview-card"
               style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
             >
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: '#7c3aed' }}>P</div>
                   <div>
-                    <p className="font-bold text-sm" style={{ color: '#111827' }}>{seller}</p>
-                    <p className="text-xs" style={{ color: '#6b7280' }}>⭐ 4.9 seller · 247 sales</p>
+                    <p className="font-bold text-sm product-overview-seller" style={{ color: '#111827' }}>{seller}</p>
+                    <p className="text-xs product-overview-sub" style={{ color: '#6b7280' }}>⭐ 4.9 seller · 247 sales</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -443,10 +443,34 @@ export default function ProductDetail() {
             {/* Quantity */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.selectors + 0.1 }} className="flex items-center gap-3">
               <span className="text-sm font-semibold" style={{ color: '#374151' }}>Quantity</span>
-              <motion.div animate={quantityShake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }} transition={{ duration: 0.4 }} className="flex items-center rounded-xl border-2 border-[var(--divider)] overflow-hidden bg-[var(--card-bg)]">
-                <button type="button" onClick={decrementQty} className="w-12 h-12 flex items-center justify-center hover:bg-orange-50 transition-colors" style={{ color: '#374151' }}><Minus className="w-4 h-4" /></button>
-                <span className="w-14 text-center font-bold text-lg" style={{ color: '#111827' }}>{quantity}</span>
-                <button type="button" onClick={() => setQuantity((q) => Math.min(stock || 99, q + 1))} disabled={quantity >= (stock || 99)} className="w-12 h-12 flex items-center justify-center hover:bg-orange-50 transition-colors disabled:opacity-40" style={{ color: '#374151' }}><Plus className="w-4 h-4" /></button>
+              <motion.div
+                animate={quantityShake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                transition={{ duration: 0.4 }}
+                className="flex items-center rounded-xl border-2 border-[var(--divider)] overflow-hidden bg-[var(--card-bg)] quantity-control"
+              >
+                <button
+                  type="button"
+                  onClick={decrementQty}
+                  className="w-12 h-12 flex items-center justify-center hover:bg-orange-50 transition-colors quantity-btn"
+                  style={{ color: '#374151' }}
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span
+                  className="w-14 text-center font-bold text-lg quantity-value"
+                  style={{ color: '#111827' }}
+                >
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.min(stock || 99, q + 1))}
+                  disabled={quantity >= (stock || 99)}
+                  className="w-12 h-12 flex items-center justify-center hover:bg-orange-50 transition-colors disabled:opacity-40 quantity-btn"
+                  style={{ color: '#374151' }}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
               </motion.div>
             </motion.div>
 
@@ -467,7 +491,7 @@ export default function ProductDetail() {
                 {addState === 'adding' && 'Adding...'}
                 {addState === 'added' && 'Added to Cart ✓'}
               </motion.button>
-              <motion.button type="button" onClick={() => setWishlisted(!wishlisted)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-14 h-14 rounded-xl flex items-center justify-center border-2 bg-[var(--card-bg)]" style={{ borderColor: wishlisted ? '#ef4444' : '#e5e7eb' }} title="Save to Wishlist">
+              <motion.button type="button" onClick={() => setWishlisted(!wishlisted)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-14 h-14 rounded-xl flex items-center justify-center border-2 bg-[var(--card-bg)] wishlist-btn" style={{ borderColor: wishlisted ? '#ef4444' : '#e5e7eb' }} title="Save to Wishlist">
                 <Heart className="w-5 h-5" fill={wishlisted ? '#ef4444' : 'none'} stroke={wishlisted ? '#ef4444' : '#374151'} />
               </motion.button>
             </motion.div>
@@ -502,15 +526,29 @@ export default function ProductDetail() {
         </div>
 
         {/* ═══ TIER 5: Tabs ═══ */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.tabs, duration: 0.4, ease }} className="rounded-2xl overflow-hidden bg-[var(--card-bg)] mb-16" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-          <div className="relative flex border-b border-[var(--divider)]">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: STAGGER.tabs, duration: 0.4, ease }}
+          className="rounded-2xl overflow-hidden bg-[var(--card-bg)] mb-16 product-tabs"
+          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
+        >
+          <div className="relative flex border-b border-[var(--divider)] product-tabs-header">
             {TABS.map((t, i) => (
-              <button key={t.id} type="button" onClick={() => setTabIndex(i)} className="flex-1 py-4 text-sm font-semibold transition-colors" style={{ color: tabIndex === i ? PRIMARY : '#6b7280' }}>
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTabIndex(i)}
+                className={`flex-1 py-4 text-sm font-semibold transition-colors product-tab-btn ${
+                  tabIndex === i ? 'product-tab-btn--active' : ''
+                }`}
+                style={{ color: tabIndex === i ? PRIMARY : '#6b7280' }}
+              >
                 {t.id === 'reviews' ? `${t.label} (${reviewsCount})` : t.label}
               </button>
             ))}
             <motion.div
-              className="absolute bottom-0 left-0 h-0.5 rounded-full"
+              className="absolute bottom-0 left-0 h-0.5 rounded-full product-tabs-header-indicator"
               style={{ width: '25%', background: PRIMARY }}
               animate={{ x: `${tabIndex * 100}%` }}
               transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -520,7 +558,7 @@ export default function ProductDetail() {
             <AnimatePresence mode="wait">
               {tabIndex === 0 && (
                 <motion.div key="desc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-                  <p className="text-sm leading-relaxed mb-4" style={{ color: '#374151' }}>{product.description || 'No description available.'}</p>
+                  <p className="text-sm leading-relaxed mb-4 product-desc" style={{ color: '#374151' }}>{product.description || 'No description available.'}</p>
                   <h4 className="font-bold text-sm mb-2" style={{ color: '#111827' }}>Key Features</h4>
                   <ul className="space-y-2">
                     {['Premium quality materials', 'Fast shipping', '30-day returns'].map((f, i) => (
@@ -660,10 +698,10 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center rounded-lg border border-[var(--divider)]">
-                  <button type="button" onClick={decrementQty} className="w-9 h-9 flex items-center justify-center">−</button>
-                  <span className="w-8 text-center font-bold text-sm">{quantity}</span>
-                  <button type="button" onClick={() => setQuantity((q) => Math.min(stock || 99, q + 1))} className="w-9 h-9 flex items-center justify-center">+</button>
+                <div className="flex items-center rounded-lg border border-[var(--divider)] quantity-control">
+                  <button type="button" onClick={decrementQty} className="w-9 h-9 flex items-center justify-center quantity-btn">−</button>
+                  <span className="w-8 text-center font-bold text-sm quantity-value">{quantity}</span>
+                  <button type="button" onClick={() => setQuantity((q) => Math.min(stock || 99, q + 1))} className="w-9 h-9 flex items-center justify-center quantity-btn">+</button>
                 </div>
                 <button type="button" onClick={handleAddToCart} disabled={stock === 0} className="h-10 px-5 rounded-xl font-semibold text-white disabled:opacity-50" style={{ background: PRIMARY }}>Add to Cart</button>
               </div>

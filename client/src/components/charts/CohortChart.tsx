@@ -71,8 +71,7 @@ export function CohortChart({ data, title }: CohortChartProps) {
                 </td>
                 {allPeriods.map((period, colIndex) => {
                   const value = cohort.periods[period] || 0;
-                  const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
-                  
+
                   return (
                     <td
                       key={period}

@@ -1328,8 +1328,8 @@ const SupportCenter: React.FC = () => {
             <Mail className="w-8 h-8 text-gray-500 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Email Support</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Send us an email and we'll respond within 24 hours</p>
-            <a href="mailto:support@reaglex.com" className="block">
-              <Button variant="outline" className="w-full">support@reaglex.com</Button>
+            <a href="mailto:reaglerobust2020@gmail.com" className="block">
+              <Button variant="outline" className="w-full">reaglerobust2020@gmail.com</Button>
             </a>
           </div>
           <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/30">

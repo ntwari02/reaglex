@@ -41,7 +41,6 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
     (idx) => {
       const clamped = (idx + products.length) % products.length;
       setActiveIdx(clamped);
-      onSelect?.(products[clamped]);
       scrollCardIntoTrack(clamped);
     },
     [products, onSelect, scrollCardIntoTrack]
@@ -53,7 +52,6 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
     autoRef.current = setInterval(() => {
       setActiveIdx((prev) => {
         const next = (prev + 1) % products.length;
-        onSelect?.(products[next]);
         scrollCardIntoTrack(next);
         return next;
       });
@@ -68,12 +66,20 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
     autoRef.current = setInterval(() => {
       setActiveIdx((prev) => {
         const next = (prev + 1) % products.length;
-        onSelect?.(products[next]);
         scrollCardIntoTrack(next);
         return next;
       });
     }, AUTO_SLIDE_INTERVAL);
   }, [products, onSelect, scrollCardIntoTrack]);
+
+  // Notify parent when active product changes (after render)
+  useEffect(() => {
+    if (!onSelect || products.length === 0) return;
+    const current = products[activeIdx];
+    if (current) {
+      onSelect(current);
+    }
+  }, [activeIdx, products, onSelect]);
 
   if (products.length === 0) return null;
 

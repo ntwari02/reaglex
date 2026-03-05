@@ -5,7 +5,7 @@ import {
   Package, Heart, MapPin, CreditCard, Star, RotateCcw, User, ChevronRight,
   Truck, CheckCircle, Clock, ShoppingBag, Shield, ArrowUpRight, Edit3, Plus,
   Settings, LogOut, LayoutGrid, List, ChevronDown, Eye, Headphones, X, Copy,
-  Trash2, Check,
+  Trash2, Check, Search, Upload, ArrowLeft,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import AccountSettingsDashboard from '../components/AccountSettingsDashboard';
@@ -36,6 +36,50 @@ const STATUS = {
   processing: { bg: '#fff7ed', color: '#ea580c', label: 'Processing', icon: Clock },
   cancelled: { bg: '#fee2e2', color: '#dc2626', label: 'Cancelled', icon: RotateCcw },
 };
+
+const RETURN_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'pending', label: 'Pending' },
+  { id: 'approved', label: 'Approved' },
+  { id: 'rejected', label: 'Rejected' },
+  { id: 'completed', label: 'Completed' },
+];
+
+const RETURN_STATUS_META = {
+  PENDING: { label: 'Pending Review', bg: '#fef3c7', color: '#d97706' },
+  UNDER_REVIEW: { label: 'Under Review', bg: '#dbeafe', color: '#1d4ed8' },
+  APPROVED: { label: 'Approved', bg: '#dcfce7', color: '#16a34a' },
+  REJECTED: { label: 'Rejected', bg: '#fee2e2', color: '#dc2626' },
+  COMPLETED: { label: 'Completed', bg: '#e5e7eb', color: '#4b5563' },
+  REFUNDED: { label: 'Refunded', bg: '#dcfce7', color: '#16a34a' },
+};
+
+const MOCK_RETURNS = [
+  {
+    id: 'RET-0001',
+    orderId: 'ORD-1002',
+    date: 'Feb 25, 2026',
+    status: 'PENDING',
+    productName: 'Adidas Nova 3 Running Shoes',
+    variant: 'Size 42 · Black',
+    quantity: 1,
+    price: 29.0,
+    image: 'https://images.unsplash.com/photo-1528701800489-20be3c30c1d5?w=320&q=80',
+    reason: 'Wrong size / does not fit',
+    reasonTag: 'Wrong Size',
+    condition: 'Opened',
+    resolution: 'Full Refund',
+    refundAmount: 29.0,
+    timeline: [
+      { key: 'submitted', label: 'Return Submitted', at: 'Feb 25, 2026 · 10:32' },
+      { key: 'review', label: 'Under Review', at: 'Seller has 48 hours to respond' },
+      { key: 'response', label: 'Seller Response', at: null },
+      { key: 'decision', label: 'Return Approved / Rejected', at: null },
+      { key: 'shipped_back', label: 'Item Shipped Back', at: null },
+      { key: 'refunded', label: 'Refund Processed', at: null },
+    ],
+  },
+];
 
 const TAB_CONFIG = [
   { id: 'overview', label: 'Overview', icon: User },
@@ -112,6 +156,115 @@ function CurrencyCountUp({ value, duration = 0.8, delay = 0, prefix = '$' }) {
     return () => clearTimeout(id);
   }, [value, duration, delay]);
   return <span>{prefix}{display.toFixed(2)}</span>;
+}
+
+function ReturnsPolicySection() {
+  const [open, setOpen] = useState(true);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-[20px]"
+      style={{ background: 'var(--card-bg)', boxShadow: '0 12px 32px rgba(15,23,42,0.45)' }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-lg">📋</span>
+          <div className="text-left">
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Return Policy
+            </p>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              Last updated: Jan 2026
+            </p>
+          </div>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`}
+          style={{ color: 'var(--text-muted)' }}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-5 pb-5 space-y-4 text-sm"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                ['⏰ 30-Day Window', 'Return within 30 days of delivery'],
+                ['💰 Full Refund', 'Original payment method within 3-5 days'],
+                ['📦 Free Returns', 'We cover return shipping costs'],
+                ['🛡️ Buyer Protection', 'Protected by Reaglex escrow'],
+              ].map(([title, desc]) => (
+                <div
+                  key={title}
+                  className="rounded-[14px] px-4 py-3"
+                  style={{ background: 'var(--bg-tertiary)' }}
+                >
+                  <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                    {title}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div
+              className="rounded-[14px] px-4 py-3"
+              style={{ background: 'rgba(248,113,113,0.06)' }}
+            >
+              <p className="text-xs font-semibold mb-1" style={{ color: '#f97373' }}>
+                These items cannot be returned:
+              </p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Digital goods, perishables, custom orders, and intimate items are final sale and
+                cannot be returned.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-xs">
+              {[
+                ['Request', 'Submit a return request with photos and details.'],
+                ['Ship Back', 'If approved, ship the item back using the provided label.'],
+                ['Get Refund', 'Once received, your refund is processed in 3-5 days.'],
+              ].map(([title, desc], idx) => (
+                <div key={title} className="flex items-start gap-3 flex-1 min-w-[0]">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold"
+                    style={{
+                      background: 'rgba(249,115,22,0.1)',
+                      color: PRIMARY,
+                    }}
+                  >
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {title}
+                    </p>
+                    <p className="mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      {desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 }
 
 function PaymentsTabContent() {
@@ -679,7 +832,7 @@ function PaymentsTabContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: 'rgba(15,23,42,0.55)' }}
+            style={{ background: 'rgba(15,23,42,0.6)' }}
             onClick={() => setDisputeModalOpen(false)}
           >
             <motion.div
@@ -687,74 +840,120 @@ function PaymentsTabContent() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.96 }}
               transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-2xl bg-\[var\(--card-bg\)\] p-5 transition-colors duration-300"
+              className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-2xl p-5 transition-colors duration-300"
+              style={{ background: 'var(--card-bg)', boxShadow: '0 24px 72px rgba(0,0,0,0.8)' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
                   <p className="font-bold text-base text-[var(--text-primary)]">Raise Dispute</p>
-                  <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                     Order {selectedOrder.id} · Escrow will freeze and auto-release will pause after submission.
                   </p>
                 </div>
                 <button type="button" onClick={() => setDisputeModalOpen(false)}>
-                  <X className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  <X className="w-4 h-4 text-[var(--text-muted)]" />
                 </button>
               </div>
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Reason (required)</label>
+                  <label className="block font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
+                    Reason (required)
+                  </label>
                   <select
                     value={disputeForm.reason}
                     onChange={(e) => setDisputeForm((prev) => ({ ...prev, reason: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                    className="w-full px-3 py-2 rounded-lg border text-xs outline-none"
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      borderColor: 'var(--divider-strong)',
+                      color: 'var(--text-primary)',
+                    }}
                   >
                     <option value="">Select a reason</option>
-                    {disputeReasons.map((r) => <option key={r} value={r}>{r}</option>)}
+                    {disputeReasons.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
                   </select>
                   {disputeForm.reason === 'Other' && (
                     <input
                       value={disputeForm.otherReason}
                       onChange={(e) => setDisputeForm((prev) => ({ ...prev, otherReason: e.target.value }))}
                       placeholder="Please specify"
-                      className="mt-2 w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                      className="mt-2 w-full px-3 py-2 rounded-lg border text-xs outline-none placeholder-gray-400"
+                      style={{
+                        background: 'var(--bg-secondary)',
+                        borderColor: 'var(--divider-strong)',
+                        color: 'var(--text-primary)',
+                      }}
                     />
                   )}
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Detailed Description (min 30 chars)</label>
+                  <label className="block font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
+                    Detailed Description (min 30 chars)
+                  </label>
                   <textarea
                     value={disputeForm.description}
                     onChange={(e) => setDisputeForm((prev) => ({ ...prev, description: e.target.value }))}
                     rows={4}
                     placeholder="Describe the issue in detail..."
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                    className="w-full px-3 py-2 rounded-lg border resize-none text-xs outline-none placeholder-gray-400"
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      borderColor: 'var(--divider-strong)',
+                      color: 'var(--text-primary)',
+                    }}
                   />
-                  <p className={`mt-1 text-[11px] ${disputeForm.description.length >= 30 ? 'text-green-600 dark:text-green-400' : 'text-[var(--text-faint)]'}`}>
+                  <p
+                    className="mt-1 text-[11px]"
+                    style={{
+                      color:
+                        disputeForm.description.length >= 30 ? '#16a34a' : 'var(--text-faint)',
+                    }}
+                  >
                     {disputeForm.description.length}/30 minimum
                   </p>
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Evidence Upload (max 5 files, 10MB each)</label>
+                  <label className="block font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
+                    Evidence Upload (max 5 files, 10MB each)
+                  </label>
                   <input
                     type="file"
                     multiple
                     accept="image/*,video/*,.pdf,.doc,.docx"
                     onChange={(e) => handleEvidenceChange(e.target.files)}
-                    className="w-full text-xs text-[var(--text-secondary)]"
+                    className="w-full text-xs"
+                    style={{ color: 'var(--text-secondary)' }}
                   />
                   {disputeForm.evidence.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {disputeForm.evidence.map((f, idx) => (
-                        <div key={`${f.name}-${idx}`} className="flex items-center justify-between p-2 rounded border border-gray-200 dark:border-gray-600 bg-\[var\(--bg-secondary\)\] text-[11px] transition-colors">
-                          <span className="text-slate-600 dark:text-slate-300">{f.name}</span>
+                        <div
+                          key={`${f.name}-${idx}`}
+                          className="flex items-center justify-between p-2 rounded border text-[11px] transition-colors"
+                          style={{
+                            background: 'var(--bg-secondary)',
+                            borderColor: 'var(--divider-strong)',
+                          }}
+                        >
+                          <span style={{ color: 'var(--text-primary)' }}>{f.name}</span>
                           <button
                             type="button"
-                            onClick={() => setDisputeForm((prev) => ({ ...prev, evidence: prev.evidence.filter((_, i) => i !== idx) }))}
-                            className="text-red-500 dark:text-red-400 hover:text-red-600"
+                            onClick={() =>
+                              setDisputeForm((prev) => ({
+                                ...prev,
+                                evidence: prev.evidence.filter((_, i) => i !== idx),
+                              }))
+                            }
+                            className="hover:underline"
+                            style={{ color: '#ef4444' }}
                           >
                             Remove
                           </button>
@@ -766,11 +965,18 @@ function PaymentsTabContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Requested Resolution</label>
+                    <label className="block font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
+                      Requested Resolution
+                    </label>
                     <select
                       value={disputeForm.resolution}
                       onChange={(e) => setDisputeForm((prev) => ({ ...prev, resolution: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                      className="w-full px-3 py-2 rounded-lg border text-xs outline-none"
+                      style={{
+                        background: 'var(--bg-secondary)',
+                        borderColor: 'var(--divider-strong)',
+                        color: 'var(--text-primary)',
+                      }}
                     >
                       <option value="FULL_REFUND">Full refund</option>
                       <option value="PARTIAL_REFUND">Partial refund</option>
@@ -780,14 +986,21 @@ function PaymentsTabContent() {
                   </div>
                   {disputeForm.resolution === 'PARTIAL_REFUND' && (
                     <div>
-                      <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">Partial Amount</label>
+                      <label className="block font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
+                        Partial Amount
+                      </label>
                       <input
                         type="number"
                         min="0.01"
                         step="0.01"
                         value={disputeForm.partialAmount}
                         onChange={(e) => setDisputeForm((prev) => ({ ...prev, partialAmount: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                        className="w-full px-3 py-2 rounded-lg border text-xs outline-none placeholder-gray-400"
+                        style={{
+                          background: 'var(--bg-secondary)',
+                          borderColor: 'var(--divider-strong)',
+                          color: 'var(--text-primary)',
+                        }}
                       />
                     </div>
                   )}
@@ -803,13 +1016,19 @@ function PaymentsTabContent() {
                   />
                   <span>
                     I am willing to return the item.
-                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
                       Return policy: approved return disputes require item handoff within 5 business days.
                     </span>
                   </span>
                 </label>
 
-                <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 transition-colors">
+                <div
+                  className="p-3 rounded-lg text-[11px]"
+                  style={{
+                    background: 'rgba(245,158,11,0.08)',
+                    color: '#92400e',
+                  }}
+                >
                   ⏳ Auto-release in: {days}d {hours}h {minutes}m. This timer will pause after dispute submission.
                 </div>
               </div>
@@ -818,7 +1037,12 @@ function PaymentsTabContent() {
                 <button
                   type="button"
                   onClick={() => setDisputeModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl font-semibold border text-sm border-gray-200 dark:border-gray-600 text-slate-600 dark:text-slate-300 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+                  style={{
+                    background: 'transparent',
+                    boxShadow: '0 0 0 1px var(--divider-strong)',
+                    color: 'var(--text-secondary)',
+                  }}
                 >
                   Cancel
                 </button>
@@ -826,7 +1050,11 @@ function PaymentsTabContent() {
                   type="button"
                   onClick={submitDispute}
                   disabled={submittingDispute}
-                  className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 transition-colors"
+                  className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-60"
+                  style={{
+                    background: '#ef4444',
+                    boxShadow: '0 10px 28px rgba(239,68,68,0.45)',
+                  }}
                 >
                   {submittingDispute ? 'Submitting...' : 'Submit Dispute'}
                 </button>
@@ -1050,6 +1278,22 @@ export default function BuyerDashboard() {
   const recentScrollRef = useRef(null);
   const showToast = useToastStore((s) => s.showToast);
 
+  // Returns & refunds state (UI-only for now)
+  const [returnsFilter, setReturnsFilter] = useState('all');
+  const [returnsSearch, setReturnsSearch] = useState('');
+  const [returns] = useState(MOCK_RETURNS);
+  const [activeReturn, setActiveReturn] = useState(null);
+  const [returnDetailsOpen, setReturnDetailsOpen] = useState(false);
+  const [newReturnOpen, setNewReturnOpen] = useState(false);
+  const [newReturnStep, setNewReturnStep] = useState(1);
+  const [newReturnOrderSearch, setNewReturnOrderSearch] = useState('');
+  const [newReturnSelectedOrderId, setNewReturnSelectedOrderId] = useState(null);
+  const [newReturnReason, setNewReturnReason] = useState('');
+  const [newReturnCondition, setNewReturnCondition] = useState('opened');
+  const [newReturnDescription, setNewReturnDescription] = useState('');
+  const [newReturnPhotos, setNewReturnPhotos] = useState([]);
+  const [newReturnResolution, setNewReturnResolution] = useState('refund');
+
   const [addresses, setAddresses] = useState(INITIAL_ADDRESSES);
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [addressEditId, setAddressEditId] = useState(null);
@@ -1108,6 +1352,20 @@ export default function BuyerDashboard() {
     signOut();
     navigate('/');
   };
+
+  const filteredReturns = returns.filter((r) => {
+    const matchesSearch =
+      !returnsSearch ||
+      r.orderId.toLowerCase().includes(returnsSearch.toLowerCase()) ||
+      r.id.toLowerCase().includes(returnsSearch.toLowerCase());
+    const matchesFilter =
+      returnsFilter === 'all' ||
+      (returnsFilter === 'pending' && (r.status === 'PENDING' || r.status === 'UNDER_REVIEW')) ||
+      (returnsFilter === 'approved' && (r.status === 'APPROVED' || r.status === 'REFUNDED')) ||
+      (returnsFilter === 'rejected' && r.status === 'REJECTED') ||
+      (returnsFilter === 'completed' && r.status === 'COMPLETED');
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <BuyerLayout>
@@ -2899,29 +3157,603 @@ export default function BuyerDashboard() {
                     </div>
                   )}
 
-                  {/* ── RETURNS ── */}
+                  {/* ── RETURNS & REFUNDS ── */}
                   {tab === 'returns' && (
-                    <div className="space-y-4">
-                      <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Returns & Disputes</h2>
-                      <Link to="/returns">
-                        <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                          <div className="p-5 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-orange-50 dark:bg-orange-900/20">
-                                <RotateCcw className="w-5 h-5" style={{ color: PRIMARY }} />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-sm text-[var(--text-primary)]">Request a Return</p>
-                                <p className="text-xs mt-0.5 text-[var(--text-faint)]">Return items within 30 days of delivery</p>
+                    <div className="space-y-5">
+                      {/* Header banner */}
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35 }}
+                        className="rounded-[20px] px-6 py-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+                        style={{
+                          background:
+                            'linear-gradient(135deg,#1a0f3a 0%,#0d1f3a 50%,#111420 100%)',
+                          boxShadow: '0 18px 45px rgba(0,0,0,0.55)',
+                        }}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div
+                            className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+                            style={{
+                              background: 'rgba(249,115,22,0.15)',
+                              color: '#f97316',
+                            }}
+                          >
+                            ↩
+                          </div>
+                          <div className="space-y-1">
+                            <h2
+                              className="text-[24px] md:text-[26px] font-bold"
+                              style={{ color: '#ffffff' }}
+                            >
+                              Returns & Refunds
+                            </h2>
+                            <p
+                              className="text-sm"
+                              style={{ color: 'rgba(255,255,255,0.6)' }}
+                            >
+                              Hassle-free returns within 30 days.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            '↩ 30-Day Returns',
+                            '💰 Full Refunds',
+                            '🛡️ Buyer Protected',
+                          ].map((pill) => (
+                            <div
+                              key={pill}
+                              className="px-4 py-1.5 rounded-full text-[12px] font-medium"
+                              style={{
+                                background: 'rgba(255,255,255,0.08)',
+                                color: 'rgba(255,255,255,0.85)',
+                                backdropFilter: 'blur(10px)',
+                              }}
+                            >
+                              {pill}
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+
+                      {/* Stats row */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, delay: 0.05 }}
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                      >
+                        {[
+                          {
+                            label: 'Total Returns',
+                            value: returns.length,
+                            color: PRIMARY,
+                            icon: '↩',
+                          },
+                          {
+                            label: 'Pending Review',
+                            value: returns.filter((r) =>
+                              ['PENDING', 'UNDER_REVIEW'].includes(r.status)
+                            ).length,
+                            color: '#fbbf24',
+                            icon: '⏳',
+                          },
+                          {
+                            label: 'Approved',
+                            value: returns.filter((r) =>
+                              ['APPROVED', 'REFUNDED'].includes(r.status)
+                            ).length,
+                            color: '#34d399',
+                            icon: '✓',
+                          },
+                          {
+                            label: 'Total Refunded',
+                            value: `$${returns
+                              .filter((r) => r.status === 'REFUNDED')
+                              .reduce((sum, r) => sum + (r.refundAmount || 0), 0)
+                              .toFixed(2)}`,
+                            color: '#60a5fa',
+                            icon: '💰',
+                          },
+                        ].map((stat, idx) => (
+                          <motion.div
+                            key={stat.label}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: 0.1 + idx * 0.04 }}
+                            className="rounded-[16px] px-5 py-4"
+                            style={{
+                              background: 'var(--card-bg)',
+                              boxShadow:
+                                '0 10px 28px rgba(15,23,42,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                                  style={{
+                                    background: 'rgba(249,115,22,0.08)',
+                                    color: stat.color,
+                                  }}
+                                >
+                                  {stat.icon}
+                                </div>
+                                <div>
+                                  <p
+                                    className="text-xs font-medium uppercase tracking-wide"
+                                    style={{ color: 'var(--text-muted)' }}
+                                  >
+                                    {stat.label}
+                                  </p>
+                                  <p
+                                    className="text-lg font-bold mt-0.5"
+                                    style={{ color: stat.color }}
+                                  >
+                                    {stat.label === 'Total Refunded'
+                                      ? stat.value
+                                      : String(stat.value)}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-[var(--text-faint)]" />
+                          </motion.div>
+                        ))}
+                      </motion.div>
+
+                      {/* Filters & actions */}
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="flex flex-wrap gap-2">
+                          {RETURN_FILTERS.map((f) => {
+                            const isActive = returnsFilter === f.id;
+                            const count =
+                              f.id === 'all'
+                                ? returns.length
+                                : filteredReturns.filter((r) => {
+                                    if (f.id === 'pending') {
+                                      return ['PENDING', 'UNDER_REVIEW'].includes(
+                                        r.status
+                                      );
+                                    }
+                                    if (f.id === 'approved') {
+                                      return ['APPROVED', 'REFUNDED'].includes(
+                                        r.status
+                                      );
+                                    }
+                                    if (f.id === 'rejected') return r.status === 'REJECTED';
+                                    if (f.id === 'completed')
+                                      return r.status === 'COMPLETED';
+                                    return true;
+                                  }).length;
+                            return (
+                              <button
+                                key={f.id}
+                                type="button"
+                                onClick={() => setReturnsFilter(f.id)}
+                                className="inline-flex items-center gap-2 rounded-full text-xs font-medium px-4 py-1.5 transition-all"
+                                style={{
+                                  background: isActive ? PRIMARY : 'transparent',
+                                  color: isActive
+                                    ? '#ffffff'
+                                    : 'var(--text-muted)',
+                                  boxShadow: isActive
+                                    ? '0 0 0 1px rgba(251,146,60,0.4),0 8px 20px rgba(249,115,22,0.4)'
+                                    : 'none',
+                                }}
+                              >
+                                <span>{f.label}</span>
+                                <span
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                  style={{
+                                    background: isActive
+                                      ? 'rgba(0,0,0,0.15)'
+                                      : 'var(--bg-tertiary)',
+                                    color: isActive
+                                      ? '#ffffff'
+                                      : 'var(--text-muted)',
+                                  }}
+                                >
+                                  {count}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                          <div className="relative w-full md:w-[220px]">
+                            <Search
+                              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                              style={{ color: 'var(--text-muted)' }}
+                            />
+                            <input
+                              type="text"
+                              value={returnsSearch}
+                              onChange={(e) => setReturnsSearch(e.target.value)}
+                              placeholder="Search by order ID..."
+                              className="w-full h-10 pl-9 pr-3 rounded-[10px] text-xs outline-none"
+                              style={{
+                                background: 'var(--bg-secondary)',
+                                boxShadow:
+                                  '0 0 0 1px rgba(148,163,184,0.35), 0 6px 18px rgba(15,23,42,0.35)',
+                                color: 'var(--text-primary)',
+                              }}
+                            />
                           </div>
-                        </Card>
-                      </Link>
-                      <Card className="py-8">
-                        <EmptyState icon={RotateCcw} title="No active returns" sub="Your return requests will appear here" />
-                      </Card>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewReturnOpen(true);
+                              setNewReturnStep(1);
+                            }}
+                            className="inline-flex items-center gap-2 rounded-[12px] text-xs font-semibold px-4 py-2 text-white whitespace-nowrap"
+                            style={{
+                              background:
+                                'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                              boxShadow:
+                                '0 8px 24px rgba(249,115,22,0.45),0 2px 8px rgba(249,115,22,0.25)',
+                            }}
+                          >
+                            <span className="text-base leading-none">+</span>
+                            <span>New Return Request</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Returns list / empty state */}
+                      {filteredReturns.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.35 }}
+                          className="rounded-[20px] px-8 py-12 text-center"
+                          style={{
+                            background: 'var(--card-bg)',
+                            boxShadow: '0 16px 40px rgba(15,23,42,0.45)',
+                          }}
+                        >
+                          <motion.div
+                            initial={{ scale: 0.9, y: 8, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 220 }}
+                            className="w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-6"
+                            style={{
+                              background: 'rgba(249,115,22,0.1)',
+                              boxShadow:
+                                '0 18px 45px rgba(15,23,42,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+                            }}
+                          >
+                            <span className="text-4xl">↩</span>
+                          </motion.div>
+                          <h3
+                            className="text-[22px] font-bold mb-2"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            No returns yet
+                          </h3>
+                          <p
+                            className="text-sm max-w-md mx-auto mb-6"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            All your return requests will appear here. Shop with
+                            confidence — we&apos;ve got you covered.
+                          </p>
+                          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+                            <Link to="/">
+                              <button
+                                type="button"
+                                className="px-5 py-2.5 rounded-[12px] text-sm font-semibold text-white"
+                                style={{
+                                  background:
+                                    'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                                  boxShadow:
+                                    '0 10px 30px rgba(249,115,22,0.5)',
+                                }}
+                              >
+                                Browse Products
+                              </button>
+                            </Link>
+                            <button
+                              type="button"
+                              className="px-5 py-2.5 rounded-[12px] text-sm font-semibold"
+                              style={{
+                                background: 'transparent',
+                                boxShadow: '0 0 0 1.5px var(--divider)',
+                                color: 'var(--text-secondary)',
+                              }}
+                            >
+                              Learn about returns
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap justify-center gap-2 mt-2">
+                            {['30 days', 'Free returns', 'Quick refunds'].map(
+                              (chip) => (
+                                <span
+                                  key={chip}
+                                  className="px-3 py-1 rounded-full text-[11px] font-medium"
+                                  style={{
+                                    background: 'var(--bg-tertiary)',
+                                    color: 'var(--text-muted)',
+                                  }}
+                                >
+                                  {chip}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="space-y-3"
+                        >
+                          {filteredReturns.map((ret, idx) => {
+                            const meta = RETURN_STATUS_META[ret.status] || {
+                              label: ret.status,
+                              bg: '#e5e7eb',
+                              color: '#4b5563',
+                            };
+                            return (
+                              <motion.div
+                                key={ret.id}
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: 0.05 + idx * 0.03,
+                                }}
+                                whileHover={{
+                                  y: -2,
+                                  boxShadow:
+                                    '0 14px 35px rgba(15,23,42,0.6)',
+                                }}
+                                className="rounded-[16px] px-5 py-4 cursor-pointer"
+                                style={{
+                                  background: 'var(--card-bg)',
+                                  boxShadow:
+                                    '0 10px 24px rgba(15,23,42,0.45)',
+                                }}
+                                onClick={() => {
+                                  setActiveReturn(ret);
+                                  setReturnDetailsOpen(true);
+                                }}
+                              >
+                                {/* Top row */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                  <div>
+                                    <p
+                                      className="text-xs font-semibold tracking-wide"
+                                      style={{ color: PRIMARY }}
+                                    >
+                                      {ret.id}
+                                    </p>
+                                    <p
+                                      className="text-xs mt-0.5"
+                                      style={{ color: 'var(--text-muted)' }}
+                                    >
+                                      Order{' '}
+                                      <span
+                                        className="font-medium"
+                                        style={{ color: 'var(--text-primary)' }}
+                                      >
+                                        #{ret.orderId}
+                                      </span>{' '}
+                                      · {ret.date}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {ret.status === 'REFUNDED' && ret.refundAmount && (
+                                      <span
+                                        className="text-xs font-medium px-2 py-1 rounded-full"
+                                        style={{
+                                          background: '#ecfdf5',
+                                          color: '#16a34a',
+                                        }}
+                                      >
+                                        ${ret.refundAmount.toFixed(2)} Refunded
+                                      </span>
+                                    )}
+                                    <span
+                                      className="px-3 py-1 rounded-full text-xs font-semibold"
+                                      style={{
+                                        background: meta.bg,
+                                        color: meta.color,
+                                      }}
+                                    >
+                                      {meta.label}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Middle row */}
+                                <div className="mt-4 flex items-start gap-4">
+                                  <div className="w-14 h-14 rounded-[12px] overflow-hidden flex-shrink-0">
+                                    <img
+                                      src={ret.image}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex flex-wrap justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p
+                                          className="text-sm font-semibold truncate"
+                                          style={{ color: 'var(--text-primary)' }}
+                                        >
+                                          {ret.productName}
+                                        </p>
+                                        <p
+                                          className="text-xs mt-0.5"
+                                          style={{ color: 'var(--text-muted)' }}
+                                        >
+                                          {ret.variant} ·{' '}
+                                          <span style={{ color: 'var(--text-faint)' }}>
+                                            × {ret.quantity}
+                                          </span>
+                                        </p>
+                                        {ret.reasonTag && (
+                                          <span
+                                            className="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                                            style={{
+                                              background: 'var(--bg-tertiary)',
+                                              color: 'var(--text-muted)',
+                                            }}
+                                          >
+                                            {ret.reasonTag}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-right">
+                                        <p
+                                          className="text-sm font-bold"
+                                          style={{ color: 'var(--text-primary)' }}
+                                        >
+                                          ${ret.price.toFixed(2)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Bottom row */}
+                                <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                  {/* Timeline mini */}
+                                  <div className="flex items-center gap-2 text-[11px]">
+                                    {['submitted', 'review', 'decision', 'refunded'].map(
+                                      (stepKey, index) => {
+                                        const isCompleted =
+                                          stepKey === 'submitted' ||
+                                          (stepKey === 'review' &&
+                                            ['UNDER_REVIEW', 'APPROVED', 'REFUNDED', 'COMPLETED'].includes(
+                                              ret.status
+                                            )) ||
+                                          (stepKey === 'decision' &&
+                                            ['APPROVED', 'REJECTED', 'REFUNDED', 'COMPLETED'].includes(
+                                              ret.status
+                                            )) ||
+                                          (stepKey === 'refunded' &&
+                                            ['REFUNDED', 'COMPLETED'].includes(
+                                              ret.status
+                                            ));
+                                        const isCurrent =
+                                          !isCompleted &&
+                                          ((stepKey === 'review' &&
+                                            ret.status === 'PENDING') ||
+                                            (stepKey === 'decision' &&
+                                              ['UNDER_REVIEW'].includes(ret.status)));
+                                        return (
+                                          <div
+                                            key={stepKey}
+                                            className="flex items-center gap-1"
+                                          >
+                                            <div
+                                              className="w-2 h-2 rounded-full"
+                                              style={{
+                                                background: isCompleted
+                                                  ? PRIMARY
+                                                  : isCurrent
+                                                  ? PRIMARY
+                                                  : '#e5e7eb',
+                                                boxShadow: isCurrent
+                                                  ? '0 0 0 4px rgba(249,115,22,0.3)'
+                                                  : 'none',
+                                              }}
+                                            />
+                                            {index < 3 && (
+                                              <div
+                                                className="w-6 h-px rounded-full"
+                                                style={{
+                                                  background: isCompleted
+                                                    ? 'rgba(249,115,22,0.7)'
+                                                    : 'rgba(148,163,184,0.6)',
+                                                }}
+                                              />
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                    )}
+                                  </div>
+
+                                  {/* Actions */}
+                                  <div className="flex flex-wrap justify-end gap-2 text-xs">
+                                    <button
+                                      type="button"
+                                      className="px-3 py-1.5 rounded-[10px] font-semibold"
+                                      style={{
+                                        background: 'transparent',
+                                        boxShadow: '0 0 0 1px var(--divider)',
+                                        color: 'var(--text-secondary)',
+                                      }}
+                                    >
+                                      View Details
+                                    </button>
+                                    {ret.status === 'PENDING' && (
+                                      <button
+                                        type="button"
+                                        className="px-3 py-1.5 rounded-[10px] font-semibold"
+                                        style={{ color: '#dc2626' }}
+                                      >
+                                        Cancel Request
+                                      </button>
+                                    )}
+                                    {ret.status === 'APPROVED' && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="px-3 py-1.5 rounded-[10px] font-semibold"
+                                          style={{
+                                            background:
+                                              'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                                            color: '#ffffff',
+                                          }}
+                                        >
+                                          Track Refund
+                                        </button>
+                                      </>
+                                    )}
+                                    {ret.status === 'REJECTED' && (
+                                      <button
+                                        type="button"
+                                        className="px-3 py-1.5 rounded-[10px] font-semibold"
+                                        style={{
+                                          background:
+                                            'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                                          color: '#ffffff',
+                                        }}
+                                      >
+                                        Appeal Decision
+                                      </button>
+                                    )}
+                                    {ret.status === 'COMPLETED' && (
+                                      <button
+                                        type="button"
+                                        className="px-3 py-1.5 rounded-[10px] font-semibold"
+                                        style={{
+                                          background: 'transparent',
+                                          boxShadow: '0 0 0 1px var(--divider)',
+                                          color: 'var(--text-secondary)',
+                                        }}
+                                      >
+                                        Return Receipt
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+
+                      {/* Return policy section */}
+                      <ReturnsPolicySection />
+
+                      {/* New Return Request modal & details panel are rendered at root */}
                     </div>
                   )}
 
@@ -2941,6 +3773,814 @@ export default function BuyerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* New Return Request modal */}
+      <AnimatePresence>
+        {newReturnOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[140] flex items-center justify-center px-4 py-8"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+            onClick={() => setNewReturnOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+              className="w-full max-w-xl rounded-[24px] overflow-hidden"
+              style={{
+                background: 'var(--card-bg)',
+                boxShadow: '0 30px 80px rgba(0,0,0,0.8)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="px-6 py-4 flex items-center justify-between"
+                style={{
+                  background:
+                    'linear-gradient(135deg,#1a0f3a 0%,#0d1f3a 50%,#111420 100%)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center"
+                    style={{
+                      background: 'rgba(249,115,22,0.18)',
+                      color: '#f97316',
+                    }}
+                  >
+                    ↩
+                  </div>
+                  <div>
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: '#ffffff' }}
+                    >
+                      New Return Request
+                    </p>
+                    <p
+                      className="text-[11px]"
+                      style={{ color: 'rgba(255,255,255,0.7)' }}
+                    >
+                      Step {newReturnStep} of 3
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNewReturnOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ color: 'rgba(255,255,255,0.8)' }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="px-6 py-5 space-y-4 text-sm">
+                {/* Step indicator */}
+                <div className="flex items-center gap-3 text-[11px]">
+                  {[
+                    'Select Order',
+                    'Return Details',
+                    'Review & Submit',
+                  ].map((label, idx) => {
+                    const step = idx + 1;
+                    const isActive = step === newReturnStep;
+                    const isCompleted = step < newReturnStep;
+                    return (
+                      <div
+                        key={label}
+                        className="flex items-center gap-1 flex-1 min-w-0"
+                      >
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold"
+                          style={{
+                            background: isActive
+                              ? PRIMARY
+                              : isCompleted
+                              ? 'rgba(34,197,94,0.15)'
+                              : 'var(--bg-tertiary)',
+                            color: isActive
+                              ? '#ffffff'
+                              : isCompleted
+                              ? '#16a34a'
+                              : 'var(--text-secondary)',
+                          }}
+                        >
+                          {step}
+                        </div>
+                        <span
+                          className="truncate"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {label}
+                        </span>
+                        {idx < 2 && (
+                          <div
+                            className="flex-1 h-px rounded-full ml-1"
+                            style={{
+                              background: isCompleted
+                                ? 'rgba(34,197,94,0.6)'
+                                : 'rgba(148,163,184,0.5)',
+                            }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Step content */}
+                {newReturnStep === 1 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p
+                        className="text-sm font-semibold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        Which order do you want to return?
+                      </p>
+                    </div>
+                    <div className="relative">
+                      <Search
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                        style={{ color: 'var(--text-muted)' }}
+                      />
+                      <input
+                        type="text"
+                        value={newReturnOrderSearch}
+                        onChange={(e) => setNewReturnOrderSearch(e.target.value)}
+                        placeholder="Search orders by ID or product..."
+                        className="w-full h-10 pl-9 pr-3 rounded-[10px] text-xs outline-none"
+                        style={{
+                          background: 'var(--bg-secondary)',
+                          boxShadow:
+                            '0 0 0 1px rgba(148,163,184,0.35), 0 6px 18px rgba(15,23,42,0.35)',
+                          color: 'var(--text-primary)',
+                        }}
+                      />
+                    </div>
+                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                      {MOCK_ORDERS.filter((o) => {
+                        if (!newReturnOrderSearch) return true;
+                        const q = newReturnOrderSearch.toLowerCase();
+                        return (
+                          o.id.toLowerCase().includes(q) ||
+                          o.seller.toLowerCase().includes(q)
+                        );
+                      }).map((o) => {
+                        const selected = newReturnSelectedOrderId === o.id;
+                        const eligible = true;
+                        return (
+                          <button
+                            key={o.id}
+                            type="button"
+                            onClick={() => setNewReturnSelectedOrderId(o.id)}
+                            className="w-full flex items-center justify-between gap-3 rounded-[12px] px-3 py-2.5 text-left"
+                            style={{
+                              background: selected
+                                ? 'rgba(249,115,22,0.08)'
+                                : 'var(--card-bg)',
+                              boxShadow: selected
+                                ? '0 0 0 1px rgba(249,115,22,0.6)'
+                                : '0 6px 18px rgba(15,23,42,0.35)',
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-4 h-4 rounded border flex items-center justify-center"
+                                style={{
+                                  borderColor: selected
+                                    ? PRIMARY
+                                    : 'var(--divider)',
+                                  background: selected ? PRIMARY : 'transparent',
+                                }}
+                              >
+                                {selected && (
+                                  <Check className="w-3 h-3 text-white" />
+                                )}
+                              </div>
+                              <div>
+                                <p
+                                  className="text-xs font-semibold"
+                                  style={{ color: 'var(--text-primary)' }}
+                                >
+                                  {o.id}{' '}
+                                  <span
+                                    className="font-normal"
+                                    style={{ color: 'var(--text-muted)' }}
+                                  >
+                                    · {o.date}
+                                  </span>
+                                </p>
+                                <p
+                                  className="text-[11px]"
+                                  style={{ color: 'var(--text-muted)' }}
+                                >
+                                  {o.items} item(s) · ${o.total.toFixed(2)} ·{' '}
+                                  {o.seller}
+                                </p>
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                                eligible
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-red-100 text-red-700'
+                              }`}
+                            >
+                              {eligible ? 'Eligible ✓' : 'Expired ✗'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {newReturnStep === 2 && (
+                  <div className="space-y-4 text-sm">
+                    <p
+                      className="font-semibold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Tell us about the return
+                    </p>
+                    <div>
+                      <p
+                        className="text-xs font-semibold mb-1"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Return reason *
+                      </p>
+                      <select
+                        value={newReturnReason}
+                        onChange={(e) => setNewReturnReason(e.target.value)}
+                        className="w-full h-10 px-3 rounded-[10px] text-xs outline-none"
+                        style={{
+                          background: 'var(--bg-secondary)',
+                          boxShadow:
+                            '0 0 0 1px rgba(148,163,184,0.35), 0 4px 12px rgba(15,23,42,0.3)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <option value="">Select...</option>
+                        <option value="not_described">
+                          📦 Item not as described
+                        </option>
+                        <option value="defective">
+                          ❌ Defective or damaged
+                        </option>
+                        <option value="wrong_size">
+                          📏 Wrong size / doesn&apos;t fit
+                        </option>
+                        <option value="wrong_item">
+                          🚚 Wrong item received
+                        </option>
+                        <option value="changed_mind">
+                          💔 Changed my mind
+                        </option>
+                        <option value="late">⏰ Arrived too late</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <p
+                        className="text-xs font-semibold mb-1"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Condition of item
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-[11px]">
+                        {[
+                          ['unopened', 'Unopened'],
+                          ['opened', 'Opened'],
+                          ['damaged', 'Damaged'],
+                        ].map(([key, label]) => {
+                          const active = newReturnCondition === key;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => setNewReturnCondition(key)}
+                              className="px-3 py-1.5 rounded-full font-semibold"
+                              style={{
+                                background: active
+                                  ? 'rgba(249,115,22,0.1)'
+                                  : 'var(--bg-tertiary)',
+                                boxShadow: active
+                                  ? '0 0 0 1px rgba(249,115,22,0.6)'
+                                  : 'none',
+                                color: active
+                                  ? PRIMARY
+                                  : 'var(--text-secondary)',
+                              }}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <p
+                          className="text-xs font-semibold"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          Describe the issue
+                        </p>
+                        <span
+                          className="text-[11px]"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {newReturnDescription.length}/500
+                        </span>
+                      </div>
+                      <textarea
+                        value={newReturnDescription}
+                        onChange={(e) =>
+                          setNewReturnDescription(
+                            e.target.value.slice(0, 500)
+                          )
+                        }
+                        rows={4}
+                        placeholder="Describe the issue in detail..."
+                        className="w-full px-3 py-2.5 rounded-[12px] text-xs outline-none resize-none"
+                        style={{
+                          background: 'var(--bg-secondary)',
+                          boxShadow:
+                            '0 0 0 1px rgba(148,163,184,0.35), 0 4px 12px rgba(15,23,42,0.3)',
+                          color: 'var(--text-primary)',
+                        }}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <p
+                        className="text-xs font-semibold"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Photo evidence
+                      </p>
+                      <label
+                        className="flex flex-col items-center justify-center gap-2 p-5 rounded-[16px] border-2 border-dashed cursor-pointer text-[11px]"
+                        style={{
+                          borderColor: 'var(--divider)',
+                          background: 'var(--bg-secondary)',
+                        }}
+                      >
+                        <Upload
+                          className="w-5 h-5"
+                          style={{ color: 'var(--text-muted)' }}
+                        />
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          📸 Drop photos here or click to upload
+                        </span>
+                        <span
+                          className="text-[10px]"
+                          style={{ color: 'var(--text-faint)' }}
+                        >
+                          Max 5 photos, 10MB each
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            setNewReturnPhotos((prev) =>
+                              [...prev, ...files].slice(0, 5)
+                            );
+                          }}
+                        />
+                      </label>
+                      {newReturnPhotos.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {newReturnPhotos.map((f, idx) => (
+                            <span
+                              key={`${f.name}-${idx}`}
+                              className="px-2 py-1 rounded-full text-[11px] font-medium"
+                              style={{
+                                background: 'var(--bg-tertiary)',
+                                color: 'var(--text-muted)',
+                              }}
+                            >
+                              📎 {f.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <p
+                        className="text-xs font-semibold"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Preferred resolution
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                        {[
+                          ['refund', '💰 Full Refund', 'Get your money back'],
+                          ['exchange', '🔄 Exchange', 'Get a replacement item'],
+                          ['credit', '🏪 Store Credit', 'Get credit + 10% bonus'],
+                        ].map(([key, title, desc]) => {
+                          const active = newReturnResolution === key;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => setNewReturnResolution(key)}
+                              className="text-left px-3 py-2 rounded-[12px]"
+                              style={{
+                                background: active
+                                  ? 'rgba(249,115,22,0.08)'
+                                  : 'var(--bg-tertiary)',
+                                boxShadow: active
+                                  ? '0 0 0 1px rgba(249,115,22,0.7)'
+                                  : 'none',
+                              }}
+                            >
+                              <p
+                                className="font-semibold mb-0.5"
+                                style={{ color: 'var(--text-primary)' }}
+                              >
+                                {title}
+                              </p>
+                              <p
+                                className="text-[10px]"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                {desc}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {newReturnStep === 3 && (
+                  <div className="space-y-4 text-sm">
+                    <p
+                      className="font-semibold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Review your request
+                    </p>
+                    <div
+                      className="rounded-[14px] px-4 py-3 space-y-2"
+                      style={{ background: 'var(--bg-tertiary)' }}
+                    >
+                      <p
+                        className="text-xs font-semibold"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Product & order
+                      </p>
+                      <p
+                        className="text-xs"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        Order: {newReturnSelectedOrderId || 'Not selected'} ·
+                        Reason: {newReturnReason || 'Not specified'} · Condition:{' '}
+                        {newReturnCondition}
+                      </p>
+                    </div>
+                    <div
+                      className="rounded-[14px] px-4 py-3"
+                      style={{ background: 'var(--bg-tertiary)' }}
+                    >
+                      <p
+                        className="text-xs font-semibold mb-1"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Description
+                      </p>
+                      <p
+                        className="text-xs"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {newReturnDescription || 'No additional details provided.'}
+                      </p>
+                    </div>
+                    <div
+                      className="rounded-[14px] px-4 py-3 flex items-center justify-between text-xs"
+                      style={{ background: 'var(--bg-tertiary)' }}
+                    >
+                      <div>
+                        <p
+                          className="font-semibold"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          Preferred resolution
+                        </p>
+                        <p
+                          className="mt-0.5"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {newReturnResolution === 'refund'
+                            ? 'Full refund to original payment method.'
+                            : newReturnResolution === 'exchange'
+                            ? 'Replacement item of the same product.'
+                            : 'Store credit with a small bonus.'}
+                        </p>
+                      </div>
+                      <div
+                        className="text-right text-xs font-semibold"
+                        style={{ color: '#16a34a' }}
+                      >
+                        Est. refund: $29.00
+                      </div>
+                    </div>
+                    <p
+                      className="text-[11px]"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Your request will be reviewed within 24-48 hours. The seller
+                      will be notified and may contact you for more details.
+                    </p>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewReturnStep((s) => Math.max(1, s - 1))
+                    }
+                    disabled={newReturnStep === 1}
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-[10px] font-semibold disabled:opacity-40"
+                    style={{
+                      background: 'transparent',
+                      boxShadow: '0 0 0 1px var(--divider)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    <ArrowLeft className="w-3 h-3" />
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newReturnStep < 3) {
+                        setNewReturnStep((s) => s + 1);
+                      } else {
+                        showToast('Return request submitted (demo only).', 'success');
+                        setNewReturnOpen(false);
+                        setNewReturnStep(1);
+                      }
+                    }}
+                    disabled={
+                      (newReturnStep === 1 && !newReturnSelectedOrderId) ||
+                      (newReturnStep === 2 && !newReturnReason)
+                    }
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-[12px] font-semibold text-white disabled:opacity-50"
+                    style={{
+                      background:
+                        'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                      boxShadow:
+                        '0 8px 24px rgba(249,115,22,0.45),0 2px 8px rgba(249,115,22,0.25)',
+                    }}
+                  >
+                    {newReturnStep < 3 ? 'Next →' : 'Submit Return Request'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Return details side panel */}
+      <AnimatePresence>
+        {returnDetailsOpen && activeReturn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[135] flex justify-end"
+            style={{ background: 'rgba(0,0,0,0.4)' }}
+            onClick={() => setReturnDetailsOpen(false)}
+          >
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="w-full max-w-md h-full shadow-2xl"
+              style={{
+                background: 'var(--card-bg)',
+                boxShadow: '-8px 0 40px rgba(0,0,0,0.7)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-5 py-4 flex items-center justify-between border-b border-[var(--divider-strong)]">
+                <div>
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    Return {activeReturn.id}
+                  </p>
+                  <p
+                    className="text-[11px] mt-0.5"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Order #{activeReturn.orderId} · {activeReturn.date}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReturnDetailsOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--bg-tertiary)' }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="h-full overflow-y-auto px-5 py-4 space-y-4 text-xs">
+                {/* Timeline */}
+                <div>
+                  <p
+                    className="text-[11px] font-semibold mb-2"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Timeline
+                  </p>
+                  <div className="space-y-3">
+                    {activeReturn.timeline.map((step, idx) => {
+                      const completed =
+                        idx === 0 ||
+                        (idx === 1 &&
+                          ['UNDER_REVIEW', 'APPROVED', 'REFUNDED', 'COMPLETED'].includes(
+                            activeReturn.status
+                          )) ||
+                        (idx === 3 &&
+                          ['APPROVED', 'REJECTED', 'REFUNDED', 'COMPLETED'].includes(
+                            activeReturn.status
+                          )) ||
+                        (idx === 5 &&
+                          ['REFUNDED', 'COMPLETED'].includes(
+                            activeReturn.status
+                          ));
+                      const current =
+                        !completed &&
+                        idx === 1 &&
+                        activeReturn.status === 'PENDING';
+                      return (
+                        <div key={step.key} className="flex gap-3">
+                          <div className="flex flex-col items-center">
+                            <div
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold"
+                              style={{
+                                background: completed
+                                  ? PRIMARY
+                                  : current
+                                  ? 'rgba(249,115,22,0.15)'
+                                  : 'var(--bg-tertiary)',
+                                color: completed
+                                  ? '#ffffff'
+                                  : current
+                                  ? PRIMARY
+                                  : 'var(--text-secondary)',
+                              }}
+                            >
+                              {idx + 1}
+                            </div>
+                            {idx < activeReturn.timeline.length - 1 && (
+                              <div
+                                className="flex-1 w-px mt-1"
+                                style={{
+                                  background: completed
+                                    ? 'rgba(249,115,22,0.7)'
+                                    : 'rgba(148,163,184,0.5)',
+                                }}
+                              />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p
+                              className="text-xs font-semibold"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              {step.label}
+                            </p>
+                            {step.at && (
+                              <p
+                                className="text-[11px]"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                {step.at}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Product details */}
+                <div className="space-y-2">
+                  <p
+                    className="text-[11px] font-semibold"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Product
+                  </p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-[10px] overflow-hidden flex-shrink-0">
+                      <img
+                        src={activeReturn.image}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p
+                        className="text-xs font-semibold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {activeReturn.productName}
+                      </p>
+                      <p
+                        className="text-[11px]"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {activeReturn.variant} · × {activeReturn.quantity}
+                      </p>
+                      <p
+                        className="text-[11px] mt-0.5"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Original price: ${activeReturn.price.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reason & resolution */}
+                <div className="space-y-2">
+                  <p
+                    className="text-[11px] font-semibold"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Return reason
+                  </p>
+                  <p
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    {activeReturn.reasonTag}
+                  </p>
+                  <p
+                    className="text-[11px]"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    {activeReturn.reason}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <p
+                    className="text-[11px] font-semibold"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Resolution
+                  </p>
+                  <p
+                    className="text-[11px]"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    {activeReturn.resolution} ·{' '}
+                    {activeReturn.refundAmount
+                      ? `$${activeReturn.refundAmount.toFixed(
+                          2
+                        )} estimated refund in 3-5 business days.`
+                      : 'Estimated within 3-5 business days.'}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </BuyerLayout>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface DataPoint {
@@ -22,8 +22,6 @@ interface TrendLineChartProps {
   forecastData?: DataPoint[];
   title?: string;
   height?: number;
-  color?: string;
-  yAxisLabel?: string;
   annotations?: Array<{ date: string; label: string; value: number }>;
 }
 
@@ -32,8 +30,6 @@ export function TrendLineChart({
   forecastData = [],
   title,
   height = 300,
-  color = 'from-red-500 to-orange-500',
-  yAxisLabel = 'Value',
   annotations = [],
 }: TrendLineChartProps) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
@@ -131,7 +127,7 @@ export function TrendLineChart({
                 transition={{ delay: index * 0.1 }}
                 className="cursor-pointer"
                 style={{ pointerEvents: 'all' }}
-                onMouseEnter={(e) => {
+                onMouseEnter={() => {
                   const rect = containerRef.current?.getBoundingClientRect();
                   if (rect) {
                     const svgX = (x / chartWidth) * rect.width;
@@ -160,7 +156,7 @@ export function TrendLineChart({
                 transition={{ delay: 1.5 + index * 0.1 }}
                 className="cursor-pointer"
                 style={{ pointerEvents: 'all' }}
-                onMouseEnter={(e) => {
+                onMouseEnter={() => {
                   const rect = containerRef.current?.getBoundingClientRect();
                   if (rect) {
                     const svgX = (x / chartWidth) * rect.width;
@@ -188,7 +184,7 @@ export function TrendLineChart({
                   fill="currentColor"
                   className="text-blue-500 cursor-pointer"
                   style={{ pointerEvents: 'all' }}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={() => {
                     const rect = containerRef.current?.getBoundingClientRect();
                     if (rect) {
                       const svgX = (x / chartWidth) * rect.width;

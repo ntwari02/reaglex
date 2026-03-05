@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 
 interface FunnelStage {
@@ -17,7 +16,6 @@ interface FunnelChartProps {
 
 export function FunnelChart({ data, title, height = 400 }: FunnelChartProps) {
   const maxValue = Math.max(...data.map(d => d.value));
-  const minValue = Math.min(...data.map(d => d.value));
 
   // Treat stageHeight as the total allocation (bar + drop-off text) so the chart never overflows its container
   const stageHeight = Math.max(40, (height - (data.length - 1) * 30) / data.length);
