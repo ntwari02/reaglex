@@ -9,8 +9,8 @@ export default function PlatformSettings() {
   const [settings, setSettings] = useState({
     // General
     platformName: 'REAGLEX',
-    platformEmail: 'support@reaglex.com',
-    platformPhone: '+1 234 567 8900',
+    platformEmail: 'reaglerobust2020@gmail.com',
+    platformPhone: '+250787057751',
     timezone: 'UTC',
     currency: 'USD',
     language: 'en',

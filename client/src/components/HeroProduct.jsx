@@ -167,9 +167,9 @@ export default function HeroProduct({ product }) {
             transition={{ duration: 0.35 }}
           >
             <h1
-              className="font-black leading-tight"
+              className="font-black leading-tight product-title"
               style={{
-                color: '#1a1a1a',
+                color: 'var(--text-primary)',
                 fontSize: 'clamp(2rem, 4vw, 3rem)',
                 letterSpacing: '-1.5px',
                 lineHeight: 1.1,
@@ -181,7 +181,10 @@ export default function HeroProduct({ product }) {
         </AnimatePresence>
 
         {/* Short description */}
-        <p className="text-sm leading-relaxed max-w-sm" style={{ color: '#6b7280' }}>
+        <p
+          className="text-sm leading-relaxed max-w-sm product-desc"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           {product.description?.slice(0, 120) || 'Premium quality with exceptional craftsmanship.'}
           {(product.description?.length || 0) > 120 ? '…' : ''}
         </p>
@@ -189,8 +192,8 @@ export default function HeroProduct({ product }) {
         {/* Price */}
         <div className="flex items-baseline gap-3">
           <span
-            className="font-black"
-            style={{ color: '#1a1a1a', fontSize: '1.75rem' }}
+            className="font-black product-price"
+            style={{ color: 'var(--text-primary)', fontSize: '1.75rem' }}
           >
             ${price.toFixed(2)}
           </span>

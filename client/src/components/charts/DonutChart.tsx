@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 
 interface DonutChartProps {
@@ -6,7 +5,6 @@ interface DonutChartProps {
   maxValue?: number;
   title?: string;
   label?: string;
-  color?: string;
   size?: number;
   strokeWidth?: number;
 }
@@ -16,7 +14,6 @@ export function DonutChart({
   maxValue = 100,
   title,
   label,
-  color = 'from-orange-500 to-orange-600',
   size = 120,
   strokeWidth = 12,
 }: DonutChartProps) {

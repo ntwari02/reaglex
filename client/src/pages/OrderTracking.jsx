@@ -109,7 +109,7 @@ export default function OrderTracking() {
         </motion.div>
 
         {/* ═══ TIER 2: 2-column layout ═══ */}
-        <div className="w-full px-4 sm:px-6 md:px-8 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 max-w-7xl mx-auto" style={{ paddingLeft: 'max(16px, 32px)', paddingRight: 'max(16px, 32px)' }}>
+        <div className="w-full px-4 sm:px-6 md:px-8 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6" style={{ paddingLeft: 'max(16px, 32px)', paddingRight: 'max(16px, 32px)' }}>
           {/* ═══ LEFT COLUMN (60%) ═══ */}
           <motion.div
             initial={{ opacity: 0, x: -24 }}
@@ -523,7 +523,7 @@ export default function OrderTracking() {
                 </div>
               ))}
               <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                Get notified at: thierryntwari02@gmail.com{' '}
+                Get notified at: reaglerobust2020@gmail.com{' '}
                 <button type="button" className="underline ml-1" style={{ color: PRIMARY }}>
                   Edit
                 </button>

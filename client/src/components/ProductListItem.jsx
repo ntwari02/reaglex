@@ -59,8 +59,7 @@ export default function ProductListItem({ product, index = 0 }) {
 
         {/* ── Image (160 × 160) ── */}
         <div
-          className="flex-shrink-0 relative overflow-hidden"
-          className="bg-gray-50 dark:bg-gray-700"
+          className="flex-shrink-0 relative overflow-hidden bg-gray-50 dark:bg-gray-700"
           style={{ width: 168, height: 168, borderRadius: '10px 0 0 10px' }}
         >
           <motion.img

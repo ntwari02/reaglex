@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ShoppingBag, Heart, Bell, Menu, X, ChevronDown, ChevronRight,
   Package, MapPin, CreditCard, Star, RotateCcw, Settings, LogOut, Clock, Flame,
-  Globe, DollarSign, HelpCircle, Sun, Moon,
+  Globe, DollarSign, HelpCircle, Sun, Moon, Shield,
 } from 'lucide-react';
+import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useAuthStore } from '../stores/authStore';
 import { useWishlistStore } from '../stores/wishlistStore';
@@ -291,6 +292,8 @@ function MainHeader({
   const profileRef = useRef(null);
   const cartRef = useRef(null);
   const categoryRef = useRef(null);
+  const { isSeller, isLoggedIn, isSellerPending } = useSellerAccess();
+  const handleSellerLink = useHandleSellerLink();
 
   const recentSearches = getRecentSearches();
 
@@ -813,6 +816,7 @@ function MainHeader({
                         { icon: CreditCard, label: 'Payment Methods', to: '/account?tab=payment' },
                         { icon: Star, label: 'My Reviews', to: '/account?tab=reviews' },
                         { icon: RotateCcw, label: 'Returns', to: '/returns' },
+                        { icon: Shield, label: '🛡️ Buyer Protection', to: '/buyer-protection' },
                         { icon: Settings, label: 'Account Settings', to: '/account' },
                       ].map(({ icon: Icon, label, to }) => (
                         <Link
@@ -868,6 +872,8 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
   const location = useLocation();
   const [megaHover, setMegaHover] = useState(false);
   const megaRef = useRef(null);
+  const { isSeller, isLoggedIn, isSellerPending } = useSellerAccess();
+  const handleSellerLink = useHandleSellerLink();
   useClickOutside(megaRef, () => { setMegaOpen(false); setMegaHover(false); });
 
   return (
@@ -958,12 +964,33 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
         })}
       </nav>
 
-      <Link
-        to="/seller"
-        className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-orange-500 hover:text-orange-600"
-      >
-        Become a Seller <ChevronRight className="w-4 h-4" />
-      </Link>
+      {isSeller ? (
+        <Link
+          to="/seller"
+          className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-orange-500 hover:text-orange-600"
+        >
+          Seller Dashboard <ChevronRight className="w-4 h-4" />
+        </Link>
+      ) : isSellerPending ? (
+        <Link
+          to="/seller/pending"
+          className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition"
+          style={{ color: '#fbbf24' }}
+        >
+          Application Pending ⏳
+        </Link>
+      ) : (
+        <Link
+          to="/become-seller"
+          onClick={(e) => {
+            if (!isLoggedIn) return;
+            handleSellerLink(e, '/seller');
+          }}
+          className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-orange-500 hover:text-orange-600"
+        >
+          Become a Seller <ChevronRight className="w-4 h-4" />
+        </Link>
+      )}
     </div>
   );
 }

@@ -35,6 +35,28 @@
   .dark [style*="#9ca3af"] {
     color: var(--text-faint) !important;
   }
+
+  /* Unsaved dot pulse for settings tabs / save bar */
+  @keyframes settings-unsaved-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 0.4;
+    }
+  }
+
+  .settings-unsaved-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #f97316;
+    box-shadow: 0 0 0 0 rgba(249,115,22,0.5);
+    animation: settings-unsaved-pulse 1.4s ease-in-out infinite;
+    display: inline-block;
+  }
 }
 
 @layer utilities {
@@ -71,6 +93,174 @@
     letter-spacing: 0.05em;
     font-weight: 600;
   }
+
+  /* ── Product detail / browse dark-mode fixes (use data-theme) ──────────────── */
+
+/* Product info complete fix */
+[data-theme='dark'] [class*='product-title'],
+[data-theme='dark'] [class*='product-name'],
+[data-theme='dark'] [class*='item-title'],
+[data-theme='dark'] .product-title,
+[data-theme='dark'] h1[class*='title'],
+[data-theme='dark'] h2[class*='title'] {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+[data-theme='dark'] [class*='product-desc'],
+[data-theme='dark'] [class*='product-subtitle'],
+[data-theme='dark'] [class*='item-desc'],
+[data-theme='dark'] .product-desc {
+  color: #a8aec8 !important;
+}
+
+[data-theme='dark'] [class*='product-price'],
+[data-theme='dark'] [class*='price'],
+[data-theme='dark'] [class*='item-price'],
+[data-theme='dark'] .product-price {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Overview card complete fix */
+[data-theme='dark'] [class*='overview'],
+[data-theme='dark'] [class*='overview-card'],
+[data-theme='dark'] [class*='product-overview'],
+[data-theme='dark'] .product-overview-card {
+  background: #111420 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme='dark'] [class*='overview'] *,
+[data-theme='dark'] [class*='overview-card'] *,
+[data-theme='dark'] .product-overview-card * {
+  color: #eceef8 !important;
+  border-color: transparent !important;
+}
+
+[data-theme='dark'] [class*='overview'] [class*='store-name'],
+[data-theme='dark'] [class*='overview'] [class*='seller-name'],
+[data-theme='dark'] .product-overview-seller {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+[data-theme='dark'] [class*='overview'] [class*='review-count'],
+[data-theme='dark'] [class*='overview'] small,
+[data-theme='dark'] .product-overview-sub {
+  color: #a8aec8 !important;
+}
+
+[data-theme='dark'] [class*='overview'] [class*='description'],
+[data-theme='dark'] [class*='overview'] p {
+  color: #a8aec8 !important;
+}
+
+[data-theme='dark'] [class*='overview'] hr,
+[data-theme='dark'] [class*='overview'] [class*='divider'] {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: none !important;
+}
+
+/* Quantity buttons */
+[data-theme='dark'] [class*='quantity'] button,
+[data-theme='dark'] [class*='qty'] button,
+[data-theme='dark'] [class*='counter'] button,
+[data-theme='dark'] .quantity-control button {
+  background: #1c2030 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme='dark'] [class*='quantity'] [class*='value'],
+[data-theme='dark'] [class*='qty-number'],
+[data-theme='dark'] [class*='count-number'],
+[data-theme='dark'] .quantity-value {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Add to Cart button — keep orange */
+[data-theme='dark'] [class*='add-to-cart'],
+[data-theme='dark'] [class*='cart-btn'] {
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4) !important;
+}
+
+/* Order now link */
+[data-theme='dark'] [class*='order-now'],
+[data-theme='dark'] a[class*='order'] {
+  color: #fb923c !important;
+  border: none !important;
+  text-decoration: none !important;
+}
+
+/* Image card fix */
+[data-theme='dark'] [class*='product-image'],
+[data-theme='dark'] [class*='image-card'],
+[data-theme='dark'] [class*='image-wrapper'],
+[data-theme='dark'] .product-image-wrapper {
+  background: #1c2030 !important;
+  border: none !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Wishlist heart button */
+[data-theme='dark'] [class*='wishlist-btn'],
+[data-theme='dark'] [class*='favorite-btn'],
+[data-theme='dark'] .wishlist-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme='dark'] [class*='wishlist-btn'] svg,
+[data-theme='dark'] [class*='favorite-btn'] svg,
+[data-theme='dark'] .wishlist-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Help chat widget animations */
+@keyframes helpchat-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.35);
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+    box-shadow: 0 0 0 16px rgba(249, 115, 22, 0);
+  }
+}
+
+@keyframes helpchat-status {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes helpchat-typing {
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-3px);
+  }
+}
 
   /* ── Auth page specific utilities ───────────────────────────────────────────── */
   .auth-left-panel {

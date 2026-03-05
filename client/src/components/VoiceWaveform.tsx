@@ -13,7 +13,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 interface VoiceWaveformProps {
   duration: number; // Total duration in seconds
   currentTime: number; // Current playback time in seconds
-  isPlaying: boolean;
   onSeek: (time: number) => void; // Callback when user seeks
   onSeekStart?: () => void; // Callback when user starts seeking (to cancel autoplay)
   className?: string;
@@ -24,7 +23,6 @@ interface VoiceWaveformProps {
 export const VoiceWaveform: React.FC<VoiceWaveformProps> = ({
   duration,
   currentTime,
-  isPlaying,
   onSeek,
   onSeekStart,
   className = '',

@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 
 interface SankeyNode {
@@ -28,7 +27,6 @@ export function SankeyChart({ nodes, links, title, height = 400 }: SankeyChartPr
   
   // Group nodes by column (simplified - in real implementation, you'd use a layout algorithm)
   const columns: SankeyNode[][] = [];
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
   
   // Simple column assignment (you'd want a proper layout algorithm)
   nodes.forEach((node, index) => {

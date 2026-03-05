@@ -57,7 +57,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
       <Link to={`/products/${id}`} className="block" onClick={onViewProduct ? (e) => { e.preventDefault(); handleViewProduct(); } : undefined}>
         {/* Image */}
         <div
-          className="relative overflow-hidden"
+          className="relative overflow-hidden product-image-wrapper"
           style={{ paddingTop: compact ? '60%' : '72%', background: '#f9fafb' }}
         >
           <motion.img
@@ -101,7 +101,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity wishlist-btn"
           style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
         >
           <Heart
