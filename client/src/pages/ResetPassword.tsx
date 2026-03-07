@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { Lock, RotateCw, CheckCircle, XCircle, Sun, Moon, Home, Eye, EyeOff } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export function ResetPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tokenFromUrl = searchParams.get('token');
   const { theme, toggleTheme } = useTheme();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,6 +43,12 @@ export function ResetPassword() {
     setLoading(true);
     setError('');
 
+    if (!tokenFromUrl?.trim()) {
+      setError('Invalid or expired reset link. Please request a new one from the forgot password page.');
+      setLoading(false);
+      return;
+    }
+
     if (!isPasswordValid) {
       setError('Please ensure your password meets all requirements');
       setLoading(false);
@@ -52,19 +61,27 @@ export function ResetPassword() {
       return;
     }
 
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token: tokenFromUrl.trim(), password }),
+      });
+      const data = await res.json();
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+      if (!res.ok) {
+        setError(data.message || 'Failed to reset password.');
+        setLoading(false);
+        return;
+      }
+
       setSuccess(true);
+      setTimeout(() => navigate('/login'), 2000);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
       setLoading(false);
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
     }
   };
 
@@ -136,6 +153,13 @@ export function ResetPassword() {
               Create a strong password for your account.
             </p>
           </div>
+
+          {!tokenFromUrl?.trim() && (
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-200 text-sm">
+              This page is only valid when opened from the link in your reset email. If your link expired or you arrived here by mistake,{' '}
+              <Link to="/forgot-password" className="font-semibold underline hover:no-underline">request a new reset link</Link>.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
@@ -223,7 +247,7 @@ export function ResetPassword() {
 
             <button
               type="submit"
-              disabled={loading || success || !isPasswordValid || !confirmPassword}
+              disabled={loading || success || !isPasswordValid || !confirmPassword || !tokenFromUrl?.trim()}
               className="w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-4 rounded-xl font-semibold hover:from-orange-700 hover:to-orange-800 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-orange-500/20"
             >
               {loading ? 'Resetting Password...' : success ? 'Success!' : 'Reset Password'}

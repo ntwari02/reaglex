@@ -1,23 +1,15 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
-  Filter,
   Eye,
-  MessageSquare,
-  User,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  MoreVertical,
   Send,
-  Paperclip,
-  Tag,
-  UserPlus,
-  FileText,
-  TrendingUp,
   X,
+  RefreshCw,
+  CheckCircle,
 } from 'lucide-react';
+import { adminSupportAPI } from '@/lib/api';
+import { pageTransition, modalBackdrop, modalPanel } from './supportAnimations';
 
 interface Ticket {
   id: string;
@@ -36,94 +28,67 @@ interface Ticket {
   messageCount: number;
 }
 
-const mockTickets: Ticket[] = [
-  {
-    id: '1',
-    ticketNumber: 'TKT-001234',
-    userType: 'customer',
-    userName: 'John Doe',
-    userEmail: 'john@example.com',
-    subject: 'Order not received',
-    category: 'Delivery',
-    status: 'open',
-    priority: 'high',
-    assignedTo: 'Sarah Johnson',
-    createdAt: '2024-03-15T10:30:00',
-    lastUpdated: '2024-03-17T14:20:00',
-    orderId: 'ORD-12345',
-    messageCount: 5,
-  },
-  {
-    id: '2',
-    ticketNumber: 'TKT-001235',
-    userType: 'seller',
-    userName: 'Tech Store',
-    userEmail: 'tech@store.com',
-    subject: 'Payment issue',
-    category: 'Payment',
-    status: 'pending',
-    priority: 'medium',
-    createdAt: '2024-03-16T09:15:00',
-    lastUpdated: '2024-03-17T11:45:00',
-    messageCount: 3,
-  },
-  {
-    id: '3',
-    ticketNumber: 'TKT-001236',
-    userType: 'customer',
-    userName: 'Jane Smith',
-    userEmail: 'jane@example.com',
-    subject: 'Product quality issue',
-    category: 'Product Quality',
-    status: 'resolved',
-    priority: 'medium',
-    assignedTo: 'Mike Wilson',
-    createdAt: '2024-03-14T15:20:00',
-    lastUpdated: '2024-03-17T10:00:00',
-    orderId: 'ORD-12346',
-    messageCount: 8,
-  },
-  {
-    id: '4',
-    ticketNumber: 'TKT-001237',
-    userType: 'customer',
-    userName: 'Bob Johnson',
-    userEmail: 'bob@example.com',
-    subject: 'Refund request',
-    category: 'Refund',
-    status: 'open',
-    priority: 'urgent',
-    createdAt: '2024-03-17T08:00:00',
-    lastUpdated: '2024-03-17T12:30:00',
-    orderId: 'ORD-12347',
-    messageCount: 2,
-  },
-];
+const categoryToBackend: Record<string, string> = {
+  'Payment': 'billing',
+  'Delivery': 'other',
+  'Product Quality': 'product',
+  'Refund': 'other',
+  'Technical': 'technical',
+  'Account': 'account',
+  'Other': 'other',
+};
 
 export default function TicketingSystem() {
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [ticketDetail, setTicketDetail] = useState<any>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredTickets = tickets.filter((ticket) => {
-    const matchesSearch =
-      ticket.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.orderId?.toLowerCase().includes(searchTerm.toLowerCase());
+  const loadTickets = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    const categoryParam = categoryFilter === 'all' ? undefined : (categoryToBackend[categoryFilter] || categoryFilter);
+    adminSupportAPI
+      .getTickets({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        category: categoryParam,
+        priority: priorityFilter === 'all' ? undefined : priorityFilter,
+        search: searchTerm.trim() || undefined,
+        page,
+        limit: 20,
+      })
+      .then((res) => {
+        setTickets(res.tickets ?? []);
+        setTotalPages(res.pagination?.pages ?? 1);
+      })
+      .catch((err) => setError(err?.message ?? 'Failed to load tickets'))
+      .finally(() => setLoading(false));
+  }, [statusFilter, categoryFilter, priorityFilter, searchTerm, page]);
 
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || ticket.category === categoryFilter;
-    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
+  useEffect(() => {
+    loadTickets();
+  }, [loadTickets]);
 
-    return matchesSearch && matchesStatus && matchesCategory && matchesPriority;
-  });
+  const handleViewTicket = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setTicketDetail(null);
+    setShowTicketModal(true);
+    adminSupportAPI
+      .getTicket(ticket.id)
+      .then((res) => setTicketDetail(res.ticket))
+      .catch(() => setTicketDetail(null));
+  };
+
 
   const getStatusBadge = (status: Ticket['status']) => {
     const styles = {
@@ -153,22 +118,54 @@ export default function TicketingSystem() {
     );
   };
 
-  const handleViewTicket = (ticket: Ticket) => {
-    setSelectedTicket(ticket);
-    setShowTicketModal(true);
-  };
-
   const handleSendReply = () => {
     if (!replyText.trim() || !selectedTicket) return;
-    // Handle reply logic here
-    console.log('Sending reply:', replyText);
-    setReplyText('');
+    setSending(true);
+    adminSupportAPI
+      .addTicketMessage(selectedTicket.id, { message: replyText.trim() })
+      .then((res) => {
+        setTicketDetail(res.ticket);
+        setReplyText('');
+        loadTickets();
+      })
+      .catch((err) => alert(err?.message ?? 'Failed to send reply'))
+      .finally(() => setSending(false));
+  };
+
+  const frontendToBackendStatus: Record<string, string> = {
+    open: 'open',
+    pending: 'in_progress',
+    resolved: 'resolved',
+    closed: 'closed',
+  };
+  const handleUpdateTicket = (updates: { status?: string; priority?: string; assignedTo?: string | null }) => {
+    if (!selectedTicket) return;
+    const body = { ...updates };
+    if (updates.status) body.status = frontendToBackendStatus[updates.status] || updates.status;
+    adminSupportAPI
+      .updateTicket(selectedTicket.id, body)
+      .then((res) => {
+        setTicketDetail(res.ticket);
+        setSelectedTicket((prev) => (prev ? { ...prev, ...updates, status: (updates.status as any) ?? prev.status, priority: (updates.priority as any) ?? prev.priority, assignedTo: updates.assignedTo ?? prev.assignedTo } : null));
+        loadTickets();
+      })
+      .catch((err) => alert(err?.message ?? 'Failed to update ticket'));
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       {/* Header with Search and Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <motion.div
+        className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -216,11 +213,26 @@ export default function TicketingSystem() {
             <option value="high">High</option>
             <option value="urgent">Urgent</option>
           </select>
+          <button
+            type="button"
+            onClick={() => loadTickets()}
+            disabled={loading}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-500 hover:bg-emerald-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 disabled:opacity-50"
+            title="Refresh from database"
+          >
+            <RefreshCw className={`mr-1 inline h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Tickets Table */}
-      <div className="rounded-2xl border border-gray-200 bg-white shadow dark:border-gray-800 dark:bg-gray-900">
+      <motion.div
+        className="rounded-2xl border border-gray-200 bg-white shadow dark:border-gray-800 dark:bg-gray-900"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
+      >
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
@@ -255,9 +267,32 @@ export default function TicketingSystem() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {filteredTickets.map((ticket) => (
-                <tr
+              {loading ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    Loading tickets...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-8 text-center text-red-600 dark:text-red-400">
+                    {error}
+                  </td>
+                </tr>
+              ) : tickets.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    No tickets found from the database. Create tickets as a seller to see them here.
+                  </td>
+                </tr>
+              ) : (
+                tickets.map((ticket, i) => (
+                <motion.tr
                   key={ticket.id}
+                  custom={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03, duration: 0.25 }}
                   className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   <td className="px-6 py-4">
@@ -320,23 +355,33 @@ export default function TicketingSystem() {
                       View
                     </button>
                   </td>
-                </tr>
-              ))}
+                </motion.tr>
+              ))
+              )}
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Ticket Details Modal */}
-      {showTicketModal && selectedTicket && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setShowTicketModal(false)}
-        >
-          <div
-            className="w-full max-w-4xl rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {showTicketModal && selectedTicket && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            initial={modalBackdrop.initial}
+            animate={modalBackdrop.animate}
+            exit={modalBackdrop.exit}
+            transition={modalBackdrop.transition}
+            onClick={() => setShowTicketModal(false)}
           >
+            <motion.div
+              className="w-full max-w-4xl rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900"
+              initial={modalPanel.initial}
+              animate={modalPanel.animate}
+              exit={modalPanel.exit}
+              transition={modalPanel.transition}
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="border-b border-gray-200 p-6 dark:border-gray-800">
               <div className="flex items-start justify-between">
                 <div>
@@ -400,87 +445,100 @@ export default function TicketingSystem() {
               {/* Message History */}
               <div className="mb-6">
                 <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-                  Message History ({selectedTicket.messageCount} messages)
+                  Message History ({ticketDetail?.messages?.length ?? selectedTicket.messageCount} messages)
                 </h3>
                 <div className="space-y-4">
-                  {/* Mock messages */}
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/50">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {selectedTicket.userName}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(selectedTicket.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      Initial message about the issue...
-                    </p>
-                  </div>
+                  {!ticketDetail ? (
+                    <p className="text-sm text-gray-500">Loading...</p>
+                  ) : (ticketDetail.messages || []).length === 0 ? (
+                    <p className="text-sm text-gray-500">No messages yet.</p>
+                  ) : (
+                    (ticketDetail.messages || []).map((msg: any) => (
+                      <div
+                        key={msg._id || msg.createdAt}
+                        className={`rounded-xl border p-4 dark:border-gray-800 ${
+                          msg.senderRole === 'admin' ? 'border-emerald-200 bg-emerald-50/50 dark:bg-emerald-900/20' : 'border-gray-200 bg-white dark:bg-gray-800/50'
+                        }`}
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {msg.senderName} {msg.isInternal ? '(Internal)' : ''}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(msg.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{msg.message}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
               {/* Reply Section */}
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-                <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-                  Reply to Ticket
-                </h3>
-                <textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Type your reply here..."
-                  rows={4}
-                  className="mb-3 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                />
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    <button className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
-                      <Paperclip className="mr-1 inline h-4 w-4" />
-                      Attach
-                    </button>
-                    <button className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
-                      <FileText className="mr-1 inline h-4 w-4" />
-                      Template
+              {selectedTicket.status !== 'closed' && (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                  <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Reply to Ticket</h3>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type your reply here..."
+                    rows={4}
+                    className="mb-3 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleSendReply}
+                      disabled={sending || !replyText.trim()}
+                      className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-50"
+                    >
+                      <Send className="mr-2 inline h-4 w-4" />
+                      {sending ? 'Sending...' : 'Send Reply'}
                     </button>
                   </div>
-                  <button
-                    onClick={handleSendReply}
-                    className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl"
-                  >
-                    <Send className="mr-2 inline h-4 w-4" />
-                    Send Reply
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* Admin Actions */}
-              <div className="mt-6 flex flex-wrap gap-2">
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <UserPlus className="mr-2 inline h-4 w-4" />
-                  Assign Staff
-                </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <Tag className="mr-2 inline h-4 w-4" />
-                  Change Priority
-                </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <FileText className="mr-2 inline h-4 w-4" />
-                  Add Note
-                </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <CheckCircle className="mr-2 inline h-4 w-4" />
-                  Mark Resolved
-                </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <TrendingUp className="mr-2 inline h-4 w-4" />
-                  Escalate
-                </button>
-              </div>
+              {selectedTicket.status !== 'closed' && (
+                <div className="mt-6 flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Status:</span>
+                  <select
+                    value={selectedTicket.status}
+                    onChange={(e) => handleUpdateTicket({ status: e.target.value })}
+                    className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  >
+                    <option value="open">Open</option>
+                    <option value="pending">Pending</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Priority:</span>
+                  <select
+                    value={selectedTicket.priority}
+                    onChange={(e) => handleUpdateTicket({ priority: e.target.value })}
+                    className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                  <button
+                    onClick={() => handleUpdateTicket({ status: 'resolved' })}
+                    className="rounded-xl border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300"
+                  >
+                    <CheckCircle className="mr-2 inline h-4 w-4" />
+                    Mark Resolved
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      )}
-    </div>
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 

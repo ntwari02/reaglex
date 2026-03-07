@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { RefreshCw, Search, Filter, CheckCircle, XCircle, Eye, Upload, DollarSign } from 'lucide-react';
+import { adminFinanceAPI } from '@/lib/api';
 
 type RefundStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 type RefundType = 'full' | 'partial';
@@ -19,51 +20,37 @@ interface Refund {
   hasEvidence: boolean;
 }
 
-const mockRefunds: Refund[] = [
-  {
-    id: 'REF-001',
-    orderId: 'ORD-001',
-    customerName: 'John Doe',
-    sellerName: 'TechHub Electronics',
-    amount: 299.99,
-    type: 'full',
-    status: 'pending',
-    reason: 'Product not as described',
-    requestedDate: '2024-03-15',
-    refundMethod: 'Original Payment Method',
-    hasEvidence: true,
-  },
-  {
-    id: 'REF-002',
-    orderId: 'ORD-002',
-    customerName: 'Jane Smith',
-    sellerName: 'Fashion Forward',
-    amount: 75.50,
-    type: 'partial',
-    status: 'approved',
-    reason: 'Partial refund for damaged item',
-    requestedDate: '2024-03-14',
-    processedDate: '2024-03-15',
-    refundMethod: 'PayPal',
-    hasEvidence: false,
-  },
-];
-
 export default function RefundsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<RefundStatus | 'all'>('all');
   const [activeSection, setActiveSection] = useState<'requests' | 'history'>('requests');
+  const [refunds, setRefunds] = useState<Refund[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminFinanceAPI.getRefunds({ status: statusFilter !== 'all' ? statusFilter : undefined, limit: 100 }).then((res) => {
+      setRefunds(res.refunds.map((r: any) => ({
+        id: r.id,
+        orderId: r.orderId,
+        customerName: r.customerName,
+        sellerName: r.sellerName,
+        amount: r.amount,
+        type: r.type,
+        status: r.status,
+        reason: r.reason,
+        requestedDate: r.requestedDate ? new Date(r.requestedDate).toISOString().slice(0, 10) : '',
+        processedDate: r.processedDate ? new Date(r.processedDate).toISOString().slice(0, 10) : undefined,
+        refundMethod: r.refundMethod,
+        hasEvidence: r.hasEvidence,
+      })));
+    }).catch(() => setRefunds([])).finally(() => setLoading(false));
+  }, [statusFilter, activeSection]);
 
   const filteredRefunds = useMemo(() => {
-    return mockRefunds.filter((refund) => {
-      const matchesSearch =
-        refund.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        refund.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        refund.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || refund.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [searchQuery, statusFilter]);
+    if (!searchQuery) return refunds;
+    const s = searchQuery.toLowerCase();
+    return refunds.filter((r) => r.id.toLowerCase().includes(s) || r.orderId.toLowerCase().includes(s) || r.customerName.toLowerCase().includes(s));
+  }, [refunds, searchQuery]);
 
   const getStatusBadge = (status: RefundStatus) => {
     const styles = {
@@ -161,10 +148,16 @@ export default function RefundsManagement() {
                     <div className="ml-4 flex gap-2">
                       {refund.status === 'pending' && (
                         <>
-                          <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                          <button
+                            onClick={() => adminFinanceAPI.approveRefund(refund.id).then(() => setRefunds((prev) => prev.map((r) => (r.id === refund.id ? { ...r, status: 'approved' } : r))))}
+                            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+                          >
                             Approve
                           </button>
-                          <button className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                          <button
+                            onClick={() => adminFinanceAPI.rejectRefund(refund.id).then(() => setRefunds((prev) => prev.map((r) => (r.id === refund.id ? { ...r, status: 'rejected' } : r))))}
+                            className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+                          >
                             Reject
                           </button>
                         </>

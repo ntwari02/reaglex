@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save, Upload, Image as ImageIcon, Package, DollarSign, BarChart3, Eye, Settings } from 'lucide-react';
+import { adminProductsAPI } from '@/lib/api';
 
 interface ProductFormProps {
   product?: any;
@@ -10,6 +11,30 @@ interface ProductFormProps {
 export default function ProductForm({ product, onClose, onSave }: ProductFormProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'pricing' | 'stock' | 'variants' | 'images' | 'shipping' | 'seo' | 'visibility'>('details');
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    sku: '',
+    category: '',
+    price: 0,
+    stock: 0,
+    discount: 0,
+  });
+
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name || '',
+        description: product.description || '',
+        sku: product.sku || '',
+        category: product.category || '',
+        price: Number(product.price) || 0,
+        stock: Number(product.stock) ?? 0,
+        discount: Number(product.discountPercent ?? product.discount) || 0,
+      });
+    }
+  }, [product]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -82,6 +107,8 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                 <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Product Name *</label>
                 <input
                   type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData((d) => ({ ...d, name: e.target.value }))}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   placeholder="Enter product name"
                 />
@@ -90,6 +117,8 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                 <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Description</label>
                 <textarea
                   rows={6}
+                  value={formData.description}
+                  onChange={(e) => setFormData((d) => ({ ...d, description: e.target.value }))}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   placeholder="Enter product description"
                 />
@@ -99,18 +128,21 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                   <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">SKU / Product ID *</label>
                   <input
                     type="text"
+                    value={formData.sku}
+                    onChange={(e) => setFormData((d) => ({ ...d, sku: e.target.value }))}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     placeholder="Enter SKU"
                   />
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Category *</label>
-                  <select className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-                    <option>Select category</option>
-                    <option>Electronics</option>
-                    <option>Fashion</option>
-                    <option>Home & Garden</option>
-                  </select>
+                  <input
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) => setFormData((d) => ({ ...d, category: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    placeholder="e.g. Electronics, Fashion"
+                  />
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Brand</label>
@@ -148,6 +180,8 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                   <input
                     type="number"
                     step="0.01"
+                    value={formData.price || ''}
+                    onChange={(e) => setFormData((d) => ({ ...d, price: parseFloat(e.target.value) || 0 }))}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     placeholder="0.00"
                   />
@@ -175,6 +209,8 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                   <input
                     type="number"
                     step="0.01"
+                    value={formData.discount || ''}
+                    onChange={(e) => setFormData((d) => ({ ...d, discount: parseFloat(e.target.value) || 0 }))}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     placeholder="0"
                   />
@@ -200,6 +236,8 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                   <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Stock Quantity</label>
                   <input
                     type="number"
+                    value={formData.stock || ''}
+                    onChange={(e) => setFormData((d) => ({ ...d, stock: parseInt(e.target.value, 10) || 0 }))}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     placeholder="0"
                   />
@@ -392,10 +430,42 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
             Cancel
           </button>
           <button
-            onClick={onSave}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/40"
+            disabled={saving || !formData.name.trim()}
+            onClick={async () => {
+              if (!formData.name.trim()) return;
+              setSaving(true);
+              try {
+                if (product?.id) {
+                  await adminProductsAPI.updateProduct(product.id, {
+                    name: formData.name.trim(),
+                    description: formData.description.trim(),
+                    sku: formData.sku.trim() || undefined,
+                    category: formData.category.trim() || undefined,
+                    price: formData.price,
+                    stock: formData.stock,
+                    discount: formData.discount,
+                  });
+                } else {
+                  await adminProductsAPI.createProduct({
+                    name: formData.name.trim(),
+                    description: formData.description.trim(),
+                    sku: formData.sku.trim() || `SKU-${Date.now()}`,
+                    category: formData.category.trim() || undefined,
+                    price: formData.price,
+                    stock: formData.stock,
+                    discount: formData.discount,
+                  });
+                }
+                onSave();
+              } catch (e) {
+                alert(e instanceof Error ? e.message : 'Failed to save product');
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/40 disabled:opacity-50"
           >
-            <Save className="h-4 w-4" /> Save Product
+            <Save className="h-4 w-4" /> {saving ? 'Saving...' : 'Save Product'}
           </button>
         </div>
       </div>

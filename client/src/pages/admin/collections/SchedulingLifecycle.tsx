@@ -1,14 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Clock, EyeOff, Save } from 'lucide-react';
+import { adminCollectionsAPI } from '@/lib/api';
 
 export default function SchedulingLifecycle() {
-  const [selectedCollection, setSelectedCollection] = useState('1');
+  const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState('');
   const [scheduledActivation, setScheduledActivation] = useState(false);
   const [activationDate, setActivationDate] = useState('');
   const [activationTime, setActivationTime] = useState('');
   const [scheduledExpiration, setScheduledExpiration] = useState(false);
   const [expirationDate, setExpirationDate] = useState('');
   const [expirationTime, setExpirationTime] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    adminCollectionsAPI.getCollections().then((res) => {
+      const list = (res.collections || []).map((c: any) => ({ id: c.id || c._id, name: c.title || c.name || '' }));
+      setCollections(list);
+      if (list.length) setSelectedCollection((prev) => prev || list[0].id);
+    }).catch(() => setCollections([]));
+  }, []);
+
+  const handleSave = () => {
+    if (!selectedCollection) return;
+    setSaving(true);
+    const scheduled = scheduledActivation && activationDate
+      ? `${activationDate}T${activationTime || '00:00'}:00.000Z`
+      : undefined;
+    adminCollectionsAPI.updateCollection(selectedCollection, { scheduledPublishAt: scheduled })
+      .then(() => setSaving(false))
+      .catch(() => setSaving(false));
+  };
 
   return (
     <div className="space-y-6">
@@ -18,7 +40,7 @@ export default function SchedulingLifecycle() {
           Scheduling & Lifecycle
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Schedule when collections appear and disappear
+          Schedule when collections appear and disappear (saved to database)
         </p>
       </div>
 
@@ -32,9 +54,10 @@ export default function SchedulingLifecycle() {
           onChange={(e) => setSelectedCollection(e.target.value)}
           className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
         >
-          <option value="1">Summer Sale</option>
-          <option value="2">New Arrivals</option>
-          <option value="3">Best Sellers</option>
+          <option value="">Select collection</option>
+          {collections.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
         </select>
       </div>
 
@@ -185,9 +208,13 @@ export default function SchedulingLifecycle() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <button className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl">
+        <button
+          onClick={handleSave}
+          disabled={saving || !selectedCollection}
+          className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-50"
+        >
           <Save className="mr-2 inline h-4 w-4" />
-          Save Schedule
+          {saving ? 'Saving...' : 'Save Schedule'}
         </button>
       </div>
     </div>

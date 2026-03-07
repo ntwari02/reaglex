@@ -9,6 +9,7 @@ interface AuthState {
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithBiometric: () => Promise<{ success: boolean; error?: string }>;
   demoLogin: (email: string, name?: string) => void;
 }
 
@@ -57,12 +58,45 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error: any) {
       console.error('Login error:', error);
       // If account is deactivated, clear any existing auth data
-      if (error.message?.includes('deactivated') || error.message?.includes('403')) {
+      if (error.message?.includes('deactivated')) {
         localStorage.removeItem('user');
         localStorage.removeItem('auth_token');
         set({ user: null });
       }
       return { success: false, error: error.message || 'Network error. Please try again.' };
+    }
+  },
+
+  loginWithBiometric: async () => {
+    try {
+      const { loginWithWebAuthn } = await import('../lib/webauthn');
+      const result = await loginWithWebAuthn();
+      if (!result.success) {
+        return { success: false, error: result.error || 'Biometric sign-in failed.' };
+      }
+      if (result.token) {
+        localStorage.setItem('auth_token', result.token);
+      }
+      if (result.user) {
+        const userProfile: Profile = {
+          id: result.user.id?.toString() || result.user._id?.toString() || '',
+          email: result.user.email,
+          full_name: result.user.fullName,
+          role: result.user.role,
+          seller_status: result.user.sellerVerificationStatus,
+          seller_verified: result.user.isSellerVerified,
+          phone: result.user.phone,
+          avatar_url: result.user.avatarUrl,
+          created_at: result.user.createdAt || new Date().toISOString(),
+          updated_at: result.user.updatedAt || new Date().toISOString(),
+        };
+        localStorage.setItem('user', JSON.stringify(userProfile));
+        set({ user: userProfile, loading: false });
+      }
+      return { success: true };
+    } catch (error: any) {
+      console.error('Biometric login error:', error);
+      return { success: false, error: error.message || 'Biometric sign-in failed.' };
     }
   },
 

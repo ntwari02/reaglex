@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Settings,
   Mail,
@@ -10,21 +11,63 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
+import { adminSupportAPI } from '@/lib/api';
+import { pageTransition } from './supportAnimations';
 
 export default function SupportSystemTools() {
   const [autoReplyTime, setAutoReplyTime] = useState('2');
   const [autoCloseDuration, setAutoCloseDuration] = useState('7');
   const [slaResponseTime, setSlaResponseTime] = useState('4');
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminSupportAPI
+      .getSettings()
+      .then((res) => {
+        const s = res.settings;
+        if (s) {
+          if (s.autoReplyTimeHours != null) setAutoReplyTime(String(s.autoReplyTimeHours));
+          if (s.autoCloseInactiveDays != null) setAutoCloseDuration(String(s.autoCloseInactiveDays));
+          if (s.slaResponseTimeHours != null) setSlaResponseTime(String(s.slaResponseTimeHours));
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleSave = () => {
-    // Handle save logic
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    adminSupportAPI
+      .updateSettings({
+        autoReplyTimeHours: Number(autoReplyTime),
+        autoCloseInactiveDays: Number(autoCloseDuration),
+        slaResponseTimeHours: Number(slaResponseTime),
+      })
+      .then(() => {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      })
+      .catch((err) => alert(err?.message ?? 'Failed to save'));
   };
 
+  if (loading) {
+    return (
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-gray-500 dark:text-gray-400"
+      >
+        Loading settings...
+      </motion.p>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">System Settings</h2>
@@ -195,7 +238,7 @@ export default function SupportSystemTools() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

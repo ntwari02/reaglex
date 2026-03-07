@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useTheme } from '@/contexts/ThemeContext';
+import { profileAPI, adminAPI, adminOrdersAPI, adminFinanceAPI, adminSupportAPI, adminReviewsAPI } from '@/lib/api';
 import {
   User,
   Mail,
@@ -60,15 +61,56 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
+// Backend address shape (profile API)
+interface BackendAddress {
+  label: string;
+  street: string;
+  city: string;
+  state?: string;
+  zipCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
+// Backend payment method shape
+interface BackendPaymentMethod {
+  type: 'card' | 'bank' | 'mobile_money' | 'crypto';
+  provider?: string;
+  last4?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  isDefault: boolean;
+}
+
+const DEFAULT_NOTIFICATIONS = {
+  email: { orderUpdates: true, promotions: true, securityAlerts: true, newsletter: false },
+  push: { orderUpdates: true, promotions: false, messages: true, securityAlerts: true },
+  sms: { orderUpdates: false, securityAlerts: true, promotions: false },
+};
+
 export function AdminProfile() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
   const { theme, toggleTheme, currency, language, setCurrency, setLanguage } = useTheme();
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'security' | 'addresses' | 'payments' | 'notifications' | 'preferences'>('overview');
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
+
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalSellers: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    activeDisputes: 0,
+    pendingReviews: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [loginHistory, setLoginHistory] = useState<Array<{ date: string; ip: string; location?: string; device?: string }>>([]);
+  const [loginHistoryLoading, setLoginHistoryLoading] = useState(false);
 
   const languages = [
     { code: 'en', name: 'English US', flag: '🇺🇸' },
@@ -84,14 +126,14 @@ export function AdminProfile() {
     { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', rate: 130 },
   ];
   
-  // Profile form state
+  // Profile form state (initial from auth, then from API)
   const [formData, setFormData] = useState({
-    full_name: user?.full_name || 'Admin User',
-    email: user?.email || 'admin@reagle-x.com',
-    phone: user?.phone || '+250 788 123 456',
-    bio: 'Super Admin at REAGLE-X',
-    location: 'Kigali, Rwanda',
-    website: 'https://reagle-x.com',
+    full_name: user?.full_name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    bio: '',
+    location: '',
+    website: '',
     dateOfBirth: '',
   });
 
@@ -102,56 +144,20 @@ export function AdminProfile() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  // Addresses state
-  const [addresses, setAddresses] = useState<Address[]>([
-    {
-      id: '1',
-      label: 'Office',
-      fullName: 'Admin User',
-      phone: '+250 788 123 456',
-      address: 'KG 123 St',
-      city: 'Kigali',
-      country: 'Rwanda',
-      postalCode: '00000',
-      isDefault: true,
-    }
-  ]);
+  // Addresses state (UI shape; backend uses street/zipCode)
+  const [addresses, setAddresses] = useState<Address[]>([]);
 
   // Payment methods state
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: '1',
-      type: 'card',
-      label: 'Visa •••• 4242',
-      last4: '4242',
-      expiryMonth: 12,
-      expiryYear: 2025,
-      isDefault: true,
-    }
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
-  // Notification preferences
-  const [notifications, setNotifications] = useState({
-    email: {
-      systemAlerts: true,
-      userReports: true,
-      securityAlerts: true,
-      weeklyReports: true,
-    },
-    push: {
-      criticalAlerts: true,
-      userReports: false,
-      systemUpdates: true,
-    },
-    sms: {
-      criticalAlerts: true,
-      securityAlerts: true,
-    }
-  });
+  // Notification preferences (backend shape: orderUpdates, promotions, securityAlerts, newsletter / messages)
+  const [notifications, setNotifications] = useState(DEFAULT_NOTIFICATIONS);
 
-  // Preferences
+  // Preferences (theme, language, currency from API; rest local)
   const [preferences, setPreferences] = useState({
     dashboardLayout: 'default',
     itemsPerPage: 25,
@@ -161,27 +167,141 @@ export function AdminProfile() {
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar_url || null);
   const [isSaving, setIsSaving] = useState(false);
+  const [notificationsSaving, setNotificationsSaving] = useState(false);
+  const [preferencesSaving, setPreferencesSaving] = useState(false);
+
+  // Fetch full profile from API and map to state
+  const fetchProfile = useCallback(async () => {
+    if (!user) return;
+    setProfileLoading(true);
+    setProfileError(null);
+    try {
+      const { user: profileUser } = await profileAPI.getProfile();
+      const u = profileUser as any;
+      const fullName = u?.fullName ?? user.full_name ?? '';
+      const email = u?.email ?? user.email ?? '';
+      setFormData({
+        full_name: fullName,
+        email,
+        phone: u?.phone ?? user.phone ?? '',
+        bio: u?.bio ?? '',
+        location: u?.location ?? '',
+        website: u?.website ?? '',
+        dateOfBirth: u?.dateOfBirth ? (typeof u.dateOfBirth === 'string' ? u.dateOfBirth : (u.dateOfBirth as Date).toISOString().slice(0, 10)) : '',
+      });
+      setAvatarPreview(u?.avatarUrl ?? user.avatar_url ?? null);
+      setTwoFactorEnabled(!!u?.security?.twoFactorEnabled);
+
+      const addrs: BackendAddress[] = u?.addresses ?? [];
+      setAddresses(addrs.map((a: BackendAddress, idx: number) => ({
+        id: idx.toString(),
+        label: a.label,
+        fullName: fullName,
+        phone: u?.phone ?? '',
+        address: a.street,
+        city: a.city,
+        country: a.country,
+        postalCode: a.zipCode,
+        isDefault: !!a.isDefault,
+      })));
+
+      const pms: BackendPaymentMethod[] = u?.paymentMethods ?? [];
+      setPaymentMethods(pms.map((pm: BackendPaymentMethod, idx: number) => ({
+        id: idx.toString(),
+        type: pm.type === 'mobile_money' ? 'mobile' : (pm.type as 'card'),
+        label: (pm.provider || pm.type) + (pm.last4 ? ` •••• ${pm.last4}` : ''),
+        last4: pm.last4,
+        expiryMonth: pm.expiryMonth,
+        expiryYear: pm.expiryYear,
+        isDefault: !!pm.isDefault,
+      })));
+
+      const notif = u?.notifications;
+      if (notif?.email || notif?.push || notif?.sms) {
+        setNotifications({
+          email: { ...DEFAULT_NOTIFICATIONS.email, ...notif.email },
+          push: { ...DEFAULT_NOTIFICATIONS.push, ...notif.push },
+          sms: { ...DEFAULT_NOTIFICATIONS.sms, ...notif.sms },
+        });
+      }
+
+      const prefs = u?.preferences;
+      if (prefs) {
+        setCurrency(prefs.currency || 'RWF');
+        setLanguage(prefs.language || 'en');
+      }
+      try {
+        const his = await profileAPI.getLoginHistory();
+        setLoginHistory(his.loginHistory || []);
+      } catch {
+        setLoginHistory([]);
+      }
+    } catch (e: any) {
+      setProfileError(e?.message || 'Failed to load profile');
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [user]);
+
+  // Fetch admin stats (only for admin role)
+  const fetchStats = useCallback(async () => {
+    if (user?.role !== 'admin') {
+      setStatsLoading(false);
+      return;
+    }
+    setStatsLoading(true);
+    try {
+      const [userStats, sellerStats, ordersDash, financeDash, supportDash, reviewsDash] = await Promise.allSettled([
+        adminAPI.getUserStats(),
+        adminAPI.getSellerStats(),
+        adminOrdersAPI.getDashboard(),
+        adminFinanceAPI.getDashboard(),
+        adminSupportAPI.getDashboard(),
+        adminReviewsAPI.getDashboard(),
+      ]);
+
+      const totalUsers = userStats.status === 'fulfilled' ? (userStats.value as any).totalCustomers ?? 0 : 0;
+      const totalSellers = sellerStats.status === 'fulfilled' ? (sellerStats.value as any).totalSellers ?? 0 : 0;
+      const ordersData = ordersDash.status === 'fulfilled' ? (ordersDash.value as any) : null;
+      const totalOrders = ordersData?.totalOrdersToday ?? ordersData?.pendingOrders ?? 0;
+      const financeData = financeDash.status === 'fulfilled' ? (financeDash.value as any) : null;
+      const totalRevenue = financeData?.metrics?.totalRevenue ?? financeData?.metrics?.revenue ?? ordersData?.revenueToday ?? 0;
+      const supportData = supportDash.status === 'fulfilled' ? (supportDash.value as any) : null;
+      const activeDisputes = supportData?.metrics?.activeDisputes ?? supportData?.metrics?.openTickets ?? 0;
+      const reviewsData = reviewsDash.status === 'fulfilled' ? (reviewsDash.value as any) : null;
+      const pendingReviews = reviewsData?.stats?.pendingModeration ?? reviewsData?.stats?.pending ?? 0;
+
+      setStats({
+        totalUsers: Number(totalUsers),
+        totalSellers: Number(totalSellers),
+        totalOrders: Number(totalOrders),
+        totalRevenue: Number(totalRevenue),
+        activeDisputes: Number(activeDisputes),
+        pendingReviews: Number(pendingReviews),
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [user?.role]);
 
   useEffect(() => {
     if (!user) {
       navigate('/login');
+      return;
     }
-  }, [user, navigate]);
+    fetchProfile();
+    fetchStats();
+  }, [user, navigate, fetchProfile, fetchStats]);
 
+  // Refetch login history when Security tab is opened
   useEffect(() => {
-    if (user) {
-      setFormData({
-        full_name: user.full_name || 'Admin User',
-        email: user.email || 'admin@reagle-x.com',
-        phone: user.phone || '+250 788 123 456',
-        bio: 'Super Admin at REAGLE-X',
-        location: 'Kigali, Rwanda',
-        website: 'https://reagle-x.com',
-        dateOfBirth: '',
-      });
-      setAvatarPreview(user.avatar_url || null);
-    }
-  }, [user]);
+    if (activeTab !== 'security' || !user) return;
+    setLoginHistoryLoading(true);
+    profileAPI.getLoginHistory()
+      .then((res) => setLoginHistory(res.loginHistory || []))
+      .catch(() => setLoginHistory([]))
+      .finally(() => setLoginHistoryLoading(false));
+  }, [activeTab, user]);
 
   if (!user) {
     return null;
@@ -189,81 +309,193 @@ export function AdminProfile() {
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
-    // In a real app, this would update the profile in the database
-    setTimeout(() => {
-      setIsSaving(false);
+    setProfileError(null);
+    try {
+      const { user: updated } = await profileAPI.updateProfile({
+        fullName: formData.full_name,
+        phone: formData.phone || undefined,
+        bio: formData.bio || undefined,
+        location: formData.location || undefined,
+        website: formData.website || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+      });
+      const u = updated as any;
+      if (u && setUser) {
+        setUser({
+          ...user,
+          full_name: u.fullName ?? user.full_name,
+          phone: u.phone ?? user.phone,
+          avatar_url: u.avatarUrl ?? user.avatar_url,
+        });
+      }
       setShowEditModal(false);
-    }, 1000);
-  };
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    } catch (e: any) {
+      setProfileError(e?.message || 'Failed to save profile');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleAddAddress = () => {
-    const newAddress: Address = {
-      id: Date.now().toString(),
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
+    try {
+      const res = await profileAPI.uploadAvatar(file);
+      const url = (res as any).avatarUrl;
+      if (url) {
+        setAvatarPreview(url);
+        if (setUser) setUser({ ...user, avatar_url: url });
+      }
+    } catch (_) {
+      setAvatarPreview(user?.avatar_url || null);
+    }
+  };
+
+  const handleAddAddress = async () => {
+    const newAddr: BackendAddress = {
       label: 'New Address',
-      fullName: formData.full_name,
-      phone: formData.phone,
-      address: '',
+      street: '',
       city: '',
+      zipCode: '',
       country: 'Rwanda',
-      postalCode: '',
       isDefault: addresses.length === 0,
     };
-    setAddresses([...addresses, newAddress]);
+    try {
+      const res = await profileAPI.addAddress(newAddr);
+      const addrs = (res as any).addresses ?? [];
+      const fullName = formData.full_name;
+      const phone = formData.phone || '';
+      setAddresses(addrs.map((a: BackendAddress, idx: number) => ({
+        id: idx.toString(),
+        label: a.label,
+        fullName,
+        phone,
+        address: a.street,
+        city: a.city,
+        country: a.country,
+        postalCode: a.zipCode,
+        isDefault: !!a.isDefault,
+      })));
+    } catch (_) {}
   };
 
-  const handleDeleteAddress = (id: string) => {
-    setAddresses(addresses.filter(addr => addr.id !== id));
+  const handleDeleteAddress = async (id: string) => {
+    const index = addresses.findIndex((a) => a.id === id);
+    if (index < 0) return;
+    try {
+      const res = await profileAPI.deleteAddress(index);
+      const addrs = (res as any).addresses ?? [];
+      const fullName = formData.full_name;
+      const phone = formData.phone || '';
+      setAddresses(addrs.map((a: BackendAddress, idx: number) => ({
+        id: idx.toString(),
+        label: a.label,
+        fullName,
+        phone,
+        address: a.street,
+        city: a.city,
+        country: a.country,
+        postalCode: a.zipCode,
+        isDefault: !!a.isDefault,
+      })));
+    } catch (_) {}
   };
 
-  const handleSetDefaultAddress = (id: string) => {
-    setAddresses(addresses.map(addr => ({
-      ...addr,
-      isDefault: addr.id === id,
-    })));
+  const handleSetDefaultAddress = async (id: string) => {
+    const index = addresses.findIndex((a) => a.id === id);
+    if (index < 0) return;
+    const addr = addresses[index];
+    try {
+      const res = await profileAPI.updateAddress(index, {
+        label: addr.label,
+        street: addr.address,
+        city: addr.city,
+        zipCode: addr.postalCode,
+        country: addr.country,
+        isDefault: true,
+      });
+      const addrs = (res as any).addresses ?? [];
+      const fullName = formData.full_name;
+      const phone = formData.phone || '';
+      setAddresses(addrs.map((a: BackendAddress, idx: number) => ({
+        id: idx.toString(),
+        label: a.label,
+        fullName,
+        phone,
+        address: a.street,
+        city: a.city,
+        country: a.country,
+        postalCode: a.zipCode,
+        isDefault: !!a.isDefault,
+      })));
+    } catch (_) {}
   };
 
   const handleAddPaymentMethod = () => {
-    alert('Payment method addition would be handled by a payment provider integration');
+    alert('Payment method addition would be handled by a payment provider integration.');
   };
 
-  const handleDeletePaymentMethod = (id: string) => {
-    setPaymentMethods(paymentMethods.filter(pm => pm.id !== id));
+  const handleDeletePaymentMethod = async (id: string) => {
+    const index = paymentMethods.findIndex((p) => p.id === id);
+    if (index < 0) return;
+    try {
+      const res = await profileAPI.deletePaymentMethod(index);
+      const pms = (res as any).paymentMethods ?? [];
+      setPaymentMethods(pms.map((pm: BackendPaymentMethod, idx: number) => ({
+        id: idx.toString(),
+        type: pm.type === 'mobile_money' ? 'mobile' : (pm.type as 'card'),
+        label: (pm.provider || pm.type) + (pm.last4 ? ` •••• ${pm.last4}` : ''),
+        last4: pm.last4,
+        expiryMonth: pm.expiryMonth,
+        expiryYear: pm.expiryYear,
+        isDefault: !!pm.isDefault,
+      })));
+    } catch (_) {}
   };
 
   const handleChangePassword = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(false);
     if (newPassword !== confirmPassword) {
-      alert('New passwords do not match');
+      setPasswordError('New passwords do not match');
       return;
     }
-    if (newPassword.length < 8) {
-      alert('Password must be at least 8 characters');
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
       return;
     }
-    alert('Password changed successfully');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    try {
+      await profileAPI.changePassword({ currentPassword, newPassword });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordSuccess(true);
+    } catch (e: any) {
+      setPasswordError(e?.message || 'Failed to change password');
+    }
   };
 
-  // Mock statistics
-  const stats = {
-    totalUsers: 1250,
-    totalSellers: 450,
-    totalOrders: 12500,
-    totalRevenue: 1250000,
-    activeDisputes: 12,
-    pendingReviews: 45,
+  const handleSaveNotifications = async () => {
+    setNotificationsSaving(true);
+    try {
+      await profileAPI.updateNotificationSettings(notifications);
+    } catch (_) {}
+    finally {
+      setNotificationsSaving(false);
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setPreferencesSaving(true);
+    try {
+      await profileAPI.updatePreferences({ theme: theme as 'light' | 'dark' | 'auto', language, currency });
+    } catch (_) {}
+    finally {
+      setPreferencesSaving(false);
+    }
   };
 
   return (
@@ -279,6 +511,12 @@ export function AdminProfile() {
         </div>
       </div>
 
+      {profileError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl">
+          {profileError}
+        </div>
+      )}
+
       {/* Profile Header Card */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 h-24 sm:h-32" />
@@ -286,15 +524,19 @@ export function AdminProfile() {
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 overflow-hidden shadow-lg">
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt={user.full_name || 'Admin'} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white text-3xl sm:text-4xl font-bold">
-                    {(user.full_name || user.email).charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
+              {profileLoading ? (
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 dark:bg-gray-700 animate-pulse" />
+              ) : (
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 overflow-hidden shadow-lg">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt={formData.full_name || 'Admin'} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white text-3xl sm:text-4xl font-bold">
+                      {(formData.full_name || formData.email).charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* User Info */}
@@ -302,11 +544,11 @@ export function AdminProfile() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {formData.full_name}
+                    {profileLoading ? '...' : formData.full_name || user.full_name}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-semibold">
-                      Super Admin
+                      {user.role === 'admin' ? 'Admin' : 'User'}
                     </span>
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       {formData.email}
@@ -315,6 +557,7 @@ export function AdminProfile() {
                 </div>
                 <Button
                   onClick={() => setShowEditModal(true)}
+                  disabled={profileLoading}
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
                 >
                   <Edit className="h-4 w-4 mr-2" />
@@ -329,12 +572,12 @@ export function AdminProfile() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: 'Total Users', value: stats.totalUsers.toLocaleString(), icon: Users, color: 'text-blue-600 dark:text-blue-400' },
-          { label: 'Total Sellers', value: stats.totalSellers.toLocaleString(), icon: Building2, color: 'text-orange-600 dark:text-orange-400' },
-          { label: 'Total Orders', value: stats.totalOrders.toLocaleString(), icon: FileText, color: 'text-purple-600 dark:text-purple-400' },
-          { label: 'Total Revenue', value: `$${(stats.totalRevenue / 1000).toFixed(0)}K`, icon: DollarSign, color: 'text-green-600 dark:text-green-400' },
-          { label: 'Active Disputes', value: stats.activeDisputes.toString(), icon: AlertCircle, color: 'text-red-600 dark:text-red-400' },
-          { label: 'Pending Reviews', value: stats.pendingReviews.toString(), icon: CheckCircle2, color: 'text-yellow-600 dark:text-yellow-400' },
+          { label: 'Total Users', value: statsLoading ? '—' : stats.totalUsers.toLocaleString(), icon: Users, color: 'text-blue-600 dark:text-blue-400' },
+          { label: 'Total Sellers', value: statsLoading ? '—' : stats.totalSellers.toLocaleString(), icon: Building2, color: 'text-orange-600 dark:text-orange-400' },
+          { label: 'Total Orders', value: statsLoading ? '—' : stats.totalOrders.toLocaleString(), icon: FileText, color: 'text-purple-600 dark:text-purple-400' },
+          { label: 'Total Revenue', value: statsLoading ? '—' : `$${(stats.totalRevenue / 1000).toFixed(0)}K`, icon: DollarSign, color: 'text-green-600 dark:text-green-400' },
+          { label: 'Active Disputes', value: statsLoading ? '—' : stats.activeDisputes.toString(), icon: AlertCircle, color: 'text-red-600 dark:text-red-400' },
+          { label: 'Pending Reviews', value: statsLoading ? '—' : stats.pendingReviews.toString(), icon: CheckCircle2, color: 'text-yellow-600 dark:text-yellow-400' },
         ].map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -447,7 +690,9 @@ export function AdminProfile() {
                 </div>
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">Last Login</p>
-                  <p className="text-gray-900 dark:text-white font-semibold">Today at 10:30 AM</p>
+                  <p className="text-gray-900 dark:text-white font-semibold">
+                    {loginHistory.length > 0 ? new Date(loginHistory[0].date).toLocaleString() : '—'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">Account Status</p>
@@ -525,6 +770,12 @@ export function AdminProfile() {
                   </button>
                 </div>
               </div>
+              {passwordError && (
+                <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>
+              )}
+              {passwordSuccess && (
+                <p className="text-sm text-green-600 dark:text-green-400">Password updated successfully.</p>
+              )}
               <Button
                 onClick={handleChangePassword}
                 className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
@@ -555,10 +806,10 @@ export function AdminProfile() {
                 </span>
                 <Button 
                   variant="outline"
-                  onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
                   className="border-gray-300 dark:border-gray-700"
+                  disabled
                 >
-                  {twoFactorEnabled ? 'Disable' : 'Enable'} 2FA
+                  2FA (coming soon)
                 </Button>
               </div>
             </div>
@@ -566,21 +817,25 @@ export function AdminProfile() {
 
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Login History</h2>
-            <div className="space-y-3">
-              {[
-                { date: '2024-01-15 10:30 AM', ip: '192.168.1.1', location: 'Kigali, Rwanda', device: 'Chrome on Windows' },
-                { date: '2024-01-14 02:15 PM', ip: '192.168.1.1', location: 'Kigali, Rwanda', device: 'Chrome on Windows' },
-                { date: '2024-01-13 09:00 AM', ip: '192.168.1.2', location: 'Kigali, Rwanda', device: 'Safari on iPhone' },
-              ].map((entry, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{entry.date}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">{entry.device} • {entry.location}</p>
+            {loginHistoryLoading ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Loading…</p>
+            ) : loginHistory.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No login history yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {loginHistory.map((entry, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {new Date(entry.date).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{entry.device || 'Unknown'} • {entry.location || 'Unknown'}</p>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-500">{entry.ip}</span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-500">{entry.ip}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -694,6 +949,12 @@ export function AdminProfile() {
       {/* Notifications Tab */}
       {activeTab === 'notifications' && (
         <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notification preferences</h2>
+            <Button onClick={handleSaveNotifications} disabled={notificationsSaving} className="bg-emerald-600 hover:bg-emerald-700">
+              {notificationsSaving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Mail className="w-6 h-6 text-emerald-500" />
@@ -774,6 +1035,11 @@ export function AdminProfile() {
       {/* Preferences Tab */}
       {activeTab === 'preferences' && (
         <div className="space-y-6">
+          <div className="flex items-center justify-end">
+            <Button onClick={handleSavePreferences} disabled={preferencesSaving} className="bg-emerald-600 hover:bg-emerald-700">
+              {preferencesSaving ? 'Saving…' : 'Save theme, language & currency'}
+            </Button>
+          </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
               <Settings className="w-6 h-6 text-emerald-500" />
@@ -1018,23 +1284,7 @@ export function AdminProfile() {
             </div>
           </div>
           <DialogFooter className="mt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowEditModal(false);
-                // Reset form data on cancel
-                setFormData({
-                  full_name: user.full_name || 'Admin User',
-                  email: user.email || 'admin@reagle-x.com',
-                  phone: user.phone || '+250 788 123 456',
-                  bio: 'Super Admin at REAGLE-X',
-                  location: 'Kigali, Rwanda',
-                  website: 'https://reagle-x.com',
-                  dateOfBirth: '',
-                });
-                setAvatarPreview(user.avatar_url || null);
-              }}
-            >
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>
               Cancel
             </Button>
             <Button onClick={handleSaveProfile} disabled={isSaving} className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600">
