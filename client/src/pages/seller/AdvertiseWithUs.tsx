@@ -12,7 +12,7 @@ export default function AdvertiseWithUs() {
               'linear-gradient(135deg,#020617 0%,#020617 15%,#0f172a 60%,#020617 100%)',
           }}
         >
-          <div className="mx-auto max-w-4xl text-center space-y-4">
+          <div className="w-full text-center space-y-4">
             <p className="text-3xl sm:text-4xl font-extrabold text-white">
               📢 Advertise with Reaglex
             </p>
@@ -25,7 +25,7 @@ export default function AdvertiseWithUs() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-5xl gap-4 md:grid-cols-3 text-sm">
+        <section className="grid w-full gap-4 md:grid-cols-3 text-sm">
           {[
             { title: 'Banner Ads', desc: 'High-visibility placements on key pages.' },
             { title: 'Featured Products', desc: 'Boost your top SKUs in search results.' },
@@ -55,7 +55,7 @@ export default function AdvertiseWithUs() {
           ))}
         </section>
 
-        <section className="mx-auto max-w-5xl space-y-4">
+        <section className="w-full space-y-4">
           <h2
             className="text-xl font-bold"
             style={{ color: 'var(--text-primary)' }}
@@ -107,7 +107,7 @@ export default function AdvertiseWithUs() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-3xl space-y-4">
+        <section className="w-full space-y-4">
           <h2
             className="text-xl font-bold"
             style={{ color: 'var(--text-primary)' }}

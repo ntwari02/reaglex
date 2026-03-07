@@ -47,7 +47,7 @@ export function ForgotPassword() {
   };
 
   return (
-    <AuthLayout tab="login" formTitle="Recover Password">
+    <AuthLayout tab="login">
       {success ? (
         <div className="space-y-4 text-center py-4">
           <div

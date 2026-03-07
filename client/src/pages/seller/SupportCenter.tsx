@@ -40,6 +40,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
+import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
 
 const API_BASE = 'http://localhost:5000/api/seller/support';
 const KB_API_BASE = 'http://localhost:5000/api/seller/knowledge-base';
@@ -890,6 +891,9 @@ const SupportCenter: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Service & communication rules from guidelines */}
+      <SellerGuidancePanel context="support" />
 
       {/* Quick Help Shortcuts */}
       {activeTab === 'overview' && (

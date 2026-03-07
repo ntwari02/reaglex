@@ -14,7 +14,7 @@ import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useWishlistStore } from '../stores/wishlistStore';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useToastStore } from '../stores/toastStore';
-import { paymentAPI } from '../services/api';
+import api, { paymentAPI } from '../services/api';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 const PRIMARY = '#f97316';
@@ -34,6 +34,7 @@ const STATUS = {
   delivered: { bg: '#dcfce7', color: '#16a34a', label: 'Delivered', icon: CheckCircle },
   shipped: { bg: '#dbeafe', color: '#2563eb', label: 'Shipped', icon: Truck },
   processing: { bg: '#fff7ed', color: '#ea580c', label: 'Processing', icon: Clock },
+  pending: { bg: '#fef3c7', color: '#d97706', label: 'Pending', icon: Clock },
   cancelled: { bg: '#fee2e2', color: '#dc2626', label: 'Cancelled', icon: RotateCcw },
 };
 
@@ -117,10 +118,7 @@ const ADDRESS_TYPES = [
   },
 ];
 
-const INITIAL_ADDRESSES = [
-  { id: 'a1', fullName: 'Thierry NTWARI', phone: '+250 788 123 456', line1: '123 Main Street, Cityville', line2: '', city: 'Kigali', state: 'Kigali', zip: '00000', country: 'Rwanda 🇷🇼', type: 'home', default: true },
-  { id: 'a2', fullName: 'Thierry NTWARI', phone: '+250 788 654 321', line1: '45 Office Park', line2: 'Suite 100', city: 'Kigali', state: 'Kigali', zip: '00001', country: 'Rwanda 🇷🇼', type: 'work', default: false },
-];
+const INITIAL_ADDRESSES = [];
 
 function CountUp({ value, duration = 0.8, delay = 0 }) {
   const [display, setDisplay] = useState(0);
@@ -1271,6 +1269,9 @@ export default function BuyerDashboard() {
   const [ordersStatus, setOrdersStatus] = useState('all');
   const [ordersDateRange, setOrdersDateRange] = useState('30');
   const [ordersSort, setOrdersSort] = useState('newest');
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState(null);
   const [wishlistSearch, setWishlistSearch] = useState('');
   const [wishlistSortOpen, setWishlistSortOpen] = useState(false);
   const [reviewsFilter, setReviewsFilter] = useState('all');
@@ -1302,9 +1303,111 @@ export default function BuyerDashboard() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [tipDismissed, setTipDismissed] = useState(false);
   const [copiedAddressId, setCopiedAddressId] = useState(null);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [addressesError, setAddressesError] = useState(null);
+
+  const mapApiOrderToUi = (order) => {
+    if (!order) return null;
+    const createdAt = order.created_at || order.date || order.createdAt;
+    const date = createdAt
+      ? new Date(createdAt).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+      : '';
+    const itemsCount = Array.isArray(order.items)
+      ? order.items.reduce((sum, item) => sum + (item.quantity || 0), 0)
+      : 0;
+
+    return {
+      id: order.order_number || order.orderNumber || order.id,
+      date,
+      status: order.status || 'processing',
+      items: itemsCount,
+      total: order.total || 0,
+      seller: order.seller?.name || 'Unknown Seller',
+    };
+  };
+
+  const uiOrders = (orders && orders.length
+    ? orders
+    : MOCK_ORDERS);
+
+  const mapApiAddressToUi = (addr, index, user) => {
+    if (!addr) return null;
+    const street = addr.street || '';
+    // Try to split street into line1 / line2 on first comma
+    const [line1, ...rest] = street.split(',');
+    const line2 = rest.join(',').trim();
+    const type =
+      (addr.label || '').toLowerCase() === 'home' ? 'home'
+        : (addr.label || '').toLowerCase() === 'work' ? 'work'
+        : 'other';
+    return {
+      id: `addr-${index}`,
+      index,
+      fullName: user?.fullName || '',
+      phone: user?.phone || '',
+      line1: line1.trim(),
+      line2,
+      city: addr.city || '',
+      state: addr.state || '',
+      zip: addr.zipCode || '',
+      country: addr.country || '',
+      type,
+      default: !!addr.isDefault,
+    };
+  };
 
   useEffect(() => {
     if (user?.id) useWishlistStore.getState().fetchWishlist(user.id);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchAddresses = async () => {
+      try {
+        setAddressesLoading(true);
+        setAddressesError(null);
+        const res = await api.get('/profile/me');
+        const profileUser = res.data?.user;
+        const apiAddresses = profileUser?.addresses || [];
+        const mapped = apiAddresses
+          .map((addr, index) => mapApiAddressToUi(addr, index, profileUser))
+          .filter(Boolean);
+        setAddresses(mapped);
+      } catch (err) {
+        console.error('Failed to load addresses', err);
+        setAddressesError('Failed to load addresses');
+      } finally {
+        setAddressesLoading(false);
+      }
+    };
+    fetchAddresses();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchOrders = async () => {
+      try {
+        setOrdersLoading(true);
+        setOrdersError(null);
+        const res = await api.get('/orders', { params: { limit: 50 } });
+        const rawOrders = res.data?.orders || res.data?.data?.orders || [];
+        const mapped = rawOrders
+          .map(mapApiOrderToUi)
+          .filter(Boolean);
+        setOrders(mapped);
+      } catch (err) {
+        console.error('Failed to load buyer orders', err);
+        setOrdersError('Failed to load orders');
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    fetchOrders();
   }, [user?.id]);
 
   useEffect(() => {
@@ -1344,7 +1447,7 @@ export default function BuyerDashboard() {
   const isAddressesTab = tab === 'addresses';
   const isPaymentsTab = tab === 'payments';
 
-  const orderCount = MOCK_ORDERS.length;
+  const orderCount = uiOrders.length;
   const reviewCount = 8;
   const savedCount = wishlistItems.length;
 
@@ -1626,7 +1729,7 @@ export default function BuyerDashboard() {
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {[
-                          { icon: Package, label: 'Total Orders', value: MOCK_ORDERS.length, color: PRIMARY, bg: '#fff7ed' },
+                          { icon: Package, label: 'Total Orders', value: uiOrders.length, color: PRIMARY, bg: '#fff7ed' },
                           { icon: Truck, label: 'In Transit', value: 1, color: '#2563eb', bg: '#eff6ff' },
                           { icon: Star, label: 'Reviews', value: 8, color: '#d97706', bg: '#fffbeb' },
                           { icon: ShoppingBag, label: 'Total Spent', value: '$227.49', color: '#16a34a', bg: '#f0fdf4' },
@@ -1650,7 +1753,7 @@ export default function BuyerDashboard() {
                           }
                         />
                         <div>
-                          {MOCK_ORDERS.slice(0, 4).map((o, i, arr) => {
+                          {uiOrders.slice(0, 4).map((o, i, arr) => {
                             const s = STATUS[o.status];
                             const Icon = s.icon;
                             return (
@@ -1699,7 +1802,7 @@ export default function BuyerDashboard() {
                     const orderStatusTabs = [{ id: 'all', label: 'All' }, { id: 'processing', label: 'Processing' }, { id: 'shipped', label: 'Shipped' }, { id: 'delivered', label: 'Delivered' }, { id: 'cancelled', label: 'Cancelled' }];
                     const dateRangeOptions = [{ value: '7', label: 'Last 7 days' }, { value: '30', label: 'Last 30 days' }, { value: '90', label: 'Last 3 months' }, { value: '365', label: 'This year' }, { value: 'all', label: 'All time' }];
                     const q = ordersSearch.toLowerCase().trim();
-                    let filteredOrders = MOCK_ORDERS.filter((o) => {
+                    let filteredOrders = uiOrders.filter((o) => {
                       if (ordersStatus !== 'all' && o.status !== ordersStatus) return false;
                       if (q && !o.id.toLowerCase().includes(q) && !o.seller.toLowerCase().includes(q)) return false;
                       return true;
@@ -1726,7 +1829,17 @@ export default function BuyerDashboard() {
                           <option value="oldest">Oldest first</option>
                         </select>
                       </div>
-                      {filteredOrders.map((o) => {
+                      {ordersLoading && (
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                          Loading your orders...
+                        </p>
+                      )}
+                      {ordersError && !ordersLoading && (
+                        <p className="text-sm" style={{ color: '#f97373' }}>
+                          {ordersError}
+                        </p>
+                      )}
+                      {!ordersLoading && !ordersError && filteredOrders.map((o) => {
                         const s = STATUS[o.status];
                         const Icon = s.icon;
                         return (
@@ -2002,7 +2115,17 @@ export default function BuyerDashboard() {
                         </motion.div>
                       )}
 
-                      {addresses.length === 0 ? (
+                      {addressesLoading && (
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                          Loading your addresses...
+                        </p>
+                      )}
+                      {addressesError && !addressesLoading && (
+                        <p className="text-sm" style={{ color: '#f97373' }}>
+                          {addressesError}
+                        </p>
+                      )}
+                      {!addressesLoading && addresses.length === 0 ? (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-16">
                           <motion.div className="mb-4 address-pin-bounce text-5xl">📍</motion.div>
                           <p className="font-bold text-xl mb-2 text-[var(--text-muted)]">No addresses saved yet</p>
@@ -2049,7 +2172,45 @@ export default function BuyerDashboard() {
                                       {isDefault ? (
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white" style={{ background: DEFAULT_GREEN }}><Check className="w-3 h-3" /> Default</span>
                                       ) : (
-                                        <button type="button" onClick={() => { setAddresses((a) => a.map((x) => ({ ...x, default: x.id === addr.id }))); showToast('Default address updated'); }} className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: 'var(--text-muted)' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>Set as Default</button>
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            try {
+                                              setAddressesLoading(true);
+                                              const payload = {
+                                                label: (addr.type || 'home').charAt(0).toUpperCase() + (addr.type || 'home').slice(1),
+                                                street: addr.line2
+                                                  ? `${addr.line1}, ${addr.line2}`
+                                                  : addr.line1,
+                                                city: addr.city,
+                                                state: addr.state,
+                                                zipCode: addr.zip,
+                                                country: addr.country,
+                                                isDefault: true,
+                                              };
+                                              await api.put(`/profile/me/addresses/${addr.index}`, payload);
+                                              const res = await api.get('/profile/me');
+                                              const profileUser = res.data?.user;
+                                              const apiAddresses = profileUser?.addresses || [];
+                                              const mapped = apiAddresses
+                                                .map((aAddr, index) => mapApiAddressToUi(aAddr, index, profileUser))
+                                                .filter(Boolean);
+                                              setAddresses(mapped);
+                                              showToast('Default address updated');
+                                            } catch (err) {
+                                              console.error('Failed to set default address', err);
+                                              showToast('Failed to update default address', 'error');
+                                            } finally {
+                                              setAddressesLoading(false);
+                                            }
+                                          }}
+                                          className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+                                          style={{ color: 'var(--text-muted)' }}
+                                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                        >
+                                          Set as Default
+                                        </button>
                                       )}
                                     </div>
                                   </div>
@@ -2061,8 +2222,41 @@ export default function BuyerDashboard() {
                                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="absolute right-0 top-full mt-1 p-3 rounded-xl shadow-xl border z-20 min-w-[180px]" style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)', boxShadow: 'var(--card-shadow-hover)' }}>
                                           <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Delete this address?</p>
                                           <div className="flex gap-2">
-                                            <button type="button" onClick={() => setDeleteConfirmId(null)} className="flex-1 py-1.5 rounded-lg text-sm font-semibold border" style={{ borderColor: 'var(--divider-strong)', color: 'var(--text-secondary)', background: 'var(--btn-secondary-bg)' }}>Cancel</button>
-                                            <button type="button" onClick={() => { setAddresses((a) => a.filter((x) => x.id !== addr.id)); setDeleteConfirmId(null); showToast('Address removed'); }} className="flex-1 py-1.5 rounded-lg text-sm font-semibold text-white" style={{ background: '#ef4444' }}>Delete</button>
+                                            <button
+                                              type="button"
+                                              onClick={() => setDeleteConfirmId(null)}
+                                              className="flex-1 py-1.5 rounded-lg text-sm font-semibold border"
+                                              style={{ borderColor: 'var(--divider-strong)', color: 'var(--text-secondary)', background: 'var(--btn-secondary-bg)' }}
+                                            >
+                                              Cancel
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={async () => {
+                                                try {
+                                                  setAddressesLoading(true);
+                                                  await api.delete(`/profile/me/addresses/${addr.index}`);
+                                                  const res = await api.get('/profile/me');
+                                                  const profileUser = res.data?.user;
+                                                  const apiAddresses = profileUser?.addresses || [];
+                                                  const mapped = apiAddresses
+                                                    .map((aAddr, index) => mapApiAddressToUi(aAddr, index, profileUser))
+                                                    .filter(Boolean);
+                                                  setAddresses(mapped);
+                                                  showToast('Address removed');
+                                                } catch (err) {
+                                                  console.error('Failed to delete address', err);
+                                                  showToast('Failed to delete address', 'error');
+                                                } finally {
+                                                  setAddressesLoading(false);
+                                                  setDeleteConfirmId(null);
+                                                }
+                                              }}
+                                              className="flex-1 py-1.5 rounded-lg text-sm font-semibold text-white"
+                                              style={{ background: '#ef4444' }}
+                                            >
+                                              Delete
+                                            </button>
                                           </div>
                                         </motion.div>
                                       )}
@@ -2119,18 +2313,56 @@ export default function BuyerDashboard() {
                                 onSubmit={(e) => {
                                   e.preventDefault();
                                   const fd = new FormData(e.target);
-                                  const data = { fullName: fd.get('fullName'), phone: fd.get('phone'), line1: fd.get('line1'), line2: fd.get('line2'), city: fd.get('city'), state: fd.get('state'), zip: fd.get('zip'), country: fd.get('country'), type: fd.get('type') || 'home', default: fd.get('default') === 'on' };
-                                  setAddressSaving(true);
-                                  setTimeout(() => {
-                                    if (addressEditId) {
-                                      setAddresses((a) => a.map((x) => (x.id === addressEditId ? { ...x, ...data, id: x.id } : x)));
-                                    } else {
-                                      setAddresses((a) => [...a, { ...data, id: 'a' + Date.now() }]);
+                                  const data = {
+                                    fullName: fd.get('fullName'),
+                                    phone: fd.get('phone'),
+                                    line1: fd.get('line1'),
+                                    line2: fd.get('line2'),
+                                    city: fd.get('city'),
+                                    state: fd.get('state'),
+                                    zip: fd.get('zip'),
+                                    country: fd.get('country'),
+                                    type: fd.get('type') || 'home',
+                                    default: fd.get('default') === 'on',
+                                  };
+                                  const payload = {
+                                    label: String(data.type).charAt(0).toUpperCase() + String(data.type).slice(1),
+                                    street: data.line2
+                                      ? `${data.line1}, ${data.line2}`
+                                      : data.line1,
+                                    city: data.city,
+                                    state: data.state,
+                                    zipCode: data.zip,
+                                    country: data.country,
+                                    isDefault: data.default,
+                                  };
+                                  const save = async () => {
+                                    try {
+                                      setAddressSaving(true);
+                                      if (addressEditId != null) {
+                                        const current = addresses.find((a) => a.id === addressEditId);
+                                        const index = current?.index ?? 0;
+                                        await api.put(`/profile/me/addresses/${index}`, payload);
+                                      } else {
+                                        await api.post('/profile/me/addresses', payload);
+                                      }
+                                      const res = await api.get('/profile/me');
+                                      const profileUser = res.data?.user;
+                                      const apiAddresses = profileUser?.addresses || [];
+                                      const mapped = apiAddresses
+                                        .map((aAddr, index) => mapApiAddressToUi(aAddr, index, profileUser))
+                                        .filter(Boolean);
+                                      setAddresses(mapped);
+                                      showToast('✓ Address saved successfully!');
+                                      setAddressModalOpen(false);
+                                    } catch (err) {
+                                      console.error('Failed to save address', err);
+                                      showToast('Failed to save address', 'error');
+                                    } finally {
+                                      setAddressSaving(false);
                                     }
-                                    setAddressSaving(false);
-                                    setAddressModalOpen(false);
-                                    showToast('✓ Address saved successfully!');
-                                  }, 600);
+                                  };
+                                  save();
                                 }}
                               >
                                 <div className="grid grid-cols-2 gap-4">
@@ -3925,7 +4157,7 @@ export default function BuyerDashboard() {
                       />
                     </div>
                     <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                      {MOCK_ORDERS.filter((o) => {
+                      {uiOrders.filter((o) => {
                         if (!newReturnOrderSearch) return true;
                         const q = newReturnOrderSearch.toLowerCase();
                         return (

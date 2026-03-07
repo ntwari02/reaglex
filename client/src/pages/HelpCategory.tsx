@@ -36,7 +36,7 @@ export default function HelpCategory() {
         className="min-h-screen"
         style={{ background: 'var(--bg-page)', color: 'var(--text-primary)' }}
       >
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-10 space-y-6">
+        <div className="w-full px-4 sm:px-6 lg:px-10 py-10 space-y-6">
           {/* Header */}
           <div className="flex flex-col gap-2">
             <button
@@ -65,7 +65,7 @@ export default function HelpCategory() {
                   {cat.name}
                 </h1>
                 <p
-                  className="text-sm max-w-2xl"
+                  className="text-sm"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   {cat.description}

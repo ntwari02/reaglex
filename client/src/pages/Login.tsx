@@ -312,7 +312,7 @@ export function Login() {
   };
 
   return (
-    <AuthLayout tab="login" formTitle="Sign in">
+    <AuthLayout tab="login">
       {step === 'password' && (
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Heading */}
