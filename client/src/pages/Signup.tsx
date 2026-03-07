@@ -110,7 +110,7 @@ export function Signup() {
   };
 
   return (
-    <AuthLayout tab="signup" formTitle="Create account">
+    <AuthLayout tab="signup">
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-1 mb-1">
           <h2

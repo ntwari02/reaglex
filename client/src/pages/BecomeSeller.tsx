@@ -14,7 +14,7 @@ export default function BecomeSeller() {
   return (
     <BuyerLayout>
       <main className="min-h-[60vh] w-full px-4 py-10 sm:px-6 lg:px-10">
-        <div className="mx-auto max-w-4xl space-y-6">
+        <div className="w-full space-y-6">
           {reason === 'not_seller' && (
             <div
               className="flex flex-col gap-3 rounded-[16px] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"

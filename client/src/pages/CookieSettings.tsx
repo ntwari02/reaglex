@@ -351,7 +351,7 @@ function CookieSettings() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className="mx-auto flex w-full max-w-6xl flex-col gap-4 rounded-[20px] md:flex-row md:items-center md:justify-between"
+            className="flex w-full flex-col gap-4 rounded-[20px] md:flex-row md:items-center md:justify-between"
             style={{
               background: 'var(--card-bg)',
               padding: '24px 32px',
@@ -433,7 +433,7 @@ function CookieSettings() {
         {/* BODY */}
         <main className="w-full px-4 pt-10 pb-20 sm:px-6 lg:px-10 space-y-14">
           {/* TIER 3 — What are cookies */}
-          <section className="space-y-6 max-w-6xl mx-auto">
+          <section className="space-y-6 w-full">
             <h2
               className="text-xl md:text-2xl font-bold"
               style={{ color: 'var(--text-primary)' }}
@@ -540,7 +540,7 @@ function CookieSettings() {
           </section>
 
           {/* TIER 4 — Cookie categories heading */}
-          <section className="space-y-4 max-w-6xl mx-auto">
+          <section className="space-y-4 w-full">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2
@@ -797,7 +797,7 @@ function CookieSettings() {
           </section>
 
           {/* TIER 6 — Consent history */}
-          <section className="space-y-4 max-w-6xl mx-auto">
+          <section className="space-y-4 w-full">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2
@@ -909,7 +909,7 @@ function CookieSettings() {
           </section>
 
           {/* TIER 7 — Privacy rights */}
-          <section className="space-y-6 max-w-6xl mx-auto">
+          <section className="space-y-6 w-full">
             <div>
               <h2
                 className="text-xl md:text-2xl font-bold"
@@ -1093,7 +1093,7 @@ function CookieSettings() {
           </section>
 
           {/* TIER 8 — Third party services */}
-          <section className="space-y-4 max-w-6xl mx-auto">
+          <section className="space-y-4 w-full">
             <div>
               <h2
                 className="text-xl font-bold"
@@ -1239,7 +1239,7 @@ function CookieSettings() {
           </section>
 
           {/* TIER 9 — Cookie banner preview */}
-          <section className="space-y-4 max-w-6xl mx-auto">
+          <section className="space-y-4 w-full">
             <div>
               <h2
                 className="text-xl font-bold"
@@ -1365,7 +1365,7 @@ function CookieSettings() {
           </section>
 
           {/* TIER 10 — Cookie FAQs */}
-          <section className="space-y-4 max-w-6xl mx-auto">
+          <section className="space-y-4 w-full">
             <h2
               className="text-xl font-bold"
               style={{ color: 'var(--text-primary)' }}
@@ -1413,7 +1413,7 @@ function CookieSettings() {
           </section>
 
           {/* TIER 11 — Danger zone */}
-          <section className="space-y-4 max-w-6xl mx-auto">
+          <section className="space-y-4 w-full">
             <h2
               className="text-xl font-bold"
               style={{ color: 'var(--text-primary)' }}
@@ -1449,7 +1449,7 @@ function CookieSettings() {
           </section>
 
           {/* TIER 12 — Bottom CTA */}
-          <section className="space-y-4 max-w-6xl mx-auto">
+          <section className="space-y-4 w-full">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
