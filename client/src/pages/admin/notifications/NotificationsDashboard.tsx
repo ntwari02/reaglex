@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Bell,
   Mail,
@@ -7,51 +7,35 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  TrendingUp,
-  AlertTriangle,
 } from 'lucide-react';
-
-const mockStats = {
-  totalSent: 45230,
-  emailSent: 28450,
-  smsSent: 12340,
-  pushSent: 3840,
-  inAppSent: 600,
-  deliveryRate: 96.5,
-  failedCount: 1580,
-};
-
-const mockRecentNotifications = [
-  {
-    id: '1',
-    type: 'email',
-    recipient: 'john@example.com',
-    subject: 'Order Confirmation',
-    status: 'sent',
-    sentAt: '2 minutes ago',
-  },
-  {
-    id: '2',
-    type: 'sms',
-    recipient: '+1234567890',
-    subject: 'Order Shipped',
-    status: 'sent',
-    sentAt: '5 minutes ago',
-  },
-  {
-    id: '3',
-    type: 'push',
-    recipient: 'User Device',
-    subject: 'Flash Sale Alert',
-    status: 'failed',
-    sentAt: '10 minutes ago',
-  },
-];
+import { adminNotificationsAPI } from '@/lib/api';
 
 export default function NotificationsDashboard() {
-  const [selectedType, setSelectedType] = useState<'all' | 'email' | 'sms' | 'push' | 'inapp'>(
-    'all'
-  );
+  const [selectedType, setSelectedType] = useState<'all' | 'email' | 'sms' | 'push' | 'inapp'>('all');
+  const [stats, setStats] = useState<Record<string, number | string> | null>(null);
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDashboard = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminNotificationsAPI.getDashboard();
+      setStats(res.stats ?? null);
+      setRecentNotifications(res.recentNotifications ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load dashboard');
+      setStats(null);
+      setRecentNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -78,16 +62,48 @@ export default function NotificationsDashboard() {
     );
   };
 
+  const filteredRecent =
+    selectedType === 'all'
+      ? recentNotifications
+      : recentNotifications.filter((n) => n.type === selectedType);
+
+  if (error) {
+    return (
+      <div className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
+        {error}
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"
+            >
+              <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+              <div className="mt-2 h-8 w-20 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const s = stats || {};
+
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Sent</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.totalSent.toLocaleString()}
+                {Number(s.totalSent ?? 0).toLocaleString()}
               </p>
             </div>
             <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/40">
@@ -95,7 +111,7 @@ export default function NotificationsDashboard() {
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className="text-emerald-600 dark:text-emerald-400">+12%</span>
+            <span className="text-emerald-600 dark:text-emerald-400">{String(s.totalChange ?? '—')}%</span>
             <span className="text-gray-500 dark:text-gray-400">this month</span>
           </div>
         </div>
@@ -105,7 +121,7 @@ export default function NotificationsDashboard() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Delivery Rate</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.deliveryRate}%
+                {Number(s.deliveryRate ?? 0)}%
               </p>
             </div>
             <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/40">
@@ -113,7 +129,7 @@ export default function NotificationsDashboard() {
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className="text-emerald-600 dark:text-emerald-400">+2.3%</span>
+            <span className="text-emerald-600 dark:text-emerald-400">{String(s.deliveryChange ?? '—')}%</span>
             <span className="text-gray-500 dark:text-gray-400">improvement</span>
           </div>
         </div>
@@ -123,7 +139,7 @@ export default function NotificationsDashboard() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Failed</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.failedCount}
+                {Number(s.failedCount ?? 0)}
               </p>
             </div>
             <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/40">
@@ -131,7 +147,11 @@ export default function NotificationsDashboard() {
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className="text-red-600 dark:text-red-400">3.5%</span>
+            <span className="text-red-600 dark:text-red-400">
+              {s.totalSent
+                ? (Number(s.failedCount || 0) / Number(s.totalSent) * 100).toFixed(1)
+                : '0'}%
+            </span>
             <span className="text-gray-500 dark:text-gray-400">failure rate</span>
           </div>
         </div>
@@ -140,7 +160,9 @@ export default function NotificationsDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Scheduled</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">24</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                {Number(s.scheduledCount ?? 0)}
+              </p>
             </div>
             <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/40">
               <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
@@ -152,60 +174,35 @@ export default function NotificationsDashboard() {
         </div>
       </div>
 
-      {/* Notifications by Type */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Notifications by Type
         </h3>
         <div className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-            <div className="flex items-center gap-3">
-              <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  {mockStats.emailSent.toLocaleString()}
-                </p>
+          {[
+            { key: 'emailSent', label: 'Email', icon: Mail },
+            { key: 'smsSent', label: 'SMS', icon: MessageSquare },
+            { key: 'pushSent', label: 'Push', icon: Smartphone },
+            { key: 'inAppSent', label: 'In-App', icon: Bell },
+          ].map(({ key, label, icon: Icon }) => (
+            <div
+              key={key}
+              className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
+            >
+              <div className="flex items-center gap-3">
+                <Icon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {Number(s[key as keyof typeof s] ?? 0).toLocaleString()}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-            <div className="flex items-center gap-3">
-              <MessageSquare className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">SMS</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  {mockStats.smsSent.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-            <div className="flex items-center gap-3">
-              <Smartphone className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Push</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  {mockStats.pushSent.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-            <div className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">In-App</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  {mockStats.inAppSent.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Recent Notifications */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -228,9 +225,12 @@ export default function NotificationsDashboard() {
           </div>
         </div>
         <div className="space-y-3">
-          {mockRecentNotifications
-            .filter((n) => selectedType === 'all' || n.type === selectedType)
-            .map((notification) => (
+          {filteredRecent.length === 0 ? (
+            <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+              No notifications from the database. Data from backend.
+            </p>
+          ) : (
+            filteredRecent.map((notification) => (
               <div
                 key={notification.id}
                 className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
@@ -248,10 +248,10 @@ export default function NotificationsDashboard() {
                 </div>
                 {getStatusBadge(notification.status)}
               </div>
-            ))}
+            ))
+          )}
         </div>
       </div>
     </div>
   );
 }
-

@@ -13,6 +13,7 @@ import {
   Eye,
   X,
 } from 'lucide-react';
+import { adminNotificationsAPI } from '@/lib/api';
 
 export default function CreateSendNotification() {
   const [targetGroup, setTargetGroup] = useState('all_customers');
@@ -20,11 +21,35 @@ export default function CreateSendNotification() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sendSuccess, setSendSuccess] = useState(false);
 
   const handleTypeToggle = (type: string) => {
     setNotificationType((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
+  };
+
+  const handleSendNow = async () => {
+    setSendError(null);
+    setSendSuccess(false);
+    setSending(true);
+    try {
+      await adminNotificationsAPI.sendNotification({
+        targetGroup,
+        types: notificationType.length ? notificationType : ['inapp'],
+        subject,
+        message,
+        recipient: targetGroup === 'specific_user' ? 'user' : 'broadcast',
+      });
+      setSendSuccess(true);
+      setTimeout(() => setSendSuccess(false), 4000);
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'Failed to send');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -33,9 +58,19 @@ export default function CreateSendNotification() {
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create & Send Notification</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Create and send notifications to users
+          Create and send notifications to users. Sends via backend API.
         </p>
       </div>
+      {sendError && (
+        <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
+          {sendError}
+        </p>
+      )}
+      {sendSuccess && (
+        <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
+          Notification sent successfully.
+        </p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Form */}
@@ -151,9 +186,13 @@ export default function CreateSendNotification() {
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
             <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Actions</h3>
             <div className="space-y-3">
-              <button className="w-full rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl">
+              <button
+                onClick={handleSendNow}
+                disabled={sending}
+                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-70"
+              >
                 <Send className="mr-2 inline h-4 w-4" />
-                Send Now
+                {sending ? 'Sending...' : 'Send Now'}
               </button>
               <button className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
                 Schedule Send

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ShoppingCart,
   Search,
@@ -22,7 +22,9 @@ import {
   TrendingUp,
   Package,
   ArrowLeft,
+  Loader2,
 } from 'lucide-react';
+import { adminOrdersAPI } from '../../lib/api';
 import OrderDetails from './orders/OrderDetails';
 import OrderAnalytics from './orders/OrderAnalytics';
 import OrderLogs from './orders/OrderLogs';
@@ -74,94 +76,29 @@ interface Order {
   isFulfilled: boolean;
 }
 
-const mockOrders: Order[] = [
-  {
-    id: 'ORD-001',
-    orderId: 'ORD-001',
-    customerName: 'John Doe',
-    customerEmail: 'john@example.com',
-    customerPhone: '+1 555 123 4567',
-    orderDate: '2024-03-15',
-    status: 'delivered',
-    paymentStatus: 'paid',
-    paymentMethod: 'card',
-    totalAmount: 299.99,
-    itemsCount: 2,
-    sellerName: 'TechHub Electronics',
-    shippingMethod: 'Standard Shipping',
-    deliveryDateEstimate: '2024-03-18',
-    trackingNumber: 'TRACK-123456',
-    city: 'New York',
-    isHighValue: false,
-    isCod: false,
-    isFulfilled: true,
-  },
-  {
-    id: 'ORD-002',
-    orderId: 'ORD-002',
-    customerName: 'Jane Smith',
-    customerEmail: 'jane@example.com',
-    customerPhone: '+1 555 987 6543',
-    orderDate: '2024-03-16',
-    status: 'shipped',
-    paymentStatus: 'paid',
-    paymentMethod: 'paypal',
-    totalAmount: 149.99,
-    itemsCount: 1,
-    sellerName: 'Fashion Forward',
-    shippingMethod: 'Express Shipping',
-    deliveryDateEstimate: '2024-03-19',
-    trackingNumber: 'TRACK-789012',
-    city: 'Los Angeles',
-    isHighValue: false,
-    isCod: false,
-    isFulfilled: false,
-  },
-  {
-    id: 'ORD-003',
-    orderId: 'ORD-003',
-    customerName: 'Bob Johnson',
-    customerEmail: 'bob@example.com',
-    customerPhone: '+1 555 456 7890',
-    orderDate: '2024-03-17',
-    status: 'pending',
-    paymentStatus: 'unpaid',
-    paymentMethod: 'cash_on_delivery',
-    totalAmount: 89.99,
-    itemsCount: 3,
-    sellerName: 'HomeStyle',
-    shippingMethod: 'Standard Shipping',
-    deliveryDateEstimate: '2024-03-20',
-    city: 'Chicago',
-    isHighValue: false,
-    isCod: true,
-    isFulfilled: false,
-  },
-  {
-    id: 'ORD-004',
-    orderId: 'ORD-004',
-    customerName: 'Alice Brown',
-    customerEmail: 'alice@example.com',
-    customerPhone: '+1 555 321 0987',
-    orderDate: '2024-03-14',
-    status: 'returned',
-    paymentStatus: 'refunded',
-    paymentMethod: 'card',
-    totalAmount: 199.99,
-    itemsCount: 1,
-    sellerName: 'TechHub Electronics',
-    shippingMethod: 'Standard Shipping',
-    deliveryDateEstimate: '2024-03-17',
-    city: 'Houston',
-    isHighValue: false,
-    isCod: false,
-    isFulfilled: true,
-  },
-];
-
 export default function OrderManagementAdmin() {
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [dashboard, setDashboard] = useState<{
+    totalOrdersToday: number;
+    pendingOrders: number;
+    revenueToday: number;
+    cancelledOrders: number;
+  } | null>(null);
+  const [facets, setFacets] = useState<{ sellers: { id: string; name: string }[]; cities: string[] }>({
+    sellers: [],
+    cities: [],
+  });
+  const [pagination, setPagination] = useState<{ page: number; limit: number; total: number; pages: number }>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -178,93 +115,103 @@ export default function OrderManagementAdmin() {
   const [codFilter, setCodFilter] = useState<'all' | 'cod' | 'online'>('all');
   const [fulfilledFilter, setFulfilledFilter] = useState<'all' | 'fulfilled' | 'not_fulfilled'>('all');
   const [sortBy, setSortBy] = useState<SortOption>('date_desc');
+  const [page, setPage] = useState(1);
 
-  const sellers = Array.from(new Set(orders.map((o) => o.sellerName)));
-  const cities = Array.from(new Set(orders.map((o) => o.city)));
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
-  const filteredAndSortedOrders = useMemo(() => {
-    let filtered = orders.filter((order) => {
-      const matchesSearch =
-        order.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.customerPhone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.sellerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (order.trackingNumber && order.trackingNumber.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-      const matchesPaymentStatus = paymentStatusFilter === 'all' || order.paymentStatus === paymentStatusFilter;
-      const matchesPaymentMethod = paymentMethodFilter === 'all' || order.paymentMethod === paymentMethodFilter;
-      const matchesSeller = sellerFilter === 'all' || order.sellerName === sellerFilter;
-      const matchesCity = cityFilter === 'all' || order.city === cityFilter;
-      const matchesAmount = order.totalAmount >= amountRange[0] && order.totalAmount <= amountRange[1];
-      const matchesCod =
-        codFilter === 'all' || (codFilter === 'cod' && order.isCod) || (codFilter === 'online' && !order.isCod);
-      const matchesFulfilled =
-        fulfilledFilter === 'all' ||
-        (fulfilledFilter === 'fulfilled' && order.isFulfilled) ||
-        (fulfilledFilter === 'not_fulfilled' && !order.isFulfilled);
+  const fetchDashboardAndFacets = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [dashRes, facetsRes] = await Promise.all([
+        adminOrdersAPI.getDashboard(),
+        adminOrdersAPI.getFacets(),
+      ]);
+      setDashboard(dashRes);
+      setFacets(facetsRes);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      const matchesDate =
-        !dateRange[0] ||
-        !dateRange[1] ||
-        (order.orderDate >= dateRange[0] && order.orderDate <= dateRange[1]);
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesPaymentStatus &&
-        matchesPaymentMethod &&
-        matchesSeller &&
-        matchesCity &&
-        matchesAmount &&
-        matchesCod &&
-        matchesFulfilled &&
-        matchesDate
-      );
-    });
-
-    // Sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'date_desc':
-          return new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime();
-        case 'date_asc':
-          return new Date(a.orderDate).getTime() - new Date(b.orderDate).getTime();
-        case 'amount_desc':
-          return b.totalAmount - a.totalAmount;
-        case 'amount_asc':
-          return a.totalAmount - b.totalAmount;
-        case 'customer_asc':
-          return a.customerName.localeCompare(b.customerName);
-        case 'customer_desc':
-          return b.customerName.localeCompare(a.customerName);
-        case 'status_asc':
-          return a.status.localeCompare(b.status);
-        case 'status_desc':
-          return b.status.localeCompare(a.status);
-        case 'payment_asc':
-          return a.paymentStatus.localeCompare(b.paymentStatus);
-        case 'payment_desc':
-          return b.paymentStatus.localeCompare(a.paymentStatus);
-        default:
-          return 0;
+  const fetchOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    setError(null);
+    try {
+      const params: Parameters<typeof adminOrdersAPI.getOrders>[0] = {
+        page,
+        limit: 20,
+        sortBy,
+      };
+      if (searchDebounced) params.search = searchDebounced;
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (paymentStatusFilter !== 'all') params.paymentStatus = paymentStatusFilter;
+      if (paymentMethodFilter !== 'all') params.paymentMethod = paymentMethodFilter;
+      if (sellerFilter !== 'all') params.sellerId = sellerFilter;
+      if (cityFilter !== 'all') params.city = cityFilter;
+      if (dateRange[0]) params.dateFrom = dateRange[0];
+      if (dateRange[1]) params.dateTo = dateRange[1];
+      if (amountRange[0] > 0 || amountRange[1] < 10000) {
+        if (amountRange[0] > 0) params.minAmount = amountRange[0];
+        if (amountRange[1] < 10000) params.maxAmount = amountRange[1];
       }
-    });
+      if (codFilter === 'cod') params.cod = 'cod';
+      if (codFilter === 'online') params.cod = 'online';
+      if (fulfilledFilter === 'fulfilled') params.fulfilled = 'fulfilled';
+      if (fulfilledFilter === 'not_fulfilled') params.fulfilled = 'not_fulfilled';
 
-    return filtered;
+      const res = await adminOrdersAPI.getOrders(params);
+      setOrders(res.orders || []);
+      setPagination(res.pagination || { page: 1, limit: 20, total: 0, pages: 0 });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load orders');
+      setOrders([]);
+    } finally {
+      setOrdersLoading(false);
+    }
   }, [
-    orders,
-    searchQuery,
+    page,
+    sortBy,
+    searchDebounced,
     statusFilter,
     paymentStatusFilter,
     paymentMethodFilter,
-    dateRange,
-    amountRange,
     sellerFilter,
     cityFilter,
+    dateRange,
+    amountRange,
     codFilter,
     fulfilledFilter,
-    sortBy,
   ]);
+
+  useEffect(() => {
+    fetchDashboardAndFacets();
+  }, [fetchDashboardAndFacets]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const handleViewDetails = async (order: Order) => {
+    try {
+      const res = await adminOrdersAPI.getOrder(order.id);
+      setSelectedOrder(res.order as Order);
+      setActiveView('details');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load order details');
+    }
+  };
+
+  const handleRefreshOrderList = useCallback(() => {
+    fetchOrders();
+    fetchDashboardAndFacets();
+  }, [fetchOrders, fetchDashboardAndFacets]);
 
   const toggleSelectOrder = (orderId: string) => {
     setSelectedOrders((prev) => {
@@ -279,10 +226,10 @@ export default function OrderManagementAdmin() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedOrders.size === filteredAndSortedOrders.length) {
+    if (selectedOrders.size === orders.length) {
       setSelectedOrders(new Set());
     } else {
-      setSelectedOrders(new Set(filteredAndSortedOrders.map((o) => o.id)));
+      setSelectedOrders(new Set(orders.map((o) => o.id)));
     }
   };
 
@@ -291,8 +238,8 @@ export default function OrderManagementAdmin() {
     setSelectedOrders(new Set());
   };
 
-  const getStatusBadge = (status: OrderStatus) => {
-    const styles: Record<OrderStatus, string> = {
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
       pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
       confirmed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
       processing: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200',
@@ -302,9 +249,10 @@ export default function OrderManagementAdmin() {
       cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
       returned: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200',
       refunded: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+      packed: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
     };
     return (
-      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${styles[status]}`}>
+      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${styles[status] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
         {status.replace(/_/g, ' ')}
       </span>
     );
@@ -332,6 +280,7 @@ export default function OrderManagementAdmin() {
           setActiveView('list');
           setSelectedOrder(null);
         }}
+        onOrderUpdated={handleRefreshOrderList}
       />
     );
   }
@@ -382,6 +331,12 @@ export default function OrderManagementAdmin() {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
       {/* Analytics Cards */}
       <div className="grid gap-4 lg:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
@@ -390,7 +345,7 @@ export default function OrderManagementAdmin() {
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Orders Today</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {orders.filter((o) => o.orderDate === new Date().toISOString().split('T')[0]).length}
+            {loading ? '—' : (dashboard?.totalOrdersToday ?? 0)}
           </p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
@@ -399,7 +354,7 @@ export default function OrderManagementAdmin() {
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Pending Orders</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {orders.filter((o) => o.status === 'pending').length}
+            {loading ? '—' : (dashboard?.pendingOrders ?? 0)}
           </p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
@@ -408,10 +363,7 @@ export default function OrderManagementAdmin() {
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Revenue Today</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            ${orders
-              .filter((o) => o.orderDate === new Date().toISOString().split('T')[0])
-              .reduce((sum, o) => sum + o.totalAmount, 0)
-              .toFixed(2)}
+            {loading ? '—' : `$${(dashboard?.revenueToday ?? 0).toFixed(2)}`}
           </p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
@@ -420,7 +372,7 @@ export default function OrderManagementAdmin() {
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Cancelled Orders</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {orders.filter((o) => o.status === 'cancelled').length}
+            {loading ? '—' : (dashboard?.cancelledOrders ?? 0)}
           </p>
         </div>
       </div>
@@ -489,7 +441,7 @@ export default function OrderManagementAdmin() {
               <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Order Status</label>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'all')}
+                onChange={(e) => { setStatusFilter(e.target.value as OrderStatus | 'all'); setPage(1); }}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="all">All Status</option>
@@ -508,7 +460,7 @@ export default function OrderManagementAdmin() {
               <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Payment Status</label>
               <select
                 value={paymentStatusFilter}
-                onChange={(e) => setPaymentStatusFilter(e.target.value as PaymentStatus | 'all')}
+                onChange={(e) => { setPaymentStatusFilter(e.target.value as PaymentStatus | 'all'); setPage(1); }}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="all">All Payment Status</option>
@@ -522,7 +474,7 @@ export default function OrderManagementAdmin() {
               <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Payment Method</label>
               <select
                 value={paymentMethodFilter}
-                onChange={(e) => setPaymentMethodFilter(e.target.value as PaymentMethod | 'all')}
+                onChange={(e) => { setPaymentMethodFilter(e.target.value as PaymentMethod | 'all'); setPage(1); }}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="all">All Methods</option>
@@ -537,13 +489,13 @@ export default function OrderManagementAdmin() {
               <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Seller</label>
               <select
                 value={sellerFilter}
-                onChange={(e) => setSellerFilter(e.target.value)}
+                onChange={(e) => { setSellerFilter(e.target.value); setPage(1); }}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="all">All Sellers</option>
-                {sellers.map((seller) => (
-                  <option key={seller} value={seller}>
-                    {seller}
+                {facets.sellers.map((seller) => (
+                  <option key={seller.id} value={seller.id}>
+                    {seller.name}
                   </option>
                 ))}
               </select>
@@ -552,11 +504,11 @@ export default function OrderManagementAdmin() {
               <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">City</label>
               <select
                 value={cityFilter}
-                onChange={(e) => setCityFilter(e.target.value)}
+                onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="all">All Cities</option>
-                {cities.map((city) => (
+                {facets.cities.map((city) => (
                   <option key={city} value={city}>
                     {city}
                   </option>
@@ -567,7 +519,7 @@ export default function OrderManagementAdmin() {
               <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Payment Type</label>
               <select
                 value={codFilter}
-                onChange={(e) => setCodFilter(e.target.value as 'all' | 'cod' | 'online')}
+                onChange={(e) => { setCodFilter(e.target.value as 'all' | 'cod' | 'online'); setPage(1); }}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="all">All</option>
@@ -579,7 +531,7 @@ export default function OrderManagementAdmin() {
               <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">Fulfillment</label>
               <select
                 value={fulfilledFilter}
-                onChange={(e) => setFulfilledFilter(e.target.value as 'all' | 'fulfilled' | 'not_fulfilled')}
+                onChange={(e) => { setFulfilledFilter(e.target.value as 'all' | 'fulfilled' | 'not_fulfilled'); setPage(1); }}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="all">All</option>
@@ -681,7 +633,7 @@ export default function OrderManagementAdmin() {
                 <th className="px-4 py-3">
                   <input
                     type="checkbox"
-                    checked={selectedOrders.size === filteredAndSortedOrders.length && filteredAndSortedOrders.length > 0}
+                    checked={selectedOrders.size === orders.length && orders.length > 0}
                     onChange={toggleSelectAll}
                     className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                   />
@@ -701,7 +653,16 @@ export default function OrderManagementAdmin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filteredAndSortedOrders.map((order) => (
+              {ordersLoading ? (
+                <tr>
+                  <td colSpan={12} className="px-4 py-12 text-center">
+                    <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
+                      <Loader2 className="h-5 w-5 animate-spin" /> Loading orders…
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                orders.map((order) => (
                 <tr
                   key={order.id}
                   className="bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800/60"
@@ -731,25 +692,22 @@ export default function OrderManagementAdmin() {
                   <td className="px-4 py-4">{getPaymentStatusBadge(order.paymentStatus)}</td>
                   <td className="px-4 py-4">
                     <span className="text-xs text-gray-600 dark:text-gray-300">
-                      {order.paymentMethod.replace(/_/g, ' ')}
+                      {(order.paymentMethod || '').toString().replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td className="px-4 py-4 font-semibold text-gray-900 dark:text-white">
-                    ${order.totalAmount.toFixed(2)}
+                    ${Number(order.totalAmount || 0).toFixed(2)}
                   </td>
                   <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{order.itemsCount}</td>
                   <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{order.sellerName}</td>
                   <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{order.shippingMethod}</td>
                   <td className="px-4 py-4 text-gray-600 dark:text-gray-300">
-                    {new Date(order.deliveryDateEstimate).toLocaleDateString()}
+                    {order.deliveryDateEstimate ? new Date(order.deliveryDateEstimate).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setActiveView('details');
-                        }}
+                        onClick={() => handleViewDetails(order)}
                         className="rounded-full border border-gray-200 p-1.5 text-xs text-gray-600 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-400"
                         title="View Details"
                       >
@@ -780,15 +738,39 @@ export default function OrderManagementAdmin() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {filteredAndSortedOrders.length === 0 && (
+      {!ordersLoading && orders.length === 0 && !error && (
         <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center dark:border-gray-800 dark:bg-gray-900">
           <p className="text-gray-600 dark:text-gray-400">No orders found matching your filters.</p>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">Try clearing filters or adjusting the date range.</p>
+        </div>
+      )}
+
+      {!ordersLoading && pagination.pages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold disabled:opacity-50 dark:border-gray-700"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            Page {pagination.page} of {pagination.pages} ({pagination.total} orders)
+          </span>
+          <button
+            disabled={page >= pagination.pages}
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold disabled:opacity-50 dark:border-gray-700"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

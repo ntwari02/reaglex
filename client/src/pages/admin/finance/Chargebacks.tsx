@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, XCircle, Eye, Upload, DollarSign } from 'lucide-react';
+import { adminFinanceAPI } from '@/lib/api';
 
 type ChargebackStatus = 'open' | 'under_review' | 'resolved_refund' | 'resolved_won';
 
@@ -15,34 +16,27 @@ interface Chargeback {
   evidenceCount: number;
 }
 
-const mockChargebacks: Chargeback[] = [
-  {
-    id: 'CB-001',
-    orderId: 'ORD-001',
-    customerName: 'John Doe',
-    amount: 299.99,
-    status: 'open',
-    provider: 'Stripe',
-    claimReason: 'Unauthorized transaction',
-    date: '2024-03-15',
-    evidenceCount: 2,
-  },
-  {
-    id: 'CB-002',
-    orderId: 'ORD-002',
-    customerName: 'Jane Smith',
-    amount: 149.99,
-    status: 'under_review',
-    provider: 'PayPal',
-    claimReason: 'Product not received',
-    date: '2024-03-12',
-    evidenceCount: 5,
-  },
-];
-
 export default function Chargebacks() {
   const [selectedChargeback, setSelectedChargeback] = useState<Chargeback | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [chargebacks, setChargebacks] = useState<Chargeback[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminFinanceAPI.getChargebacks().then((res) => {
+      setChargebacks(res.chargebacks.map((c: any) => ({
+        id: c.id,
+        orderId: c.orderId,
+        customerName: c.customerName || 'Unknown',
+        amount: c.amount,
+        status: c.status,
+        provider: c.provider,
+        claimReason: c.claimReason,
+        date: c.date ? new Date(c.date).toISOString().slice(0, 10) : '',
+        evidenceCount: c.evidenceCount ?? 0,
+      })));
+    }).catch(() => setChargebacks([])).finally(() => setLoading(false));
+  }, []);
 
   const getStatusBadge = (status: ChargebackStatus) => {
     const styles = {
@@ -60,8 +54,10 @@ export default function Chargebacks() {
 
   return (
     <div className="space-y-6">
+      {loading && <div className="text-center text-gray-500 py-4">Loading...</div>}
       <div className="space-y-4">
-        {mockChargebacks.map((chargeback) => (
+        {chargebacks.length === 0 && !loading && <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-800 dark:bg-gray-900">No chargebacks</div>}
+        {chargebacks.map((chargeback) => (
           <div
             key={chargeback.id}
             className="rounded-2xl border border-gray-200 bg-white p-5 shadow dark:border-gray-800 dark:bg-gray-900"

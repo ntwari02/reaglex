@@ -1,20 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  UserPlus,
   DollarSign,
   Gift,
   Ticket,
   Users,
   TrendingUp,
   Shield,
-  Settings,
 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 export default function ReferralProgramManager() {
   const [rewardType, setRewardType] = useState<'cash' | 'points' | 'coupon'>('cash');
   const [rewardAmount, setRewardAmount] = useState(10);
   const [maxReferrals, setMaxReferrals] = useState(10);
   const [fraudDetection, setFraudDetection] = useState(true);
+  const [stats, setStats] = useState({ totalReferrals: 0, activeReferrers: 0, rewardsPaid: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      adminMarketingAPI.getReferralSettings(),
+      adminMarketingAPI.getReferralStats(),
+    ])
+      .then(([settingsRes, statsRes]) => {
+        setRewardType((settingsRes.rewardType as 'cash' | 'points' | 'coupon') || 'cash');
+        setRewardAmount(settingsRes.rewardAmount ?? 10);
+        setMaxReferrals(settingsRes.maxReferralsPerUser ?? 10);
+        setFraudDetection(settingsRes.fraudDetection !== false);
+        setStats({
+          totalReferrals: statsRes.totalReferrals ?? 0,
+          activeReferrers: statsRes.activeReferrers ?? 0,
+          rewardsPaid: statsRes.rewardsPaid ?? 0,
+        });
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = () => {
+    setSaving(true);
+    adminMarketingAPI
+      .updateReferralSettings({ rewardType, rewardAmount, maxReferralsPerUser: maxReferrals, fraudDetection })
+      .then(() => {})
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to save'))
+      .finally(() => setSaving(false));
+  };
 
   return (
     <div className="space-y-6">
@@ -108,15 +140,36 @@ export default function ReferralProgramManager() {
             </label>
           </div>
         </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save settings'}
+          </button>
+        </div>
       </div>
 
-      {/* Performance Stats */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Referrals</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">1,245</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                {stats.totalReferrals.toLocaleString()}
+              </p>
             </div>
             <Users className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
           </div>
@@ -125,7 +178,9 @@ export default function ReferralProgramManager() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Active Referrers</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">892</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                {stats.activeReferrers.toLocaleString()}
+              </p>
             </div>
             <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
@@ -134,12 +189,15 @@ export default function ReferralProgramManager() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Rewards Paid</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">$12,450</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                ${stats.rewardsPaid.toLocaleString()}
+              </p>
             </div>
             <DollarSign className="h-8 w-8 text-purple-600 dark:text-purple-400" />
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

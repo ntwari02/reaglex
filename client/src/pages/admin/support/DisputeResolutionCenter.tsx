@@ -1,19 +1,16 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
-  AlertTriangle,
   Eye,
   CheckCircle,
   XCircle,
-  Clock,
-  Upload,
-  MessageSquare,
   FileText,
-  TrendingUp,
   User,
   X,
-  Download,
 } from 'lucide-react';
+import { adminSupportAPI } from '@/lib/api';
+import { pageTransition } from './supportAnimations';
 
 interface Dispute {
   id: string;
@@ -28,52 +25,66 @@ interface Dispute {
   messageCount: number;
 }
 
-const mockDisputes: Dispute[] = [
-  {
-    id: '1',
-    disputeNumber: 'DSP-001234',
-    orderId: 'ORD-12345',
-    customerName: 'John Doe',
-    sellerName: 'Tech Store',
-    category: 'Item Not Received',
-    status: 'open',
-    createdAt: '2024-03-15T10:30:00',
-    evidenceCount: 3,
-    messageCount: 8,
-  },
-  {
-    id: '2',
-    disputeNumber: 'DSP-001235',
-    orderId: 'ORD-12346',
-    customerName: 'Jane Smith',
-    sellerName: 'Fashion Hub',
-    category: 'Wrong Item',
-    status: 'under_review',
-    createdAt: '2024-03-14T15:20:00',
-    evidenceCount: 5,
-    messageCount: 12,
-  },
-  {
-    id: '3',
-    disputeNumber: 'DSP-001236',
-    orderId: 'ORD-12347',
-    customerName: 'Bob Johnson',
-    sellerName: 'Electronics Plus',
-    category: 'Product Not as Described',
-    status: 'decision_made',
-    createdAt: '2024-03-13T09:00:00',
-    evidenceCount: 4,
-    messageCount: 15,
-  },
-];
+function mapBackendStatus(s: string): Dispute['status'] {
+  if (['new', 'seller_response', 'buyer_response'].includes(s)) return 'open';
+  if (s === 'under_review') return 'under_review';
+  if (['approved', 'rejected', 'resolved'].includes(s)) return 'decision_made';
+  return 'open';
+}
+
+function mapBackendTypeToCategory(t: string): string {
+  const map: Record<string, string> = {
+    refund: 'Refund',
+    return: 'Return',
+    quality: 'Product Not as Described',
+    delivery: 'Item Not Received',
+    other: 'Other',
+  };
+  return map[t] || t;
+}
 
 export default function DisputeResolutionCenter() {
-  const [disputes, setDisputes] = useState<Dispute[]>(mockDisputes);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
+  const [disputeDetail, setDisputeDetail] = useState<any>(null);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+
+  const loadDisputes = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    adminSupportAPI
+      .getDisputes({
+        page: 1,
+        limit: 100,
+      })
+      .then((res) => {
+        const list: Dispute[] = (res.disputes || []).map((d: any) => ({
+          id: d._id?.toString() ?? d.id,
+          disputeNumber: d.disputeNumber,
+          orderId: d.orderId?.orderNumber ?? d.orderId?.toString?.() ?? '',
+          customerName: (d.buyerId as any)?.fullName ?? 'Buyer',
+          sellerName: (d.sellerId as any)?.fullName ?? 'Seller',
+          category: mapBackendTypeToCategory(d.type || 'other'),
+          status: mapBackendStatus(d.status),
+          createdAt: d.createdAt,
+          evidenceCount: (d.evidence && d.evidence.length) || 0,
+          messageCount: 0,
+        }));
+        setDisputes(list);
+      })
+      .catch((err) => setError(err?.message ?? 'Failed to load disputes'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadDisputes();
+  }, [loadDisputes]);
 
   const filteredDisputes = disputes.filter((dispute) => {
     const matchesSearch =
@@ -81,10 +92,8 @@ export default function DisputeResolutionCenter() {
       dispute.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       dispute.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       dispute.sellerName.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchesStatus = statusFilter === 'all' || dispute.status === statusFilter;
     const matchesCategory = categoryFilter === 'all' || dispute.category === categoryFilter;
-
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
@@ -110,11 +119,33 @@ export default function DisputeResolutionCenter() {
 
   const handleViewDispute = (dispute: Dispute) => {
     setSelectedDispute(dispute);
+    setDisputeDetail(null);
     setShowDisputeModal(true);
+    adminSupportAPI.getDispute(dispute.id).then((res) => setDisputeDetail(res.dispute)).catch(() => setDisputeDetail(null));
+  };
+
+  const handleResolve = (decision: 'approved' | 'rejected' | 'resolved', resolution?: string) => {
+    if (!selectedDispute) return;
+    setResolving(true);
+    adminSupportAPI
+      .resolveDispute(selectedDispute.id, { decision, resolution: resolution || '' })
+      .then(() => {
+        loadDisputes();
+        setShowDisputeModal(false);
+        setSelectedDispute(null);
+        setDisputeDetail(null);
+      })
+      .catch((err) => alert(err?.message ?? 'Failed to resolve'))
+      .finally(() => setResolving(false));
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       {/* Header with Search and Filters */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex-1">
@@ -194,7 +225,16 @@ export default function DisputeResolutionCenter() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {filteredDisputes.map((dispute) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-8 text-center text-gray-500">Loading disputes...</td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-8 text-center text-red-600">{error}</td>
+                </tr>
+              ) : (
+                filteredDisputes.map((dispute) => (
                 <tr
                   key={dispute.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
@@ -249,7 +289,8 @@ export default function DisputeResolutionCenter() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
@@ -324,93 +365,76 @@ export default function DisputeResolutionCenter() {
                 </div>
               </div>
 
-              {/* Evidence Uploads */}
-              <div className="mb-6">
-                <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-                  Evidence ({selectedDispute.evidenceCount} files)
-                </h3>
-                <div className="grid gap-3 md:grid-cols-3">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-800/50"
-                    >
-                      <div className="mb-2 aspect-video rounded-lg bg-gray-100 dark:bg-gray-700" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                          evidence-{i}.jpg
-                        </span>
-                        <button className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-                          <Download className="h-4 w-4" />
-                        </button>
-                      </div>
+              {disputeDetail && (
+                <>
+                  {disputeDetail.description && (
+                    <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                      <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">Description</h3>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{disputeDetail.description}</p>
                     </div>
-                  ))}
-                </div>
-                <button className="mt-3 rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <Upload className="mr-2 inline h-4 w-4" />
-                  Request More Evidence
-                </button>
-              </div>
-
-              {/* Chat Timeline */}
-              <div className="mb-6">
-                <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-                  Conversation Timeline ({selectedDispute.messageCount} messages)
-                </h3>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/50"
-                    >
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {i % 2 === 0 ? selectedDispute.customerName : selectedDispute.sellerName}
-                          </span>
+                  )}
+                  {disputeDetail.sellerResponse && (
+                    <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                      <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">Seller response</h3>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{disputeDetail.sellerResponse}</p>
+                    </div>
+                  )}
+                  {disputeDetail.buyerResponse && (
+                    <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                      <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">Buyer response</h3>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{disputeDetail.buyerResponse}</p>
+                    </div>
+                  )}
+                  <div className="mb-6">
+                    <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      Evidence ({(disputeDetail.evidence && disputeDetail.evidence.length) || 0} files)
+                    </h3>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {(disputeDetail.evidence || []).map((ev: any, i: number) => (
+                        <div key={i} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-800/50">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{ev.description || ev.type || 'Evidence'}</p>
+                          {ev.url && (
+                            <a href={ev.url} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">View</a>
+                          )}
                         </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(Date.now() - i * 3600000).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        Message content about the dispute...
-                      </p>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                </>
+              )}
 
-              {/* Admin Actions */}
-              <div className="flex flex-wrap gap-2">
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <CheckCircle className="mr-2 inline h-4 w-4" />
-                  Approve Buyer Claim
-                </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <CheckCircle className="mr-2 inline h-4 w-4" />
-                  Approve Seller Claim
-                </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <XCircle className="mr-2 inline h-4 w-4" />
-                  Partial Refund
-                </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <TrendingUp className="mr-2 inline h-4 w-4" />
-                  Escalate
-                </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <XCircle className="mr-2 inline h-4 w-4" />
-                  Close Dispute
-                </button>
-              </div>
+              {selectedDispute.status !== 'decision_made' && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleResolve('approved')}
+                    disabled={resolving}
+                    className="rounded-xl border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 disabled:opacity-50"
+                  >
+                    <CheckCircle className="mr-2 inline h-4 w-4" />
+                    Approve (buyer)
+                  </button>
+                  <button
+                    onClick={() => handleResolve('rejected')}
+                    disabled={resolving}
+                    className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 disabled:opacity-50"
+                  >
+                    <XCircle className="mr-2 inline h-4 w-4" />
+                    Reject claim
+                  </button>
+                  <button
+                    onClick={() => handleResolve('resolved')}
+                    disabled={resolving}
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300 disabled:opacity-50"
+                  >
+                    Mark resolved
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

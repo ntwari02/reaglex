@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, Plus, Edit, Trash2, TrendingUp, Package, Home, Sparkles } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 interface Promotion {
   id: string;
@@ -11,30 +12,19 @@ interface Promotion {
   clicks: number;
 }
 
-const mockPromotions: Promotion[] = [
-  {
-    id: '1',
-    type: 'featured',
-    productName: 'Premium Headphones',
-    position: 'Homepage Top',
-    status: 'active',
-    impressions: 45230,
-    clicks: 3420,
-  },
-  {
-    id: '2',
-    type: 'trending',
-    productName: 'Smart Watch',
-    position: 'Trending Section',
-    status: 'active',
-    impressions: 28450,
-    clicks: 1890,
-  },
-];
-
 export default function ProductPromotionTools() {
-  const [promotions, setPromotions] = useState<Promotion[]>(mockPromotions);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminMarketingAPI
+      .getPromotions()
+      .then((res) => setPromotions(res.promotions || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load promotions'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const getTypeIcon = (type: Promotion['type']) => {
     switch (type) {
@@ -72,9 +62,22 @@ export default function ProductPromotionTools() {
         </button>
       </div>
 
-      {/* Promotions List */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading promotions...</p>
+        </div>
+      ) : (
       <div className="space-y-4">
-        {promotions.map((promotion) => (
+        {promotions.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No promotions yet.</p>
+          </div>
+        ) : promotions.map((promotion) => (
           <div
             key={promotion.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -127,6 +130,7 @@ export default function ProductPromotionTools() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

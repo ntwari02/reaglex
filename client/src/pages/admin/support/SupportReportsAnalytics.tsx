@@ -1,51 +1,52 @@
-import React, { useState } from 'react';
-import { BarChart3, Download, TrendingUp, Clock, FileText, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { BarChart3, Download, TrendingUp, Clock, FileText } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
-
-const mockTicketVolume = [
-  { label: 'Mon', value: 45 },
-  { label: 'Tue', value: 52 },
-  { label: 'Wed', value: 38 },
-  { label: 'Thu', value: 61 },
-  { label: 'Fri', value: 48 },
-  { label: 'Sat', value: 35 },
-  { label: 'Sun', value: 28 },
-];
-
-const mockResponseTime = [
-  { label: 'Week 1', value: 3.2 },
-  { label: 'Week 2', value: 2.8 },
-  { label: 'Week 3', value: 2.5 },
-  { label: 'Week 4', value: 2.1 },
-];
-
-const mockCommonIssues = [
-  { label: 'Payment Issues', value: 145 },
-  { label: 'Delivery Delays', value: 132 },
-  { label: 'Product Quality', value: 98 },
-  { label: 'Refund Requests', value: 87 },
-  { label: 'Technical Support', value: 65 },
-];
+import { adminSupportAPI } from '@/lib/api';
+import { pageTransition } from './supportAnimations';
 
 export default function SupportReportsAnalytics() {
   const [selectedReport, setSelectedReport] = useState<'tickets' | 'response' | 'issues'>('tickets');
   const [dateRange, setDateRange] = useState('week');
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<{
+    totalTickets: number;
+    avgResponseTimeHours: number;
+    ticketVolume: { label: string; value: number }[];
+    responseTimeByWeek: { label: string; value: number }[];
+    commonIssues: { label: string; value: number }[];
+  } | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    adminSupportAPI
+      .getReportsAnalytics({ dateRange })
+      .then((res) => setData(res))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [dateRange]);
 
   const getChartData = () => {
+    if (!data) return [];
     switch (selectedReport) {
       case 'tickets':
-        return mockTicketVolume;
+        return data.ticketVolume?.length ? data.ticketVolume : [{ label: 'No data', value: 1 }];
       case 'response':
-        return mockResponseTime;
+        return data.responseTimeByWeek?.length ? data.responseTimeByWeek : [{ label: 'No data', value: 1 }];
       case 'issues':
-        return mockCommonIssues;
+        return data.commonIssues?.length ? data.commonIssues : [{ label: 'No data', value: 1 }];
       default:
-        return mockTicketVolume;
+        return data.ticketVolume?.length ? data.ticketVolume : [];
     }
   };
 
   return (
-    <div className="min-h-screen space-y-6 pb-8">
+    <motion.div
+      className="min-h-screen space-y-6 pb-8"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -72,13 +73,17 @@ export default function SupportReportsAnalytics() {
         </div>
       </div>
 
+      {loading ? (
+        <p className="text-gray-500 dark:text-gray-400">Loading analytics...</p>
+      ) : (
+      <>
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Tickets</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">1,245</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{data?.totalTickets ?? 0}</p>
             </div>
             <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/40">
               <FileText className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
@@ -94,7 +99,7 @@ export default function SupportReportsAnalytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Avg Response Time</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">2.1h</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{data?.avgResponseTimeHours ?? 0}h</p>
             </div>
             <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/40">
               <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -202,7 +207,9 @@ export default function SupportReportsAnalytics() {
           </button>
         </div>
       </div>
-    </div>
+      </>
+      )}
+    </motion.div>
   );
 }
 

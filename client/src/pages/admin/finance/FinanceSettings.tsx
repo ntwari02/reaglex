@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Save, DollarSign, Percent, CreditCard, Shield } from 'lucide-react';
+import { adminFinanceAPI } from '@/lib/api';
 
 export default function FinanceSettings() {
   const [settings, setSettings] = useState({
@@ -11,6 +12,19 @@ export default function FinanceSettings() {
     automaticPayoutSchedule: 'weekly',
     enableFraudChecks: true,
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    adminFinanceAPI.getFinanceSettings().then((res) => {
+      if (res.settings) setSettings((prev) => ({ ...prev, ...res.settings }));
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = () => {
+    setSaving(true);
+    adminFinanceAPI.updateFinanceSettings(settings).then(() => setSaving(false)).catch(() => setSaving(false));
+  };
 
   return (
     <div className="space-y-6">
@@ -151,8 +165,12 @@ export default function FinanceSettings() {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <button className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/40">
-            <Save className="h-4 w-4" /> Save Settings
+          <button
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/40 disabled:opacity-70"
+          >
+            <Save className="h-4 w-4" /> {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       </div>

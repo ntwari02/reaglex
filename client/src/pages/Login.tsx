@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, Phone, Fingerprint, AlertCircle, Check } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Phone, Fingerprint, AlertCircle, Check, KeyRound, Shield } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
@@ -32,6 +32,16 @@ export function Login() {
   const [otpError, setOtpError] = useState('');
   const [submittingOtp, setSubmittingOtp] = useState(false);
   const [buttonSuccess, setButtonSuccess] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [verificationChoice, setVerificationChoice] = useState<'link' | 'otp' | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [otpSendLoading, setOtpSendLoading] = useState(false);
+  const [otpVerifyLoading, setOtpVerifyLoading] = useState(false);
+  const [otpVerifyError, setOtpVerifyError] = useState('');
+  const otpVerificationRefs = useRef<(HTMLInputElement | null)[]>([]);
   const redirectRef = useRef<string>('/');
 
   // Load remembered identifier
@@ -92,9 +102,14 @@ export function Login() {
     }
 
     try {
+      setShowResendVerification(false);
       const result = await login(identifier, password);
       if (!result.success) {
-        setFormError(result.error || 'Login failed. Please check your credentials.');
+        const errMsg = result.error || 'Login failed. Please check your credentials.';
+        setFormError(errMsg);
+        if (errMsg.toLowerCase().includes('verify your email') && identifier.includes('@')) {
+          setShowResendVerification(true);
+        }
         setLoading(false);
         return;
       }
@@ -166,12 +181,102 @@ export function Login() {
     }, 800);
   };
 
+  const handleResendVerificationEmail = async () => {
+    if (!identifier.trim() || !identifier.includes('@') || resendLoading) return;
+    setResendLoading(true);
+    setFormError('');
+    try {
+      const { authAPI } = await import('../lib/api');
+      await authAPI.resendVerificationEmail(identifier.trim());
+      showToast('Verification link sent. Check your inbox (and spam folder).', 'success');
+      setShowResendVerification(false);
+      setVerificationChoice(null);
+    } catch (e: any) {
+      setFormError(e?.message || 'Failed to send verification email.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleSendVerificationOtp = async () => {
+    const email = identifier.trim();
+    if (!email || !email.includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || otpSendLoading) return;
+    setOtpSendLoading(true);
+    setOtpVerifyError('');
+    try {
+      const { authAPI } = await import('../lib/api');
+      await authAPI.requestVerificationOtp(email);
+      setOtpSent(true);
+      setOtpDigits(['', '', '', '', '', '']);
+      showToast('Verification code sent. Check your email.', 'success');
+      setTimeout(() => otpVerificationRefs.current[0]?.focus(), 100);
+    } catch (e: any) {
+      setOtpVerifyError(e?.message || 'Failed to send code.');
+    } finally {
+      setOtpSendLoading(false);
+    }
+  };
+
+  const handleOtpVerificationChange = (index: number, value: string) => {
+    if (value !== '' && !/^\d$/.test(value)) return;
+    const next = [...otpDigits];
+    next[index] = value;
+    setOtpDigits(next);
+    setOtpVerifyError('');
+    if (value && index < 5) otpVerificationRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpVerificationKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpVerificationRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyEmailWithOtp = async () => {
+    const code = otpDigits.join('');
+    const email = identifier.trim();
+    if (code.length !== 6 || !email) return;
+    setOtpVerifyLoading(true);
+    setOtpVerifyError('');
+    try {
+      const { authAPI } = await import('../lib/api');
+      await authAPI.verifyEmailWithOtp(email, code);
+      showToast('Email verified! You can sign in now.', 'success');
+      setShowResendVerification(false);
+      setVerificationChoice(null);
+      setFormError('');
+    } catch (e: any) {
+      setOtpVerifyError(e?.message || 'Invalid code. Try again.');
+    } finally {
+      setOtpVerifyLoading(false);
+    }
+  };
+
   const handleResendOtp = () => {
     if (otpCountdown > 0) return;
     setOtpCountdown(30);
     setOtp(['', '', '', '', '', '']);
     setOtpError('');
     setTimeout(() => otpRefs.current[0]?.focus(), 50);
+  };
+
+  const handleBiometricLogin = async () => {
+    if (step !== 'password') return;
+    setBiometricLoading(true);
+    setFormError('');
+    const { loginWithBiometric } = useAuthStore.getState();
+    const result = await loginWithBiometric();
+    setBiometricLoading(false);
+    if (!result.success) {
+      setFormError(result.error || 'Biometric sign-in failed.');
+      return;
+    }
+    const { user } = useAuthStore.getState();
+    if (user?.role === 'seller') redirectRef.current = '/seller';
+    else if (user?.role === 'admin') redirectRef.current = '/admin';
+    else redirectRef.current = '/';
+    showToast('Signed in with biometric. Welcome back!', 'success');
+    navigate(redirectRef.current);
   };
 
   const primaryHeading =
@@ -183,16 +288,154 @@ export function Login() {
 
   const renderErrorBanner = () =>
     formError && (
-      <div
-        className="flex items-center gap-2 px-3 py-2.5 mb-3 rounded-2xl text-xs"
-        style={{
-          background: '#1c0808',
-          color: '#f87171',
-          boxShadow: 'inset 0 0 0 1px rgba(248,113,113,0.25)',
-        }}
-      >
-        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-        <span>{formError}</span>
+      <div className="mb-3 space-y-3">
+        <div
+          className="flex items-center gap-2 px-3 py-2.5 rounded-2xl text-xs"
+          style={{
+            background: '#1c0808',
+            color: '#f87171',
+            boxShadow: 'inset 0 0 0 1px rgba(248,113,113,0.25)',
+          }}
+        >
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{formError}</span>
+        </div>
+        {showResendVerification && identifier.includes('@') && (
+          <div
+            className="rounded-2xl p-4 space-y-4"
+            style={{
+              background: 'var(--bg-secondary)',
+              boxShadow: '0 0 0 1px rgba(249,115,22,0.2)',
+            }}
+          >
+            <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+              Verify your email to sign in. Choose one:
+            </p>
+            {verificationChoice === null && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={resendLoading}
+                  onClick={handleResendVerificationEmail}
+                  className="flex-1 min-w-[140px] h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+                  style={{
+                    background: 'rgba(249,115,22,0.15)',
+                    color: '#f97316',
+                    border: '1px solid rgba(249,115,22,0.4)',
+                  }}
+                >
+                  {resendLoading ? (
+                    <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Mail className="w-4 h-4" />
+                  )}
+                  {resendLoading ? 'Sending…' : 'Resend link'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVerificationChoice('otp')}
+                  className="flex-1 min-w-[140px] h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2"
+                  style={{
+                    background: 'rgba(99,102,241,0.15)',
+                    color: '#6366f1',
+                    border: '1px solid rgba(99,102,241,0.4)',
+                  }}
+                >
+                  <KeyRound className="w-4 h-4" />
+                  Verify with code
+                </button>
+              </div>
+            )}
+            {verificationChoice === 'otp' && (
+              <div className="space-y-3 pt-1">
+                {!otpSent ? (
+                  <>
+                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                      We&apos;ll send a 6-digit code to <strong style={{ color: 'var(--text-primary)' }}>{identifier}</strong>
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSendVerificationOtp}
+                        disabled={otpSendLoading}
+                        className="flex-1 h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+                        style={{
+                          background: '#6366f1',
+                          color: '#fff',
+                        }}
+                      >
+                        {otpSendLoading ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Mail className="w-4 h-4" />
+                        )}
+                        {otpSendLoading ? 'Sending…' : 'Send code'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVerificationChoice(null)}
+                        className="px-3 rounded-xl text-[13px] font-medium"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        Back
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                      Enter the 6-digit code sent to your email
+                    </p>
+                    <div className="flex justify-between gap-2">
+                      {otpDigits.map((d, i) => (
+                        <input
+                          key={i}
+                          ref={(el) => { otpVerificationRefs.current[i] = el; }}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={d}
+                          onChange={(e) => handleOtpVerificationChange(i, e.target.value)}
+                          onKeyDown={(e) => handleOtpVerificationKeyDown(i, e)}
+                          className="w-10 h-11 rounded-xl text-center text-[16px] font-semibold outline-none bg-[var(--bg-secondary)]"
+                          style={{
+                            boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)',
+                            color: 'var(--text-primary)',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {otpVerifyError && (
+                      <p className="text-[12px]" style={{ color: '#f87171' }}>{otpVerifyError}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleVerifyEmailWithOtp}
+                        disabled={otpVerifyLoading}
+                        className="flex-1 h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+                        style={{ background: '#6366f1', color: '#fff' }}
+                      >
+                        {otpVerifyLoading ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : null}
+                        {otpVerifyLoading ? 'Verifying…' : 'Verify & continue'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setOtpSent(false); setOtpVerifyError(''); }}
+                        className="px-3 rounded-xl text-[13px] font-medium"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        New code
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
 
@@ -382,15 +625,21 @@ export function Login() {
 
             <button
               type="button"
-              className="w-full h-[48px] rounded-[14px] flex items-center justify-center gap-2 text-[14px] font-medium"
+              disabled={biometricLoading}
+              onClick={handleBiometricLogin}
+              className="w-full h-[48px] rounded-[14px] flex items-center justify-center gap-2 text-[14px] font-medium disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 background: 'var(--bg-secondary)',
                 boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)',
                 color: 'var(--text-secondary)',
               }}
             >
-              <Fingerprint className="w-4 h-4" />
-              <span>Use biometric (coming soon)</span>
+              {biometricLoading ? (
+                <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Fingerprint className="w-4 h-4" />
+              )}
+              <span>{biometricLoading ? 'Signing in…' : 'Use biometric'}</span>
             </button>
           </div>
 
@@ -418,44 +667,33 @@ export function Login() {
             />
           </div>
 
-          {/* Social button – Google only */}
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => {
-                const base =
-                  import.meta.env.VITE_API_URL ||
-                  'http://localhost:5000/api';
-                window.location.href = `${base}/auth/google?role=buyer`;
-              }}
-              className="w-full sm:w-auto min-w-[220px] h-[48px] rounded-[12px] flex items-center justify-center gap-2 px-4 text-[14px] font-medium"
-              style={{
-                background: 'var(--bg-secondary)',
-                boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 48 48">
-                <path
-                  d="M44.5 20H24V28.5H35.5C34.7 32.5 32.1 35.5 28.5 37.1V43.5H35.5C40.5 39.5 43.5 33.5 44.5 28.5V20Z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M24 44C30.5 44 36 41.5 39.5 37.5L32.5 31.5C30.5 33.5 27.5 35 24 35C18.5 35 13.5 31.5 11.5 26.5H4.5V33.5C7.5 39.5 15 44 24 44Z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M11.5 26.5C11 25 11 23.5 11 22C11 20.5 11 19 11.5 17.5V10.5H4.5C3.5 15.5 3.5 20.5 4.5 26.5H11.5Z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M24 13C27 13 29.5 14 31.5 16L38 9.5C36 7.5 33.5 6 30.5 5C21.5 5 14 9.5 11 17.5L18 22.5C19.5 18.5 21.5 13 24 13Z"
-                  fill="#EA4335"
-                />
-              </svg>
-              <span>Continue with Google</span>
-            </button>
-          </div>
+          {/* Google sign-in – full width, modern */}
+          <button
+            type="button"
+            onClick={() => {
+              const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              window.location.href = `${base}/auth/google?role=buyer`;
+            }}
+            className="w-full h-[52px] rounded-[14px] flex items-center justify-center gap-3 px-4 text-[15px] font-semibold transition-all hover:opacity-95 active:scale-[0.99]"
+            style={{
+              background: '#fff',
+              color: '#3c4043',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)',
+            }}
+          >
+            <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48">
+              <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+              <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.16 7.09-10.27 7.09-17.65z" />
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+              <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <p className="flex items-center justify-center gap-1.5 text-[11px] mt-3" style={{ color: 'var(--text-muted)' }}>
+            <Shield className="w-3.5 h-3.5 text-emerald-500" />
+            Secure sign-in with email verification
+          </p>
 
           {/* Bottom switch text */}
           <p

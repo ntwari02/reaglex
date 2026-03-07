@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   Star,
@@ -13,6 +14,7 @@ import {
   Link,
   Settings,
 } from 'lucide-react';
+import { pageTransition, tabHoverTap } from './reviewAnimations';
 import ReviewsDashboard from './ReviewsDashboard';
 import CustomerProductReviews from './CustomerProductReviews';
 import ReviewModeration from './ReviewModeration';
@@ -105,18 +107,22 @@ export default function ReviewsCenter() {
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                variants={tabHoverTap}
+                initial="rest"
+                whileHover="hover"
+                whileTap="tap"
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                    ? 'border-amber-500 text-amber-600 dark:text-amber-400'
                     : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 {tab.label}
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -124,7 +130,15 @@ export default function ReviewsCenter() {
 
       {/* Tab Content */}
       <div className="min-h-[calc(100vh-200px)] overflow-x-hidden scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700">
-        {renderTabContent()}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            {...pageTransition}
+            className="min-h-[200px]"
+          >
+            {renderTabContent()}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

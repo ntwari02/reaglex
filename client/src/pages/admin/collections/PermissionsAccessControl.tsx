@@ -1,58 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { adminCollectionsAPI } from '@/lib/api';
 
 interface Permission {
   id: string;
   name: string;
   description: string;
-  roles: {
-    admin: boolean;
-    manager: boolean;
-    editor: boolean;
-  };
+  roles: { admin: boolean; manager: boolean; editor: boolean };
 }
 
-const mockPermissions: Permission[] = [
-  {
-    id: '1',
-    name: 'Create Collections',
-    description: 'Allow creating new collections',
-    roles: { admin: true, manager: true, editor: false },
-  },
-  {
-    id: '2',
-    name: 'Edit Collections',
-    description: 'Allow editing existing collections',
-    roles: { admin: true, manager: true, editor: true },
-  },
-  {
-    id: '3',
-    name: 'Delete Collections',
-    description: 'Allow deleting collections',
-    roles: { admin: true, manager: false, editor: false },
-  },
-  {
-    id: '4',
-    name: 'Modify Rules',
-    description: 'Allow changing automated collection rules',
-    roles: { admin: true, manager: true, editor: false },
-  },
-  {
-    id: '5',
-    name: 'Change Homepage Display',
-    description: 'Allow modifying homepage collections',
-    roles: { admin: true, manager: false, editor: false },
-  },
-  {
-    id: '6',
-    name: 'View Analytics',
-    description: 'Allow viewing collection analytics',
-    roles: { admin: true, manager: true, editor: true },
-  },
-];
-
 export default function PermissionsAccessControl() {
-  const [permissions, setPermissions] = useState<Permission[]>(mockPermissions);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminCollectionsAPI
+      .getPermissions()
+      .then((data) => setPermissions(data.permissions || []))
+      .catch(() => setPermissions([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   const togglePermission = (permissionId: string, role: keyof Permission['roles']) => {
     setPermissions((prev) =>

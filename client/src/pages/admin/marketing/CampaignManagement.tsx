@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Megaphone,
   Plus,
   Play,
   Pause,
-  Stop,
   Edit,
   Eye,
   Calendar,
@@ -12,6 +11,7 @@ import {
   DollarSign,
   BarChart3,
 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 interface Campaign {
   id: string;
@@ -26,36 +26,37 @@ interface Campaign {
   target: string;
 }
 
-const mockCampaigns: Campaign[] = [
-  {
-    id: '1',
-    name: 'Black Friday Sale',
-    type: 'Flash Sale',
-    status: 'active',
-    startDate: '2024-03-15',
-    endDate: '2024-03-20',
-    budget: 5000,
-    revenue: 12500,
-    conversions: 245,
-    target: 'All Customers',
-  },
-  {
-    id: '2',
-    name: 'Summer Collection',
-    type: 'Seasonal Campaign',
-    status: 'active',
-    startDate: '2024-03-10',
-    endDate: '2024-03-25',
-    budget: 3000,
-    revenue: 8200,
-    conversions: 156,
-    target: 'Fashion Segment',
-  },
-];
-
 export default function CampaignManagement() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>(mockCampaigns);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    setError(null);
+    adminMarketingAPI
+      .getCampaigns()
+      .then((res) => {
+        const list = (res.campaigns || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          type: c.type,
+          status: c.status,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          budget: c.budget ?? 0,
+          revenue: c.revenue ?? 0,
+          conversions: c.conversions ?? 0,
+          target: c.target,
+        }));
+        setCampaigns(list);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load campaigns'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
 
   const getStatusBadge = (status: Campaign['status']) => {
     const styles = {
@@ -90,9 +91,22 @@ export default function CampaignManagement() {
         </button>
       </div>
 
-      {/* Campaigns List */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading campaigns...</p>
+        </div>
+      ) : (
       <div className="space-y-4">
-        {campaigns.map((campaign) => (
+        {campaigns.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No campaigns yet. Create one to get started.</p>
+          </div>
+        ) : campaigns.map((campaign) => (
           <div
             key={campaign.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -184,6 +198,7 @@ export default function CampaignManagement() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

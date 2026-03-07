@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, CheckCircle, XCircle, AlertTriangle, Key, Webhook, TestTube, Edit } from 'lucide-react';
+import { adminFinanceAPI } from '@/lib/api';
 
 type GatewayStatus = 'online' | 'offline' | 'issues';
 
@@ -15,77 +16,37 @@ interface Gateway {
   issues?: string[];
 }
 
-const mockGateways: Gateway[] = [
-  {
-    id: 'GW-001',
-    name: 'Stripe',
-    type: 'Card Payments',
-    status: 'online',
-    isEnabled: true,
-    apiKey: 'sk_live_***',
-    webhookUrl: 'https://api.example.com/webhooks/stripe',
-    lastChecked: '2024-03-17 10:30:00',
-  },
-  {
-    id: 'GW-002',
-    name: 'PayPal',
-    type: 'Digital Wallet',
-    status: 'online',
-    isEnabled: true,
-    apiKey: 'paypal_***',
-    webhookUrl: 'https://api.example.com/webhooks/paypal',
-    lastChecked: '2024-03-17 10:25:00',
-  },
-  {
-    id: 'GW-003',
-    name: 'MTN Mobile Money',
-    type: 'Mobile Money',
-    status: 'online',
-    isEnabled: true,
-    apiKey: 'mtn_***',
-    webhookUrl: 'https://api.example.com/webhooks/mtn',
-    lastChecked: '2024-03-17 10:20:00',
-  },
-  {
-    id: 'GW-004',
-    name: 'Airtel Money',
-    type: 'Mobile Money',
-    status: 'issues',
-    isEnabled: true,
-    apiKey: 'airtel_***',
-    webhookUrl: 'https://api.example.com/webhooks/airtel',
-    lastChecked: '2024-03-17 09:15:00',
-    issues: ['Webhook delivery failures detected'],
-  },
-  {
-    id: 'GW-005',
-    name: 'Flutterwave',
-    type: 'Payment Gateway',
-    status: 'offline',
-    isEnabled: false,
-  },
-];
-
 export default function PaymentGateways() {
-  const [gateways, setGateways] = useState<Gateway[]>(mockGateways);
+  const [gateways, setGateways] = useState<Gateway[]>([]);
   const [selectedGateway, setSelectedGateway] = useState<Gateway | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [configApiKey, setConfigApiKey] = useState('');
+  const [configWebhookUrl, setConfigWebhookUrl] = useState('');
+
+  useEffect(() => {
+    adminFinanceAPI.getGateways().then((res) => {
+      setGateways(res.gateways.map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        type: g.type,
+        status: g.status,
+        isEnabled: g.isEnabled,
+        apiKey: g.apiKey,
+        webhookUrl: g.webhookUrl,
+        lastChecked: g.lastChecked ? new Date(g.lastChecked).toLocaleString() : undefined,
+        issues: g.issues || [],
+      })));
+    }).catch(() => setGateways([])).finally(() => setLoading(false));
+  }, []);
 
   const toggleGateway = (gatewayId: string) => {
-    setGateways((prevGateways) =>
-      prevGateways.map((gateway) => {
-        if (gateway.id === gatewayId) {
-          const newEnabled = !gateway.isEnabled;
-          return {
-            ...gateway,
-            isEnabled: newEnabled,
-            // Update status based on enabled state
-            status: newEnabled ? (gateway.status === 'offline' ? 'online' : gateway.status) : 'offline',
-          };
-        }
-        return gateway;
-      })
-    );
+    const g = gateways.find((x) => x.id === gatewayId);
+    if (!g) return;
+    const newEnabled = !g.isEnabled;
+    adminFinanceAPI.updateGateway(gatewayId, { isEnabled: newEnabled }).then((res) => {
+      setGateways((prev) => prev.map((x) => (x.id === gatewayId ? { ...x, isEnabled: res.gateway?.isEnabled ?? newEnabled, status: newEnabled ? (x.status === 'offline' ? 'online' : x.status) : 'offline' } : x)));
+    }).catch(() => {});
   };
 
   const getStatusBadge = (status: GatewayStatus) => {
@@ -101,6 +62,7 @@ export default function PaymentGateways() {
 
   return (
     <div className="space-y-6">
+      {loading && <div className="text-center text-gray-500 py-4">Loading...</div>}
       <div className="grid gap-4 lg:grid-cols-3">
         {gateways.map((gateway) => (
           <div
@@ -156,10 +118,11 @@ export default function PaymentGateways() {
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  // Use current gateway state
                   const currentGateway = gateways.find((g) => g.id === gateway.id);
                   if (currentGateway) {
                     setSelectedGateway(currentGateway);
+                    setConfigApiKey(currentGateway.apiKey || '');
+                    setConfigWebhookUrl(currentGateway.webhookUrl || '');
                     setShowConfigModal(true);
                   }
                 }}
@@ -190,10 +153,11 @@ export default function PaymentGateways() {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">API Key</label>
+                <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">API Key (masked)</label>
                 <input
                   type="text"
-                  defaultValue={selectedGateway.apiKey}
+                  value={configApiKey}
+                  onChange={(e) => setConfigApiKey(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
               </div>
@@ -203,7 +167,8 @@ export default function PaymentGateways() {
                 </label>
                 <input
                   type="text"
-                  defaultValue={selectedGateway.webhookUrl}
+                  value={configWebhookUrl}
+                  onChange={(e) => setConfigWebhookUrl(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
               </div>
@@ -214,7 +179,16 @@ export default function PaymentGateways() {
                 >
                   Cancel
                 </button>
-                <button className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/40">
+                <button
+                  onClick={() => {
+                    if (!selectedGateway) return;
+                    adminFinanceAPI.updateGateway(selectedGateway.id, { apiKeyMasked: configApiKey || undefined, webhookUrl: configWebhookUrl || undefined }).then(() => {
+                      setGateways((prev) => prev.map((g) => (g.id === selectedGateway.id ? { ...g, apiKey: configApiKey, webhookUrl: configWebhookUrl } : g)));
+                      setShowConfigModal(false);
+                    }).catch(() => {});
+                  }}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/40"
+                >
                   Save Changes
                 </button>
               </div>

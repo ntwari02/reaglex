@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  MessageSquare,
   Mail,
   MessageCircle,
   Smartphone,
   Bell,
   Megaphone,
   Plus,
-  Eye,
   BarChart3,
 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 interface MessageCampaign {
   id: string;
@@ -22,32 +21,19 @@ interface MessageCampaign {
   status: 'draft' | 'scheduled' | 'sent';
 }
 
-const mockCampaigns: MessageCampaign[] = [
-  {
-    id: '1',
-    name: 'Weekly Newsletter',
-    channel: 'email',
-    target: 'All Customers',
-    sent: 12500,
-    opened: 5325,
-    clicked: 680,
-    status: 'sent',
-  },
-  {
-    id: '2',
-    name: 'Flash Sale Alert',
-    channel: 'push',
-    target: 'Active Users',
-    sent: 8900,
-    opened: 6230,
-    clicked: 1245,
-    status: 'sent',
-  },
-];
-
 export default function MarketingMessagingTools() {
-  const [campaigns, setCampaigns] = useState<MessageCampaign[]>(mockCampaigns);
+  const [campaigns, setCampaigns] = useState<MessageCampaign[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminMarketingAPI
+      .getMessageCampaigns()
+      .then((res) => setCampaigns(res.campaigns || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load campaigns'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const getChannelIcon = (channel: MessageCampaign['channel']) => {
     switch (channel) {
@@ -85,9 +71,22 @@ export default function MarketingMessagingTools() {
         </button>
       </div>
 
-      {/* Campaigns List */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading message campaigns...</p>
+        </div>
+      ) : (
       <div className="space-y-4">
-        {campaigns.map((campaign) => (
+        {campaigns.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No message campaigns yet.</p>
+          </div>
+        ) : campaigns.map((campaign) => (
           <div
             key={campaign.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -139,6 +138,7 @@ export default function MarketingMessagingTools() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MessageSquare,
   Search,
   CheckCircle,
   XCircle,
   Edit,
-  Trash2,
-  AlertTriangle,
-  User,
 } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
 
 interface SellerResponse {
   id: string;
@@ -21,33 +19,22 @@ interface SellerResponse {
   flagged: boolean;
 }
 
-const mockResponses: SellerResponse[] = [
-  {
-    id: '1',
-    sellerName: 'Tech Store',
-    reviewId: 'rev-123',
-    customerName: 'John Doe',
-    response: 'Thank you for your feedback! We appreciate your review.',
-    status: 'approved',
-    createdAt: '2024-03-16T10:30:00',
-    flagged: false,
-  },
-  {
-    id: '2',
-    sellerName: 'Fashion Hub',
-    reviewId: 'rev-456',
-    customerName: 'Jane Smith',
-    response: 'This is inappropriate and unprofessional content...',
-    status: 'pending',
-    createdAt: '2024-03-17T14:20:00',
-    flagged: true,
-  },
-];
-
 export default function SellerResponses() {
-  const [responses, setResponses] = useState<SellerResponse[]>(mockResponses);
+  const [responses, setResponses] = useState<SellerResponse[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    adminReviewsAPI.getSellerResponses({ status: statusFilter !== 'all' ? statusFilter : undefined })
+      .then((res) => setResponses(res.responses || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, [statusFilter]);
 
   const filteredResponses = responses.filter((response) => {
     const matchesSearch =
@@ -106,9 +93,22 @@ export default function SellerResponses() {
         </select>
       </div>
 
-      {/* Responses List */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading responses...</p>
+        </div>
+      ) : (
       <div className="space-y-4">
-        {filteredResponses.map((response) => (
+        {filteredResponses.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No responses match your filters.</p>
+          </div>
+        ) : filteredResponses.map((response) => (
           <div
             key={response.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -145,11 +145,17 @@ export default function SellerResponses() {
                 </p>
               </div>
               <div className="flex flex-col gap-2">
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
+                <button
+                  onClick={() => adminReviewsAPI.updateSellerResponseStatus(response.id, 'approved').then(() => load())}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300"
+                >
                   <CheckCircle className="mr-1 inline h-4 w-4" />
                   Approve
                 </button>
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-red-400 dark:border-gray-700 dark:text-gray-300">
+                <button
+                  onClick={() => adminReviewsAPI.updateSellerResponseStatus(response.id, 'rejected').then(() => load())}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-red-400 dark:border-gray-700 dark:text-gray-300"
+                >
                   <XCircle className="mr-1 inline h-4 w-4" />
                   Reject
                 </button>
@@ -162,6 +168,7 @@ export default function SellerResponses() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
