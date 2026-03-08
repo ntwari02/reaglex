@@ -14,6 +14,9 @@ import {
   requestVerificationOtp,
   verifyEmailWithOtp,
   emailConfig,
+  verify2FA,
+  setup2FAStart,
+  setup2FAConfirm,
 } from '../controllers/authController';
 import {
   webauthnRegisterOptions,
@@ -38,6 +41,22 @@ const requestOtpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 5,
   message: { message: 'Too many code requests. Please try again in 5 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const resendVerificationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { message: 'Too many verification emails. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const verify2FALimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { message: 'Too many 2FA attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -67,9 +86,14 @@ router.get('/email-config', emailConfig);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
 router.post('/reset-password', resetPassword);
 router.get('/verify-email', verifyEmail);
-router.post('/resend-verification', resendVerification);
+router.post('/resend-verification', resendVerificationLimiter, resendVerification);
 router.post('/request-verification-otp', requestOtpLimiter, requestVerificationOtp);
 router.post('/verify-email-otp', verifyEmailWithOtp);
+
+// 2FA for seller/admin (verify code or complete setup)
+router.post('/verify-2fa', verify2FALimiter, verify2FA);
+router.post('/setup-2fa/start', verify2FALimiter, setup2FAStart);
+router.post('/setup-2fa/confirm', verify2FALimiter, setup2FAConfirm);
 
 // Google OAuth routes
 router.get('/google', googleAuth);

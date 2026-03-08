@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, Phone, Fingerprint, AlertCircle, Check, KeyRound, Shield } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Phone, Fingerprint, AlertCircle, Check, KeyRound, Shield, X } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
@@ -13,7 +13,7 @@ function hasSQLInjectionRisk(value: string): boolean {
 export function Login() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { login } = useAuthStore();
+  const { login, setUserAndToken } = useAuthStore();
   const { showToast } = useToastStore();
 
   const [identifier, setIdentifier] = useState('');
@@ -26,15 +26,23 @@ export function Login() {
     identifier: false,
     password: false,
   });
-  const [step, setStep] = useState<'password' | 'otp' | 'success'>('password');
+  const [step, setStep] = useState<'password' | '2fa' | '2fa-setup' | 'success'>('password');
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [otpCountdown, setOtpCountdown] = useState(30);
   const [otpError, setOtpError] = useState('');
   const [submittingOtp, setSubmittingOtp] = useState(false);
   const [buttonSuccess, setButtonSuccess] = useState(false);
+  // 2FA for seller/admin
+  const [twoFATempToken, setTwoFATempToken] = useState('');
+  const [twoFAEmail, setTwoFAEmail] = useState('');
+  const [twoFARole, setTwoFARole] = useState('');
+  const [twoFAQRCode, setTwoFAQRCode] = useState('');
+  const [twoFAManualKey, setTwoFAManualKey] = useState('');
+  const [twoFASetupLoading, setTwoFASetupLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [showResendVerification, setShowResendVerification] = useState(false);
+  const [showVerifyEmailModal, setShowVerifyEmailModal] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [verificationChoice, setVerificationChoice] = useState<'link' | 'otp' | null>(null);
   const [otpSent, setOtpSent] = useState(false);
@@ -70,14 +78,14 @@ export function Login() {
     }
   }, []);
 
-  // OTP countdown timer
+  // OTP countdown (used for email verification OTP on login page, not for 2FA)
   useEffect(() => {
-    if (step !== 'otp' || otpCountdown <= 0) return;
+    if (otpCountdown <= 0) return;
     const t = setInterval(() => {
       setOtpCountdown((s) => (s > 0 ? s - 1 : 0));
     }, 1000);
     return () => clearInterval(t);
-  }, [step, otpCountdown]);
+  }, [otpCountdown]);
 
   const isEmail = identifier.includes('@');
   const isPhone = !isEmail && /^\d+$/.test(identifier.trim());
@@ -122,10 +130,32 @@ export function Login() {
       setShowResendVerification(false);
       const result = await login(identifier, password);
       if (!result.success) {
+        const r = result as any;
+        if (r.requires2FA && r.tempToken) {
+          setTwoFATempToken(r.tempToken);
+          setTwoFAEmail(r.email || identifier);
+          setTwoFARole(r.role || '');
+          setOtp(['', '', '', '', '', '']);
+          setStep('2fa');
+          setLoading(false);
+          setTimeout(() => otpRefs.current[0]?.focus(), 50);
+          return;
+        }
+        if (r.requires2FASetup && r.tempToken) {
+          setTwoFATempToken(r.tempToken);
+          setTwoFAEmail(r.email || identifier);
+          setTwoFARole(r.role || '');
+          setTwoFAQRCode('');
+          setTwoFAManualKey('');
+          setStep('2fa-setup');
+          setLoading(false);
+          return;
+        }
         const errMsg = result.error || 'Login failed. Please check your credentials.';
         setFormError(errMsg);
         if (errMsg.toLowerCase().includes('verify your email') && identifier.includes('@')) {
           setShowResendVerification(true);
+          setShowVerifyEmailModal(true);
         }
         setLoading(false);
         return;
@@ -141,15 +171,8 @@ export function Login() {
       if (user?.role === 'seller') redirectRef.current = '/seller';
       else if (user?.role === 'admin') redirectRef.current = '/admin';
       else redirectRef.current = '/';
-
-      // Move to 2FA step (UI only)
-      setStep('otp');
-      setOtp(['', '', '', '', '', '']);
-      setOtpCountdown(30);
       setLoading(false);
-      setTimeout(() => {
-        otpRefs.current[0]?.focus();
-      }, 50);
+      navigate(redirectRef.current);
     } catch (err: any) {
       setFormError(err.message || 'An unexpected error occurred.');
       setLoading(false);
@@ -173,29 +196,102 @@ export function Login() {
     }
   };
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
+  const handle2FAVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step !== 'otp') return;
+    if (step !== '2fa') return;
     const code = otp.join('');
     if (code.length !== 6) {
-      setOtpError('Please enter the 6‑digit code.');
+      setOtpError('Please enter the 6-digit code from your app.');
       return;
     }
     setSubmittingOtp(true);
     setOtpError('');
-    // Simulate verification delay
-    setTimeout(() => {
+    try {
+      const { authAPI } = await import('../lib/api');
+      const data = await authAPI.verify2FA(twoFATempToken, code);
+      const { setUserAndToken: setAuth } = useAuthStore.getState();
+      const profile = {
+        id: data.user.id?.toString() || data.user._id?.toString() || '',
+        email: data.user.email,
+        full_name: data.user.fullName,
+        role: data.user.role,
+        seller_status: data.user.sellerVerificationStatus,
+        seller_verified: data.user.isSellerVerified,
+        phone: data.user.phone,
+        avatar_url: data.user.avatarUrl,
+        created_at: data.user.createdAt || new Date().toISOString(),
+        updated_at: data.user.updatedAt || new Date().toISOString(),
+      };
+      setAuth(profile, data.token);
+      if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
+      if (data.user.role === 'seller') redirectRef.current = '/seller';
+      else if (data.user.role === 'admin') redirectRef.current = '/admin';
+      else redirectRef.current = '/';
+      showToast('Signed in successfully. Welcome back!', 'success');
+      navigate(redirectRef.current);
+    } catch (err: any) {
+      setOtpError(err.message || 'Invalid code. Try again.');
+    } finally {
       setSubmittingOtp(false);
-      setStep('success');
-      setButtonSuccess(true);
-      showToast('Login successful. Welcome back to Reaglex!', 'success');
-      const { user } = useAuthStore.getState();
-      const firstName = user?.full_name?.split(' ')[0] || 'there';
-      showToast(`Welcome back, ${firstName}! 👋`, 'success');
-      setTimeout(() => {
-        navigate(redirectRef.current);
-      }, 700);
-    }, 800);
+    }
+  };
+
+  const handle2FASetupGetQR = async () => {
+    if (!twoFATempToken) return;
+    setTwoFASetupLoading(true);
+    setOtpError('');
+    try {
+      const { authAPI } = await import('../lib/api');
+      const data = await authAPI.setup2FAStart(twoFATempToken);
+      setTwoFAQRCode(data.qrCode);
+      setTwoFAManualKey(data.manualEntryKey);
+      setOtp(['', '', '', '', '', '']);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to load QR code.');
+    } finally {
+      setTwoFASetupLoading(false);
+    }
+  };
+
+  const handle2FASetupConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step !== '2fa-setup') return;
+    const code = otp.join('');
+    if (code.length !== 6) {
+      setOtpError('Please enter the 6-digit code from your app.');
+      return;
+    }
+    setSubmittingOtp(true);
+    setOtpError('');
+    try {
+      const { authAPI } = await import('../lib/api');
+      const data = await authAPI.setup2FAConfirm(twoFATempToken, code);
+      const { setUserAndToken: setAuth } = useAuthStore.getState();
+      const profile = {
+        id: data.user.id?.toString() || data.user._id?.toString() || '',
+        email: data.user.email,
+        full_name: data.user.fullName,
+        role: data.user.role,
+        seller_status: data.user.sellerVerificationStatus,
+        seller_verified: data.user.isSellerVerified,
+        phone: data.user.phone,
+        avatar_url: data.user.avatarUrl,
+        created_at: data.user.createdAt || new Date().toISOString(),
+        updated_at: data.user.updatedAt || new Date().toISOString(),
+      };
+      setAuth(profile, data.token);
+      if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
+      if (data.user.role === 'seller') redirectRef.current = '/seller';
+      else if (data.user.role === 'admin') redirectRef.current = '/admin';
+      else redirectRef.current = '/';
+      showToast('2FA enabled. Welcome!', 'success');
+      navigate(redirectRef.current);
+    } catch (err: any) {
+      setOtpError(err.message || 'Invalid code. Try again.');
+    } finally {
+      setSubmittingOtp(false);
+    }
   };
 
   const handleResendVerificationEmail = async () => {
@@ -207,6 +303,7 @@ export function Login() {
       await authAPI.resendVerificationEmail(identifier.trim());
       showToast('Verification link sent. Check your inbox (and spam folder).', 'success');
       setShowResendVerification(false);
+      setShowVerifyEmailModal(false);
       setVerificationChoice(null);
     } catch (e: any) {
       setFormError(e?.message || 'Failed to send verification email.');
@@ -260,6 +357,7 @@ export function Login() {
       await authAPI.verifyEmailWithOtp(email, code);
       showToast('Email verified! You can sign in now.', 'success');
       setShowResendVerification(false);
+      setShowVerifyEmailModal(false);
       setVerificationChoice(null);
       setFormError('');
     } catch (e: any) {
@@ -297,11 +395,17 @@ export function Login() {
   };
 
   const primaryHeading =
-    step === 'otp' ? 'Two‑factor verification 🔐' : 'Welcome back 👋';
+    step === '2fa'
+      ? 'Two-factor authentication'
+      : step === '2fa-setup'
+        ? 'Set up 2FA (required)'
+        : 'Welcome back 👋';
   const primarySub =
-    step === 'otp'
-      ? 'Enter the 6‑digit code sent to your email or phone.'
-      : 'Sign in to your account';
+    step === '2fa'
+      ? 'Enter the 6-digit code from your authenticator app.'
+      : step === '2fa-setup'
+        ? (twoFARole === 'admin' ? 'Admin accounts require 2FA. Scan the QR code with your app.' : 'Seller accounts require 2FA for security. Scan the QR code with your app.')
+        : 'Sign in to your account';
 
   const renderErrorBanner = () =>
     formError && (
@@ -319,14 +423,13 @@ export function Login() {
         </div>
         {showResendVerification && identifier.includes('@') && (
           <div
-            className="rounded-2xl p-4 space-y-4"
-            style={{
-              background: 'var(--bg-secondary)',
-              boxShadow: '0 0 0 1px rgba(249,115,22,0.2)',
-            }}
+            className="rounded-2xl p-5 space-y-4 border-2 border-orange-200/60 dark:border-orange-500/30 bg-orange-50/50 dark:bg-orange-950/20"
           >
-            <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-              Verify your email to sign in. Choose one:
+            <p className="text-[13px] font-semibold text-gray-900 dark:text-white">
+              Verify your email to sign in
+            </p>
+            <p className="text-[12px] text-gray-600 dark:text-gray-400">
+              Choose one: get a new link or use a one-time code. Both are secure.
             </p>
             {verificationChoice === null && (
               <div className="flex flex-wrap gap-2">
@@ -334,15 +437,15 @@ export function Login() {
                   type="button"
                   disabled={resendLoading}
                   onClick={handleResendVerificationEmail}
-                  className="flex-1 min-w-[140px] h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all hover:opacity-90"
                   style={{
-                    background: 'rgba(249,115,22,0.15)',
-                    color: '#f97316',
-                    border: '1px solid rgba(249,115,22,0.4)',
+                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    color: '#fff',
+                    boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
                   }}
                 >
                   {resendLoading ? (
-                    <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Mail className="w-4 h-4" />
                   )}
@@ -351,34 +454,41 @@ export function Login() {
                 <button
                   type="button"
                   onClick={() => setVerificationChoice('otp')}
-                  className="flex-1 min-w-[140px] h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2"
-                  style={{
-                    background: 'rgba(99,102,241,0.15)',
-                    color: '#6366f1',
-                    border: '1px solid rgba(99,102,241,0.4)',
-                  }}
+                  className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 border-2 border-orange-300 dark:border-orange-500/50 text-orange-700 dark:text-orange-300 bg-white dark:bg-gray-800/50 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
                 >
                   <KeyRound className="w-4 h-4" />
                   Verify with code
                 </button>
               </div>
             )}
+            {verificationChoice === null && identifier.includes('@') && (
+              <p className="text-center mt-3">
+                <Link
+                  to={`/verify-otp?email=${encodeURIComponent(identifier.trim())}`}
+                  className="text-[12px] font-medium text-orange-600 dark:text-orange-400 hover:underline"
+                  onClick={() => setShowVerifyEmailModal(false)}
+                >
+                  Open beautiful verify OTP page →
+                </Link>
+              </p>
+            )}
             {verificationChoice === 'otp' && (
               <div className="space-y-3 pt-1">
                 {!otpSent ? (
                   <>
-                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                      We&apos;ll send a 6-digit code to <strong style={{ color: 'var(--text-primary)' }}>{identifier}</strong>
+                    <p className="text-[12px] text-gray-600 dark:text-gray-400">
+                      We&apos;ll send a 6-digit code to <strong className="text-gray-900 dark:text-white">{identifier}</strong>
                     </p>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={handleSendVerificationOtp}
                         disabled={otpSendLoading}
-                        className="flex-1 h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+                        className="flex-1 h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
                         style={{
-                          background: '#6366f1',
+                          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
                           color: '#fff',
+                          boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
                         }}
                       >
                         {otpSendLoading ? (
@@ -391,8 +501,7 @@ export function Login() {
                       <button
                         type="button"
                         onClick={() => setVerificationChoice(null)}
-                        className="px-3 rounded-xl text-[13px] font-medium"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="px-3 rounded-xl text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                       >
                         Back
                       </button>
@@ -400,7 +509,7 @@ export function Login() {
                   </>
                 ) : (
                   <>
-                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[12px] text-gray-600 dark:text-gray-400">
                       Enter the 6-digit code sent to your email
                     </p>
                     <div className="flex justify-between gap-2">
@@ -414,24 +523,23 @@ export function Login() {
                           value={d}
                           onChange={(e) => handleOtpVerificationChange(i, e.target.value)}
                           onKeyDown={(e) => handleOtpVerificationKeyDown(i, e)}
-                          className="w-10 h-11 rounded-xl text-center text-[16px] font-semibold outline-none bg-[var(--bg-secondary)]"
-                          style={{
-                            boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)',
-                            color: 'var(--text-primary)',
-                          }}
+                          className="w-10 h-11 rounded-xl text-center text-[16px] font-semibold outline-none bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
                         />
                       ))}
                     </div>
                     {otpVerifyError && (
-                      <p className="text-[12px]" style={{ color: '#f87171' }}>{otpVerifyError}</p>
+                      <p className="text-[12px] text-red-600 dark:text-red-400">{otpVerifyError}</p>
                     )}
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={handleVerifyEmailWithOtp}
                         disabled={otpVerifyLoading}
-                        className="flex-1 h-10 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-                        style={{ background: '#6366f1', color: '#fff' }}
+                        className="flex-1 h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all text-white"
+                        style={{
+                          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                          boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                        }}
                       >
                         {otpVerifyLoading ? (
                           <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -441,8 +549,7 @@ export function Login() {
                       <button
                         type="button"
                         onClick={() => { setOtpSent(false); setOtpVerifyError(''); }}
-                        className="px-3 rounded-xl text-[13px] font-medium"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="px-3 rounded-xl text-[13px] font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30"
                       >
                         New code
                       </button>
@@ -573,6 +680,166 @@ export function Login() {
 
   return (
     <AuthLayout tab="login">
+      {/* Centered modal: verify email message + how-to (Gmail, inbox, link) */}
+      {showVerifyEmailModal && identifier.includes('@') && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowVerifyEmailModal(false)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl shadow-2xl p-6 sm:p-8 border-2 border-orange-200/60 dark:border-orange-500/30 bg-white dark:bg-gray-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowVerifyEmailModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex justify-center mb-4">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center text-white"
+                style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}
+              >
+                <Mail className="w-7 h-7" strokeWidth={1.8} />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
+              Verify your email
+            </h3>
+            <p className="text-center text-gray-600 dark:text-gray-400 text-[15px] mb-4">
+              Please verify your email before signing in. Check your inbox for the verification link, or request a new one below.
+            </p>
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-4 mb-5 border border-gray-200 dark:border-gray-700">
+              <p className="text-[13px] font-semibold text-gray-900 dark:text-white mb-2">How to verify:</p>
+              <ol className="text-[13px] text-gray-600 dark:text-gray-400 space-y-1.5 list-decimal list-inside">
+                <li>Open <strong>Gmail</strong> (<a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" className="text-orange-600 dark:text-orange-400 underline">mail.google.com</a>) or your email app.</li>
+                <li>Check your <strong>Inbox</strong> and <strong>Spam</strong> / Promotions folders.</li>
+                <li>Find the email from us and <strong>click the verification link</strong> inside it.</li>
+                <li>Return here and sign in again.</li>
+              </ol>
+            </div>
+            <p className="text-[13px] font-semibold text-gray-900 dark:text-white mb-3">Or use one of these options:</p>
+            {verificationChoice === null ? (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={resendLoading}
+                  onClick={handleResendVerificationEmail}
+                  className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all hover:opacity-90 text-white"
+                  style={{
+                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                  }}
+                >
+                  {resendLoading ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Mail className="w-4 h-4" />
+                  )}
+                  {resendLoading ? 'Sending…' : 'Resend link'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVerificationChoice('otp')}
+                  className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 border-2 border-orange-300 dark:border-orange-500/50 text-orange-700 dark:text-orange-300 bg-white dark:bg-gray-800/50 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  Verify with code
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 pt-1">
+                {!otpSent ? (
+                  <>
+                    <p className="text-[12px] text-gray-600 dark:text-gray-400">
+                      We&apos;ll send a 6-digit code to <strong className="text-gray-900 dark:text-white">{identifier}</strong>
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSendVerificationOtp}
+                        disabled={otpSendLoading}
+                        className="flex-1 h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all text-white"
+                        style={{
+                          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                          boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                        }}
+                      >
+                        {otpSendLoading ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Mail className="w-4 h-4" />
+                        )}
+                        {otpSendLoading ? 'Sending…' : 'Send code'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVerificationChoice(null)}
+                        className="px-3 rounded-xl text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[12px] text-gray-600 dark:text-gray-400">
+                      Enter the 6-digit code sent to your email
+                    </p>
+                    <div className="flex justify-between gap-2">
+                      {otpDigits.map((d, i) => (
+                        <input
+                          key={i}
+                          ref={(el) => { otpVerificationRefs.current[i] = el; }}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={d}
+                          onChange={(e) => handleOtpVerificationChange(i, e.target.value)}
+                          onKeyDown={(e) => handleOtpVerificationKeyDown(i, e)}
+                          className="w-10 h-11 rounded-xl text-center text-[16px] font-semibold outline-none bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                        />
+                      ))}
+                    </div>
+                    {otpVerifyError && (
+                      <p className="text-[12px] text-red-600 dark:text-red-400">{otpVerifyError}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleVerifyEmailWithOtp}
+                        disabled={otpVerifyLoading}
+                        className="flex-1 h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all text-white"
+                        style={{
+                          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                          boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                        }}
+                      >
+                        {otpVerifyLoading ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : null}
+                        {otpVerifyLoading ? 'Verifying…' : 'Verify & continue'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setOtpSent(false); setOtpVerifyError(''); }}
+                        className="px-3 rounded-xl text-[13px] font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                      >
+                        New code
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {step === 'password' && (
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Heading */}
@@ -729,98 +996,160 @@ export function Login() {
         </form>
       )}
 
-      {step !== 'password' && (
-        <form onSubmit={handleOtpSubmit} className="space-y-5">
+      {(step === '2fa' || step === '2fa-setup') && (
+        <div className="space-y-5">
           <div className="space-y-1 mb-1">
-            <h2
-              className="text-[24px] sm:text-[28px] font-bold"
-              style={{ color: 'var(--text-primary)' }}
-            >
+            <h2 className="text-[24px] sm:text-[28px] font-bold" style={{ color: 'var(--text-primary)' }}>
               {primaryHeading}
             </h2>
-            <p
-              className="text-[13px] sm:text-[14px]"
-              style={{ color: 'var(--text-muted)' }}
-            >
+            <p className="text-[13px] sm:text-[14px]" style={{ color: 'var(--text-muted)' }}>
               {primarySub}
             </p>
+            {twoFAEmail && (
+              <p className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                {twoFAEmail}
+              </p>
+            )}
           </div>
 
           {renderErrorBanner()}
 
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <p
-                className="text-[13px]"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Enter the 6‑digit code we just sent you.
+          {step === '2fa' && (
+            <form onSubmit={handle2FAVerify} className="space-y-4">
+              <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the 6-digit code.
               </p>
+              <div className="flex justify-between gap-2">
+                {otp.map((value, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => { otpRefs.current[idx] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={value}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    className="w-10 h-11 sm:w-11 sm:h-12 rounded-xl text-center text-[16px] font-semibold outline-none bg-[var(--bg-secondary)]"
+                    style={{ boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)', color: 'var(--text-primary)' }}
+                  />
+                ))}
+              </div>
+              {otpError && <p className="text-[12px]" style={{ color: '#f87171' }}>{otpError}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setStep('password'); setOtpError(''); setOtp(['', '', '', '', '', '']); }}
+                  className="px-4 py-3 rounded-xl text-[13px] font-medium"
+                  style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingOtp}
+                  className="flex-1 h-[54px] rounded-[14px] font-bold text-[16px] flex items-center justify-center gap-2 disabled:opacity-70"
+                  style={{
+                    background: 'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                    color: '#fff',
+                    boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
+                  }}
+                >
+                  {submittingOtp ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                  {submittingOtp ? 'Verifying…' : 'Verify & continue'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {step === '2fa-setup' && (
+            <div className="space-y-4">
+              {!twoFAQRCode ? (
+                <>
+                  <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                    You’ll scan a QR code with an authenticator app. Don’t have one? Install Google Authenticator or Authy.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handle2FASetupGetQR}
+                    disabled={twoFASetupLoading}
+                    className="w-full h-[54px] rounded-[14px] font-bold text-[16px] flex items-center justify-center gap-2 disabled:opacity-70"
+                    style={{
+                      background: 'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                      color: '#fff',
+                      boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
+                    }}
+                  >
+                    {twoFASetupLoading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <KeyRound className="w-5 h-5" />}
+                    {twoFASetupLoading ? 'Loading…' : 'Get QR code'}
+                  </button>
+                </>
+              ) : (
+                <form onSubmit={handle2FASetupConfirm} className="space-y-4">
+                  <div className="flex justify-center">
+                    <img src={twoFAQRCode} alt="2FA QR" className="w-40 h-40 rounded-xl border-2 border-orange-200 dark:border-orange-500/30" />
+                  </div>
+                  {twoFAManualKey && (
+                    <p className="text-[11px] font-mono text-center break-all" style={{ color: 'var(--text-muted)' }}>
+                      Or enter manually: {twoFAManualKey}
+                    </p>
+                  )}
+                  <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                    Scan the QR code with your app, then enter the 6-digit code below.
+                  </p>
+                  <div className="flex justify-between gap-2">
+                    {otp.map((value, idx) => (
+                      <input
+                        key={idx}
+                        ref={(el) => { otpRefs.current[idx] = el; }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={value}
+                        onChange={(e) => handleOtpChange(idx, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                        className="w-10 h-11 sm:w-11 sm:h-12 rounded-xl text-center text-[16px] font-semibold outline-none bg-[var(--bg-secondary)]"
+                        style={{ boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)', color: 'var(--text-primary)' }}
+                      />
+                    ))}
+                  </div>
+                  {otpError && <p className="text-[12px]" style={{ color: '#f87171' }}>{otpError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setTwoFAQRCode(''); setTwoFAManualKey(''); setOtpError(''); }}
+                      className="px-4 py-3 rounded-xl text-[13px] font-medium"
+                      style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingOtp}
+                      className="flex-1 h-[54px] rounded-[14px] font-bold text-[16px] flex items-center justify-center gap-2 disabled:opacity-70"
+                      style={{
+                        background: 'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                        color: '#fff',
+                        boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
+                      }}
+                    >
+                      {submittingOtp ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                      {submittingOtp ? 'Verifying…' : 'Enable 2FA & sign in'}
+                    </button>
+                  </div>
+                </form>
+              )}
               <button
                 type="button"
-                disabled={otpCountdown > 0}
-                onClick={handleResendOtp}
-                className="text-[12px] font-semibold disabled:opacity-50"
-                style={{ color: '#f97316' }}
+                onClick={() => { setStep('password'); setTwoFAQRCode(''); setTwoFAManualKey(''); setOtpError(''); }}
+                className="w-full py-2 text-[13px] font-medium"
+                style={{ color: 'var(--text-muted)' }}
               >
-                {otpCountdown > 0
-                  ? `Resend in ${otpCountdown}s`
-                  : 'Resend code'}
+                ← Back to sign in
               </button>
             </div>
-
-            <div className="flex justify-between gap-2 pt-1">
-              {otp.map((value, idx) => (
-                <input
-                  key={idx}
-                  ref={(el) => {
-                    otpRefs.current[idx] = el;
-                  }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={value}
-                  onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                  className="w-10 h-11 sm:w-11 sm:h-12 rounded-xl text-center text-[16px] font-semibold outline-none bg-[var(--bg-secondary)]"
-                  style={{
-                    boxShadow:
-                      '0 0 0 1.5px rgba(0,0,0,0.08)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-              ))}
-            </div>
-            {otpError && (
-              <p className="text-[12px]" style={{ color: '#f87171' }}>
-                {otpError}
-              </p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={submittingOtp || buttonSuccess}
-            className="w-full h-[54px] rounded-[14px] font-bold text-[16px] tracking-[0.03em] flex items-center justify-center gap-2 disabled:opacity-70 transition-transform"
-            style={{
-              background: buttonSuccess
-                ? '#16a34a'
-                : 'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
-              color: '#ffffff',
-              boxShadow: buttonSuccess
-                ? '0 6px 24px rgba(22,163,74,0.55)'
-                : '0 6px 24px rgba(249,115,22,0.45),0 2px 8px rgba(249,115,22,0.25)',
-            }}
-          >
-            {submittingOtp && (
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            )}
-            {buttonSuccess && <Check className="w-5 h-5" />}
-            {!submittingOtp && !buttonSuccess && <span>Verify &amp; Continue</span>}
-            {submittingOtp && !buttonSuccess && <span>Verifying…</span>}
-            {buttonSuccess && <span>Welcome back!</span>}
-          </button>
-        </form>
+          )}
+        </div>
       )}
     </AuthLayout>
   );

@@ -350,16 +350,57 @@ export const authAPI = {
   },
 
   /**
-   * Login user
+   * Login user. Returns token+user for buyers; for seller/admin may return requires2FA or requires2FASetup.
    */
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<
+    | { user: any; token: string }
+    | { requires2FA: true; tempToken: string; email: string; role: string }
+    | { requires2FASetup: true; tempToken: string; email: string; role: string }
+  > {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ email, password }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Complete login with 2FA code (seller/admin who already have 2FA enabled)
+   */
+  async verify2FA(tempToken: string, code: string) {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-2fa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ tempToken, code }),
+    });
+    return handleResponse<{ user: any; token: string }>(response);
+  },
+
+  /**
+   * Start 2FA setup (get QR code) for seller/admin without 2FA
+   */
+  async setup2FAStart(tempToken: string) {
+    const response = await fetch(`${API_BASE_URL}/auth/setup-2fa/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ tempToken }),
+    });
+    return handleResponse<{ qrCode: string; manualEntryKey: string }>(response);
+  },
+
+  /**
+   * Confirm 2FA setup with code, then get full auth token
+   */
+  async setup2FAConfirm(tempToken: string, code: string) {
+    const response = await fetch(`${API_BASE_URL}/auth/setup-2fa/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ tempToken, code }),
     });
     return handleResponse<{ user: any; token: string }>(response);
   },

@@ -70,6 +70,18 @@ export function SelectRole() {
         return;
       }
 
+      // Seller/Admin: 2FA required – redirect to callback page to complete 2FA
+      if ((data.requires2FA || data.requires2FASetup) && data.tempToken) {
+        const params = new URLSearchParams();
+        params.set(data.requires2FA ? 'requires2FA' : 'requires2FASetup', 'true');
+        params.set('tempToken', data.tempToken);
+        params.set('email', data.email || '');
+        params.set('role', data.role || '');
+        navigate(`/auth/google/callback?${params.toString()}`);
+        setLoading(false);
+        return;
+      }
+
       // Store token and user info
       localStorage.setItem('auth_token', data.token);
       
