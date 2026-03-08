@@ -1,12 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
-import { Lock, RotateCw, CheckCircle, XCircle, Sun, Moon, Home, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, Check, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import AuthPremiumLayout from '../components/AuthPremiumLayout';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const PRIMARY = '#f97316';
+const SUCCESS = '#10b981';
+
+function checkPasswordReqs(pw: string) {
+  return {
+    length: pw.length >= 8,
+    upper: /[A-Z]/.test(pw),
+    lower: /[a-z]/.test(pw),
+    number: /\d/.test(pw),
+    special: /[^A-Za-z0-9]/.test(pw),
+  };
+}
 
 export function ResetPassword() {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const cardBg = isDark ? '#111420' : '#ffffff';
+  const cardShadow = isDark
+    ? '0 0 0 1px rgba(255,255,255,0.06), 0 24px 48px -12px rgba(0,0,0,0.5)'
+    : '0 0 0 1px rgba(0,0,0,0.04), 0 24px 48px -12px rgba(0,0,0,0.12)';
+
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -14,245 +37,307 @@ export function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [focused, setFocused] = useState<string | null>(null);
 
-  const [validations, setValidations] = useState({
-    length: false,
-    uppercase: false,
-    lowercase: false,
-    number: false,
-    special: false,
-  });
-
-  useEffect(() => {
-    setValidations({
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    });
-  }, [password]);
-
-  const isPasswordValid = Object.values(validations).every(v => v);
+  const reqs = checkPasswordReqs(password);
+  const isPasswordValid = Object.values(reqs).every(Boolean);
+  const match = confirmPassword.length ? password === confirmPassword : null;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const codeValid = /^\d{6}$/.test(code);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    if (!emailValid) {
+      setError('Enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+    if (!codeValid) {
+      setError('Enter the 6-digit code from your email.');
+      setLoading(false);
+      return;
+    }
     if (!isPasswordValid) {
-      setError('Please ensure your password meets all requirements');
+      setError('Please ensure your password meets all requirements.');
       setLoading(false);
       return;
     }
-
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
       setLoading(false);
       return;
     }
 
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+    try {
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Failed to reset password.');
+        setLoading(false);
+        return;
+      }
       setSuccess(true);
       setLoading(false);
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      setTimeout(() => navigate('/auth?tab=login'), 2000);
+    } catch {
+      setError('Network error. Try again.');
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0f] flex">
-      <button
-        onClick={toggleTheme}
-        className="fixed top-6 right-6 z-50 p-3 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-full shadow-lg hover:scale-110 transition-transform group"
-        aria-label="Toggle theme"
-      >
-        {theme === 'dark' ? (
-          <Sun className="h-5 w-5 text-yellow-500 group-hover:rotate-45 transition-transform duration-300" />
-        ) : (
-          <Moon className="h-5 w-5 text-gray-700 group-hover:-rotate-12 transition-transform duration-300" />
-        )}
-      </button>
-      <Link
-        to="/"
-        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 p-3 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-gray-700 rounded-full shadow-lg hover:scale-110 transition-transform group"
-        aria-label="Go to home"
-      >
-        <Home className="h-5 w-5 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform duration-300" />
-      </Link>
-
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-cyan-600 via-teal-600 to-blue-700 dark:from-cyan-900 dark:via-teal-900 dark:to-blue-950">
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-teal-500/20 to-cyan-600/20 dark:from-cyan-500/10 dark:via-teal-500/10 dark:to-cyan-600/10" />
-        <img
-          src="https://images.pexels.com/photos/5625120/pexels-photo-5625120.jpeg?auto=compress&cs=tinysrgb&w=1920"
-          alt="Payment Security"
-          className="w-full h-full object-cover mix-blend-overlay opacity-40 dark:opacity-80"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-cyan-900/80 via-transparent to-transparent dark:from-[#0a0a0f] dark:via-transparent dark:to-transparent" />
-
-        <div className="absolute top-8 left-8">
-          <img
-            src="/logo.jpg"
-            alt="REAGLE-X Logo"
-            className="h-16 w-16 rounded-full object-cover shadow-lg"
-          />
+    <AuthPremiumLayout>
+      <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
+        <div className="flex-shrink-0 flex justify-end items-center mb-2">
+          <ThemeToggle />
         </div>
 
-        <div className="absolute bottom-12 left-12 right-12 text-white">
-          <h1 className="text-5xl font-bold mb-4 leading-tight">
-            Create a Strong Password.
-          </h1>
-          <p className="text-lg text-cyan-100 dark:text-cyan-100 leading-relaxed max-w-lg">
-            Choose a secure password to protect your account and continue shopping with confidence.
-          </p>
-        </div>
-      </div>
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-auto">
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="w-full max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
+            style={{ background: cardBg, boxShadow: cardShadow }}
+          >
+            <Link to="/auth?tab=login" className="text-[12px] font-medium hover:underline mb-4 block" style={{ color: PRIMARY }}>
+              ← Back to Sign In
+            </Link>
 
-      <div className="flex-1 flex items-center justify-center px-6 py-12 lg:px-12">
-        <div className="w-full max-w-md">
-          <div className="mb-8 lg:hidden text-center">
-            <div className="flex items-center justify-center mb-4">
-              <img
-                src="/logo.jpg"
-                alt="REAGLE-X Logo"
-                className="h-16 w-16 rounded-full object-cover shadow-lg"
-              />
-            </div>
-          </div>
-
-          <div className="mb-10">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
+            <h2 className="text-[22px] font-extrabold mb-0.5" style={{ color: 'var(--text-primary)' }}>
               Set New Password
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
-              Create a strong password for your account.
+            <p className="text-[13px] mb-5" style={{ color: 'var(--text-muted)' }}>
+              Enter the 6-digit code from your email and choose a new password.
             </p>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm">
-                {error}
-              </div>
-            )}
+            {success ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-4">
+                <div className="text-2xl mb-2">✓</div>
+                <p className="font-bold text-lg mb-1" style={{ color: SUCCESS }}>Password reset successful!</p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Redirecting to sign in...</p>
+              </motion.div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {error && (
+                  <div className="text-sm p-3 rounded-[12px]" style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}>
+                    {error}
+                  </div>
+                )}
 
-            {success && (
-              <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 text-green-600 dark:text-green-400 p-4 rounded-xl text-sm">
-                Password reset successful! Redirecting to login...
-              </div>
-            )}
+                <PremiumStyleInput
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="you@example.com"
+                  leftIcon={Mail}
+                  focused={focused === 'email'}
+                  onFocus={() => setFocused('email')}
+                  onBlur={() => setFocused(null)}
+                  valid={emailValid}
+                />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                New Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
-                <input
+                <PremiumStyleInput
+                  label="6-digit code"
+                  type="text"
+                  value={code}
+                  onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  leftIcon={Lock}
+                  focused={focused === 'code'}
+                  onFocus={() => setFocused('code')}
+                  onBlur={() => setFocused(null)}
+                  valid={codeValid}
+                  maxLength={6}
+                />
+
+                <PremiumStyleInput
+                  label="New Password"
                   type={showPassword ? 'text' : 'password'}
-                  required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={setPassword}
                   placeholder="Create a strong password"
-                  className="w-full pl-12 pr-12 py-4 bg-white dark:bg-[#1a1a2e]/80 border border-gray-300 dark:border-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition"
+                  leftIcon={Lock}
+                  focused={focused === 'password'}
+                  onFocus={() => setFocused('password')}
+                  onBlur={() => setFocused(null)}
+                  valid={isPasswordValid}
+                  rightEl={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="p-1 rounded hover:opacity-80"
+                      style={{ color: 'var(--text-muted)' }}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </div>
 
-            <div className="bg-gray-50 dark:bg-[#1a1a2e]/50 p-4 rounded-xl space-y-2">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Password Requirements:
-              </p>
-              <div className="space-y-2">
-                <ValidationItem valid={validations.length} text="At least 8 characters" />
-                <ValidationItem valid={validations.uppercase} text="One uppercase letter" />
-                <ValidationItem valid={validations.lowercase} text="One lowercase letter" />
-                <ValidationItem valid={validations.number} text="One number" />
-                <ValidationItem valid={validations.special} text="One special character" />
-              </div>
-            </div>
+                <div className="rounded-[12px] p-3 space-y-2" style={{ background: 'var(--bg-tertiary)' }}>
+                  <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                    Password requirements
+                  </p>
+                  <ReqItem valid={reqs.length} text="At least 8 characters" />
+                  <ReqItem valid={reqs.upper} text="One uppercase letter" />
+                  <ReqItem valid={reqs.lower} text="One lowercase letter" />
+                  <ReqItem valid={reqs.number} text="One number" />
+                  <ReqItem valid={reqs.special} text="One special character" />
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <RotateCw className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
-                <input
+                <PremiumStyleInput
+                  label="Confirm Password"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  required
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={setConfirmPassword}
                   placeholder="Confirm your password"
-                  className="w-full pl-12 pr-12 py-4 bg-white dark:bg-[#1a1a2e]/80 border border-gray-300 dark:border-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition"
+                  leftIcon={Lock}
+                  focused={focused === 'confirm'}
+                  onFocus={() => setFocused('confirm')}
+                  onBlur={() => setFocused(null)}
+                  valid={match === true}
+                  rightEl={
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="p-1 rounded hover:opacity-80"
+                      style={{ color: 'var(--text-muted)' }}
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+
+                <motion.button
+                  type="submit"
+                  disabled={loading || !emailValid || !codeValid || !isPasswordValid || !confirmPassword || password !== confirmPassword}
+                  className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all"
+                  style={{
+                    background: PRIMARY,
+                    color: '#ffffff',
+                    boxShadow: '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
+                  }}
+                  whileHover={!loading ? { y: -2, boxShadow: '0 12px 36px rgba(249,115,22,0.5)' } : {}}
+                  whileTap={!loading ? { y: 0 } : {}}
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || success || !isPasswordValid || !confirmPassword}
-              className="w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-4 rounded-xl font-semibold hover:from-orange-700 hover:to-orange-800 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-orange-500/20"
-            >
-              {loading ? 'Resetting Password...' : success ? 'Success!' : 'Reset Password'}
-            </button>
-          </form>
-
-          <p className="text-center text-gray-600 dark:text-gray-400 mt-8">
-            Remember your password?{' '}
-            <Link to="/login" className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-semibold transition">
-              Sign In
-            </Link>
-          </p>
+                  {loading && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  {!loading && <>Reset Password <ArrowRight className="w-4 h-4" /></>}
+                </motion.button>
+              </form>
+            )}
+          </motion.div>
         </div>
+
+        <p className="flex-shrink-0 mt-4 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
+          Remember your password? <Link to="/auth?tab=login" className="font-semibold hover:underline" style={{ color: PRIMARY }}>Sign In</Link>
+        </p>
       </div>
+    </AuthPremiumLayout>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+  return (
+    <button
+      type="button"
+      onClick={() => toggleTheme()}
+      className="w-9 h-9 rounded-xl flex items-center justify-center border-none cursor-pointer transition-all hover:opacity-90"
+      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: '0 0 0 1px var(--divider)' }}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {isDark ? '☀️' : '🌙'}
+    </button>
+  );
+}
+
+function ReqItem({ valid, text }: { valid: boolean; text: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      {valid ? <Check className="w-4 h-4 flex-shrink-0" style={{ color: SUCCESS }} /> : <span className="w-4 h-4 rounded-full border-2 flex-shrink-0" style={{ borderColor: 'var(--text-faint)' }} />}
+      <span className="text-[13px]" style={{ color: valid ? SUCCESS : 'var(--text-muted)' }}>{text}</span>
     </div>
   );
 }
 
-function ValidationItem({ valid, text }: { valid: boolean; text: string }) {
+function PremiumStyleInput({
+  label,
+  type,
+  value,
+  onChange,
+  placeholder,
+  leftIcon: LeftIcon,
+  focused,
+  onFocus,
+  onBlur,
+  valid,
+  rightEl,
+  maxLength,
+}: {
+  label: string;
+  type: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  leftIcon: React.ComponentType<{ className?: string }>;
+  focused?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  valid?: boolean;
+  rightEl?: React.ReactNode;
+  maxLength?: number;
+}) {
+  const ring = valid
+    ? '0 0 0 2px rgba(16,185,129,0.40)'
+    : focused
+      ? '0 0 0 2.5px rgba(249,115,22,0.5)'
+      : '0 0 0 1.5px rgba(0,0,0,0.08)';
+  const bg = valid ? 'rgba(16,185,129,0.03)' : focused ? 'var(--card-bg)' : 'var(--bg-secondary)';
+
   return (
-    <div className="flex items-center gap-2">
-      {valid ? (
-        <CheckCircle className="h-4 w-4 text-green-500" />
-      ) : (
-        <XCircle className="h-4 w-4 text-gray-400 dark:text-gray-600" />
-      )}
-      <span className={`text-sm ${valid ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
-        {text}
-      </span>
+    <div className="mb-0">
+      <label className="block font-bold uppercase tracking-wider text-[11px] mb-1" style={{ color: 'var(--text-primary)' }}>
+        {label} *
+      </label>
+      <div className="relative">
+        {LeftIcon && (
+          <span
+            className="absolute top-1/2 -translate-y-1/2 left-3 flex items-center justify-center transition-colors"
+            style={{ color: focused ? PRIMARY : 'var(--text-muted)' }}
+          >
+            <LeftIcon className="w-4 h-4" />
+          </span>
+        )}
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          className="w-full h-[42px] text-[14px] pl-10 pr-10 rounded-[12px] outline-none transition-all"
+          style={{ background: bg, boxShadow: ring, color: 'var(--text-primary)' }}
+        />
+        {rightEl && <div className="absolute top-1/2 -translate-y-1/2 right-3">{rightEl}</div>}
+        {valid && !rightEl && (
+          <span className="absolute top-1/2 -translate-y-1/2 right-3">
+            <Check className="w-4 h-4" style={{ color: SUCCESS }} />
+          </span>
+        )}
+      </div>
     </div>
   );
 }

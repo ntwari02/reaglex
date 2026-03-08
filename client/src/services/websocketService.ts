@@ -34,7 +34,7 @@ class WebSocketService {
       auth: {
         token: token,
       },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: this.maxReconnectAttempts,

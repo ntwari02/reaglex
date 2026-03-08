@@ -520,7 +520,7 @@ function ForgotFormContent() {
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Failed to send reset email.'); return; }
       setSent(true);
-      showToast('Password reset link sent!', 'success');
+      showToast('Reset code sent! Check your email.', 'success');
     } catch { setError('Network error. Try again.'); }
     finally { setLoading(false); }
   };
@@ -529,7 +529,7 @@ function ForgotFormContent() {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/forgot-password`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-      if (res.ok) showToast('Reset link sent again!', 'success');
+      if (res.ok) showToast('Code sent again!', 'success');
     } finally { setLoading(false); }
   };
 
@@ -537,12 +537,15 @@ function ForgotFormContent() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-2 space-y-2">
       <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }} className="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-2xl">✉️</motion.div>
       <div>
-        <p className="font-bold text-base mb-0.5" style={{ color: SUCCESS }}>Reset link sent</p>
+        <p className="font-bold text-base mb-0.5" style={{ color: SUCCESS }}>6-digit code sent</p>
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sent to <strong style={{ color: 'var(--text-primary)' }}>{email}</strong></p>
+        <p className="text-[11px] mt-1.5 px-2" style={{ color: 'var(--text-faint)' }}>
+          Check your email for the code. It expires in 15 minutes. Check Spam/Junk if you don’t see it.
+        </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-1.5 justify-center">
-        <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" className="inline-flex justify-center px-3 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: PRIMARY }}>Open Gmail →</a>
-        <button type="button" onClick={handleResend} disabled={loading} className="px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ background: 'var(--bg-secondary)', color: PRIMARY, boxShadow: '0 0 0 1.5px var(--divider)' }}>{loading ? 'Sending…' : 'Resend'}</button>
+        <Link to="/reset-password" className="inline-flex justify-center px-3 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: PRIMARY }}>Enter code →</Link>
+        <button type="button" onClick={handleResend} disabled={loading} className="px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ background: 'var(--bg-secondary)', color: PRIMARY, boxShadow: '0 0 0 1.5px var(--divider)' }}>{loading ? 'Sending…' : 'Resend code'}</button>
       </div>
       <Link to="/auth?tab=login" className="text-xs font-semibold hover:underline block mx-auto" style={{ color: PRIMARY }}>← Back to Sign In</Link>
     </motion.div>

@@ -67,6 +67,11 @@
     display: inline-block;
   }
 
+  /* Account Settings: profile field icon turns orange on input focus */
+  .profile-field-wrap:focus-within .profile-field-icon {
+    color: #f97316 !important;
+  }
+
   /* Auth premium layout: floating blobs */
   @keyframes auth-float1 {
     0%, 100% { transform: translate(0, 0); }
@@ -870,6 +875,28 @@ html {
 @keyframes messages-typing-dot {
   0%, 60%, 100% { transform: translateY(0); }
   30% { transform: translateY(-4px); }
+}
+/* Seller Inbox: WhatsApp-style typing bubble (3 dots, stagger 0.15s) */
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-8px); }
+}
+.inbox-typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.inbox-typing-dot:nth-child(1) { animation-delay: 0s; }
+.inbox-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.inbox-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes inboxPillBounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -4px); }
+}
+.inbox-input-wrap:focus-within {
+  box-shadow: 0 0 0 2px rgba(249,115,22,0.35);
 }
 @keyframes messages-online-pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
