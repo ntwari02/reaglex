@@ -44,6 +44,7 @@ const ReportProblem        = lazy(() => import('./pages/ReportProblem'));
 const SellerFees           = lazy(() => import('./pages/SellerFees'));
 const BuyerProtection      = lazy(() => import('./pages/BuyerProtection'));
 const CookieSettings       = lazy(() => import('./pages/CookieSettings'));
+const Terms                = lazy(() => import('./pages/Terms'));
 const BecomeSeller         = lazy(() => import('./pages/BecomeSeller'));
 const SellerProtection     = lazy(() => import('./pages/seller/SellerProtection'));
 const SellerGuidelines     = lazy(() => import('./pages/seller/SellerGuidelines'));
@@ -99,6 +100,7 @@ function App() {
             <Route path="/seller/fees"                 element={<SellerFees />} />
             <Route path="/buyer-protection"            element={<BuyerProtection />} />
             <Route path="/cookie-settings"             element={<CookieSettings />} />
+            <Route path="/terms"                       element={<Terms />} />
             <Route path="/seller/protection"           element={(
               <SellerRoute>
                 <SellerProtection />

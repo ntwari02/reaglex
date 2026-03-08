@@ -1,8 +1,11 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { User } from '../models/User';
+import { PasswordResetToken } from '../models/PasswordResetToken';
 import { generateAuthToken } from '../utils/generateToken';
+import { sendPasswordResetCode } from '../utils/email';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 const registerSchema = z.object({
@@ -186,6 +189,67 @@ export async function me(req: AuthenticatedRequest, res: Response) {
   }
 
   return res.json({ user });
+}
+
+const forgotPasswordSchema = z.object({ email: z.string().email() });
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6, 'Code must be 6 digits').regex(/^\d{6}$/, 'Code must be 6 digits'),
+  password: z.string().min(6),
+});
+
+export async function forgotPassword(req: Request, res: Response) {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(200).json({ message: 'If an account exists with this email, you will receive a 6-digit code.' });
+    }
+    if (!user.passwordHash || user.passwordHash.trim() === '') {
+      return res.status(200).json({ message: 'If an account exists with this email, you will receive a 6-digit code.' });
+    }
+    // Delete any existing reset for this user
+    await PasswordResetToken.deleteMany({ userId: user._id });
+    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    await PasswordResetToken.create({ userId: user._id, code, expiresAt });
+    const { ok, error } = await sendPasswordResetCode(user.email, code);
+    if (!ok) {
+      await PasswordResetToken.deleteOne({ userId: user._id, code });
+      return res.status(503).json({ message: error || 'Failed to send reset code. Try again later.' });
+    }
+    return res.status(200).json({ message: 'If an account exists with this email, you will receive a 6-digit code.' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid email' });
+    }
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ message: 'Something went wrong. Try again later.' });
+  }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const { email, code, password } = resetPasswordSchema.parse(req.body);
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or code. Request a new code.' });
+    }
+    const record = await PasswordResetToken.findOne({ userId: user._id, code }).exec();
+    if (!record || record.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'Invalid or expired code. Request a new one.' });
+    }
+    user.passwordHash = await bcrypt.hash(password, 10);
+    await user.save();
+    await PasswordResetToken.deleteOne({ userId: user._id, code });
+    return res.status(200).json({ message: 'Password updated. You can sign in with your new password.' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid data', errors: err.flatten() });
+    }
+    console.error('Reset password error:', err);
+    return res.status(500).json({ message: 'Something went wrong. Try again later.' });
+  }
 }
 
 /**
