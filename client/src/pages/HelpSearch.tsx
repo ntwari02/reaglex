@@ -68,7 +68,7 @@ export default function HelpSearch() {
         className="min-h-screen"
         style={{ background: 'var(--bg-page)', color: 'var(--text-primary)' }}
       >
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-10 space-y-6">
+        <div className="w-full px-4 sm:px-6 lg:px-10 py-10 space-y-6">
           {/* Header */}
           <div className="space-y-1">
             <h1

@@ -6,20 +6,97 @@ import Navbar from './Navbar';
 
 interface AuthLayoutProps {
   tab: 'login' | 'signup' | 'forgot';
-  formTitle: string;
   children: ReactNode;
+  /** When set (e.g. "/auth"), Sign In / Register links use this path with ?tab= */
+  authBasePath?: string;
+  /** When true, do not show the site header (navbar) — form-only page */
+  hideHeader?: boolean;
 }
 
-export default function AuthLayout({ tab, formTitle: _formTitle, children }: AuthLayoutProps) {
-  const { theme, toggleTheme: _toggleTheme } = useTheme();
+export default function AuthLayout({ tab, children, authBasePath, hideHeader }: AuthLayoutProps) {
+  const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const wrapperStyle: CSSProperties = {
-    background:
-      theme === 'dark'
-        ? 'radial-gradient(circle at top, #020617 0%, #030712 40%, #020617 100%)'
-        : 'linear-gradient(135deg, #e8edf8 0%, #dce3f5 50%, #e4e8f6 100%)',
-  };
+  const wrapperStyle: CSSProperties = hideHeader
+    ? { background: 'transparent', minHeight: '100vh' }
+    : {
+        background: isDark
+          ? 'radial-gradient(circle at top, #020617 0%, #030712 40%, #020617 100%)'
+          : 'linear-gradient(135deg, #e8edf8 0%, #dce3f5 50%, #e4e8f6 100%)',
+      };
+
+  const formCardContent = (
+    <>
+      {/* Sign In / Register toggle + form area */}
+      <div className="flex items-center justify-between mb-5 sm:mb-6">
+        <div>
+          <p
+            className="text-[11px] font-semibold uppercase tracking-[0.16em] mb-1"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Signing in as
+          </p>
+          <div className="flex items-center gap-1 text-[12px]">
+            <span style={{ color: 'var(--text-secondary)' }}>Buyer</span>
+            <span style={{ color: 'rgba(148,163,184,0.8)' }}>/ Seller</span>
+          </div>
+        </div>
+        <div
+          className="inline-flex items-center px-1 py-1 rounded-[14px] text-[12px] font-semibold"
+          style={{ background: 'var(--bg-tertiary)' }}
+        >
+          <Link
+            to={authBasePath ? `${authBasePath}?tab=login` : '/login'}
+            className="relative px-3 py-1.5 rounded-[10px] transition-all"
+            style={{
+              background: tab === 'login' ? (isDark ? '#1a1e2c' : '#ffffff') : 'transparent',
+              boxShadow: tab === 'login' ? (isDark ? '0 0 0 1px rgba(15,23,42,0.9)' : '0 4px 12px rgba(15,23,42,0.12)') : 'none',
+              color: tab === 'login' ? 'var(--text-primary)' : 'var(--text-muted)',
+            }}
+          >
+            Sign In
+          </Link>
+          <Link
+            to={authBasePath ? `${authBasePath}?tab=signup` : '/signup'}
+            className="relative px-3 py-1.5 rounded-[10px] transition-all"
+            style={{
+              background: tab === 'signup' ? (isDark ? '#1a1e2c' : '#ffffff') : 'transparent',
+              boxShadow: tab === 'signup' ? (isDark ? '0 0 0 1px rgba(15,23,42,0.9)' : '0 4px 12px rgba(15,23,42,0.12)') : 'none',
+              color: tab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)',
+            }}
+          >
+            Register
+          </Link>
+        </div>
+      </div>
+      {children}
+      <p className="mt-6 text-[11px] text-center leading-relaxed" style={{ color: 'var(--text-faint)' }}>
+        By continuing you agree to our <span style={{ color: '#f97316' }}>Terms of Service</span> and <span style={{ color: '#f97316' }}>Privacy Policy</span>.
+      </p>
+    </>
+  );
+
+  if (hideHeader) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4 sm:p-6"
+        style={{
+          background: isDark ? 'var(--bg-primary, #0f172a)' : 'var(--bg-primary, #ffffff)',
+          minHeight: '100vh',
+        }}
+      >
+        <div
+          className="w-full max-w-md rounded-2xl px-5 sm:px-7 py-6 sm:py-8"
+          style={{
+            background: isDark ? '#111420' : '#ffffff',
+            boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.25)' : '0 4px 24px rgba(0,0,0,0.08)',
+          }}
+        >
+          {formCardContent}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -28,14 +105,9 @@ export default function AuthLayout({ tab, formTitle: _formTitle, children }: Aut
     >
       <div
         className="min-h-screen flex flex-col"
-        style={{
-          background: 'transparent',
-        }}
+        style={{ background: 'transparent' }}
       >
-        {/* Use the main buyer Navbar as the header */}
         <Navbar />
-
-        {/* Main split layout (padded below fixed Navbar) */}
         <main className="flex-1 flex items-stretch justify-center px-4 sm:px-6 lg:px-10 pb-6 pt-[150px]">
           <div
             className="w-full max-w-6xl xl:max-w-7xl flex flex-col lg:flex-row rounded-2xl overflow-hidden shadow-2xl"
@@ -345,7 +417,7 @@ export default function AuthLayout({ tab, formTitle: _formTitle, children }: Aut
                     }}
                   >
                     <Link
-                      to="/login"
+                      to={authBasePath ? `${authBasePath}?tab=login` : '/login'}
                       className="relative px-3 py-1.5 rounded-[10px] transition-all"
                       style={{
                         background:
@@ -369,7 +441,7 @@ export default function AuthLayout({ tab, formTitle: _formTitle, children }: Aut
                       Sign In
                     </Link>
                     <Link
-                      to="/signup"
+                      to={authBasePath ? `${authBasePath}?tab=signup` : '/signup'}
                       className="relative px-3 py-1.5 rounded-[10px] transition-all"
                       style={{
                         background:

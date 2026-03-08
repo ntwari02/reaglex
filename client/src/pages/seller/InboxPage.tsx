@@ -20,7 +20,21 @@ import {
   Loader2,
   Plus,
   Check,
+  Bell,
+  ClipboardList,
+  DollarSign,
+  CheckCircle2,
+  Archive,
+  Tag,
+  Phone,
+  Video,
+  Pin,
+  MoreHorizontal,
+  ChevronDown,
+  Clock,
+  RefreshCw,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { inboxAPI, Message, MessageThread, MessageAttachment } from '@/services/inboxApi';
 import { websocketService } from '@/services/websocketService';
 import { useToastStore } from '@/stores/toastStore';
@@ -55,10 +69,30 @@ const resolveAvatarUrl = (url: string | null | undefined): string | null => {
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
     return url;
   }
-  // If it's a relative path, prepend the API host
   const API_HOST = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
   return `${API_HOST}${url.startsWith('/') ? url : '/' + url}`;
 };
+
+function LiveTimestamp({ timestamp }: { timestamp: string }) {
+  const [time, setTime] = useState('');
+  useEffect(() => {
+    const update = () => {
+      const diff = Date.now() - new Date(timestamp).getTime();
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      if (minutes < 1) setTime('Just now');
+      else if (minutes < 60) setTime(`${minutes}m`);
+      else if (hours < 24) setTime(`${hours}h`);
+      else if (days < 7) setTime(`${days}d`);
+      else setTime(new Date(timestamp).toLocaleDateString());
+    };
+    update();
+    const interval = setInterval(update, 30000);
+    return () => clearInterval(interval);
+  }, [timestamp]);
+  return <span>{time || 'Just now'}</span>;
+}
 
 const InboxPage: React.FC = () => {
   const { showToast } = useToastStore();
@@ -72,8 +106,21 @@ const InboxPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus] = useState<string>('');
-  const [filterType] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterType, setFilterType] = useState<string>('');
+  const [mailboxFilter, setMailboxFilter] = useState<'all' | 'unread' | 'rfq' | 'negotiations' | 'resolved' | 'archived'>('all');
+  const [listFilterPill, setListFilterPill] = useState<'all' | 'buyers' | 'unread' | 'rfq'>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [quickFilter, setQuickFilter] = useState<string | null>(null);
+  const [notificationBannerDismissed, setNotificationBannerDismissed] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'chats' | 'messages'>('chats');
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [stats, setStats] = useState<{ totalThreads: number; unreadThreads: number; activeThreads: number; archivedThreads: number } | null>(null);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [newMessageAlert, setNewMessageAlert] = useState(false);
+  const [newMessageFromName, setNewMessageFromName] = useState<string | null>(null);
+  const [highlightThreadId, setHighlightThreadId] = useState<string | null>(null);
+  const [failedMessageIds, setFailedMessageIds] = useState<Set<string>>(new Set());
   
   // Message composer state
   const [messageContent, setMessageContent] = useState('');
@@ -134,10 +181,13 @@ const InboxPage: React.FC = () => {
   const [selectingFileName, setSelectingFileName] = useState<string | null>(null);
   
   // Refs
-  const fileInputRef = useRef<HTMLInputElement>(null); // For documents/files (.pdf, .docx, .webm)
-  const imageInputRef = useRef<HTMLInputElement>(null); // For images (.jpg, .jpeg, .png)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const voiceInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const failedMessageIdsRef = useRef<Set<string>>(new Set());
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -167,22 +217,50 @@ const InboxPage: React.FC = () => {
     getUserName: getUserNameForGlobal,
   });
 
+  // Filter threads by mailbox sidebar filter
+  const threadsByMailbox = useMemo(() => {
+    return threads.filter((t) => {
+      if (mailboxFilter === 'all') return true;
+      if (mailboxFilter === 'unread') return (t.sellerUnreadCount || 0) > 0;
+      if (mailboxFilter === 'rfq') return t.type === 'rfq';
+      if (mailboxFilter === 'negotiations') return t.type === 'order';
+      if (mailboxFilter === 'resolved') return t.status === 'resolved';
+      if (mailboxFilter === 'archived') return t.status === 'archived';
+      return true;
+    });
+  }, [threads, mailboxFilter]);
+
+  // Apply list filter pill (column 2) and search
+  const threadsFilteredForList = useMemo(() => {
+    let list = threadsByMailbox;
+    if (listFilterPill === 'unread') list = list.filter((t) => (t.sellerUnreadCount || 0) > 0);
+    if (listFilterPill === 'rfq') list = list.filter((t) => t.type === 'rfq');
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter((t) => {
+        const buyer = typeof t.buyerId === 'object' && t.buyerId !== null ? t.buyerId : null;
+        const name = buyer ? (buyer.fullName || buyer.email || '').toLowerCase() : '';
+        const subj = (t.subject || '').toLowerCase();
+        const preview = (t.lastMessagePreview || '').toLowerCase();
+        return name.includes(q) || subj.includes(q) || preview.includes(q);
+      });
+    }
+    return list;
+  }, [threadsByMailbox, listFilterPill, searchQuery]);
+
   // Sort threads: chats with active indicators first, then by lastMessageAt
   const sortedThreads = useMemo(() => {
-    return [...threads].sort((a, b) => {
+    const list = [...threadsFilteredForList].sort((a, b) => {
       const aHasIndicators = hasActiveIndicators(a._id);
       const bHasIndicators = hasActiveIndicators(b._id);
-      
-      // Priority: chats with active indicators go to top
       if (aHasIndicators && !bHasIndicators) return -1;
       if (!aHasIndicators && bHasIndicators) return 1;
-      
-      // If both have or both don't have indicators, sort by lastMessageAt
       const aTime = new Date(a.lastMessageAt).getTime();
       const bTime = new Date(b.lastMessageAt).getTime();
-      return bTime - aTime;
+      return sortOrder === 'newest' ? bTime - aTime : aTime - bTime;
     });
-  }, [threads, hasActiveIndicators]);
+    return list;
+  }, [threadsFilteredForList, hasActiveIndicators, sortOrder]);
 
   // Calculate total unread messages
   const totalUnread = useMemo(() => {
@@ -236,29 +314,38 @@ const InboxPage: React.FC = () => {
     }
   }, [searchQuery, filterStatus, filterType, showToast]);
 
-  // Load thread messages
+  // Scroll to bottom (WhatsApp-style: only when near bottom)
+  const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
+    setNewMessageAlert(false);
+  }, []);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowScrollBtn(distanceFromBottom > 200);
+    if (distanceFromBottom < 150) setNewMessageAlert(false);
+  }, []);
+
+  // Load thread messages (initial load only — no refetch after send)
   const loadThreadMessages = useCallback(async (threadId: string) => {
     try {
       const response = await inboxAPI.getThread(threadId);
       setActiveThread(response.thread);
       setMessages(response.messages || []);
-      
-      // Mark as read
+      setFailedMessageIds(new Set());
+      failedMessageIdsRef.current = new Set();
       await inboxAPI.markThreadAsRead(threadId);
-      
-      // Join WebSocket room
       websocketService.joinThread(threadId);
-      
-      // Scroll to bottom
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      setNewMessageAlert(false);
+      setTimeout(() => scrollToBottom('auto'), 100);
     } catch (error: any) {
       console.error('Load messages error:', error);
       showToast(error.message || 'Failed to load messages', 'error');
       setMessages([]);
     }
-  }, [showToast]);
+  }, [showToast, scrollToBottom]);
 
   // Send message
   const handleSendMessage = async () => {
@@ -336,74 +423,32 @@ const InboxPage: React.FC = () => {
         }
       }
 
-      // Validate: Must have either content OR attachments after upload
       const messageText = messageContent.trim();
-      console.log('[Send Message] Validation - Content:', messageText.length > 0, 'Attachments:', attachments.length);
-      
       if (!messageText && (!attachments || attachments.length === 0)) {
-        console.error('[Send Message] Validation failed - no content and no attachments');
         showToast('Please add a message text, file, image, or voice note', 'error');
         setSending(false);
         return;
       }
 
-      // Send message - WhatsApp style: allow empty content if attachments exist
-      console.log('[Send Message] Sending message with', attachments.length, 'attachment(s)');
-      const response = await inboxAPI.sendMessage(activeThread._id, {
-        content: messageText || '', // Empty string is allowed if attachments exist
+      const tempId = `temp-${Date.now()}`;
+      const optimisticMsg: Message = {
+        _id: tempId,
+        threadId: activeThread._id,
+        senderId: user ? { _id: user.id, fullName: user.full_name || user.email || '', email: user.email || '' } : { _id: '', fullName: '', email: '' },
+        senderType: 'seller',
+        content: messageText || '',
         attachments: attachments || [],
+        readBy: [],
+        status: 'sending',
+        isEdited: false,
+        isDeleted: false,
+        reactions: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         replyTo: replyTo?._id,
-      });
+      } as Message;
 
-      // Optimistically add the sent message to the messages array immediately
-      if (response.message) {
-        setMessages((prev) => {
-          // Check if message already exists
-          if (prev.some(m => m._id === response.message._id)) {
-            return prev;
-          }
-          return [...prev, response.message];
-        });
-        
-        // Update thread list immediately to show the new message preview
-        setThreads((prevThreads) => {
-          return prevThreads.map((thread) => {
-            if (thread._id === activeThread._id) {
-              // Generate preview from message content or attachments
-              let preview = messageText || '';
-              if (!preview && attachments.length > 0) {
-                const firstAtt = attachments[0];
-                if (firstAtt.type === 'voice') {
-                  preview = '🎤 Voice note';
-                } else if (firstAtt.type === 'image') {
-                  preview = '📷 Image';
-                } else {
-                  preview = `📎 ${firstAtt.originalName || 'File'}`;
-                }
-                if (attachments.length > 1) {
-                  preview += ` (+${attachments.length - 1} more)`;
-                }
-              }
-              preview = preview.length > 200 ? preview.substring(0, 200) + '...' : preview;
-              
-              return {
-                ...thread,
-                lastMessageAt: new Date().toISOString(),
-                lastMessagePreview: preview,
-                sellerUnreadCount: 0, // Sender has read their own message
-              };
-            }
-            return thread;
-          }).sort((a, b) => {
-            // Sort by lastMessageAt descending
-            const aTime = new Date(a.lastMessageAt).getTime();
-            const bTime = new Date(b.lastMessageAt).getTime();
-            return bTime - aTime;
-          });
-        });
-      }
-
-      // Clear composer
+      setMessages((prev) => [...prev, optimisticMsg]);
       setMessageContent('');
       setSelectedFiles([]);
       setUploadedAttachments([]);
@@ -414,13 +459,35 @@ const InboxPage: React.FC = () => {
       setUploadProgress(new Map());
       setUploadErrors(new Map());
       setUploadingFiles(new Map());
-      
-      // Only reload messages for the current thread (thread list is already updated optimistically)
-      await loadThreadMessages(activeThread._id);
-      // NOTE: Removed loadThreads() call to prevent unnecessary chat list refresh
-      // The thread list is already updated optimistically above
-      
-      showToast('Message sent', 'success');
+      scrollToBottom('smooth');
+      messageInputRef.current?.focus();
+
+      inboxAPI.sendMessage(activeThread._id, {
+        content: messageText || '',
+        attachments: attachments || [],
+        replyTo: replyTo?._id,
+      }).then((response) => {
+        if (!response.message) return;
+        setMessages((prev) => prev.map((m) =>
+          m._id === tempId ? { ...response.message, status: 'sent' } : m
+        ));
+        setThreads((prevThreads) => prevThreads.map((thread) => {
+          if (thread._id !== activeThread._id) return thread;
+          let preview = messageText || '';
+          if (!preview && attachments.length > 0) {
+            const firstAtt = attachments[0];
+            preview = firstAtt.type === 'voice' ? '🎤 Voice note' : firstAtt.type === 'image' ? '📷 Image' : `📎 ${firstAtt.originalName || 'File'}`;
+            if (attachments.length > 1) preview += ` (+${attachments.length - 1} more)`;
+          }
+          preview = preview.length > 200 ? preview.substring(0, 200) + '...' : preview;
+          return { ...thread, lastMessageAt: new Date().toISOString(), lastMessagePreview: preview, sellerUnreadCount: 0 };
+        }).sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()));
+      }).catch((err) => {
+        setFailedMessageIds((prev) => new Set(prev).add(tempId));
+        failedMessageIdsRef.current = new Set(failedMessageIdsRef.current).add(tempId);
+        showToast(err.message || 'Failed to send message', 'error');
+      }).finally(() => setSending(false));
+      return;
     } catch (error: any) {
       console.error('[Send Message] Error:', error);
       // Extract error message - check if it's a validation error
@@ -443,6 +510,31 @@ const InboxPage: React.FC = () => {
       setSending(false);
     }
   };
+
+  /** Retry sending a failed message (optimistic message with temp id). */
+  const handleRetryFailedMessage = useCallback((message: Message) => {
+    if (!activeThread || !message._id.startsWith('temp-') || !failedMessageIds.has(message._id)) return;
+    setSending(true);
+    inboxAPI.sendMessage(activeThread._id, {
+      content: message.content || '',
+      attachments: message.attachments || [],
+      replyTo: message.replyTo,
+    }).then((response) => {
+      if (!response.message) return;
+      setMessages((prev) => prev.map((m) =>
+        m._id === message._id ? { ...response.message!, status: 'sent' } : m
+      ));
+      setFailedMessageIds((prev) => {
+        const next = new Set(prev);
+        next.delete(message._id);
+        return next;
+      });
+      failedMessageIdsRef.current.delete(message._id);
+      showToast('Message sent', 'success');
+    }).catch((err) => {
+      showToast(err.message || 'Failed to send again', 'error');
+    }).finally(() => setSending(false));
+  }, [activeThread, failedMessageIds, showToast]);
 
   // Handle file selection with auto-upload
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1073,7 +1165,6 @@ const InboxPage: React.FC = () => {
     }
   };
 
-  // Format time
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -1081,13 +1172,13 @@ const InboxPage: React.FC = () => {
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-
     if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 7) return `${days}d`;
     return date.toLocaleDateString();
   };
+
 
   // Request notification permission
   useEffect(() => {
@@ -1118,15 +1209,21 @@ const InboxPage: React.FC = () => {
     websocketService.onNewMessage = (threadId: string, message: Message) => {
       if (activeThread?._id === threadId) {
         setMessages((prev) => {
-          // Check if message already exists
-          if (prev.some(m => m._id === message._id)) {
-            return prev;
-          }
+          if (prev.some(m => m._id === message._id)) return prev;
           const newMessages = [...prev, message];
-          // Auto-scroll to bottom for new messages (especially voice notes)
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
+          const container = messagesContainerRef.current;
+          const distanceFromBottom = container
+            ? container.scrollHeight - container.scrollTop - container.clientHeight
+            : 0;
+          if (distanceFromBottom < 300) {
+            setTimeout(() => scrollToBottom('smooth'), 100);
+          } else if (message.senderType === 'buyer') {
+            const buyerName = typeof activeThread?.buyerId === 'object' && activeThread?.buyerId
+              ? (activeThread.buyerId.fullName || 'Buyer')
+              : 'Buyer';
+            setNewMessageFromName(buyerName);
+            setNewMessageAlert(true);
+          }
           return newMessages;
         });
       }
@@ -1317,10 +1414,29 @@ const InboxPage: React.FC = () => {
     };
   }, [activeThread, loadThreads, loadThreadMessages, threads, showToast, user?.id]);
 
+  // Load inbox stats (for header pills and empty state)
+  const loadStats = useCallback(async () => {
+    try {
+      const data = await inboxAPI.getStats();
+      setStats({
+        totalThreads: data.totalThreads ?? 0,
+        unreadThreads: data.unreadThreads ?? 0,
+        activeThreads: data.activeThreads ?? 0,
+        archivedThreads: data.archivedThreads ?? 0,
+      });
+    } catch {
+      setStats({ totalThreads: 0, unreadThreads: 0, activeThreads: 0, archivedThreads: 0 });
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     loadThreads();
   }, [loadThreads]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats, threads.length]);
 
   // Detect when internet connection is restored and retry loading threads
   useEffect(() => {
@@ -1388,354 +1504,372 @@ const InboxPage: React.FC = () => {
       // Emit typing event: { senderId, receiverId, isTyping: true }
       websocketService.sendTyping(activeThread._id, true);
       
-      // Set timeout to emit stop typing after 400ms of no typing (debounce)
       typingTimeoutRef.current = setTimeout(() => {
-        // Emit typing event: { senderId, receiverId, isTyping: false }
         websocketService.sendTyping(activeThread._id, false);
-      }, 400); // 400ms debounce to prevent flickering
+      }, 2000);
     } else {
-      // Input is empty, immediately emit stop typing
       websocketService.sendTyping(activeThread._id, false);
     }
   };
 
+  const PRIMARY = '#f97316';
+  const rfqCount = threads.filter((t) => t.type === 'rfq').length;
+  const resolvedCount = threads.filter((t) => t.status === 'resolved').length;
+
   return (
-    <div className="space-y-4 sm:space-y-6 h-full flex flex-col">
-      {/* Header - Responsive */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <div className="min-w-0 flex-1 flex items-center gap-3 sm:gap-4">
-          {/* User Profile Avatar */}
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-red-400 to-orange-500 overflow-hidden flex-shrink-0 border-2 border-white dark:border-gray-800 shadow-md">
-            {user?.avatar_url ? (
-              <img
-                src={resolveAvatarUrl(user.avatar_url) || ''}
-                alt={user.full_name || user.email || 'User'}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg sm:text-xl">
-                {(user?.full_name || user?.email || 'U')[0].toUpperCase()}
-              </div>
-            )}
+    <div className="h-full flex flex-col -m-4 md:-m-6 lg:-m-8" style={{ background: 'var(--bg-page)' }}>
+      {/* TIER 1 — Premium header */}
+      <header
+        className="flex items-center justify-between flex-wrap gap-3 px-5 sm:px-7 py-5 flex-shrink-0"
+        style={{
+          background: 'var(--card-bg)',
+          padding: '20px 28px',
+          boxShadow: '0 1px 0 var(--divider)',
+        }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-white"
+            style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 12px rgba(249,115,22,0.35)' }}
+          >
+            <MessageCircle className="w-5 h-5" />
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <h1
-                className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 transition-colors duration-300"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-red-400 flex-shrink-0" />
-                <span className="truncate">Inbox & RFQ Communications</span>
-              </h1>
-              {totalUnread > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-red-500 text-white text-xs sm:text-sm font-bold">
-                  {totalUnread > 99 ? '99+' : totalUnread}
-                </span>
-              )}
-            </div>
-            <p
-              className="mt-1 text-xs sm:text-sm transition-colors duration-300"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              {totalUnread > 0
-                ? `${totalUnread} unread message${totalUnread > 1 ? 's' : ''}`
-                : 'Central place for buyer messages, RFQs, and negotiation threads.'}
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+              Inbox & RFQ Communications
+            </h1>
+            <p className="text-[13px] truncate" style={{ color: 'var(--text-muted)' }}>
+              Central place for buyer messages, RFQs, and negotiation threads.
             </p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            loadAvailableBuyers();
-            setShowNewThreadDialog(true);
-          }}
-          className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-xs sm:text-sm font-semibold text-white transition-colors active:scale-95 flex-shrink-0"
+        <div className="hidden sm:flex items-center gap-2 flex-wrap">
+          <span className="rounded-full px-3.5 py-1.5 text-[12px] font-bold flex items-center gap-1.5" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', boxShadow: 'var(--shadow-xs)' }}>
+            💬 {stats?.totalThreads ?? threads.length} Messages
+          </span>
+          <span className="rounded-full px-3.5 py-1.5 text-[12px] font-bold flex items-center gap-1.5" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', boxShadow: 'var(--shadow-xs)' }}>
+            📋 {rfqCount} RFQs
+          </span>
+          <span className="rounded-full px-3.5 py-1.5 text-[12px] font-bold flex items-center gap-1.5" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', boxShadow: 'var(--shadow-xs)' }}>
+            🔔 {totalUnread} Unread
+          </span>
+          <span className="rounded-full px-3.5 py-1.5 text-[12px] font-bold flex items-center gap-1.5" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', boxShadow: 'var(--shadow-xs)' }}>
+            ✓ {resolvedCount} Resolved
+          </span>
+        </div>
+        <motion.button
+          type="button"
+          onClick={() => { loadAvailableBuyers(); setShowNewThreadDialog(true); }}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white border-0 cursor-pointer transition-all hover:-translate-y-0.5"
+          style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 16px rgba(249,115,22,0.40)' }}
+          whileHover={{ boxShadow: '0 6px 20px rgba(249,115,22,0.5)' }}
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">New Conversation</span>
-          <span className="sm:hidden">New</span>
-        </button>
-      </div>
+          New Conversation
+        </motion.button>
+      </header>
 
-      {/* Layout - Responsive */}
-      <div
-        className="flex-1 min-h-0 rounded-lg sm:rounded-xl overflow-hidden transition-colors duration-300 card"
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)] h-full">
-          {/* Thread list - Responsive - Show/hide based on activeThread on mobile */}
-          <div
-            className={`border-b lg:border-b-0 lg:border-r flex flex-col min-h-0 ${activeThread ? 'hidden lg:flex' : 'flex'}`}
-            style={{ borderColor: 'var(--divider)' }}
-          >
-            <div
-              className="p-3 sm:p-4 flex items-center gap-2 border-b"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--divider)' }}
-            >
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm search-input"
-                />
-              </div>
+      {/* TIER 8 — Notification banner (dismissible) */}
+      {totalUnread > 0 && !notificationBannerDismissed && (
+        <div
+          className="mx-4 mt-0 mb-0 rounded-[14px] px-4 py-3 flex items-center justify-between flex-wrap gap-2 flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.10), rgba(234,88,12,0.06))', boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.25)' }}
+        >
+          <div className="flex items-center gap-2">
+            <Bell className="w-5 h-5" style={{ color: PRIMARY }} />
+            <span className="text-[13px] font-bold" style={{ color: PRIMARY }}>{totalUnread} new message{totalUnread !== 1 ? 's' : ''} from buyers</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" className="text-[13px] font-semibold" style={{ color: PRIMARY }}>View All →</button>
+            <button type="button" onClick={() => setNotificationBannerDismissed(true)} className="p-1 rounded" style={{ color: 'var(--text-muted)' }}><X className="w-4 h-4" /></button>
+          </div>
+        </div>
+      )}
+
+      {/* TIER 2 — Three column layout */}
+      <div className="flex-1 flex min-h-0">
+        {/* COLUMN 1 — Filter sidebar (200px) */}
+        <aside
+          className="hidden lg:flex flex-col w-[200px] flex-shrink-0 overflow-y-auto"
+          style={{ background: 'var(--card-bg)', boxShadow: '1px 0 0 var(--divider)', height: 'calc(100vh - 140px)' }}
+        >
+          <div className="p-4 pr-3">
+            <p className="text-[11px] uppercase tracking-wider px-2 pb-2" style={{ color: 'var(--text-faint)', letterSpacing: '0.8px' }}>📬 MAILBOX</p>
+            {[
+              { id: 'all' as const, label: 'All Messages', icon: MessageCircle, count: threads.length },
+              { id: 'unread' as const, label: 'Unread', icon: Bell, count: totalUnread, pillColor: PRIMARY },
+              { id: 'rfq' as const, label: 'RFQ Requests', icon: ClipboardList, count: rfqCount, pillColor: '#8b5cf6' },
+              { id: 'negotiations' as const, label: 'Negotiations', icon: DollarSign, count: threads.filter((t) => t.type === 'order').length, pillColor: '#3b82f6' },
+              { id: 'resolved' as const, label: 'Resolved', icon: CheckCircle2, count: resolvedCount, pillColor: '#22c55e' },
+              { id: 'archived' as const, label: 'Archived', icon: Archive, count: threads.filter((t) => t.status === 'archived').length, pillColor: 'var(--text-muted)' },
+            ].map((item) => (
               <button
-                className="hidden md:inline-flex items-center gap-1 px-3 py-2 rounded-lg border text-xs hover:bg-gray-100 transition-colors"
+                key={item.id}
+                type="button"
+                onClick={() => setMailboxFilter(item.id)}
+                className="w-full flex items-center gap-2 py-2.5 px-3 rounded-[10px] cursor-pointer transition-[0.15s] border-0 text-left"
                 style={{
-                  background: 'var(--btn-ghost-bg)',
-                  borderColor: 'var(--btn-ghost-border)',
-                  color: 'var(--btn-ghost-text)',
+                  background: mailboxFilter === item.id ? 'var(--brand-tint)' : 'transparent',
+                  color: mailboxFilter === item.id ? PRIMARY : 'var(--text-muted)',
+                  boxShadow: mailboxFilter === item.id ? 'inset 4px 0 0 #f97316' : 'none',
+                  fontWeight: mailboxFilter === item.id ? 600 : undefined,
                 }}
               >
-                <Filter className="w-3 h-3" />
-                Filters
+                <item.icon className="w-4 h-4 flex-shrink-0" style={{ color: mailboxFilter === item.id ? PRIMARY : 'var(--text-muted)' }} />
+                <span className="text-[14px] flex-1 truncate">{item.label}</span>
+                {item.count > 0 && (
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white flex-shrink-0" style={{ background: item.pillColor || 'var(--text-muted)' }}>
+                    {item.count > 99 ? '99+' : item.count}
+                  </span>
+                )}
               </button>
+            ))}
+            <div className="my-3 h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--divider), transparent)' }} />
+            <p className="text-[11px] uppercase tracking-wider px-2 pb-2" style={{ color: 'var(--text-faint)' }}>🏷️ LABELS</p>
+            {['Urgent', 'Follow Up', 'VIP Buyer', 'Bulk Order', 'Negotiating'].map((label, i) => (
+              <div key={label} className="flex items-center gap-2 py-1.5 px-3 rounded-[10px] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ['#ef4444','#f97316','#8b5cf6','#3b82f6','#f59e0b'][i] }} />
+                <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 py-1.5 px-3 rounded-[10px] cursor-pointer border border-dashed" style={{ borderColor: 'var(--text-muted)', color: 'var(--text-muted)' }}>
+              <Plus className="w-4 h-4" />
+              <span className="text-[14px]">Add Label</span>
             </div>
-            <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
-              {loading ? (
-                <div className="flex items-center justify-center p-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-red-500" />
-                </div>
-              ) : threads.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                  <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">No conversations yet</p>
-                  <p className="text-xs opacity-75 mb-4">
-                    {searchQuery ? 'Try adjusting your search' : 'Start a new conversation with a buyer to get started'}
-                  </p>
-                  {!searchQuery && (
-                    <div className="flex flex-col items-center gap-2">
-                      <button
-                        onClick={async () => {
-                          try {
-                            setLoading(true);
-                            await inboxAPI.seedTestThreads();
-                            await loadThreads();
-                            showToast('Test threads created! You can now start chatting.', 'success');
-                          } catch (error: any) {
-                            showToast(error.message || 'Failed to create test threads', 'error');
-                          } finally {
-                            setLoading(false);
-                          }
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-xs font-semibold text-white transition-colors"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Create Test Threads
-                      </button>
-                      <span className="text-[10px] opacity-60">or</span>
-                      <button
-                        onClick={() => {
-                          loadAvailableBuyers();
-                          setShowNewThreadDialog(true);
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-xs font-semibold text-white transition-colors"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Start New Conversation
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                sortedThreads.map((thread) => {
-                  const isActive = thread._id === activeThread?._id;
-                  const buyer = typeof thread.buyerId === 'object' && thread.buyerId !== null ? thread.buyerId : null;
-                return (
-                  <button
-                      key={thread._id}
-                      onClick={() => loadThreadMessages(thread._id)}
-                      className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 flex items-start gap-2 sm:gap-3 border-b border-gray-100 dark:border-gray-800/70 hover:bg-gray-50 dark:hover:bg-gray-800/60 active:bg-gray-100 dark:active:bg-gray-800/80 transition-colors ${
-                        isActive ? 'bg-red-50 dark:bg-red-900/10 border-l-4 border-l-red-500' : ''
-                    }`}
-                  >
-                    {/* Buyer Avatar - Profile image from buyer profile */}
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-xs sm:text-sm font-semibold text-white flex-shrink-0 overflow-hidden">
-                      {buyer && buyer.avatarUrl && buyer.avatarUrl.trim() ? (
-                        <img
-                          src={resolveAvatarUrl(buyer.avatarUrl) || buyer.avatarUrl}
-                          alt={buyer.fullName || 'Buyer'}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // If profile image fails to load, show first letter (avatar)
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              const name = buyer?.fullName || buyer?.email || 'B';
-                              parent.innerHTML = `<span class="text-white text-xs sm:text-sm font-semibold">${name[0].toUpperCase()}</span>`;
-                            }
-                          }}
-                        />
-                      ) : (
-                        // No profile image, use first letter (avatar) - stays visible even when read
-                        <span className="text-white text-xs sm:text-sm font-semibold">
-                          {(buyer?.fullName || buyer?.email || 'B')[0].toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">
-                          {buyer ? (buyer.fullName || buyer.email || 'Buyer') : 'Buyer'}
-                        </p>
-                        {thread.sellerUnreadCount > 0 && (
-                          <span className="inline-flex items-center justify-center min-w-[18px] h-4.5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex-shrink-0">
-                            {thread.sellerUnreadCount > 9 ? '9+' : thread.sellerUnreadCount}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
-                        {formatTime(thread.lastMessageAt)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-1">{thread.subject}</p>
-                    <div className="flex items-center justify-between gap-2">
-                      {/* Show indicator OR last message preview */}
-                      {(() => {
-                        const threadIndicators = getThreadIndicators(thread._id);
-                        const activeIndicator = threadIndicators.find((ind: ChatIndicatorType) => ind.isTyping || ind.isRecording);
-                        
-                        if (activeIndicator) {
-                          // Show indicator instead of last message preview
-                          return (
-                            <div className="flex-1 min-w-0">
-                              <ChatListIndicator
-                                isTyping={activeIndicator.isTyping}
-                                isRecording={activeIndicator.isRecording}
-                                recordingDuration={activeIndicator.recordingDuration}
-                                userName={activeIndicator.userName}
-                                className="line-clamp-1"
-                              />
-                            </div>
-                          );
-                        }
-                        
-                        // Show last message preview when no indicator
-                        return (
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1">
-                            {thread.lastMessagePreview}
-                          </p>
-                        );
-                      })()}
-                      <div className="flex items-center gap-1">
-                        {thread.type === 'rfq' && (
-                          <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-[10px] text-purple-700 dark:text-purple-300">
-                            RFQ
-                          </span>
-                        )}
-                          <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
-                            {formatTime(thread.lastMessageAt)}
-                          </span>
-                      </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-                })
-              )}
+            <p className="text-[11px] uppercase tracking-wider px-2 pb-2 mt-4" style={{ color: 'var(--text-faint)' }}>⚡ QUICK FILTERS</p>
+            <div className="flex flex-wrap gap-1.5">
+              {['New Today', 'Has Attachments', 'Awaiting Reply', 'Price Negotiation', 'Bulk Orders'].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setQuickFilter(quickFilter === q ? null : q)}
+                  className="rounded-full px-2.5 py-1 text-[11px] border-0 cursor-pointer"
+                  style={{
+                    background: quickFilter === q ? 'var(--brand-tint)' : 'var(--bg-secondary)',
+                    color: quickFilter === q ? PRIMARY : 'var(--text-secondary)',
+                    boxShadow: 'var(--shadow-xs)',
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
+        </aside>
 
-          {/* Conversation detail - Responsive */}
-          <div className={`flex flex-col min-h-0 w-full ${activeThread ? 'flex' : 'hidden lg:flex'}`}>
-            {activeThread ? (
-              <>
-                {/* Thread header - Responsive with back button on mobile */}
-                <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-200 dark:border-gray-700/60 flex items-center justify-between gap-2 sm:gap-3 bg-white dark:bg-gray-900/50">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                    {/* Back button for mobile */}
-                    <button
-                      onClick={() => {
-                        setActiveThread(null);
-                        setMessages([]);
-                      }}
-                      className="lg:hidden p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
-                      aria-label="Back to conversations"
-                    >
-                      <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    </button>
-                    <div className="relative flex-shrink-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center overflow-hidden">
-                        {typeof activeThread.buyerId === 'object' && activeThread.buyerId !== null && activeThread.buyerId.avatarUrl && activeThread.buyerId.avatarUrl.trim() ? (
-                          <img
-                            src={resolveAvatarUrl(activeThread.buyerId.avatarUrl) || activeThread.buyerId.avatarUrl}
-                            alt={activeThread.buyerId.fullName || 'Buyer'}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // If profile image fails to load, show first letter (avatar)
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                const name = typeof activeThread.buyerId === 'object' && activeThread.buyerId !== null
-                                  ? (activeThread.buyerId.fullName || activeThread.buyerId.email || 'B')
-                                  : 'B';
-                                parent.innerHTML = `<span class="text-white text-xs sm:text-sm font-semibold">${name[0].toUpperCase()}</span>`;
-                              }
-                            }}
-                          />
-                        ) : (
-                          // No profile image, use first letter (avatar)
-                          <span className="text-white text-xs sm:text-sm font-semibold">
-                            {typeof activeThread.buyerId === 'object' && activeThread.buyerId !== null
-                              ? (activeThread.buyerId.fullName || activeThread.buyerId.email || 'B')[0].toUpperCase()
-                              : 'B'}
-                          </span>
-                        )}
-                </div>
-                      {/* Online status indicator */}
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
-                </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white truncate">
-                            {typeof activeThread.buyerId === 'object' && activeThread.buyerId !== null ? activeThread.buyerId.fullName : 'Buyer'}
-                        </p>
-                        <span className="text-[10px] text-green-500 hidden sm:inline">●</span>
-                      </div>
-                      {/* Typing Indicator - Show under receiver's name in header (WhatsApp style) */}
-                      {isTyping && typingUserId ? (
-                        <div className="flex items-center gap-1.5 mt-0.5 animate-fadeIn transition-opacity duration-200">
-                          <div className="flex gap-0.5">
-                            <div className="w-1 h-1 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-1 h-1 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-1 h-1 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                          <span className="text-[11px] text-gray-500 dark:text-gray-400 italic">
-                            {typingUserName || (typeof activeThread.buyerId === 'object' && activeThread.buyerId !== null ? activeThread.buyerId.fullName : 'Buyer')} is typing...
-                          </span>
-                        </div>
-                      ) : (
-                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate animate-fadeIn transition-opacity duration-200">{activeThread.subject}</p>
-                      )}
-                    </div>
-              </div>
-                  <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-                    {activeThread.type === 'rfq' && (
-                <button className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 text-[11px] text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800/60">
-                  <AlertCircle className="w-3 h-3" />
-                  View RFQ
-                </button>
-                    )}
-                    <button
-                      onClick={() => inboxAPI.updateThread(activeThread._id, { status: 'resolved' })}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 text-[11px] text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800/60"
-                    >
-                  <Mail className="w-3 h-3" />
-                  Mark as resolved
-                </button>
-              </div>
+        {/* COLUMN 2 — Conversation list (320px) */}
+        <div
+          className={`flex flex-col w-full lg:w-[320px] flex-shrink-0 overflow-hidden ${activeThread ? 'hidden lg:flex' : 'flex'}`}
+          style={{ background: 'var(--bg-page)', boxShadow: '1px 0 0 var(--divider)', height: 'calc(100vh - 140px)' }}
+        >
+          <div className="p-3 flex flex-col gap-2 flex-shrink-0">
+            <div className="relative h-11">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 z-10" style={{ color: 'var(--text-faint)' }} />
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-full pl-10 pr-4 rounded-xl border-0 outline-none text-sm"
+                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+              />
             </div>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                {(['all', 'buyers', 'unread', 'rfq'] as const).map((pill) => (
+                  <button
+                    key={pill}
+                    type="button"
+                    onClick={() => setListFilterPill(pill)}
+                    className="rounded-full px-3 py-1 text-[12px] font-medium border-0 cursor-pointer capitalize"
+                    style={{
+                      background: listFilterPill === pill ? `linear-gradient(135deg, ${PRIMARY}, #ea580c)` : 'var(--bg-secondary)',
+                      color: listFilterPill === pill ? '#fff' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {pill}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => setSortOrder((o) => (o === 'newest' ? 'oldest' : 'newest'))} className="flex items-center gap-1 text-[12px] border-0 bg-transparent cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+                {sortOrder === 'newest' ? 'Newest ↓' : 'Oldest ↑'}
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4" style={{ minHeight: 0 }}>
+            {loading ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="w-6 h-6 animate-spin" style={{ color: PRIMARY }} />
+              </div>
+            ) : sortedThreads.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mx-3 mt-4 p-10 rounded-[20px] text-center"
+                style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)' }}
+              >
+                <div className="w-18 h-18 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.15), rgba(234,88,12,0.10)' }}>
+                  <MessageCircle className="w-9 h-9" style={{ color: PRIMARY }} />
+                </div>
+                <p className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>No conversations yet</p>
+                <p className="text-[13px] mx-auto max-w-[240px] mb-6" style={{ color: 'var(--text-muted)' }}>
+                  Messages from buyers, RFQ requests, and order negotiations will appear here.
+                </p>
+                <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                  <button
+                    type="button"
+                    onClick={() => { loadAvailableBuyers(); setShowNewThreadDialog(true); }}
+                    className="w-full py-3 rounded-xl font-semibold text-white border-0 cursor-pointer"
+                    style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+                  >
+                    + Start New Conversation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await inboxAPI.seedTestThreads();
+                        await loadThreads();
+                        showToast('Test threads created! You can now start chatting.', 'success');
+                      } catch (error: any) {
+                        showToast(error.message || 'Failed to create test threads', 'error');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="w-full py-3 rounded-xl font-semibold border-0 cursor-pointer"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', boxShadow: '0 0 0 1.5px var(--divider)' }}
+                  >
+                    Create Test Thread
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              sortedThreads.map((thread) => {
+                const isActive = thread._id === activeThread?._id;
+                const buyer = typeof thread.buyerId === 'object' && thread.buyerId !== null ? thread.buyerId : null;
+                const unread = (thread.sellerUnreadCount || 0) > 0;
+                const typeBadge = thread.type === 'rfq' ? { label: 'RFQ', bg: '#8b5cf6' } : thread.type === 'order' ? { label: 'Order', bg: '#f59e0b' } : { label: 'Support', bg: '#22c55e' };
+                return (
+                  <motion.button
+                    key={thread._id}
+                    type="button"
+                    onClick={() => loadThreadMessages(thread._id)}
+                    className="w-full text-left mx-0 mb-2 px-4 py-3.5 rounded-[14px] cursor-pointer transition-all duration-150 border-0"
+                    style={{
+                      background: isActive ? 'var(--brand-tint)' : 'var(--card-bg)',
+                      boxShadow: isActive ? '0 0 0 1.5px rgba(249,115,22,0.35), inset 4px 0 0 #f97316' : 'var(--shadow-xs)',
+                    }}
+                    whileHover={{ boxShadow: isActive ? undefined : 'var(--shadow-sm)', y: -1 }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-[38px] h-[38px] rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold overflow-hidden">
+                          {buyer && buyer.avatarUrl && buyer.avatarUrl.trim() ? (
+                            <img src={resolveAvatarUrl(buyer.avatarUrl) || ''} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          ) : (
+                            (buyer?.fullName || buyer?.email || 'B')[0].toUpperCase()
+                          )}
+                        </div>
+                        <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full border-2 border-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {unread && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: PRIMARY }} />}
+                            <span className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                              {buyer ? (buyer.fullName || buyer.email || 'Buyer') : 'Buyer'}
+                            </span>
+                            <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white flex-shrink-0" style={{ background: typeBadge.bg }}>{typeBadge.label}</span>
+                          </div>
+                          <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-faint)' }}><LiveTimestamp timestamp={thread.lastMessageAt} /></span>
+                          {unread && (
+                            <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white flex-shrink-0" style={{ background: PRIMARY }}>
+                              {thread.sellerUnreadCount > 9 ? '9+' : thread.sellerUnreadCount}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[13px] truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                          {thread.subject ? `Re: ${thread.subject}` : thread.lastMessagePreview}
+                        </p>
+                        <div className="flex items-center justify-between gap-1 mt-1">
+                          <p className="text-[12px] line-clamp-2 truncate flex-1" style={{ color: 'var(--text-muted)' }}>
+                            {(() => {
+                              const ind = getThreadIndicators(thread._id).find((i: ChatIndicatorType) => i.isTyping || i.isRecording);
+                              if (ind) return <ChatListIndicator isTyping={ind.isTyping} isRecording={ind.isRecording} recordingDuration={ind.recordingDuration} userName={ind.userName} className="truncate" />;
+                              const preview = thread.lastMessagePreview || '—';
+                              return preview.length > 50 ? preview.slice(0, 50) + '…' : preview;
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })
+            )}
+          </div>
+        </div>
 
-                {/* Messages area - Responsive */}
-                <div 
-                  className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth px-2 sm:px-3 md:px-4 py-2 sm:py-3 space-y-2 sm:space-y-3 bg-gray-50/60 dark:bg-gray-900/50 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full" 
-                  style={{ 
-                    backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23d4d4d4\' fill-opacity=\'0.1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'
-                  }}
+        {/* COLUMN 3 — Chat / Message panel (flex:1) */}
+        <div className={`flex-1 flex flex-col min-h-0 min-w-0 ${activeThread ? 'flex' : 'hidden lg:flex'}`} style={{ background: 'var(--bg-page)', height: 'calc(100vh - 140px)' }}>
+          {activeThread ? (
+            <>
+              {/* Chat header — TIER 5 */}
+              <div className="flex items-center gap-3 px-6 py-4 flex-shrink-0" style={{ background: 'var(--card-bg)', boxShadow: '0 1px 0 var(--divider)' }}>
+                <button type="button" onClick={() => { setActiveThread(null); setMessages([]); }} className="lg:hidden p-2 rounded-lg flex-shrink-0" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }} aria-label="Back">
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold overflow-hidden">
+                    {typeof activeThread.buyerId === 'object' && activeThread.buyerId !== null && activeThread.buyerId.avatarUrl && activeThread.buyerId.avatarUrl.trim() ? (
+                      <img src={resolveAvatarUrl(activeThread.buyerId.avatarUrl) || ''} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      (typeof activeThread.buyerId === 'object' && activeThread.buyerId !== null ? (activeThread.buyerId.fullName || activeThread.buyerId.email || 'B') : 'B')[0].toUpperCase()
+                    )}
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                    {typeof activeThread.buyerId === 'object' && activeThread.buyerId !== null ? activeThread.buyerId.fullName : 'Buyer'}
+                  </p>
+                  {isTyping && typingUserId ? (
+                    <p className="text-[12px] italic" style={{ color: 'var(--text-muted)' }}>{typingUserName || 'Buyer'} is typing...</p>
+                  ) : (
+                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Online now</p>
+                  )}
+                </div>
+                {activeThread.relatedOrderId && (
+                  <span className="rounded-full px-3 py-1.5 text-[12px] font-medium flex items-center gap-1.5 flex-shrink-0" style={{ background: 'var(--brand-tint)', color: PRIMARY }}>
+                    📦 Order #{String(activeThread.relatedOrderId).slice(-6)}
+                  </span>
+                )}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button type="button" onClick={() => inboxAPI.updateThread(activeThread._id, { status: 'resolved' }).then(() => loadThreads())} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border-0 cursor-pointer" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Mark resolved
+                  </button>
+                  <button type="button" className="w-9 h-9 rounded-full flex items-center justify-center border-0 cursor-pointer" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}><Phone className="w-4 h-4" /></button>
+                  <button type="button" className="w-9 h-9 rounded-full flex items-center justify-center border-0 cursor-pointer" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}><Video className="w-4 h-4" /></button>
+                  <button type="button" className="w-9 h-9 rounded-full flex items-center justify-center border-0 cursor-pointer" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}><Pin className="w-4 h-4" /></button>
+                  <button type="button" className="w-9 h-9 rounded-full flex items-center justify-center border-0 cursor-pointer" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}><MoreHorizontal className="w-4 h-4" /></button>
+                </div>
+              </div>
+              {activeThread.type === 'rfq' && (
+                <div className="px-6 py-2.5 flex items-center justify-between flex-shrink-0" style={{ background: 'rgba(245,158,11,0.10)', boxShadow: 'inset 0 0 0 1px rgba(245,158,11,0.25)' }}>
+                  <span className="text-[13px] font-medium">📋 This is an RFQ Request</span>
+                  <button type="button" className="text-[12px] font-semibold" style={{ color: PRIMARY }}>View RFQ Details →</button>
+                </div>
+              )}
+
+                {/* Messages area — TIER 5 */}
+                <div
+                  ref={messagesContainerRef}
+                  onScroll={handleMessagesScroll}
+                  className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth px-5 sm:px-6 py-5 space-y-3 min-h-0 relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full"
+                  style={{ background: 'var(--bg-page)' }}
                 >
                   {messages.map((message) => {
                     const isSeller = message.senderType === 'seller';
@@ -1744,7 +1878,8 @@ const InboxPage: React.FC = () => {
                     return (
                       <div
                         key={message._id}
-                        className={`flex items-start gap-1 sm:gap-2 max-w-[90%] sm:max-w-[85%] md:max-w-xl ${isSeller ? 'ml-auto justify-end' : ''}`}
+                        id={`message-${message._id}`}
+                        className={`group flex items-start gap-1 sm:gap-2 max-w-[90%] sm:max-w-[85%] md:max-w-xl ${isSeller ? 'ml-auto justify-end' : ''}`}
                       >
                         {!isSeller && (
                           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-[11px] font-semibold text-white flex-shrink-0 overflow-hidden">
@@ -1912,7 +2047,6 @@ const InboxPage: React.FC = () => {
                                   <div key={idx} className="mt-2">
                                     {att.type === 'voice' ? (
                                       <div 
-                                        id={`message-${message._id}`}
                                         className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
                                           isPlaying(message._id, idx)
                                             ? 'bg-red-100 dark:bg-red-900/30 border-2 border-red-500'
@@ -2054,34 +2188,71 @@ const InboxPage: React.FC = () => {
                           <div className={`flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 ${isSeller ? 'justify-end' : 'justify-start'}`}>
                             <span>{new Date(message.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
                             {message.isEdited && <span className="italic opacity-75">(edited)</span>}
-                            {isSeller && message.status && (
-                              <span className="opacity-75">
-                                {message.status === 'read' ? '✓✓' : message.status === 'delivered' ? '✓✓' : '✓'}
-                              </span>
-                            )}
+                            {isSeller && (() => {
+                              const isFailed = message._id.startsWith('temp-') && failedMessageIds.has(message._id);
+                              const status = message.status || 'sending';
+                              if (isFailed) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRetryFailedMessage(message)}
+                                    className="inline-flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors"
+                                    title="Tap to retry"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                    <span>Tap to retry</span>
+                                  </button>
+                                );
+                              }
+                              if (status === 'sending') {
+                                return <Clock className="w-3 h-3 opacity-75 transition-opacity duration-200" style={{ color: 'var(--text-muted)' }} />;
+                              }
+                              if (status === 'sent') {
+                                return <Check className="w-3 h-3 opacity-75 transition-opacity duration-200" style={{ color: 'var(--text-muted)' }} />;
+                              }
+                              if (status === 'delivered') {
+                                return (
+                                  <span className="inline-flex opacity-75 transition-opacity duration-200" style={{ color: 'var(--text-muted)' }}>
+                                    <Check className="w-3 h-3" /><Check className="w-3 h-3 -ml-1.5" />
+                                  </span>
+                                );
+                              }
+                              if (status === 'read') {
+                                return (
+                                  <span className="inline-flex opacity-100 transition-opacity duration-200 text-[#3b82f6]">
+                                    <Check className="w-3 h-3" /><Check className="w-3 h-3 -ml-1.5" />
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
                             {isSeller && (
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 <button
                                   onClick={() => handleReactToMessage(message, '👍')}
                                   className="hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded"
+                                  title="React"
                                 >
                                   <Smile className="w-3 h-3" />
                                 </button>
                                 <button
                                   onClick={() => setReplyTo(message)}
                                   className="hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded"
+                                  title="Reply"
                                 >
                                   <Reply className="w-3 h-3" />
                                 </button>
                                 <button
                                   onClick={() => setEditingMessage(message)}
                                   className="hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded"
+                                  title="Edit"
                                 >
                                   <Edit2 className="w-3 h-3" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteMessage(message)}
                                   className="hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded text-red-500"
+                                  title="Delete"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
@@ -2116,15 +2287,17 @@ const InboxPage: React.FC = () => {
                       </div>
                     );
                   })}
-                  {/* Real-time Indicators - Typing indicator in messages area */}
+                  {/* Typing indicator - WhatsApp-style bubble (buyer side), 3 animated dots */}
                   {isTyping && typingUserId && (
-                    <div className="flex items-center gap-2 justify-start py-2">
-                      <ChatIndicator 
-                        status="typing" 
-                        userName={typingUserName || (typeof activeThread?.buyerId === 'object' && activeThread.buyerId !== null ? (activeThread.buyerId.fullName || 'Buyer') : 'Buyer')}
-                        position="below"
-                        className="ml-2"
-                      />
+                    <div className="flex items-center gap-2 justify-start py-2 animate-[fadeIn_0.2s_ease-out]">
+                      <div
+                        className="flex items-center gap-1.5 px-[18px] py-[14px] w-16 rounded-[4px_16px_16px_16px]"
+                        style={{ background: 'var(--card-bg)' }}
+                      >
+                        <span className="inbox-typing-dot" />
+                        <span className="inbox-typing-dot" />
+                        <span className="inbox-typing-dot" />
+                      </div>
                     </div>
                   )}
                   {isRecordingIndicator && recordingUserId && (
@@ -2154,19 +2327,41 @@ const InboxPage: React.FC = () => {
                     </div>
                   )}
                   <div ref={messagesEndRef} />
-            </div>
-
-                {/* Composer - Responsive */}
-                <div className="border-t border-gray-200 dark:border-gray-700/60 px-2 sm:px-3 md:px-4 py-2 sm:py-3 bg-white/90 dark:bg-gray-900/90">
-                  {/* Typing Indicator - Show above input area (WhatsApp style) */}
-                  {isTyping && typingUserId && (
-                    <ChatIndicator 
-                      status="typing" 
-                      userName={typingUserName || (typeof activeThread?.buyerId === 'object' ? (activeThread.buyerId.fullName || 'Buyer') : 'Buyer')}
-                      position="above"
-                      className="mb-2"
-                    />
+                  {/* Scroll to bottom FAB */}
+                  {showScrollBtn && (
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      type="button"
+                      onClick={() => scrollToBottom('smooth')}
+                      className="absolute bottom-4 right-6 w-10 h-10 rounded-full flex items-center justify-center border-0 cursor-pointer shadow-lg hover:scale-105 transition-transform z-10"
+                      style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)' }}
+                      aria-label="Scroll to bottom"
+                    >
+                      <ChevronDown className="w-5 h-5" style={{ color: PRIMARY }} />
+                    </motion.button>
                   )}
+                  {/* New message pill when scrolled up */}
+                  {newMessageAlert && newMessageFromName && (
+                    <motion.button
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      type="button"
+                      onClick={() => scrollToBottom('smooth')}
+                      className="absolute bottom-4 left-1/2 rounded-full px-4 py-2 text-sm font-bold text-white border-0 cursor-pointer z-10 animate-[inboxPillBounce_1.5s_ease-in-out_infinite]"
+                      style={{ background: '#f97316', boxShadow: '0 4px 16px rgba(249,115,22,0.40)' }}
+                    >
+                      ↓ New message from {newMessageFromName}
+                    </motion.button>
+                  )}
+                </div>
+
+                {/* Composer - WhatsApp-style: sticky bottom, shadow line, inner container with focus ring */}
+                <div
+                  className="sticky bottom-0 py-3 px-4 flex-shrink-0"
+                  style={{ background: 'var(--card-bg)', boxShadow: '0 -1px 0 var(--divider)' }}
+                >
                   {/* Recording Indicator - Show above input area when OTHER user is recording (receiver sees this) */}
                   {isRecordingIndicator && recordingUserId && (
                     <ChatIndicator 
@@ -2306,10 +2501,7 @@ const InboxPage: React.FC = () => {
                                       setRecordingDuration(0);
                                       setUploadProgress(new Map());
                                       
-                                      // Only reload messages for the current thread (thread list will be updated via WebSocket)
-                                      await loadThreadMessages(activeThread._id);
-                                      // NOTE: Removed loadThreads() call to prevent unnecessary chat list refresh
-                                      
+                                      // No reload - new message will appear via WebSocket or optimistic update
                                       showToast('Voice note sent', 'success');
                                     }
                                   } catch (error: any) {
@@ -2330,8 +2522,14 @@ const InboxPage: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        {/* Normal Mode UI - WhatsApp Style with Media Preview Inside */}
-                        <div className="flex-1 relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-300 dark:border-gray-600 overflow-hidden">
+                        {/* Normal Mode UI - Inner container: rounded-24, focus-within orange ring */}
+                        <div
+                          className="inbox-input-wrap flex-1 relative overflow-hidden rounded-3xl flex flex-col transition-shadow duration-200 py-2 pl-4 pr-2"
+                          style={{
+                            background: 'var(--bg-secondary)',
+                            boxShadow: '0 0 0 1.5px var(--divider)',
+                          }}
+                        >
                           {/* Media Preview - WhatsApp Style: Show inside text field area */}
                           {(selectedFiles.filter(f => !Array.from(uploadingFiles.values()).includes(f)).length > 0 || uploadedAttachments.length > 0) && (
                             <div className="px-3 pt-2 pb-1 border-b border-gray-200 dark:border-gray-700">
@@ -2489,56 +2687,70 @@ const InboxPage: React.FC = () => {
                               </span>
                             </div>
                           )}
-                          {/* Text Input Area */}
+                          {/* Text Input Area - Enter = send, Shift+Enter = new line */}
                           <div className="relative flex items-center">
                             <textarea
-                              rows={2}
+                              ref={messageInputRef}
+                              rows={1}
                               placeholder={
-                                isRecording 
-                                  ? `Recording... ${formatRecordingDuration(recordingDuration)}` 
-                                  : selectedFiles.filter(f => !Array.from(uploadingFiles.values()).includes(f)).length > 0 || uploadedAttachments.length > 0 
-                                    ? "Add a caption (optional)" 
-                                    : "Type your reply..."
+                                isRecording
+                                  ? `Recording... ${formatRecordingDuration(recordingDuration)}`
+                                  : selectedFiles.filter(f => !Array.from(uploadingFiles.values()).includes(f)).length > 0 || uploadedAttachments.length > 0
+                                    ? "Add a caption (optional)"
+                                    : "Message..."
                               }
                               value={messageContent}
                               onChange={(e) => {
-                                setMessageContent(e.target.value);
+                                const textarea = e.target;
+                                setMessageContent(textarea.value);
+                                textarea.style.height = 'auto';
+                                textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
                                 handleTyping();
                               }}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                   e.preventDefault();
-                                  handleSendMessage();
+                                  if (messageContent.trim() || uploadedAttachments.length > 0 || selectedFiles.filter(f => !Array.from(uploadingFiles.values()).includes(f)).length > 0) {
+                                    handleSendMessage();
+                                  }
                                 }
                               }}
-                              className={`w-full px-3 py-2 pr-20 bg-transparent text-xs focus:outline-none resize-none max-h-32 overflow-y-auto transition-colors ${
+                              className={`w-full px-3 py-2 pr-20 bg-transparent text-sm focus:outline-none resize-none overflow-y-auto transition-colors ${
                                 isRecording
                                   ? 'text-red-600 dark:text-red-400 placeholder-red-400 dark:placeholder-red-500 border-2 border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/10'
                                   : (selectedFiles.filter(f => !Array.from(uploadingFiles.values()).includes(f)).length > 0 || uploadedAttachments.length > 0) && !messageContent.trim()
                                     ? 'text-red-500 dark:text-red-400 placeholder-red-400 dark:placeholder-red-500 border-red-300 dark:border-red-600'
                                     : 'text-gray-900 dark:text-white'
                               }`}
-                              style={{ minHeight: '44px' }}
+                              style={{ minHeight: 24, maxHeight: 120 }}
                               disabled={isRecording}
                             />
                             {/* Icons inside textarea - Show when no media or show alongside media */}
                             {!messageContent.trim() && uploadedAttachments.length === 0 && selectedFiles.filter(f => !Array.from(uploadingFiles.values()).includes(f)).length === 0 && (
                               <div className="absolute right-2 bottom-2 flex items-center gap-1">
-                                {/* File picker button - opens document picker */}
+                                {/* Attach - 32px, hover orange */}
                                 <button
+                                  type="button"
                                   onClick={() => fileInputRef.current?.click()}
-                                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors active:scale-95"
-                                  title="Attach file (documents, spreadsheets, PDFs, archives, etc.)"
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg border-0 bg-transparent transition-colors active:scale-95"
+                                  style={{ color: 'var(--text-muted)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f97316'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                  title="Attach file"
                                 >
-                                  <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
+                                  <Paperclip className="w-4 h-4" />
                                 </button>
-                                {/* Image picker button - opens image picker */}
+                                {/* Image - 32px, hover orange */}
                                 <button
+                                  type="button"
                                   onClick={() => imageInputRef.current?.click()}
-                                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors active:scale-95"
-                                  title="Attach image (.jpg, .jpeg, .png)"
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg border-0 bg-transparent transition-colors active:scale-95"
+                                  style={{ color: 'var(--text-muted)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f97316'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                  title="Attach image"
                                 >
-                                  <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                  <ImageIcon className="w-4 h-4" />
                                 </button>
                                 <button
                                   onMouseDown={startRecording}
@@ -2573,73 +2785,91 @@ const InboxPage: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        {/* Send button - Show when typing OR when media is selected (WhatsApp style: can send media without text) */}
-                        {(messageContent.trim() || uploadedAttachments.length > 0 || selectedFiles.filter(f => !Array.from(uploadingFiles.values()).includes(f)).length > 0) && (
-                          <button
-                            onClick={handleSendMessage}
-                            disabled={sending}
-                            className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0"
-                            title="Send message"
-                          >
-                            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                          </button>
-                        )}
+                        {/* Send button - Always visible; disabled when empty, orange when has content (WhatsApp style) */}
+                        {(() => {
+                          const canSend = messageContent.trim() || uploadedAttachments.length > 0 || selectedFiles.filter(f => !Array.from(uploadingFiles.values()).includes(f)).length > 0;
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => canSend && handleSendMessage()}
+                              disabled={sending || !canSend}
+                              className={`inline-flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 transition-all duration-200 ${
+                                canSend
+                                  ? 'bg-[#f97316] hover:bg-[#ea580c] text-white shadow-[0_0_12px_rgba(249,115,22,0.35)]'
+                                  : 'bg-transparent text-[var(--text-muted)] cursor-default'
+                              } ${sending ? 'opacity-70 cursor-wait' : ''}`}
+                              title={canSend ? 'Send message' : 'Enter a message'}
+                            >
+                              {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                            </button>
+                          );
+                        })()}
                       </>
                     )}
           </div>
         </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-6 sm:p-8">
-                <MessageCircle className="w-12 h-12 sm:w-16 sm:h-16 mb-3 sm:mb-4 opacity-50" />
-                <p className="text-sm sm:text-base font-semibold mb-2 text-gray-700 dark:text-gray-300">Select a conversation</p>
-                <p className="text-xs sm:text-sm opacity-75 mb-4 sm:mb-6 text-center max-w-xs px-4">
-                  Choose a conversation from the list to view messages and start chatting
+              <div className="flex flex-col items-center justify-center flex-1 p-6" style={{ background: 'var(--bg-page)' }}>
+                <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.10), rgba(124,58,237,0.08))' }}>
+                  <MessageCircle className="w-12 h-12" style={{ color: PRIMARY }} />
+                </div>
+                <p className="text-[22px] font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Select a conversation</p>
+                <p className="text-[14px] text-center max-w-[320px] mb-8" style={{ color: 'var(--text-muted)' }}>
+                  Choose from the left to view messages or start a new chat with one of your buyers.
                 </p>
+                <div className="flex gap-4 mb-8 flex-wrap justify-center">
+                  <div className="rounded-[14px] px-5 py-3.5 text-center min-w-[100px]" style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)' }}>
+                    <p className="text-[20px] font-bold" style={{ color: PRIMARY }}>📬 {stats?.totalThreads ?? threads.length}</p>
+                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Total</p>
+                  </div>
+                  <div className="rounded-[14px] px-5 py-3.5 text-center min-w-[100px]" style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)' }}>
+                    <p className="text-[20px] font-bold" style={{ color: PRIMARY }}>🔔 {totalUnread}</p>
+                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Unread</p>
+                  </div>
+                  <div className="rounded-[14px] px-5 py-3.5 text-center min-w-[100px]" style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)' }}>
+                    <p className="text-[20px] font-bold" style={{ color: PRIMARY }}>⏱️ 2hr</p>
+                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Avg Reply</p>
+                  </div>
+                </div>
                 <button
-                  onClick={() => {
-                    loadAvailableBuyers();
-                    setShowNewThreadDialog(true);
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-xs sm:text-sm font-semibold text-white transition-colors active:scale-95"
+                  type="button"
+                  onClick={() => { loadAvailableBuyers(); setShowNewThreadDialog(true); }}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white border-0 cursor-pointer"
+                  style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 16px rgba(249,115,22,0.40)' }}
                 >
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                  Start New Conversation
+                  Start New Conversation →
                 </button>
-      </div>
+              </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* New Thread Dialog */}
+      {/* TIER 7 — New Conversation Modal (premium) */}
       <Dialog open={showNewThreadDialog} onOpenChange={setShowNewThreadDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Start New Conversation</DialogTitle>
+        <DialogContent className="sm:max-w-[480px] rounded-[24px] p-8 border-0 shadow-[var(--shadow-xl)]">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-[20px] font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              💬 New Conversation
+            </DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={handleCreateThread}
-            className="space-y-4 mt-4"
-            noValidate
-          >
+          <form onSubmit={handleCreateThread} className="space-y-5" noValidate>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Buyer
-              </label>
+              <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Search buyer or order</label>
               {loadingBuyers ? (
-                <div className="flex items-center justify-center p-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-red-500" />
+                <div className="flex items-center justify-center p-6">
+                  <Loader2 className="w-6 h-6 animate-spin" style={{ color: PRIMARY }} />
                 </div>
               ) : availableBuyers.length === 0 ? (
-                <div className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                <div className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                   No buyers available. Please try again later.
                 </div>
               ) : (
                 <select
                   value={newThreadBuyerId}
                   onChange={(e) => setNewThreadBuyerId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-orange-500/30"
+                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                   required
                   aria-required="true"
                 >
@@ -2653,15 +2883,37 @@ const InboxPage: React.FC = () => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Subject
-              </label>
+              <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Conversation type</label>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: 'message' as const, label: '💬 Message' },
+                  { value: 'rfq' as const, label: '📋 RFQ' },
+                  { value: 'order' as const, label: '💰 Negotiate' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setNewThreadType(opt.value)}
+                    className="rounded-full px-4 py-2 text-[12px] font-medium border-0 cursor-pointer transition-colors"
+                    style={{
+                      background: newThreadType === opt.value ? 'var(--brand-tint)' : 'var(--bg-secondary)',
+                      color: newThreadType === opt.value ? PRIMARY : 'var(--text-secondary)',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Subject</label>
               <input
                 type="text"
                 value={newThreadSubject}
                 onChange={(e) => setNewThreadSubject(e.target.value)}
-                placeholder="e.g., RFQ: 500 units of Wireless Headphones"
-                className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="What is this about?"
+                className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-orange-500/30"
+                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                 required
                 aria-required="true"
                 minLength={3}
@@ -2669,54 +2921,30 @@ const InboxPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Type
-              </label>
-              <select
-                value={newThreadType}
-                onChange={(e) => setNewThreadType(e.target.value as 'rfq' | 'message' | 'order')}
-                className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="message">General Message</option>
-                <option value="rfq">RFQ (Request for Quote)</option>
-                <option value="order">Order Related</option>
-              </select>
+              <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Message (optional)</label>
+              <textarea
+                placeholder="Write your first message..."
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-orange-500/30 resize-none"
+                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', minHeight: 100 }}
+              />
             </div>
-            <div className="flex items-center justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewThreadDialog(false);
-                  setNewThreadSubject('');
-                  setNewThreadBuyerId('');
-                  setNewThreadType('message');
-                }}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={!newThreadSubject.trim() || !newThreadBuyerId || loadingBuyers || availableBuyers.length === 0 || creatingThread}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-all active:scale-95"
-              >
-                {loadingBuyers ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                    Loading...
-                  </>
-                ) : creatingThread ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                    Creating...
-                  </>
-                ) : availableBuyers.length === 0 ? (
-                  'No Buyers Available'
-                ) : (
-                  'Create Thread'
-                )}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={!newThreadSubject.trim() || !newThreadBuyerId || loadingBuyers || availableBuyers.length === 0 || creatingThread}
+              className="w-full py-3 rounded-xl font-bold text-white border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 16px rgba(249,115,22,0.40)' }}
+            >
+              {loadingBuyers ? (
+                <><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Loading...</>
+              ) : creatingThread ? (
+                <><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Creating...</>
+              ) : availableBuyers.length === 0 ? (
+                'No Buyers Available'
+              ) : (
+                'Start Conversation →'
+              )}
+            </button>
           </form>
         </DialogContent>
       </Dialog>

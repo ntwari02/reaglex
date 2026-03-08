@@ -62,7 +62,7 @@ router.post('/register', registerLimiter, register);
 router.post('/login', loginLimiter, login);
 router.get('/me', authenticate, me);
 
-// Email: forgot password (rate-limited), reset password, verify email
+// Email: config, forgot password (rate-limited), reset password, verify email
 router.get('/email-config', emailConfig);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
 router.post('/reset-password', resetPassword);

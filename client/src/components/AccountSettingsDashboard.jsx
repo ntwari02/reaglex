@@ -584,64 +584,81 @@ export default function AccountSettingsDashboard() {
                   { key: 'city', label: 'City / Location', icon: MapPin, type: 'text' },
                 ].map((f, i) => (
                   <motion.div key={f.key} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 + i * 0.08 }}>
-                    <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#94a3b8', letterSpacing: 1 }}>{f.label}</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)', letterSpacing: 1 }}>{f.label}</label>
                     {profileEdit ? (
                       f.type === 'select' ? (
-                        <select
-                          value={profileForm[f.key] || ''}
-                          onChange={(e) => handleProfileChange(f.key, e.target.value)}
-                          className="w-full h-12 px-4 rounded-xl border-2 outline-none transition-all"
-                          style={{ borderColor: '#e5e7eb' }}
-                        >
-                          <option value="">Select</option>
-                          {(f.options || []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
+                        <div className="relative profile-field-wrap">
+                          <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 z-10 profile-field-icon" style={{ color: 'var(--text-muted)' }} />
+                          <select
+                            value={profileForm[f.key] || ''}
+                            onChange={(e) => handleProfileChange(f.key, e.target.value)}
+                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/30"
+                            style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                          >
+                            <option value="">Select</option>
+                            {(f.options || []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                        </div>
                       ) : f.type === 'country' ? (
-                        <select
-                          value={profileForm.country || 'RW'}
-                          onChange={(e) => handleProfileChange('country', e.target.value)}
-                          className="w-full h-12 px-4 rounded-xl border-2 outline-none transition-all"
-                          style={{ borderColor: '#e5e7eb' }}
-                        >
-                          {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
-                        </select>
+                        <div className="relative profile-field-wrap">
+                          <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 z-10 profile-field-icon" style={{ color: 'var(--text-muted)' }} />
+                          <select
+                            value={profileForm.country || 'RW'}
+                            onChange={(e) => handleProfileChange('country', e.target.value)}
+                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/30"
+                            style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                          >
+                            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
+                          </select>
+                        </div>
                       ) : (
-                        <div className="relative">
-                          <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#94a3b8' }} />
+                        <div className="relative profile-field-wrap">
+                          <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 z-10 profile-field-icon" style={{ color: 'var(--text-muted)' }} />
                           <input
                             type={f.type}
                             value={profileForm[f.key] || ''}
                             onChange={(e) => handleProfileChange(f.key, e.target.value)}
-                            className="w-full h-12 pl-10 pr-10 rounded-xl border-2 outline-none transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
-                            style={{ borderColor: '#e5e7eb' }}
+                            className="w-full h-12 pl-10 pr-10 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/30"
+                            style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                           />
                           {profileForm[f.key] && <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />}
                         </div>
                       )
                     ) : (
-                      <p className="h-12 flex items-center px-0" style={{ color: '#0f172a' }}>{profileForm[f.key] || '—'}</p>
+                      <div
+                        className="h-12 flex items-center gap-3 rounded-xl px-4 border min-h-[48px]"
+                        style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                      >
+                        <f.icon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                        <span className="text-sm">{profileForm[f.key] || '—'}</span>
+                      </div>
                     )}
                   </motion.div>
                 ))}
               </div>
               <div className="mt-5">
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>Bio / About</label>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Bio / About</label>
                 {profileEdit ? (
-                  <div className="relative">
+                  <div className="relative profile-field-wrap">
                     <textarea
                       value={profileForm.bio}
                       onChange={(e) => handleProfileChange('bio', e.target.value.slice(0, 200))}
                       rows={4}
                       placeholder="Tell buyers and sellers about yourself..."
-                      className="w-full px-4 py-3 rounded-xl border-2 outline-none resize-none"
-                      style={{ borderColor: '#e5e7eb' }}
+                      className="w-full px-4 py-3 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/30 resize-y min-h-[100px]"
+                      style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                     />
                     <span className={`absolute bottom-2 right-3 text-xs ${profileForm.bio.length >= 200 ? 'text-red-500' : profileForm.bio.length >= 180 ? 'text-orange-500' : 'text-gray-400'}`}>
                       {profileForm.bio.length} / 200
                     </span>
                   </div>
                 ) : (
-                  <p style={{ color: '#0f172a' }}>{profileForm.bio || '—'}</p>
+                  <div
+                    className="rounded-xl px-4 py-3 min-h-[100px] border"
+                    style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{profileForm.bio || '—'}</p>
+                  </div>
                 )}
               </div>
               {profileEdit && (

@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ScrollToTop } from './components/ScrollToTop';
 import { ResetPassword } from './pages/ResetPassword';
@@ -8,8 +8,7 @@ import { VerifyEmail } from './pages/VerifyEmail';
 import { VerifyEmailPending } from './pages/VerifyEmailPending';
 import { GoogleCallback } from './pages/GoogleCallback';
 import { SelectRole } from './pages/SelectRole';
-import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
+import AuthPage from './pages/AuthPage';
 import { ForgotPassword } from './pages/ForgotPassword';
 import SellerDashboard from './components/SellerDashboard';
 import SellerRoute from './components/SellerRoute';
@@ -19,7 +18,6 @@ import { useAuthStore } from './stores/authStore';
 import { ToastNotification } from './components/ToastNotification';
 // @ts-ignore JSX module without TS typings
 import CartDrawer from './components/CartDrawer';
-import AuthModal from './components/AuthModal';
 import HelpChatWidget from './components/HelpChatWidget';
 
 // ── Buyer pages (lazy) ────────────────────────────────────────────────────────
@@ -49,11 +47,19 @@ const ReportProblem        = lazy(() => import('./pages/ReportProblem'));
 const SellerFees           = lazy(() => import('./pages/SellerFees'));
 const BuyerProtection      = lazy(() => import('./pages/BuyerProtection'));
 const CookieSettings       = lazy(() => import('./pages/CookieSettings'));
+const Terms                = lazy(() => import('./pages/Terms'));
 const BecomeSeller         = lazy(() => import('./pages/BecomeSeller'));
 const SellerProtection     = lazy(() => import('./pages/seller/SellerProtection'));
 const SellerGuidelines     = lazy(() => import('./pages/seller/SellerGuidelines'));
 const SellerAdvertise      = lazy(() => import('./pages/seller/AdvertiseWithUs'));
 const SellerPending        = lazy(() => import('./pages/seller/SellerPending'));
+
+/** Redirects /login and /signup to /auth?tab=... while preserving query (e.g. redirect=) */
+function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
+  const location = useLocation();
+  const search = location.search ? `tab=${tab}&${location.search.slice(1)}` : `tab=${tab}`;
+  return <Navigate to={`/auth?${search}`} replace />;
+}
 
 const PageLoader = () => (
   <div
@@ -74,7 +80,6 @@ function App() {
         <ScrollToTop />
         <ToastNotification />
         <CartDrawer />
-        <AuthModal />
         <HelpChatWidget />
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -98,6 +103,7 @@ function App() {
             <Route path="/seller/fees"                 element={<SellerFees />} />
             <Route path="/buyer-protection"            element={<BuyerProtection />} />
             <Route path="/cookie-settings"             element={<CookieSettings />} />
+            <Route path="/terms"                       element={<Terms />} />
             <Route path="/seller/protection"           element={(
               <SellerRoute>
                 <SellerProtection />
@@ -110,9 +116,10 @@ function App() {
             <Route path="/become-seller"               element={<BecomeSeller />} />
             <Route path="/cart"                        element={<Navigate to="/" replace />} />
 
-            {/* ── Auth (full pages) ── */}
-            <Route path="/login"           element={<Login />} />
-            <Route path="/signup"          element={<Signup />} />
+            {/* ── Auth (single page: login / signup / forgot) ── */}
+            <Route path="/auth"            element={<AuthPage />} />
+            <Route path="/login"          element={<RedirectToAuth tab="login" />} />
+            <Route path="/signup"          element={<RedirectToAuth tab="signup" />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
 
             {/* ── Full-page auth flows ── */}
