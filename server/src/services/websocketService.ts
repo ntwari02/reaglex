@@ -24,13 +24,25 @@ class WebSocketService {
   private connectedUsers: Map<string, SocketUser> = new Map(); // userId -> SocketUser
 
   initialize(httpServer: HttpServer) {
+    const allowedOrigins = [
+      process.env.CLIENT_URL || 'http://localhost:5173',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5000',
+    ].filter(Boolean);
     this.io = new SocketIOServer(httpServer, {
       cors: {
-        origin: process.env.CLIENT_URL || 'http://localhost:5173',
+        origin: (origin, cb) => {
+          if (!origin || allowedOrigins.includes(origin)) {
+            cb(null, true);
+          } else {
+            cb(new Error('Not allowed by CORS'));
+          }
+        },
         methods: ['GET', 'POST'],
         credentials: true,
       },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
     });
 
     // Authentication middleware

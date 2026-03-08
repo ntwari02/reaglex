@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToastStore } from '@/stores/toastStore';
 import * as XLSX from 'xlsx';
+import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
 
 type Variant = {
   color?: string;
@@ -965,6 +966,9 @@ const ProductManagement: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Listing rules from Seller Guidelines */}
+      <SellerGuidancePanel context="listings" />
 
       {/* Filters and Search */}
       <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/30 transition-colors duration-300">

@@ -13,6 +13,7 @@ import { useWishlistStore } from '../stores/wishlistStore';
 import { productAPI } from '../services/api';
 import NotificationsDropdown from './NotificationsDropdown';
 import { useTheme } from '../contexts/ThemeContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 const PRIMARY = '#f97316';
 const PRIMARY_HOVER = '#ea580c';
@@ -270,7 +271,7 @@ function resolveImg(src) {
 // ── Tier 2: Main header ───────────────────────────────────────────────────────
 function MainHeader({
   searchQuery, setSearchQuery, searchFocus, setSearchFocus, category, setCategory,
-  language, currency, openAuth, user, signOut, cartCount, openCart, cartItems, wishlistCount,
+  language, currency, openAuth, user, signOut, onLogoutClick, cartCount, openCart, cartItems, wishlistCount,
   onMobileMenuOpen,
 }) {
   const { theme, toggleTheme } = useTheme();
@@ -435,9 +436,9 @@ function MainHeader({
           <div className="hidden sm:block">
             <span
               className="font-bold block leading-tight"
-              style={{ fontSize: 20, color: 'var(--text-primary)' }}
+              style={{ fontSize: 20, color: 'var(--text-primary)', fontFamily: "'Mea Culpa', serif" }}
             >
-              Reag<span style={{ color: PRIMARY }}>lex</span>
+              Reag<span style={{ color: PRIMARY, fontFamily: "'Mea Culpa', serif" }}>lex</span>
             </span>
             <span
               className="text-[10px] block leading-tight"
@@ -832,7 +833,7 @@ function MainHeader({
                     <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
                       <button
                         type="button"
-                        onClick={() => { signOut(); setProfileOpen(false); }}
+                        onClick={() => { onLogoutClick(); setProfileOpen(false); }}
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition text-red-600 dark:text-red-400"
                       >
                         <LogOut className="w-4 h-4" /> Logout
@@ -997,7 +998,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
 
 // ── Mobile drawer ─────────────────────────────────────────────────────────────
 function MobileDrawer({
-  open, onClose, user, signOut, openAuth, cartCount, openCart, wishlistCount,
+  open, onClose, user, signOut, onLogoutClick, openAuth, cartCount, openCart, wishlistCount,
   language, setLanguage, currency, setCurrency, searchQuery, setSearchQuery, onSearchSubmit,
 }) {
   const { theme, toggleTheme } = useTheme();
@@ -1139,7 +1140,7 @@ function MobileDrawer({
               <div className="p-4 border-t border-gray-100 dark:border-gray-800">
                 <button
                   type="button"
-                  onClick={() => { signOut(); onClose(); }}
+                  onClick={() => { onLogoutClick(); onClose(); }}
                   className="w-full py-2 text-sm font-medium flex items-center justify-center gap-2 text-red-600 dark:text-red-400"
                 >
                   <LogOut className="w-4 h-4" /> Logout
@@ -1166,12 +1167,13 @@ export default function Navbar() {
 
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const openAuth = (tab = 'login') => {
     if (tab === 'signup') {
-      navigate('/signup');
+      navigate('/auth?tab=signup');
       return;
     }
-    navigate('/login');
+    navigate('/auth?tab=login');
   };
   const cartItems = useBuyerCart((s) => s.items);
   const openCart = useBuyerCart((s) => s.openCart);
@@ -1227,6 +1229,7 @@ export default function Navbar() {
           openAuth={openAuth}
           user={user}
           signOut={signOut}
+          onLogoutClick={() => setShowLogoutConfirm(true)}
           cartCount={cartCount}
           openCart={openCart}
           cartItems={cartItems}
@@ -1265,6 +1268,7 @@ export default function Navbar() {
         onClose={() => setMobileMenuOpen(false)}
         user={user}
         signOut={signOut}
+        onLogoutClick={() => setShowLogoutConfirm(true)}
         openAuth={openAuth}
         cartCount={cartCount}
         openCart={openCart}
@@ -1277,6 +1281,39 @@ export default function Navbar() {
         setSearchQuery={setSearchQuery}
         onSearchSubmit={handleSearchSubmit}
       />
+
+      {/* Logout confirmation modal */}
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <DialogContent className="max-w-sm bg-white dark:bg-gray-900 border border-red-200 dark:border-red-700">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-red-600 dark:text-red-400">
+              Log out?
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
+              Are you sure you want to log out? You will need to sign in again to access your account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(false)}
+              className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                signOut();
+                setShowLogoutConfirm(false);
+              }}
+              className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+            >
+              Log out
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

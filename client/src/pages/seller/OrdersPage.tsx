@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, Search, Eye, Package, Truck, CheckCircle, XCircle, Filter, Printer, Upload, X, MapPin, CreditCard, User, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
 
 interface OrderItem {
   id: string;
@@ -358,6 +359,9 @@ const OrdersPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Shipping & fulfilment rules from guidelines */}
+      <SellerGuidancePanel context="shipping" />
 
       {/* Filters */}
       <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/30 transition-colors duration-300">

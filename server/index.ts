@@ -1,13 +1,17 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env first so RESEND_API_KEY and others are available when other modules load
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
-import path from 'path';
 import authRoutes from './src/routes/authRoutes';
 import sellerRoutes from './src/routes/sellerRoutes';
 import inventoryRoutes from './src/routes/inventoryRoutes';
@@ -42,9 +46,6 @@ import paymentRoutes from './src/routes/paymentRoutes';
 import webhookRoutes from './src/routes/webhookRoutes';
 import './src/jobs/escrowJobs';
 import { websocketService } from './src/services/websocketService';
-
-// Load environment variables from .env file in server directory
-dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const httpServer = createServer(app);

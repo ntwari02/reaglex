@@ -37,8 +37,7 @@ export function ForgotPassword() {
       if (!response.ok) { setError(data.message || 'Failed to send reset email.'); setLoading(false); return; }
 
       setSuccess(true);
-      showToast('Password reset instructions sent to your email.', 'success');
-      setTimeout(() => navigate('/login'), 4000);
+      showToast('6-digit code sent! Check your email.', 'success');
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -47,7 +46,7 @@ export function ForgotPassword() {
   };
 
   return (
-    <AuthLayout tab="login" formTitle="Recover Password">
+    <AuthLayout tab="login">
       {success ? (
         <div className="space-y-4 text-center py-4">
           <div
@@ -62,14 +61,13 @@ export function ForgotPassword() {
           <div>
             <h3 className="font-bold text-base" style={{ color: '#111827' }}>Check your inbox</h3>
             <p className="text-sm mt-1" style={{ color: '#6b7280' }}>
-              We sent a password reset link to<br />
-              <strong style={{ color: '#111827' }}>{email}</strong>
+              We sent a 6-digit code to <strong style={{ color: '#111827' }}>{email}</strong>. It expires in 15 minutes.
             </p>
           </div>
-          <p className="text-xs" style={{ color: '#9ca3af' }}>
-            Redirecting to sign in…
-          </p>
-          <Link to="/login" className="text-sm font-semibold hover:underline" style={{ color: '#ff8c42' }}>
+          <Link to="/reset-password" className="inline-block px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: '#ff8c42' }}>
+            Enter code →
+          </Link>
+          <Link to="/login" className="block text-sm font-semibold hover:underline mt-2" style={{ color: '#ff8c42' }}>
             Back to Sign In
           </Link>
         </div>

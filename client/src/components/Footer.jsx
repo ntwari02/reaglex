@@ -315,8 +315,8 @@ export default function Footer() {
                   alt="Reaglex"
                   className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                 />
-                <span className="font-bold text-lg tracking-wide" style={{ color: HEADING_COLOR }}>
-                  REAGLEX
+                <span className="font-bold text-2xl tracking-wide" style={{ color: HEADING_COLOR, fontFamily: "'Mea Culpa', serif" }}>
+                  Reaglex
                 </span>
               </Link>
               <p className="text-sm font-medium mb-1" style={{ color: BODY_COLOR }}>
@@ -487,7 +487,7 @@ export default function Footer() {
         }}
       >
         <p className="footer-bottom-text text-[13px] order-2 sm:order-1 text-center sm:text-left" style={{ color: BODY_COLOR }}>
-          © {currentYear} Reaglex. All rights reserved. Made with <span className="footer-heart">❤️</span> in Rwanda 🇷🇼
+          © {currentYear} <span style={{ fontFamily: "'Mea Culpa', serif", fontWeight: 700, fontSize: '1.05em' }}>Reaglex</span>. All rights reserved. Made with <span className="footer-heart">❤️</span> in Rwanda 🇷🇼
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
           {PAYMENT_LABELS.map((label) => (
