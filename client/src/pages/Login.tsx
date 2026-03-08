@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, Phone, Fingerprint, AlertCircle, Check, KeyRound, Shield } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
@@ -12,6 +12,7 @@ function hasSQLInjectionRisk(value: string): boolean {
 
 export function Login() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { login } = useAuthStore();
   const { showToast } = useToastStore();
 
@@ -43,6 +44,22 @@ export function Login() {
   const [otpVerifyError, setOtpVerifyError] = useState('');
   const otpVerificationRefs = useRef<(HTMLInputElement | null)[]>([]);
   const redirectRef = useRef<string>('/');
+
+  // Show OAuth error when redirected back from Google with ?error=...
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (!error) return;
+    const messages: Record<string, string> = {
+      access_denied: 'Google sign-in was cancelled.',
+      no_code: 'No authorization code received from Google.',
+      oauth_not_configured: 'Google sign-in is not configured on the server. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to server .env and set the redirect URI in Google Cloud Console.',
+      no_email: 'No email address found in your Google account.',
+      oauth_failed: 'Google sign-in failed. Check server logs and that the redirect URI in Google Cloud Console matches your server URL.',
+      account_deactivated: 'Your account has been deactivated. Please contact support.',
+    };
+    showToast(messages[error] || `Sign-in error: ${error}`, 'error');
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams, showToast]);
 
   // Load remembered identifier
   useEffect(() => {
