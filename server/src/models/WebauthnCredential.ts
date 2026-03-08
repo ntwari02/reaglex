@@ -31,3 +31,4 @@ export const WebauthnCredential = mongoose.model<IWebauthnCredential>(
   'WebauthnCredential',
   webauthnCredentialSchema
 );
+
