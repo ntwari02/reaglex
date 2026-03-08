@@ -1,11 +1,28 @@
 import { create } from 'zustand';
 import type { Profile } from '../types';
 
+function mapBackendUserToProfile(data: any): Profile {
+  return {
+    id: data.id?.toString() || data._id?.toString() || '',
+    email: data.email,
+    full_name: data.fullName,
+    role: data.role,
+    seller_status: data.sellerVerificationStatus,
+    seller_verified: data.isSellerVerified,
+    phone: data.phone,
+    avatar_url: data.avatarUrl,
+    created_at: data.createdAt || new Date().toISOString(),
+    updated_at: data.updatedAt || new Date().toISOString(),
+  };
+}
+
 interface AuthState {
   user: Profile | null;
   loading: boolean;
   initialized: boolean;
   setUser: (user: Profile | null) => void;
+  /** Set user and token after 2FA verify/setup or direct login */
+  setUserAndToken: (user: Profile, token: string) => void;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -20,6 +37,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setUser: (user) => set({ user, loading: false }),
 
+  setUserAndToken: (user, token) => {
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ user, loading: false });
+  },
+
   signOut: async () => {
     localStorage.removeItem('demo_user');
     localStorage.removeItem('user');
@@ -29,35 +52,39 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email: string, password: string) => {
     try {
-      // Import API service dynamically to avoid circular dependencies
       const { authAPI } = await import('../lib/api');
       const data = await authAPI.login(email, password);
 
-      // Map backend user to Profile format (MongoDB uses _id)
-      const userProfile: Profile = {
-        id: data.user.id?.toString() || data.user._id?.toString() || '',
-        email: data.user.email,
-        full_name: data.user.fullName,
-        role: data.user.role,
-        seller_status: data.user.sellerVerificationStatus,
-        seller_verified: data.user.isSellerVerified,
-        phone: data.user.phone,
-        avatar_url: data.user.avatarUrl,
-        created_at: data.user.createdAt || new Date().toISOString(),
-        updated_at: data.user.updatedAt || new Date().toISOString(),
-      };
-
-      // Store token in localStorage for persistence
-      if (data.token) {
-        localStorage.setItem('auth_token', data.token);
+      // Seller/Admin with 2FA required: no token yet, caller must handle 2FA step
+      if ('requires2FA' in data && data.requires2FA) {
+        return {
+          success: false,
+          requires2FA: true,
+          tempToken: data.tempToken,
+          email: data.email,
+          role: data.role,
+        } as any;
       }
-      localStorage.setItem('user', JSON.stringify(userProfile));
+      if ('requires2FASetup' in data && data.requires2FASetup) {
+        return {
+          success: false,
+          requires2FASetup: true,
+          tempToken: data.tempToken,
+          email: data.email,
+          role: data.role,
+        } as any;
+      }
 
-      set({ user: userProfile, loading: false });
-      return { success: true };
+      if ('token' in data && data.token && 'user' in data && data.user) {
+        const userProfile = mapBackendUserToProfile(data.user);
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('user', JSON.stringify(userProfile));
+        set({ user: userProfile, loading: false });
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid response from server.' };
     } catch (error: any) {
       console.error('Login error:', error);
-      // If account is deactivated, clear any existing auth data
       if (error.message?.includes('deactivated')) {
         localStorage.removeItem('user');
         localStorage.removeItem('auth_token');

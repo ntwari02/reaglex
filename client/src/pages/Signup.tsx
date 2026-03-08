@@ -551,7 +551,7 @@ export function Signup() {
 
         <p className="flex items-center justify-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
           <Shield className="w-3.5 h-3.5 text-emerald-500" />
-          Secure sign-up with email verification (link or code)
+          Secure sign-up with email verification (link or code). Seller accounts require 2FA on first sign-in.
         </p>
 
         <button

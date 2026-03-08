@@ -1,5 +1,6 @@
 /**
  * HTML email templates. Use CLIENT_URL for links (e.g. reset password, verify email).
+ * Beautiful, responsive design with clear CTAs and security notes.
  */
 const baseStyles = `
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -10,36 +11,44 @@ const baseStyles = `
 `;
 const buttonStyle = `
   display: inline-block;
-  padding: 12px 24px;
+  padding: 14px 28px;
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: #ffffff !important;
   text-decoration: none;
   border-radius: 12px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
 `;
 const footerStyle = `font-size: 12px; color: #6b7280; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb;`;
 
+/** Shared email wrapper: gradient header bar + white card */
+function emailWrapper(content: string, appName: string, title: string) {
+  return `
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; margin: 0 auto; background: #f9fafb;">
+  <tr><td style="padding: 24px 20px 0;">
+    <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border-radius: 16px 16px 0 0; padding: 28px 24px; text-align: center;">
+      <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">${appName}</h1>
+      <p style="margin: 8px 0 0; font-size: 14px; color: rgba(255,255,255,0.9);">${title}</p>
+    </div>
+    <div style="background: #ffffff; border-radius: 0 0 16px 16px; padding: 32px 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; border-top: none;">
+      ${content}
+    </div>
+  </td></tr>
+</table>`;
+}
+
 export function getWelcomeEmailHtml(options: { name: string; loginUrl: string; appName?: string }) {
   const appName = options.appName || 'Reaglex';
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="${baseStyles} padding: 24px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <h1 style="font-size: 24px; font-weight: 700; color: #111827;">Welcome to ${appName}</h1>
-  </div>
-  <p>Hi ${options.name},</p>
-  <p>Thanks for signing up. You're all set to start exploring.</p>
+  const content = `
+  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
+  <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">Thanks for signing up. You're all set to start exploring.</p>
   <p style="text-align: center; margin: 28px 0;">
     <a href="${options.loginUrl}" style="${buttonStyle}">Sign in to your account</a>
   </p>
-  <p>If you have any questions, reply to this email or visit our help center.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. You received it because you created an account.</div>
-</body>
-</html>
-`;
+  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you have any questions, reply to this email or visit our help center.</p>
+  <div style="${footerStyle}">This email was sent by ${appName}. You received it because you created an account.</div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Welcome')}</body></html>`;
 }
 
 export function getVerificationEmailHtml(options: {
@@ -50,24 +59,16 @@ export function getVerificationEmailHtml(options: {
 }) {
   const appName = options.appName || 'Reaglex';
   const expires = options.expiresIn || '24 hours';
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="${baseStyles} padding: 24px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <h1 style="font-size: 24px; font-weight: 700; color: #111827;">Verify your email</h1>
-  </div>
-  <p>Hi ${options.name},</p>
-  <p>Please confirm your email address by clicking the button below. This link expires in ${expires}.</p>
+  const content = `
+  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
+  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">Please confirm your email address by clicking the button below. This keeps your account secure.</p>
+  <p style="margin: 0 0 8px; font-size: 13px; color: #9ca3af;">Link expires in <strong>${expires}</strong>. You can also verify using a one-time code on the sign-in page.</p>
   <p style="text-align: center; margin: 28px 0;">
     <a href="${options.verifyUrl}" style="${buttonStyle}">Verify email address</a>
   </p>
-  <p>If you didn't create an account, you can safely ignore this email.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. You received it because someone signed up with this address.</div>
-</body>
-</html>
-`;
+  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't create an account, you can safely ignore this email.</p>
+  <div style="${footerStyle}">This email was sent by ${appName}. You received it because a verification was requested for this address.</div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Verify your email')}</body></html>`;
 }
 
 export function getVerificationOtpEmailHtml(options: {
@@ -78,24 +79,16 @@ export function getVerificationOtpEmailHtml(options: {
 }) {
   const appName = options.appName || 'Reaglex';
   const expires = options.expiresIn || '10 minutes';
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="${baseStyles} padding: 24px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <h1 style="font-size: 24px; font-weight: 700; color: #111827;">Your verification code</h1>
-  </div>
-  <p>Hi ${options.name},</p>
-  <p>Use this code to verify your email address. It expires in ${expires}.</p>
-  <p style="text-align: center; margin: 28px 0;">
-    <span style="display: inline-block; padding: 16px 28px; background: #f3f4f6; border-radius: 12px; font-size: 28px; font-weight: 700; letter-spacing: 6px; color: #111827;">${options.code}</span>
+  const content = `
+  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
+  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">Use this one-time code to verify your email. Enter it on the verification page.</p>
+  <p style="text-align: center; margin: 24px 0;">
+    <span style="display: inline-block; padding: 20px 32px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px dashed #f59e0b; border-radius: 16px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #92400e;">${options.code}</span>
   </p>
-  <p>If you didn't request this code, you can safely ignore this email.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. You received it because a verification was requested for your account.</div>
-</body>
-</html>
-`;
+  <p style="margin: 0 0 8px; font-size: 13px; color: #9ca3af; text-align: center;">Expires in <strong>${expires}</strong>. Do not share this code.</p>
+  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't request this code, you can safely ignore this email.</p>
+  <div style="${footerStyle}">This email was sent by ${appName}. You received it because a verification code was requested for your account.</div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Your verification code')}</body></html>`;
 }
 
 export function getPasswordResetEmailHtml(options: {
