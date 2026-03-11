@@ -26,7 +26,9 @@ export function Login() {
     identifier: false,
     password: false,
   });
-  const [step, setStep] = useState<'password' | '2fa' | '2fa-setup' | 'success'>('password');
+  const [step, setStep] = useState<'password' | '2fa' | '2fa-setup' | 'device-approval' | 'success'>('password');
+  const [deviceApprovalRequestId, setDeviceApprovalRequestId] = useState('');
+  const [deviceApprovalEmail, setDeviceApprovalEmail] = useState('');
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [otpCountdown, setOtpCountdown] = useState(30);
@@ -86,6 +88,53 @@ export function Login() {
     }, 1000);
     return () => clearInterval(t);
   }, [otpCountdown]);
+
+  // Poll for device approval when waiting for other device to approve
+  useEffect(() => {
+    if (step !== 'device-approval' || !deviceApprovalRequestId) return;
+    let cancelled = false;
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const { authAPI } = await import('../lib/api');
+        const result = await authAPI.checkPendingRequest(deviceApprovalRequestId);
+        if (cancelled) return;
+        if (result.approved && result.token && result.user) {
+          const { setUserAndToken: setAuth } = useAuthStore.getState();
+          const profile = {
+            id: result.user.id?.toString() || result.user._id?.toString() || '',
+            email: result.user.email,
+            full_name: result.user.fullName,
+            role: result.user.role,
+            seller_status: result.user.sellerVerificationStatus,
+            seller_verified: result.user.isSellerVerified,
+            phone: result.user.phone,
+            avatar_url: result.user.avatarUrl,
+            created_at: result.user.createdAt || new Date().toISOString(),
+            updated_at: result.user.updatedAt || new Date().toISOString(),
+          };
+          setAuth(profile, result.token);
+          if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
+          const redir = result.user.role === 'seller' ? '/seller' : result.user.role === 'admin' ? '/admin' : '/';
+          showToast('Device approved. Welcome!', 'success');
+          navigate(redir);
+          return;
+        }
+        if (result.rejected) {
+          showToast(result.message || 'Login was denied.', 'error');
+          setStep('password');
+          setDeviceApprovalRequestId('');
+          return;
+        }
+      } catch (_) {}
+    };
+    const interval = setInterval(poll, 3000);
+    poll();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [step, deviceApprovalRequestId, rememberMe, identifier, showToast, navigate]);
 
   const isEmail = identifier.includes('@');
   const isPhone = !isEmail && /^\d+$/.test(identifier.trim());
@@ -209,6 +258,13 @@ export function Login() {
     try {
       const { authAPI } = await import('../lib/api');
       const data = await authAPI.verify2FA(twoFATempToken, code);
+      if ('requiresDeviceApproval' in data && data.requiresDeviceApproval) {
+        setDeviceApprovalRequestId(data.requestId);
+        setDeviceApprovalEmail(data.email);
+        setStep('device-approval');
+        setSubmittingOtp(false);
+        return;
+      }
       const { setUserAndToken: setAuth } = useAuthStore.getState();
       const profile = {
         id: data.user.id?.toString() || data.user._id?.toString() || '',
@@ -267,6 +323,13 @@ export function Login() {
     try {
       const { authAPI } = await import('../lib/api');
       const data = await authAPI.setup2FAConfirm(twoFATempToken, code);
+      if ('requiresDeviceApproval' in data && data.requiresDeviceApproval) {
+        setDeviceApprovalRequestId(data.requestId);
+        setDeviceApprovalEmail(data.email);
+        setStep('device-approval');
+        setSubmittingOtp(false);
+        return;
+      }
       const { setUserAndToken: setAuth } = useAuthStore.getState();
       const profile = {
         id: data.user.id?.toString() || data.user._id?.toString() || '',
@@ -1017,7 +1080,7 @@ export function Login() {
           {step === '2fa' && (
             <form onSubmit={handle2FAVerify} className="space-y-4">
               <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the 6-digit code.
+                Open your authenticator app (Google Authenticator, Microsoft Authenticator, or Authy) and enter the 6-digit code.
               </p>
               <div className="flex justify-between gap-2">
                 {otp.map((value, idx) => (
@@ -1067,7 +1130,10 @@ export function Login() {
               {!twoFAQRCode ? (
                 <>
                   <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                    You’ll scan a QR code with an authenticator app. Don’t have one? Install Google Authenticator or Authy.
+                    You’ll scan a QR code with an <strong>authenticator app</strong>. The code uses <code className="text-[11px] bg-black/10 dark:bg-white/10 px-1 rounded">otpauth://</code> (TOTP) and works only in these apps — not in a normal browser or camera.
+                  </p>
+                  <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                    Use one of: <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or <strong>Authy</strong>. Search your app store for “authenticator app” or “TOTP” if you don’t have one.
                   </p>
                   <button
                     type="button"
@@ -1095,7 +1161,7 @@ export function Login() {
                     </p>
                   )}
                   <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                    Scan the QR code with your app, then enter the 6-digit code below.
+                    Scan the QR code in your <strong>authenticator app</strong> (Google Authenticator, Microsoft Authenticator, or Authy), then enter the 6-digit code below.
                   </p>
                   <div className="flex justify-between gap-2">
                     {otp.map((value, idx) => (
@@ -1149,6 +1215,37 @@ export function Login() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {step === 'device-approval' && (
+        <div className="space-y-5 max-w-md mx-auto">
+          <div className="rounded-2xl border-2 border-amber-200 dark:border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20 p-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Account active on another device</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Your admin/seller account is already signed in elsewhere. Choose one way to allow this device:
+            </p>
+            <div className="space-y-3 text-left">
+              <p className="text-[13px] text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                <Mail className="w-4 h-4 mt-0.5 shrink-0 text-orange-500" />
+                <span><strong>Check your email</strong> ({deviceApprovalEmail}) — we sent an approval link. Click it to sign in on this device.</span>
+              </p>
+              <p className="text-[13px] text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                <Loader2 className="w-4 h-4 mt-0.5 shrink-0 animate-spin text-orange-500" />
+                <span><strong>Or wait here</strong> — we’re checking every few seconds. Approve this device from the other browser to continue.</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setStep('password'); setDeviceApprovalRequestId(''); setDeviceApprovalEmail(''); }}
+              className="mt-6 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              ← Back to sign in
+            </button>
+          </div>
         </div>
       )}
     </AuthLayout>

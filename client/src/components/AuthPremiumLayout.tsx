@@ -16,8 +16,8 @@ export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) 
 
   return (
     <div
-      className="auth-premium-root flex overflow-hidden"
-      style={{ width: '100vw', height: '100vh' }}
+      className="auth-premium-root flex min-h-screen overflow-y-auto"
+      style={{ width: '100%' }}
       data-auth-layout="premium"
     >
       {/* LEFT PANEL — Brand story */}
@@ -156,7 +156,7 @@ export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) 
 
       {/* RIGHT PANEL — Form */}
       <main
-        className="flex-1 flex flex-col min-h-0 min-w-0 lg:min-w-[50%]"
+        className="flex-1 flex flex-col min-h-0 min-w-0 lg:min-w-[50%] overflow-y-auto"
         style={{
           background: rightBg,
           padding: 'clamp(12px, 3vh, 32px) clamp(16px, 4vw, 32px)',

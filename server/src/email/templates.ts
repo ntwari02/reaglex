@@ -170,3 +170,31 @@ export function getNotificationEmailHtml(options: {
 </html>
 `;
 }
+
+/** Beautiful device approval email – new login from another device, approve via link */
+export function getDeviceApprovalEmailHtml(options: {
+  name: string;
+  approveUrl: string;
+  deviceInfo: string;
+  ipAddress: string;
+  appName?: string;
+  expiresIn?: string;
+}) {
+  const appName = options.appName || 'Reaglex';
+  const expires = options.expiresIn || '15 minutes';
+  const content = `
+  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
+  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">A new sign-in to your ${appName} account was requested from another device.</p>
+  <div style="background: #f3f4f6; border-radius: 12px; padding: 16px 20px; margin: 20px 0; border-left: 4px solid #f97316;">
+    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">Device</p>
+    <p style="margin: 0 0 12px; font-size: 15px; font-weight: 600; color: #111827;">${options.deviceInfo}</p>
+    <p style="margin: 0; font-size: 13px; color: #6b7280;">IP address: ${options.ipAddress}</p>
+  </div>
+  <p style="margin: 0 0 8px; font-size: 14px; color: #4b5563;">If this was you, click the button below to allow this device and sign in. The link expires in <strong>${expires}</strong>.</p>
+  <p style="text-align: center; margin: 28px 0;">
+    <a href="${options.approveUrl}" style="${buttonStyle}">Approve new device</a>
+  </p>
+  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't try to sign in, ignore this email and your account will stay secure. Consider changing your password if you're concerned.</p>
+  <div style="${footerStyle}">This email was sent by ${appName}. One sign-in per device is allowed for admin and seller accounts.</div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Approve new device sign-in')}</body></html>`;
+}

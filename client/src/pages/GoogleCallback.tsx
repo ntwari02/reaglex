@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2, KeyRound, Shield, Mail } from 'lucide-react';
 import { authAPI } from '../lib/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -13,10 +13,12 @@ export function GoogleCallback() {
   const { setUser, setUserAndToken } = useAuthStore();
   const { showToast } = useToastStore();
 
-  const [step, setStep] = useState<'loading' | '2fa' | '2fa-setup' | 'done'>('loading');
+  const [step, setStep] = useState<'loading' | '2fa' | '2fa-setup' | 'device-approval' | 'done'>('loading');
   const [twoFATempToken, setTwoFATempToken] = useState('');
   const [twoFAEmail, setTwoFAEmail] = useState('');
   const [twoFARole, setTwoFARole] = useState('');
+  const [deviceApprovalRequestId, setDeviceApprovalRequestId] = useState('');
+  const [deviceApprovalEmail, setDeviceApprovalEmail] = useState('');
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const [twoFAQRCode, setTwoFAQRCode] = useState('');
   const [twoFAManualKey, setTwoFAManualKey] = useState('');
@@ -102,6 +104,50 @@ export function GoogleCallback() {
     handleCallback();
   }, [searchParams, navigate, setUser, showToast]);
 
+  useEffect(() => {
+    if (step !== 'device-approval' || !deviceApprovalRequestId) return;
+    let cancelled = false;
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const result = await authAPI.checkPendingRequest(deviceApprovalRequestId);
+        if (cancelled) return;
+        if (result.approved && result.token && result.user) {
+          const profile = {
+            id: result.user.id?.toString() || result.user._id?.toString() || '',
+            email: result.user.email,
+            full_name: result.user.fullName,
+            role: result.user.role,
+            seller_status: result.user.sellerVerificationStatus,
+            seller_verified: result.user.isSellerVerified,
+            phone: result.user.phone,
+            avatar_url: result.user.avatarUrl,
+            created_at: result.user.createdAt || new Date().toISOString(),
+            updated_at: result.user.updatedAt || new Date().toISOString(),
+          };
+          setUserAndToken(profile, result.token);
+          showToast('Device approved. Welcome!', 'success');
+          const redir = result.user.role === 'seller' ? '/seller' : result.user.role === 'admin' ? '/admin' : '/';
+          navigate(redir);
+          return;
+        }
+        if (result.rejected) {
+          showToast(result.message || 'Login was denied.', 'error');
+          setStep('loading');
+          setDeviceApprovalRequestId('');
+          navigate('/login');
+          return;
+        }
+      } catch (_) {}
+    };
+    const interval = setInterval(poll, 3000);
+    poll();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [step, deviceApprovalRequestId, setUserAndToken, showToast, navigate]);
+
   const handleOtpChange = (i: number, value: string) => {
     if (value !== '' && !/^\d$/.test(value)) return;
     const next = [...otp];
@@ -126,22 +172,30 @@ export function GoogleCallback() {
     setOtpError('');
     try {
       const data = await authAPI.verify2FA(twoFATempToken, code);
+      if ('requiresDeviceApproval' in data && data.requiresDeviceApproval) {
+        setDeviceApprovalRequestId(data.requestId);
+        setDeviceApprovalEmail(data.email);
+        setStep('device-approval');
+        setSubmitting(false);
+        return;
+      }
+      const success = data as { user: any; token: string };
       const profile = {
-        id: data.user.id?.toString() || data.user._id?.toString() || '',
-        email: data.user.email,
-        full_name: data.user.fullName,
-        role: data.user.role,
-        seller_status: data.user.sellerVerificationStatus,
-        seller_verified: data.user.isSellerVerified,
-        phone: data.user.phone,
-        avatar_url: data.user.avatarUrl,
-        created_at: data.user.createdAt || new Date().toISOString(),
-        updated_at: data.user.updatedAt || new Date().toISOString(),
+        id: success.user.id?.toString() || success.user._id?.toString() || '',
+        email: success.user.email,
+        full_name: success.user.fullName,
+        role: success.user.role,
+        seller_status: success.user.sellerVerificationStatus,
+        seller_verified: success.user.isSellerVerified,
+        phone: success.user.phone,
+        avatar_url: success.user.avatarUrl,
+        created_at: success.user.createdAt || new Date().toISOString(),
+        updated_at: success.user.updatedAt || new Date().toISOString(),
       };
-      setUserAndToken(profile, data.token);
+      setUserAndToken(profile, success.token);
       showToast('Signed in with Google successfully!', 'success');
-      if (data.user.role === 'seller') navigate('/seller');
-      else if (data.user.role === 'admin') navigate('/admin');
+      if (success.user.role === 'seller') navigate('/seller');
+      else if (success.user.role === 'admin') navigate('/admin');
       else navigate('/');
     } catch (err: any) {
       setOtpError(err.message || 'Invalid code. Try again.');
@@ -177,22 +231,30 @@ export function GoogleCallback() {
     setOtpError('');
     try {
       const data = await authAPI.setup2FAConfirm(twoFATempToken, code);
+      if ('requiresDeviceApproval' in data && data.requiresDeviceApproval) {
+        setDeviceApprovalRequestId(data.requestId);
+        setDeviceApprovalEmail(data.email);
+        setStep('device-approval');
+        setSubmitting(false);
+        return;
+      }
+      const success = data as { user: any; token: string };
       const profile = {
-        id: data.user.id?.toString() || data.user._id?.toString() || '',
-        email: data.user.email,
-        full_name: data.user.fullName,
-        role: data.user.role,
-        seller_status: data.user.sellerVerificationStatus,
-        seller_verified: data.user.isSellerVerified,
-        phone: data.user.phone,
-        avatar_url: data.user.avatarUrl,
-        created_at: data.user.createdAt || new Date().toISOString(),
-        updated_at: data.user.updatedAt || new Date().toISOString(),
+        id: success.user.id?.toString() || success.user._id?.toString() || '',
+        email: success.user.email,
+        full_name: success.user.fullName,
+        role: success.user.role,
+        seller_status: success.user.sellerVerificationStatus,
+        seller_verified: success.user.isSellerVerified,
+        phone: success.user.phone,
+        avatar_url: success.user.avatarUrl,
+        created_at: success.user.createdAt || new Date().toISOString(),
+        updated_at: success.user.updatedAt || new Date().toISOString(),
       };
-      setUserAndToken(profile, data.token);
+      setUserAndToken(profile, success.token);
       showToast('2FA enabled. Signed in with Google!', 'success');
-      if (data.user.role === 'seller') navigate('/seller');
-      else if (data.user.role === 'admin') navigate('/admin');
+      if (success.user.role === 'seller') navigate('/seller');
+      else if (success.user.role === 'admin') navigate('/admin');
       else navigate('/');
     } catch (err: any) {
       setOtpError(err.message || 'Invalid code. Try again.');
@@ -201,6 +263,42 @@ export function GoogleCallback() {
     }
   };
 
+  // Device approval (wait for approval from other device or email)
+  if (step === 'device-approval') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex justify-center mb-4">
+            <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+              <Shield className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1 text-center">Approve this device</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 text-center">
+            Your account is already signed in on another device. Approve this login to continue.
+          </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <Mail className="w-4 h-4" />
+            <span>Check <strong>{deviceApprovalEmail}</strong> for a verification link</span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-500 text-center mb-4">
+            Or approve from your other device. We&apos;ll check every few seconds.
+          </p>
+          <div className="flex justify-center">
+            <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+          </div>
+          <button
+            type="button"
+            onClick={() => { setStep('loading'); setDeviceApprovalRequestId(''); navigate('/login'); }}
+            className="w-full mt-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-400"
+          >
+            Cancel and sign in again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // 2FA step (authenticator code)
   if (step === '2fa') {
     return (
@@ -208,7 +306,7 @@ export function GoogleCallback() {
         <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Two-factor authentication</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            You signed in with Google. Enter the 6-digit code from your authenticator app.
+            You signed in with Google. Enter the 6-digit code from your authenticator app (Google Authenticator, Microsoft Authenticator, or Authy).
           </p>
           {twoFAEmail && <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">{twoFAEmail}</p>}
           <form onSubmit={handle2FAVerify} className="space-y-4">
@@ -255,8 +353,11 @@ export function GoogleCallback() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4">
         <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Set up 2FA (required)</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {twoFARole === 'admin' ? 'Admin accounts require 2FA.' : 'Seller accounts require 2FA for security.'} Scan the QR code with your authenticator app.
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            {twoFARole === 'admin' ? 'Admin accounts require 2FA.' : 'Seller accounts require 2FA for security.'} The QR code uses <code className="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">otpauth://</code> (TOTP) and works only in an <strong>authenticator app</strong>, not in a normal browser or camera.
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+            Use <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or <strong>Authy</strong>. Search your app store for “authenticator app” or “TOTP” if you don’t have one.
           </p>
           {twoFAEmail && <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">{twoFAEmail}</p>}
 
@@ -282,7 +383,7 @@ export function GoogleCallback() {
                   Or enter manually: {twoFAManualKey}
                 </p>
               )}
-              <p className="text-xs text-gray-600 dark:text-gray-400">Scan with your app, then enter the 6-digit code.</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Scan with your authenticator app (Google Authenticator, Microsoft Authenticator, or Authy), then enter the 6-digit code.</p>
               <div className="flex justify-between gap-2">
                 {otp.map((v, i) => (
                   <input
@@ -293,7 +394,7 @@ export function GoogleCallback() {
                     maxLength={1}
                     value={v}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    onKeyDown={(e) => handleOtpKeyDown(i, e)} 
                     className="w-10 h-12 text-center text-lg font-semibold rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-orange-500 outline-none"
                   />
                 ))}
@@ -330,3 +431,4 @@ export function GoogleCallback() {
     </div>
   );
 }
+  

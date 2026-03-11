@@ -8,6 +8,7 @@ import { VerifyEmail } from './pages/VerifyEmail';
 import { VerifyEmailPending } from './pages/VerifyEmailPending';
 import { GoogleCallback } from './pages/GoogleCallback';
 import { SelectRole } from './pages/SelectRole';
+import { ApproveDeviceSuccess } from './pages/ApproveDeviceSuccess';
 import AuthPage from './pages/AuthPage';
 import { ForgotPassword } from './pages/ForgotPassword';
 import SellerDashboard from './components/SellerDashboard';
@@ -129,6 +130,7 @@ function App() {
             <Route path="/verify-otp"             element={<VerifyOTP />} />
             <Route path="/auth/google/callback"   element={<GoogleCallback />} />
             <Route path="/auth/google/select-role" element={<SelectRole />} />
+            <Route path="/auth/approve-device-success" element={<ApproveDeviceSuccess />} />
 
             {/* ── Dashboards ── */}
             <Route

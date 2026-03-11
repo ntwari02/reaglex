@@ -6,6 +6,7 @@ import {
   getPasswordResetEmailHtml,
   getSecurityAlertEmailHtml,
   getNotificationEmailHtml,
+  getDeviceApprovalEmailHtml,
 } from '../email/templates';
 
 function getEnv(key: string, fallback = ''): string {
@@ -182,6 +183,30 @@ export async function sendNotificationEmail(options: {
   return sendEmail({
     to: options.to,
     subject: options.subject,
+    html,
+  });
+}
+
+export async function sendDeviceApprovalEmail(options: {
+  to: string;
+  name: string;
+  approveToken: string;
+  deviceInfo: string;
+  ipAddress: string;
+  expiresIn?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const approveUrl = `${CLIENT_URL}/auth/approve-device?token=${encodeURIComponent(options.approveToken)}`;
+  const html = getDeviceApprovalEmailHtml({
+    name: options.name,
+    approveUrl,
+    deviceInfo: options.deviceInfo,
+    ipAddress: options.ipAddress,
+    appName: APP_NAME,
+    expiresIn: options.expiresIn || '15 minutes',
+  });
+  return sendEmail({
+    to: options.to,
+    subject: `Approve new device sign-in – ${APP_NAME}`,
     html,
   });
 }

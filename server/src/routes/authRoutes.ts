@@ -17,6 +17,11 @@ import {
   verify2FA,
   setup2FAStart,
   setup2FAConfirm,
+  getPendingLoginRequests,
+  approvePendingRequest,
+  rejectPendingRequest,
+  checkPendingRequest,
+  approveDeviceByEmail,
 } from '../controllers/authController';
 import {
   webauthnRegisterOptions,
@@ -94,6 +99,13 @@ router.post('/verify-email-otp', verifyEmailWithOtp);
 router.post('/verify-2fa', verify2FALimiter, verify2FA);
 router.post('/setup-2fa/start', verify2FALimiter, setup2FAStart);
 router.post('/setup-2fa/confirm', verify2FALimiter, setup2FAConfirm);
+
+// Device session (admin/seller): pending requests, approve, reject, check, email link
+router.get('/pending-login-requests', authenticate, getPendingLoginRequests);
+router.post('/approve-pending-request', authenticate, approvePendingRequest);
+router.post('/reject-pending-request', authenticate, rejectPendingRequest);
+router.get('/check-pending-request', checkPendingRequest);
+router.get('/approve-device', approveDeviceByEmail);
 
 // Google OAuth routes
 router.get('/google', googleAuth);
