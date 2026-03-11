@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ShoppingCart,
   Search,
@@ -25,6 +25,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { adminOrdersAPI } from '../../lib/api';
+import { useToastStore } from '../../stores/toastStore';
 import OrderDetails from './orders/OrderDetails';
 import OrderAnalytics from './orders/OrderAnalytics';
 import OrderLogs from './orders/OrderLogs';
@@ -77,6 +78,7 @@ interface Order {
 }
 
 export default function OrderManagementAdmin() {
+  const { showToast } = useToastStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [dashboard, setDashboard] = useState<{
     totalOrdersToday: number;
@@ -233,7 +235,97 @@ export default function OrderManagementAdmin() {
     }
   };
 
+  /** Build CSV from orders and trigger download */
+  const downloadOrdersAsCsv = useCallback((list: Order[]) => {
+    const headers = [
+      'Order ID',
+      'Customer',
+      'Email',
+      'Phone',
+      'Order Date',
+      'Status',
+      'Payment Status',
+      'Payment Method',
+      'Total',
+      'Items',
+      'Seller',
+      'Shipping',
+      'Delivery Estimate',
+      'Tracking',
+      'City',
+    ];
+    const escape = (v: unknown) => {
+      const s = String(v ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = list.map((o) =>
+      [
+        o.orderId,
+        o.customerName,
+        o.customerEmail,
+        o.customerPhone,
+        o.orderDate,
+        o.status,
+        o.paymentStatus,
+        o.paymentMethod,
+        o.totalAmount,
+        o.itemsCount,
+        o.sellerName,
+        o.shippingMethod,
+        o.deliveryDateEstimate,
+        o.trackingNumber ?? '',
+        o.city,
+      ].map(escape).join(',')
+    );
+    const csv = [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const handleExportAll = () => downloadOrdersAsCsv(orders);
+
+  const handleImportClick = () => importFileInputRef.current?.click();
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result ?? '');
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) {
+        setError('CSV must have a header row and at least one data row.');
+        return;
+      }
+      setError(null);
+      // Simple row count; could parse and validate or call an import API later
+      const dataRows = lines.length - 1;
+      setError(null);
+      showToast(`${dataRows} row(s) read from CSV. Server-side order import not implemented yet.`, 'info');
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+
   const handleBulkAction = (action: string) => {
+    if (action === 'export') {
+      const toExport = selectedOrders.size > 0
+        ? orders.filter((o) => selectedOrders.has(o.id))
+        : orders;
+      if (toExport.length === 0) {
+        setError('Select at least one order to export, or use "Export" in the header to export this page.');
+        return;
+      }
+      downloadOrdersAsCsv(toExport);
+      setSelectedOrders(new Set());
+      setError(null);
+      return;
+    }
     console.log(`Bulk ${action} for orders:`, Array.from(selectedOrders));
     setSelectedOrders(new Set());
   };
@@ -322,12 +414,28 @@ export default function OrderManagementAdmin() {
           >
             <TrendingUp className="h-4 w-4" /> Analytics
           </button>
-          <button className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
+          <button
+            onClick={handleExportAll}
+            disabled={orders.length === 0}
+            className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
+          >
             <Download className="h-4 w-4" /> Export
           </button>
-          <button className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
+          <button
+            type="button"
+            onClick={handleImportClick}
+            className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300"
+          >
             <Upload className="h-4 w-4" /> Import
           </button>
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={handleImportFile}
+            aria-hidden
+          />
         </div>
       </div>
 

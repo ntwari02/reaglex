@@ -367,16 +367,18 @@ export const authAPI = {
   },
 
   /**
-   * Complete login with 2FA code (seller/admin who already have 2FA enabled)
+   * Complete login with 2FA code (seller/admin who already have 2FA enabled).
+   * May return requiresDeviceApproval if account is active on another device.
    */
-  async verify2FA(tempToken: string, code: string) {
+  async verify2FA(tempToken: string, code: string, deviceId?: string) {
+    const { getDeviceId } = await import('./deviceId');
     const response = await fetch(`${API_BASE_URL}/auth/verify-2fa`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ tempToken, code }),
+      body: JSON.stringify({ tempToken, code, deviceId: deviceId || getDeviceId() }),
     });
-    return handleResponse<{ user: any; token: string }>(response);
+    return handleResponse<{ user: any; token: string } | { requiresDeviceApproval: true; requestId: string; email: string; message: string }>(response);
   },
 
   /**
@@ -393,16 +395,51 @@ export const authAPI = {
   },
 
   /**
-   * Confirm 2FA setup with code, then get full auth token
+   * Confirm 2FA setup with code, then get full auth token.
+   * May return requiresDeviceApproval if account is active on another device.
    */
-  async setup2FAConfirm(tempToken: string, code: string) {
+  async setup2FAConfirm(tempToken: string, code: string, deviceId?: string) {
+    const { getDeviceId } = await import('./deviceId');
     const response = await fetch(`${API_BASE_URL}/auth/setup-2fa/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ tempToken, code }),
+      body: JSON.stringify({ tempToken, code, deviceId: deviceId || getDeviceId() }),
     });
-    return handleResponse<{ user: any; token: string }>(response);
+    return handleResponse<{ user: any; token: string } | { requiresDeviceApproval: true; requestId: string; email: string; message: string }>(response);
+  },
+
+  /** Device session: list pending login requests (for current user on first device) */
+  getPendingLoginRequests() {
+    return fetch(`${API_BASE_URL}/auth/pending-login-requests`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ requests: { requestId: string; deviceId: string; userAgent: string; ipAddress: string; createdAt: string }[] }>);
+  },
+
+  approvePendingRequest(requestId: string) {
+    return fetch(`${API_BASE_URL}/auth/approve-pending-request`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ requestId }),
+    }).then(handleResponse<{ success: boolean; message: string }>);
+  },
+
+  rejectPendingRequest(requestId: string) {
+    return fetch(`${API_BASE_URL}/auth/reject-pending-request`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ requestId }),
+    }).then(handleResponse<{ success: boolean; message: string }>);
+  },
+
+  /** Second device: poll until approved or rejected */
+  checkPendingRequest(requestId: string) {
+    return fetch(`${API_BASE_URL}/auth/check-pending-request?requestId=${encodeURIComponent(requestId)}`, {
+      credentials: 'include',
+    }).then(handleResponse<{ approved: boolean; rejected?: boolean; message?: string; token?: string; user?: any }>);
   },
 
   /**

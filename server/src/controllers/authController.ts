@@ -6,13 +6,16 @@ import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { User } from '../models/User';
 import { PasswordResetToken } from '../models/PasswordResetToken';
-import { generateAuthToken, generate2FAPendingToken, verify2FAPendingToken } from '../utils/generateToken';
+import { generateAuthToken, generate2FAPendingToken, verify2FAPendingToken, decodeAuthToken } from '../utils/generateToken';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { ActiveSession } from '../models/ActiveSession';
+import { PendingLoginRequest } from '../models/PendingLoginRequest';
 import {
   sendPasswordResetEmail,
   sendVerificationEmail,
   sendVerificationOtpEmail,
   sendWelcomeEmail,
+  sendDeviceApprovalEmail,
   isEmailConfigured,
 } from '../services/emailService';
 
@@ -28,6 +31,82 @@ function findUserByEmailCaseInsensitive(email: string) {
   const normalized = (email || '').trim();
   if (!normalized) return User.findOne({ _id: null }); // no match
   return User.findOne({ email: new RegExp('^' + escapeRegex(normalized) + '$', 'i') });
+}
+
+/** Get device info from request (for device session) */
+function getDeviceInfo(req: Request): { deviceId: string; userAgent: string; ipAddress: string } {
+  const deviceId = (req.body?.deviceId as string) || (req.get('x-device-id') as string) || 'unknown';
+  const userAgent = (req.get('user-agent') as string) || '';
+  const ipAddress = (req.get('x-forwarded-for') as string)?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress || '';
+  return { deviceId, userAgent, ipAddress };
+}
+
+const PENDING_REQUEST_EXPIRY_MS = 15 * 60 * 1000; // 15 min
+
+/** For admin/seller: either issue token and register session, or return requiresDeviceApproval */
+async function completeLoginWithDeviceSession(
+  user: InstanceType<typeof User>,
+  req: Request,
+  res: Response,
+  sendToken: (token: string) => void
+): Promise<boolean> {
+  const { deviceId, userAgent, ipAddress } = getDeviceInfo(req);
+  const existing = await ActiveSession.findOne({ userId: user._id });
+  const sameDevice = existing && existing.deviceId === deviceId;
+
+  if (!existing || sameDevice) {
+    const token = generateAuthToken(user);
+    const decoded = decodeAuthToken(token);
+    if (!decoded?.jti) {
+      sendToken(token);
+      return true;
+    }
+    await ActiveSession.findOneAndUpdate(
+      { userId: user._id },
+      {
+        tokenId: decoded.jti,
+        deviceId,
+        userAgent,
+        ipAddress,
+        lastActiveAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+    sendToken(token);
+    return true;
+  }
+
+  const requestId = crypto.randomBytes(16).toString('hex');
+  const emailApprovalToken = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + PENDING_REQUEST_EXPIRY_MS);
+  await PendingLoginRequest.create({
+    requestId,
+    userId: user._id,
+    deviceId,
+    userAgent,
+    ipAddress,
+    status: 'pending',
+    emailApprovalToken,
+    emailApprovalExpires: expiresAt,
+    expiresAt,
+  });
+  const deviceInfo = userAgent || 'Unknown device';
+  sendDeviceApprovalEmail({
+    to: user.email,
+    name: user.fullName,
+    approveToken: emailApprovalToken,
+    deviceInfo: deviceInfo.slice(0, 120),
+    ipAddress,
+    expiresIn: '15 minutes',
+  }).catch((e) => console.warn('[auth] device approval email failed', e));
+
+  res.status(200).json({
+    requiresDeviceApproval: true,
+    requestId,
+    email: user.email,
+    message: 'Your account is active on another device. Approve via email link or from the other device.',
+  });
+  return false;
 }
 
 const registerSchema = z.object({
@@ -233,7 +312,11 @@ export async function login(req: Request, res: Response) {
  * POST /api/auth/verify-2fa
  * Completes login for seller/admin after correct TOTP code.
  */
-const verify2FASchema = z.object({ tempToken: z.string().min(1), code: z.string().length(6).regex(/^\d{6}$/) });
+const verify2FASchema = z.object({
+  tempToken: z.string().min(1),
+  code: z.string().length(6).regex(/^\d{6}$/),
+  deviceId: z.string().optional(),
+});
 export async function verify2FA(req: Request, res: Response) {
   try {
     const { tempToken, code } = verify2FASchema.parse(req.body);
@@ -257,26 +340,28 @@ export async function verify2FA(req: Request, res: Response) {
     if (!valid) {
       return res.status(400).json({ message: 'Invalid verification code. Try again.' });
     }
-    const token = generateAuthToken(user);
-    res
-      .cookie('token', token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      })
-      .json({
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          sellerVerificationStatus: user.sellerVerificationStatus,
-          isSellerVerified: user.isSellerVerified,
-          avatarUrl: user.avatarUrl,
-        },
-        token,
-      });
+    const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: false,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        })
+        .json({
+          user: {
+            id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            sellerVerificationStatus: user.sellerVerificationStatus,
+            isSellerVerified: user.isSellerVerified,
+            avatarUrl: user.avatarUrl,
+          },
+          token,
+        });
+    });
+    if (!completed) return;
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid request. Code must be 6 digits.' });
@@ -338,6 +423,7 @@ export async function setup2FAStart(req: Request, res: Response) {
 const setup2FAConfirmSchema = z.object({
   tempToken: z.string().min(1),
   code: z.string().length(6).regex(/^\d{6}$/),
+  deviceId: z.string().optional(),
 });
 export async function setup2FAConfirm(req: Request, res: Response) {
   try {
@@ -365,32 +451,222 @@ export async function setup2FAConfirm(req: Request, res: Response) {
     (user.security as any).twoFactorEnabled = true;
     (user.security as any).twoFactorMethod = 'app';
     await user.save();
-    const token = generateAuthToken(user);
-    res
-      .cookie('token', token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      })
-      .json({
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          sellerVerificationStatus: user.sellerVerificationStatus,
-          isSellerVerified: user.isSellerVerified,
-          avatarUrl: user.avatarUrl,
-        },
-        token,
-      });
+    const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: false,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        })
+        .json({
+          user: {
+            id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            sellerVerificationStatus: user.sellerVerificationStatus,
+            isSellerVerified: user.isSellerVerified,
+            avatarUrl: user.avatarUrl,
+          },
+          token,
+        });
+    });
+    if (!completed) return;
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid request. Code must be 6 digits.' });
     }
     console.error('Setup 2FA confirm error:', err);
     return res.status(500).json({ message: 'Failed to complete 2FA setup.' });
+  }
+}
+
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
+/** GET /api/auth/pending-login-requests – list pending device approval requests (for current user, first device) */
+export async function getPendingLoginRequests(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user?.id) return res.status(401).json({ message: 'Authentication required' });
+    if (req.user.role !== 'admin' && req.user.role !== 'seller') {
+      return res.status(403).json({ message: 'Not applicable to your role.' });
+    }
+    const pending = await PendingLoginRequest.find({
+      userId: req.user.id,
+      status: 'pending',
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    return res.json({
+      requests: pending.map((r) => ({
+        requestId: r.requestId,
+        deviceId: r.deviceId,
+        userAgent: r.userAgent,
+        ipAddress: r.ipAddress,
+        createdAt: r.createdAt,
+      })),
+    });
+  } catch (err: any) {
+    console.error('Get pending login requests error:', err);
+    return res.status(500).json({ message: 'Failed to load requests.' });
+  }
+}
+
+/** POST /api/auth/approve-pending-request – approve from first device */
+export async function approvePendingRequest(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { requestId } = z.object({ requestId: z.string().min(1) }).parse(req.body);
+    if (!req.user?.id) return res.status(401).json({ message: 'Authentication required' });
+    const pending = await PendingLoginRequest.findOne({
+      requestId,
+      userId: req.user.id,
+      status: 'pending',
+      expiresAt: { $gt: new Date() },
+    });
+    if (!pending) {
+      return res.status(400).json({ message: 'Request not found or expired.' });
+    }
+    const user = await User.findById(pending.userId);
+    if (!user) return res.status(400).json({ message: 'User not found.' });
+    const approvalToken = crypto.randomBytes(32).toString('hex');
+    const approvalTokenExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min
+    pending.status = 'approved';
+    pending.approvalToken = approvalToken;
+    pending.approvalTokenExpires = approvalTokenExpires;
+    await pending.save();
+    return res.json({
+      success: true,
+      message: 'Login approved. The other device can now sign in.',
+    });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request.' });
+    console.error('Approve pending request error:', err);
+    return res.status(500).json({ message: 'Failed to approve.' });
+  }
+}
+
+/** POST /api/auth/reject-pending-request */
+export async function rejectPendingRequest(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { requestId } = z.object({ requestId: z.string().min(1) }).parse(req.body);
+    if (!req.user?.id) return res.status(401).json({ message: 'Authentication required' });
+    const pending = await PendingLoginRequest.findOne({
+      requestId,
+      userId: req.user.id,
+      status: 'pending',
+    });
+    if (!pending) {
+      return res.status(400).json({ message: 'Request not found or expired.' });
+    }
+    pending.status = 'rejected';
+    await pending.save();
+    return res.json({ success: true, message: 'Login request rejected.' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request.' });
+    console.error('Reject pending request error:', err);
+    return res.status(500).json({ message: 'Failed to reject.' });
+  }
+}
+
+/** GET /api/auth/check-pending-request?requestId= – second device polls for approval */
+export async function checkPendingRequest(req: Request, res: Response) {
+  try {
+    const requestId = (req.query.requestId as string)?.trim();
+    if (!requestId) return res.status(400).json({ message: 'requestId required.' });
+    const pending = await PendingLoginRequest.findOne({ requestId }).lean();
+    if (!pending) {
+      return res.json({ approved: false, rejected: true, message: 'Request not found or expired.' });
+    }
+    if (pending.status === 'rejected') {
+      return res.json({ approved: false, rejected: true, message: 'Login was denied.' });
+    }
+    if (pending.status !== 'approved' || !pending.approvalToken || !pending.approvalTokenExpires) {
+      return res.json({ approved: false, message: 'Waiting for approval.' });
+    }
+    if (pending.approvalTokenExpires < new Date()) {
+      return res.json({ approved: false, rejected: true, message: 'Approval expired.' });
+    }
+    const user = await User.findById(pending.userId);
+    if (!user) return res.status(400).json({ message: 'User not found.' });
+    const token = generateAuthToken(user);
+    const decoded = decodeAuthToken(token);
+    if (decoded?.jti) {
+      await ActiveSession.findOneAndUpdate(
+        { userId: user._id },
+        {
+          tokenId: decoded.jti,
+          deviceId: pending.deviceId,
+          userAgent: pending.userAgent,
+          ipAddress: pending.ipAddress,
+          lastActiveAt: new Date(),
+        },
+        { upsert: true }
+      );
+    }
+    await PendingLoginRequest.updateOne(
+      { requestId },
+      { $unset: { approvalToken: 1, approvalTokenExpires: 1 } }
+    );
+    return res.json({
+      approved: true,
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        sellerVerificationStatus: user.sellerVerificationStatus,
+        isSellerVerified: user.isSellerVerified,
+        avatarUrl: user.avatarUrl,
+      },
+    });
+  } catch (err: any) {
+    console.error('Check pending request error:', err);
+    return res.status(500).json({ message: 'Failed to check status.' });
+  }
+}
+
+/** GET /api/auth/approve-device?token= – email link: exchange token for JWT and redirect */
+export async function approveDeviceByEmail(req: Request, res: Response) {
+  try {
+    const token = (req.query.token as string)?.trim();
+    if (!token) {
+      return res.redirect(`${CLIENT_URL}/login?error=invalid_approval_link`);
+    }
+    const pending = await PendingLoginRequest.findOne({
+      emailApprovalToken: token,
+      status: 'pending',
+      emailApprovalExpires: { $gt: new Date() },
+    });
+    if (!pending) {
+      return res.redirect(`${CLIENT_URL}/login?error=approval_link_expired`);
+    }
+    const user = await User.findById(pending.userId);
+    if (!user) return res.redirect(`${CLIENT_URL}/login?error=user_not_found`);
+    const authToken = generateAuthToken(user);
+    const decoded = decodeAuthToken(authToken);
+    if (decoded?.jti) {
+      await ActiveSession.findOneAndUpdate(
+        { userId: user._id },
+        {
+          tokenId: decoded.jti,
+          deviceId: pending.deviceId,
+          userAgent: pending.userAgent,
+          ipAddress: pending.ipAddress,
+          lastActiveAt: new Date(),
+        },
+        { upsert: true }
+      );
+    }
+    pending.status = 'approved';
+    pending.emailApprovalToken = undefined;
+    pending.emailApprovalExpires = undefined;
+    await pending.save();
+    return res.redirect(`${CLIENT_URL}/auth/approve-device-success?token=${encodeURIComponent(authToken)}`);
+  } catch (err: any) {
+    console.error('Approve device by email error:', err);
+    return res.redirect(`${CLIENT_URL}/login?error=approval_failed`);
   }
 }
 
