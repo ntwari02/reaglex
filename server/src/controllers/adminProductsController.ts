@@ -257,10 +257,10 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
     };
     if (!['in_stock', 'low_stock', 'out_of_stock'].includes(doc.status)) doc.status = 'in_stock';
 
-    const product = await Product.create(doc);
-    const p = product.toObject();
+    const product = await (Product as any).create(doc as any);
+    const p = (product as any).toObject();
     const out = toListShape(p);
-    const populated = await Product.findById(product._id).populate('sellerId', 'fullName email').lean();
+    const populated = await Product.findById((product as any)._id).populate('sellerId', 'fullName email').lean();
     (out as any).sellerName = (populated as any)?.sellerId?.fullName || (populated as any)?.sellerId?.email || '';
     res.status(201).json({ product: out });
   } catch (e) {

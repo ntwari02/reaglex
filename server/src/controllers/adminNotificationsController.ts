@@ -182,14 +182,14 @@ export async function createTemplate(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const template = await NotificationTemplate.create({
+    const template = await (NotificationTemplate as any).create({
       name: body.name,
       category: body.category || 'General',
       type: body.type || 'inapp',
       subject: body.subject,
       content: body.content || '',
       variables: body.variables || [],
-    });
+    } as any) as any;
     const t = template.toObject();
     res.status(201).json({ template: { ...t, id: toId(template), lastModified: template.updatedAt?.toISOString?.()?.slice(0, 10) } });
   } catch (e) {
@@ -243,7 +243,7 @@ export async function createScheduled(req: AuthenticatedRequest, res: Response) 
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const scheduled = await ScheduledNotification.create({
+    const scheduled = await (ScheduledNotification as any).create({
       name: body.name,
       target: body.target || 'All Customers',
       scheduledFor: body.scheduledFor ? new Date(body.scheduledFor as string) : new Date(),
@@ -252,7 +252,7 @@ export async function createScheduled(req: AuthenticatedRequest, res: Response) 
       type: body.type || 'email',
       subject: body.subject,
       body: body.body,
-    });
+    } as any) as any;
     const s = scheduled.toObject();
     res.status(201).json({ scheduled: { ...s, id: toId(scheduled), scheduledFor: scheduled.scheduledFor?.toISOString?.() } });
   } catch (e) {
@@ -489,13 +489,13 @@ export async function createAutomationRule(req: AuthenticatedRequest, res: Respo
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const rule = await NotificationAutomationRule.create({
+    const rule = await (NotificationAutomationRule as any).create({
       name: body.name,
       condition: body.condition || '',
       trigger: body.trigger || '',
       notificationType: body.notificationType || 'email',
       status: body.status ?? 'active',
-    });
+    } as any) as any;
     const r = rule.toObject();
     res.status(201).json({ rule: { ...r, id: toId(rule) } });
   } catch (e) {
@@ -602,14 +602,14 @@ export async function createSystemAlert(req: AuthenticatedRequest, res: Response
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const alert = await AdminSystemAlert.create({
+    const alert = await (AdminSystemAlert as any).create({
       type: body.type,
       title: body.title || '',
       description: body.description || '',
       severity: body.severity || 'medium',
       status: body.status ?? 'open',
       assignedTo: body.assignedTo,
-    });
+    } as any) as any;
     const a = alert.toObject();
     res.status(201).json({ alert: { ...a, id: toId(alert), createdAt: alert.createdAt?.toISOString?.() } });
   } catch (e) {
