@@ -224,8 +224,8 @@ export async function createCollection(req: AuthenticatedRequest, res: Response)
       }));
     }
     doc.productCount = Array.isArray(doc.productIds) ? doc.productIds.length : 0;
-    const collection = await Collection.create(doc);
-    const c = collection.toObject();
+    const collection = await (Collection as any).create(doc as any);
+    const c = (collection as any).toObject();
     res.status(201).json({ collection: toListShape(c) });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to create collection' });

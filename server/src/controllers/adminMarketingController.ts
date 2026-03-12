@@ -128,7 +128,7 @@ export async function createCampaign(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const doc = await MarketingCampaign.create({
+    const doc = await (MarketingCampaign as any).create({
       name: body.name,
       type: body.type || 'campaign',
       status: body.status || 'scheduled',
@@ -237,7 +237,7 @@ export async function createCoupon(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const doc = await MarketingCoupon.create({
+    const doc = await (MarketingCoupon as any).create({
       code: (body.code as string)?.toUpperCase() || '',
       type: body.type || 'percentage',
       value: Number(body.value) || 0,
@@ -341,7 +341,7 @@ export async function createSegment(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const doc = await CustomerSegment.create({
+    const doc = await (CustomerSegment as any).create({
       name: body.name,
       filters: Array.isArray(body.filters) ? body.filters : [],
       userCount: Number(body.userCount) || 0,
@@ -426,7 +426,7 @@ export async function createMessageCampaign(req: AuthenticatedRequest, res: Resp
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const doc = await MarketingMessageCampaign.create({
+    const doc = await (MarketingMessageCampaign as any).create({
       name: body.name,
       channel: body.channel || 'email',
       target: body.target || 'All Customers',
@@ -529,11 +529,12 @@ export async function getAbandonedCartSettings(req: AuthenticatedRequest, res: R
   try {
     let doc = await AbandonedCartSettings.findOne();
     if (!doc) {
-      doc = await AbandonedCartSettings.create({});
+      doc = await (AbandonedCartSettings as any).create({});
     }
+    const d = doc as any;
     res.json({
-      autoReminderEnabled: doc.autoReminderEnabled,
-      reminderTiming: doc.reminderTiming,
+      autoReminderEnabled: d.autoReminderEnabled,
+      reminderTiming: d.reminderTiming,
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch settings' });
@@ -545,13 +546,14 @@ export async function updateAbandonedCartSettings(req: AuthenticatedRequest, res
   try {
     const body = req.body as Record<string, unknown>;
     let doc = await AbandonedCartSettings.findOne();
-    if (!doc) doc = await AbandonedCartSettings.create({});
-    doc.autoReminderEnabled = body.autoReminderEnabled !== false;
-    if (body.reminderTiming != null) doc.reminderTiming = String(body.reminderTiming);
-    await doc.save();
+    if (!doc) doc = await (AbandonedCartSettings as any).create({});
+    const d = doc as any;
+    d.autoReminderEnabled = body.autoReminderEnabled !== false;
+    if (body.reminderTiming != null) d.reminderTiming = String(body.reminderTiming);
+    await d.save();
     res.json({
-      autoReminderEnabled: doc.autoReminderEnabled,
-      reminderTiming: doc.reminderTiming,
+      autoReminderEnabled: d.autoReminderEnabled,
+      reminderTiming: d.reminderTiming,
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to update settings' });
@@ -582,7 +584,7 @@ export async function createPromotion(req: AuthenticatedRequest, res: Response) 
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const doc = await ProductPromotion.create({
+    const doc = await (ProductPromotion as any).create({
       type: body.type || 'featured',
       productName: body.productName || '',
       position: body.position || '',
@@ -676,7 +678,7 @@ export async function createAdIntegration(req: AuthenticatedRequest, res: Respon
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const doc = await AdIntegration.create({
+    const doc = await (AdIntegration as any).create({
       platform: body.platform || 'facebook',
       status: body.status || 'disconnected',
       accountName: body.accountName || '',
@@ -767,7 +769,7 @@ export async function createPixel(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const doc = await TrackingPixel.create({
+    const doc = await (TrackingPixel as any).create({
       name: body.name || '',
       status: body.status || 'inactive',
       pixelId: body.pixelId || '',
@@ -851,7 +853,7 @@ export async function createCreative(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    const doc = await MarketingCreative.create({
+    const doc = await (MarketingCreative as any).create({
       name: body.name,
       type: body.type || 'banner',
       location: body.location || '',
@@ -934,12 +936,13 @@ export async function getReferralSettings(req: AuthenticatedRequest, res: Respon
   if (!ensureAdmin(req, res)) return;
   try {
     let doc = await ReferralSettings.findOne();
-    if (!doc) doc = await ReferralSettings.create({});
+    if (!doc) doc = await (ReferralSettings as any).create({});
+    const d = doc as any;
     res.json({
-      rewardType: doc.rewardType,
-      rewardAmount: doc.rewardAmount,
-      maxReferralsPerUser: doc.maxReferralsPerUser,
-      fraudDetection: doc.fraudDetection,
+      rewardType: d.rewardType,
+      rewardAmount: d.rewardAmount,
+      maxReferralsPerUser: d.maxReferralsPerUser,
+      fraudDetection: d.fraudDetection,
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch referral settings' });
@@ -951,17 +954,18 @@ export async function updateReferralSettings(req: AuthenticatedRequest, res: Res
   try {
     const body = req.body as Record<string, unknown>;
     let doc = await ReferralSettings.findOne();
-    if (!doc) doc = await ReferralSettings.create({});
-    if (body.rewardType != null) doc.rewardType = body.rewardType as 'cash' | 'points' | 'coupon';
-    if (body.rewardAmount != null) doc.rewardAmount = Number(body.rewardAmount);
-    if (body.maxReferralsPerUser != null) doc.maxReferralsPerUser = Number(body.maxReferralsPerUser);
-    if (body.fraudDetection != null) doc.fraudDetection = Boolean(body.fraudDetection);
-    await doc.save();
+    if (!doc) doc = await (ReferralSettings as any).create({});
+    const d = doc as any;
+    if (body.rewardType != null) d.rewardType = body.rewardType as 'cash' | 'points' | 'coupon';
+    if (body.rewardAmount != null) d.rewardAmount = Number(body.rewardAmount);
+    if (body.maxReferralsPerUser != null) d.maxReferralsPerUser = Number(body.maxReferralsPerUser);
+    if (body.fraudDetection != null) d.fraudDetection = Boolean(body.fraudDetection);
+    await d.save();
     res.json({
-      rewardType: doc.rewardType,
-      rewardAmount: doc.rewardAmount,
-      maxReferralsPerUser: doc.maxReferralsPerUser,
-      fraudDetection: doc.fraudDetection,
+      rewardType: d.rewardType,
+      rewardAmount: d.rewardAmount,
+      maxReferralsPerUser: d.maxReferralsPerUser,
+      fraudDetection: d.fraudDetection,
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to update referral settings' });
@@ -1026,10 +1030,11 @@ export async function getAISettings(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     let doc = await AIMarketingSettings.findOne();
-    if (!doc) doc = await AIMarketingSettings.create({});
+    if (!doc) doc = await (AIMarketingSettings as any).create({});
+    const d = doc as any;
     res.json({
-      aiEnabled: doc.aiEnabled,
-      features: doc.features || [],
+      aiEnabled: d.aiEnabled,
+      features: d.features || [],
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch AI settings' });
@@ -1041,13 +1046,14 @@ export async function updateAISettings(req: AuthenticatedRequest, res: Response)
   try {
     const body = req.body as Record<string, unknown>;
     let doc = await AIMarketingSettings.findOne();
-    if (!doc) doc = await AIMarketingSettings.create({});
-    if (body.aiEnabled != null) doc.aiEnabled = Boolean(body.aiEnabled);
-    if (Array.isArray(body.features)) doc.features = body.features as any[];
-    await doc.save();
+    if (!doc) doc = await (AIMarketingSettings as any).create({});
+    const d = doc as any;
+    if (body.aiEnabled != null) d.aiEnabled = Boolean(body.aiEnabled);
+    if (Array.isArray(body.features)) d.features = body.features as any[];
+    await d.save();
     res.json({
-      aiEnabled: doc.aiEnabled,
-      features: doc.features,
+      aiEnabled: d.aiEnabled,
+      features: d.features,
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to update AI settings' });
@@ -1059,13 +1065,14 @@ export async function getMarketingSettings(req: AuthenticatedRequest, res: Respo
   if (!ensureAdmin(req, res)) return;
   try {
     let doc = await MarketingSettings.findOne();
-    if (!doc) doc = await MarketingSettings.create({});
+    if (!doc) doc = await (MarketingSettings as any).create({});
+    const d = doc as any;
     res.json({
-      budgetLimit: doc.budgetLimit,
-      spamProtection: doc.spamProtection,
-      smtp: doc.smtp || { host: '', port: '' },
-      sms: doc.sms || { apiKey: '', apiSecret: '' },
-      push: doc.push || { fcmKey: '' },
+      budgetLimit: d.budgetLimit,
+      spamProtection: d.spamProtection,
+      smtp: d.smtp || { host: '', port: '' },
+      sms: d.sms || { apiKey: '', apiSecret: '' },
+      push: d.push || { fcmKey: '' },
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch marketing settings' });
@@ -1077,30 +1084,31 @@ export async function updateMarketingSettings(req: AuthenticatedRequest, res: Re
   try {
     const body = req.body as Record<string, unknown>;
     let doc = await MarketingSettings.findOne();
-    if (!doc) doc = await MarketingSettings.create({});
-    if (body.budgetLimit != null) doc.budgetLimit = Number(body.budgetLimit);
-    if (body.spamProtection != null) doc.spamProtection = Boolean(body.spamProtection);
+    if (!doc) doc = await (MarketingSettings as any).create({});
+    const d = doc as any;
+    if (body.budgetLimit != null) d.budgetLimit = Number(body.budgetLimit);
+    if (body.spamProtection != null) d.spamProtection = Boolean(body.spamProtection);
     if (body.smtp != null && typeof body.smtp === 'object') {
       const s = body.smtp as Record<string, unknown>;
-      if (s.host != null) doc.smtp.host = String(s.host);
-      if (s.port != null) doc.smtp.port = String(s.port);
+      if (s.host != null) d.smtp.host = String(s.host);
+      if (s.port != null) d.smtp.port = String(s.port);
     }
     if (body.sms != null && typeof body.sms === 'object') {
       const s = body.sms as Record<string, unknown>;
-      if (s.apiKey != null) doc.sms.apiKey = String(s.apiKey);
-      if (s.apiSecret != null) doc.sms.apiSecret = String(s.apiSecret);
+      if (s.apiKey != null) d.sms.apiKey = String(s.apiKey);
+      if (s.apiSecret != null) d.sms.apiSecret = String(s.apiSecret);
     }
     if (body.push != null && typeof body.push === 'object') {
       const p = body.push as Record<string, unknown>;
-      if (p.fcmKey != null) doc.push.fcmKey = String(p.fcmKey);
+      if (p.fcmKey != null) d.push.fcmKey = String(p.fcmKey);
     }
-    await doc.save();
+    await d.save();
     res.json({
-      budgetLimit: doc.budgetLimit,
-      spamProtection: doc.spamProtection,
-      smtp: doc.smtp,
-      sms: doc.sms,
-      push: doc.push,
+      budgetLimit: d.budgetLimit,
+      spamProtection: d.spamProtection,
+      smtp: d.smtp,
+      sms: d.sms,
+      push: d.push,
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to update marketing settings' });

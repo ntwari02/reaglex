@@ -14,7 +14,7 @@ export interface IFinanceSettings extends Document {
 // Single-document collection (id: 'platform')
 const financeSettingsSchema = new Schema<IFinanceSettings>(
   {
-    _id: { type: String, default: 'platform' },
+    _id: { type: Schema.Types.Mixed, default: 'platform' },
     currency: { type: String, default: 'USD' },
     globalCommissionRate: { type: Number, default: 10 },
     enableVat: { type: Boolean, default: true },

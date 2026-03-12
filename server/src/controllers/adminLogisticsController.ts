@@ -60,7 +60,7 @@ export async function createPartner(req: AuthenticatedRequest, res: Response) {
       failedDeliveryRate: body.failedDeliveryRate ?? 0,
       apiStatus: body.apiStatus ?? 'disconnected',
       totalShipments: body.totalShipments ?? 0,
-    });
+    } as any) as any;
     const p = partner.toObject();
     res.status(201).json({ partner: { ...p, id: toId(partner) } });
   } catch (e) {
@@ -112,7 +112,7 @@ export async function createZone(req: AuthenticatedRequest, res: Response) {
       freeShippingThreshold: body.freeShippingThreshold,
       codAvailable: body.codAvailable ?? false,
       countries: body.countries,
-    });
+    } as any) as any;
     const z = zone.toObject();
     res.status(201).json({ zone: { ...z, id: toId(zone) } });
   } catch (e) {
@@ -183,7 +183,7 @@ export async function createDriver(req: AuthenticatedRequest, res: Response) {
       totalDeliveries: body.totalDeliveries ?? 0,
       avgDeliveryTime: body.avgDeliveryTime ?? '-',
       currentLocation: body.currentLocation,
-    });
+    } as any) as any;
     const d = driver.toObject();
     res.status(201).json({ driver: { ...d, id: toId(driver) } });
   } catch (e) {
@@ -233,7 +233,7 @@ export async function createWarehouse(req: AuthenticatedRequest, res: Response) 
       inboundShipments: body.inboundShipments ?? 0,
       outboundShipments: body.outboundShipments ?? 0,
       damagedItems: body.damagedItems ?? 0,
-    });
+    } as any) as any;
     const w = warehouse.toObject();
     res.status(201).json({ warehouse: { ...w, id: toId(warehouse) } });
   } catch (e) {
@@ -491,7 +491,7 @@ export async function createReturn(req: AuthenticatedRequest, res: Response) {
       pickupDriver: body.pickupDriver,
       refundAmount: body.refundAmount ?? 0,
       returnCost: body.returnCost ?? 0,
-    });
+    } as any) as any;
     const r = ret.toObject();
     res.status(201).json({ return: { ...r, id: toId(ret), createdAt: ret.createdAt?.toISOString?.()?.slice(0, 10) } });
   } catch (e) {
@@ -588,7 +588,7 @@ export async function createRole(req: AuthenticatedRequest, res: Response) {
         viewAnalytics: perms.viewAnalytics ?? false,
       },
       userCount: 0,
-    });
+    } as any) as any;
     const r = role.toObject();
     res.status(201).json({ role: { ...r, id: toId(role) } });
   } catch (e) {
@@ -644,7 +644,7 @@ export async function createIntegration(req: AuthenticatedRequest, res: Response
       status: body.status ?? 'disconnected',
       lastSync: body.lastSync ? new Date(body.lastSync as string) : undefined,
       errorCount: body.errorCount ?? 0,
-    });
+    } as any) as any;
     const i = integration.toObject();
     res.status(201).json({ integration: { ...i, id: toId(integration) } });
   } catch (e) {
@@ -709,7 +709,7 @@ export async function createException(req: AuthenticatedRequest, res: Response) 
       partner: body.partner ?? '',
       description: body.description ?? '',
       status: body.status ?? 'open',
-    });
+    } as any) as any;
     const ex = exception.toObject();
     res.status(201).json({
       exception: {

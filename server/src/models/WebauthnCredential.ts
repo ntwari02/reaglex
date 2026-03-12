@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
 
 export interface IWebauthnCredential extends Document {
   userId: mongoose.Types.ObjectId;
@@ -7,7 +8,7 @@ export interface IWebauthnCredential extends Document {
   counter: number;
   deviceType?: string;
   backedUp?: boolean;
-  transports?: string[];
+  transports?: AuthenticatorTransportFuture[];
   createdAt: Date;
 }
 

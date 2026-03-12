@@ -47,14 +47,12 @@ export default function OrderLogs({ orderId, onBack }: OrderLogsProps) {
       case 'payment':
         return DollarSign;
       case 'accepted':
-      case 'processing':
         return CheckCircle;
       case 'shipped':
         return Truck;
       case 'delivered':
       case 'packed':
       case 'pending':
-      case 'processing':
       case 'cancelled':
         return CheckCircle;
       default:

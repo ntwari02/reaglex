@@ -51,11 +51,9 @@ export async function webauthnRegisterOptions(req: AuthenticatedRequest, res: Re
     const options = await generateRegistrationOptions({
       rpName,
       rpID: rpID === 'localhost' ? 'localhost' : rpID,
-      user: {
-        id: new Uint8Array(Buffer.from(userId, 'utf8')),
-        name: user.email,
-        displayName: user.fullName,
-      },
+      userName: user.email,
+      userID: new Uint8Array(Buffer.from(userId, 'utf8')) as any,
+      userDisplayName: user.fullName,
       attestationType: 'none',
       excludeCredentials: excludeCredentials.length > 0 ? excludeCredentials : undefined,
       authenticatorSelection: {
