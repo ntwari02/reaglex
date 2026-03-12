@@ -3571,7 +3571,7 @@ const ProfilePage: React.FC = () => {
                   // Step 1: Generate QR Code
                   <>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Click the button below to generate a QR code. Then scan it with your authenticator app (Google Authenticator, Authy, etc.).
+                      The QR code uses <code className="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">otpauth://</code> (TOTP) and works only in an <strong>authenticator app</strong> (e.g. Google Authenticator, Microsoft Authenticator, or Authy) — not in a normal browser or camera. Search your app store for “authenticator app” or “TOTP” if needed.
                     </p>
                     <div className="flex justify-end gap-3">
                       <Button 
@@ -3620,7 +3620,7 @@ const ProfilePage: React.FC = () => {
                   // Step 2: Show QR Code and Verify
                   <>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Scan this QR code with your authenticator app, then enter the 6-digit code to verify.
+                      Scan this QR code in your authenticator app (Google Authenticator, Microsoft Authenticator, or Authy), then enter the 6-digit code to verify.
                     </p>
                     <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
                       {twoFactorData.qrCode && (

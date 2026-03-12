@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Image as ImageIcon, Upload, Layout, Eye, Star, TrendingUp } from 'lucide-react';
+import { adminCollectionsAPI } from '@/lib/api';
 
 export default function CollectionMediaDisplay() {
-  const [selectedCollection, setSelectedCollection] = useState('1');
+  const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState('');
   const [layoutStyle, setLayoutStyle] = useState<'grid' | 'list' | 'carousel' | 'masonry'>('grid');
   const [homepageHighlight, setHomepageHighlight] = useState(false);
+
+  useEffect(() => {
+    adminCollectionsAPI.getCollections().then((res) => {
+      const list = (res.collections || []).map((c: any) => ({ id: c.id || c._id, name: c.title || c.name || '' }));
+      setCollections(list);
+      if (list.length && !selectedCollection) setSelectedCollection(list[0].id);
+    }).catch(() => setCollections([]));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -14,7 +24,7 @@ export default function CollectionMediaDisplay() {
           Collection Media & Display Control
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Manage banners, layouts, and display settings
+          Manage banners, layouts, and display settings (collections from database)
         </p>
       </div>
 
@@ -28,9 +38,10 @@ export default function CollectionMediaDisplay() {
           onChange={(e) => setSelectedCollection(e.target.value)}
           className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
         >
-          <option value="1">Summer Sale</option>
-          <option value="2">New Arrivals</option>
-          <option value="3">Best Sellers</option>
+          <option value="">Select collection</option>
+          {collections.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
         </select>
       </div>
 

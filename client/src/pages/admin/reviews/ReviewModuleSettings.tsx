@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Settings,
   Shield,
-  User,
   Image,
   Clock,
   MessageSquare,
   Save,
   CheckCircle,
 } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
 
 export default function ReviewModuleSettings() {
   const [settings, setSettings] = useState({
@@ -19,17 +18,59 @@ export default function ReviewModuleSettings() {
     profanityFilter: 'medium',
     verifiedPurchaseOnly: true,
     helpfulScoring: true,
+    requireSellerReplyApproval: true,
   });
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    adminReviewsAPI.getModuleSettings()
+      .then((res) => {
+        setSettings((prev) => ({
+          ...prev,
+          requireApproval: res.requireApproval !== false,
+          allowAnonymous: res.allowAnonymous === true,
+          allowImages: res.allowImages !== false,
+          editingWindow: Number(res.editingWindow) || 60,
+          profanityFilter: (res.profanityFilter as string) || 'medium',
+          verifiedPurchaseOnly: res.verifiedPurchaseOnly !== false,
+          helpfulScoring: res.helpfulScoring !== false,
+          requireSellerReplyApproval: res.requireSellerReplyApproval !== false,
+        }));
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setSaving(true);
+    setError(null);
+    adminReviewsAPI.updateModuleSettings(settings)
+      .then(() => {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to save'))
+      .finally(() => setSaving(false));
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Loading settings...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           Review Module Settings
@@ -183,18 +224,23 @@ export default function ReviewModuleSettings() {
               Require Approval for Seller Replies
             </span>
             <label className="relative inline-flex cursor-pointer items-center">
-              <input type="checkbox" className="peer sr-only" defaultChecked />
-              <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700"></div>
+              <input
+                type="checkbox"
+                checked={settings.requireSellerReplyApproval}
+                onChange={(e) => setSettings((prev) => ({ ...prev, requireSellerReplyApproval: e.target.checked }))}
+                className="peer sr-only"
+              />
+              <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-amber-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700"></div>
             </label>
           </div>
         </div>
       </div>
 
-      {/* Save Button */}
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl"
+          disabled={saving}
+          className="rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-50"
         >
           {saved ? (
             <>

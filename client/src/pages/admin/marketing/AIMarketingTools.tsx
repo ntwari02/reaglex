@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Lightbulb,
@@ -10,58 +10,53 @@ import {
   FileText,
   Zap,
 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
+
+const featureIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  'campaign-ideas': Lightbulb,
+  'best-promotion': Target,
+  'best-time': Clock,
+  'high-value': TrendingUp,
+  'discount-suggest': Gift,
+  'ai-segments': Users,
+  'auto-copy': FileText,
+};
 
 export default function AIMarketingTools() {
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; enabled: boolean }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const aiFeatures = [
-    {
-      icon: Lightbulb,
-      title: 'Auto Generate Campaign Ideas',
-      description: 'AI suggests campaign ideas based on trends and performance',
-      enabled: true,
-    },
-    {
-      icon: Target,
-      title: 'Predict Best Promotion',
-      description: 'Recommend optimal promotions for each user segment',
-      enabled: true,
-    },
-    {
-      icon: Clock,
-      title: 'Best Time to Send',
-      description: 'AI determines optimal timing for messages and campaigns',
-      enabled: true,
-    },
-    {
-      icon: TrendingUp,
-      title: 'Predict High-Value Customers',
-      description: 'Identify customers likely to make high-value purchases',
-      enabled: false,
-    },
-    {
-      icon: Gift,
-      title: 'Auto Discount Suggestions',
-      description: 'AI recommends discount amounts for maximum conversion',
-      enabled: false,
-    },
-    {
-      icon: Users,
-      title: 'AI-Built Segments',
-      description: 'Automatically create customer segments using AI',
-      enabled: false,
-    },
-    {
-      icon: FileText,
-      title: 'Auto-Generate Copy',
-      description: 'Generate marketing copy for campaigns and emails',
-      enabled: true,
-    },
-  ];
+  useEffect(() => {
+    adminMarketingAPI
+      .getAISettings()
+      .then((res) => {
+        setAiEnabled(res.aiEnabled !== false);
+        setFeatures(Array.isArray(res.features) ? res.features : []);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load AI settings'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleToggleAi = () => {
+    const next = !aiEnabled;
+    setAiEnabled(next);
+    setSaving(true);
+    adminMarketingAPI.updateAISettings({ aiEnabled: next, features }).finally(() => setSaving(false));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Loading AI settings...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">AI Marketing Tools</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -69,7 +64,12 @@ export default function AIMarketingTools() {
         </p>
       </div>
 
-      {/* AI Toggle */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -87,7 +87,8 @@ export default function AIMarketingTools() {
             <input
               type="checkbox"
               checked={aiEnabled}
-              onChange={(e) => setAiEnabled(e.target.checked)}
+              onChange={handleToggleAi}
+              disabled={saving}
               className="peer sr-only"
             />
             <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700"></div>
@@ -95,13 +96,12 @@ export default function AIMarketingTools() {
         </div>
       </div>
 
-      {/* AI Features */}
       <div className="grid gap-4 md:grid-cols-2">
-        {aiFeatures.map((feature, index) => {
-          const Icon = feature.icon;
+        {features.map((feature) => {
+          const Icon = featureIcons[feature.id] || Sparkles;
           return (
             <div
-              key={index}
+              key={feature.id}
               className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
             >
               <div className="mb-4 flex items-start justify-between">

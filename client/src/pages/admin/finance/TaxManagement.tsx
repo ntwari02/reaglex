@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Plus, Edit, Trash2, Search, MapPin, Percent, Globe, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { adminFinanceAPI } from '@/lib/api';
 
 interface TaxRule {
   id: string;
@@ -18,54 +19,27 @@ interface TaxRule {
   updatedAt: string;
 }
 
-const mockTaxRules: TaxRule[] = [
-  {
-    id: '1',
-    name: 'Standard VAT',
-    type: 'standard',
-    rate: 18,
-    appliesTo: 'all',
-    status: 'active',
-    createdAt: '2024-01-15',
-    updatedAt: '2024-01-15',
-  },
-  {
-    id: '2',
-    name: 'New York State Tax',
-    type: 'location_based',
-    rate: 8.5,
-    location: 'New York, USA',
-    appliesTo: 'all',
-    status: 'active',
-    createdAt: '2024-01-20',
-    updatedAt: '2024-01-20',
-  },
-  {
-    id: '3',
-    name: 'Electronics Tax',
-    type: 'product_based',
-    rate: 12,
-    category: 'Electronics',
-    appliesTo: 'products',
-    status: 'active',
-    createdAt: '2024-02-01',
-    updatedAt: '2024-02-01',
-  },
-  {
-    id: '4',
-    name: 'California Sales Tax',
-    type: 'location_based',
-    rate: 7.25,
-    location: 'California, USA',
-    appliesTo: 'all',
-    status: 'active',
-    createdAt: '2024-02-10',
-    updatedAt: '2024-02-10',
-  },
-];
-
 export default function TaxManagement() {
-  const [taxRules, setTaxRules] = useState<TaxRule[]>(mockTaxRules);
+  const [taxRules, setTaxRules] = useState<TaxRule[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminFinanceAPI.getTaxRules().then((res) => {
+      setTaxRules((res.taxRules || []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        type: r.type,
+        rate: r.rate,
+        location: r.location,
+        category: r.category,
+        appliesTo: r.appliesTo || 'all',
+        status: r.status || 'active',
+        createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+        updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString().slice(0, 10) : '',
+      })));
+    }).catch(() => setTaxRules([])).finally(() => setLoading(false));
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -77,6 +51,31 @@ export default function TaxManagement() {
     isOpen: false,
     id: null,
   });
+  const [formName, setFormName] = useState('');
+  const [formRate, setFormRate] = useState<number>(0);
+  const [formType, setFormType] = useState<TaxRule['type']>('standard');
+  const [formAppliesTo, setFormAppliesTo] = useState<TaxRule['appliesTo']>('all');
+  const [formLocation, setFormLocation] = useState('');
+  const [formCategory, setFormCategory] = useState('');
+  const [formSaving, setFormSaving] = useState(false);
+
+  useEffect(() => {
+    if (editingRule) {
+      setFormName(editingRule.name);
+      setFormRate(editingRule.rate);
+      setFormType(editingRule.type);
+      setFormAppliesTo(editingRule.appliesTo);
+      setFormLocation(editingRule.location || '');
+      setFormCategory(editingRule.category || '');
+    } else if (showAddModal) {
+      setFormName('');
+      setFormRate(0);
+      setFormType('standard');
+      setFormAppliesTo('all');
+      setFormLocation('');
+      setFormCategory('');
+    }
+  }, [editingRule, showAddModal]);
 
   const filteredRules = taxRules.filter(rule => {
     const matchesSearch = rule.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -115,16 +114,16 @@ export default function TaxManagement() {
   };
 
   const handleDelete = (id: string) => {
-    setConfirmDialog({
-      isOpen: true,
-      id,
-    });
+    setConfirmDialog({ isOpen: true, id });
   };
 
   const handleToggleStatus = (id: string) => {
-    setTaxRules(taxRules.map(rule =>
-      rule.id === id ? { ...rule, status: rule.status === 'active' ? 'inactive' : 'active' } : rule
-    ));
+    const rule = taxRules.find((r) => r.id === id);
+    if (!rule) return;
+    const newStatus = rule.status === 'active' ? 'inactive' : 'active';
+    adminFinanceAPI.updateTaxRule(id, { status: newStatus }).then(() => {
+      setTaxRules((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+    }).catch(() => {});
   };
 
   return (
@@ -324,7 +323,8 @@ export default function TaxManagement() {
                 <Input
                   type="text"
                   placeholder="e.g., Standard VAT"
-                  defaultValue={editingRule?.name}
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
                   className="w-full"
                 />
               </div>
@@ -335,7 +335,8 @@ export default function TaxManagement() {
                 <Input
                   type="number"
                   placeholder="e.g., 18"
-                  defaultValue={editingRule?.rate}
+                  value={formRate}
+                  onChange={(e) => setFormRate(Number(e.target.value) || 0)}
                   className="w-full"
                 />
               </div>
@@ -343,7 +344,11 @@ export default function TaxManagement() {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Type
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <select
+                  value={formType}
+                  onChange={(e) => setFormType(e.target.value as TaxRule['type'])}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
                   <option value="standard">Standard</option>
                   <option value="location_based">Location Based</option>
                   <option value="product_based">Product Based</option>
@@ -354,7 +359,11 @@ export default function TaxManagement() {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Applies To
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <select
+                  value={formAppliesTo}
+                  onChange={(e) => setFormAppliesTo(e.target.value as TaxRule['appliesTo'])}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
                   <option value="all">All</option>
                   <option value="products">Products</option>
                   <option value="services">Services</option>
@@ -373,11 +382,45 @@ export default function TaxManagement() {
                 Cancel
               </Button>
               <Button
+                disabled={!formName.trim() || formSaving}
                 className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-500 hover:to-cyan-500 text-white"
                 onClick={() => {
-                  setShowAddModal(false);
-                  setEditingRule(null);
-                  // In a real app, save the tax rule here
+                  setFormSaving(true);
+                  const payload = {
+                    name: formName.trim(),
+                    rate: formRate,
+                    type: formType,
+                    appliesTo: formAppliesTo,
+                    location: formLocation || undefined,
+                    category: formCategory || undefined,
+                  };
+                  if (editingRule) {
+                    adminFinanceAPI.updateTaxRule(editingRule.id, payload).then(() => {
+                      setTaxRules((prev) => prev.map((r) => (r.id === editingRule.id ? { ...r, name: payload.name, rate: payload.rate, type: payload.type, appliesTo: payload.appliesTo, location: payload.location, category: payload.category } : r)));
+                      setShowAddModal(false);
+                      setEditingRule(null);
+                      setFormSaving(false);
+                    }).catch(() => setFormSaving(false));
+                  } else {
+                    adminFinanceAPI.createTaxRule(payload).then(() => {
+                      adminFinanceAPI.getTaxRules().then((res) => {
+                        setTaxRules((res.taxRules || []).map((r: any) => ({
+                          id: r.id,
+                          name: r.name,
+                          type: r.type,
+                          rate: r.rate,
+                          location: r.location,
+                          category: r.category,
+                          appliesTo: r.appliesTo || 'all',
+                          status: r.status || 'active',
+                          createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+                          updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString().slice(0, 10) : '',
+                        })));
+                      });
+                      setShowAddModal(false);
+                      setFormSaving(false);
+                    }).catch(() => setFormSaving(false));
+                  }
                 }}
               >
                 {editingRule ? 'Update Rule' : 'Create Rule'}
@@ -393,7 +436,10 @@ export default function TaxManagement() {
         onClose={() => setConfirmDialog({ isOpen: false, id: null })}
         onConfirm={() => {
           if (confirmDialog.id) {
-            setTaxRules(taxRules.filter(rule => rule.id !== confirmDialog.id));
+            adminFinanceAPI.deleteTaxRule(confirmDialog.id).then(() => {
+              setTaxRules((prev) => prev.filter((rule) => rule.id !== confirmDialog.id));
+            }).catch(() => {});
+            setConfirmDialog({ isOpen: false, id: null });
           }
         }}
         title="Delete Tax Rule"

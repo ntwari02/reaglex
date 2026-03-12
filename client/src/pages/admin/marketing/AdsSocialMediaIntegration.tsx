@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Share2,
   Facebook,
   Instagram,
   Search,
   Video,
-  Link,
   CheckCircle,
   XCircle,
   Settings,
   BarChart3,
 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 interface AdIntegration {
   id: string;
@@ -22,29 +21,31 @@ interface AdIntegration {
   roas: number;
 }
 
-const mockIntegrations: AdIntegration[] = [
-  {
-    id: '1',
-    platform: 'facebook',
-    status: 'connected',
-    accountName: 'Main Ad Account',
-    spend: 5000,
-    conversions: 245,
-    roas: 2.5,
-  },
-  {
-    id: '2',
-    platform: 'google',
-    status: 'connected',
-    accountName: 'Google Ads',
-    spend: 3200,
-    conversions: 189,
-    roas: 3.2,
-  },
-];
+interface Pixel {
+  id: string;
+  name: string;
+  status: string;
+  pixelId: string;
+}
 
 export default function AdsSocialMediaIntegration() {
-  const [integrations, setIntegrations] = useState<AdIntegration[]>(mockIntegrations);
+  const [integrations, setIntegrations] = useState<AdIntegration[]>([]);
+  const [pixels, setPixels] = useState<Pixel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      adminMarketingAPI.getAdIntegrations(),
+      adminMarketingAPI.getPixels(),
+    ])
+      .then(([intRes, pixRes]) => {
+        setIntegrations(intRes.integrations || []);
+        setPixels(pixRes.pixels || []);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const getPlatformIcon = (platform: AdIntegration['platform']) => {
     switch (platform) {
@@ -83,9 +84,22 @@ export default function AdsSocialMediaIntegration() {
         </p>
       </div>
 
-      {/* Integrations Grid */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading integrations...</p>
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2">
-        {integrations.map((integration) => (
+        {integrations.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No ad integrations yet.</p>
+          </div>
+        ) : integrations.map((integration) => (
           <div
             key={integration.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -139,6 +153,7 @@ export default function AdsSocialMediaIntegration() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Pixel Tracking */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
@@ -146,18 +161,18 @@ export default function AdsSocialMediaIntegration() {
           Conversion Tracking Pixels
         </h3>
         <div className="space-y-3">
-          {[
-            { name: 'Facebook Pixel', status: 'active', id: '123456789' },
-            { name: 'Google Analytics', status: 'active', id: 'GA-XXXXX' },
-            { name: 'TikTok Pixel', status: 'inactive', id: 'Not configured' },
-          ].map((pixel) => (
+          {pixels.length === 0 ? (
+            <p className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
+              No pixels from backend.
+            </p>
+          ) : pixels.map((pixel) => (
             <div
-              key={pixel.name}
+              key={pixel.id}
               className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
             >
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{pixel.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">ID: {pixel.id}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">ID: {pixel.pixelId || '—'}</p>
               </div>
               {pixel.status === 'active' ? (
                 <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />

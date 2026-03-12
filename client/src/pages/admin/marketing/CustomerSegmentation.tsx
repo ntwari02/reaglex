@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Users, Plus, Filter, Download, Eye, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Plus, Filter, Download, Eye } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 interface Segment {
   id: string;
@@ -9,33 +10,19 @@ interface Segment {
   createdAt: string;
 }
 
-const mockSegments: Segment[] = [
-  {
-    id: '1',
-    name: 'High-Value Customers',
-    filters: ['Total spent > $500', 'Orders > 5'],
-    userCount: 1245,
-    createdAt: '2024-03-10',
-  },
-  {
-    id: '2',
-    name: 'Abandoned Cart Users',
-    filters: ['Cart items > 0', 'Last login < 7 days'],
-    userCount: 3420,
-    createdAt: '2024-03-12',
-  },
-  {
-    id: '3',
-    name: 'Inactive Users',
-    filters: ['Last login > 30 days', 'No orders in 60 days'],
-    userCount: 8920,
-    createdAt: '2024-03-08',
-  },
-];
-
 export default function CustomerSegmentation() {
-  const [segments, setSegments] = useState<Segment[]>(mockSegments);
+  const [segments, setSegments] = useState<Segment[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminMarketingAPI
+      .getSegments()
+      .then((res) => setSegments(res.segments || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load segments'))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -56,9 +43,22 @@ export default function CustomerSegmentation() {
         </button>
       </div>
 
-      {/* Segments Grid */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading segments...</p>
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {segments.map((segment) => (
+        {segments.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No segments yet. Create one to get started.</p>
+          </div>
+        ) : segments.map((segment) => (
           <div
             key={segment.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -102,6 +102,7 @@ export default function CustomerSegmentation() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

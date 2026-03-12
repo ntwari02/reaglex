@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Ticket,
   Clock,
@@ -13,83 +14,139 @@ import {
   Bell,
 } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
+import { adminSupportAPI } from '@/lib/api';
+import { staggerContainer, staggerItem, fadeInUp } from './supportAnimations';
 
-// Mock data
-const mockMetrics = {
-  totalOpenTickets: 142,
-  newTicketsToday: 23,
-  averageResponseTime: '2.5 hours',
-  pendingDisputes: 18,
-  escalatedCases: 7,
-  fraudAlerts: 3,
-  autoClosedCases: 45,
-  satisfactionScore: 4.6,
-};
-
-const mockRealTime = {
-  activeChats: 12,
-  staffOnline: 8,
-  highPriorityCases: 5,
-  systemAlerts: 2,
-};
-
-const mockDistributionData = {
-  ticketsByCategory: [
-    { label: 'Payment', value: 45 },
-    { label: 'Delivery', value: 38 },
-    { label: 'Product Quality', value: 32 },
-    { label: 'Refund', value: 28 },
-    { label: 'Technical', value: 15 },
-    { label: 'Other', value: 12 },
-  ],
-  disputesByReason: [
-    { label: 'Item Not Received', value: 8 },
-    { label: 'Wrong Item', value: 5 },
-    { label: 'Not as Described', value: 3 },
-    { label: 'Shipping Delay', value: 2 },
-  ],
-  frequentProductIssues: [
-    { label: 'Defective Products', value: 15 },
-    { label: 'Wrong Size', value: 12 },
-    { label: 'Color Mismatch', value: 8 },
-    { label: 'Missing Parts', value: 5 },
-  ],
-  problematicSellers: [
-    { label: 'Seller A', value: 12 },
-    { label: 'Seller B', value: 8 },
-    { label: 'Seller C', value: 6 },
-    { label: 'Seller D', value: 4 },
-  ],
+const defaultDistribution = {
+  ticketsByCategory: [] as { label: string; value: number }[],
+  disputesByReason: [] as { label: string; value: number }[],
+  frequentProductIssues: [] as { label: string; value: number }[],
+  problematicSellers: [] as { label: string; value: number }[],
 };
 
 export default function SupportDashboard() {
   const [selectedChart, setSelectedChart] = useState<'tickets' | 'disputes' | 'products' | 'sellers'>('tickets');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState({
+    totalOpenTickets: 0,
+    newTicketsToday: 0,
+    averageResponseTime: '0 hours',
+    pendingDisputes: 0,
+    escalatedCases: 0,
+    fraudAlerts: 0,
+    autoClosedCases: 0,
+    satisfactionScore: 0,
+  });
+  const [realTime, setRealTime] = useState({
+    activeChats: 0,
+    staffOnline: 0,
+    highPriorityCases: 0,
+    systemAlerts: 0,
+  });
+  const [distribution, setDistribution] = useState(defaultDistribution);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    adminSupportAPI
+      .getDashboard()
+      .then((res) => {
+        if (cancelled) return;
+        setMetrics({
+          totalOpenTickets: Number(res.metrics.totalOpenTickets) ?? 0,
+          newTicketsToday: Number(res.metrics.newTicketsToday) ?? 0,
+          averageResponseTime: String(res.metrics.averageResponseTime ?? '0 hours'),
+          pendingDisputes: Number(res.metrics.pendingDisputes) ?? 0,
+          escalatedCases: Number(res.metrics.escalatedCases) ?? 0,
+          fraudAlerts: Number(res.metrics.fraudAlerts) ?? 0,
+          autoClosedCases: Number(res.metrics.autoClosedCases) ?? 0,
+          satisfactionScore: Number(res.metrics.satisfactionScore) ?? 0,
+        });
+        setRealTime({
+          activeChats: res.realTime?.activeChats ?? 0,
+          staffOnline: res.realTime?.staffOnline ?? 0,
+          highPriorityCases: res.realTime?.highPriorityCases ?? 0,
+          systemAlerts: res.realTime?.systemAlerts ?? 0,
+        });
+        setDistribution({
+          ticketsByCategory: res.distribution?.ticketsByCategory ?? [],
+          disputesByReason: res.distribution?.disputesByReason ?? [],
+          frequentProductIssues: res.distribution?.frequentProductIssues ?? [],
+          problematicSellers: res.distribution?.problematicSellers ?? [],
+        });
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message ?? 'Failed to load dashboard');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getChartData = () => {
     switch (selectedChart) {
       case 'tickets':
-        return mockDistributionData.ticketsByCategory;
+        return distribution.ticketsByCategory.length ? distribution.ticketsByCategory : [{ label: 'No data', value: 1 }];
       case 'disputes':
-        return mockDistributionData.disputesByReason;
+        return distribution.disputesByReason.length ? distribution.disputesByReason : [{ label: 'No data', value: 1 }];
       case 'products':
-        return mockDistributionData.frequentProductIssues;
+        return distribution.frequentProductIssues.length ? distribution.frequentProductIssues : [{ label: 'No data', value: 1 }];
       case 'sellers':
-        return mockDistributionData.problematicSellers;
+        return distribution.problematicSellers.length ? distribution.problematicSellers : [{ label: 'No data', value: 1 }];
       default:
-        return mockDistributionData.ticketsByCategory;
+        return distribution.ticketsByCategory.length ? distribution.ticketsByCategory : [{ label: 'No data', value: 1 }];
     }
   };
 
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex min-h-[200px] items-center justify-center"
+      >
+        <motion.p
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-gray-500 dark:text-gray-400"
+        >
+          Loading dashboard...
+        </motion.p>
+      </motion.div>
+    );
+  }
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20"
+      >
+        <p className="text-red-700 dark:text-red-300">{error}</p>
+      </motion.div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+    >
       {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+      <motion.div variants={staggerItem} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Open Tickets</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockMetrics.totalOpenTickets}
+                {metrics.totalOpenTickets}
               </p>
             </div>
             <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/40">
@@ -100,14 +157,14 @@ export default function SupportDashboard() {
             <span className="text-emerald-600 dark:text-emerald-400">+12%</span>
             <span className="text-gray-500 dark:text-gray-400">from last week</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">New Tickets Today</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockMetrics.newTicketsToday}
+                {metrics.newTicketsToday}
               </p>
             </div>
             <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/40">
@@ -118,14 +175,14 @@ export default function SupportDashboard() {
             <span className="text-blue-600 dark:text-blue-400">+5</span>
             <span className="text-gray-500 dark:text-gray-400">since yesterday</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Avg Response Time</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockMetrics.averageResponseTime}
+                {metrics.averageResponseTime}
               </p>
             </div>
             <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/40">
@@ -136,14 +193,14 @@ export default function SupportDashboard() {
             <span className="text-emerald-600 dark:text-emerald-400">-15%</span>
             <span className="text-gray-500 dark:text-gray-400">improvement</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Pending Disputes</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockMetrics.pendingDisputes}
+                {metrics.pendingDisputes}
               </p>
             </div>
             <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/40">
@@ -154,14 +211,14 @@ export default function SupportDashboard() {
             <span className="text-red-600 dark:text-red-400">-3</span>
             <span className="text-gray-500 dark:text-gray-400">resolved today</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Escalated Cases</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockMetrics.escalatedCases}
+                {metrics.escalatedCases}
               </p>
             </div>
             <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/40">
@@ -171,14 +228,14 @@ export default function SupportDashboard() {
           <div className="mt-4 flex items-center gap-2 text-sm">
             <span className="text-purple-600 dark:text-purple-400">Requires attention</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Fraud Alerts</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockMetrics.fraudAlerts}
+                {metrics.fraudAlerts}
               </p>
             </div>
             <div className="rounded-full bg-orange-100 p-3 dark:bg-orange-900/40">
@@ -188,14 +245,14 @@ export default function SupportDashboard() {
           <div className="mt-4 flex items-center gap-2 text-sm">
             <span className="text-orange-600 dark:text-orange-400">Action required</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Auto-closed Cases</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockMetrics.autoClosedCases}
+                {metrics.autoClosedCases}
               </p>
             </div>
             <div className="rounded-full bg-teal-100 p-3 dark:bg-teal-900/40">
@@ -205,14 +262,14 @@ export default function SupportDashboard() {
           <div className="mt-4 flex items-center gap-2 text-sm">
             <span className="text-teal-600 dark:text-teal-400">This week</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Satisfaction Score</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockMetrics.satisfactionScore}
+                {metrics.satisfactionScore}
               </p>
             </div>
             <div className="rounded-full bg-cyan-100 p-3 dark:bg-cyan-900/40">
@@ -223,12 +280,12 @@ export default function SupportDashboard() {
             <span className="text-emerald-600 dark:text-emerald-400">+0.3</span>
             <span className="text-gray-500 dark:text-gray-400">from last month</span>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Real-Time Indicators */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
+      <motion.div variants={staggerItem} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-emerald-100 p-2 dark:bg-emerald-900/40">
               <MessageSquare className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -236,13 +293,13 @@ export default function SupportDashboard() {
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Live Active Chats</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {mockRealTime.activeChats}
+                {realTime.activeChats}
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900/40">
               <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -250,13 +307,13 @@ export default function SupportDashboard() {
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Staff Online</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {mockRealTime.staffOnline}
+                {realTime.staffOnline}
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-red-100 p-2 dark:bg-red-900/40">
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -264,13 +321,13 @@ export default function SupportDashboard() {
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">High Priority</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {mockRealTime.highPriorityCases}
+                {realTime.highPriorityCases}
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} whileHover={{ scale: 1.02 }} className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-amber-100 p-2 dark:bg-amber-900/40">
               <Bell className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -278,15 +335,20 @@ export default function SupportDashboard() {
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">System Alerts</p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {mockRealTime.systemAlerts}
+                {realTime.systemAlerts}
               </p>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Support Distribution Chart */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+      <motion.div
+        variants={fadeInUp}
+        initial="initial"
+        animate="animate"
+        className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
+      >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Support Distribution
@@ -310,8 +372,8 @@ export default function SupportDashboard() {
         <div className="h-64">
           <BarChart data={getChartData()} />
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

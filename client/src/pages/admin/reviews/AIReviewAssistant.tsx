@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Shield,
@@ -6,55 +6,53 @@ import {
   TrendingUp,
   Target,
   Lightbulb,
-  Zap,
   BarChart3,
 } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
+
+const featureIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  'auto-moderate': Shield,
+  'summarize': FileText,
+  'sentiment': TrendingUp,
+  'suggest-actions': Target,
+  'predict-problems': Lightbulb,
+  'insights-report': BarChart3,
+};
 
 export default function AIReviewAssistant() {
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; enabled: boolean }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const aiFeatures = [
-    {
-      icon: Shield,
-      title: 'Auto-Moderate Reviews',
-      description: 'Automatically detect and flag inappropriate content',
-      enabled: true,
-    },
-    {
-      icon: FileText,
-      title: 'Summarize Long Reviews',
-      description: 'AI-generated summaries for lengthy reviews',
-      enabled: true,
-    },
-    {
-      icon: TrendingUp,
-      title: 'Detect Emotional Tone',
-      description: 'Analyze sentiment and emotional context',
-      enabled: true,
-    },
-    {
-      icon: Target,
-      title: 'Suggest Actions',
-      description: 'Recommend moderation actions based on AI analysis',
-      enabled: false,
-    },
-    {
-      icon: Lightbulb,
-      title: 'Predict Seller Problems',
-      description: 'Identify potential issues before they escalate',
-      enabled: false,
-    },
-    {
-      icon: BarChart3,
-      title: 'Generate Insights Report',
-      description: 'Auto-generate comprehensive review insights',
-      enabled: true,
-    },
-  ];
+  useEffect(() => {
+    adminReviewsAPI.getAISettings()
+      .then((res) => {
+        setAiEnabled(res.aiEnabled !== false);
+        setFeatures(Array.isArray(res.features) ? res.features : []);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleToggleAi = () => {
+    const next = !aiEnabled;
+    setAiEnabled(next);
+    setSaving(true);
+    adminReviewsAPI.updateAISettings({ aiEnabled: next, features }).finally(() => setSaving(false));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Loading AI settings...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">AI Review Assistant</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -62,11 +60,16 @@ export default function AIReviewAssistant() {
         </p>
       </div>
 
-      {/* AI Toggle */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                 Enable AI Assistant
@@ -80,27 +83,27 @@ export default function AIReviewAssistant() {
             <input
               type="checkbox"
               checked={aiEnabled}
-              onChange={(e) => setAiEnabled(e.target.checked)}
+              onChange={handleToggleAi}
+              disabled={saving}
               className="peer sr-only"
             />
-            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700"></div>
+            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-amber-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700"></div>
           </label>
         </div>
       </div>
 
-      {/* AI Features */}
       <div className="grid gap-4 md:grid-cols-2">
-        {aiFeatures.map((feature, index) => {
-          const Icon = feature.icon;
+        {features.map((feature) => {
+          const Icon = featureIcons[feature.id] || Sparkles;
           return (
             <div
-              key={index}
+              key={feature.id}
               className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
             >
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-emerald-100 p-2 dark:bg-emerald-900/40">
-                    <Icon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <div className="rounded-full bg-amber-100 p-2 dark:bg-amber-900/40">
+                    <Icon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">{feature.title}</h3>

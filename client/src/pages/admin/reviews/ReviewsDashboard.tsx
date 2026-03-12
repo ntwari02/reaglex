@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Star,
   Clock,
@@ -7,142 +8,160 @@ import {
   TrendingUp,
   Package,
   Users,
-  BarChart3,
 } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
-
-const mockStats = {
-  totalReviews: 12450,
-  pendingReviews: 245,
-  rejectedReviews: 89,
-  flaggedReviews: 32,
-  avgProductRating: 4.3,
-  avgSellerRating: 4.6,
-};
-
-const mockReviewActivity = [
-  { label: 'Mon', value: 45 },
-  { label: 'Tue', value: 52 },
-  { label: 'Wed', value: 38 },
-  { label: 'Thu', value: 61 },
-  { label: 'Fri', value: 48 },
-  { label: 'Sat', value: 35 },
-  { label: 'Sun', value: 28 },
-];
-
-const mockMostReviewed = [
-  { name: 'Premium Headphones', reviews: 245, rating: 4.8 },
-  { name: 'Smart Watch', reviews: 189, rating: 4.6 },
-  { name: 'Wireless Earbuds', reviews: 156, rating: 4.5 },
-];
+import { adminReviewsAPI } from '@/lib/api';
+import { staggerItem, statCardHover } from './reviewAnimations';
 
 export default function ReviewsDashboard() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalReviews: 0,
+    pendingReviews: 0,
+    rejectedReviews: 0,
+    flaggedReviews: 0,
+    avgProductRating: 0,
+    avgSellerRating: 0,
+  });
+  const [reviewActivity, setReviewActivity] = useState<{ label: string; value: number }[]>([]);
+  const [mostReviewed, setMostReviewed] = useState<{ name: string; reviews: number; rating: number }[]>([]);
+
+  useEffect(() => {
+    adminReviewsAPI
+      .getDashboard()
+      .then((res) => {
+        setStats(res.stats || ({} as typeof stats));
+        setReviewActivity(Array.isArray(res.reviewActivity) ? res.reviewActivity : []);
+        setMostReviewed(Array.isArray(res.mostReviewed) ? res.mostReviewed : []);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load dashboard'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-900/20">
+        <p className="text-red-700 dark:text-red-300">{error}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" initial="initial" animate="animate" variants={{ animate: { transition: { staggerChildren: 0.05 } } }}>
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900" whileHover={statCardHover.hover} whileTap={statCardHover.tap}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Reviews</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.totalReviews.toLocaleString()}
+                {stats.totalReviews.toLocaleString()}
               </p>
             </div>
             <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/40">
               <Star className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900" whileHover={statCardHover.hover} whileTap={statCardHover.tap}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Pending Approval</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.pendingReviews}
+                {stats.pendingReviews}
               </p>
             </div>
             <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/40">
               <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900" whileHover={statCardHover.hover} whileTap={statCardHover.tap}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Avg Product Rating</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.avgProductRating}
+                {stats.avgProductRating}
               </p>
             </div>
             <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/40">
               <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900" whileHover={statCardHover.hover} whileTap={statCardHover.tap}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Avg Seller Rating</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.avgSellerRating}
+                {stats.avgSellerRating}
               </p>
             </div>
             <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/40">
               <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900" whileHover={statCardHover.hover} whileTap={statCardHover.tap}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Rejected</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.rejectedReviews}
+                {stats.rejectedReviews}
               </p>
             </div>
             <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/40">
               <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900" whileHover={statCardHover.hover} whileTap={statCardHover.tap}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Flagged</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.flaggedReviews}
+                {stats.flaggedReviews}
               </p>
             </div>
             <div className="rounded-full bg-orange-100 p-3 dark:bg-orange-900/40">
               <AlertTriangle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Charts and Lists */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
             Review Activity
           </h3>
           <div className="h-64">
-            <BarChart data={mockReviewActivity} />
+            <BarChart data={reviewActivity.length ? reviewActivity : [{ label: 'No data', value: 0 }]} />
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+        <motion.div variants={staggerItem} className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
             Most Reviewed Products
           </h3>
           <div className="space-y-3">
-            {mockMostReviewed.map((product, index) => (
+            {mostReviewed.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No review data yet.</p>
+            ) : mostReviewed.map((product, index) => (
               <div
                 key={index}
                 className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
@@ -167,9 +186,9 @@ export default function ReviewsDashboard() {
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

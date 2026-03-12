@@ -33,6 +33,15 @@ import blogRoutes from './src/routes/blogRoutes';
 import affiliateRoutes from './src/routes/affiliateRoutes';
 import trackingRoutes from './src/routes/trackingRoutes';
 import adminRoutes from './src/routes/adminRoutes';
+import adminFinanceRoutes from './src/routes/adminFinanceRoutes';
+import adminSupportRoutes from './src/routes/adminSupportRoutes';
+import adminLogisticsRoutes from './src/routes/adminLogisticsRoutes';
+import adminNotificationsRoutes from './src/routes/adminNotificationsRoutes';
+import adminMarketingRoutes from './src/routes/adminMarketingRoutes';
+import adminReviewsRoutes from './src/routes/adminReviewsRoutes';
+import adminCollectionsRoutes from './src/routes/adminCollectionsRoutes';
+import adminProductsRoutes from './src/routes/adminProductsRoutes';
+import adminOrdersRoutes from './src/routes/adminOrdersRoutes';
 import paymentRoutes from './src/routes/paymentRoutes';
 import webhookRoutes from './src/routes/webhookRoutes';
 import './src/jobs/escrowJobs';
@@ -46,6 +55,9 @@ const MONGO_URI = process.env.MONGO_URI || '';
 // Basic validation to help during setup
 if (!MONGO_URI) {
   console.error('MONGO_URI is not set in .env');
+}
+if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  console.warn('SMTP_USER or SMTP_PASS not set; password reset and verification emails will not be sent. See server/EMAIL_SETUP.md.');
 }
 
 // Global middlewares
@@ -142,6 +154,15 @@ app.use('/api/track', trackingRoutes);
 app.use('/api/orders', buyerOrderRoutes);
 // Admin routes
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/finance', adminFinanceRoutes);
+app.use('/api/admin/support', adminSupportRoutes);
+app.use('/api/admin/logistics', adminLogisticsRoutes);
+app.use('/api/admin/notifications', adminNotificationsRoutes);
+app.use('/api/admin/marketing', adminMarketingRoutes);
+app.use('/api/admin/reviews', adminReviewsRoutes);
+app.use('/api/admin/collections', adminCollectionsRoutes);
+app.use('/api/admin/products', adminProductsRoutes);
+app.use('/api/admin/orders', adminOrdersRoutes);
 // Payments & escrow routes
 app.use('/api/payments', paymentRoutes);
 // Webhooks

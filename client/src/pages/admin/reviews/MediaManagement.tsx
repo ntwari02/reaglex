@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Image, Search, ZoomIn, RotateCcw, Trash2, AlertTriangle, Eye } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Image, Search, Trash2, AlertTriangle, Eye } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
 
 interface ReviewMedia {
   id: string;
@@ -12,33 +13,19 @@ interface ReviewMedia {
   uploadedAt: string;
 }
 
-const mockMedia: ReviewMedia[] = [
-  {
-    id: '1',
-    reviewId: 'rev-123',
-    customerName: 'John Doe',
-    productName: 'Premium Headphones',
-    imageUrl: 'image1.jpg',
-    flagged: false,
-    inappropriate: false,
-    uploadedAt: '2024-03-15T10:30:00',
-  },
-  {
-    id: '2',
-    reviewId: 'rev-456',
-    customerName: 'Jane Smith',
-    productName: 'Smart Watch',
-    imageUrl: 'image2.jpg',
-    flagged: true,
-    inappropriate: true,
-    uploadedAt: '2024-03-16T14:20:00',
-  },
-];
-
 export default function MediaManagement() {
-  const [media, setMedia] = useState<ReviewMedia[]>(mockMedia);
+  const [media, setMedia] = useState<ReviewMedia[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminReviewsAPI.getMedia()
+      .then((res) => setMedia(res.media || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredMedia = media.filter(
     (item) =>
@@ -58,7 +45,11 @@ export default function MediaManagement() {
         </p>
       </div>
 
-      {/* Search */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
         <input
@@ -70,9 +61,17 @@ export default function MediaManagement() {
         />
       </div>
 
-      {/* Media Grid */}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading media...</p>
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {filteredMedia.map((item) => (
+        {filteredMedia.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No review media yet.</p>
+          </div>
+        ) : filteredMedia.map((item) => (
           <div
             key={item.id}
             className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -104,6 +103,7 @@ export default function MediaManagement() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

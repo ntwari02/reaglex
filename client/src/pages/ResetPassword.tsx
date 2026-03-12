@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
-import { Lock, Mail, Check, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Lock, Check, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const PRIMARY = '#f97316';
 const SUCCESS = '#10b981';
 
@@ -21,6 +21,8 @@ function checkPasswordReqs(pw: string) {
 
 export function ResetPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tokenFromUrl = searchParams.get('token');
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const cardBg = isDark ? '#111420' : '#ffffff';
@@ -28,8 +30,6 @@ export function ResetPassword() {
     ? '0 0 0 1px rgba(255,255,255,0.06), 0 24px 48px -12px rgba(0,0,0,0.5)'
     : '0 0 0 1px rgba(0,0,0,0.04), 0 24px 48px -12px rgba(0,0,0,0.12)';
 
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -42,21 +42,14 @@ export function ResetPassword() {
   const reqs = checkPasswordReqs(password);
   const isPasswordValid = Object.values(reqs).every(Boolean);
   const match = confirmPassword.length ? password === confirmPassword : null;
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const codeValid = /^\d{6}$/.test(code);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    if (!emailValid) {
-      setError('Enter a valid email address.');
-      setLoading(false);
-      return;
-    }
-    if (!codeValid) {
-      setError('Enter the 6-digit code from your email.');
+    if (!tokenFromUrl?.trim()) {
+      setError('Invalid or expired reset link. Please request a new one from the forgot password page.');
       setLoading(false);
       return;
     }
@@ -72,23 +65,25 @@ export function ResetPassword() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+      const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code, password }),
+        credentials: 'include',
+        body: JSON.stringify({ token: tokenFromUrl.trim(), password }),
       });
       const data = await res.json();
+
       if (!res.ok) {
         setError(data.message || 'Failed to reset password.');
         setLoading(false);
         return;
       }
+
       setSuccess(true);
-      setLoading(false);
-      setTimeout(() => navigate('/auth?tab=login'), 2000);
+      setTimeout(() => navigate('/login'), 2000);
     } catch {
-      setError('Network error. Try again.');
+      setError('Network error. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -116,8 +111,15 @@ export function ResetPassword() {
               Set New Password
             </h2>
             <p className="text-[13px] mb-5" style={{ color: 'var(--text-muted)' }}>
-              Enter the 6-digit code from your email and choose a new password.
+              Use the link from your reset email to set a new password. If your link expired, request a new one.
             </p>
+
+            {!tokenFromUrl?.trim() && (
+              <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-200 text-sm">
+                This page is only valid when opened from the link in your reset email. If your link expired or you arrived here by mistake,{' '}
+                <Link to="/forgot-password" className="font-semibold underline hover:no-underline">request a new reset link</Link>.
+              </div>
+            )}
 
             {success ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-4">
@@ -132,33 +134,6 @@ export function ResetPassword() {
                     {error}
                   </div>
                 )}
-
-                <PremiumStyleInput
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={setEmail}
-                  placeholder="you@example.com"
-                  leftIcon={Mail}
-                  focused={focused === 'email'}
-                  onFocus={() => setFocused('email')}
-                  onBlur={() => setFocused(null)}
-                  valid={emailValid}
-                />
-
-                <PremiumStyleInput
-                  label="6-digit code"
-                  type="text"
-                  value={code}
-                  onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  leftIcon={Lock}
-                  focused={focused === 'code'}
-                  onFocus={() => setFocused('code')}
-                  onBlur={() => setFocused(null)}
-                  valid={codeValid}
-                  maxLength={6}
-                />
 
                 <PremiumStyleInput
                   label="New Password"
@@ -221,7 +196,7 @@ export function ResetPassword() {
 
                 <motion.button
                   type="submit"
-                  disabled={loading || !emailValid || !codeValid || !isPasswordValid || !confirmPassword || password !== confirmPassword}
+                  disabled={loading || success || !isPasswordValid || !confirmPassword || password !== confirmPassword || !tokenFromUrl?.trim()}
                   className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all"
                   style={{
                     background: PRIMARY,

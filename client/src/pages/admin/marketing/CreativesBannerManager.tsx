@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Image, Plus, Edit, Trash2, Calendar, Eye, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Image, Plus, Edit, Trash2 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 interface Creative {
   id: string;
@@ -13,32 +14,19 @@ interface Creative {
   status: 'active' | 'scheduled' | 'inactive';
 }
 
-const mockCreatives: Creative[] = [
-  {
-    id: '1',
-    name: 'Summer Sale Banner',
-    type: 'banner',
-    location: 'Homepage Top',
-    impressions: 125000,
-    clicks: 3420,
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'Product Carousel',
-    type: 'carousel',
-    location: 'Category Page',
-    impressions: 89200,
-    clicks: 1890,
-    scheduledFrom: '2024-03-20',
-    scheduledTo: '2024-03-30',
-    status: 'scheduled',
-  },
-];
-
 export default function CreativesBannerManager() {
-  const [creatives, setCreatives] = useState<Creative[]>(mockCreatives);
+  const [creatives, setCreatives] = useState<Creative[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminMarketingAPI
+      .getCreatives()
+      .then((res) => setCreatives(res.creatives || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load creatives'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const getStatusBadge = (status: Creative['status']) => {
     const styles = {
@@ -74,9 +62,22 @@ export default function CreativesBannerManager() {
         </button>
       </div>
 
-      {/* Creatives Grid */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading creatives...</p>
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {creatives.map((creative) => (
+        {creatives.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No creatives yet.</p>
+          </div>
+        ) : creatives.map((creative) => (
           <div
             key={creative.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -117,6 +118,7 @@ export default function CreativesBannerManager() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

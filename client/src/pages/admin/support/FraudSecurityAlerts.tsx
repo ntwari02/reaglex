@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   Shield,
   AlertTriangle,
@@ -10,6 +11,8 @@ import {
   Search,
   Eye,
 } from 'lucide-react';
+import { adminSupportAPI } from '@/lib/api';
+import { pageTransition } from './supportAnimations';
 
 interface Alert {
   id: string;
@@ -23,60 +26,35 @@ interface Alert {
   status: 'open' | 'investigating' | 'resolved' | 'dismissed';
 }
 
-const mockAlerts: Alert[] = [
-  {
-    id: '1',
-    type: 'seller',
-    severity: 'high',
-    title: 'High Refund Rate Detected',
-    description: 'Seller has 45% refund rate in the last 30 days',
-    entityName: 'Tech Store',
-    entityId: 'seller-123',
-    createdAt: '2024-03-17T10:30:00',
-    status: 'open',
-  },
-  {
-    id: '2',
-    type: 'buyer',
-    severity: 'medium',
-    title: 'Multiple Order Cancellations',
-    description: 'Buyer has cancelled 8 orders in the last week',
-    entityName: 'John Doe',
-    entityId: 'buyer-456',
-    createdAt: '2024-03-17T09:15:00',
-    status: 'investigating',
-  },
-  {
-    id: '3',
-    type: 'payment',
-    severity: 'high',
-    title: 'Suspicious Payment Pattern',
-    description: 'Multiple failed payment attempts from same IP',
-    entityName: 'Payment Gateway',
-    entityId: 'payment-789',
-    createdAt: '2024-03-16T14:20:00',
-    status: 'open',
-  },
-  {
-    id: '4',
-    type: 'dispute',
-    severity: 'medium',
-    title: 'Frequent Disputes',
-    description: 'Seller involved in 5 disputes this month',
-    entityName: 'Fashion Hub',
-    entityId: 'seller-321',
-    createdAt: '2024-03-15T11:00:00',
-    status: 'resolved',
-  },
-];
-
 export default function FraudSecurityAlerts() {
-  const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
 
-  const filteredAlerts = alerts.filter((alert) => {
+  const loadAlerts = useCallback(() => {
+    setLoading(true);
+    adminSupportAPI
+      .getAlerts({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        severity: severityFilter === 'all' ? undefined : severityFilter,
+        search: searchTerm || undefined,
+      })
+      .then((res) => setAlerts(res.alerts || []))
+      .catch(() => setAlerts([]))
+      .finally(() => setLoading(false));
+  }, [statusFilter, severityFilter, searchTerm]);
+
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
+
+  const updateAlertStatus = (alertId: string, status: string) => {
+    adminSupportAPI.updateAlertStatus(alertId, { status }).then(() => loadAlerts()).catch((err) => alert(err?.message));
+  };
+
+  const filteredAlerts = alerts.filter((alert: Alert) => {
     const matchesSearch =
       alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       alert.entityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,7 +108,12 @@ export default function FraudSecurityAlerts() {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Fraud & Security Alerts</h2>
@@ -232,7 +215,10 @@ export default function FraudSecurityAlerts() {
 
       {/* Alerts List */}
       <div className="space-y-4">
-        {filteredAlerts.map((alert) => (
+        {loading ? (
+          <p className="text-gray-500 dark:text-gray-400">Loading alerts...</p>
+        ) : (
+          filteredAlerts.map((alert) => (
           <div
             key={alert.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -264,20 +250,39 @@ export default function FraudSecurityAlerts() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <Eye className="mr-1 inline h-4 w-4" />
-                  View
-                </button>
-                <button className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <XCircle className="mr-1 inline h-4 w-4" />
-                  Dismiss
-                </button>
+                {alert.status === 'open' && (
+                  <button
+                    onClick={() => updateAlertStatus(alert.id, 'investigating')}
+                    className="rounded-lg border border-amber-200 px-3 py-1.5 text-sm font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300"
+                  >
+                    Investigating
+                  </button>
+                )}
+                {(alert.status === 'open' || alert.status === 'investigating') && (
+                  <button
+                    onClick={() => updateAlertStatus(alert.id, 'dismissed')}
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300"
+                  >
+                    <XCircle className="mr-1 inline h-4 w-4" />
+                    Dismiss
+                  </button>
+                )}
+                {(alert.status === 'open' || alert.status === 'investigating') && (
+                  <button
+                    onClick={() => updateAlertStatus(alert.id, 'resolved')}
+                    className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300"
+                  >
+                    <CheckCircle className="mr-1 inline h-4 w-4" />
+                    Resolve
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

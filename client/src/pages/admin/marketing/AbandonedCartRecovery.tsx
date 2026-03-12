@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  ShoppingCart,
   Mail,
   MessageSquare,
   Smartphone,
-  Clock,
-  DollarSign,
-  TrendingUp,
-  Settings,
 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 interface AbandonedCart {
   id: string;
@@ -21,33 +17,51 @@ interface AbandonedCart {
   recovered: boolean;
 }
 
-const mockCarts: AbandonedCart[] = [
-  {
-    id: '1',
-    customerName: 'John Doe',
-    customerEmail: 'john@example.com',
-    items: 3,
-    total: 149.99,
-    abandonedAt: '2 hours ago',
-    remindersSent: 0,
-    recovered: false,
-  },
-  {
-    id: '2',
-    customerName: 'Jane Smith',
-    customerEmail: 'jane@example.com',
-    items: 2,
-    total: 89.99,
-    abandonedAt: '5 hours ago',
-    remindersSent: 1,
-    recovered: false,
-  },
-];
+function formatAbandonedAt(date: string | Date): string {
+  if (!date) return '—';
+  const d = new Date(date);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+  return d.toLocaleDateString();
+}
 
 export default function AbandonedCartRecovery() {
-  const [carts, setCarts] = useState<AbandonedCart[]>(mockCarts);
+  const [carts, setCarts] = useState<AbandonedCart[]>([]);
   const [autoReminderEnabled, setAutoReminderEnabled] = useState(true);
   const [reminderTiming, setReminderTiming] = useState('1hr');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const loadCarts = () => {
+    adminMarketingAPI.getAbandonedCarts().then((res) => setCarts(res.carts || [])).catch(() => {});
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      adminMarketingAPI.getAbandonedCarts(),
+      adminMarketingAPI.getAbandonedCartSettings(),
+    ])
+      .then(([cartsRes, settingsRes]) => {
+        setCarts(cartsRes.carts || []);
+        setAutoReminderEnabled(settingsRes.autoReminderEnabled !== false);
+        setReminderTiming(settingsRes.reminderTiming || '1hr');
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSettingsSave = () => {
+    setSavingSettings(true);
+    adminMarketingAPI
+      .updateAbandonedCartSettings({ autoReminderEnabled, reminderTiming })
+      .then(() => {})
+      .finally(() => setSavingSettings(false));
+  };
 
   return (
     <div className="space-y-6">
@@ -100,6 +114,14 @@ export default function AbandonedCartRecovery() {
               </select>
             </div>
             <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleSettingsSave}
+                disabled={savingSettings}
+                className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+              >
+                {savingSettings ? 'Saving...' : 'Save settings'}
+              </button>
               <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
                 <Mail className="mr-1 inline h-4 w-4" />
                 Email
@@ -117,8 +139,16 @@ export default function AbandonedCartRecovery() {
         )}
       </div>
 
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
       {/* Abandoned Carts List */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow dark:border-gray-800 dark:bg-gray-900">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading abandoned carts...</div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
@@ -169,7 +199,7 @@ export default function AbandonedCartRecovery() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {cart.abandonedAt}
+                      {formatAbandonedAt(cart.abandonedAt)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -187,6 +217,7 @@ export default function AbandonedCartRecovery() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

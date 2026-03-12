@@ -31,6 +31,7 @@ import MarketingCenter from '@/pages/admin/marketing/MarketingCenter';
 import ReviewsCenter from '@/pages/admin/reviews/ReviewsCenter';
 import CollectionsCenter from '@/pages/admin/collections/CollectionsCenter';
 import { AdminProfile } from '@/pages/admin/AdminProfile';
+import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -142,6 +143,8 @@ const AdminDashboard: React.FC = () => {
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
       />
+
+      <DeviceApprovalPopup />
     </div>
   );
 };

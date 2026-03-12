@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Settings,
   Mail,
   MessageSquare,
   Smartphone,
@@ -9,20 +8,62 @@ import {
   Save,
   CheckCircle,
 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 export default function MarketingSettings() {
   const [saved, setSaved] = useState(false);
   const [budgetLimit, setBudgetLimit] = useState(10000);
   const [spamProtection, setSpamProtection] = useState(true);
+  const [smtp, setSmtp] = useState({ host: '', port: '' });
+  const [sms, setSms] = useState({ apiKey: '', apiSecret: '' });
+  const [push, setPush] = useState({ fcmKey: '' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    adminMarketingAPI
+      .getMarketingSettings()
+      .then((res) => {
+        setBudgetLimit(res.budgetLimit ?? 10000);
+        setSpamProtection(res.spamProtection !== false);
+        setSmtp(res.smtp || { host: '', port: '' });
+        setSms(res.sms || { apiKey: '', apiSecret: '' });
+        setPush(res.push || { fcmKey: '' });
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load settings'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setSaving(true);
+    setError(null);
+    adminMarketingAPI
+      .updateMarketingSettings({
+        budgetLimit,
+        spamProtection,
+        smtp,
+        sms,
+        push,
+      })
+      .then(() => {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to save'))
+      .finally(() => setSaving(false));
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Loading settings...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Marketing Settings</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -30,7 +71,12 @@ export default function MarketingSettings() {
         </p>
       </div>
 
-      {/* Email Provider */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-4 flex items-center gap-3">
           <Mail className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -44,6 +90,8 @@ export default function MarketingSettings() {
             <input
               type="text"
               placeholder="smtp.example.com"
+              value={smtp.host}
+              onChange={(e) => setSmtp((p) => ({ ...p, host: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -54,13 +102,14 @@ export default function MarketingSettings() {
             <input
               type="text"
               placeholder="587"
+              value={smtp.port}
+              onChange={(e) => setSmtp((p) => ({ ...p, port: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
         </div>
       </div>
 
-      {/* SMS API */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-4 flex items-center gap-3">
           <MessageSquare className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -73,6 +122,8 @@ export default function MarketingSettings() {
             </label>
             <input
               type="text"
+              value={sms.apiKey}
+              onChange={(e) => setSms((p) => ({ ...p, apiKey: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -82,13 +133,14 @@ export default function MarketingSettings() {
             </label>
             <input
               type="password"
+              value={sms.apiSecret}
+              onChange={(e) => setSms((p) => ({ ...p, apiSecret: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
         </div>
       </div>
 
-      {/* Push Notifications */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-4 flex items-center gap-3">
           <Smartphone className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -102,6 +154,8 @@ export default function MarketingSettings() {
           </label>
           <input
             type="text"
+            value={push.fcmKey}
+            onChange={(e) => setPush((p) => ({ ...p, fcmKey: e.target.value }))}
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
         </div>
@@ -152,11 +206,11 @@ export default function MarketingSettings() {
         </div>
       </div>
 
-      {/* Save Button */}
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl"
+          disabled={saving}
+          className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-50"
         >
           {saved ? (
             <>

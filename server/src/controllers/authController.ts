@@ -2,11 +2,112 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import speakeasy from 'speakeasy';
+import QRCode from 'qrcode';
 import { User } from '../models/User';
 import { PasswordResetToken } from '../models/PasswordResetToken';
-import { generateAuthToken } from '../utils/generateToken';
-import { sendPasswordResetCode } from '../utils/email';
+import { generateAuthToken, generate2FAPendingToken, verify2FAPendingToken, decodeAuthToken } from '../utils/generateToken';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { ActiveSession } from '../models/ActiveSession';
+import { PendingLoginRequest } from '../models/PendingLoginRequest';
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+  sendVerificationOtpEmail,
+  sendWelcomeEmail,
+  sendDeviceApprovalEmail,
+  isEmailConfigured,
+} from '../services/emailService';
+
+const APP_NAME = process.env.APP_NAME || 'Reaglex';
+
+/** Escape special regex chars so email can be used in RegExp safely */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Find user by email case-insensitively (needed for Google/OAuth emails with varying casing) */
+function findUserByEmailCaseInsensitive(email: string) {
+  const normalized = (email || '').trim();
+  if (!normalized) return User.findOne({ _id: null }); // no match
+  return User.findOne({ email: new RegExp('^' + escapeRegex(normalized) + '$', 'i') });
+}
+
+/** Get device info from request (for device session) */
+function getDeviceInfo(req: Request): { deviceId: string; userAgent: string; ipAddress: string } {
+  const deviceId = (req.body?.deviceId as string) || (req.get('x-device-id') as string) || 'unknown';
+  const userAgent = (req.get('user-agent') as string) || '';
+  const ipAddress = (req.get('x-forwarded-for') as string)?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress || '';
+  return { deviceId, userAgent, ipAddress };
+}
+
+const PENDING_REQUEST_EXPIRY_MS = 15 * 60 * 1000; // 15 min
+
+/** For admin/seller: either issue token and register session, or return requiresDeviceApproval */
+async function completeLoginWithDeviceSession(
+  user: InstanceType<typeof User>,
+  req: Request,
+  res: Response,
+  sendToken: (token: string) => void
+): Promise<boolean> {
+  const { deviceId, userAgent, ipAddress } = getDeviceInfo(req);
+  const existing = await ActiveSession.findOne({ userId: user._id });
+  const sameDevice = existing && existing.deviceId === deviceId;
+
+  if (!existing || sameDevice) {
+    const token = generateAuthToken(user);
+    const decoded = decodeAuthToken(token);
+    if (!decoded?.jti) {
+      sendToken(token);
+      return true;
+    }
+    await ActiveSession.findOneAndUpdate(
+      { userId: user._id },
+      {
+        tokenId: decoded.jti,
+        deviceId,
+        userAgent,
+        ipAddress,
+        lastActiveAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+    sendToken(token);
+    return true;
+  }
+
+  const requestId = crypto.randomBytes(16).toString('hex');
+  const emailApprovalToken = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + PENDING_REQUEST_EXPIRY_MS);
+  await PendingLoginRequest.create({
+    requestId,
+    userId: user._id,
+    deviceId,
+    userAgent,
+    ipAddress,
+    status: 'pending',
+    emailApprovalToken,
+    emailApprovalExpires: expiresAt,
+    expiresAt,
+  });
+  const deviceInfo = userAgent || 'Unknown device';
+  sendDeviceApprovalEmail({
+    to: user.email,
+    name: user.fullName,
+    approveToken: emailApprovalToken,
+    deviceInfo: deviceInfo.slice(0, 120),
+    ipAddress,
+    expiresIn: '15 minutes',
+  }).catch((e) => console.warn('[auth] device approval email failed', e));
+
+  res.status(200).json({
+    requiresDeviceApproval: true,
+    requestId,
+    email: user.email,
+    message: 'Your account is active on another device. Approve via email link or from the other device.',
+  });
+  return false;
+}
 
 const registerSchema = z.object({
   fullName: z.string().min(2).max(100),
@@ -39,33 +140,26 @@ export async function register(req: Request, res: Response) {
       email,
       passwordHash,
       role,
+      emailVerified: false,
       // For sellers, start as pending and unverified until government/admin approval
       sellerVerificationStatus: isSeller ? 'pending' : undefined,
       isSellerVerified: isSeller ? false : undefined,
     });
 
-    const token = generateAuthToken(user);
+    // Send verification email (non-blocking; do not fail registration if email fails)
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationExpires = verificationExpires;
+    await user.save();
+    sendVerificationEmail(user.email, user.fullName, verificationToken, '24 hours').then((r) => {
+      if (!r.success) console.warn('[auth] register: verification email failed', r.error);
+    }).catch((e) => console.warn('[auth] register: verification email error', e));
 
-    // Send token as both JSON and HTTP-only cookie for flexibility
-    res
-      .cookie('token', token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false, // set true behind HTTPS/proxy in production
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      })
-      .status(201)
-      .json({
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          sellerVerificationStatus: user.sellerVerificationStatus,
-          isSellerVerified: user.isSellerVerified,
-        },
-        token,
-      });
+    // Do not issue token or log user in until email is verified
+    res.status(201).json({
+      message: 'Account created. Please check your email and click the verification link before you can sign in.',
+    });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid data', errors: err.flatten() });
@@ -101,6 +195,15 @@ export async function login(req: Request, res: Response) {
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // Require email verification before sign-in (Gmail verification flow)
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        message: 'Please verify your email before signing in. Check your inbox for the verification link, or request a new one below.',
+        code: 'EMAIL_NOT_VERIFIED',
+        email: user.email,
+      });
     }
 
     // Record login history
@@ -148,6 +251,33 @@ export async function login(req: Request, res: Response) {
 
     await user.save();
 
+    // Seller and Admin: require 2FA for extra security
+    const isSellerOrAdmin = user.role === 'seller' || user.role === 'admin';
+    if (isSellerOrAdmin) {
+      const twoFactorEnabled = user.security?.twoFactorEnabled === true;
+      const tempToken = generate2FAPendingToken({
+        userId: user._id.toString(),
+        purpose: twoFactorEnabled ? '2fa' : '2fa-setup',
+        email: user.email,
+        role: user.role,
+      });
+      if (twoFactorEnabled) {
+        return res.status(200).json({
+          requires2FA: true,
+          tempToken,
+          email: user.email,
+          role: user.role,
+        });
+      }
+      // Admin: must set up 2FA before first use. Seller: must set up 2FA for secure access.
+      return res.status(200).json({
+        requires2FASetup: true,
+        tempToken,
+        email: user.email,
+        role: user.role,
+      });
+    }
+
     const token = generateAuthToken(user);
 
     res
@@ -178,6 +308,368 @@ export async function login(req: Request, res: Response) {
   }
 }
 
+/**
+ * POST /api/auth/verify-2fa
+ * Completes login for seller/admin after correct TOTP code.
+ */
+const verify2FASchema = z.object({
+  tempToken: z.string().min(1),
+  code: z.string().length(6).regex(/^\d{6}$/),
+  deviceId: z.string().optional(),
+});
+export async function verify2FA(req: Request, res: Response) {
+  try {
+    const { tempToken, code } = verify2FASchema.parse(req.body);
+    const payload = verify2FAPendingToken(tempToken);
+    if (!payload || payload.purpose !== '2fa') {
+      return res.status(400).json({ message: 'Invalid or expired session. Please sign in again.' });
+    }
+    const user = await User.findById(payload.userId).select('+security.twoFactorSecret');
+    if (!user || user.email !== payload.email) {
+      return res.status(400).json({ message: 'Invalid session. Please sign in again.' });
+    }
+    if (!user.security?.twoFactorSecret) {
+      return res.status(400).json({ message: '2FA is not set up. Please use the setup flow.' });
+    }
+    const valid = speakeasy.totp.verify({
+      secret: user.security.twoFactorSecret,
+      encoding: 'base32',
+      token: code,
+      window: 2,
+    });
+    if (!valid) {
+      return res.status(400).json({ message: 'Invalid verification code. Try again.' });
+    }
+    const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: false,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        })
+        .json({
+          user: {
+            id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            sellerVerificationStatus: user.sellerVerificationStatus,
+            isSellerVerified: user.isSellerVerified,
+            avatarUrl: user.avatarUrl,
+          },
+          token,
+        });
+    });
+    if (!completed) return;
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid request. Code must be 6 digits.' });
+    }
+    console.error('Verify 2FA error:', err);
+    return res.status(500).json({ message: 'Verification failed.' });
+  }
+}
+
+/**
+ * POST /api/auth/setup-2fa/start
+ * Start 2FA setup for seller/admin (with temp token from login). Returns QR code.
+ */
+export async function setup2FAStart(req: Request, res: Response) {
+  try {
+    const { tempToken } = z.object({ tempToken: z.string().min(1) }).parse(req.body);
+    const payload = verify2FAPendingToken(tempToken);
+    if (!payload || payload.purpose !== '2fa-setup') {
+      return res.status(400).json({ message: 'Invalid or expired session. Please sign in again.' });
+    }
+    const user = await User.findById(payload.userId).select('+security.twoFactorSecret');
+    if (!user || user.email !== payload.email) {
+      return res.status(400).json({ message: 'Invalid session. Please sign in again.' });
+    }
+    let secret = user.security?.twoFactorSecret;
+    if (!secret) {
+      secret = speakeasy.generateSecret({
+        name: `${user.fullName} (${APP_NAME})`,
+        length: 32,
+      }).base32;
+      if (!user.security) user.security = {} as any;
+      (user.security as any).twoFactorSecret = secret;
+      await user.save();
+    }
+    const otpAuthUrl = speakeasy.otpauthURL({
+      secret,
+      label: encodeURIComponent(`${user.fullName} (${APP_NAME})`),
+      issuer: APP_NAME,
+      encoding: 'base32',
+    });
+    const qrCode = await QRCode.toDataURL(otpAuthUrl);
+    return res.json({
+      qrCode,
+      manualEntryKey: secret ? secret.replace(/(.{4})/g, '$1 ').trim() : '',
+    });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid request.' });
+    }
+    console.error('Setup 2FA start error:', err);
+    return res.status(500).json({ message: 'Failed to start 2FA setup.' });
+  }
+}
+
+/**
+ * POST /api/auth/setup-2fa/confirm
+ * Verify TOTP code and enable 2FA, then issue full auth token.
+ */
+const setup2FAConfirmSchema = z.object({
+  tempToken: z.string().min(1),
+  code: z.string().length(6).regex(/^\d{6}$/),
+  deviceId: z.string().optional(),
+});
+export async function setup2FAConfirm(req: Request, res: Response) {
+  try {
+    const { tempToken, code } = setup2FAConfirmSchema.parse(req.body);
+    const payload = verify2FAPendingToken(tempToken);
+    if (!payload || payload.purpose !== '2fa-setup') {
+      return res.status(400).json({ message: 'Invalid or expired session. Please sign in again.' });
+    }
+    const user = await User.findById(payload.userId).select('+security.twoFactorSecret');
+    if (!user || user.email !== payload.email) {
+      return res.status(400).json({ message: 'Invalid session. Please sign in again.' });
+    }
+    if (!user.security?.twoFactorSecret) {
+      return res.status(400).json({ message: '2FA setup not started. Please request a new code from sign in.' });
+    }
+    const valid = speakeasy.totp.verify({
+      secret: user.security.twoFactorSecret,
+      encoding: 'base32',
+      token: code,
+      window: 2,
+    });
+    if (!valid) {
+      return res.status(400).json({ message: 'Invalid verification code. Try again.' });
+    }
+    (user.security as any).twoFactorEnabled = true;
+    (user.security as any).twoFactorMethod = 'app';
+    await user.save();
+    const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: false,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        })
+        .json({
+          user: {
+            id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            sellerVerificationStatus: user.sellerVerificationStatus,
+            isSellerVerified: user.isSellerVerified,
+            avatarUrl: user.avatarUrl,
+          },
+          token,
+        });
+    });
+    if (!completed) return;
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid request. Code must be 6 digits.' });
+    }
+    console.error('Setup 2FA confirm error:', err);
+    return res.status(500).json({ message: 'Failed to complete 2FA setup.' });
+  }
+}
+
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
+/** GET /api/auth/pending-login-requests – list pending device approval requests (for current user, first device) */
+export async function getPendingLoginRequests(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user?.id) return res.status(401).json({ message: 'Authentication required' });
+    if (req.user.role !== 'admin' && req.user.role !== 'seller') {
+      return res.status(403).json({ message: 'Not applicable to your role.' });
+    }
+    const pending = await PendingLoginRequest.find({
+      userId: req.user.id,
+      status: 'pending',
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    return res.json({
+      requests: pending.map((r) => ({
+        requestId: r.requestId,
+        deviceId: r.deviceId,
+        userAgent: r.userAgent,
+        ipAddress: r.ipAddress,
+        createdAt: r.createdAt,
+      })),
+    });
+  } catch (err: any) {
+    console.error('Get pending login requests error:', err);
+    return res.status(500).json({ message: 'Failed to load requests.' });
+  }
+}
+
+/** POST /api/auth/approve-pending-request – approve from first device */
+export async function approvePendingRequest(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { requestId } = z.object({ requestId: z.string().min(1) }).parse(req.body);
+    if (!req.user?.id) return res.status(401).json({ message: 'Authentication required' });
+    const pending = await PendingLoginRequest.findOne({
+      requestId,
+      userId: req.user.id,
+      status: 'pending',
+      expiresAt: { $gt: new Date() },
+    });
+    if (!pending) {
+      return res.status(400).json({ message: 'Request not found or expired.' });
+    }
+    const user = await User.findById(pending.userId);
+    if (!user) return res.status(400).json({ message: 'User not found.' });
+    const approvalToken = crypto.randomBytes(32).toString('hex');
+    const approvalTokenExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min
+    pending.status = 'approved';
+    pending.approvalToken = approvalToken;
+    pending.approvalTokenExpires = approvalTokenExpires;
+    await pending.save();
+    return res.json({
+      success: true,
+      message: 'Login approved. The other device can now sign in.',
+    });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request.' });
+    console.error('Approve pending request error:', err);
+    return res.status(500).json({ message: 'Failed to approve.' });
+  }
+}
+
+/** POST /api/auth/reject-pending-request */
+export async function rejectPendingRequest(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { requestId } = z.object({ requestId: z.string().min(1) }).parse(req.body);
+    if (!req.user?.id) return res.status(401).json({ message: 'Authentication required' });
+    const pending = await PendingLoginRequest.findOne({
+      requestId,
+      userId: req.user.id,
+      status: 'pending',
+    });
+    if (!pending) {
+      return res.status(400).json({ message: 'Request not found or expired.' });
+    }
+    pending.status = 'rejected';
+    await pending.save();
+    return res.json({ success: true, message: 'Login request rejected.' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request.' });
+    console.error('Reject pending request error:', err);
+    return res.status(500).json({ message: 'Failed to reject.' });
+  }
+}
+
+/** GET /api/auth/check-pending-request?requestId= – second device polls for approval */
+export async function checkPendingRequest(req: Request, res: Response) {
+  try {
+    const requestId = (req.query.requestId as string)?.trim();
+    if (!requestId) return res.status(400).json({ message: 'requestId required.' });
+    const pending = await PendingLoginRequest.findOne({ requestId }).lean();
+    if (!pending) {
+      return res.json({ approved: false, rejected: true, message: 'Request not found or expired.' });
+    }
+    if (pending.status === 'rejected') {
+      return res.json({ approved: false, rejected: true, message: 'Login was denied.' });
+    }
+    if (pending.status !== 'approved' || !pending.approvalToken || !pending.approvalTokenExpires) {
+      return res.json({ approved: false, message: 'Waiting for approval.' });
+    }
+    if (pending.approvalTokenExpires < new Date()) {
+      return res.json({ approved: false, rejected: true, message: 'Approval expired.' });
+    }
+    const user = await User.findById(pending.userId);
+    if (!user) return res.status(400).json({ message: 'User not found.' });
+    const token = generateAuthToken(user);
+    const decoded = decodeAuthToken(token);
+    if (decoded?.jti) {
+      await ActiveSession.findOneAndUpdate(
+        { userId: user._id },
+        {
+          tokenId: decoded.jti,
+          deviceId: pending.deviceId,
+          userAgent: pending.userAgent,
+          ipAddress: pending.ipAddress,
+          lastActiveAt: new Date(),
+        },
+        { upsert: true }
+      );
+    }
+    await PendingLoginRequest.updateOne(
+      { requestId },
+      { $unset: { approvalToken: 1, approvalTokenExpires: 1 } }
+    );
+    return res.json({
+      approved: true,
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        sellerVerificationStatus: user.sellerVerificationStatus,
+        isSellerVerified: user.isSellerVerified,
+        avatarUrl: user.avatarUrl,
+      },
+    });
+  } catch (err: any) {
+    console.error('Check pending request error:', err);
+    return res.status(500).json({ message: 'Failed to check status.' });
+  }
+}
+
+/** GET /api/auth/approve-device?token= – email link: exchange token for JWT and redirect */
+export async function approveDeviceByEmail(req: Request, res: Response) {
+  try {
+    const token = (req.query.token as string)?.trim();
+    if (!token) {
+      return res.redirect(`${CLIENT_URL}/login?error=invalid_approval_link`);
+    }
+    const pending = await PendingLoginRequest.findOne({
+      emailApprovalToken: token,
+      status: 'pending',
+      emailApprovalExpires: { $gt: new Date() },
+    });
+    if (!pending) {
+      return res.redirect(`${CLIENT_URL}/login?error=approval_link_expired`);
+    }
+    const user = await User.findById(pending.userId);
+    if (!user) return res.redirect(`${CLIENT_URL}/login?error=user_not_found`);
+    const authToken = generateAuthToken(user);
+    const decoded = decodeAuthToken(authToken);
+    if (decoded?.jti) {
+      await ActiveSession.findOneAndUpdate(
+        { userId: user._id },
+        {
+          tokenId: decoded.jti,
+          deviceId: pending.deviceId,
+          userAgent: pending.userAgent,
+          ipAddress: pending.ipAddress,
+          lastActiveAt: new Date(),
+        },
+        { upsert: true }
+      );
+    }
+    pending.status = 'approved';
+    pending.emailApprovalToken = undefined;
+    pending.emailApprovalExpires = undefined;
+    await pending.save();
+    return res.redirect(`${CLIENT_URL}/auth/approve-device-success?token=${encodeURIComponent(authToken)}`);
+  } catch (err: any) {
+    console.error('Approve device by email error:', err);
+    return res.redirect(`${CLIENT_URL}/login?error=approval_failed`);
+  }
+}
+
 export async function me(req: AuthenticatedRequest, res: Response) {
   if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
@@ -189,67 +681,6 @@ export async function me(req: AuthenticatedRequest, res: Response) {
   }
 
   return res.json({ user });
-}
-
-const forgotPasswordSchema = z.object({ email: z.string().email() });
-const resetPasswordSchema = z.object({
-  email: z.string().email(),
-  code: z.string().length(6, 'Code must be 6 digits').regex(/^\d{6}$/, 'Code must be 6 digits'),
-  password: z.string().min(6),
-});
-
-export async function forgotPassword(req: Request, res: Response) {
-  try {
-    const { email } = forgotPasswordSchema.parse(req.body);
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(200).json({ message: 'If an account exists with this email, you will receive a 6-digit code.' });
-    }
-    if (!user.passwordHash || user.passwordHash.trim() === '') {
-      return res.status(200).json({ message: 'If an account exists with this email, you will receive a 6-digit code.' });
-    }
-    // Delete any existing reset for this user
-    await PasswordResetToken.deleteMany({ userId: user._id });
-    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-    await PasswordResetToken.create({ userId: user._id, code, expiresAt });
-    const { ok, error } = await sendPasswordResetCode(user.email, code);
-    if (!ok) {
-      await PasswordResetToken.deleteOne({ userId: user._id, code });
-      return res.status(503).json({ message: error || 'Failed to send reset code. Try again later.' });
-    }
-    return res.status(200).json({ message: 'If an account exists with this email, you will receive a 6-digit code.' });
-  } catch (err: any) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ message: 'Invalid email' });
-    }
-    console.error('Forgot password error:', err);
-    return res.status(500).json({ message: 'Something went wrong. Try again later.' });
-  }
-}
-
-export async function resetPassword(req: Request, res: Response) {
-  try {
-    const { email, code, password } = resetPasswordSchema.parse(req.body);
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid email or code. Request a new code.' });
-    }
-    const record = await PasswordResetToken.findOne({ userId: user._id, code }).exec();
-    if (!record || record.expiresAt < new Date()) {
-      return res.status(400).json({ message: 'Invalid or expired code. Request a new one.' });
-    }
-    user.passwordHash = await bcrypt.hash(password, 10);
-    await user.save();
-    await PasswordResetToken.deleteOne({ userId: user._id, code });
-    return res.status(200).json({ message: 'Password updated. You can sign in with your new password.' });
-  } catch (err: any) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ message: 'Invalid data', errors: err.flatten() });
-    }
-    console.error('Reset password error:', err);
-    return res.status(500).json({ message: 'Something went wrong. Try again later.' });
-  }
 }
 
 /**
@@ -386,8 +817,9 @@ export async function googleCallback(req: Request, res: Response) {
       return res.redirect(`${CLIENT_URL}/login?error=no_email`);
     }
 
-    // Find user
-    let user = await User.findOne({ $or: [{ email }, { googleId }] });
+    // Find user (include verification fields for email-verification check)
+    let user = await User.findOne({ $or: [{ email }, { googleId }] })
+      .select('+emailVerificationToken +emailVerificationExpires');
 
     if (user) {
       // Check if user account is inactive or banned
@@ -407,6 +839,34 @@ export async function googleCallback(req: Request, res: Response) {
         console.log('No picture received from Google for user:', user.email);
       }
       await user.save();
+
+      // Buyers: no email verification when signing in with Google (Google already verified the email)
+      // Sellers/admins: require email verification (link or OTP)
+      if (!user.emailVerified) {
+        if (user.role === 'buyer') {
+          user.emailVerified = true;
+          user.emailVerificationToken = undefined;
+          user.emailVerificationExpires = undefined;
+          await user.save();
+          // Fall through to normal sign-in (no email sent, no redirect to verify page)
+        } else {
+          const needNewToken = !user.emailVerificationToken || !user.emailVerificationExpires || user.emailVerificationExpires < new Date();
+          if (needNewToken) {
+            const verificationToken = crypto.randomBytes(32).toString('hex');
+            const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            user.emailVerificationToken = verificationToken;
+            user.emailVerificationExpires = verificationExpires;
+            await user.save();
+            sendVerificationEmail(user.email, user.fullName, verificationToken, '24 hours').catch((e) =>
+              console.warn('[auth] Google callback: verification email failed', e)
+            );
+          }
+          const pendingUrl = new URL(`${CLIENT_URL}/verify-email-pending`);
+          pendingUrl.searchParams.set('email', user.email);
+          pendingUrl.searchParams.set('source', 'google');
+          return res.redirect(pendingUrl.toString());
+        }
+      }
     } else {
       // New user - redirect to role selection instead of creating immediately
       // Store Google info temporarily in a signed token
@@ -423,9 +883,6 @@ export async function googleCallback(req: Request, res: Response) {
       redirectUrl.searchParams.set('temp', tempToken);
       return res.redirect(redirectUrl.toString());
     }
-
-    // Generate JWT token
-    const token = generateAuthToken(user);
 
     // Record login history
     const clientIp = req.ip || req.socket.remoteAddress || (req.headers['x-forwarded-for'] as string)?.split(',')[0] || 'Unknown';
@@ -467,11 +924,28 @@ export async function googleCallback(req: Request, res: Response) {
 
     await user.save();
 
-    // Existing user - redirect to frontend with token in URL (avatarUrl is already updated above)
+    // Seller/Admin: require 2FA (same as password login)
+    const isSellerOrAdmin = user.role === 'seller' || user.role === 'admin';
+    if (isSellerOrAdmin) {
+      const twoFactorEnabled = user.security?.twoFactorEnabled === true;
+      const twoFATempToken = generate2FAPendingToken({
+        userId: user._id.toString(),
+        purpose: twoFactorEnabled ? '2fa' : '2fa-setup',
+        email: user.email,
+        role: user.role,
+      });
+      const redirectUrl = new URL(`${CLIENT_URL}/auth/google/callback`);
+      redirectUrl.searchParams.set(twoFactorEnabled ? 'requires2FA' : 'requires2FASetup', 'true');
+      redirectUrl.searchParams.set('tempToken', twoFATempToken);
+      redirectUrl.searchParams.set('email', user.email);
+      redirectUrl.searchParams.set('role', user.role);
+      return res.redirect(redirectUrl.toString());
+    }
+
+    const token = generateAuthToken(user);
     const redirectUrl = new URL(`${CLIENT_URL}/auth/google/callback`);
     redirectUrl.searchParams.set('token', token);
     redirectUrl.searchParams.set('success', 'true');
-    
     res.redirect(redirectUrl.toString());
   } catch (error: any) {
     console.error('Google callback error:', error);
@@ -516,7 +990,8 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
     console.log('Google info from temp token:', { googleId, email, name, picture });
 
     // Check if user was created in the meantime
-    let user = await User.findOne({ $or: [{ email }, { googleId }] });
+    let user = await User.findOne({ $or: [{ email }, { googleId }] })
+      .select('+emailVerificationToken +emailVerificationExpires');
     
     if (user) {
       // Check if user account is inactive or banned
@@ -526,7 +1001,36 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
         });
       }
 
-      // User already exists - update profile picture and login
+      // Buyers: no email verification (Google already verified). Sellers/admins: require verification.
+      if (!user.emailVerified) {
+        if (user.role === 'buyer') {
+          user.emailVerified = true;
+          user.emailVerificationToken = undefined;
+          user.emailVerificationExpires = undefined;
+          await user.save();
+          // Fall through to return token / 2FA check below (no email, no needsVerification)
+        } else {
+          const needNewToken = !user.emailVerificationToken || !user.emailVerificationExpires || user.emailVerificationExpires < new Date();
+          if (needNewToken) {
+            const verificationToken = crypto.randomBytes(32).toString('hex');
+            const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            user.emailVerificationToken = verificationToken;
+            user.emailVerificationExpires = verificationExpires;
+            await user.save();
+            sendVerificationEmail(user.email, user.fullName, verificationToken, '24 hours').catch((e) =>
+              console.warn('[auth] Google complete: verification email failed', e)
+            );
+          }
+          return res.json({
+            success: true,
+            needsVerification: true,
+            email: user.email,
+            message: 'Please verify your email. We sent a link to your inbox.',
+          });
+        }
+      }
+
+      // User already exists and is verified - update profile picture and login
       if (picture) {
         user.avatarUrl = picture;
         console.log('Updating existing user avatarUrl to:', picture);
@@ -534,6 +1038,25 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
         console.log('User saved with avatarUrl:', user.avatarUrl);
       } else {
         console.log('Warning: No picture in temp token for existing user');
+      }
+      // Seller/Admin: require 2FA (same as password login)
+      const isSellerOrAdmin = user.role === 'seller' || user.role === 'admin';
+      if (isSellerOrAdmin) {
+        const twoFactorEnabled = user.security?.twoFactorEnabled === true;
+        const twoFATempToken = generate2FAPendingToken({
+          userId: user._id.toString(),
+          purpose: twoFactorEnabled ? '2fa' : '2fa-setup',
+          email: user.email,
+          role: user.role,
+        });
+        return res.json({
+          success: true,
+          requires2FA: twoFactorEnabled,
+          requires2FASetup: !twoFactorEnabled,
+          tempToken: twoFATempToken,
+          email: user.email,
+          role: user.role,
+        });
       }
       const token = generateAuthToken(user);
       return res.json({
@@ -551,80 +1074,325 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
       });
     }
 
-    // Create new user with selected role
+    // Create new user with selected role. Buyers: no email verification (Google verified). Sellers: require verification.
     const isSeller = role === 'seller';
+    const isBuyer = role === 'buyer';
     console.log('Creating new user with Google picture:', picture);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     user = await User.create({
       fullName: name || email.split('@')[0],
       email,
       googleId,
       passwordHash: '', // OAuth users don't need password
       role,
-      avatarUrl: picture || undefined, // Save picture if available
+      avatarUrl: picture || undefined,
+      emailVerified: isBuyer, // Buyer: trust Google. Seller/admin: require verification.
+      emailVerificationToken: isBuyer ? undefined : verificationToken,
+      emailVerificationExpires: isBuyer ? undefined : verificationExpires,
       sellerVerificationStatus: isSeller ? 'pending' : undefined,
       isSellerVerified: isSeller ? false : undefined,
     });
     console.log('User created with avatarUrl:', user.avatarUrl);
 
-    // Generate JWT token
-    const token = generateAuthToken(user);
-
-    // Record login history
-    const clientIp = req.ip || req.socket.remoteAddress || (req.headers['x-forwarded-for'] as string)?.split(',')[0] || 'Unknown';
-    const userAgent = req.headers['user-agent'] || 'Unknown';
-    
-    let device = 'Unknown';
-    if (userAgent.includes('Mobile') || userAgent.includes('Android') || userAgent.includes('iPhone')) {
-      device = 'Mobile Device';
-    } else if (userAgent.includes('Windows')) {
-      device = 'Windows';
-    } else if (userAgent.includes('Mac')) {
-      device = 'Mac';
-    } else if (userAgent.includes('Linux')) {
-      device = 'Linux';
+    if (!isBuyer) {
+      sendVerificationEmail(user.email, user.fullName, verificationToken, '24 hours').then((r) => {
+        if (!r.success) console.warn('[auth] Google register: verification email failed', r.error);
+      }).catch((e) => console.warn('[auth] Google register: verification email error', e));
     }
 
-    let browser = 'Unknown';
-    if (userAgent.includes('Chrome')) browser = 'Chrome';
-    else if (userAgent.includes('Firefox')) browser = 'Firefox';
-    else if (userAgent.includes('Safari')) browser = 'Safari';
-    else if (userAgent.includes('Edge')) browser = 'Edge';
-
-    const deviceInfo = `${browser} on ${device}`;
-
-    if (!user.security.loginHistory) {
-      user.security.loginHistory = [];
+    if (isBuyer) {
+      const token = generateAuthToken(user);
+      return res.status(201).json({
+        success: true,
+        token,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          sellerVerificationStatus: user.sellerVerificationStatus,
+          isSellerVerified: user.isSellerVerified,
+          avatarUrl: user.avatarUrl,
+        },
+      });
     }
-
-    user.security.loginHistory.unshift({
-      date: new Date(),
-      ip: clientIp,
-      device: deviceInfo,
-      userAgent: userAgent,
-    });
-
-    if (user.security.loginHistory.length > 50) {
-      user.security.loginHistory = user.security.loginHistory.slice(0, 50);
-    }
-
-    await user.save();
-
-    res.json({
+    return res.status(201).json({
       success: true,
-      token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        sellerVerificationStatus: user.sellerVerificationStatus,
-        isSellerVerified: user.isSellerVerified,
-      },
+      needsVerification: true,
+      email: user.email,
+      message: 'Account created. Please check your email and click the verification link before signing in.',
     });
   } catch (error: any) {
     console.error('Complete Google registration error:', error);
     res.status(500).json({ message: 'Failed to complete registration' });
   }
+}
+
+const forgotPasswordSchema = z.object({ email: z.string().email() });
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * POST /api/auth/forgot-password
+ * Sends a password reset email with a secure token. Rate-limited at route level.
+ */
+export async function forgotPassword(req: Request, res: Response) {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+
+    const user = await User.findOne({ email }).select('_id fullName email passwordHash');
+    if (!user) {
+      // Do not reveal whether email exists
+      return res.status(200).json({ message: 'If an account exists with this email, you will receive a reset link shortly.' });
+    }
+
+    if (!user.passwordHash || user.passwordHash.trim() === '') {
+      return res.status(200).json({ message: 'If an account exists with this email, you will receive a reset link shortly.' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
+
+    await PasswordResetToken.deleteMany({ userId: user._id });
+    await PasswordResetToken.create({
+      userId: user._id,
+      token,
+      expiresAt,
+    });
+
+    const result = await sendPasswordResetEmail(
+      user.email,
+      user.fullName,
+      token,
+      '1 hour'
+    );
+
+    if (!result.success) {
+      console.error('[auth] forgotPassword send email failed:', result.error);
+      return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' });
+    }
+
+    return res.status(200).json({ message: 'If an account exists with this email, you will receive a reset link shortly.' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid email address' });
+    }
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again later.' });
+  }
+}
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6),
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Validates token and sets new password.
+ */
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const { token, password } = resetPasswordSchema.parse(req.body);
+
+    const resetDoc = await PasswordResetToken.findOne({
+      token,
+      used: { $ne: true },
+      expiresAt: { $gt: new Date() },
+    }).populate('userId', 'email passwordHash');
+
+    if (!resetDoc || !resetDoc.userId) {
+      return res.status(400).json({ message: 'Invalid or expired reset link. Please request a new one.' });
+    }
+
+    const user = await User.findById((resetDoc.userId as any)._id);
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset link. Please request a new one.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    user.passwordHash = passwordHash;
+    user.security.lastPasswordChangeAt = new Date();
+    await user.save();
+
+    resetDoc.used = true;
+    await resetDoc.save();
+
+    return res.status(200).json({ message: 'Password has been reset. You can now sign in.' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid request. Token and password (min 6 characters) are required.' });
+    }
+    console.error('Reset password error:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+}
+
+/**
+ * GET /api/auth/verify-email?token=...
+ * Verifies email using token sent on signup.
+ */
+export async function verifyEmail(req: Request, res: Response) {
+  try {
+    const token = (req.query.token as string)?.trim();
+    if (!token) {
+      return res.status(400).json({ message: 'Verification token is required.' });
+    }
+
+    const user = await User.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: new Date() },
+    }).select('+emailVerificationToken +emailVerificationExpires');
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired verification link.' });
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    sendWelcomeEmail(user.email, user.fullName).catch((e) => console.warn('[auth] welcome email error', e));
+
+    return res.status(200).json({ message: 'Email verified successfully. You can now sign in.' });
+  } catch (err: any) {
+    console.error('Verify email error:', err);
+    return res.status(500).json({ message: 'Verification failed. Please try again.' });
+  }
+}
+
+/**
+ * POST /api/auth/resend-verification
+ * Resends verification email for the authenticated user or by email in body.
+ * Security: does not reveal whether an account exists (same response for valid/invalid email when unauthenticated).
+ */
+export async function resendVerification(req: Request, res: Response) {
+  const genericSuccess = 'If an account exists with this email, you will receive a verification link shortly.';
+  try {
+    const email = (req.body?.email as string)?.trim();
+    let user: InstanceType<typeof User> | null = null;
+    if (email) {
+      user = await findUserByEmailCaseInsensitive(email).exec();
+      if (!user) {
+        return res.status(200).json({ message: genericSuccess });
+      }
+    } else if ((req as AuthenticatedRequest).user?.id) {
+      user = await User.findById((req as AuthenticatedRequest).user!.id);
+      if (!user) {
+        return res.status(400).json({ message: 'User not found.' });
+      }
+    } else {
+      return res.status(400).json({ message: 'Email is required or sign in first.' });
+    }
+    if (user.emailVerified) {
+      return res.status(400).json({ message: 'Email is already verified. You can sign in.' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    user.emailVerificationToken = token;
+    user.emailVerificationExpires = expiresAt;
+    await user.save();
+
+    const result = await sendVerificationEmail(user.email, user.fullName, token, '24 hours');
+    if (!result.success) {
+      return res.status(500).json({ message: 'Failed to send verification email. Try again later.' });
+    }
+    return res.status(200).json({ message: 'Verification email sent. Check your inbox.' });
+  } catch (err: any) {
+    console.error('Resend verification error:', err);
+    return res.status(500).json({ message: 'Failed to resend verification email.' });
+  }
+}
+
+const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * POST /api/auth/request-verification-otp
+ * Sends a 6-digit OTP to the user's email for verification (alternative to link).
+ * Security: same generic response when account not found to avoid email enumeration.
+ */
+const OTP_GENERIC_RESPONSE = 'If an account exists with this email, you will receive a verification code shortly.';
+export async function requestVerificationOtp(req: Request, res: Response) {
+  try {
+    const email = (req.body?.email as string)?.trim();
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+    const user = await findUserByEmailCaseInsensitive(email).select('+emailVerificationOtp +emailVerificationOtpExpires').exec();
+    if (!user) {
+      return res.status(200).json({ message: OTP_GENERIC_RESPONSE });
+    }
+    if (user.emailVerified) {
+      return res.status(400).json({ message: 'Email is already verified. You can sign in.' });
+    }
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+    user.emailVerificationOtp = code;
+    user.emailVerificationOtpExpires = expiresAt;
+    await user.save();
+    const result = await sendVerificationOtpEmail(user.email, user.fullName, code, '10 minutes');
+    if (!result.success) {
+      return res.status(500).json({ message: 'Failed to send verification code. Try again later.' });
+    }
+    return res.status(200).json({ message: 'Verification code sent to your email. It expires in 10 minutes.' });
+  } catch (err: any) {
+    console.error('Request verification OTP error:', err);
+    return res.status(500).json({ message: 'Failed to send verification code.' });
+  }
+}
+
+/**
+ * POST /api/auth/verify-email-otp
+ * Verifies email using the 6-digit OTP and marks user as verified.
+ */
+export async function verifyEmailWithOtp(req: Request, res: Response) {
+  try {
+    const schema = z.object({ email: z.string().email(), code: z.string().length(6) });
+    const { email, code } = schema.parse(req.body);
+    const user = await findUserByEmailCaseInsensitive(email).select('+emailVerificationOtp +emailVerificationOtpExpires').exec();
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or code.' });
+    }
+    if (user.emailVerified) {
+      return res.status(200).json({ message: 'Email verified successfully. You can now sign in.' });
+    }
+    if (!user.emailVerificationOtp || !user.emailVerificationOtpExpires) {
+      return res.status(400).json({ message: 'No verification code was sent. Request a new code.' });
+    }
+    if (user.emailVerificationOtpExpires < new Date()) {
+      user.emailVerificationOtp = undefined;
+      user.emailVerificationOtpExpires = undefined;
+      await user.save();
+      return res.status(400).json({ message: 'Verification code expired. Request a new code.' });
+    }
+    if (user.emailVerificationOtp !== code) {
+      return res.status(400).json({ message: 'Invalid verification code.' });
+    }
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    user.emailVerificationOtp = undefined;
+    user.emailVerificationOtpExpires = undefined;
+    await user.save();
+    sendWelcomeEmail(user.email, user.fullName).catch((e) => console.warn('[auth] welcome email error', e));
+    return res.status(200).json({ message: 'Email verified successfully. You can now sign in.' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Email and a 6-digit code are required.' });
+    }
+    console.error('Verify email OTP error:', err);
+    return res.status(500).json({ message: 'Verification failed.' });
+  }
+}
+
+/**
+ * GET /api/auth/email-config
+ * Check if email (SMTP) is configured (for frontend to show/hide email features).
+ */
+export function emailConfig(_req: Request, res: Response) {
+  return res.json({ configured: isEmailConfigured() });
 }
 
 

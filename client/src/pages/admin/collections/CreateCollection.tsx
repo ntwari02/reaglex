@@ -7,6 +7,7 @@ import {
   PlusCircle,
   GripVertical,
 } from 'lucide-react';
+import { adminCollectionsAPI } from '@/lib/api';
 
 type CollectionType = 'manual' | 'automated';
 
@@ -14,7 +15,13 @@ export default function CreateCollection() {
   const [collectionType, setCollectionType] = useState<CollectionType>('manual');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [slug, setSlug] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
   const [rules, setRules] = useState<Array<{ id: string; field: string; operator: string; value: string }>>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const addRule = () => {
     setRules([
@@ -27,15 +34,62 @@ export default function CreateCollection() {
     setRules(rules.filter((r) => r.id !== id));
   };
 
+  const handleCreate = async () => {
+    if (!title.trim()) {
+      setError('Enter a collection title');
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      const conditions = collectionType === 'automated'
+        ? rules.map((r) => ({ type: 'product', field: r.field || 'title', operator: r.operator || 'contains', value: r.value }))
+        : [];
+      await adminCollectionsAPI.createCollection({
+        name: title.trim(),
+        title: title.trim(),
+        description: description.trim() || undefined,
+        type: collectionType,
+        status: 'active',
+        conditions,
+        productIds: [],
+        slug: slug.trim() || undefined,
+        seoTitle: seoTitle.trim() || undefined,
+        seoDescription: seoDescription.trim() || undefined,
+      });
+      setSuccess(true);
+      setTitle('');
+      setDescription('');
+      setSlug('');
+      setSeoTitle('');
+      setSeoDescription('');
+      setRules([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create collection');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div data-tab="create">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create Collection</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Create a new manual or automated collection
+          Create a new manual or automated collection (saved to database)
         </p>
       </div>
+      {error && (
+        <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
+          Collection created successfully.
+        </p>
+      )}
 
       {/* Collection Type Selection */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -129,15 +183,21 @@ export default function CreateCollection() {
                   className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
                 >
                   <GripVertical className="h-5 w-5 text-gray-400" />
-                  <select className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800">
-                    <option>Product title contains</option>
-                    <option>Product type is</option>
-                    <option>Product price is</option>
-                    <option>Product tag matches</option>
+                  <select
+                    value={rule.field}
+                    onChange={(e) => setRules((prev) => prev.map((r) => r.id === rule.id ? { ...r, field: e.target.value } : r))}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    <option value="title">Product title contains</option>
+                    <option value="type">Product type is</option>
+                    <option value="price">Product price is</option>
+                    <option value="tag">Product tag matches</option>
                   </select>
                   <input
                     type="text"
                     placeholder="Value"
+                    value={rule.value}
+                    onChange={(e) => setRules((prev) => prev.map((r) => r.id === rule.id ? { ...r, value: e.target.value } : r))}
                     className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
                   />
                   <button
@@ -183,6 +243,8 @@ export default function CreateCollection() {
             </label>
             <input
               type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
               placeholder="collection-slug"
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
@@ -193,6 +255,8 @@ export default function CreateCollection() {
             </label>
             <input
               type="text"
+              value={seoTitle}
+              onChange={(e) => setSeoTitle(e.target.value)}
               placeholder="SEO meta title"
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
@@ -202,6 +266,8 @@ export default function CreateCollection() {
               Meta Description
             </label>
             <textarea
+              value={seoDescription}
+              onChange={(e) => setSeoDescription(e.target.value)}
               placeholder="SEO meta description"
               rows={2}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -211,11 +277,20 @@ export default function CreateCollection() {
 
         {/* Actions */}
         <div className="flex justify-end gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
-          <button className="rounded-xl border border-gray-200 px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
-            Cancel
+          <button
+            type="button"
+            onClick={() => { setTitle(''); setDescription(''); setSlug(''); setSeoTitle(''); setSeoDescription(''); setError(null); setSuccess(false); }}
+            className="rounded-xl border border-gray-200 px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            Clear
           </button>
-          <button className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl">
-            Create Collection
+          <button
+            type="button"
+            disabled={saving || !title.trim()}
+            onClick={handleCreate}
+            className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-50"
+          >
+            {saving ? 'Creating...' : 'Create Collection'}
           </button>
         </div>
       </div>
