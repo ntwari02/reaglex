@@ -1,5 +1,6 @@
-import React from 'react';
-import { ArrowLeft, BarChart3, TrendingUp, DollarSign, ShoppingCart, Eye, Star, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, BarChart3, Eye, DollarSign, TrendingUp } from 'lucide-react';
+import { adminProductsAPI } from '@/lib/api';
 
 interface ProductAnalyticsProps {
   productId: string;
@@ -7,6 +8,18 @@ interface ProductAnalyticsProps {
 }
 
 export default function ProductAnalytics({ productId, onBack }: ProductAnalyticsProps) {
+  const [data, setData] = useState<{ productName: string; views: number; metrics: any } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminProductsAPI
+      .getProductAnalytics(productId)
+      .then((res) => setData({ productName: res.productName, views: res.views, metrics: res.metrics }))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [productId]);
+
+  const m = data?.metrics ?? {};
   return (
     <div className="space-y-6 pb-10">
       <div className="flex items-center gap-4">
@@ -18,13 +31,46 @@ export default function ProductAnalytics({ productId, onBack }: ProductAnalytics
         </button>
         <div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Product Analytics</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Performance metrics and insights</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {data?.productName ? `Metrics for ${data.productName}` : 'Performance metrics from database'}
+          </p>
         </div>
       </div>
-      <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center dark:border-gray-800 dark:bg-gray-900">
-        <BarChart3 className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-        <p className="text-gray-600 dark:text-gray-400">Product Analytics - Component in progress</p>
-      </div>
+      {loading ? (
+        <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Views</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{data?.views ?? 0}</p>
+              </div>
+              <Eye className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Sales</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{m.sales ?? 0}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Revenue</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">${(m.revenue ?? 0).toLocaleString()}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

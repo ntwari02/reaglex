@@ -62,12 +62,28 @@ export function SelectRole() {
         throw new Error(data.message || 'Failed to complete registration');
       }
 
+      // Email verification required (Google sign-up or existing unverified user)
+      if (data.needsVerification && data.email) {
+        showToast('Check your email for the verification link.', 'success');
+        navigate(`/verify-email-pending?email=${encodeURIComponent(data.email)}&source=google`);
+        setLoading(false);
+        return;
+      }
+
+      // Seller/Admin: 2FA required – redirect to callback page to complete 2FA
+      if ((data.requires2FA || data.requires2FASetup) && data.tempToken) {
+        const params = new URLSearchParams();
+        params.set(data.requires2FA ? 'requires2FA' : 'requires2FASetup', 'true');
+        params.set('tempToken', data.tempToken);
+        params.set('email', data.email || '');
+        params.set('role', data.role || '');
+        navigate(`/auth/google/callback?${params.toString()}`);
+        setLoading(false);
+        return;
+      }
+
       // Store token and user info
       localStorage.setItem('auth_token', data.token);
-      
-      // Debug: Log the user data received from backend
-      console.log('[SelectRole] User data from /auth/google/complete:', data.user);
-      console.log('[SelectRole] Avatar URL:', data.user.avatarUrl);
       
       const userProfile = {
         id: data.user.id?.toString() || data.user._id?.toString() || '',
@@ -77,13 +93,10 @@ export function SelectRole() {
         seller_status: data.user.sellerVerificationStatus,
         seller_verified: data.user.isSellerVerified,
         phone: data.user.phone,
-        avatar_url: data.user.avatarUrl || data.user.avatar_url || null, // Try both camelCase and snake_case
+        avatar_url: data.user.avatarUrl || data.user.avatar_url || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-
-      console.log('[SelectRole] Mapped user profile:', userProfile);
-      console.log('[SelectRole] Avatar URL in profile:', userProfile.avatar_url);
 
       localStorage.setItem('user', JSON.stringify(userProfile));
       setUser(userProfile);
@@ -95,7 +108,6 @@ export function SelectRole() {
         'success'
       );
 
-      // Redirect based on role
       if (role === 'seller') {
         navigate('/seller');
       } else {

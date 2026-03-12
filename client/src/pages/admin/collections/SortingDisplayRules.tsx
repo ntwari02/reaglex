@@ -1,23 +1,57 @@
-import { useState } from 'react';
-import {
-  ArrowUpDown,
-  Star,
-  TrendingUp,
-  DollarSign,
-  Eye,
-  EyeOff,
-  Sparkles,
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowUpDown, Star, TrendingUp, DollarSign, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { adminCollectionsAPI } from '@/lib/api';
+
+const SORT_OPTIONS = [
+  { value: 'featured', label: 'Featured (Manual)', icon: Star },
+  { value: 'best_selling', label: 'Best Selling', icon: TrendingUp },
+  { value: 'newest', label: 'Newest', icon: Sparkles },
+  { value: 'oldest', label: 'Oldest', icon: Sparkles },
+  { value: 'price_asc', label: 'Price: Low to High', icon: DollarSign },
+  { value: 'price_desc', label: 'Price: High to Low', icon: DollarSign },
+  { value: 'name_asc', label: 'Name A–Z', icon: Sparkles },
+  { value: 'name_desc', label: 'Name Z–A', icon: Sparkles },
+] as const;
 
 export default function SortingDisplayRules() {
-  const [selectedCollection, setSelectedCollection] = useState('1');
-  const [sortOrder, setSortOrder] = useState('featured');
+  const [collections, setCollections] = useState<{ _id: string; name: string }[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState('');
+  const [sortOrder, setSortOrder] = useState<string>('featured');
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
   const [pushDiscounted, setPushDiscounted] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    adminCollectionsAPI
+      .getCollections()
+      .then((data) => {
+        const list = (data.collections || []).map((c: any) => ({ _id: c._id, name: c.name || c._id }));
+        setCollections(list);
+        if (list.length && !selectedCollection) setSelectedCollection(list[0]._id);
+      })
+      .catch(() => setCollections([]));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedCollection) return;
+    adminCollectionsAPI
+      .getCollection(selectedCollection)
+      .then((data) => setSortOrder((data.collection?.sortOrder as string) || 'featured'))
+      .catch(() => {});
+  }, [selectedCollection]);
+
+  const handleSortChange = (value: string) => {
+    setSortOrder(value);
+    if (!selectedCollection) return;
+    setSaving(true);
+    adminCollectionsAPI
+      .updateCollection(selectedCollection, { sort_order: value })
+      .then(() => setSaving(false))
+      .catch(() => setSaving(false));
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           Collection Sorting & Display Rules
@@ -27,7 +61,6 @@ export default function SortingDisplayRules() {
         </p>
       </div>
 
-      {/* Collection Selection */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <label className="mb-2 block text-sm font-semibold text-gray-900 dark:text-white">
           Select Collection
@@ -37,9 +70,10 @@ export default function SortingDisplayRules() {
           onChange={(e) => setSelectedCollection(e.target.value)}
           className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
         >
-          <option value="1">Summer Sale</option>
-          <option value="2">New Arrivals</option>
-          <option value="3">Best Sellers</option>
+          <option value="">Select collection</option>
+          {collections.map((c) => (
+            <option key={c._id} value={c._id}>{c.name}</option>
+          ))}
         </select>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DollarSign,
   TrendingUp,
@@ -16,6 +16,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
+import { adminFinanceAPI } from '@/lib/api';
 import SellerPayouts from './finance/SellerPayouts';
 import TransactionLogs from './finance/TransactionLogs';
 import PaymentGateways from './finance/PaymentGateways';
@@ -54,33 +55,42 @@ export default function PaymentsFinancial() {
   const [showPendingPayoutsModal, setShowPendingPayoutsModal] = useState(false);
   const [showExportLogsModal, setShowExportLogsModal] = useState(false);
   const [showConfigureGatewaysModal, setShowConfigureGatewaysModal] = useState(false);
+  const [dashboardData, setDashboardData] = useState<{
+    metrics: Record<string, number>;
+    revenueData: { date: string; value: number }[];
+    revenueStreams?: Record<string, number>;
+  } | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardTimeRange, setDashboardTimeRange] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
 
-  // Mock data for dashboard
-  const revenueData = [
-    { date: '2024-01-01', value: 12000 },
-    { date: '2024-01-08', value: 15000 },
-    { date: '2024-01-15', value: 18000 },
-    { date: '2024-01-22', value: 22000 },
-    { date: '2024-01-29', value: 25000 },
-    { date: '2024-02-05', value: 28000 },
-    { date: '2024-02-12', value: 32000 },
-    { date: '2024-02-19', value: 35000 },
-    { date: '2024-02-26', value: 38000 },
-    { date: '2024-03-05', value: 42000 },
-    { date: '2024-03-12', value: 45000 },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    setDashboardLoading(true);
+    adminFinanceAPI.getDashboard({ timeRange: dashboardTimeRange }).then((res) => {
+      if (!cancelled) {
+        setDashboardData({
+          metrics: res.metrics,
+          revenueData: res.revenueData || [],
+          revenueStreams: res.revenueStreams,
+        });
+      }
+      setDashboardLoading(false);
+    }).catch(() => setDashboardLoading(false));
+    return () => { cancelled = true; };
+  }, [activeTab === 'dashboard', dashboardTimeRange]);
 
-  const metrics = {
-    totalPlatformRevenue: 1250000,
-    totalSales: 12500,
-    totalCommissionEarned: 125000,
-    totalPayoutsToSellers: 1000000,
-    pendingPayouts: 50000,
-    availableBalance: 200000,
-    refundAmount: 15000,
-    totalTransactions: 12500,
-    failedTransactions: 45,
-    chargebacksCount: 12,
+  const revenueData = dashboardData?.revenueData ?? [];
+  const metrics = dashboardData?.metrics ?? {
+    totalPlatformRevenue: 0,
+    totalSales: 0,
+    totalCommissionEarned: 0,
+    totalPayoutsToSellers: 0,
+    pendingPayouts: 0,
+    availableBalance: 0,
+    refundAmount: 0,
+    totalTransactions: 0,
+    failedTransactions: 0,
+    chargebacksCount: 0,
   };
 
   const renderTabContent = () => {
@@ -90,10 +100,13 @@ export default function PaymentsFinancial() {
           <DashboardTab
             metrics={metrics}
             revenueData={revenueData}
+            revenueStreams={dashboardData?.revenueStreams}
+            loading={dashboardLoading}
             onGenerateReport={() => setShowGenerateReportModal(true)}
             onPendingPayouts={() => setShowPendingPayoutsModal(true)}
             onExportLogs={() => setShowExportLogsModal(true)}
             onConfigureGateways={() => setShowConfigureGatewaysModal(true)}
+            onTimeRangeChange={setDashboardTimeRange}
           />
         );
       case 'payouts':
@@ -182,19 +195,30 @@ export default function PaymentsFinancial() {
 function DashboardTab({
   metrics,
   revenueData,
+  revenueStreams,
+  loading,
   onGenerateReport,
   onPendingPayouts,
   onExportLogs,
   onConfigureGateways,
+  onTimeRangeChange,
 }: {
   metrics: any;
   revenueData: any[];
+  revenueStreams?: Record<string, number>;
+  loading?: boolean;
   onGenerateReport: () => void;
   onPendingPayouts: () => void;
   onExportLogs: () => void;
   onConfigureGateways: () => void;
+  onTimeRangeChange?: (range: 'daily' | 'weekly' | 'monthly') => void;
 }) {
   const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
+
+  const handleTimeRange = (range: 'daily' | 'weekly' | 'monthly') => {
+    setTimeRange(range);
+    onTimeRangeChange?.(range);
+  };
 
   return (
     <div className="space-y-6">
@@ -284,7 +308,7 @@ function DashboardTab({
             {['daily', 'weekly', 'monthly'].map((range) => (
               <button
                 key={range}
-                onClick={() => setTimeRange(range as any)}
+                onClick={() => handleTimeRange(range as 'daily' | 'weekly' | 'monthly')}
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
                   timeRange === range
                     ? 'bg-emerald-500 text-white'
@@ -297,12 +321,16 @@ function DashboardTab({
           </div>
         </div>
         <div>
-          <BarChart
-            data={revenueData}
-            height={300}
-            color="from-emerald-500 via-teal-500 to-cyan-500"
-            yAxisLabel="Revenue ($)"
-          />
+          {loading ? (
+            <div className="flex h-[300px] items-center justify-center text-gray-500 dark:text-gray-400">Loading...</div>
+          ) : (
+            <BarChart
+              data={revenueData}
+              height={300}
+              color="from-emerald-500 via-teal-500 to-cyan-500"
+              yAxisLabel="Revenue ($)"
+            />
+          )}
         </div>
       </div>
 
@@ -319,19 +347,27 @@ function DashboardTab({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">Transaction Fees</span>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">$37.5k</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                ${revenueStreams?.transactionFees != null ? (revenueStreams.transactionFees / 1000).toFixed(0) + 'k' : '37.5k'}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">Advertisement Payments</span>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">$15k</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                ${revenueStreams?.advertisementPayments != null ? (revenueStreams.advertisementPayments / 1000).toFixed(0) + 'k' : '15k'}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">Subscription Fees</span>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">$8k</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                ${revenueStreams?.subscriptionFees != null ? (revenueStreams.subscriptionFees / 1000).toFixed(0) + 'k' : '8k'}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">Penalties/Fines</span>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">$2.5k</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                ${revenueStreams?.penaltiesFines != null ? (revenueStreams.penaltiesFines / 1000).toFixed(0) + 'k' : '2.5k'}
+              </span>
             </div>
           </div>
         </div>
@@ -379,6 +415,11 @@ function GenerateReportModal({ onClose }: { onClose: () => void }) {
   const [paymentMethod, setPaymentMethod] = useState('all');
   const [exportFormat, setExportFormat] = useState('pdf');
   const [emailReport, setEmailReport] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    adminFinanceAPI.getSellersList().then((r) => setSellers(r.sellers || [])).catch(() => {});
+  }, []);
 
   const reportTypes = [
     { id: 'revenue', label: 'Revenue Report' },
@@ -394,9 +435,19 @@ function GenerateReportModal({ onClose }: { onClose: () => void }) {
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   const handleGenerate = () => {
-    // Generate report logic here
-    console.log('Generating report:', { reportType, selectedMonth, selectedYear, selectedSeller, paymentMethod, exportFormat, emailReport });
-    onClose();
+    setGenerating(true);
+    adminFinanceAPI.generateReport({
+      reportType,
+      month: selectedMonth,
+      year: selectedYear,
+      sellerId: selectedSeller || undefined,
+      paymentMethod: paymentMethod !== 'all' ? paymentMethod : undefined,
+      format: exportFormat,
+      emailReport,
+    }).then(() => {
+      setGenerating(false);
+      onClose();
+    }).catch(() => setGenerating(false));
   };
 
   return (
@@ -468,8 +519,9 @@ function GenerateReportModal({ onClose }: { onClose: () => void }) {
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="">All Sellers</option>
-                <option value="seller1">Seller 1</option>
-                <option value="seller2">Seller 2</option>
+                {sellers.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -558,10 +610,11 @@ function GenerateReportModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               onClick={handleGenerate}
-              className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl"
+              disabled={generating}
+              className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-70"
             >
               <Download className="mr-2 inline h-4 w-4" />
-              Generate & Download
+              {generating ? 'Generating...' : 'Generate & Download'}
             </button>
           </div>
         </div>
@@ -577,12 +630,21 @@ function PendingPayoutsModal({ onClose }: { onClose: () => void }) {
   const [amountRange, setAmountRange] = useState({ min: '', max: '' });
   const [dateFilter, setDateFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
-
-  const mockPayouts = [
-    { id: '1', seller: 'Tech Store', amount: 5000, balance: 15000, date: '2024-03-10', method: 'Mobile Money', reference: 'REF-001' },
-    { id: '2', seller: 'Fashion Hub', amount: 3200, balance: 8500, date: '2024-03-09', method: 'Bank Transfer', reference: 'REF-002' },
-    { id: '3', seller: 'Electronics Plus', amount: 7800, balance: 22000, date: '2024-03-08', method: 'PayPal', reference: 'REF-003' },
-  ];
+  const [payouts, setPayouts] = useState<{ id: string; seller: string; amount: number; balance?: number; date: string; method: string; reference?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    adminFinanceAPI.getPayouts({ status: 'pending', limit: 50 }).then((res) => {
+      setPayouts(res.payouts.map((p: any) => ({
+        id: p.id,
+        seller: p.sellerName || 'Unknown',
+        amount: p.amount,
+        balance: p.availableForWithdrawal,
+        date: p.requestedDate ? new Date(p.requestedDate).toISOString().slice(0, 10) : '',
+        method: p.paymentMethod || '',
+        reference: p.referenceId,
+      })));
+    }).catch(() => setPayouts([])).finally(() => setLoading(false));
+  }, []);
 
   const toggleSelectPayout = (id: string) => {
     setSelectedPayouts((prev) => {
@@ -693,12 +755,12 @@ function PendingPayoutsModal({ onClose }: { onClose: () => void }) {
                   <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedPayouts.size === mockPayouts.length}
+                      checked={selectedPayouts.size === payouts.length}
                       onChange={() => {
-                        if (selectedPayouts.size === mockPayouts.length) {
+                        if (selectedPayouts.size === payouts.length) {
                           setSelectedPayouts(new Set());
                         } else {
-                          setSelectedPayouts(new Set(mockPayouts.map((p) => p.id)));
+                          setSelectedPayouts(new Set(payouts.map((p) => p.id)));
                         }
                       }}
                       className="h-4 w-4 rounded border-gray-300 text-emerald-600"
@@ -714,7 +776,7 @@ function PendingPayoutsModal({ onClose }: { onClose: () => void }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                {mockPayouts.map((payout) => (
+                {payouts.map((payout) => (
                   <tr key={payout.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="px-4 py-3">
                       <input
@@ -779,10 +841,26 @@ function ExportLogsModal({ onClose }: { onClose: () => void }) {
   const [orderId, setOrderId] = useState('');
   const [exportFormat, setExportFormat] = useState('csv');
   const [emailExport, setEmailExport] = useState(false);
+  const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]);
+  const [exporting, setExporting] = useState(false);
+  useEffect(() => {
+    adminFinanceAPI.getSellersList().then((r) => setSellers(r.sellers || [])).catch(() => {});
+  }, []);
 
   const handleExport = () => {
-    console.log('Exporting logs:', { startDate, endDate, paymentStatus, paymentMethod, selectedSeller, orderId, exportFormat, emailExport });
-    onClose();
+    setExporting(true);
+    adminFinanceAPI.exportTransactionLogs({
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      paymentStatus: paymentStatus !== 'all' ? paymentStatus : undefined,
+      paymentMethod: paymentMethod !== 'all' ? paymentMethod : undefined,
+      sellerId: selectedSeller || undefined,
+      orderId: orderId || undefined,
+      format: exportFormat,
+    }).then(() => {
+      setExporting(false);
+      onClose();
+    }).catch(() => setExporting(false));
   };
 
   return (
@@ -851,8 +929,9 @@ function ExportLogsModal({ onClose }: { onClose: () => void }) {
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="">All Sellers</option>
-                <option value="seller1">Seller 1</option>
-                <option value="seller2">Seller 2</option>
+                {sellers.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -920,10 +999,11 @@ function ExportLogsModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               onClick={handleExport}
-              className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl"
+              disabled={exporting}
+              className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-70"
             >
               <Download className="mr-2 inline h-4 w-4" />
-              Export Logs
+              {exporting ? 'Exporting...' : 'Export Logs'}
             </button>
           </div>
         </div>

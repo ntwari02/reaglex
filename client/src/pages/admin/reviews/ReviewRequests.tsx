@@ -1,10 +1,40 @@
-import React, { useState } from 'react';
-import { Mail, Settings, Clock, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, TrendingUp, CheckCircle } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
 
 export default function ReviewRequests() {
   const [autoRequestEnabled, setAutoRequestEnabled] = useState(true);
   const [delayDays, setDelayDays] = useState(3);
-  const [conversionRate, setConversionRate] = useState(12.5);
+  const [requestsSent, setRequestsSent] = useState(0);
+  const [reviewsReceived, setReviewsReceived] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    adminReviewsAPI.getReviewRequestSettings()
+      .then((res) => {
+        setAutoRequestEnabled(res.autoRequestEnabled !== false);
+        setDelayDays(res.delayDays ?? 3);
+        setRequestsSent(res.requestsSent ?? 0);
+        setReviewsReceived(res.reviewsReceived ?? 0);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const conversionRate = requestsSent > 0 ? Math.round((reviewsReceived / requestsSent) * 1000) / 10 : 0;
+
+  const handleSave = () => {
+    setSaving(true);
+    adminReviewsAPI.updateReviewRequestSettings({ autoRequestEnabled, delayDays })
+      .then((res) => {
+        setRequestsSent(res.requestsSent);
+        setReviewsReceived(res.reviewsReceived);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to save'))
+      .finally(() => setSaving(false));
+  };
 
   return (
     <div className="space-y-6">
@@ -60,15 +90,34 @@ export default function ReviewRequests() {
             </div>
           </div>
         )}
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save settings'}
+          </button>
+        </div>
       </div>
 
-      {/* Stats */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Requests Sent</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">12,450</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{requestsSent.toLocaleString()}</p>
             </div>
             <Mail className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
           </div>
@@ -77,7 +126,7 @@ export default function ReviewRequests() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Reviews Received</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">1,556</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{reviewsReceived.toLocaleString()}</p>
             </div>
             <CheckCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
@@ -94,6 +143,7 @@ export default function ReviewRequests() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

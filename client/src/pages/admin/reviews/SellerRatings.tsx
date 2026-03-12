@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Star,
   Search,
-  TrendingDown,
-  TrendingUp,
   Eye,
   AlertTriangle,
-  BarChart3,
 } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
 
 interface SellerRating {
   id: string;
@@ -22,34 +20,18 @@ interface SellerRating {
   status: 'good' | 'warning' | 'poor';
 }
 
-const mockSellers: SellerRating[] = [
-  {
-    id: '1',
-    sellerName: 'Tech Store',
-    storeName: 'Tech Store Official',
-    overallRating: 4.8,
-    communication: 4.9,
-    shippingSpeed: 4.7,
-    productQuality: 4.8,
-    totalReviews: 245,
-    status: 'good',
-  },
-  {
-    id: '2',
-    sellerName: 'Fashion Hub',
-    storeName: 'Fashion Hub',
-    overallRating: 3.2,
-    communication: 3.0,
-    shippingSpeed: 3.5,
-    productQuality: 3.1,
-    totalReviews: 89,
-    status: 'poor',
-  },
-];
-
 export default function SellerRatings() {
-  const [sellers, setSellers] = useState<SellerRating[]>(mockSellers);
+  const [sellers, setSellers] = useState<SellerRating[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminReviewsAPI.getSellerRatings()
+      .then((res) => setSellers(res.sellers || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredSellers = sellers.filter(
     (seller) =>
@@ -100,7 +82,11 @@ export default function SellerRatings() {
         </p>
       </div>
 
-      {/* Search */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
         <input
@@ -112,9 +98,17 @@ export default function SellerRatings() {
         />
       </div>
 
-      {/* Sellers List */}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading seller ratings...</p>
+        </div>
+      ) : (
       <div className="space-y-4">
-        {filteredSellers.map((seller) => (
+        {filteredSellers.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No sellers found.</p>
+          </div>
+        ) : filteredSellers.map((seller) => (
           <div
             key={seller.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -176,6 +170,7 @@ export default function SellerRatings() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

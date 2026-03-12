@@ -16,6 +16,7 @@ import SupportCenter from '@/pages/seller/SupportCenter';
 import NotificationsPage from '@/pages/seller/NotificationsPage';
 import OrderDetailsPage from '@/pages/seller/OrderDetailsPage';
 import Notifications from '@/components/dashboard/Notifications';
+import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import { useAuthStore } from '../stores/authStore';
 
 const SellerDashboard: React.FC = () => {
@@ -142,6 +143,8 @@ const SellerDashboard: React.FC = () => {
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
       />
+
+      <DeviceApprovalPopup />
     </div>
   );
 };

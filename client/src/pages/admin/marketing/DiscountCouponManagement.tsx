@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Ticket,
   Plus,
@@ -9,9 +9,8 @@ import {
   Percent,
   DollarSign,
   Truck,
-  Calendar,
-  Users,
 } from 'lucide-react';
+import { adminMarketingAPI } from '@/lib/api';
 
 interface Coupon {
   id: string;
@@ -26,35 +25,26 @@ interface Coupon {
   applicableTo: string;
 }
 
-const mockCoupons: Coupon[] = [
-  {
-    id: '1',
-    code: 'SAVE20',
-    type: 'percentage',
-    value: 20,
-    minOrder: 50,
-    usageLimit: 1000,
-    usedCount: 245,
-    expiryDate: '2024-04-30',
-    status: 'active',
-    applicableTo: 'All Products',
-  },
-  {
-    id: '2',
-    code: 'FREESHIP',
-    type: 'free_shipping',
-    value: 0,
-    minOrder: 25,
-    expiryDate: '2024-05-15',
-    status: 'active',
-    applicableTo: 'All Orders',
-  },
-];
-
 export default function DiscountCouponManagement() {
-  const [coupons, setCoupons] = useState<Coupon[]>(mockCoupons);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    setError(null);
+    adminMarketingAPI
+      .getCoupons()
+      .then((res) => {
+        setCoupons(res.coupons || []);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load coupons'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
 
   const filteredCoupons = coupons.filter((coupon) =>
     coupon.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -117,8 +107,16 @@ export default function DiscountCouponManagement() {
         />
       </div>
 
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
       {/* Coupons Table */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow dark:border-gray-800 dark:bg-gray-900">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading coupons...</div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
@@ -207,6 +205,7 @@ export default function DiscountCouponManagement() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

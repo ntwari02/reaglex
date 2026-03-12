@@ -1,16 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   CheckCircle,
   XCircle,
-  Eye,
-  Edit,
-  Trash2,
   AlertTriangle,
   Search,
-  Filter,
   Sparkles,
 } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
 
 interface Review {
   id: string;
@@ -23,44 +20,35 @@ interface Review {
   aiScore?: number;
 }
 
-const mockReviews: Review[] = [
-  {
-    id: '1',
-    customerName: 'John Doe',
-    productName: 'Premium Headphones',
-    rating: 5,
-    message: 'Great product! Highly recommend.',
-    status: 'pending',
-    flagged: false,
-    aiScore: 0.95,
-  },
-  {
-    id: '2',
-    customerName: 'Jane Smith',
-    productName: 'Smart Watch',
-    rating: 1,
-    message: 'Terrible product, waste of money!',
-    status: 'pending',
-    flagged: true,
-    aiScore: 0.35,
-  },
-];
-
 export default function ReviewModeration() {
-  const [reviews, setReviews] = useState<Review[]>(mockReviews);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [autoModeration, setAutoModeration] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([
+      adminReviewsAPI.getModerationQueue(),
+      adminReviewsAPI.getModerationSettings(),
+    ])
+      .then(([queueRes, settingsRes]) => {
+        setReviews(queueRes.reviews || []);
+        setAutoModeration(settingsRes.autoModeration !== false);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
 
   const handleApprove = (id: string) => {
-    setReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'approved' as const } : r))
-    );
+    adminReviewsAPI.updateReviewStatus(id, 'approved').then(() => load()).catch(() => {});
   };
 
   const handleReject = (id: string) => {
-    setReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'rejected' as const } : r))
-    );
+    adminReviewsAPI.updateReviewStatus(id, 'rejected').then(() => load()).catch(() => {});
   };
 
   return (
@@ -80,7 +68,10 @@ export default function ReviewModeration() {
             <input
               type="checkbox"
               checked={autoModeration}
-              onChange={(e) => setAutoModeration(e.target.checked)}
+              onChange={(e) => {
+                setAutoModeration(e.target.checked);
+                adminReviewsAPI.updateModerationSettings({ autoModeration: e.target.checked }).catch(() => {});
+              }}
               className="peer sr-only"
             />
             <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700"></div>
@@ -88,7 +79,11 @@ export default function ReviewModeration() {
         </div>
       </div>
 
-      {/* Search */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
         <input
@@ -100,7 +95,11 @@ export default function ReviewModeration() {
         />
       </div>
 
-      {/* Reviews List */}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading moderation queue...</p>
+        </div>
+      ) : (
       <div className="space-y-4">
         {reviews
           .filter((r) =>
@@ -165,6 +164,7 @@ export default function ReviewModeration() {
             </div>
           ))}
       </div>
+      )}
     </div>
   );
 }

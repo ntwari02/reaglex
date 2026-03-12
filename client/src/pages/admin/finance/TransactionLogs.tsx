@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CreditCard, Search, Filter, Download, Eye, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { adminFinanceAPI } from '@/lib/api';
 
 type PaymentStatus = 'paid' | 'failed' | 'refunded';
 
@@ -19,74 +20,51 @@ interface Transaction {
   isHighRisk: boolean;
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: 'TXN-001',
-    transactionId: 'TXN-001',
-    orderId: 'ORD-001',
-    customerName: 'John Doe',
-    sellerName: 'TechHub Electronics',
-    paymentMethod: 'Card',
-    amount: 299.99,
-    commission: 29.99,
-    status: 'paid',
-    date: '2024-03-15',
-    referenceCode: 'REF-123456',
-    gateway: 'Stripe',
-    isHighRisk: false,
-  },
-  {
-    id: 'TXN-002',
-    transactionId: 'TXN-002',
-    orderId: 'ORD-002',
-    customerName: 'Jane Smith',
-    sellerName: 'Fashion Forward',
-    paymentMethod: 'PayPal',
-    amount: 149.99,
-    commission: 14.99,
-    status: 'paid',
-    date: '2024-03-16',
-    referenceCode: 'REF-789012',
-    gateway: 'PayPal',
-    isHighRisk: false,
-  },
-  {
-    id: 'TXN-003',
-    transactionId: 'TXN-003',
-    orderId: 'ORD-003',
-    customerName: 'Bob Johnson',
-    sellerName: 'HomeStyle',
-    paymentMethod: 'Mobile Money',
-    amount: 89.99,
-    commission: 8.99,
-    status: 'failed',
-    date: '2024-03-17',
-    referenceCode: 'REF-345678',
-    gateway: 'MTN Mobile Money',
-    isHighRisk: true,
-  },
-];
-
 export default function TransactionLogs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<[string, string]>(['', '']);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminFinanceAPI.getTransactions({
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      paymentMethod: paymentMethodFilter !== 'all' ? paymentMethodFilter : undefined,
+      startDate: dateRange[0] || undefined,
+      endDate: dateRange[1] || undefined,
+      search: searchQuery || undefined,
+      limit: 100,
+    }).then((res) => {
+      setTransactions(res.transactions.map((t: any) => ({
+        id: t.id,
+        transactionId: t.transactionId || t.id,
+        orderId: t.orderId || t.orderNumber || '',
+        customerName: t.customerName || 'Unknown',
+        sellerName: t.sellerName || 'Unknown',
+        paymentMethod: t.paymentMethod || 'Card',
+        amount: t.amount ?? 0,
+        commission: t.commission ?? 0,
+        status: t.status,
+        date: t.date ? new Date(t.date).toISOString().slice(0, 10) : '',
+        referenceCode: t.referenceCode || '',
+        gateway: t.gateway || 'Flutterwave',
+        isHighRisk: t.isHighRisk ?? false,
+      })));
+    }).catch(() => setTransactions([])).finally(() => setLoading(false));
+  }, [statusFilter, paymentMethodFilter, dateRange[0], dateRange[1]]);
 
   const filteredTransactions = useMemo(() => {
-    return mockTransactions.filter((txn) => {
-      const matchesSearch =
-        txn.transactionId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        txn.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        txn.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        txn.sellerName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || txn.status === statusFilter;
-      const matchesMethod = paymentMethodFilter === 'all' || txn.paymentMethod === paymentMethodFilter;
-      const matchesDate =
-        !dateRange[0] || !dateRange[1] || (txn.date >= dateRange[0] && txn.date <= dateRange[1]);
-      return matchesSearch && matchesStatus && matchesMethod && matchesDate;
-    });
-  }, [searchQuery, statusFilter, paymentMethodFilter, dateRange]);
+    if (!searchQuery) return transactions;
+    const s = searchQuery.toLowerCase();
+    return transactions.filter((txn) =>
+      txn.transactionId.toLowerCase().includes(s) ||
+      txn.orderId.toLowerCase().includes(s) ||
+      txn.customerName.toLowerCase().includes(s) ||
+      txn.sellerName.toLowerCase().includes(s)
+    );
+  }, [transactions, searchQuery]);
 
   const getStatusBadge = (status: PaymentStatus) => {
     const styles = {
@@ -158,6 +136,7 @@ export default function TransactionLogs() {
 
       {/* Transactions Table */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
+        {loading && <div className="p-4 text-center text-gray-500">Loading...</div>}
         <div className="overflow-x-auto overflow-y-hidden scroll-smooth [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:bg-gray-800">
@@ -176,6 +155,9 @@ export default function TransactionLogs() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {!loading && filteredTransactions.length === 0 && (
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-500">No transactions found</td></tr>
+              )}
               {filteredTransactions.map((txn) => (
                 <tr
                   key={txn.id}

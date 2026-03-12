@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthTokenPayload } from '../utils/generateToken';
 import { User } from '../models/User';
+import { ActiveSession } from '../models/ActiveSession';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -24,10 +25,10 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthTokenPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as AuthTokenPayload & { jti?: string };
     
     // Check if user account is still active
-    const user = await User.findById(decoded.id).select('accountStatus');
+    const user = await User.findById(decoded.id).select('accountStatus role');
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -37,6 +38,18 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
       return res.status(403).json({ 
         message: 'Your account has been deactivated. Please contact support for assistance.' 
       });
+    }
+
+    // Admin/Seller: single device session – token must match active session
+    if ((user.role === 'admin' || user.role === 'seller') && decoded.jti) {
+      const session = await ActiveSession.findOne({ userId: decoded.id });
+      if (!session || session.tokenId !== decoded.jti) {
+        return res.status(401).json({
+          message: 'Your session was replaced by another device. Please sign in again.',
+        });
+      }
+      session.lastActiveAt = new Date();
+      await session.save();
     }
     
     req.user = decoded;

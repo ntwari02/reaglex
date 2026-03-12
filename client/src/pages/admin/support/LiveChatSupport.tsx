@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { MessageSquare, Users, Clock, Search, Send, Paperclip, X, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { MessageSquare, Search, Send, X, User } from 'lucide-react';
+import { adminSupportAPI } from '@/lib/api';
+import { pageTransition } from './supportAnimations';
 
 interface Chat {
   id: string;
@@ -12,43 +15,19 @@ interface Chat {
   unreadCount: number;
 }
 
-const mockChats: Chat[] = [
-  {
-    id: '1',
-    customerName: 'John Doe',
-    customerEmail: 'john@example.com',
-    agentName: 'Sarah Johnson',
-    status: 'active',
-    lastMessage: 'I need help with my order',
-    lastMessageTime: '2 minutes ago',
-    unreadCount: 2,
-  },
-  {
-    id: '2',
-    customerName: 'Jane Smith',
-    customerEmail: 'jane@example.com',
-    status: 'waiting',
-    lastMessage: 'Hello, I have a question',
-    lastMessageTime: '5 minutes ago',
-    unreadCount: 1,
-  },
-  {
-    id: '3',
-    customerName: 'Bob Johnson',
-    customerEmail: 'bob@example.com',
-    agentName: 'Mike Wilson',
-    status: 'active',
-    lastMessage: 'Thank you for your help!',
-    lastMessageTime: '10 minutes ago',
-    unreadCount: 0,
-  },
-];
-
 export default function LiveChatSupport() {
-  const [chats, setChats] = useState<Chat[]>(mockChats);
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(chats[0]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminSupportAPI.getChats().then((res) => {
+      setChats(res.chats || []);
+      if ((res.chats || []).length > 0 && !selectedChat) setSelectedChat(res.chats[0]);
+    }).catch(() => setChats([])).finally(() => setLoading(false));
+  }, []);
 
   const filteredChats = chats.filter(
     (chat) =>
@@ -64,7 +43,12 @@ export default function LiveChatSupport() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-250px)] gap-4">
+    <motion.div
+      className="flex h-[calc(100vh-250px)] gap-4"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       {/* Chat List */}
       <div className="w-80 rounded-2xl border border-gray-200 bg-white shadow dark:border-gray-800 dark:bg-gray-900">
         <div className="border-b border-gray-200 p-4 dark:border-gray-800">
@@ -222,7 +206,7 @@ export default function LiveChatSupport() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Plug,
   CheckCircle,
   XCircle,
-  AlertTriangle,
   Settings,
   Activity,
-  ExternalLink,
 } from 'lucide-react';
+import { adminLogisticsAPI } from '@/lib/api';
+import { pageTransition, staggerContainer, staggerItem } from './logisticsAnimations';
 
 interface Integration {
   id: string;
@@ -18,42 +19,28 @@ interface Integration {
   errorCount: number;
 }
 
-const mockIntegrations: Integration[] = [
-  {
-    id: '1',
-    name: 'DHL API',
-    type: 'api',
-    status: 'connected',
-    lastSync: '2 minutes ago',
-    errorCount: 0,
-  },
-  {
-    id: '2',
-    name: 'FedEx API',
-    type: 'api',
-    status: 'connected',
-    lastSync: '5 minutes ago',
-    errorCount: 2,
-  },
-  {
-    id: '3',
-    name: 'UPS API',
-    type: 'api',
-    status: 'error',
-    lastSync: '1 hour ago',
-    errorCount: 15,
-  },
-  {
-    id: '4',
-    name: 'Local Courier API',
-    type: 'api',
-    status: 'disconnected',
-    errorCount: 0,
-  },
-];
-
 export default function SystemIntegrations() {
-  const [integrations, setIntegrations] = useState<Integration[]>(mockIntegrations);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadIntegrations = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminLogisticsAPI.getIntegrations();
+      setIntegrations(res.integrations ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load integrations');
+      setIntegrations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadIntegrations();
+  }, []);
 
   const getStatusBadge = (status: Integration['status']) => {
     const styles = {
@@ -69,78 +56,125 @@ export default function SystemIntegrations() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <motion.div
+      className="space-y-6"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">System Integrations</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Manage API connections and webhook integrations
+          Manage API connections and webhook integrations. Data from backend.
         </p>
       </div>
 
-      {/* Integrations Grid */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {integrations.map((integration) => (
-          <div
-            key={integration.id}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
-          >
-            <div className="mb-4 flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-emerald-100 p-2 dark:bg-emerald-900/40">
-                  <Plug className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{integration.name}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                    {integration.type}
-                  </p>
-                </div>
-              </div>
-              {getStatusBadge(integration.status)}
-            </div>
+      {error && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200"
+        >
+          {error}
+        </motion.p>
+      )}
 
-            {/* Status Info */}
-            <div className="space-y-2 mb-4">
-              {integration.lastSync && (
+      {loading ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"
+            >
+              <div className="h-6 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+              <div className="mt-4 h-4 w-24 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+            </div>
+          ))}
+        </div>
+      ) : integrations.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-gray-200 bg-white p-12 text-center dark:border-gray-800 dark:bg-gray-900"
+        >
+          <Plug className="mx-auto h-12 w-12 text-gray-400" />
+          <p className="mt-2 text-gray-600 dark:text-gray-400">No integrations found from the database.</p>
+        </motion.div>
+      ) : (
+        <motion.div
+          className="grid gap-4 md:grid-cols-2"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+        >
+          {integrations.map((integration, i) => (
+            <motion.div
+              key={integration.id}
+              variants={staggerItem}
+              transition={{ delay: i * 0.05 }}
+              className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
+              whileHover={{ y: -2, boxShadow: '0 12px 28px -8px rgb(0 0 0 / 0.12)' }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <div className="mb-4 flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-emerald-100 p-2 dark:bg-emerald-900/40">
+                    <Plug className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{integration.name}</h3>
+                    <p className="text-xs capitalize text-gray-500 dark:text-gray-400">
+                      {integration.type}
+                    </p>
+                  </div>
+                </div>
+                {getStatusBadge(integration.status)}
+              </div>
+
+              <div className="mb-4 space-y-2">
+                {integration.lastSync && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Last Sync</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {integration.lastSync}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Last Sync</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    {integration.lastSync}
+                  <span className="text-gray-600 dark:text-gray-400">Error Count</span>
+                  <span
+                    className={`font-semibold ${
+                      integration.errorCount > 0
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-emerald-600 dark:text-emerald-400'
+                    }`}
+                  >
+                    {integration.errorCount}
                   </span>
                 </div>
-              )}
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Error Count</span>
-                <span
-                  className={`font-semibold ${
-                    integration.errorCount > 0
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-emerald-600 dark:text-emerald-400'
-                  }`}
-                >
-                  {integration.errorCount}
-                </span>
               </div>
-            </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
-              <button className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                <Settings className="mr-1 inline h-4 w-4" />
-                Configure
-              </button>
-              <button className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                <Activity className="mr-1 inline h-4 w-4" />
-                View Logs
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+              <div className="flex gap-2">
+                <button className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
+                  <Settings className="mr-1 inline h-4 w-4" />
+                  Configure
+                </button>
+                <button className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
+                  <Activity className="mr-1 inline h-4 w-4" />
+                  View Logs
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
 
-      {/* Webhook Logs Section */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
+      <motion.div
+        className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
+        initial={pageTransition.initial}
+        animate={pageTransition.animate}
+        transition={pageTransition.transition}
+      >
         <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Webhook Logs</h3>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -169,8 +203,7 @@ export default function SystemIntegrations() {
             </div>
           ))}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
-

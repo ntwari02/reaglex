@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import {
   Folder,
   CheckCircle,
@@ -5,35 +6,64 @@ import {
   Eye,
 } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
-
-const mockStats = {
-  totalCollections: 156,
-  activeCollections: 142,
-  draftCollections: 14,
-  automatedCollections: 89,
-  manualCollections: 67,
-  homepageCollections: 24,
-  mostViewed: 'Summer Sale',
-};
-
-// Generate dates for the last 7 days
-const getDateString = (daysAgo: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString().split('T')[0];
-};
-
-const mockPerformance = [
-  { date: getDateString(6), value: 1250 },
-  { date: getDateString(5), value: 1890 },
-  { date: getDateString(4), value: 1520 },
-  { date: getDateString(3), value: 2100 },
-  { date: getDateString(2), value: 1780 },
-  { date: getDateString(1), value: 1650 },
-  { date: getDateString(0), value: 1420 },
-];
+import { adminCollectionsAPI } from '@/lib/api';
 
 export default function CollectionsDashboard() {
+  const [stats, setStats] = useState<Record<string, number | string> | null>(null);
+  const [performance, setPerformance] = useState<{ date: string; value: number }[]>([]);
+  const [mostViewedCollections, setMostViewedCollections] = useState<{ name: string; views: number; products: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    adminCollectionsAPI
+      .getDashboard()
+      .then((res) => {
+        if (cancelled) return;
+        setStats(res.stats ?? null);
+        setPerformance(res.performance ?? []);
+        setMostViewedCollections(res.mostViewedCollections ?? []);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load dashboard');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (error) {
+    return (
+      <div className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
+        {error}
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
+            >
+              <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+              <div className="mt-2 h-8 w-20 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const s = stats || {};
+
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
@@ -43,7 +73,7 @@ export default function CollectionsDashboard() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Collections</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.totalCollections}
+                {s.totalCollections ?? 0}
               </p>
             </div>
             <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/40">
@@ -57,7 +87,7 @@ export default function CollectionsDashboard() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.activeCollections}
+                {s.activeCollections ?? 0}
               </p>
             </div>
             <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/40">
@@ -71,7 +101,7 @@ export default function CollectionsDashboard() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Automated</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.automatedCollections}
+                {s.automatedCollections ?? 0}
               </p>
             </div>
             <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/40">
@@ -85,7 +115,7 @@ export default function CollectionsDashboard() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Homepage</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                {mockStats.homepageCollections}
+                {s.homepageCollections ?? 0}
               </p>
             </div>
             <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/40">
@@ -102,7 +132,7 @@ export default function CollectionsDashboard() {
             Performance Analytics
           </h3>
           <div className="h-64">
-            <BarChart data={mockPerformance} />
+            <BarChart data={performance.length ? performance : [{ date: new Date().toISOString().slice(0, 10), value: 0 }]} />
           </div>
         </div>
 
@@ -111,38 +141,37 @@ export default function CollectionsDashboard() {
             Most Viewed Collections
           </h3>
           <div className="space-y-3">
-            {[
-              { name: 'Summer Sale', views: 12500, products: 45 },
-              { name: 'New Arrivals', views: 9800, products: 32 },
-              { name: 'Best Sellers', views: 8700, products: 28 },
-            ].map((collection, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
-              >
-                <div className="flex items-center gap-3">
-                  <Folder className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {collection.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {collection.products} products
-                    </p>
+            {mostViewedCollections.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No collections yet.</p>
+            ) : (
+              mostViewedCollections.map((collection, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <Folder className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {collection.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {collection.products} products
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {(collection.views ?? 0).toLocaleString()}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {collection.views.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
-

@@ -1,27 +1,54 @@
-import React, { useState } from 'react';
-import { BarChart3, TrendingUp, Download, Mail, Share2, Ticket, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, Download, Mail, Share2, DollarSign } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
-
-const mockTrafficSources = [
-  { label: 'Organic', value: 45 },
-  { label: 'Social Media', value: 28 },
-  { label: 'Email', value: 15 },
-  { label: 'Direct', value: 12 },
-];
-
-const mockCampaignRevenue = [
-  { label: 'Flash Sale', value: 12500 },
-  { label: 'Black Friday', value: 18900 },
-  { label: 'Summer Sale', value: 8200 },
-  { label: 'New Year', value: 5600 },
-];
+import { adminMarketingAPI } from '@/lib/api';
 
 export default function MarketingAnalyticsSuite() {
   const [selectedChart, setSelectedChart] = useState<'traffic' | 'revenue'>('traffic');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [campaignRevenue, setCampaignRevenue] = useState(0);
+  const [emailOpenRate, setEmailOpenRate] = useState(0);
+  const [adSpend, setAdSpend] = useState(0);
+  const [roas, setRoas] = useState(0);
+  const [trafficSources, setTrafficSources] = useState<{ label: string; value: number }[]>([]);
+  const [campaignRevenueData, setCampaignRevenueData] = useState<{ label: string; value: number }[]>([]);
+
+  useEffect(() => {
+    adminMarketingAPI
+      .getAnalytics()
+      .then((res) => {
+        setCampaignRevenue(res.campaignRevenue ?? 0);
+        setEmailOpenRate(res.emailOpenRate ?? 0);
+        setAdSpend(res.adSpend ?? 0);
+        setRoas(res.roas ?? 0);
+        setTrafficSources(Array.isArray(res.trafficSources) ? res.trafficSources : []);
+        setCampaignRevenueData(Array.isArray(res.campaignRevenueData) ? res.campaignRevenueData : []);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load analytics'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Loading analytics...</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-900/20">
+        <p className="text-red-700 dark:text-red-300">{error}</p>
+      </div>
+    );
+  }
+
+  const trafficData = trafficSources.length ? trafficSources : [{ label: 'No data', value: 0 }];
+  const revenueData = campaignRevenueData.length ? campaignRevenueData : [{ label: 'No data', value: 0 }];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -37,13 +64,14 @@ export default function MarketingAnalyticsSuite() {
         </button>
       </div>
 
-      {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Campaign Revenue</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">$45,230</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                ${campaignRevenue.toLocaleString()}
+              </p>
             </div>
             <DollarSign className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
           </div>
@@ -52,7 +80,7 @@ export default function MarketingAnalyticsSuite() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Email Open Rate</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">42.5%</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{emailOpenRate}%</p>
             </div>
             <Mail className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
@@ -61,7 +89,9 @@ export default function MarketingAnalyticsSuite() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Ad Spend</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">$8,200</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                ${adSpend.toLocaleString()}
+              </p>
             </div>
             <Share2 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
           </div>
@@ -70,14 +100,13 @@ export default function MarketingAnalyticsSuite() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">ROAS</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">5.5x</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{roas}x</p>
             </div>
             <TrendingUp className="h-8 w-8 text-amber-600 dark:text-amber-400" />
           </div>
         </div>
       </div>
 
-      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="mb-4 flex items-center justify-between">
@@ -94,7 +123,7 @@ export default function MarketingAnalyticsSuite() {
             </button>
           </div>
           <div className="h-64">
-            <BarChart data={mockTrafficSources} />
+            <BarChart data={trafficData} />
           </div>
         </div>
 
@@ -115,7 +144,7 @@ export default function MarketingAnalyticsSuite() {
             </button>
           </div>
           <div className="h-64">
-            <BarChart data={mockCampaignRevenue} />
+            <BarChart data={revenueData} />
           </div>
         </div>
       </div>

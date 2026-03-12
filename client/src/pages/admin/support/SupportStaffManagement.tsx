@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
-  Users,
   UserPlus,
   Search,
   Eye,
   Edit,
-  MoreVertical,
   CheckCircle,
   Clock,
-  TrendingUp,
   XCircle,
 } from 'lucide-react';
+import { adminSupportAPI } from '@/lib/api';
+import { pageTransition, staggerContainer, staggerItem } from './supportAnimations';
 
 interface StaffMember {
   id: string;
@@ -25,49 +25,15 @@ interface StaffMember {
   permissions: string[];
 }
 
-const mockStaff: StaffMember[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah@example.com',
-    role: 'Senior Support Agent',
-    status: 'online',
-    ticketsSolved: 245,
-    avgResponseTime: '1.2 hours',
-    satisfactionScore: 4.8,
-    activeTickets: 12,
-    permissions: ['tickets', 'disputes', 'chat'],
-  },
-  {
-    id: '2',
-    name: 'Mike Wilson',
-    email: 'mike@example.com',
-    role: 'Support Agent',
-    status: 'online',
-    ticketsSolved: 189,
-    avgResponseTime: '2.1 hours',
-    satisfactionScore: 4.6,
-    activeTickets: 8,
-    permissions: ['tickets', 'chat'],
-  },
-  {
-    id: '3',
-    name: 'Emily Davis',
-    email: 'emily@example.com',
-    role: 'Support Agent',
-    status: 'away',
-    ticketsSolved: 156,
-    avgResponseTime: '2.5 hours',
-    satisfactionScore: 4.5,
-    activeTickets: 5,
-    permissions: ['tickets'],
-  },
-];
-
 export default function SupportStaffManagement() {
-  const [staff, setStaff] = useState<StaffMember[]>(mockStaff);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminSupportAPI.getStaff().then((res) => setStaff(res.staff || [])).catch(() => setStaff([])).finally(() => setLoading(false));
+  }, []);
 
   const filteredStaff = staff.filter(
     (member) =>
@@ -89,7 +55,12 @@ export default function SupportStaffManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -120,10 +91,21 @@ export default function SupportStaffManagement() {
       </div>
 
       {/* Staff Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {loading ? (
+        <p className="text-gray-500 dark:text-gray-400">Loading staff...</p>
+      ) : (
+      <motion.div
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+      >
         {filteredStaff.map((member) => (
-          <div
+          <motion.div
             key={member.id}
+            variants={staggerItem}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.99 }}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
           >
             <div className="mb-4 flex items-start justify-between">
@@ -174,10 +156,11 @@ export default function SupportStaffManagement() {
                 Edit
               </button>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
-    </div>
+      </motion.div>
+      )}
+    </motion.div>
   );
 }
 

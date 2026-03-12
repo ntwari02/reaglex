@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   Search,
@@ -6,10 +6,8 @@ import {
   UserX,
   XCircle,
   FileText,
-  Globe,
-  Clock,
-  TrendingDown,
 } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
 
 interface SuspiciousReview {
   id: string;
@@ -21,30 +19,21 @@ interface SuspiciousReview {
   createdAt: string;
 }
 
-const mockSuspicious: SuspiciousReview[] = [
-  {
-    id: '1',
-    customerName: 'John Doe',
-    productName: 'Premium Headphones',
-    trigger: 'Multiple 5-star reviews from same IP',
-    riskLevel: 'high',
-    evidence: ['Same IP address', 'Account created recently', 'No purchase verified'],
-    createdAt: '2024-03-17T10:30:00',
-  },
-  {
-    id: '2',
-    customerName: 'Jane Smith',
-    productName: 'Smart Watch',
-    trigger: 'Review without purchase',
-    riskLevel: 'medium',
-    evidence: ['No order found', 'Account created on review date'],
-    createdAt: '2024-03-16T14:20:00',
-  },
-];
-
 export default function SuspiciousFraudDetection() {
-  const [suspicious, setSuspicious] = useState<SuspiciousReview[]>(mockSuspicious);
+  const [suspicious, setSuspicious] = useState<SuspiciousReview[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    adminReviewsAPI.getSuspicious()
+      .then((res) => setSuspicious(res.suspicious || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
 
   const getRiskBadge = (risk: SuspiciousReview['riskLevel']) => {
     const styles = {
@@ -71,7 +60,11 @@ export default function SuspiciousFraudDetection() {
         </p>
       </div>
 
-      {/* Search */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
         <input
@@ -83,7 +76,11 @@ export default function SuspiciousFraudDetection() {
         />
       </div>
 
-      {/* Suspicious Reviews List */}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+      ) : (
       <div className="space-y-4">
         {suspicious
           .filter((s) =>
@@ -134,7 +131,10 @@ export default function SuspiciousFraudDetection() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-red-400 dark:border-gray-700 dark:text-gray-300">
+                  <button
+                    onClick={() => adminReviewsAPI.removeSuspicious(review.id).then(() => load())}
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-red-400 dark:border-gray-700 dark:text-gray-300"
+                  >
                     <XCircle className="mr-1 inline h-4 w-4" />
                     Remove
                   </button>
@@ -151,6 +151,7 @@ export default function SuspiciousFraudDetection() {
             </div>
           ))}
       </div>
+      )}
     </div>
   );
 }

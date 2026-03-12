@@ -1,17 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Star,
   Search,
-  Filter,
   Eye,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  User,
-  Package,
-  Calendar,
   Image as ImageIcon,
 } from 'lucide-react';
+import { adminReviewsAPI } from '@/lib/api';
 
 interface Review {
   id: string;
@@ -28,43 +22,27 @@ interface Review {
   sellerResponse?: string;
 }
 
-const mockReviews: Review[] = [
-  {
-    id: '1',
-    customerName: 'John Doe',
-    customerEmail: 'john@example.com',
-    productName: 'Premium Headphones',
-    productId: 'prod-123',
-    orderId: 'ORD-12345',
-    rating: 5,
-    message: 'Excellent product! Great quality and fast shipping.',
-    images: ['image1.jpg'],
-    status: 'approved',
-    createdAt: '2024-03-15T10:30:00',
-    sellerResponse: 'Thank you for your review!',
-  },
-  {
-    id: '2',
-    customerName: 'Jane Smith',
-    customerEmail: 'jane@example.com',
-    productName: 'Smart Watch',
-    productId: 'prod-456',
-    orderId: 'ORD-12346',
-    rating: 3,
-    message: 'Product is okay but battery life could be better.',
-    images: [],
-    status: 'pending',
-    createdAt: '2024-03-17T14:20:00',
-  },
-];
-
 export default function CustomerProductReviews() {
-  const [reviews, setReviews] = useState<Review[]>(mockReviews);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [ratingFilter, setRatingFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    adminReviewsAPI
+      .getReviews({
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        rating: ratingFilter !== 'all' ? ratingFilter : undefined,
+      })
+      .then((res) => setReviews(res.reviews || []))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load reviews'))
+      .finally(() => setLoading(false));
+  }, [statusFilter, ratingFilter]);
 
   const filteredReviews = reviews.filter((review) => {
     const matchesSearch =
@@ -156,9 +134,22 @@ export default function CustomerProductReviews() {
         </select>
       </div>
 
-      {/* Reviews List */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-gray-500 dark:text-gray-400">Loading reviews...</p>
+        </div>
+      ) : (
       <div className="space-y-4">
-        {filteredReviews.map((review) => (
+        {filteredReviews.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+            <p className="text-gray-500 dark:text-gray-400">No reviews match your filters.</p>
+          </div>
+        ) : filteredReviews.map((review) => (
           <div
             key={review.id}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -226,6 +217,7 @@ export default function CustomerProductReviews() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

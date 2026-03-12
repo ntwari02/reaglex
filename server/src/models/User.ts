@@ -95,6 +95,12 @@ export interface IUser extends Document {
   security: ISecuritySettings;
   // OAuth fields
   googleId?: string;
+  // Email verification (optional flow)
+  emailVerified?: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
+  emailVerificationOtp?: string;
+  emailVerificationOtpExpires?: Date;
   // Seller-specific fields
   sellerVerificationStatus?: SellerVerificationStatus;
   isSellerVerified?: boolean;
@@ -218,6 +224,11 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String }, // Optional for OAuth users
     googleId: { type: String, unique: true, sparse: true }, // Sparse index allows multiple nulls
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
+    emailVerificationOtp: { type: String, select: false },
+    emailVerificationOtpExpires: { type: Date, select: false },
     role: {
       type: String,
       enum: ['buyer', 'seller', 'admin'],

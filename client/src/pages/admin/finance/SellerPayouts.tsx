@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Wallet,
   CheckCircle,
@@ -12,6 +12,7 @@ import {
   Store,
   Calendar,
 } from 'lucide-react';
+import { adminFinanceAPI } from '@/lib/api';
 
 type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
@@ -33,63 +34,39 @@ interface Payout {
   disputeHolds: number;
 }
 
-const mockPayouts: Payout[] = [
-  {
-    id: 'PAY-001',
-    sellerName: 'TechHub Electronics',
-    sellerId: 'SELL-001',
-    amount: 12500,
-    status: 'pending',
-    requestedDate: '2024-03-15',
-    scheduledDate: '2024-03-20',
-    paymentMethod: 'Bank Transfer',
-    commission: 1500,
-    totalEarnings: 150000,
-    pendingEarnings: 5000,
-    availableForWithdrawal: 12500,
-    disputeHolds: 0,
-  },
-  {
-    id: 'PAY-002',
-    sellerName: 'Fashion Forward',
-    sellerId: 'SELL-002',
-    amount: 9800,
-    status: 'completed',
-    requestedDate: '2024-03-10',
-    completedDate: '2024-03-12',
-    paymentMethod: 'PayPal',
-    referenceId: 'REF-123456',
-    commission: 1176,
-    totalEarnings: 98000,
-    pendingEarnings: 0,
-    availableForWithdrawal: 0,
-    disputeHolds: 0,
-  },
-  {
-    id: 'PAY-003',
-    sellerName: 'HomeStyle',
-    sellerId: 'SELL-003',
-    amount: 15200,
-    status: 'processing',
-    requestedDate: '2024-03-14',
-    paymentMethod: 'Mobile Money',
-    commission: 1824,
-    totalEarnings: 152000,
-    pendingEarnings: 0,
-    availableForWithdrawal: 0,
-    disputeHolds: 500,
-  },
-];
-
 export default function SellerPayouts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PayoutStatus | 'all'>('all');
   const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [activeSection, setActiveSection] = useState<'requests' | 'history' | 'breakdown'>('requests');
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminFinanceAPI.getPayouts({ limit: 100 }).then((res) => {
+      setPayouts(res.payouts.map((p: any) => ({
+        id: p.id,
+        sellerName: p.sellerName || 'Unknown',
+        sellerId: p.sellerId || '',
+        amount: p.amount,
+        status: p.status,
+        requestedDate: p.requestedDate ? new Date(p.requestedDate).toISOString().slice(0, 10) : '',
+        scheduledDate: p.scheduledDate ? new Date(p.scheduledDate).toISOString().slice(0, 10) : undefined,
+        completedDate: p.completedDate ? new Date(p.completedDate).toISOString().slice(0, 10) : undefined,
+        paymentMethod: p.paymentMethod || '',
+        referenceId: p.referenceId,
+        commission: p.commission ?? 0,
+        totalEarnings: p.totalEarnings ?? 0,
+        pendingEarnings: p.pendingEarnings ?? 0,
+        availableForWithdrawal: p.availableForWithdrawal ?? 0,
+        disputeHolds: p.disputeHolds ?? 0,
+      })));
+    }).catch(() => setPayouts([])).finally(() => setLoading(false));
+  }, [activeSection]);
 
   const filteredPayouts = useMemo(() => {
-    return mockPayouts.filter((payout) => {
+    return payouts.filter((payout) => {
       const matchesSearch =
         payout.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         payout.sellerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,7 +74,7 @@ export default function SellerPayouts() {
       const matchesStatus = statusFilter === 'all' || payout.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, payouts]);
 
   const getStatusBadge = (status: PayoutStatus) => {
     const styles = {
@@ -112,11 +89,15 @@ export default function SellerPayouts() {
   };
 
   const handleApprovePayout = (payoutId: string) => {
-    console.log('Approve payout:', payoutId);
+    adminFinanceAPI.approvePayout(payoutId).then(() => {
+      setPayouts((prev) => prev.map((p) => (p.id === payoutId ? { ...p, status: 'processing' as PayoutStatus } : p)));
+    }).catch(() => {});
   };
 
   const handleRejectPayout = (payoutId: string) => {
-    console.log('Reject payout:', payoutId);
+    adminFinanceAPI.rejectPayout(payoutId).then(() => {
+      setPayouts((prev) => prev.map((p) => (p.id === payoutId ? { ...p, status: 'failed' as PayoutStatus } : p)));
+    }).catch(() => {});
   };
 
   return (
@@ -147,6 +128,7 @@ export default function SellerPayouts() {
       {/* Payout Requests */}
       {activeSection === 'requests' && (
         <div className="space-y-4">
+          {loading && <div className="text-center text-gray-500 py-4">Loading...</div>}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:w-96">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -171,6 +153,9 @@ export default function SellerPayouts() {
           </div>
 
           <div className="space-y-4">
+            {filteredPayouts.filter((p) => p.status === 'pending' || p.status === 'processing').length === 0 && !loading && (
+              <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500 dark:border-gray-800 dark:bg-gray-900">No pending or processing payouts</div>
+            )}
             {filteredPayouts
               .filter((p) => p.status === 'pending' || p.status === 'processing')
               .map((payout) => (
@@ -306,7 +291,7 @@ export default function SellerPayouts() {
       {/* Earnings Breakdown */}
       {activeSection === 'breakdown' && (
         <div className="space-y-4">
-          {mockPayouts.map((payout) => (
+          {loading ? <div className="py-8 text-center text-gray-500">Loading...</div> : payouts.length === 0 ? <div className="py-8 text-center text-gray-500">No payout data</div> : payouts.map((payout) => (
             <div
               key={payout.id}
               className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"

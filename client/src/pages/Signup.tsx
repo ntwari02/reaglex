@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Briefcase, Mail, Phone, AlertCircle, Check } from 'lucide-react';
+import { Eye, EyeOff, User, Briefcase, Mail, Phone, AlertCircle, Check, Fingerprint, Shield } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
 
@@ -12,6 +13,7 @@ function hasSQLInjectionRisk(value: string): boolean {
 export function Signup() {
   const navigate = useNavigate();
   const { showToast } = useToastStore();
+  const { loginWithBiometric } = useAuthStore();
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -29,6 +31,7 @@ export function Signup() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
   const [referralCode, setReferralCode] = useState('');
+  const [biometricLoading, setBiometricLoading] = useState(false);
 
   const fullName = `${formData.firstName || ''} ${formData.lastName || ''}`.trim();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
@@ -81,7 +84,8 @@ export function Signup() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiBase}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -97,16 +101,32 @@ export function Signup() {
 
       showToast(
         formData.role === 'seller'
-          ? 'Account created! Your seller profile is pending verification.'
-          : 'Account created successfully! Please log in.',
+          ? 'Account created! Verify your email below, then sign in. Seller profile is pending approval.'
+          : 'Account created! Verify your email below (link or code), then sign in.',
         'success'
       );
-      setTimeout(() => navigate('/login'), 2000);
+      navigate(`/verify-email-pending?email=${encodeURIComponent(formData.email)}`, { replace: true });
     } catch {
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBiometricLogin = async () => {
+    setBiometricLoading(true);
+    setError('');
+    const result = await loginWithBiometric();
+    setBiometricLoading(false);
+    if (!result.success) {
+      setError(result.error || 'Biometric sign-in failed.');
+      return;
+    }
+    showToast('Signed in with biometric. Welcome back!', 'success');
+    const { user } = useAuthStore.getState();
+    if (user?.role === 'seller') navigate('/seller');
+    else if (user?.role === 'admin') navigate('/admin');
+    else navigate('/');
   };
 
   return (
@@ -506,18 +526,47 @@ export function Signup() {
           />
         </div>
 
-        {/* Google */}
+        {/* Google – full width, modern */}
         <button
           type="button"
           onClick={() => {
             const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
             window.location.href = `${base}/auth/google?role=${formData.role}`;
           }}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[12px] border text-sm font-medium hover:bg-gray-50 transition hover:shadow-md"
+          className="w-full h-[52px] rounded-[14px] flex items-center justify-center gap-3 px-4 text-[15px] font-semibold transition-all hover:opacity-95 active:scale-[0.99]"
+          style={{
+            background: '#fff',
+            color: '#3c4043',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)',
+          }}
+        >
+          <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+            <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.16 7.09-10.27 7.09-17.65z" />
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+            <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+
+        <p className="flex items-center justify-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <Shield className="w-3.5 h-3.5 text-emerald-500" />
+          Secure sign-up with email verification (link or code). Seller accounts require 2FA on first sign-in.
+        </p>
+
+        <button
+          type="button"
+          disabled={biometricLoading}
+          onClick={handleBiometricLogin}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[12px] border text-sm font-medium hover:bg-gray-50 transition hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
           style={{ borderColor: '#e5e7eb', color: '#374151', background: 'var(--bg-secondary)' }}
         >
-          <svg className="w-4 h-4" viewBox="0 0 48 48"><path d="M44.5 20H24V28.5H35.5C34.7 32.5 32.1 35.5 28.5 37.1V43.5H35.5C40.5 39.5 43.5 33.5 44.5 28.5V20Z" fill="#4285F4"/><path d="M24 44C30.5 44 36 41.5 39.5 37.5L32.5 31.5C30.5 33.5 27.5 35 24 35C18.5 35 13.5 31.5 11.5 26.5H4.5V33.5C7.5 39.5 15 44 24 44Z" fill="#34A853"/><path d="M11.5 26.5C11 25 11 23.5 11 22C11 20.5 11 19 11.5 17.5V10.5H4.5C3.5 15.5 3.5 20.5 4.5 26.5H11.5Z" fill="#FBBC05"/><path d="M24 13C27 13 29.5 14 31.5 16L38 9.5C36 7.5 33.5 6 30.5 5C21.5 5 14 9.5 11 17.5L18 22.5C19.5 18.5 21.5 13 24 13Z" fill="#EA4335"/></svg>
-          Sign up with Google
+          {biometricLoading ? (
+            <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Fingerprint className="w-4 h-4" />
+          )}
+          {biometricLoading ? 'Signing in…' : 'Sign in with biometric'}
         </button>
 
         <p className="text-center text-[14px]" style={{ color: '#9ca3af' }}>

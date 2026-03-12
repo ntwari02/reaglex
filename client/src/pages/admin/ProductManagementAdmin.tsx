@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Package,
   Plus,
@@ -31,6 +31,7 @@ import ProductLogs from './products/ProductLogs';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import InputDialog from '@/components/ui/InputDialog';
 import { ToastContainer, useToast } from '@/components/ui/toast';
+import { adminProductsAPI } from '@/lib/api';
 
 type ProductStatus = 'active' | 'inactive' | 'out_of_stock';
 type VisibilityStatus = 'published' | 'draft';
@@ -56,63 +57,34 @@ interface Product {
   hasDiscount: boolean;
 }
 
-const mockProducts: Product[] = [
-  {
-    id: 'PROD-001',
-    name: 'Wireless Bluetooth Headphones',
-    sku: 'WBH-001',
-    image: '/placeholder-product.jpg',
-    category: 'Electronics',
-    brand: 'TechBrand',
-    sellerName: 'TechHub Electronics',
-    stock: 245,
-    price: 79.99,
-    discountPrice: 59.99,
-    discountPercent: 25,
-    status: 'active',
-    visibility: 'published',
-    dateAdded: '2024-01-15',
-    sales: 1234,
-    rating: 4.5,
-    hasDiscount: true,
-  },
-  {
-    id: 'PROD-002',
-    name: 'Smart Watch Pro',
-    sku: 'SWP-002',
-    image: '/placeholder-product.jpg',
-    category: 'Electronics',
-    brand: 'TechBrand',
-    sellerName: 'TechHub Electronics',
-    stock: 0,
-    price: 199.99,
-    status: 'out_of_stock',
-    visibility: 'published',
-    dateAdded: '2024-03-10',
-    sales: 892,
-    rating: 4.8,
-    hasDiscount: false,
-  },
-  {
-    id: 'PROD-003',
-    name: 'Laptop Stand Adjustable',
-    sku: 'LSA-003',
-    image: '/placeholder-product.jpg',
-    category: 'Accessories',
-    sellerName: 'HomeStyle',
-    stock: 5,
-    price: 49.99,
-    status: 'active',
-    visibility: 'draft',
-    dateAdded: '2024-03-12',
-    sales: 456,
-    rating: 4.2,
-    hasDiscount: false,
-  },
-];
+function mapApiProductToProduct(p: any): Product {
+  return {
+    id: p.id || p._id,
+    name: p.name || '',
+    sku: p.sku || '',
+    image: p.image || '',
+    category: p.category || '',
+    brand: p.brand,
+    sellerName: p.sellerName || '',
+    stock: p.stock ?? 0,
+    price: p.price ?? 0,
+    discountPrice: p.discountPrice,
+    discountPercent: p.discountPercent,
+    status: (p.status === 'out_of_stock' ? 'out_of_stock' : 'active') as ProductStatus,
+    visibility: (p.visibility || 'published') as VisibilityStatus,
+    dateAdded: p.dateAdded || p.createdAt?.slice?.(0, 10) || '',
+    sales: p.sales ?? 0,
+    rating: p.rating ?? 0,
+    hasDiscount: !!p.hasDiscount,
+  };
+}
 
 export default function ProductManagementAdmin() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<{ totalProducts: number; outOfStock: number; published: number; draft: number } | null>(null);
+  const [facets, setFacets] = useState<{ categories: string[]; sellers: { id: string; name: string }[] }>({ categories: [], sellers: [] });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
@@ -166,84 +138,59 @@ export default function ProductManagementAdmin() {
   const [discountFilter, setDiscountFilter] = useState<'all' | 'has' | 'none'>('all');
   const [sortBy, setSortBy] = useState<SortOption>('date_desc');
 
-  const categories = Array.from(new Set(products.map((p) => p.category)));
-  const sellers = Array.from(new Set(products.map((p) => p.sellerName)));
-
-  const filteredAndSortedProducts = useMemo(() => {
-    let filtered = products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.sellerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
-      const matchesStatus = statusFilter === 'all' || product.status === statusFilter;
-      const matchesVisibility = visibilityFilter === 'all' || product.visibility === visibilityFilter;
-      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
-      const matchesStock = product.stock >= stockRange[0] && product.stock <= stockRange[1];
-      const matchesSeller = sellerFilter === 'all' || product.sellerName === sellerFilter;
-      const matchesDiscount =
-        discountFilter === 'all' ||
-        (discountFilter === 'has' && product.hasDiscount) ||
-        (discountFilter === 'none' && !product.hasDiscount);
-
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesStatus &&
-        matchesVisibility &&
-        matchesPrice &&
-        matchesStock &&
-        matchesSeller &&
-        matchesDiscount
-      );
-    });
-
-    // Sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'name_asc':
-          return a.name.localeCompare(b.name);
-        case 'name_desc':
-          return b.name.localeCompare(a.name);
-        case 'price_asc':
-          return a.price - b.price;
-        case 'price_desc':
-          return b.price - a.price;
-        case 'date_asc':
-          return new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
-        case 'date_desc':
-          return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
-        case 'stock_asc':
-          return a.stock - b.stock;
-        case 'stock_desc':
-          return b.stock - a.stock;
-        case 'sales_asc':
-          return a.sales - b.sales;
-        case 'sales_desc':
-          return b.sales - a.sales;
-        case 'rating_asc':
-          return a.rating - b.rating;
-        case 'rating_desc':
-          return b.rating - a.rating;
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
+  const loadDashboard = useCallback(() => {
+    adminProductsAPI.getDashboard().then(setDashboardStats).catch(() => setDashboardStats(null));
+  }, []);
+  const loadFacets = useCallback(() => {
+    adminProductsAPI.getFacets().then(setFacets).catch(() => setFacets({ categories: [], sellers: [] }));
+  }, []);
+  const loadProducts = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    adminProductsAPI
+      .getProducts({
+        search: searchQuery || undefined,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        visibility: visibilityFilter !== 'all' ? visibilityFilter : undefined,
+        sellerId: sellerFilter !== 'all' ? sellerFilter : undefined,
+        minPrice: priceRange[0],
+        maxPrice: priceRange[1],
+        minStock: stockRange[0],
+        maxStock: stockRange[1],
+        hasDiscount: discountFilter !== 'all' ? discountFilter : undefined,
+        limit: 200,
+        sortBy,
+      })
+      .then((res) => setProducts((res.products || []).map(mapApiProductToProduct)))
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'Failed to load products');
+        setProducts([]);
+      })
+      .finally(() => setLoading(false));
   }, [
-    products,
     searchQuery,
     categoryFilter,
     statusFilter,
     visibilityFilter,
+    sellerFilter,
     priceRange,
     stockRange,
-    sellerFilter,
     discountFilter,
     sortBy,
   ]);
+
+  useEffect(() => {
+    loadDashboard();
+    loadFacets();
+  }, [loadDashboard, loadFacets]);
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  const filteredAndSortedProducts = products;
+  const categories = facets.categories;
+  const sellers = facets.sellers;
 
   const toggleSelectProduct = (productId: string) => {
     setSelectedProducts((prev) => {
@@ -415,25 +362,40 @@ export default function ProductManagementAdmin() {
           message: `Are you sure you want to delete ${productIds.length} product(s)? This action cannot be undone.`,
           variant: 'danger',
           onConfirm: () => {
-            setProducts((prev) => prev.filter((p) => !productIds.includes(p.id)));
-            setSelectedProducts(new Set());
-            showToast(`${productIds.length} product(s) deleted successfully!`, 'success');
+            adminProductsAPI
+              .bulkProducts({ productIds, action: 'delete' })
+              .then(() => {
+                setSelectedProducts(new Set());
+                loadProducts();
+                loadDashboard();
+                showToast(`${productIds.length} product(s) deleted successfully!`, 'success');
+              })
+              .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to delete', 'error'));
+            setConfirmDialog((d) => ({ ...d, isOpen: false }));
           },
         });
         break;
       case 'disable':
-        setProducts((prev) =>
-          prev.map((p) => (productIds.includes(p.id) ? { ...p, status: 'inactive' as ProductStatus } : p))
-        );
-        setSelectedProducts(new Set());
-        showToast(`${productIds.length} product(s) disabled successfully!`, 'success');
+        adminProductsAPI
+          .bulkProducts({ productIds, action: 'out_of_stock' })
+          .then(() => {
+            setSelectedProducts(new Set());
+            loadProducts();
+            loadDashboard();
+            showToast(`${productIds.length} product(s) disabled successfully!`, 'success');
+          })
+          .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to update', 'error'));
         break;
       case 'out_of_stock':
-        setProducts((prev) =>
-          prev.map((p) => (productIds.includes(p.id) ? { ...p, status: 'out_of_stock' as ProductStatus } : p))
-        );
-        setSelectedProducts(new Set());
-        showToast(`${productIds.length} product(s) marked as out of stock!`, 'success');
+        adminProductsAPI
+          .bulkProducts({ productIds, action: 'out_of_stock' })
+          .then(() => {
+            setSelectedProducts(new Set());
+            loadProducts();
+            loadDashboard();
+            showToast(`${productIds.length} product(s) marked as out of stock!`, 'success');
+          })
+          .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to update', 'error'));
         break;
       case 'set_discount':
         setInputDialog({
@@ -446,22 +408,15 @@ export default function ProductManagementAdmin() {
           max: 100,
           onConfirm: (discountPercent) => {
             const discount = Number(discountPercent);
-            setProducts((prev) =>
-              prev.map((p) => {
-                if (productIds.includes(p.id)) {
-                  const discountPrice = p.price * (1 - discount / 100);
-                  return {
-                    ...p,
-                    discountPrice,
-                    discountPercent: discount,
-                    hasDiscount: discount > 0,
-                  };
-                }
-                return p;
+            adminProductsAPI
+              .bulkProducts({ productIds, action: 'set_discount', payload: { discount } })
+              .then(() => {
+                setSelectedProducts(new Set());
+                loadProducts();
+                showToast(`Discount applied to ${productIds.length} product(s)!`, 'success');
               })
-            );
-            setSelectedProducts(new Set());
-            showToast(`Discount applied to ${productIds.length} product(s)!`, 'success');
+              .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to update', 'error'));
+            setInputDialog((d) => ({ ...d, isOpen: false }));
           },
         });
         break;
@@ -474,11 +429,16 @@ export default function ProductManagementAdmin() {
           type: 'text',
           onConfirm: (newCategory) => {
             if (newCategory.trim()) {
-              setProducts((prev) =>
-                prev.map((p) => (productIds.includes(p.id) ? { ...p, category: newCategory.trim() } : p))
-              );
-              setSelectedProducts(new Set());
-              showToast(`Category changed for ${productIds.length} product(s)!`, 'success');
+              adminProductsAPI
+                .bulkProducts({ productIds, action: 'change_category', payload: { category: newCategory.trim() } })
+                .then(() => {
+                  setSelectedProducts(new Set());
+                  loadProducts();
+                  loadFacets();
+                  showToast(`Category changed for ${productIds.length} product(s)!`, 'success');
+                })
+                .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to update', 'error'));
+              setInputDialog((d) => ({ ...d, isOpen: false }));
             }
           },
         });
@@ -487,22 +447,27 @@ export default function ProductManagementAdmin() {
         setInputDialog({
           isOpen: true,
           title: 'Change Seller',
-          label: 'Enter new seller name:',
-          placeholder: 'Seller name',
+          label: 'Enter seller ID (from Sellers list):',
+          placeholder: 'Seller ID',
           type: 'text',
-          onConfirm: (newSeller) => {
-            if (newSeller.trim()) {
-              setProducts((prev) =>
-                prev.map((p) => (productIds.includes(p.id) ? { ...p, sellerName: newSeller.trim() } : p))
-              );
-              setSelectedProducts(new Set());
-              showToast(`Seller changed for ${productIds.length} product(s)!`, 'success');
+          onConfirm: (sellerId) => {
+            if (sellerId.trim()) {
+              adminProductsAPI
+                .bulkProducts({ productIds, action: 'change_seller', payload: { sellerId: sellerId.trim() } })
+                .then(() => {
+                  setSelectedProducts(new Set());
+                  loadProducts();
+                  loadFacets();
+                  showToast(`Seller changed for ${productIds.length} product(s)!`, 'success');
+                })
+                .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to update', 'error'));
+              setInputDialog((d) => ({ ...d, isOpen: false }));
             }
           },
         });
         break;
       default:
-        console.log(`Bulk ${action} for products:`, productIds);
+        break;
     }
   };
 
@@ -558,15 +523,29 @@ export default function ProductManagementAdmin() {
   };
 
   const handleDuplicateProduct = (product: Product) => {
-    const duplicatedProduct: Product = {
-      ...product,
-      id: `PROD-${Date.now()}`,
-      sku: `${product.sku}-COPY`,
-      name: `${product.name} (Copy)`,
-      dateAdded: new Date().toISOString().split('T')[0],
-    };
-    setProducts((prev) => [...prev, duplicatedProduct]);
-    showToast(`Product "${product.name}" duplicated successfully!`, 'success');
+    adminProductsAPI
+      .getProduct(product.id)
+      .then(({ product: full }) => {
+        return adminProductsAPI.createProduct({
+          name: `${product.name} (Copy)`,
+          sku: full?.sku ? `${full.sku}-COPY` : `SKU-${Date.now()}`,
+          category: full?.category,
+          description: full?.description,
+          stock: full?.stock ?? 0,
+          price: full?.price ?? 0,
+          discount: full?.discount ?? 0,
+          status: full?.status ?? 'in_stock',
+          images: full?.images || [],
+          variants: full?.variants || [],
+          tiers: full?.tiers || [],
+        });
+      })
+      .then(() => {
+        loadProducts();
+        loadDashboard();
+        showToast(`Product "${product.name}" duplicated successfully!`, 'success');
+      })
+      .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to duplicate', 'error'));
   };
 
   const handlePreviewProduct = (product: Product) => {
@@ -582,8 +561,15 @@ export default function ProductManagementAdmin() {
       message: `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
       variant: 'danger',
       onConfirm: () => {
-        setProducts((prev) => prev.filter((p) => p.id !== product.id));
-        showToast(`Product "${product.name}" deleted successfully!`, 'success');
+        setConfirmDialog((d) => ({ ...d, isOpen: false }));
+        adminProductsAPI
+          .deleteProduct(product.id)
+          .then(() => {
+            loadProducts();
+            loadDashboard();
+            showToast(`Product "${product.name}" deleted successfully!`, 'success');
+          })
+          .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to delete', 'error'));
       },
     });
   };
@@ -674,6 +660,12 @@ export default function ProductManagementAdmin() {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
+          {error}
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid gap-4 lg:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
@@ -681,34 +673,28 @@ export default function ProductManagementAdmin() {
             <Package className="h-5 w-5" />
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Products</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{products.length}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats?.totalProducts ?? (loading ? '—' : 0)}</p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 text-white">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Out of Stock</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {products.filter((p) => p.status === 'out_of_stock').length}
-          </p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats?.outOfStock ?? (loading ? '—' : 0)}</p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
             <TrendingUp className="h-5 w-5" />
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Published</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {products.filter((p) => p.visibility === 'published').length}
-          </p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats?.published ?? (loading ? '—' : 0)}</p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white">
             <FileText className="h-5 w-5" />
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Draft</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {products.filter((p) => p.visibility === 'draft').length}
-          </p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats?.draft ?? (loading ? '—' : 0)}</p>
         </div>
       </div>
 
@@ -820,9 +806,9 @@ export default function ProductManagementAdmin() {
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 <option value="all">All Sellers</option>
-                {sellers.map((seller) => (
-                  <option key={seller} value={seller}>
-                    {seller}
+                {sellers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
                   </option>
                 ))}
               </select>
@@ -961,7 +947,14 @@ export default function ProductManagementAdmin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filteredAndSortedProducts.map((product) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
+                    Loading products...
+                  </td>
+                </tr>
+              ) : (
+              filteredAndSortedProducts.map((product) => (
                 <tr
                   key={product.id}
                   className="bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800/60"
@@ -1139,7 +1132,8 @@ export default function ProductManagementAdmin() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
@@ -1162,7 +1156,8 @@ export default function ProductManagementAdmin() {
           onSave={() => {
             setShowAddProduct(false);
             setSelectedProduct(null);
-            // Reload products
+            loadProducts();
+            loadDashboard();
           }}
         />
       )}

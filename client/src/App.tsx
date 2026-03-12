@@ -4,12 +4,16 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ScrollToTop } from './components/ScrollToTop';
 import { ResetPassword } from './pages/ResetPassword';
 import { VerifyOTP } from './pages/VerifyOTP';
+import { VerifyEmail } from './pages/VerifyEmail';
+import { VerifyEmailPending } from './pages/VerifyEmailPending';
 import { GoogleCallback } from './pages/GoogleCallback';
 import { SelectRole } from './pages/SelectRole';
+import { ApproveDeviceSuccess } from './pages/ApproveDeviceSuccess';
 import AuthPage from './pages/AuthPage';
 import { ForgotPassword } from './pages/ForgotPassword';
 import SellerDashboard from './components/SellerDashboard';
 import SellerRoute from './components/SellerRoute';
+import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './components/AdminDashboard';
 import { useAuthStore } from './stores/authStore';
 import { ToastNotification } from './components/ToastNotification';
@@ -121,9 +125,12 @@ function App() {
 
             {/* ── Full-page auth flows ── */}
             <Route path="/reset-password"         element={<ResetPassword />} />
+            <Route path="/verify-email"           element={<VerifyEmail />} />
+            <Route path="/verify-email-pending"   element={<VerifyEmailPending />} />
             <Route path="/verify-otp"             element={<VerifyOTP />} />
             <Route path="/auth/google/callback"   element={<GoogleCallback />} />
             <Route path="/auth/google/select-role" element={<SelectRole />} />
+            <Route path="/auth/approve-device-success" element={<ApproveDeviceSuccess />} />
 
             {/* ── Dashboards ── */}
             <Route
@@ -134,7 +141,7 @@ function App() {
                 </SellerRoute>
               )}
             />
-            <Route path="/admin/*"  element={<AdminDashboard />} />
+            <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

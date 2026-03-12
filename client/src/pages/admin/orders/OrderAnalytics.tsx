@@ -1,24 +1,38 @@
-import React from 'react';
-import { ArrowLeft, TrendingUp, ShoppingCart, DollarSign, Package, XCircle, RefreshCw, BarChart3 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, ShoppingCart, DollarSign, Package, BarChart3 } from 'lucide-react';
 
 interface OrderAnalyticsProps {
   orders: any[];
   onBack: () => void;
 }
 
-export default function OrderAnalytics({ orders, onBack }: OrderAnalyticsProps) {
+/** Normalize order for analytics (API may use totalAmount or total, orderDate or createdAt) */
+function orderDateStr(o: any): string {
+  const d = o?.orderDate ?? o?.createdAt ?? o?.date;
+  if (!d) return '';
+  const date = new Date(d);
+  return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+}
+
+function orderAmount(o: any): number {
+  const n = o?.totalAmount ?? o?.total ?? 0;
+  return typeof n === 'number' && !isNaN(n) ? n : Number(n) || 0;
+}
+
+export function OrderAnalytics({ orders, onBack }: OrderAnalyticsProps) {
   const today = new Date().toISOString().split('T')[0];
   const thisMonth = new Date().getMonth();
   const thisYear = new Date().getFullYear();
 
-  const ordersToday = orders.filter((o) => o.orderDate === today);
+  const ordersToday = orders.filter((o) => orderDateStr(o) === today);
   const ordersThisMonth = orders.filter((o) => {
-    const orderDate = new Date(o.orderDate);
-    return orderDate.getMonth() === thisMonth && orderDate.getFullYear() === thisYear;
+    const d = orderDateStr(o);
+    if (!d) return false;
+    const date = new Date(d);
+    return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
   });
 
-  const revenueToday = ordersToday.reduce((sum, o) => sum + o.totalAmount, 0);
-  const revenueThisMonth = ordersThisMonth.reduce((sum, o) => sum + o.totalAmount, 0);
+  const revenueToday = ordersToday.reduce((sum, o) => sum + orderAmount(o), 0);
+  const revenueThisMonth = ordersThisMonth.reduce((sum, o) => sum + orderAmount(o), 0);
 
   return (
     <div className="space-y-6 pb-10">
@@ -75,3 +89,4 @@ export default function OrderAnalytics({ orders, onBack }: OrderAnalyticsProps) 
   );
 }
 
+export default OrderAnalytics;
