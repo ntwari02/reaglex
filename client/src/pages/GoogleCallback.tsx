@@ -10,7 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 export function GoogleCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setUser, setUserAndToken } = useAuthStore();
+  const { setUserAndToken } = useAuthStore();
   const { showToast } = useToastStore();
 
   const [step, setStep] = useState<'loading' | '2fa' | '2fa-setup' | 'device-approval' | 'done'>('loading');
@@ -32,8 +32,6 @@ export function GoogleCallback() {
       const token = searchParams.get('token');
       const success = searchParams.get('success');
       const error = searchParams.get('error');
-      const requires2FA = searchParams.get('requires2FA') === 'true';
-      const requires2FASetup = searchParams.get('requires2FASetup') === 'true';
       const tempToken = searchParams.get('tempToken');
       const email = searchParams.get('email') || '';
       const role = searchParams.get('role') || '';
@@ -52,45 +50,56 @@ export function GoogleCallback() {
         return;
       }
 
-      // Seller/Admin: 2FA required (from redirect or from SelectRole)
-      if ((requires2FA || requires2FASetup) && tempToken) {
-        setTwoFATempToken(tempToken);
-        setTwoFAEmail(email);
-        setTwoFARole(role);
-        setStep(requires2FA ? '2fa' : '2fa-setup');
-        if (requires2FA) setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      // 2FA is disabled for now; if old URLs still include these params, send user to sign-in
+      if (tempToken) {
+        showToast('2FA is disabled for now. Please sign in again.', 'info');
+        navigate('/auth?tab=login', { replace: true });
         return;
       }
 
       if (success === 'true' && token) {
         try {
+          // Store token first so authAPI can call /me
           localStorage.setItem('auth_token', token);
-          const response = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-            credentials: 'include',
-          });
-          if (!response.ok) throw new Error('Failed to fetch user profile');
-          const data = await response.json();
-          const userProfile = {
-            id: data.user.id?.toString() || data.user._id?.toString() || '',
-            email: data.user.email,
-            full_name: data.user.fullName,
-            role: data.user.role,
-            seller_status: data.user.sellerVerificationStatus,
-            seller_verified: data.user.isSellerVerified,
-            phone: data.user.phone,
-            avatar_url: data.user.avatarUrl || data.user.avatar_url || null,
-            created_at: data.user.createdAt || new Date().toISOString(),
-            updated_at: data.user.updatedAt || new Date().toISOString(),
-          };
-          localStorage.setItem('user', JSON.stringify(userProfile));
-          setUser(userProfile);
+
+          let userProfile: any = null;
+          try {
+            const me = await authAPI.getCurrentUser();
+            userProfile = {
+              id: me.user.id?.toString() || me.user._id?.toString() || '',
+              email: me.user.email,
+              full_name: me.user.fullName,
+              role: me.user.role,
+              seller_status: me.user.sellerVerificationStatus,
+              seller_verified: me.user.isSellerVerified,
+              phone: me.user.phone,
+              // Use Google profile image when available
+              avatar_url: me.user.avatarUrl || me.user.avatar_url || null,
+              created_at: me.user.createdAt || new Date().toISOString(),
+              updated_at: me.user.updatedAt || new Date().toISOString(),
+            };
+          } catch {
+            // Fallback: still complete sign-in even if /me fails temporarily
+            userProfile = {
+              id: '',
+              email: email || '',
+              full_name: '',
+              role: role || 'buyer',
+              seller_status: undefined,
+              seller_verified: undefined,
+              phone: undefined,
+              avatar_url: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+          }
+
+          setUserAndToken(userProfile, token);
           showToast('Successfully signed in with Google!', 'success');
           if (userProfile.role === 'seller') navigate('/seller');
           else if (userProfile.role === 'admin') navigate('/admin');
           else navigate('/');
         } catch (err: any) {
-          console.error('Callback error:', err);
           showToast('Failed to complete sign-in', 'error');
           navigate('/login');
         }
@@ -102,7 +111,7 @@ export function GoogleCallback() {
     };
 
     handleCallback();
-  }, [searchParams, navigate, setUser, showToast]);
+  }, [searchParams, navigate, setUserAndToken, showToast]);
 
   useEffect(() => {
     if (step !== 'device-approval' || !deviceApprovalRequestId) return;

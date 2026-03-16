@@ -101,11 +101,12 @@ export function Signup() {
 
       showToast(
         formData.role === 'seller'
-          ? 'Account created! Verify your email below, then sign in. Seller profile is pending approval.'
-          : 'Account created! Verify your email below (link or code), then sign in.',
+          ? 'Account created! Verify your email with the 6-digit code, then sign in. Seller profile is pending approval.'
+          : 'Account created! Verify your email with the 6-digit code, then sign in.',
         'success'
       );
-      navigate(`/verify-email-pending?email=${encodeURIComponent(formData.email)}`, { replace: true });
+      // Backend already sent OTP on register
+      navigate(`/auth?tab=login&verifyEmail=1&sent=1&email=${encodeURIComponent(formData.email)}`, { replace: true });
     } catch {
       setError('Network error. Please try again.');
     } finally {

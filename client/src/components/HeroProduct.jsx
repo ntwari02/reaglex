@@ -7,10 +7,18 @@ import ProductInfoCard from './ProductInfoCard';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 
+function extractImageSrc(src) {
+  if (!src) return null;
+  if (Array.isArray(src)) return extractImageSrc(src[0]);
+  if (typeof src === 'string') return src;
+  if (typeof src === 'object') return src.url || src.secure_url || src.path || src.src || null;
+  return null;
+}
+
 function resolveImage(src) {
-  if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80';
-  if (src.startsWith('http')) return src;
-  return `${SERVER_URL}${src}`;
+  const value = extractImageSrc(src);
+  if (!value) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80';
+  return value.startsWith('http') ? value : `${SERVER_URL}${value}`;
 }
 
 export default function HeroProduct({ product }) {
@@ -27,7 +35,10 @@ export default function HeroProduct({ product }) {
     );
   }
 
-  const imageUrl = resolveImage(product.images?.[0] || product.image);
+  const primary = Array.isArray(product.images)
+    ? (product.images.find((img) => img?.is_primary) || product.images[0])
+    : product.images?.[0];
+  const imageUrl = resolveImage(primary || product.image || product.imageUrl || product.thumbnail || product.thumbnailUrl);
   const price = product.price || 0;
   const oldPrice = product.compareAtPrice || product.originalPrice || null;
   const discount = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;

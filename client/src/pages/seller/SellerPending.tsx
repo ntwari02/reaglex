@@ -9,7 +9,7 @@ export default function SellerPending() {
     <BuyerLayout>
       <main className="min-h-[60vh] w-full px-4 py-10 sm:px-6 lg:px-10">
         <div
-          className="mx-auto max-w-xl rounded-[24px] px-8 py-10 text-center space-y-6"
+          className="w-full rounded-[24px] px-8 py-10 text-center space-y-6"
           style={{
             background: 'var(--card-bg)',
             boxShadow: 'var(--shadow-lg)',

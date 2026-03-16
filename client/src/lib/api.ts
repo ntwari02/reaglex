@@ -363,7 +363,17 @@ export const authAPI = {
       credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
-    return handleResponse(response);
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({ message: 'An error occurred' }));
+      const e = new Error(errBody.message || `HTTP error! status: ${response.status}`) as any;
+      e.status = response.status;
+      if (errBody && typeof errBody === 'object') {
+        if ('code' in errBody) e.code = (errBody as any).code;
+        if ('email' in errBody) e.email = (errBody as any).email;
+      }
+      throw e;
+    }
+    return response.json();
   },
 
   /**
@@ -478,7 +488,7 @@ export const authAPI = {
       credentials: 'include',
       body: JSON.stringify({ email: email.trim().toLowerCase(), code }),
     });
-    return handleResponse<{ message: string }>(response);
+    return handleResponse<{ message: string; token?: string; user?: any }>(response);
   },
 
   /**

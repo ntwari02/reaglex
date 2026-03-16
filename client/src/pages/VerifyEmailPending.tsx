@@ -3,6 +3,8 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Mail, Loader2, ArrowRight, RefreshCw, Sparkles, KeyRound, ExternalLink } from 'lucide-react';
 import { useToastStore } from '../stores/toastStore';
 import { authAPI } from '../lib/api';
+import AuthPremiumLayout from '../components/AuthPremiumLayout';
+import { useTheme } from '../contexts/ThemeContext';
 
 const PRIMARY = '#f97316';
 
@@ -93,15 +95,23 @@ export function VerifyEmailPending() {
     window.open('https://mail.google.com/mail/u/0/#search/in%3Ainbox', '_blank', 'noopener,noreferrer');
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-50/80 via-amber-50/60 to-rose-50/40 dark:from-gray-950 dark:via-amber-950/20 dark:to-orange-950/20" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(249,115,22,0.12),transparent)] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(249,115,22,0.08),transparent)]" />
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-orange-200/25 dark:bg-orange-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 right-1/4 w-64 h-64 bg-amber-200/20 dark:bg-amber-500/10 rounded-full blur-3xl" />
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const CARD_SHADOW_LIGHT =
+    '0 25px 50px -12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)';
+  const CARD_SHADOW_DARK =
+    '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)';
+  const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
+  const cardBg = isDark ? '#111420' : '#ffffff';
 
-      <div className="relative w-full max-w-md">
-        <div className="bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl rounded-3xl shadow-xl shadow-orange-900/5 dark:shadow-black/20 border border-orange-100/60 dark:border-orange-500/20 p-8 sm:p-10">
+  return (
+    <AuthPremiumLayout>
+      <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-auto px-4">
+          <div
+            className="w-full max-w-[480px] rounded-[24px] p-7 sm:p-8 flex flex-col overflow-hidden relative"
+            style={{ background: cardBg, boxShadow: cardShadow }}
+          >
           <div className="flex justify-center mb-6">
             <div className="relative">
               <div
@@ -253,13 +263,14 @@ export function VerifyEmailPending() {
               </div>
             )}
           </div>
+          </div>
 
           <p className="text-center text-xs text-gray-500 dark:text-gray-500 mt-6">
             Link expires in 24 hours. Can't find it? Check spam or promotions.
           </p>
 
           <Link
-            to="/login"
+            to="/auth?tab=login"
             className="mt-6 block text-center text-sm font-medium transition-colors"
             style={{ color: PRIMARY }}
           >
@@ -267,6 +278,6 @@ export function VerifyEmailPending() {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthPremiumLayout>
   );
 }

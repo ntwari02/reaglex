@@ -268,6 +268,13 @@ function resolveImg(src) {
   return `${SERVER_URL}${src}`;
 }
 
+function resolveAvatar(src) {
+  if (!src) return null;
+  if (typeof src !== 'string') return null;
+  if (src.startsWith('http') || src.startsWith('data:')) return src;
+  return `${SERVER_URL}${src}`;
+}
+
 // ── Tier 2: Main header ───────────────────────────────────────────────────────
 function MainHeader({
   searchQuery, setSearchQuery, searchFocus, setSearchFocus, category, setCategory,
@@ -785,9 +792,18 @@ function MainHeader({
                 className="flex items-center justify-center w-9 h-9 rounded-full overflow-hidden flex-shrink-0 transition"
                 style={{ background: PRIMARY }}
               >
-                <span className="text-white font-bold text-sm">
-                  {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-                </span>
+                {resolveAvatar(user.avatar_url) ? (
+                  <img
+                    src={resolveAvatar(user.avatar_url)}
+                    alt={user.full_name || 'Profile'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                ) : (
+                  <span className="text-white font-bold text-sm">
+                    {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
               </button>
               <AnimatePresence>
                 {profileOpen && (
@@ -799,10 +815,19 @@ function MainHeader({
                     style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)', boxShadow: 'var(--card-shadow-hover)' }}
                   >
                     <div className="px-4 pb-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: PRIMARY }}>
-                        <span className="text-white font-bold text-sm">
-                          {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-                        </span>
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: PRIMARY }}>
+                        {resolveAvatar(user.avatar_url) ? (
+                          <img
+                            src={resolveAvatar(user.avatar_url)}
+                            alt={user.full_name || 'Profile'}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <span className="text-white font-bold text-sm">
+                            {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-sm truncate text-gray-900 dark:text-white">{user.full_name || 'User'}</p>

@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { ShoppingBag, Briefcase, Loader2 } from 'lucide-react';
+import AuthPremiumLayout from '../components/AuthPremiumLayout';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function SelectRole() {
   const navigate = useNavigate();
@@ -64,8 +66,9 @@ export function SelectRole() {
 
       // Email verification required (Google sign-up or existing unverified user)
       if (data.needsVerification && data.email) {
-        showToast('Check your email for the verification link.', 'success');
-        navigate(`/verify-email-pending?email=${encodeURIComponent(data.email)}&source=google`);
+        showToast('Check your email for the 6-digit verification code.', 'success');
+        // Backend already sent OTP on this path
+        navigate(`/auth?tab=login&verifyEmail=1&sent=1&email=${encodeURIComponent(data.email)}`);
         setLoading(false);
         return;
       }
@@ -121,28 +124,38 @@ export function SelectRole() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-600 via-teal-600 to-blue-700 dark:from-cyan-900 dark:via-teal-900 dark:to-blue-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-2xl">
-        <div className="bg-white/95 dark:bg-[#1a1a2e]/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/20 dark:border-gray-700/50">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Choose Your Account Type
-            </h2>
-            {googleName && (
-              <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
-                Welcome, <span className="font-semibold text-orange-600 dark:text-orange-400">{googleName}</span>!
-              </p>
-            )}
-            <p className="text-gray-600 dark:text-gray-400">
-              {googleName 
-                ? `Your account will be created with the name "${googleName}" from your Google account.`
-                : 'Select how you want to use Reaglex'
-              }
-            </p>
-          </div>
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const CARD_SHADOW_LIGHT = '0 25px 50px -12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)';
+  const CARD_SHADOW_DARK = '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)';
+  const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
+  const cardBg = isDark ? '#111420' : '#ffffff';
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+  return (
+    <AuthPremiumLayout>
+      <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-auto">
+          <div
+            className="w-full max-w-[640px] rounded-[24px] p-6 sm:p-8 flex flex-col overflow-hidden"
+            style={{ background: cardBg, boxShadow: cardShadow }}
+          >
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Choose Your Account Type
+              </h2>
+              {googleName && (
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
+                  Welcome, <span className="font-semibold text-orange-600 dark:text-orange-400">{googleName}</span>!
+                </p>
+              )}
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+                {googleName
+                  ? `Your account will be created with the name "${googleName}" from your Google account.`
+                  : 'Select how you want to use Reaglex'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Buyer Option */}
             <button
               onClick={() => handleRoleSelection('buyer')}
@@ -202,14 +215,15 @@ export function SelectRole() {
                 )}
               </div>
             </button>
-          </div>
+            </div>
 
-          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">
-            You can change this later in your profile settings
-          </p>
+            <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">
+              You can change this later in your profile settings.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </AuthPremiumLayout>
   );
 }
 

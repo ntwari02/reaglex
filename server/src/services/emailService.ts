@@ -4,6 +4,7 @@ import {
   getVerificationEmailHtml,
   getVerificationOtpEmailHtml,
   getPasswordResetEmailHtml,
+  getPasswordResetOtpEmailHtml,
   getSecurityAlertEmailHtml,
   getNotificationEmailHtml,
   getDeviceApprovalEmailHtml,
@@ -144,6 +145,25 @@ export async function sendPasswordResetEmail(
   return sendEmail({
     to,
     subject: `Reset your password – ${APP_NAME}`,
+    html,
+  });
+}
+
+export async function sendPasswordResetOtpEmail(
+  to: string,
+  name: string,
+  code: string,
+  expiresIn = '15 minutes'
+): Promise<{ success: boolean; error?: string }> {
+  const html = getPasswordResetOtpEmailHtml({
+    name,
+    code,
+    appName: APP_NAME,
+    expiresIn,
+  });
+  return sendEmail({
+    to,
+    subject: `Your password reset code – ${APP_NAME}`,
     html,
   });
 }

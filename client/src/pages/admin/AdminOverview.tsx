@@ -1177,28 +1177,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
               ))}
             </div>
           </div>
-          <div
-            className="mt-2 relative rounded-2xl sm:rounded-[28px] border border-gray-200 dark:border-white/15 bg-gray-50 dark:bg-gradient-to-br dark:from-[#02050c] dark:via-[#070e1c] dark:to-[#040813] overflow-hidden transition-colors min-h-[240px] sm:min-h-[280px] md:min-h-[320px] lg:min-h-[380px] xl:min-h-[420px]"
-          >
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              {/* Outer glow layers */}
-              <div className="absolute inset-0 blur-[180px] opacity-20 dark:opacity-50 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.4),_transparent_70%)]" />
-              <div className="absolute -inset-20 blur-[250px] opacity-15 dark:opacity-35 bg-[radial-gradient(circle_at_center,_rgba(96,165,250,0.3),_transparent_75%)]" />
-              
-              {/* Middle glow layers */}
-              <div className="absolute inset-0 blur-[120px] opacity-25 dark:opacity-60 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.45),_transparent_65%)]" />
-              <div className="absolute -inset-10 blur-[150px] opacity-20 dark:opacity-45 bg-[radial-gradient(circle_at_center,_rgba(34,197,94,0.3),_transparent_70%)]" />
-              
-              {/* Inner glow layers */}
-              <div className="absolute inset-0 blur-[80px] opacity-30 dark:opacity-70 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.5),_transparent_60%)]" />
-              <div className="absolute inset-0 blur-[40px] opacity-35 dark:opacity-75 bg-[radial-gradient(circle_at_center,_rgba(96,165,250,0.4),_transparent_55%)]" />
-              
-              {/* Top accent glow */}
-              <div className="absolute -inset-10 blur-[200px] opacity-12 dark:opacity-40 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.25),_transparent_65%)]" />
-              
-              {/* Bottom accent glow */}
-              <div className="absolute -inset-10 blur-[200px] opacity-12 dark:opacity-40 bg-[radial-gradient(circle_at_bottom,_rgba(59,130,246,0.25),_transparent_65%)]" />
-            </div>
+          <div className="mt-2 relative overflow-hidden min-h-[240px] sm:min-h-[280px] md:min-h-[320px] lg:min-h-[380px] xl:min-h-[420px]">
             <div className="relative w-full h-full grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center justify-center overflow-hidden">
               <div className="w-full h-full flex items-center justify-center order-2 lg:order-1">
                 <Globe
@@ -2047,13 +2026,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
           </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.9fr)] items-start">
-          <div
-            className={`relative rounded-3xl overflow-hidden bg-gradient-to-br ${mapBackdropClass} shadow-[0_45px_120px_rgba(2,6,23,0.85)] border border-white/10`}
-          >
-            <div className="pointer-events-none absolute inset-0 z-0">
-              <div className="absolute inset-0 blur-3xl opacity-70 bg-[radial-gradient(circle_at_center,_rgba(125,211,252,0.35),_transparent_60%)]" />
-              <div className="absolute -inset-8 blur-[140px] opacity-40 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.35),_transparent_65%)]" />
-            </div>
+          <div className="relative overflow-hidden">
             <div className="absolute top-5 left-5 z-10 flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 text-white shadow-lg backdrop-blur">
               <button
                 className="p-3 border-b border-white/10 hover:bg-white/10 transition-colors flex items-center justify-center"

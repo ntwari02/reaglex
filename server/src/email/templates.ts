@@ -119,6 +119,26 @@ export function getPasswordResetEmailHtml(options: {
 `;
 }
 
+export function getPasswordResetOtpEmailHtml(options: {
+  name: string;
+  code: string;
+  appName?: string;
+  expiresIn?: string;
+}) {
+  const appName = options.appName || 'Reaglex';
+  const expires = options.expiresIn || '15 minutes';
+  const content = `
+  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
+  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">Use this one-time code to reset your password. Enter it on the password reset screen.</p>
+  <p style="text-align: center; margin: 24px 0;">
+    <span style="display: inline-block; padding: 20px 32px; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 2px dashed #f97316; border-radius: 16px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #9a3412;">${options.code}</span>
+  </p>
+  <p style="margin: 0 0 8px; font-size: 13px; color: #9ca3af; text-align: center;">Expires in <strong>${expires}</strong>. Do not share this code.</p>
+  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't request a password reset, you can safely ignore this email.</p>
+  <div style="${footerStyle}">This email was sent by ${appName}. You received it because a password reset was requested for your account.</div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Reset your password')}</body></html>`;
+}
+
 export function getSecurityAlertEmailHtml(options: {
   name: string;
   message: string;

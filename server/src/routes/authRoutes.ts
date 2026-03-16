@@ -9,6 +9,7 @@ import {
   completeGoogleRegistration,
   forgotPassword,
   resetPassword,
+  resetPasswordWithOtp,
   verifyEmail,
   resendVerification,
   requestVerificationOtp,
@@ -90,6 +91,7 @@ router.get('/me', authenticate, me);
 router.get('/email-config', emailConfig);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
 router.post('/reset-password', resetPassword);
+router.post('/reset-password-otp', forgotPasswordLimiter, resetPasswordWithOtp);
 router.get('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerificationLimiter, resendVerification);
 router.post('/request-verification-otp', requestOtpLimiter, requestVerificationOtp);

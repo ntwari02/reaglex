@@ -8,8 +8,13 @@ const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 
 function resolveImage(src) {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80';
-  if (src.startsWith('http')) return src;
-  return `${SERVER_URL}${src}`;
+  const value = Array.isArray(src)
+    ? src[0]
+    : (typeof src === 'object'
+        ? (src.url || src.secure_url || src.path || src.src || null)
+        : src);
+  if (!value) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80';
+  return String(value).startsWith('http') ? String(value) : `${SERVER_URL}${String(value)}`;
 }
 
 // Pastel placeholder colors for color-variant dots
@@ -50,7 +55,10 @@ export default function RecommendedProducts({ excludeIds = [] }) {
           const id   = product._id || product.id;
           const name = product.title || product.name || 'Product';
           const price = product.price || 0;
-          const img  = resolveImage(product.images?.[0] || product.image);
+          const primary = Array.isArray(product.images)
+            ? (product.images.find((img) => img?.is_primary) || product.images[0])
+            : product.images?.[0];
+          const img  = resolveImage(primary || product.image || product.imageUrl || product.thumbnail || product.thumbnailUrl);
           const isOpen = expanded === id;
 
           return (

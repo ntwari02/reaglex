@@ -110,23 +110,13 @@ function SellerAccessDenied() {
 
 export default function SellerRoute({ children }: SellerRouteProps) {
   const location = useLocation();
-  const { isLoggedIn, isSeller, isSellerPending } = useSellerAccess();
+  const { isLoggedIn, isSeller } = useSellerAccess();
 
   if (!isLoggedIn) {
     return (
       <Navigate
         to="/become-seller"
         state={{ reason: 'login_required', intended: location.pathname }}
-        replace
-      />
-    );
-  }
-
-  if (isSellerPending) {
-    return (
-      <Navigate
-        to="/seller/pending"
-        state={{ reason: 'pending_approval', intended: location.pathname }}
         replace
       />
     );

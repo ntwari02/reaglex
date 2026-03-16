@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, AlertCircle } from 'lucide-react';
@@ -129,7 +129,13 @@ function PremiumInput({
 }
 
 // ── Login form (premium) ─────────────────────────────────────────────────────
-function LoginFormContent({ role = 'buyer' }: { role?: 'buyer' | 'seller' }) {
+function LoginFormContent({
+  role = 'buyer',
+  onRequireEmailVerification,
+}: {
+  role?: 'buyer' | 'seller';
+  onRequireEmailVerification: (email: string) => void;
+}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectParam = searchParams.get('redirect');
@@ -156,6 +162,11 @@ function LoginFormContent({ role = 'buyer' }: { role?: 'buyer' | 'seller' }) {
     setLoading(true);
     try {
       const result = await login(email, password);
+      if (!result.success && 'code' in (result as any) && (result as any).code === 'EMAIL_NOT_VERIFIED' && (result as any).email) {
+        onRequireEmailVerification(String((result as any).email));
+        setLoading(false);
+        return;
+      }
       if (!result.success) { setError(result.error || 'Wrong email or password. Please try again.'); setShake(true); setTimeout(() => setShake(false), 400); setLoading(false); return; }
       setSuccess(true);
       const { user } = useAuthStore.getState();
@@ -310,8 +321,11 @@ function LoginFormContent({ role = 'buyer' }: { role?: 'buyer' | 'seller' }) {
 }
 
 // ── Signup form (premium) ────────────────────────────────────────────────────
-function SignupFormContent() {
-  const navigate = useNavigate();
+function SignupFormContent({
+  onRegistered,
+}: {
+  onRegistered: (email: string) => void;
+}) {
   const { showToast } = useToastStore();
   const [role, setRoleState] = useState<'buyer' | 'seller'>('buyer');
   const [fd, setFd] = useState({ fullName: '', email: '', password: '', confirmPassword: '', storeName: '' });
@@ -347,8 +361,8 @@ function SignupFormContent() {
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Registration failed.'); return; }
       setSuccess(true);
-      showToast(role === 'seller' ? 'Account created! Pending verification.' : 'Account created! Please sign in.', 'success');
-      setTimeout(() => navigate('/auth?tab=login'), 1500);
+      showToast('Account created! Verify your email to continue.', 'success');
+      onRegistered(fd.email.trim().toLowerCase());
     } catch { setError('Network error. Try again.'); }
     finally { setLoading(false); }
   };
@@ -500,12 +514,11 @@ function SignupFormContent() {
 }
 
 // ── Forgot password form (premium) ───────────────────────────────────────────
-function ForgotFormContent() {
+function ForgotFormContent(props: { onSent: (email: string) => void }) {
   const { showToast } = useToastStore();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
@@ -519,37 +532,11 @@ function ForgotFormContent() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Failed to send reset email.'); return; }
-      setSent(true);
       showToast('Reset code sent! Check your email.', 'success');
+      props.onSent(email.trim());
     } catch { setError('Network error. Try again.'); }
     finally { setLoading(false); }
   };
-
-  const handleResend = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/auth/forgot-password`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-      if (res.ok) showToast('Code sent again!', 'success');
-    } finally { setLoading(false); }
-  };
-
-  if (sent) return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-2 space-y-2">
-      <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }} className="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-2xl">✉️</motion.div>
-      <div>
-        <p className="font-bold text-base mb-0.5" style={{ color: SUCCESS }}>6-digit code sent</p>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sent to <strong style={{ color: 'var(--text-primary)' }}>{email}</strong></p>
-        <p className="text-[11px] mt-1.5 px-2" style={{ color: 'var(--text-faint)' }}>
-          Check your email for the code. It expires in 15 minutes. Check Spam/Junk if you don’t see it.
-        </p>
-      </div>
-      <div className="flex flex-col sm:flex-row gap-1.5 justify-center">
-        <Link to="/reset-password" className="inline-flex justify-center px-3 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: PRIMARY }}>Enter code →</Link>
-        <button type="button" onClick={handleResend} disabled={loading} className="px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ background: 'var(--bg-secondary)', color: PRIMARY, boxShadow: '0 0 0 1.5px var(--divider)' }}>{loading ? 'Sending…' : 'Resend code'}</button>
-      </div>
-      <Link to="/auth?tab=login" className="text-xs font-semibold hover:underline block mx-auto" style={{ color: PRIMARY }}>← Back to Sign In</Link>
-    </motion.div>
-  );
 
   return (
     <motion.form
@@ -561,7 +548,7 @@ function ForgotFormContent() {
     >
       <Link to="/auth?tab=login" className="text-[12px] font-medium hover:underline mb-2 block" style={{ color: PRIMARY }}>← Back to Sign In</Link>
       <h2 className="text-[20px] font-extrabold mb-0.5" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
-      <p className="text-[13px] mb-2" style={{ color: 'var(--text-muted)' }}>Enter your email for a reset link.</p>
+      <p className="text-[13px] mb-2" style={{ color: 'var(--text-muted)' }}>Enter your email to receive a 6-digit reset code.</p>
       {error && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg mb-2 text-[12px]" style={{ background: 'rgba(239,68,68,0.10)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.30)', color: '#f87171' }}>
           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
@@ -576,7 +563,7 @@ function ForgotFormContent() {
         whileHover={!loading ? { y: -2 } : {}}
       >
         {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-        {!loading && <>Send Reset Link <ArrowRight className="w-3.5 h-3.5" /></>}
+        {!loading && <>Send Reset Code <ArrowRight className="w-3.5 h-3.5" /></>}
       </motion.button>
     </motion.form>
   );
@@ -585,6 +572,14 @@ function ForgotFormContent() {
 // ── Auth page: single form card with header, role pills, tab switcher ─────────
 const CARD_SHADOW_LIGHT = '0 25px 50px -12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)';
 const CARD_SHADOW_DARK = '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)';
+const RESEND_COOLDOWN_S = 120;
+
+function formatCountdown(totalSeconds: number) {
+  const s = Math.max(0, totalSeconds);
+  const m = Math.floor(s / 60);
+  const ss = s % 60;
+  return `${m}:${String(ss).padStart(2, '0')}`;
+}
 
 function AuthHeaderThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -604,11 +599,346 @@ function AuthHeaderThemeToggle() {
 }
 
 export default function AuthPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { setUserAndToken } = useAuthStore();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const tab = (searchParams.get('tab') as 'login' | 'signup' | 'forgot') || 'login';
   const validTab = ['login', 'signup', 'forgot'].includes(tab) ? tab : 'login';
+  const [rightPanelState, setRightPanelState] = useState<'auth' | 'otp' | 'success' | 'reset'>('auth');
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpLocked, setOtpLocked] = useState(false);
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [resendCooldownS, setResendCooldownS] = useState(60);
+  const [resendAttempts, setResendAttempts] = useState(0);
+  const [resendLockedUntil, setResendLockedUntil] = useState<number | null>(null);
+  const [expiresAtMs, setExpiresAtMs] = useState<number | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [verifying, setVerifying] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  // Password reset OTP state (separate from email-verification OTP)
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetLocked, setResetLocked] = useState(false);
+  const [resetDigits, setResetDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const resetRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [resetResendCooldownS, setResetResendCooldownS] = useState(60);
+  const [resetResendAttempts, setResetResendAttempts] = useState(0);
+  const [resetResendLockedUntil, setResetResendLockedUntil] = useState<number | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirm, setResetConfirm] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
+
+  // Allow deep-link into OTP flow: /auth?tab=login&verifyEmail=1&email=...&sent=1
+  useEffect(() => {
+    const verifyEmail = searchParams.get('verifyEmail');
+    const email = searchParams.get('email');
+    const sent = searchParams.get('sent') === '1';
+    if (verifyEmail === '1' && email && rightPanelState === 'auth') {
+      // Fire-and-forget; panel swap is local state
+      goToOtp(email, !sent).catch(() => undefined);
+      // remove verifyEmail/email from URL to avoid looping on refresh
+      const next = new URLSearchParams(searchParams);
+      next.delete('verifyEmail');
+      next.delete('email');
+      next.delete('sent');
+      navigate(`/auth?${next.toString()}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const canResend = useMemo(() => {
+    if (resendLockedUntil && Date.now() < resendLockedUntil) return false;
+    return resendCooldownS <= 0 && resendAttempts < 3;
+  }, [resendAttempts, resendCooldownS, resendLockedUntil]);
+
+  const canResendReset = useMemo(() => {
+    if (resetResendLockedUntil && Date.now() < resetResendLockedUntil) return false;
+    return resetResendCooldownS <= 0 && resetResendAttempts < 3;
+  }, [resetResendAttempts, resetResendCooldownS, resetResendLockedUntil]);
+
+  const expiryText = useMemo(() => {
+    if (!expiresAtMs) return 'Code expires in 10 minutes.';
+    const ms = Math.max(0, expiresAtMs - Date.now());
+    const totalS = Math.ceil(ms / 1000);
+    const m = Math.floor(totalS / 60);
+    const s = totalS % 60;
+    return `Code expires in ${m}:${String(s).padStart(2, '0')}.`;
+  }, [expiresAtMs]);
+
+  useEffect(() => {
+    if (rightPanelState !== 'otp') return;
+    if (resendCooldownS <= 0) return;
+    const t = window.setInterval(() => setResendCooldownS((v) => (v > 0 ? v - 1 : 0)), 1000);
+    return () => window.clearInterval(t);
+  }, [rightPanelState, resendCooldownS]);
+
+  useEffect(() => {
+    if (rightPanelState !== 'reset') return;
+    if (resetResendCooldownS <= 0) return;
+    const t = window.setInterval(() => setResetResendCooldownS((v) => (v > 0 ? v - 1 : 0)), 1000);
+    return () => window.clearInterval(t);
+  }, [rightPanelState, resetResendCooldownS]);
+
+  useEffect(() => {
+    if (rightPanelState !== 'otp') return;
+    if (!expiresAtMs) return;
+    const t = window.setInterval(() => {
+      // force re-render for expiryText countdown
+      setExpiresAtMs((v) => v);
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, [rightPanelState, expiresAtMs]);
+
+  const clearOtpState = () => {
+    setOtpDigits(['', '', '', '', '', '']);
+    setOtpError('');
+    setFailedAttempts(0);
+    setOtpLocked(false);
+    setVerifying(false);
+  };
+
+  const clearResetState = () => {
+    setResetDigits(['', '', '', '', '', '']);
+    setResetError('');
+    setResetLocked(false);
+    setResetResendAttempts(0);
+    setResetResendLockedUntil(null);
+    setResetResendCooldownS(RESEND_COOLDOWN_S);
+    setResetPassword('');
+    setResetConfirm('');
+    setResettingPassword(false);
+  };
+
+  const sendOtp = async (email: string, reason: 'initial' | 'resend' | 'autoAfterLock') => {
+    const e = email.trim().toLowerCase();
+    if (!e) return;
+    setSending(true);
+    setOtpError('');
+    try {
+      const { authAPI } = await import('../lib/api');
+      await authAPI.requestVerificationOtp(e);
+      setOtpEmail(e);
+      setExpiresAtMs(Date.now() + 10 * 60 * 1000);
+      setResendCooldownS(RESEND_COOLDOWN_S);
+      if (reason === 'resend') setResendAttempts((n) => n + 1);
+      if (reason === 'autoAfterLock') setResendAttempts((n) => n + 1);
+      window.setTimeout(() => otpRefs.current[0]?.focus(), 100);
+    } catch (err: any) {
+      setOtpError(err?.message || 'Failed to send code. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendResetOtp = async (email: string, reason: 'request' | 'resend') => {
+    const e = email.trim().toLowerCase();
+    if (!e) return;
+    setResetError('');
+    try {
+      await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: e }),
+      });
+      setResetEmail(e);
+      setResetResendCooldownS(RESEND_COOLDOWN_S);
+      if (reason === 'resend') setResetResendAttempts((n) => n + 1);
+      window.setTimeout(() => resetRefs.current[0]?.focus(), 100);
+    } catch (err: any) {
+      setResetError(err?.message || 'Failed to send code. Please try again.');
+    }
+  };
+
+  const goToOtp = async (email: string, autoSend: boolean) => {
+    setRightPanelState('otp');
+    setOtpEmail(email.trim().toLowerCase());
+    clearOtpState();
+    setResendAttempts(0);
+    setResendLockedUntil(null);
+    setResendCooldownS(RESEND_COOLDOWN_S);
+    setExpiresAtMs(Date.now() + 10 * 60 * 1000);
+    if (autoSend) {
+      await sendOtp(email, 'initial');
+    } else {
+      window.setTimeout(() => otpRefs.current[0]?.focus(), 100);
+    }
+  };
+
+  const goToReset = async (email: string) => {
+    setRightPanelState('reset');
+    setResetEmail(email.trim().toLowerCase());
+    clearResetState();
+    setResetResendAttempts(0);
+    setResetResendLockedUntil(null);
+    setResetResendCooldownS(RESEND_COOLDOWN_S);
+    window.setTimeout(() => resetRefs.current[0]?.focus(), 100);
+  };
+
+  const verifyOtp = async () => {
+    const code = otpDigits.join('');
+    if (otpLocked || verifying || sending) return;
+    if (!/^\d{6}$/.test(code)) {
+      setOtpError('Enter the 6-digit code.');
+      return;
+    }
+    if (expiresAtMs && Date.now() > expiresAtMs) {
+      setOtpError('Verification code expired. Request a new code.');
+      return;
+    }
+    setVerifying(true);
+    setOtpError('');
+    try {
+      const { authAPI } = await import('../lib/api');
+      const result = await authAPI.verifyEmailWithOtp(otpEmail, code);
+      if (result?.token && result?.user) {
+        const userProfile = {
+          id: result.user.id?.toString() || result.user._id?.toString() || '',
+          email: result.user.email,
+          full_name: result.user.fullName,
+          role: result.user.role,
+          seller_status: result.user.sellerVerificationStatus,
+          seller_verified: result.user.isSellerVerified,
+          phone: result.user.phone,
+          avatar_url: result.user.avatarUrl,
+          created_at: result.user.createdAt || new Date().toISOString(),
+          updated_at: result.user.updatedAt || new Date().toISOString(),
+        };
+        setUserAndToken(userProfile as any, result.token);
+      }
+      // Clear OTP from UI state immediately after success
+      clearOtpState();
+      setExpiresAtMs(null);
+      setRightPanelState('success');
+    } catch (err: any) {
+      const nextFails = failedAttempts + 1;
+      setFailedAttempts(nextFails);
+      setOtpError(err?.message || 'Wrong code. Please try again.');
+      if (nextFails >= 5) {
+        setOtpLocked(true);
+        setOtpError('Too many failed attempts. A new code has been sent.');
+        setOtpDigits(['', '', '', '', '', '']);
+        // auto-resend fresh code
+        await sendOtp(otpEmail, 'autoAfterLock');
+        setFailedAttempts(0);
+        setOtpLocked(false);
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleOtpDigitChange = (index: number, raw: string) => {
+    if (otpLocked) return;
+    const v = raw.replace(/\D/g, '').slice(0, 1);
+    const next = [...otpDigits];
+    next[index] = v;
+    setOtpDigits(next);
+    setOtpError('');
+    if (v && index < 5) otpRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (otpLocked) return;
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowLeft' && index > 0) otpRefs.current[index - 1]?.focus();
+    if (e.key === 'ArrowRight' && index < 5) otpRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (otpLocked) return;
+    const text = e.clipboardData.getData('text') || '';
+    const digits = text.replace(/\D/g, '').slice(0, 6).split('');
+    if (digits.length === 0) return;
+    e.preventDefault();
+    const next = Array.from({ length: 6 }, (_, i) => digits[i] || '');
+    setOtpDigits(next);
+    setOtpError('');
+    const last = Math.min(5, digits.length - 1);
+    window.setTimeout(() => otpRefs.current[last]?.focus(), 0);
+  };
+
+  const handleResetDigitChange = (index: number, raw: string) => {
+    if (resetLocked || resettingPassword) return;
+    const v = raw.replace(/\D/g, '').slice(0, 1);
+    const next = [...resetDigits];
+    next[index] = v;
+    setResetDigits(next);
+    setResetError('');
+    if (v && index < 5) resetRefs.current[index + 1]?.focus();
+  };
+
+  const handleResetKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (resetLocked || resettingPassword) return;
+    if (e.key === 'Backspace' && !resetDigits[index] && index > 0) {
+      resetRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowLeft' && index > 0) resetRefs.current[index - 1]?.focus();
+    if (e.key === 'ArrowRight' && index < 5) resetRefs.current[index + 1]?.focus();
+  };
+
+  const handleResetPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (resetLocked || resettingPassword) return;
+    const text = e.clipboardData.getData('text') || '';
+    const digits = text.replace(/\D/g, '').slice(0, 6).split('');
+    if (digits.length === 0) return;
+    e.preventDefault();
+    const next = Array.from({ length: 6 }, (_, i) => digits[i] || '');
+    setResetDigits(next);
+    setResetError('');
+    const last = Math.min(5, digits.length - 1);
+    resetRefs.current[last]?.focus();
+  };
+
+  const submitReset = async () => {
+    setResetError('');
+    const code = resetDigits.join('');
+    if (!/^\d{6}$/.test(code)) {
+      setResetError('Enter the 6-digit code.');
+      return;
+    }
+    if (resetPassword.length < 6) {
+      setResetError('Password must be at least 6 characters.');
+      return;
+    }
+    if (resetPassword !== resetConfirm) {
+      setResetError('Passwords do not match.');
+      return;
+    }
+
+    setResettingPassword(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/reset-password-otp`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: resetEmail,
+          code,
+          password: resetPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setResetError(data.message || 'Failed to reset password.');
+        return;
+      }
+      clearResetState();
+      setRightPanelState('auth');
+      navigate('/auth?tab=login');
+    } catch {
+      setResetError('Network error. Try again.');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
 
   const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
   const cardBg = isDark ? '#111420' : '#ffffff';
@@ -629,54 +959,414 @@ export default function AuthPage() {
             className="w-full max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
             style={{ background: cardBg, boxShadow: cardShadow }}
           >
-            {/* Tab switcher: Sign In | Register with sliding pill */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="inline-flex items-center p-1 rounded-[14px] relative" style={{ background: 'var(--bg-tertiary)' }}>
-                <Link
-                  to="/auth?tab=login"
-                  className="relative z-10 px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
-                  style={{ color: validTab === 'login' || validTab === 'forgot' ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/auth?tab=signup"
-                  className="relative z-10 px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
-                  style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                >
-                  Register
-                </Link>
-                <motion.span
-                  layoutId="auth-tab-pill"
-                  className="absolute z-0 top-1 rounded-[10px]"
-                  style={{
-                    background: isDark ? '#1a1e2c' : '#ffffff',
-                    boxShadow: isDark ? '0 0 0 1px rgba(15,23,42,0.9)' : '0 2px 8px rgba(0,0,0,0.08)',
-                    height: 'calc(100% - 8px)',
-                  }}
-                  animate={{
-                    left: validTab === 'signup' ? 'calc(50% + 2px)' : '4px',
-                    width: 'calc(50% - 10px)',
-                  }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
-              </div>
-            </div>
-
             <AnimatePresence mode="wait">
-              {validTab === 'forgot' && (
-                <motion.div key="forgot" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <ForgotFormContent />
+              {rightPanelState === 'auth' && (
+                <motion.div
+                  key="auth-panel"
+                  initial={{ opacity: 0, x: 14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -14 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {/* Tab switcher: Sign In | Register with sliding pill */}
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="inline-flex items-center p-1 rounded-[14px] relative" style={{ background: 'var(--bg-tertiary)' }}>
+                      <Link
+                        to="/auth?tab=login"
+                        className="relative z-10 px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
+                        style={{ color: validTab === 'login' || validTab === 'forgot' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                      >
+                        Sign In
+                      </Link>
+                      <Link
+                        to="/auth?tab=signup"
+                        className="relative z-10 px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
+                        style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                      >
+                        Register
+                      </Link>
+                      <motion.span
+                        layoutId="auth-tab-pill"
+                        className="absolute z-0 top-1 rounded-[10px]"
+                        style={{
+                          background: isDark ? '#1a1e2c' : '#ffffff',
+                          boxShadow: isDark ? '0 0 0 1px rgba(15,23,42,0.9)' : '0 2px 8px rgba(0,0,0,0.08)',
+                          height: 'calc(100% - 8px)',
+                        }}
+                        animate={{
+                          left: validTab === 'signup' ? 'calc(50% + 2px)' : '4px',
+                          width: 'calc(50% - 10px)',
+                        }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    </div>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    {validTab === 'forgot' && (
+                      <motion.div key="forgot" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                        <ForgotFormContent onSent={(email) => { goToReset(email).catch(() => undefined); }} />
+                      </motion.div>
+                    )}
+                    {validTab === 'login' && (
+                      <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                        <LoginFormContent
+                          role="buyer"
+                          onRequireEmailVerification={async (email) => {
+                            await goToOtp(email, true);
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                    {validTab === 'signup' && (
+                      <motion.div key="signup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                        <SignupFormContent
+                          onRegistered={async (email) => {
+                            // After successful register, immediately send OTP and swap panel
+                            // Backend already sent OTP on register
+                            await goToOtp(email, false);
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               )}
-              {validTab === 'login' && (
-                <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <LoginFormContent role="buyer" />
+
+              {rightPanelState === 'otp' && (
+                <motion.div
+                  key="otp-panel"
+                  initial={{ opacity: 0, x: 14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -14 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+                      style={{
+                        background: 'rgba(249,115,22,0.12)',
+                        boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.25)',
+                      }}
+                    >
+                      <Mail className="w-6 h-6" style={{ color: PRIMARY }} />
+                    </div>
+                    <h2 className="text-[22px] font-extrabold mb-1" style={{ color: 'var(--text-primary)' }}>Verify your email</h2>
+                    <p className="text-[13px] mb-5 max-w-[420px]" style={{ color: 'var(--text-muted)' }}>
+                      We sent a 6-digit code to <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{otpEmail}</span>. Check your inbox and spam.
+                    </p>
+
+                    <div className="w-full max-w-[360px]">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        {otpDigits.map((d, i) => (
+                          <input
+                            key={i}
+                            ref={(el) => { otpRefs.current[i] = el; }}
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            value={d}
+                            disabled={otpLocked || verifying}
+                            onChange={(e) => handleOtpDigitChange(i, e.target.value)}
+                            onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                            onPaste={handleOtpPaste}
+                            className="w-11 h-12 rounded-[12px] text-center text-[18px] font-extrabold outline-none transition-all"
+                            style={{
+                              background: isDark ? '#1a1e2c' : '#f9fafb',
+                              boxShadow: otpError
+                                ? '0 0 0 2px rgba(239,68,68,0.35)'
+                                : '0 0 0 1.5px rgba(0,0,0,0.08)',
+                              color: 'var(--text-primary)',
+                            }}
+                            aria-label={`Digit ${i + 1}`}
+                          />
+                        ))}
+                      </div>
+
+                      {otpError && (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] text-center mb-3" style={{ color: '#f87171' }}>
+                          {otpError}
+                        </motion.p>
+                      )}
+
+                      {!otpError && (
+                        <p className="text-[11px] text-center mb-3" style={{ color: 'var(--text-faint)' }}>
+                          {expiryText}
+                        </p>
+                      )}
+
+                      {resendAttempts >= 3 ? (
+                        <p className="text-[12px] text-center mb-3" style={{ color: '#f87171' }}>
+                          Too many attempts. Try again in 30 minutes.
+                        </p>
+                      ) : (
+                        <div className="text-center mb-4">
+                          {resendCooldownS > 0 ? (
+                            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                              Resend code in {formatCountdown(resendCooldownS)}
+                            </p>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={!canResend || sending}
+                              onClick={async () => {
+                                if (resendAttempts >= 2) {
+                                  setResendAttempts(3);
+                                  setResendLockedUntil(Date.now() + 30 * 60 * 1000);
+                                  return;
+                                }
+                                await sendOtp(otpEmail, 'resend');
+                              }}
+                              className="text-[13px] font-bold hover:underline"
+                              style={{ color: PRIMARY, opacity: !canResend || sending ? 0.6 : 1 }}
+                            >
+                              {sending ? 'Sending…' : 'Resend Code'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <motion.button
+                        type="button"
+                        disabled={verifying || sending || otpLocked}
+                        onClick={verifyOtp}
+                        className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all duration-250"
+                        style={{
+                          background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)',
+                          color: '#ffffff',
+                          boxShadow: '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
+                          opacity: verifying || sending || otpLocked ? 0.8 : 1,
+                        }}
+                        whileHover={!(verifying || sending || otpLocked) ? { y: -2 } : {}}
+                        whileTap={!(verifying || sending || otpLocked) ? { y: 0 } : {}}
+                      >
+                        {(verifying || sending) && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {verifying ? 'Verifying…' : 'Verify Email →'}
+                      </motion.button>
+
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            clearOtpState();
+                            setRightPanelState('auth');
+                            navigate('/auth?tab=login');
+                          }}
+                          className="text-xs font-semibold hover:underline block mx-auto"
+                          style={{ color: PRIMARY }}
+                        >
+                          ← Back to Sign In
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               )}
-              {validTab === 'signup' && (
-                <motion.div key="signup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <SignupFormContent />
+
+              {rightPanelState === 'reset' && (
+                <motion.div
+                  key="reset-panel"
+                  initial={{ opacity: 0, x: 14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -14 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+                      style={{
+                        background: 'rgba(249,115,22,0.12)',
+                        boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.25)',
+                      }}
+                    >
+                      <Lock className="w-6 h-6" style={{ color: PRIMARY }} />
+                    </div>
+                    <h2 className="text-[22px] font-extrabold mb-1" style={{ color: 'var(--text-primary)' }}>Reset your password</h2>
+                    <p className="text-[13px] mb-5 max-w-[420px]" style={{ color: 'var(--text-muted)' }}>
+                      We sent a 6-digit code to <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{resetEmail}</span>. It expires in 15 minutes.
+                    </p>
+
+                    <div className="w-full max-w-[380px]">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        {resetDigits.map((d, i) => (
+                          <input
+                            key={i}
+                            ref={(el) => { resetRefs.current[i] = el; }}
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            value={d}
+                            disabled={resetLocked || resettingPassword}
+                            onChange={(e) => handleResetDigitChange(i, e.target.value)}
+                            onKeyDown={(e) => handleResetKeyDown(i, e)}
+                            onPaste={handleResetPaste}
+                            className="w-11 h-12 rounded-[12px] text-center text-[18px] font-extrabold outline-none transition-all"
+                            style={{
+                              background: isDark ? '#1a1e2c' : '#f9fafb',
+                              boxShadow: resetError
+                                ? '0 0 0 2px rgba(239,68,68,0.35)'
+                                : '0 0 0 1.5px rgba(0,0,0,0.08)',
+                              color: 'var(--text-primary)',
+                            }}
+                            aria-label={`Digit ${i + 1}`}
+                          />
+                        ))}
+                      </div>
+
+                      {resetError && (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] text-center mb-3" style={{ color: '#f87171' }}>
+                          {resetError}
+                        </motion.p>
+                      )}
+
+                      {resetResendAttempts >= 3 ? (
+                        <p className="text-[12px] text-center mb-3" style={{ color: '#f87171' }}>
+                          Too many attempts. Try again in 30 minutes.
+                        </p>
+                      ) : (
+                        <div className="text-center mb-4">
+                          {resetResendCooldownS > 0 ? (
+                            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                              Resend code in {formatCountdown(resetResendCooldownS)}
+                            </p>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={!canResendReset}
+                              onClick={async () => {
+                                if (resetResendAttempts >= 2) {
+                                  setResetResendAttempts(3);
+                                  setResetResendLockedUntil(Date.now() + 30 * 60 * 1000);
+                                  return;
+                                }
+                                await sendResetOtp(resetEmail, 'resend');
+                              }}
+                              className="text-[13px] font-bold hover:underline"
+                              style={{ color: PRIMARY, opacity: !canResendReset ? 0.6 : 1 }}
+                            >
+                              Resend Code
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="grid gap-3 mb-4">
+                        <PremiumInput
+                          label="New Password"
+                          type="password"
+                          value={resetPassword}
+                          onChange={setResetPassword}
+                          placeholder="Enter new password"
+                          leftIcon={Lock}
+                          required
+                        />
+                        <PremiumInput
+                          label="Confirm Password"
+                          type="password"
+                          value={resetConfirm}
+                          onChange={setResetConfirm}
+                          placeholder="Confirm new password"
+                          leftIcon={Lock}
+                          required
+                        />
+                      </div>
+
+                      <motion.button
+                        type="button"
+                        disabled={resettingPassword || resetLocked}
+                        onClick={submitReset}
+                        className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all duration-250"
+                        style={{
+                          background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)',
+                          color: '#ffffff',
+                          boxShadow: '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
+                          opacity: resettingPassword || resetLocked ? 0.8 : 1,
+                        }}
+                        whileHover={!(resettingPassword || resetLocked) ? { y: -2 } : {}}
+                        whileTap={!(resettingPassword || resetLocked) ? { y: 0 } : {}}
+                      >
+                        {resettingPassword && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {resettingPassword ? 'Updating…' : 'Set New Password →'}
+                      </motion.button>
+
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            clearResetState();
+                            setRightPanelState('auth');
+                            navigate('/auth?tab=login');
+                          }}
+                          className="text-xs font-semibold hover:underline block mx-auto"
+                          style={{ color: PRIMARY }}
+                        >
+                          ← Back to Sign In
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {rightPanelState === 'success' && (
+                <motion.div
+                  key="success-panel"
+                  initial={{ opacity: 0, x: 14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -14 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="flex flex-col items-center text-center py-2">
+                    <div
+                      className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                      style={{
+                        background: 'rgba(16,185,129,0.14)',
+                        boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.25)',
+                      }}
+                    >
+                      <svg width="34" height="26" viewBox="0 0 52 38" fill="none" aria-hidden="true">
+                        <path
+                          d="M6 20.5L20 34L46 6"
+                          stroke={SUCCESS}
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{
+                            strokeDasharray: 80,
+                            strokeDashoffset: 80,
+                            animation: 'auth-check 650ms ease-out forwards',
+                          }}
+                        />
+                      </svg>
+                    </div>
+                    <style>{`
+                      @keyframes auth-check {
+                        to { stroke-dashoffset: 0; }
+                      }
+                    `}</style>
+                    <h2 className="text-[22px] font-extrabold mb-1" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
+                    <p className="text-[13px] mb-5" style={{ color: 'var(--text-muted)' }}>
+                      Your account is ready. Welcome to Reaglex.
+                    </p>
+
+                    <motion.button
+                      type="button"
+                      onClick={() => {
+                        const { user } = useAuthStore.getState();
+                        if (user?.role === 'seller') navigate('/seller');
+                        else if (user?.role === 'admin') navigate('/admin');
+                        else navigate('/');
+                      }}
+                      className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all duration-250"
+                      style={{
+                        background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)',
+                        color: '#ffffff',
+                        boxShadow: '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
+                      }}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ y: 0 }}
+                    >
+                      Go to Dashboard →
+                    </motion.button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

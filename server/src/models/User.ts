@@ -101,6 +101,8 @@ export interface IUser extends Document {
   emailVerificationExpires?: Date;
   emailVerificationOtp?: string;
   emailVerificationOtpExpires?: Date;
+  passwordResetOtp?: string;
+  passwordResetOtpExpires?: Date;
   // Seller-specific fields
   sellerVerificationStatus?: SellerVerificationStatus;
   isSellerVerified?: boolean;
@@ -229,6 +231,8 @@ const userSchema = new Schema<IUser>(
     emailVerificationExpires: { type: Date, select: false },
     emailVerificationOtp: { type: String, select: false },
     emailVerificationOtpExpires: { type: Date, select: false },
+    passwordResetOtp: { type: String, select: false },
+    passwordResetOtpExpires: { type: Date, select: false },
     role: {
       type: String,
       enum: ['buyer', 'seller', 'admin'],

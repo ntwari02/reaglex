@@ -6,9 +6,20 @@ import { useBuyerCart } from '../stores/buyerCartStore';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 
+function extractImageSrc(src) {
+  if (!src) return null;
+  if (Array.isArray(src)) return extractImageSrc(src[0]);
+  if (typeof src === 'string') return src;
+  if (typeof src === 'object') {
+    return src.url || src.secure_url || src.path || src.src || null;
+  }
+  return null;
+}
+
 function resolveImage(src) {
-  if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
-  return src.startsWith('http') ? src : `${SERVER_URL}${src}`;
+  const value = extractImageSrc(src);
+  if (!value) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
+  return value.startsWith('http') ? value : `${SERVER_URL}${value}`;
 }
 
 export default function ProductListItem({ product, index = 0 }) {
@@ -24,7 +35,10 @@ export default function ProductListItem({ product, index = 0 }) {
   const discount    = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const rating      = product.averageRating || product.rating || (4 + Math.random()).toFixed(1);
   const reviews     = product.totalReviews  || product.reviewCount || Math.floor(Math.random() * 200 + 20);
-  const imgSrc      = resolveImage(product.images?.[0] || product.image);
+  const primary = Array.isArray(product.images)
+    ? (product.images.find((img) => img?.is_primary) || product.images[0])
+    : product.images?.[0];
+  const imgSrc      = resolveImage(primary || product.image || product.imageUrl || product.thumbnail || product.thumbnailUrl);
   const stock       = product.stockQuantity ?? product.stock ?? 10;
   const seller      = product.seller?.storeName || product.sellerName || 'Premium Store';
   const category    = product.category || product.categoryName || '';

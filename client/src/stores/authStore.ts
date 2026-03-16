@@ -25,7 +25,13 @@ interface AuthState {
   setUserAndToken: (user: Profile, token: string) => void;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<
+    | { success: true }
+    | { success: false; error?: string }
+    | { success: false; requires2FA: true; tempToken: string; email: string; role: string }
+    | { success: false; requires2FASetup: true; tempToken: string; email: string; role: string }
+    | { success: false; code: 'EMAIL_NOT_VERIFIED'; email: string; error?: string }
+  >;
   loginWithBiometric: () => Promise<{ success: boolean; error?: string }>;
   demoLogin: (email: string, name?: string) => void;
 }
@@ -85,6 +91,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       return { success: false, error: 'Invalid response from server.' };
     } catch (error: any) {
       console.error('Login error:', error);
+      if (error?.code === 'EMAIL_NOT_VERIFIED' && error?.email) {
+        return {
+          success: false,
+          code: 'EMAIL_NOT_VERIFIED',
+          email: String(error.email),
+          error: error.message || 'Please verify your email before signing in.',
+        };
+      }
       if (error.message?.includes('deactivated')) {
         localStorage.removeItem('user');
         localStorage.removeItem('auth_token');

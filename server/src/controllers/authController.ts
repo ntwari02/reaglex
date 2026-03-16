@@ -12,14 +12,28 @@ import { ActiveSession } from '../models/ActiveSession';
 import { PendingLoginRequest } from '../models/PendingLoginRequest';
 import {
   sendPasswordResetEmail,
-  sendVerificationEmail,
   sendVerificationOtpEmail,
+  sendPasswordResetOtpEmail,
   sendWelcomeEmail,
   sendDeviceApprovalEmail,
   isEmailConfigured,
 } from '../services/emailService';
 
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
+
+const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
+async function issueEmailVerificationOtp(user: InstanceType<typeof User>): Promise<void> {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+  user.emailVerificationOtp = code;
+  user.emailVerificationOtpExpires = expiresAt;
+  // Link/token verification is deprecated; clear any old tokens
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+  await user.save();
+  await sendVerificationOtpEmail(user.email, user.fullName, code, '10 minutes');
+}
 
 /** Escape special regex chars so email can be used in RegExp safely */
 function escapeRegex(s: string): string {
@@ -146,19 +160,13 @@ export async function register(req: Request, res: Response) {
       isSellerVerified: isSeller ? false : undefined,
     });
 
-    // Send verification email (non-blocking; do not fail registration if email fails)
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-    user.emailVerificationToken = verificationToken;
-    user.emailVerificationExpires = verificationExpires;
-    await user.save();
-    sendVerificationEmail(user.email, user.fullName, verificationToken, '24 hours').then((r) => {
-      if (!r.success) console.warn('[auth] register: verification email failed', r.error);
-    }).catch((e) => console.warn('[auth] register: verification email error', e));
+    // Send verification OTP (non-blocking; do not fail registration if email fails)
+    issueEmailVerificationOtp(user)
+      .catch((e) => console.warn('[auth] register: verification OTP error', e));
 
     // Do not issue token or log user in until email is verified
     res.status(201).json({
-      message: 'Account created. Please check your email and click the verification link before you can sign in.',
+      message: 'Account created. Please check your email for a 6-digit verification code to verify your account.',
     });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
@@ -200,7 +208,7 @@ export async function login(req: Request, res: Response) {
     // Require email verification before sign-in (Gmail verification flow)
     if (!user.emailVerified) {
       return res.status(403).json({
-        message: 'Please verify your email before signing in. Check your inbox for the verification link, or request a new one below.',
+        message: 'Please verify your email before signing in. Check your inbox for a 6-digit code, or request a new code.',
         code: 'EMAIL_NOT_VERIFIED',
         email: user.email,
       });
@@ -250,33 +258,6 @@ export async function login(req: Request, res: Response) {
     }
 
     await user.save();
-
-    // Seller and Admin: require 2FA for extra security
-    const isSellerOrAdmin = user.role === 'seller' || user.role === 'admin';
-    if (isSellerOrAdmin) {
-      const twoFactorEnabled = user.security?.twoFactorEnabled === true;
-      const tempToken = generate2FAPendingToken({
-        userId: user._id.toString(),
-        purpose: twoFactorEnabled ? '2fa' : '2fa-setup',
-        email: user.email,
-        role: user.role,
-      });
-      if (twoFactorEnabled) {
-        return res.status(200).json({
-          requires2FA: true,
-          tempToken,
-          email: user.email,
-          role: user.role,
-        });
-      }
-      // Admin: must set up 2FA before first use. Seller: must set up 2FA for secure access.
-      return res.status(200).json({
-        requires2FASetup: true,
-        tempToken,
-        email: user.email,
-        role: user.role,
-      });
-    }
 
     const token = generateAuthToken(user);
 
@@ -850,17 +831,9 @@ export async function googleCallback(req: Request, res: Response) {
           await user.save();
           // Fall through to normal sign-in (no email sent, no redirect to verify page)
         } else {
-          const needNewToken = !user.emailVerificationToken || !user.emailVerificationExpires || user.emailVerificationExpires < new Date();
-          if (needNewToken) {
-            const verificationToken = crypto.randomBytes(32).toString('hex');
-            const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-            user.emailVerificationToken = verificationToken;
-            user.emailVerificationExpires = verificationExpires;
-            await user.save();
-            sendVerificationEmail(user.email, user.fullName, verificationToken, '24 hours').catch((e) =>
-              console.warn('[auth] Google callback: verification email failed', e)
-            );
-          }
+          await issueEmailVerificationOtp(user).catch((e) =>
+            console.warn('[auth] Google callback: verification OTP failed', e)
+          );
           const pendingUrl = new URL(`${CLIENT_URL}/verify-email-pending`);
           pendingUrl.searchParams.set('email', user.email);
           pendingUrl.searchParams.set('source', 'google');
@@ -924,25 +897,27 @@ export async function googleCallback(req: Request, res: Response) {
 
     await user.save();
 
-    // Seller/Admin: require 2FA (same as password login)
-    const isSellerOrAdmin = user.role === 'seller' || user.role === 'admin';
-    if (isSellerOrAdmin) {
-      const twoFactorEnabled = user.security?.twoFactorEnabled === true;
-      const twoFATempToken = generate2FAPendingToken({
-        userId: user._id.toString(),
-        purpose: twoFactorEnabled ? '2fa' : '2fa-setup',
-        email: user.email,
-        role: user.role,
-      });
-      const redirectUrl = new URL(`${CLIENT_URL}/auth/google/callback`);
-      redirectUrl.searchParams.set(twoFactorEnabled ? 'requires2FA' : 'requires2FASetup', 'true');
-      redirectUrl.searchParams.set('tempToken', twoFATempToken);
-      redirectUrl.searchParams.set('email', user.email);
-      redirectUrl.searchParams.set('role', user.role);
-      return res.redirect(redirectUrl.toString());
-    }
-
     const token = generateAuthToken(user);
+    // Admin/Seller: register active session so protected routes (e.g. /me) work after OAuth redirect
+    try {
+      const decoded = decodeAuthToken(token);
+      if ((user.role === 'admin' || user.role === 'seller') && decoded?.jti) {
+        const { deviceId, userAgent, ipAddress } = getDeviceInfo(req);
+        await ActiveSession.findOneAndUpdate(
+          { userId: user._id },
+          {
+            tokenId: decoded.jti,
+            deviceId,
+            userAgent,
+            ipAddress,
+            lastActiveAt: new Date(),
+          },
+          { upsert: true, new: true }
+        );
+      }
+    } catch (e) {
+      console.warn('[auth] Google callback: failed to register active session', e);
+    }
     const redirectUrl = new URL(`${CLIENT_URL}/auth/google/callback`);
     redirectUrl.searchParams.set('token', token);
     redirectUrl.searchParams.set('success', 'true');
@@ -1010,22 +985,14 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
           await user.save();
           // Fall through to return token / 2FA check below (no email, no needsVerification)
         } else {
-          const needNewToken = !user.emailVerificationToken || !user.emailVerificationExpires || user.emailVerificationExpires < new Date();
-          if (needNewToken) {
-            const verificationToken = crypto.randomBytes(32).toString('hex');
-            const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-            user.emailVerificationToken = verificationToken;
-            user.emailVerificationExpires = verificationExpires;
-            await user.save();
-            sendVerificationEmail(user.email, user.fullName, verificationToken, '24 hours').catch((e) =>
-              console.warn('[auth] Google complete: verification email failed', e)
-            );
-          }
+          await issueEmailVerificationOtp(user).catch((e) =>
+            console.warn('[auth] Google complete: verification OTP failed', e)
+          );
           return res.json({
             success: true,
             needsVerification: true,
             email: user.email,
-            message: 'Please verify your email. We sent a link to your inbox.',
+            message: 'Please verify your email. We sent a 6-digit code to your inbox.',
           });
         }
       }
@@ -1038,25 +1005,6 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
         console.log('User saved with avatarUrl:', user.avatarUrl);
       } else {
         console.log('Warning: No picture in temp token for existing user');
-      }
-      // Seller/Admin: require 2FA (same as password login)
-      const isSellerOrAdmin = user.role === 'seller' || user.role === 'admin';
-      if (isSellerOrAdmin) {
-        const twoFactorEnabled = user.security?.twoFactorEnabled === true;
-        const twoFATempToken = generate2FAPendingToken({
-          userId: user._id.toString(),
-          purpose: twoFactorEnabled ? '2fa' : '2fa-setup',
-          email: user.email,
-          role: user.role,
-        });
-        return res.json({
-          success: true,
-          requires2FA: twoFactorEnabled,
-          requires2FASetup: !twoFactorEnabled,
-          tempToken: twoFATempToken,
-          email: user.email,
-          role: user.role,
-        });
       }
       const token = generateAuthToken(user);
       return res.json({
@@ -1078,8 +1026,6 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
     const isSeller = role === 'seller';
     const isBuyer = role === 'buyer';
     console.log('Creating new user with Google picture:', picture);
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     user = await User.create({
       fullName: name || email.split('@')[0],
       email,
@@ -1088,17 +1034,13 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
       role,
       avatarUrl: picture || undefined,
       emailVerified: isBuyer, // Buyer: trust Google. Seller/admin: require verification.
-      emailVerificationToken: isBuyer ? undefined : verificationToken,
-      emailVerificationExpires: isBuyer ? undefined : verificationExpires,
       sellerVerificationStatus: isSeller ? 'pending' : undefined,
       isSellerVerified: isSeller ? false : undefined,
     });
     console.log('User created with avatarUrl:', user.avatarUrl);
 
     if (!isBuyer) {
-      sendVerificationEmail(user.email, user.fullName, verificationToken, '24 hours').then((r) => {
-        if (!r.success) console.warn('[auth] Google register: verification email failed', r.error);
-      }).catch((e) => console.warn('[auth] Google register: verification email error', e));
+      issueEmailVerificationOtp(user).catch((e) => console.warn('[auth] Google register: verification OTP error', e));
     }
 
     if (isBuyer) {
@@ -1121,7 +1063,7 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
       success: true,
       needsVerification: true,
       email: user.email,
-      message: 'Account created. Please check your email and click the verification link before signing in.',
+      message: 'Account created. Please check your email for a 6-digit verification code before signing in.',
     });
   } catch (error: any) {
     console.error('Complete Google registration error:', error);
@@ -1130,7 +1072,7 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
 }
 
 const forgotPasswordSchema = z.object({ email: z.string().email() });
-const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes (OTP)
 
 /**
  * POST /api/auth/forgot-password
@@ -1140,45 +1082,88 @@ export async function forgotPassword(req: Request, res: Response) {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
 
-    const user = await User.findOne({ email }).select('_id fullName email passwordHash');
+    const user = await findUserByEmailCaseInsensitive(email)
+      .select('_id fullName email passwordHash passwordResetOtp passwordResetOtpExpires')
+      .exec();
     if (!user) {
       // Do not reveal whether email exists
       return res.status(200).json({ message: 'If an account exists with this email, you will receive a reset link shortly.' });
     }
 
-    if (!user.passwordHash || user.passwordHash.trim() === '') {
-      return res.status(200).json({ message: 'If an account exists with this email, you will receive a reset link shortly.' });
-    }
-
-    const token = crypto.randomBytes(32).toString('hex');
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
-    await PasswordResetToken.deleteMany({ userId: user._id });
-    await PasswordResetToken.create({
-      userId: user._id,
-      token,
-      expiresAt,
-    });
+    user.passwordResetOtp = code;
+    user.passwordResetOtpExpires = expiresAt;
+    await user.save();
 
-    const result = await sendPasswordResetEmail(
-      user.email,
-      user.fullName,
-      token,
-      '1 hour'
-    );
+    const result = await sendPasswordResetOtpEmail(user.email, user.fullName, code, '15 minutes');
 
     if (!result.success) {
       console.error('[auth] forgotPassword send email failed:', result.error);
       return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' });
     }
 
-    return res.status(200).json({ message: 'If an account exists with this email, you will receive a reset link shortly.' });
+    return res.status(200).json({ message: 'If an account exists with this email, you will receive a 6-digit reset code shortly.' });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid email address' });
     }
     console.error('Forgot password error:', err);
     return res.status(500).json({ message: 'Something went wrong. Please try again later.' });
+  }
+}
+
+/**
+ * POST /api/auth/reset-password-otp
+ * Reset password using a 6-digit OTP sent by email.
+ */
+export async function resetPasswordWithOtp(req: Request, res: Response) {
+  try {
+    const schema = z.object({
+      email: z.string().email(),
+      code: z.string().length(6),
+      password: z.string().min(6),
+    });
+    const { email, code, password } = schema.parse(req.body);
+    const normalizedCode = (code || '').replace(/\D/g, '');
+    if (normalizedCode.length !== 6) {
+      return res.status(400).json({ message: 'Invalid or expired code. Please request a new one.' });
+    }
+
+    const user = await findUserByEmailCaseInsensitive(email)
+      .select('_id fullName email passwordHash security.lastPasswordChangeAt passwordResetOtp passwordResetOtpExpires')
+      .exec();
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or code.' });
+    }
+    if (!user.passwordResetOtp || !user.passwordResetOtpExpires) {
+      return res.status(400).json({ message: 'Invalid or expired code. Please request a new one.' });
+    }
+    if (user.passwordResetOtpExpires < new Date()) {
+      user.passwordResetOtp = undefined;
+      user.passwordResetOtpExpires = undefined;
+      await user.save();
+      return res.status(400).json({ message: 'Invalid or expired code. Please request a new one.' });
+    }
+    if (user.passwordResetOtp !== normalizedCode) {
+      return res.status(400).json({ message: 'Invalid or expired code. Please request a new one.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    user.passwordHash = passwordHash;
+    user.security.lastPasswordChangeAt = new Date();
+    user.passwordResetOtp = undefined;
+    user.passwordResetOtpExpires = undefined;
+    await user.save();
+
+    return res.status(200).json({ message: 'Password has been reset. You can now sign in.' });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Email, 6-digit code, and new password (min 6 characters) are required.' });
+    }
+    console.error('Reset password OTP error:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 }
 
@@ -1234,28 +1219,11 @@ export async function resetPassword(req: Request, res: Response) {
  */
 export async function verifyEmail(req: Request, res: Response) {
   try {
-    const token = (req.query.token as string)?.trim();
-    if (!token) {
-      return res.status(400).json({ message: 'Verification token is required.' });
-    }
-
-    const user = await User.findOne({
-      emailVerificationToken: token,
-      emailVerificationExpires: { $gt: new Date() },
-    }).select('+emailVerificationToken +emailVerificationExpires');
-
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification link.' });
-    }
-
-    user.emailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
-    await user.save();
-
-    sendWelcomeEmail(user.email, user.fullName).catch((e) => console.warn('[auth] welcome email error', e));
-
-    return res.status(200).json({ message: 'Email verified successfully. You can now sign in.' });
+    // Link-based verification has been deprecated in favor of 6-digit OTP codes.
+    return res.status(410).json({
+      message: 'Email verification links are no longer supported. Please verify using the 6-digit code sent to your email.',
+      code: 'OTP_REQUIRED',
+    });
   } catch (err: any) {
     console.error('Verify email error:', err);
     return res.status(500).json({ message: 'Verification failed. Please try again.' });
@@ -1268,7 +1236,7 @@ export async function verifyEmail(req: Request, res: Response) {
  * Security: does not reveal whether an account exists (same response for valid/invalid email when unauthenticated).
  */
 export async function resendVerification(req: Request, res: Response) {
-  const genericSuccess = 'If an account exists with this email, you will receive a verification link shortly.';
+  const genericSuccess = 'If an account exists with this email, you will receive a verification code shortly.';
   try {
     const email = (req.body?.email as string)?.trim();
     let user: InstanceType<typeof User> | null = null;
@@ -1288,25 +1256,13 @@ export async function resendVerification(req: Request, res: Response) {
     if (user.emailVerified) {
       return res.status(400).json({ message: 'Email is already verified. You can sign in.' });
     }
-
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-    user.emailVerificationToken = token;
-    user.emailVerificationExpires = expiresAt;
-    await user.save();
-
-    const result = await sendVerificationEmail(user.email, user.fullName, token, '24 hours');
-    if (!result.success) {
-      return res.status(500).json({ message: 'Failed to send verification email. Try again later.' });
-    }
-    return res.status(200).json({ message: 'Verification email sent. Check your inbox.' });
+    await issueEmailVerificationOtp(user);
+    return res.status(200).json({ message: 'Verification code sent to your email. It expires in 10 minutes.' });
   } catch (err: any) {
     console.error('Resend verification error:', err);
     return res.status(500).json({ message: 'Failed to resend verification email.' });
   }
 }
-
-const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
  * POST /api/auth/request-verification-otp
@@ -1355,8 +1311,25 @@ export async function verifyEmailWithOtp(req: Request, res: Response) {
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or code.' });
     }
+    // Block verification for inactive/banned accounts
+    if (user.accountStatus === 'inactive' || user.accountStatus === 'banned') {
+      return res.status(403).json({ message: 'Your account has been deactivated. Please contact support.' });
+    }
     if (user.emailVerified) {
-      return res.status(200).json({ message: 'Email verified successfully. You can now sign in.' });
+      const token = generateAuthToken(user);
+      return res.status(200).json({
+        message: 'Email verified successfully.',
+        token,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          sellerVerificationStatus: user.sellerVerificationStatus,
+          isSellerVerified: user.isSellerVerified,
+          avatarUrl: user.avatarUrl,
+        },
+      });
     }
     if (!user.emailVerificationOtp || !user.emailVerificationOtpExpires) {
       return res.status(400).json({ message: 'No verification code was sent. Request a new code.' });
@@ -1377,7 +1350,20 @@ export async function verifyEmailWithOtp(req: Request, res: Response) {
     user.emailVerificationOtpExpires = undefined;
     await user.save();
     sendWelcomeEmail(user.email, user.fullName).catch((e) => console.warn('[auth] welcome email error', e));
-    return res.status(200).json({ message: 'Email verified successfully. You can now sign in.' });
+    const token = generateAuthToken(user);
+    return res.status(200).json({
+      message: 'Email verified successfully.',
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        sellerVerificationStatus: user.sellerVerificationStatus,
+        isSellerVerified: user.isSellerVerified,
+        avatarUrl: user.avatarUrl,
+      },
+    });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Email and a 6-digit code are required.' });
