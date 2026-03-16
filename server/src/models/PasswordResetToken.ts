@@ -10,7 +10,7 @@ export interface IPasswordResetToken extends Document {
 
 const schema = new Schema<IPasswordResetToken>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     // OTP codes are short and may collide globally; uniqueness is per-user, not global
     token: { type: String, required: true, index: true },
     expiresAt: { type: Date, required: true },
