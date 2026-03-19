@@ -10,6 +10,7 @@ import ProductCard from '../components/ProductCard';
 import { productAPI } from '../services/api';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useBuyerCart } from '../stores/buyerCartStore';
+import { useSeo } from '../utils/useSeo';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 const resolveImg = (src) => {
@@ -137,6 +138,34 @@ export default function Home() {
   const countdown = useCountdown(5);
 
   const recentItems = useRecentlyViewed((s) => s.items);
+
+  const canonicalUrl = `${window.location.origin}/`;
+  useSeo({
+    title: 'REAGLE-X | Shop',
+    description:
+      'REAGLE-X - Shop trending products from verified sellers. Secure checkout, fast shipping, and protected payments.',
+    canonicalUrl,
+    openGraph: {
+      title: 'REAGLE-X | Shop',
+      description:
+        'REAGLE-X - Shop trending products from verified sellers. Secure checkout, fast shipping, and protected payments.',
+      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&q=80',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'REAGLE-X | Shop',
+      description:
+        'REAGLE-X - Shop trending products from verified sellers. Secure checkout, fast shipping, and protected payments.',
+      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&q=80',
+    },
+    jsonLdScriptId: 'reaglex-jsonld-website',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'REAGLE-X',
+      url: canonicalUrl,
+    },
+  });
 
   // Auto-rotate banners
   useEffect(() => {

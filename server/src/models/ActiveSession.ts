@@ -23,6 +23,6 @@ const activeSessionSchema = new Schema<IActiveSession>(
   { timestamps: true }
 );
 
-activeSessionSchema.index({ userId: 1 }, { unique: true });
+// `userId` already has `unique: true`, so a duplicate explicit index is unnecessary.
 
 export const ActiveSession = mongoose.model<IActiveSession>('ActiveSession', activeSessionSchema);

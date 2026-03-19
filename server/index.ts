@@ -44,6 +44,7 @@ import adminProductsRoutes from './src/routes/adminProductsRoutes';
 import adminOrdersRoutes from './src/routes/adminOrdersRoutes';
 import paymentRoutes from './src/routes/paymentRoutes';
 import webhookRoutes from './src/routes/webhookRoutes';
+import seoRoutes from './src/routes/seoRoutes';
 import './src/jobs/escrowJobs';
 import { websocketService } from './src/services/websocketService';
 
@@ -167,6 +168,9 @@ app.use('/api/admin/orders', adminOrdersRoutes);
 app.use('/api/payments', paymentRoutes);
 // Webhooks
 app.use('/api/webhooks', webhookRoutes);
+
+// SEO endpoints (robots + sitemap)
+app.use(seoRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

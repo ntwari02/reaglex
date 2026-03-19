@@ -36,7 +36,6 @@ const chargebackSchema = new Schema<IChargeback>(
   { timestamps: true }
 );
 
-chargebackSchema.index({ status: 1 });
 chargebackSchema.index({ date: -1 });
 
 export const Chargeback = mongoose.model<IChargeback>('Chargeback', chargebackSchema);

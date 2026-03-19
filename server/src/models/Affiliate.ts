@@ -125,7 +125,6 @@ const affiliateCommissionSchema = new Schema<IAffiliateCommission>(
 
 // Indexes for queries
 affiliateCommissionSchema.index({ affiliateId: 1, status: 1 });
-affiliateCommissionSchema.index({ orderId: 1 }); // Prevent duplicate commissions for same order
 affiliateCommissionSchema.index({ createdAt: -1 });
 
 const affiliatePayoutSchema = new Schema<IAffiliatePayout>(

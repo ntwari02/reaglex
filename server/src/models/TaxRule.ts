@@ -38,6 +38,4 @@ const taxRuleSchema = new Schema<ITaxRule>(
   { timestamps: true }
 );
 
-taxRuleSchema.index({ status: 1 });
-
 export const TaxRule = mongoose.model<ITaxRule>('TaxRule', taxRuleSchema);

@@ -10,6 +10,7 @@ import SearchProductCard from '../components/SearchProductCard';
 import ProductListItem from '../components/ProductListItem';
 import { productAPI } from '../services/api';
 import { getSavedViewMode, setSavedViewMode } from '../utils/filterProducts';
+import { useSeo } from '../utils/useSeo';
 
 const PRICE_RANGES = [
   { label: 'Under $25',   min: 0,   max: 25 },
@@ -313,6 +314,36 @@ export default function SearchResults() {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const q = params.get('q') || params.get('search') || '';
+
+  const canonicalUrl = `${window.location.origin}${location.pathname}${location.search}`;
+  useSeo({
+    title: q ? `Search results for "${q}" | REAGLE-X` : 'Search | REAGLE-X',
+    description: q
+      ? `Browse products matching "${q}" on REAGLE-X.`
+      : 'Browse products on REAGLE-X.',
+    canonicalUrl,
+    noIndex: true, // Avoid duplicate indexing from filter/search URLs
+    openGraph: {
+      title: q ? `Search results for "${q}" | REAGLE-X` : 'Search | REAGLE-X',
+      description: q
+        ? `Browse products matching "${q}" on REAGLE-X.`
+        : 'Browse products on REAGLE-X.',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: q ? `Search results for "${q}" | REAGLE-X` : 'Search | REAGLE-X',
+      description: q
+        ? `Browse products matching "${q}" on REAGLE-X.`
+        : 'Browse products on REAGLE-X.',
+    },
+    jsonLdScriptId: 'reaglex-jsonld-search',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: q ? `Search results for "${q}"` : 'Search',
+      url: canonicalUrl,
+    },
+  });
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);

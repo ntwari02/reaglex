@@ -30,7 +30,6 @@ const refundRequestSchema = new Schema<IRefundRequest>(
       type: String,
       enum: ['pending', 'approved', 'rejected', 'completed'],
       default: 'pending',
-      index: true,
     },
     reason: { type: String, required: true },
     requestedDate: { type: Date, default: Date.now },

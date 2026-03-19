@@ -29,7 +29,6 @@ const marketingCouponSchema = new Schema<IMarketingCoupon>(
   { timestamps: true }
 );
 
-marketingCouponSchema.index({ code: 1 });
 marketingCouponSchema.index({ status: 1 });
 
 export const MarketingCoupon = mongoose.model<IMarketingCoupon>(

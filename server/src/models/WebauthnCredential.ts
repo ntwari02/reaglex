@@ -26,7 +26,6 @@ const webauthnCredentialSchema = new Schema<IWebauthnCredential>(
 );
 
 webauthnCredentialSchema.index({ userId: 1 });
-webauthnCredentialSchema.index({ credentialID: 1 }, { unique: true });
 
 export const WebauthnCredential = mongoose.model<IWebauthnCredential>(
   'WebauthnCredential',

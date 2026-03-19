@@ -10,6 +10,7 @@ import ProductCard from '../components/ProductCard';
 import { productAPI } from '../services/api';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
+import { useSeo } from '../utils/useSeo';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 const PRIMARY = '#f97316';
@@ -192,6 +193,55 @@ export default function ProductDetail() {
   const seller = product.seller?.storeName || product.sellerName || 'Premium Store';
   const category = product.category || 'Clothing';
   const title = product.title || product.name || 'Product';
+
+  const productId = product?._id || id;
+  const canonicalUrl = `${window.location.origin}/products/${productId}`;
+
+  const primaryImage = images?.[0] ? resolveImage(images[0]) : undefined;
+
+  useSeo({
+    title: product?.seoTitle || `${title} | Reaglex`,
+    description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
+    keywords: product?.seoKeywords,
+    canonicalUrl,
+    openGraph: {
+      title: product?.seoTitle || `${title} | Reaglex`,
+      description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
+      image: primaryImage,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product?.seoTitle || `${title} | Reaglex`,
+      description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
+      image: primaryImage,
+    },
+    noIndex: false,
+    jsonLdScriptId: 'reaglex-jsonld-product',
+    jsonLd: product
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: title,
+          description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
+          sku: product?.sku || product?._id || id,
+          category,
+          image: (images || []).slice(0, 6).map((img) => resolveImage(img)).filter(Boolean),
+          brand: { '@type': 'Brand', name: product?.brand || 'Reaglex' },
+          offers: {
+            '@type': 'Offer',
+            price: Number(price) || 0,
+            priceCurrency: product?.currency || 'USD',
+            availability: stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+            url: canonicalUrl,
+          },
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: Number(rating) || 0,
+            reviewCount: Number(reviewsCount) || 0,
+          },
+        }
+      : null,
+  });
 
   const installment = (price / 3).toFixed(2);
   const reviewBars = [

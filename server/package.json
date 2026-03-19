@@ -49,6 +49,8 @@
     "dev": "ts-node-dev --respawn --transpile-only index.ts",
     "build": "tsc",
     "start": "nodemon index.ts",
+    "seo:ssr:dev": "ts-node-dev --respawn --transpile-only src/seo/seoSsrServer.ts",
+    "seo:ssr": "node dist/seo/seoSsrServer.js",
     "seed:disputes": "ts-node src/scripts/seedDisputes.ts",
     "seed:inbox": "ts-node src/scripts/seedInboxData.ts"
   },

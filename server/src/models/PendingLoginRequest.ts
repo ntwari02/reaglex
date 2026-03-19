@@ -35,7 +35,6 @@ const pendingLoginRequestSchema = new Schema<IPendingLoginRequest>(
   { timestamps: true }
 );
 
-pendingLoginRequestSchema.index({ requestId: 1 }, { unique: true });
 pendingLoginRequestSchema.index({ userId: 1, status: 1 });
 pendingLoginRequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL optional
 

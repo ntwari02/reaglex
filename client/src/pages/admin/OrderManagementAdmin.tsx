@@ -118,6 +118,7 @@ export default function OrderManagementAdmin() {
   const [fulfilledFilter, setFulfilledFilter] = useState<'all' | 'fulfilled' | 'not_fulfilled'>('all');
   const [sortBy, setSortBy] = useState<SortOption>('date_desc');
   const [page, setPage] = useState(1);
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Debounce search
   useEffect(() => {
