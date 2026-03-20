@@ -62,7 +62,23 @@ if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
 }
 
 // Global middlewares
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+// Allow CORS only for known frontend origins (no wildcard because we use credentials).
+const allowedCorsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,https://reaglex.vercel.app,https://reaglex.com,https://www.reaglex.com')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Non-browser requests (SSR/server-to-server) may not send `Origin`.
+      if (!origin) return callback(null, true);
+      if (allowedCorsOrigins.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
