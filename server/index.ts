@@ -54,8 +54,10 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || '';
 
 // Render and other reverse proxies set `X-Forwarded-For`.
-// `express-rate-limit` uses Express' `trust proxy` to safely read it.
-app.set('trust proxy', true);
+// IMPORTANT: use a hop count (not boolean `true`) to avoid
+// express-rate-limit blocking with "ERR_ERL_PERMISSIVE_TRUST_PROXY".
+// `1` = trust only the first proxy hop (Render).
+app.set('trust proxy', 1);
 
 // Basic validation to help during setup
 if (!MONGO_URI) {
