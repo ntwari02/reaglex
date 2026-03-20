@@ -90,7 +90,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
       }
 
       const result = await client.emails.send({
-        from: `"${APP_NAME}" <${fromEmail}>`,
+        // Resend can be strict about `from`. Using the raw verified sender email
+        // avoids formatting issues like `"Name" <email>`.
+        from: fromEmail,
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -98,8 +100,26 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
         text: options.text || options.html.replace(/<[^>]*>/g, ''),
       });
 
-      // `result` shape depends on resend version; success means no throw.
-      void result;
+      // Resend typically throws on hard errors, but we also defensively check result shape.
+      // If an error is present on the result, treat it as failure.
+      const maybeAny = result as any;
+      if (maybeAny?.error) {
+        const msg = typeof maybeAny.error === 'string' ? maybeAny.error : JSON.stringify(maybeAny.error);
+        console.error('[emailService] resend returned error:', msg);
+        return { success: false, error: msg };
+      }
+
+      console.log(
+        '[emailService] Sent email via resend to',
+        options.to,
+        'subject:',
+        options.subject,
+        'id:',
+        maybeAny?.id || maybeAny?.data?.id || 'unknown',
+        'status:',
+        maybeAny?.status || 'unknown',
+      );
+
       return { success: true };
     } catch (err: any) {
       const msg = err?.message || String(err);
