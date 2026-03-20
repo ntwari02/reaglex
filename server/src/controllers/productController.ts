@@ -3,6 +3,38 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Product } from '../models/Product';
 
+function normalizeMediaUrl(maybeUrl: unknown): unknown {
+  if (typeof maybeUrl !== 'string') return maybeUrl;
+  const s = maybeUrl.trim();
+  if (!s) return s;
+
+  // If the DB stored absolute localhost URLs from development, convert them to a relative path.
+  // This prevents the frontend from trying to load assets from `localhost:*` in production.
+  if (s.startsWith('http://localhost:5000') || s.startsWith('https://localhost:5000')) {
+    return s.replace(/^https?:\/\/localhost:5000/, '');
+  }
+  if (s.startsWith('http://127.0.0.1:5000') || s.startsWith('https://127.0.0.1:5000')) {
+    return s.replace(/^https?:\/\/127\.0\.0\.1:5000/, '');
+  }
+
+  return maybeUrl;
+}
+
+function normalizeProductMedia(product: any) {
+  if (!product) return product;
+
+  if (Array.isArray(product.images)) {
+    product.images = product.images.map(normalizeMediaUrl);
+  }
+
+  // Some older data may store a single `image` field.
+  if (typeof product.image === 'string') {
+    product.image = normalizeMediaUrl(product.image);
+  }
+
+  return product;
+}
+
 /**
  * List all products (public endpoint for buyers)
  * Supports filtering by category, search, and pagination
@@ -75,11 +107,13 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
       .limit(limitNum)
       .lean();
 
+    const normalizedProducts = products.map((p) => normalizeProductMedia(p));
+
     // Get total count for pagination
     const total = await Product.countDocuments(filter);
 
     return res.json({
-      products,
+      products: normalizedProducts,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -139,7 +173,7 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ message: 'Invalid product ID' });
     }
 
-    const product = await Product.findById(productId).lean();
+    const product = normalizeProductMedia(await Product.findById(productId).lean());
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
