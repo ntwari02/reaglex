@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import {
   getWelcomeEmailHtml,
   getVerificationEmailHtml,
@@ -16,8 +17,10 @@ function getEnv(key: string, fallback = ''): string {
 
 const CLIENT_URL = getEnv('CLIENT_URL') || 'http://localhost:5173';
 const APP_NAME = getEnv('APP_NAME') || 'Reaglex';
+const EMAIL_PROVIDER = getEnv('EMAIL_PROVIDER', 'smtp').toLowerCase();
 
 let transporter: nodemailer.Transporter | null = null;
+let resendClient: Resend | null = null;
 
 function getTransporter(): nodemailer.Transporter | null {
   const SMTP_USER = getEnv('SMTP_USER');
@@ -50,7 +53,18 @@ function getTransporter(): nodemailer.Transporter | null {
   return transporter;
 }
 
+function getResendClient(): Resend | null {
+  if (resendClient) return resendClient;
+  const API_KEY = getEnv('RESEND_API_KEY');
+  if (!API_KEY) return null;
+  resendClient = new Resend(API_KEY);
+  return resendClient;
+}
+
 export function isEmailConfigured(): boolean {
+  if (EMAIL_PROVIDER === 'resend') {
+    return Boolean(getEnv('RESEND_API_KEY') && getEnv('RESEND_FROM_EMAIL'));
+  }
   return Boolean(getEnv('SMTP_USER') && getEnv('SMTP_PASS'));
 }
 
@@ -63,6 +77,38 @@ export interface SendEmailOptions {
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<{ success: boolean; error?: string }> {
+  // Resend provider (recommended for Render environments)
+  if (EMAIL_PROVIDER === 'resend') {
+    try {
+      const client = getResendClient();
+      if (!client) {
+        return { success: false, error: 'Resend not configured (missing RESEND_API_KEY)' };
+      }
+      const fromEmail = getEnv('RESEND_FROM_EMAIL');
+      if (!fromEmail) {
+        return { success: false, error: 'Resend not configured (missing RESEND_FROM_EMAIL)' };
+      }
+
+      const result = await client.emails.send({
+        from: `"${APP_NAME}" <${fromEmail}>`,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        // Resend can render plain text automatically, but we keep explicit text for safety.
+        text: options.text || options.html.replace(/<[^>]*>/g, ''),
+      });
+
+      // `result` shape depends on resend version; success means no throw.
+      void result;
+      return { success: true };
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.error('[emailService] resend sendEmail error:', msg);
+      if (err?.response) console.error('[emailService] resend error response:', err.response);
+      return { success: false, error: msg };
+    }
+  }
+
   const trans = getTransporter();
   if (!trans) {
     console.warn('[emailService] sendEmail skipped: SMTP not configured');
