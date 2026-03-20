@@ -53,6 +53,10 @@ const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || '';
 
+// Render and other reverse proxies set `X-Forwarded-For`.
+// `express-rate-limit` uses Express' `trust proxy` to safely read it.
+app.set('trust proxy', true);
+
 // Basic validation to help during setup
 if (!MONGO_URI) {
   console.error('MONGO_URI is not set in .env');
