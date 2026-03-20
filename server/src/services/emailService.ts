@@ -29,11 +29,19 @@ function getTransporter(): nodemailer.Transporter | null {
   }
   if (transporter) return transporter;
 
+  // Allow switching SMTP mode for platforms where port 587 is blocked.
+  // - Gmail usually: 587 + STARTTLS, or 465 + SSL/TLS
+  const SMTP_HOST = getEnv('SMTP_HOST', 'smtp.gmail.com');
+  const SMTP_PORT = Number(getEnv('SMTP_PORT', '587')) || 587;
+  const SMTP_SECURE = getEnv('SMTP_SECURE', 'false').toLowerCase() === 'true';
+  const SMTP_REQUIRE_TLS = getEnv('SMTP_REQUIRE_TLS', 'true').toLowerCase() === 'true';
+
   transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    // STARTTLS is only relevant when `secure` (implicit TLS) is false.
+    requireTLS: !SMTP_SECURE && SMTP_REQUIRE_TLS,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
