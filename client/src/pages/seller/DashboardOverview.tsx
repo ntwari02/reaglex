@@ -71,7 +71,6 @@ interface DashboardStats {
   timeRange: string;
 }
 
-<<<<<<< HEAD
 function normalizeApiBase(raw: string): string {
   const v = (raw || '').trim();
   if (!v) return 'http://localhost:5000/api';
@@ -83,9 +82,6 @@ function normalizeApiBase(raw: string): string {
 
 const API_ROOT = normalizeApiBase(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 const API_BASE = `${API_ROOT}/seller/dashboard/stats`;
-=======
-const API_BASE = 'http://https://reaglex.onrender.com/api/seller/dashboard/stats';
->>>>>>> 812ea371f984b16cbebcfa543064592bd3ca1740
 
 const DashboardOverview: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
