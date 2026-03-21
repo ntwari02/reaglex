@@ -71,7 +71,17 @@ interface DashboardStats {
   timeRange: string;
 }
 
-const API_BASE = 'http://localhost:5000/api/seller/dashboard/stats';
+function normalizeApiBase(raw: string): string {
+  const v = (raw || '').trim();
+  if (!v) return 'http://localhost:5000/api';
+  // Fix common typo: "https//domain" -> "https://domain"
+  if (v.startsWith('https//')) return `https://${v.slice('https//'.length)}`;
+  if (v.startsWith('http//')) return `http://${v.slice('http//'.length)}`;
+  return v;
+}
+
+const API_ROOT = normalizeApiBase(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+const API_BASE = `${API_ROOT}/seller/dashboard/stats`;
 
 const DashboardOverview: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
