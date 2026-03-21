@@ -71,7 +71,7 @@ interface DashboardStats {
   timeRange: string;
 }
 
-const API_BASE = 'http://localhost:5000/api/seller/dashboard/stats';
+const API_BASE = 'http://https://reaglex.onrender.com/api/seller/dashboard/stats';
 
 const DashboardOverview: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
