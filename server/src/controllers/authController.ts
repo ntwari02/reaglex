@@ -259,9 +259,37 @@ export async function login(req: Request, res: Response) {
 
     await user.save();
 
-    const token = generateAuthToken(user);
+    // Admin/Seller accounts enforce one active device session.
+    // Use shared session completion flow so ActiveSession is registered on login
+    // (or device approval is requested when another device is active).
+    if (user.role === 'admin' || user.role === 'seller') {
+      const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
+        res
+          .cookie('token', token, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: false,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+          })
+          .json({
+            user: {
+              id: user._id,
+              fullName: user.fullName,
+              email: user.email,
+              role: user.role,
+              sellerVerificationStatus: user.sellerVerificationStatus,
+              isSellerVerified: user.isSellerVerified,
+              avatarUrl: user.avatarUrl,
+            },
+            token,
+          });
+      });
+      if (!completed) return;
+      return;
+    }
 
-    res
+    const token = generateAuthToken(user);
+    return res
       .cookie('token', token, {
         httpOnly: true,
         sameSite: 'lax',

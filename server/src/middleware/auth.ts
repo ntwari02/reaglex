@@ -46,6 +46,7 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
       if (!session || session.tokenId !== decoded.jti) {
         return res.status(401).json({
           message: 'Your session was replaced by another device. Please sign in again.',
+          code: 'SESSION_REPLACED',
         });
       }
       session.lastActiveAt = new Date();
@@ -55,7 +56,7 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+    return res.status(401).json({ message: 'Invalid or expired token', code: 'AUTH_INVALID' });
   }
 }
 

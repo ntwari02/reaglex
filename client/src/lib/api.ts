@@ -5,6 +5,12 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+type ApiError = Error & {
+  status?: number;
+  code?: string;
+  payload?: any;
+};
+
 /**
  * Get authentication headers with token
  */
@@ -27,7 +33,11 @@ function getAuthHeaders(): HeadersInit {
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    const err = new Error(error.message || `HTTP error! status: ${response.status}`) as ApiError;
+    err.status = response.status;
+    err.code = error?.code;
+    err.payload = error;
+    throw err;
   }
   return response.json();
 }

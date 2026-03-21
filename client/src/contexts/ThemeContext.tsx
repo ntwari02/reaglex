@@ -14,6 +14,18 @@ interface ThemeContextType {
   setCurrency: (curr: Currency) => void;
 }
 
+function isAuthSessionError(error: any): boolean {
+  const message = String(error?.message || '').toLowerCase();
+  return (
+    error?.status === 401 ||
+    error?.status === 403 ||
+    error?.code === 'SESSION_REPLACED' ||
+    message.includes('unauthorized') ||
+    message.includes('authentication') ||
+    message.includes('session was replaced')
+  );
+}
+
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // Keep DOM theme in sync with React state, with smooth transitions
@@ -85,6 +97,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           const { profileAPI } = await import('../lib/api');
           await profileAPI.updatePreferences({ theme });
         } catch (error) {
+          if (isAuthSessionError(error)) {
+            await useAuthStore
+              .getState()
+              .signOut(error?.code === 'SESSION_REPLACED' ? 'SESSION_REPLACED' : undefined);
+            return;
+          }
           console.error('Failed to save theme to database:', error);
         }
       };
@@ -121,6 +139,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           }
           setDbPreferencesLoaded(true);
         } catch (error) {
+          if (isAuthSessionError(error)) {
+            await useAuthStore
+              .getState()
+              .signOut(error?.code === 'SESSION_REPLACED' ? 'SESSION_REPLACED' : undefined);
+            return;
+          }
           console.error('Failed to load preferences from database:', error);
           setDbPreferencesLoaded(true);
         }
@@ -159,6 +183,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           const { profileAPI } = await import('../lib/api');
           await profileAPI.updatePreferences({ language: lang });
         } catch (error) {
+          if (isAuthSessionError(error)) {
+            await useAuthStore
+              .getState()
+              .signOut(error?.code === 'SESSION_REPLACED' ? 'SESSION_REPLACED' : undefined);
+            return;
+          }
           console.error('Failed to save language to database:', error);
         }
       };
@@ -175,6 +205,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           const { profileAPI } = await import('../lib/api');
           await profileAPI.updatePreferences({ currency: curr });
         } catch (error) {
+          if (isAuthSessionError(error)) {
+            await useAuthStore
+              .getState()
+              .signOut(error?.code === 'SESSION_REPLACED' ? 'SESSION_REPLACED' : undefined);
+            return;
+          }
           console.error('Failed to save currency to database:', error);
         }
       };

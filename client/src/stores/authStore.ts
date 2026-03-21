@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import type { Profile } from '../types';
+import { useToastStore } from './toastStore';
+
+let lastSessionReplacedToastAt = 0;
 
 function mapBackendUserToProfile(data: any): Profile {
   return {
@@ -23,7 +26,7 @@ interface AuthState {
   setUser: (user: Profile | null) => void;
   /** Set user and token after 2FA verify/setup or direct login */
   setUserAndToken: (user: Profile, token: string) => void;
-  signOut: () => Promise<void>;
+  signOut: (reason?: 'SESSION_REPLACED') => Promise<void>;
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<
     | { success: true }
@@ -49,7 +52,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user, loading: false });
   },
 
-  signOut: async () => {
+  signOut: async (reason) => {
+    if (reason === 'SESSION_REPLACED') {
+      const now = Date.now();
+      if (now - lastSessionReplacedToastAt > 3000) {
+        useToastStore
+          .getState()
+          .showToast('Your session was replaced by another device. Please sign in again.', 'warning', 5000);
+        lastSessionReplacedToastAt = now;
+      }
+    }
     localStorage.removeItem('demo_user');
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
@@ -193,10 +205,17 @@ export const useAuthStore = create<AuthState>((set) => ({
               return;
             } catch (e: any) {
               // Token invalid, auth error, or account deactivated - clear storage
-              if (e.message?.includes('401') || e.message?.includes('Authentication') || 
-                  e.message?.includes('403') || e.message?.includes('deactivated')) {
-                localStorage.removeItem('user');
-                localStorage.removeItem('auth_token');
+              if (
+                e?.status === 401 ||
+                e?.status === 403 ||
+                e?.code === 'SESSION_REPLACED' ||
+                e.message?.includes('401') ||
+                e.message?.includes('Authentication') ||
+                e.message?.includes('403') ||
+                e.message?.includes('deactivated') ||
+                e.message?.includes('session was replaced')
+              ) {
+                await useAuthStore.getState().signOut(e?.code === 'SESSION_REPLACED' ? 'SESSION_REPLACED' : undefined);
                 set({ user: null, loading: false, initialized: true });
               } else {
                 // Network error, use stored user
