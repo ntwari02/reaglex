@@ -701,7 +701,7 @@ export async function googleAuth(req: Request, res: Response) {
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
     const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-    const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
+    const SERVER_URL = process.env.SERVER_URL || 'https://reaglex.onrender.com';
     // Google redirects to backend callback, then backend redirects to frontend
     const REDIRECT_URI = `${SERVER_URL}/api/auth/google/callback`;
 
