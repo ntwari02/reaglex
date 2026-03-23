@@ -15,7 +15,9 @@ function getEnv(key: string, fallback = ''): string {
   return String(process.env[key] || fallback).trim();
 }
 
-const CLIENT_URL = getEnv('CLIENT_URL') || 'http://localhost:5173';
+const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+const CLIENT_URL =
+  getEnv('CLIENT_URL') || (isProd ? 'https://www.reaglex.com' : 'http://localhost:5173');
 const APP_NAME = getEnv('APP_NAME') || 'Reaglex';
 const EMAIL_PROVIDER = getEnv('EMAIL_PROVIDER', 'smtp').toLowerCase();
 

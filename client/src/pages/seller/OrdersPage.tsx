@@ -5,6 +5,9 @@ import { ShoppingCart, Search, Eye, Package, Truck, CheckCircle, XCircle, Filter
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
+import { API_BASE_URL } from '@/lib/config';
+
+const SELLER_ORDERS_API = `${API_BASE_URL}/seller/orders`;
 
 interface OrderItem {
   id: string;
@@ -70,7 +73,7 @@ const OrdersPage: React.FC = () => {
 
       const token = localStorage.getItem('auth_token');
 
-      const res = await fetch('http://localhost:5000/api/seller/orders', {
+      const res = await fetch(SELLER_ORDERS_API, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -209,7 +212,7 @@ const OrdersPage: React.FC = () => {
   const handleMarkAsPacked = async (orderId: string) => {
     try {
       const token = localStorage.getItem('auth_token');
-      await fetch(`http://localhost:5000/api/seller/orders/${orderId}/status`, {
+      await fetch(`${SELLER_ORDERS_API}/${orderId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +236,7 @@ const OrdersPage: React.FC = () => {
     if (selectedOrder && trackingNumber) {
       try {
         const token = localStorage.getItem('auth_token');
-        await fetch(`http://localhost:5000/api/seller/orders/${selectedOrder.id}/tracking`, {
+        await fetch(`${SELLER_ORDERS_API}/${selectedOrder.id}/tracking`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -255,7 +258,7 @@ const OrdersPage: React.FC = () => {
     if (selectedOrder && cancelReason) {
       try {
         const token = localStorage.getItem('auth_token');
-        await fetch(`http://localhost:5000/api/seller/orders/${selectedOrder.id}/status`, {
+        await fetch(`${SELLER_ORDERS_API}/${selectedOrder.id}/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -301,7 +304,7 @@ const OrdersPage: React.FC = () => {
 
       await Promise.all(
         selectedOrderIds.map((orderId) =>
-          fetch(`http://localhost:5000/api/seller/orders/${orderId}/status`, {
+          fetch(`${SELLER_ORDERS_API}/${orderId}/status`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',

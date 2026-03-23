@@ -62,6 +62,14 @@ function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
   return <Navigate to={`/auth?${search}`} replace />;
 }
 
+function DashboardRedirect() {
+  const { user } = useAuthStore();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'seller') return <Navigate to="/seller" replace />;
+  if (user.role === 'admin') return <Navigate to="/admin" replace />;
+  return <Navigate to="/" replace />;
+}
+
 const PageLoader = () => (
   <div
     className="min-h-screen flex items-center justify-center"
@@ -131,6 +139,7 @@ function App() {
             <Route path="/auth/google/callback"   element={<GoogleCallback />} />
             <Route path="/auth/google/select-role" element={<SelectRole />} />
             <Route path="/auth/approve-device-success" element={<ApproveDeviceSuccess />} />
+            <Route path="/dashboard" element={<DashboardRedirect />} />
 
             {/* ── Dashboards ── */}
             <Route

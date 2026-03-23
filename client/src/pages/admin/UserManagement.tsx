@@ -38,6 +38,7 @@ import {
   Eye,
   ChevronLeft,
 } from 'lucide-react';
+import { resolveAssetUrl } from '@/lib/config';
 
 type CustomerStatus = 'active' | 'banned' | 'pending' | 'warned' | 'inactive';
 type KycStatus = 'verified' | 'pending' | 'rejected';
@@ -868,7 +869,7 @@ export default function UserManagement() {
                         <div className="flex items-center gap-3">
                           {customer.avatarUrl ? (
                             <img
-                              src={customer.avatarUrl.startsWith('http') ? customer.avatarUrl : `http://localhost:5000${customer.avatarUrl}`}
+                              src={customer.avatarUrl?.startsWith('http') ? customer.avatarUrl : resolveAssetUrl(customer.avatarUrl || '')}
                               alt={customer.name}
                               className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                               onError={(e) => {
@@ -1485,7 +1486,7 @@ export default function UserManagement() {
               <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                 {viewUserModal.userData.avatarUrl ? (
                   <img
-                    src={viewUserModal.userData.avatarUrl.startsWith('http') ? viewUserModal.userData.avatarUrl : `http://localhost:5000${viewUserModal.userData.avatarUrl}`}
+                    src={viewUserModal.userData.avatarUrl?.startsWith('http') ? viewUserModal.userData.avatarUrl : resolveAssetUrl(viewUserModal.userData.avatarUrl || '')}
                     alt={viewUserModal.userData.name}
                     className="h-16 w-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                     onError={(e) => {

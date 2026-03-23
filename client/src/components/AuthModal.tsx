@@ -35,7 +35,8 @@ function checkPasswordReqs(pw: string) {
   };
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from '../lib/config';
+const API_BASE = API_BASE_URL;
 
 // ── Left branded panel (desktop only) ─────────────────────────────────────────
 function LeftPanel() {

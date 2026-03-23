@@ -10,7 +10,8 @@ import AuthPremiumLayout from '../components/AuthPremiumLayout';
 const PRIMARY = '#f97316';
 const SUCCESS = '#10b981';
 const ERROR = '#ef4444';
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from '../lib/config';
+const API_BASE = API_BASE_URL;
 
 function hasSQLRisk(v: string) {
   return /(;|--|\/\*|\*\/|\b(OR|AND)\b\s+\d+=\d+|\bxp_)/i.test(v);

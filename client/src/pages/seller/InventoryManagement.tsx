@@ -11,6 +11,9 @@ import {
 } from '@/components/ui/dialog';
 import { useToastStore } from '@/stores/toastStore';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '@/lib/config';
+
+const API_BASE = `${API_BASE_URL}/seller/inventory`;
 
 interface InventoryItem {
   id: string;
@@ -85,7 +88,6 @@ const InventoryManagement: React.FC = () => {
     isDefault: false,
   });
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
-  const API_BASE = 'http://localhost:5000/api/seller/inventory';
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [warehouseDetail, setWarehouseDetail] = useState<Warehouse | null>(null);
   const [deleteProductTarget, setDeleteProductTarget] = useState<InventoryItem | null>(null);
@@ -337,7 +339,7 @@ const InventoryManagement: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/seller/inventory/products/${editingItem.id}`,
+        `${API_BASE}/products/${editingItem.id}`,
         {
           method: 'PUT',
           headers,
@@ -422,7 +424,7 @@ const InventoryManagement: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/seller/inventory/warehouses', {
+      const response = await fetch(`${API_BASE}/warehouses`, {
         method: 'POST',
         headers,
         credentials: 'include',
@@ -491,7 +493,7 @@ const InventoryManagement: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/seller/inventory/warehouses/${editingWarehouse.id}`,
+        `${API_BASE}/warehouses/${editingWarehouse.id}`,
         {
           method: 'PUT',
           headers,
@@ -548,7 +550,7 @@ const InventoryManagement: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/seller/inventory/warehouses/${warehouse.id}`,
+        `${API_BASE}/warehouses/${warehouse.id}`,
         {
           method: 'PUT',
           headers,
@@ -590,7 +592,7 @@ const InventoryManagement: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/seller/inventory/products/${id}`,
+        `${API_BASE}/products/${id}`,
         {
           method: 'DELETE',
           headers,
@@ -2069,7 +2071,7 @@ const InventoryManagement: React.FC = () => {
 
                   try {
                     const response = await fetch(
-                      'http://localhost:5000/api/seller/inventory/products',
+                      `${API_BASE}/products`,
                       {
                         method: 'POST',
                         headers,

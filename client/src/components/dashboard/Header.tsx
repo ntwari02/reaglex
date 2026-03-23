@@ -7,6 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { SERVER_URL } from '../../lib/config';
 
 // Helper to resolve avatar URL (handles both full URLs and relative paths)
 // Adds cache-busting parameter to ensure fresh image loads
@@ -27,9 +28,9 @@ const resolveAvatarUrl = (url: string | null | undefined, cacheBust?: boolean): 
     }
     return url;
   }
-  // If it's a relative path, prepend the API host
-  const API_HOST = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  const fullUrl = `${API_HOST}${url}`;
+  // If it's a relative path, prepend the server base URL
+  const base = SERVER_URL.replace(/\/$/, '');
+  const fullUrl = `${base}${url.startsWith('/') ? url : '/' + url}`;
   // Add cache-busting parameter to force fresh load
   if (cacheBust) {
     const separator = fullUrl.includes('?') ? '&' : '?';

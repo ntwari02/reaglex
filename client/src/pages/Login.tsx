@@ -4,6 +4,7 @@ import { Eye, EyeOff, Lock, Mail, Phone, Fingerprint, AlertCircle, Check, KeyRou
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
+import { API_BASE_URL } from '../lib/config';
 
 function hasSQLInjectionRisk(value: string): boolean {
   const pattern = /(;|--|\/\*|\*\/|\b(OR|AND)\b\s+\d+=\d+|\bxp_)/i;
@@ -1018,8 +1019,7 @@ export function Login() {
           <button
             type="button"
             onClick={() => {
-              const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-              window.location.href = `${base}/auth/google?role=buyer`;
+              window.location.href = `${API_BASE_URL}/auth/google?role=buyer`;
             }}
             className="w-full h-[52px] rounded-[14px] flex items-center justify-center gap-3 px-4 text-[15px] font-semibold transition-all hover:opacity-95 active:scale-[0.99]"
             style={{

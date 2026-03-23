@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import QuantitySelector from './QuantitySelector';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 
 function resolveImage(src) {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80';

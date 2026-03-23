@@ -12,7 +12,7 @@ import { useBuyerCart } from '../stores/buyerCartStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useSeo } from '../utils/useSeo';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 const PRIMARY = '#f97316';
 const ease = [0.25, 0.46, 0.45, 0.94];
 

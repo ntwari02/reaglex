@@ -27,8 +27,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
+import { API_BASE_URL, resolveAssetUrl } from '@/lib/config';
 
-const API_BASE = 'http://localhost:5000/api/seller/disputes';
+const API_BASE = `${API_BASE_URL}/seller/disputes`;
 
 interface DisputeEvidence {
   type: 'photo' | 'document' | 'message' | 'receipt' | 'video' | 'other';
@@ -683,7 +684,7 @@ const DisputeResolution: React.FC = () => {
                           <div className="flex items-center gap-2">
                             {buyer?.avatar_url ? (
                               <img
-                                src={buyer.avatar_url.startsWith('http') ? buyer.avatar_url : `http://localhost:5000${buyer.avatar_url.startsWith('/') ? buyer.avatar_url : '/' + buyer.avatar_url}`}
+                                src={buyer.avatar_url?.startsWith('http') ? buyer.avatar_url : resolveAssetUrl(buyer.avatar_url || '')}
                                 alt={buyer?.fullName || 'Buyer'}
                                 className="w-8 h-8 rounded-full object-cover"
                               />
@@ -878,13 +879,13 @@ const DisputeResolution: React.FC = () => {
                       <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                         {ev.type === 'photo' || ev.url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
                           <img
-                            src={`http://localhost:5000${ev.url}`}
+                            src={resolveAssetUrl(ev.url)}
                             alt={ev.description || `Evidence ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
                         ) : ev.type === 'video' || ev.url.match(/\.(mp4|mov|avi|wmv|flv|webm|mkv)$/i) ? (
                           <video
-                            src={`http://localhost:5000${ev.url}`}
+                            src={resolveAssetUrl(ev.url)}
                             controls
                             className="w-full h-full object-cover"
                           >

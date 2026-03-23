@@ -5,7 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Lock, Check, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from '../lib/config';
 const PRIMARY = '#f97316';
 const SUCCESS = '#10b981';
 

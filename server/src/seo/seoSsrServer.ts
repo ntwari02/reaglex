@@ -14,7 +14,8 @@ import axios from 'axios';
 const SEO_SSR_PORT = Number(process.env.SEO_SSR_PORT || process.env.PORT || 5001);
 
 // Origin of your existing API server (the one serving `/api/products/...`)
-const API_ORIGIN = process.env.API_ORIGIN || 'http://localhost:5000';
+const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+const API_ORIGIN = process.env.API_ORIGIN || (isProd ? 'https://reaglex.onrender.com' : 'http://localhost:5000');
 const API_BASE = `${API_ORIGIN.replace(/\/$/, '')}/api`;
 
 // Where images are served from (defaults to same origin as API server)

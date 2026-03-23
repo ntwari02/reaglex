@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ShoppingBag, Heart, Star, Truck, Eye } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 const PRIMARY = '#f97316';
 const ease = [0.25, 0.46, 0.45, 0.94];
 

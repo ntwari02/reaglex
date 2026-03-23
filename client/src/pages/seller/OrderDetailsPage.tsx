@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { API_BASE_URL } from '@/lib/config';
+
+const SELLER_ORDERS_API = `${API_BASE_URL}/seller/orders`;
 
 interface OrderItem {
   id: string;
@@ -84,7 +87,7 @@ const OrderDetailsPage: React.FC = () => {
 
         const token = localStorage.getItem('auth_token');
 
-        const res = await fetch(`http://localhost:5000/api/seller/orders/${orderId}`, {
+        const res = await fetch(`${SELLER_ORDERS_API}/${orderId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -211,7 +214,7 @@ const OrderDetailsPage: React.FC = () => {
       const token = localStorage.getItem('auth_token');
 
       const res = await fetch(
-        `http://localhost:5000/api/seller/orders/${order.id}/tracking`,
+        `${SELLER_ORDERS_API}/${order.id}/tracking`,
         {
           method: 'PATCH',
           headers: {
@@ -298,7 +301,7 @@ const OrderDetailsPage: React.FC = () => {
       const token = localStorage.getItem('auth_token');
 
       const res = await fetch(
-        `http://localhost:5000/api/seller/orders/${order.id}/status`,
+        `${SELLER_ORDERS_API}/${order.id}/status`,
         {
           method: 'PATCH',
           headers: {

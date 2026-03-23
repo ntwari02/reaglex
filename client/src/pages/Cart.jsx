@@ -7,7 +7,7 @@ import CartSummary from '../components/cart/CartSummary';
 import RecommendedProducts from '../components/cart/RecommendedProducts';
 import { useBuyerCart } from '../stores/buyerCartStore';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 
 function resolveImage(src) {
   if (!src) return null;

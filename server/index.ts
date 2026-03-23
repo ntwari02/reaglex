@@ -50,7 +50,7 @@ import { websocketService } from './src/services/websocketService';
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 const MONGO_URI = process.env.MONGO_URI || '';
 
 // Render and other reverse proxies set `X-Forwarded-For`.
@@ -67,17 +67,22 @@ if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
   console.warn('SMTP_USER or SMTP_PASS not set; password reset and verification emails will not be sent. See server/EMAIL_SETUP.md.');
 }
 
-// Global middlewares
-// Allow CORS only for known frontend origins (no wildcard because we use credentials).
-const allowedCorsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,https://reaglex.vercel.app,https://reaglex.com,https://www.reaglex.com')
+// Global middlewares - CORS: allow both local dev and production
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://www.reaglex.com',
+  'https://reaglex.vercel.app',
+];
+const envOrigins = (process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || '')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
+const allowedCorsOrigins = envOrigins.length > 0 ? envOrigins : defaultOrigins;
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Non-browser requests (SSR/server-to-server) may not send `Origin`.
       if (!origin) return callback(null, true);
       if (allowedCorsOrigins.includes(origin)) return callback(null, true);
       return callback(null, false);

@@ -84,7 +84,7 @@ export function Signup() {
     }
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase = (await import('../lib/config')).API_BASE_URL;
       const response = await fetch(`${apiBase}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -531,7 +531,7 @@ export function Signup() {
         <button
           type="button"
           onClick={() => {
-            const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const base = (await import('../lib/config')).API_BASE_URL;
             window.location.href = `${base}/auth/google?role=${formData.role}`;
           }}
           className="w-full h-[52px] rounded-[14px] flex items-center justify-center gap-3 px-4 text-[15px] font-semibold transition-all hover:opacity-95 active:scale-[0.99]"

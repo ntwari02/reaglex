@@ -261,7 +261,7 @@ function useClickOutside(ref, handler) {
   }, [ref, handler]);
 }
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 function resolveImg(src) {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80&q=80';
   if (src.startsWith('http')) return src;

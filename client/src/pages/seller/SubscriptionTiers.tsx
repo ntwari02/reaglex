@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { subscriptionApi } from '@/services/subscriptionApi';
 import { useToastStore } from '@/stores/toastStore';
+import { API_BASE_URL, resolveAssetUrl } from '@/lib/config';
 
 interface Tier {
   id: string;
@@ -445,7 +446,7 @@ const SubscriptionTiers: React.FC = () => {
   const verifyPassword = async (password: string): Promise<boolean> => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:5000/api/profile/me/verify-password', {
+      const response = await fetch(`${API_BASE_URL}/profile/me/verify-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1321,7 +1322,7 @@ ${invoice.gatewayRef ? `Gateway Reference: ${invoice.gatewayRef}` : ''}
                         {method.type === 'card' || method.type === 'visa' ? (
                           paymentIcons.visa ? (
                             <img 
-                              src={`http://localhost:5000${paymentIcons.visa}`} 
+                              src={resolveAssetUrl(paymentIcons.visa)} 
                               alt="Visa" 
                               className="w-14 h-9 object-contain"
                               onError={(e) => {
@@ -1337,7 +1338,7 @@ ${invoice.gatewayRef ? `Gateway Reference: ${invoice.gatewayRef}` : ''}
                         ) : method.type === 'mtn' ? (
                           paymentIcons.mtn ? (
                             <img 
-                              src={`http://localhost:5000${paymentIcons.mtn}`} 
+                              src={resolveAssetUrl(paymentIcons.mtn)} 
                               alt="MTN" 
                               className="w-14 h-9 object-contain"
                               onError={(e) => {
@@ -1353,7 +1354,7 @@ ${invoice.gatewayRef ? `Gateway Reference: ${invoice.gatewayRef}` : ''}
                         ) : method.type === 'airtel' ? (
                           paymentIcons.airtel ? (
                             <img 
-                              src={`http://localhost:5000${paymentIcons.airtel}`} 
+                              src={resolveAssetUrl(paymentIcons.airtel)} 
                               alt="Airtel" 
                               className="w-14 h-9 object-contain"
                               onError={(e) => {
@@ -1733,7 +1734,7 @@ ${invoice.gatewayRef ? `Gateway Reference: ${invoice.gatewayRef}` : ''}
                 >
                   {paymentIcons.visa ? (
                     <img 
-                      src={`http://localhost:5000${paymentIcons.visa}`} 
+                      src={resolveAssetUrl(paymentIcons.visa)} 
                       alt="Visa" 
                       className="w-full h-8 object-contain"
                       onError={(e) => {
@@ -1763,7 +1764,7 @@ ${invoice.gatewayRef ? `Gateway Reference: ${invoice.gatewayRef}` : ''}
                 >
                   {paymentIcons.mtn ? (
                     <img 
-                      src={`http://localhost:5000${paymentIcons.mtn}`} 
+                      src={resolveAssetUrl(paymentIcons.mtn)} 
                       alt="MTN" 
                       className="w-full h-8 object-contain"
                       onError={(e) => {
@@ -1793,7 +1794,7 @@ ${invoice.gatewayRef ? `Gateway Reference: ${invoice.gatewayRef}` : ''}
                 >
                   {paymentIcons.airtel ? (
                     <img 
-                      src={`http://localhost:5000${paymentIcons.airtel}`} 
+                      src={resolveAssetUrl(paymentIcons.airtel)} 
                       alt="Airtel" 
                       className="w-full h-8 object-contain"
                       onError={(e) => {

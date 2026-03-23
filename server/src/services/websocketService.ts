@@ -24,12 +24,11 @@ class WebSocketService {
   private connectedUsers: Map<string, SocketUser> = new Map(); // userId -> SocketUser
 
   initialize(httpServer: HttpServer) {
-    const allowedOrigins = [
-      process.env.CLIENT_URL || 'http://localhost:5173',
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:5000',
-    ].filter(Boolean);
+    const defaultWsOrigins = 'http://localhost:5173,https://www.reaglex.com,https://reaglex.vercel.app';
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || defaultWsOrigins)
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
     this.io = new SocketIOServer(httpServer, {
       cors: {
         origin: (origin, cb) => {

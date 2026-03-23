@@ -160,7 +160,7 @@ export async function generateAffiliateLink(req: AuthenticatedRequest, res: Resp
     }
 
     // Generate URL
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'https://www.reaglex.com' : 'http://localhost:5173');
     const params = new URLSearchParams({
       ref: affiliate.affiliateCode,
       ...(productId && { product: productId }),
@@ -712,7 +712,7 @@ export async function recordConversion(req: AuthenticatedRequest, res: Response)
 
     // If no specific link found, create a general one
     if (!link) {
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const baseUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'https://www.reaglex.com' : 'http://localhost:5173');
       const url = `${baseUrl}/products?ref=${affiliate.affiliateCode}`;
       link = await AffiliateLink.findOneAndUpdate(
         { affiliateId: affiliate._id, productId: null },

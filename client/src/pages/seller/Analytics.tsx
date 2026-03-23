@@ -6,8 +6,9 @@ import SalesChart from '@/components/dashboard/SalesChart';
 import { FunnelChart } from '@/components/charts/FunnelChart';
 import { ParetoChart } from '@/components/charts/ParetoChart';
 import { useToastStore } from '@/stores/toastStore';
+import { API_BASE_URL } from '@/lib/config';
 
-const API_BASE = 'http://localhost:5000/api/seller/analytics';
+const API_BASE = `${API_BASE_URL}/seller/analytics`;
 
 interface AnalyticsData {
   salesStats: {

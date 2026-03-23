@@ -12,6 +12,7 @@ import { ActiveSession } from '../models/ActiveSession';
 import { PendingLoginRequest } from '../models/PendingLoginRequest';
 import {
   sendPasswordResetEmail,
+  sendVerificationEmail,
   sendVerificationOtpEmail,
   sendPasswordResetOtpEmail,
   sendWelcomeEmail,
@@ -21,18 +22,50 @@ import {
 
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
 
+// Support BOTH local development and production
+const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+const CLIENT_URL =
+  process.env.CLIENT_URL || (isProd ? 'https://www.reaglex.com' : 'http://localhost:5173');
+const SERVER_URL =
+  process.env.SERVER_URL ||
+  process.env.RENDER_EXTERNAL_URL ||
+  (isProd ? 'https://reaglex.onrender.com' : 'http://localhost:5000');
+const GOOGLE_CALLBACK_URL =
+  process.env.GOOGLE_CALLBACK_URL || `${SERVER_URL}/api/auth/google/callback`;
+
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+const EMAIL_LINK_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function isLocalhostHostname(hostname?: string | null): boolean {
+  if (!hostname) return false;
+  const h = hostname.toLowerCase();
+  return h.includes('localhost') || h.startsWith('127.0.0.1') || h.startsWith('::1');
+}
+
+function shouldUseEmailOtpFlow(req?: Request): boolean {
+  const env = (process.env.NODE_ENV || '').toLowerCase();
+  if (env === 'production') return false;
+  if (isLocalhostHostname(req?.hostname)) return true;
+  if (isLocalhostHostname(CLIENT_URL)) return true;
+  return true;
+}
 
 async function issueEmailVerificationOtp(user: InstanceType<typeof User>): Promise<void> {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
   user.emailVerificationOtp = code;
   user.emailVerificationOtpExpires = expiresAt;
-  // Link/token verification is deprecated; clear any old tokens
-  user.emailVerificationToken = undefined;
-  user.emailVerificationExpires = undefined;
   await user.save();
   await sendVerificationOtpEmail(user.email, user.fullName, code, '10 minutes');
+}
+
+async function issueEmailVerificationLink(user: InstanceType<typeof User>): Promise<void> {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + EMAIL_LINK_EXPIRY_MS);
+  user.emailVerificationToken = token;
+  user.emailVerificationExpires = expiresAt;
+  await user.save();
+  await sendVerificationEmail(user.email, user.fullName, token, '24 hours');
 }
 
 /** Escape special regex chars so email can be used in RegExp safely */
@@ -160,13 +193,18 @@ export async function register(req: Request, res: Response) {
       isSellerVerified: isSeller ? false : undefined,
     });
 
-    // Send verification OTP (non-blocking; do not fail registration if email fails)
-    issueEmailVerificationOtp(user)
-      .catch((e) => console.warn('[auth] register: verification OTP error', e));
+    const useOtpFlow = shouldUseEmailOtpFlow(req);
+    if (useOtpFlow) {
+      issueEmailVerificationOtp(user).catch((e) => console.warn('[auth] register: verification OTP error', e));
+    } else {
+      issueEmailVerificationLink(user).catch((e) => console.warn('[auth] register: verification link error', e));
+    }
 
     // Do not issue token or log user in until email is verified
     res.status(201).json({
-      message: 'Account created. Please check your email for a 6-digit verification code to verify your account.',
+      message: useOtpFlow
+        ? 'Account created. Please check your email for a 6-digit verification code to verify your account.'
+        : 'Account created. Please check your email and click the verification link before signing in.',
     });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
@@ -491,8 +529,6 @@ export async function setup2FAConfirm(req: Request, res: Response) {
   }
 }
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-
 /** GET /api/auth/pending-login-requests – list pending device approval requests (for current user, first device) */
 export async function getPendingLoginRequests(req: AuthenticatedRequest, res: Response) {
   try {
@@ -700,10 +736,8 @@ export async function googleAuth(req: Request, res: Response) {
   try {
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-    const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-    const SERVER_URL = process.env.SERVER_URL || 'https://reaglex.onrender.com';
-    // Google redirects to backend callback, then backend redirects to frontend
-    const REDIRECT_URI = `${SERVER_URL}/api/auth/google/callback`;
+    // Google redirects to backend callback, then backend redirects to frontend.
+    const REDIRECT_URI = GOOGLE_CALLBACK_URL;
 
     // Check if Google OAuth is configured (not empty and not placeholder)
     if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('your_google_client_id')) {
@@ -753,20 +787,14 @@ export async function googleCallback(req: Request, res: Response) {
   try {
     const { code, state, error } = req.query;
 
-    if (error) {
-      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=access_denied`);
-    }
+    if (error) return res.redirect(`${CLIENT_URL}/login?error=access_denied`);
 
-    if (!code) {
-      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=no_code`);
-    }
+    if (!code) return res.redirect(`${CLIENT_URL}/login?error=no_code`);
 
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-    const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-    const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
-    // This must match what was sent to Google in googleAuth function
-    const REDIRECT_URI = `${SERVER_URL}/api/auth/google/callback`;
+    // This must match what was sent to Google in googleAuth function.
+    const REDIRECT_URI = GOOGLE_CALLBACK_URL;
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
       return res.redirect(`${CLIENT_URL}/login?error=oauth_not_configured`);
@@ -826,6 +854,7 @@ export async function googleCallback(req: Request, res: Response) {
       return res.redirect(`${CLIENT_URL}/login?error=no_email`);
     }
 
+    const useOtpFlow = shouldUseEmailOtpFlow(req);
     // Find user (include verification fields for email-verification check)
     let user = await User.findOne({ $or: [{ email }, { googleId }] })
       .select('+emailVerificationToken +emailVerificationExpires');
@@ -859,9 +888,15 @@ export async function googleCallback(req: Request, res: Response) {
           await user.save();
           // Fall through to normal sign-in (no email sent, no redirect to verify page)
         } else {
-          await issueEmailVerificationOtp(user).catch((e) =>
-            console.warn('[auth] Google callback: verification OTP failed', e)
-          );
+          if (useOtpFlow) {
+            await issueEmailVerificationOtp(user).catch((e) =>
+              console.warn('[auth] Google callback: verification OTP failed', e)
+            );
+          } else {
+            await issueEmailVerificationLink(user).catch((e) =>
+              console.warn('[auth] Google callback: verification email failed', e)
+            );
+          }
           const pendingUrl = new URL(`${CLIENT_URL}/verify-email-pending`);
           pendingUrl.searchParams.set('email', user.email);
           pendingUrl.searchParams.set('source', 'google');
@@ -952,7 +987,6 @@ export async function googleCallback(req: Request, res: Response) {
     res.redirect(redirectUrl.toString());
   } catch (error: any) {
     console.error('Google callback error:', error);
-    const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
     res.redirect(`${CLIENT_URL}/login?error=oauth_failed`);
   }
 }
@@ -992,6 +1026,7 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
     // Debug: Log Google info from temp token
     console.log('Google info from temp token:', { googleId, email, name, picture });
 
+    const useOtpFlow = shouldUseEmailOtpFlow(req);
     // Check if user was created in the meantime
     let user = await User.findOne({ $or: [{ email }, { googleId }] })
       .select('+emailVerificationToken +emailVerificationExpires');
@@ -1013,14 +1048,22 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
           await user.save();
           // Fall through to return token / 2FA check below (no email, no needsVerification)
         } else {
-          await issueEmailVerificationOtp(user).catch((e) =>
-            console.warn('[auth] Google complete: verification OTP failed', e)
-          );
+          if (useOtpFlow) {
+            await issueEmailVerificationOtp(user).catch((e) =>
+              console.warn('[auth] Google complete: verification OTP failed', e)
+            );
+          } else {
+            await issueEmailVerificationLink(user).catch((e) =>
+              console.warn('[auth] Google complete: verification email failed', e)
+            );
+          }
           return res.json({
             success: true,
             needsVerification: true,
             email: user.email,
-            message: 'Please verify your email. We sent a 6-digit code to your inbox.',
+            message: useOtpFlow
+              ? 'Please verify your email. We sent a 6-digit code to your inbox.'
+              : 'Please verify your email. We sent a verification link to your inbox.',
           });
         }
       }
@@ -1068,7 +1111,11 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
     console.log('User created with avatarUrl:', user.avatarUrl);
 
     if (!isBuyer) {
-      issueEmailVerificationOtp(user).catch((e) => console.warn('[auth] Google register: verification OTP error', e));
+      if (useOtpFlow) {
+        issueEmailVerificationOtp(user).catch((e) => console.warn('[auth] Google register: verification OTP error', e));
+      } else {
+        issueEmailVerificationLink(user).catch((e) => console.warn('[auth] Google register: verification email error', e));
+      }
     }
 
     if (isBuyer) {
@@ -1091,7 +1138,9 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
       success: true,
       needsVerification: true,
       email: user.email,
-      message: 'Account created. Please check your email for a 6-digit verification code before signing in.',
+      message: useOtpFlow
+        ? 'Account created. Please check your email for a 6-digit verification code before signing in.'
+        : 'Account created. Please check your email and click the verification link before signing in.',
     });
   } catch (error: any) {
     console.error('Complete Google registration error:', error);
@@ -1247,11 +1296,25 @@ export async function resetPassword(req: Request, res: Response) {
  */
 export async function verifyEmail(req: Request, res: Response) {
   try {
-    // Link-based verification has been deprecated in favor of 6-digit OTP codes.
-    return res.status(410).json({
-      message: 'Email verification links are no longer supported. Please verify using the 6-digit code sent to your email.',
-      code: 'OTP_REQUIRED',
-    });
+    const token = (req.query.token as string)?.trim();
+    if (!token) {
+      return res.status(400).json({ message: 'Invalid verification link.' });
+    }
+    const user = await User.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: new Date() },
+    }).select('+emailVerificationToken +emailVerificationExpires');
+    if (!user) {
+      return res.status(400).json({ message: 'Verification link is invalid or expired. Request a new one.' });
+    }
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    user.emailVerificationOtp = undefined;
+    user.emailVerificationOtpExpires = undefined;
+    await user.save();
+    sendWelcomeEmail(user.email, user.fullName).catch((e) => console.warn('[auth] welcome email error', e));
+    return res.status(200).json({ message: 'Email verified successfully. You can now sign in.' });
   } catch (err: any) {
     console.error('Verify email error:', err);
     return res.status(500).json({ message: 'Verification failed. Please try again.' });
@@ -1264,7 +1327,10 @@ export async function verifyEmail(req: Request, res: Response) {
  * Security: does not reveal whether an account exists (same response for valid/invalid email when unauthenticated).
  */
 export async function resendVerification(req: Request, res: Response) {
-  const genericSuccess = 'If an account exists with this email, you will receive a verification code shortly.';
+  const useOtpFlow = shouldUseEmailOtpFlow(req);
+  const genericSuccess = useOtpFlow
+    ? 'If an account exists with this email, you will receive a verification code shortly.'
+    : 'If an account exists with this email, you will receive a verification link shortly.';
   try {
     const email = (req.body?.email as string)?.trim();
     let user: InstanceType<typeof User> | null = null;
@@ -1284,8 +1350,12 @@ export async function resendVerification(req: Request, res: Response) {
     if (user.emailVerified) {
       return res.status(400).json({ message: 'Email is already verified. You can sign in.' });
     }
-    await issueEmailVerificationOtp(user);
-    return res.status(200).json({ message: 'Verification code sent to your email. It expires in 10 minutes.' });
+    if (useOtpFlow) {
+      await issueEmailVerificationOtp(user);
+      return res.status(200).json({ message: 'Verification code sent to your email. It expires in 10 minutes.' });
+    }
+    await issueEmailVerificationLink(user);
+    return res.status(200).json({ message: 'Verification email sent. Check your inbox.' });
   } catch (err: any) {
     console.error('Resend verification error:', err);
     return res.status(500).json({ message: 'Failed to resend verification email.' });
@@ -1300,6 +1370,9 @@ export async function resendVerification(req: Request, res: Response) {
 const OTP_GENERIC_RESPONSE = 'If an account exists with this email, you will receive a verification code shortly.';
 export async function requestVerificationOtp(req: Request, res: Response) {
   try {
+    if (!shouldUseEmailOtpFlow(req)) {
+      return res.status(400).json({ message: 'OTP verification is only available in local development mode.' });
+    }
     const email = (req.body?.email as string)?.trim();
     if (!email) {
       return res.status(400).json({ message: 'Email is required.' });
@@ -1311,15 +1384,7 @@ export async function requestVerificationOtp(req: Request, res: Response) {
     if (user.emailVerified) {
       return res.status(400).json({ message: 'Email is already verified. You can sign in.' });
     }
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
-    user.emailVerificationOtp = code;
-    user.emailVerificationOtpExpires = expiresAt;
-    await user.save();
-    const result = await sendVerificationOtpEmail(user.email, user.fullName, code, '10 minutes');
-    if (!result.success) {
-      return res.status(500).json({ message: 'Failed to send verification code. Try again later.' });
-    }
+    await issueEmailVerificationOtp(user);
     return res.status(200).json({ message: 'Verification code sent to your email. It expires in 10 minutes.' });
   } catch (err: any) {
     console.error('Request verification OTP error:', err);
