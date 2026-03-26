@@ -939,6 +939,77 @@ html {
 }
 .auth-shake { animation: auth-shake 0.4s ease-in-out; }
 
+/* ─── Mobile-app auth card polish ─── */
+.auth-mobile-app-card {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transform-style: preserve-3d;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.dark .auth-mobile-app-card {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.auth-mobile-app-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dark .auth-mobile-app-card::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 40%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+}
+
+.auth-mobile-app-glow {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(45px);
+  z-index: 0;
+}
+
+.auth-mobile-app-glow--orange {
+  top: -90px;
+  right: -60px;
+  background: rgba(249, 115, 22, 0.22);
+}
+
+.auth-mobile-app-glow--violet {
+  bottom: -90px;
+  left: -40px;
+  background: rgba(124, 58, 237, 0.16);
+}
+
+@media screen and (max-width: 640px) {
+  .auth-mobile-app-card {
+    border-radius: 26px !important;
+    padding: 16px !important;
+    box-shadow:
+      0 18px 50px rgba(0, 0, 0, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  }
+}
+
 /* ─── Global scrollbar styling (handled by theme.css CSS vars) ─── */
 html,
 body {

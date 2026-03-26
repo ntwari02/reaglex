@@ -100,9 +100,22 @@ export function ResetPassword() {
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="w-full max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
+            className="auth-mobile-app-card w-full max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
             style={{ background: cardBg, boxShadow: cardShadow }}
           >
+            <div className="auth-mobile-app-glow auth-mobile-app-glow--orange" />
+            <div className="auth-mobile-app-glow auth-mobile-app-glow--violet" />
+            <div className="relative z-10 flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+              </div>
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-faint)' }}>
+                Reaglex Secure
+              </p>
+            </div>
+            <div className="relative z-10">
             <Link to="/auth?tab=login" className="text-[12px] font-medium hover:underline mb-4 block" style={{ color: PRIMARY }}>
               ← Back to Sign In
             </Link>
@@ -211,6 +224,7 @@ export function ResetPassword() {
                 </motion.button>
               </form>
             )}
+            </div>
           </motion.div>
         </div>
 

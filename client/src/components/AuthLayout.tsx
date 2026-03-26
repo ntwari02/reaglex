@@ -108,14 +108,14 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
         style={{ background: 'transparent' }}
       >
         <Navbar />
-        <main className="flex-1 flex items-stretch justify-center px-4 sm:px-6 lg:px-10 pb-6 pt-[150px]">
+        <main className="flex-1 flex items-stretch justify-center px-3 sm:px-6 lg:px-10 pb-6 pt-[116px] sm:pt-[132px] lg:pt-[150px]">
           <div
-            className="w-full max-w-6xl xl:max-w-7xl flex flex-col lg:flex-row rounded-2xl overflow-hidden shadow-2xl"
-            style={{ background: 'rgba(15,23,42,0.85)' }}
+            className="w-full max-w-6xl xl:max-w-7xl flex rounded-2xl overflow-hidden shadow-2xl"
+            style={{ background: isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.7)' }}
           >
             {/* LEFT PANEL */}
             <section
-              className="auth-left-panel auth-animate-left w-full lg:w-[45%] px-6 sm:px-8 lg:px-10 py-8 sm:py-10 flex flex-col justify-between relative"
+              className="auth-left-panel auth-animate-left hidden lg:flex lg:w-[45%] px-6 sm:px-8 lg:px-10 py-8 sm:py-10 flex-col justify-between relative"
               style={{ minHeight: '100%' }}
             >
               {/* Floating blobs */}
@@ -374,7 +374,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
               }}
             >
               <div
-                className="w-full max-w-md mx-auto rounded-2xl lg:rounded-[16px_0_0_16px] px-5 sm:px-7 py-6 sm:py-7 shadow-xl"
+                className="auth-mobile-app-card w-full max-w-md mx-auto rounded-[24px] lg:rounded-[16px_0_0_16px] px-4 sm:px-7 py-5 sm:py-7 shadow-xl overflow-hidden"
                 style={{
                   background: isDark ? '#111420' : '#ffffff',
                   boxShadow: isDark
@@ -382,6 +382,19 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                     : '0 20px 55px rgba(15,23,42,0.16)',
                 }}
               >
+                <div className="auth-mobile-app-glow auth-mobile-app-glow--orange" />
+                <div className="auth-mobile-app-glow auth-mobile-app-glow--violet" />
+                <div className="relative z-10 flex items-center justify-between mb-3 px-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span className="w-2 h-2 rounded-full bg-rose-400" />
+                  </div>
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-faint)' }}>
+                    Reaglex Secure
+                  </p>
+                </div>
+                <div className="relative z-10">
                 {/* Seller / buyer toggle */}
                 <div className="flex items-center justify-between mb-5 sm:mb-6">
                   <div>
@@ -479,6 +492,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                   <span style={{ color: '#f97316' }}>Terms of Service</span> and{' '}
                   <span style={{ color: '#f97316' }}>Privacy Policy</span>.
                 </p>
+                </div>
               </div>
             </section>
           </div>

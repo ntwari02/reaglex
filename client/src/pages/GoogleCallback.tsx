@@ -68,6 +68,7 @@ export function GoogleCallback() {
             userProfile = {
               id: me.user.id?.toString() || me.user._id?.toString() || '',
               email: me.user.email,
+                email_verified: me.user.emailVerified,
               full_name: me.user.fullName,
               role: me.user.role,
               seller_status: me.user.sellerVerificationStatus,
@@ -83,6 +84,7 @@ export function GoogleCallback() {
             userProfile = {
               id: '',
               email: email || '',
+              email_verified: false,
               full_name: '',
               role: role || 'buyer',
               seller_status: undefined,

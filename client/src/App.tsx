@@ -65,9 +65,31 @@ function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
 function DashboardRedirect() {
   const { user } = useAuthStore();
   if (!user) return <Navigate to="/login" replace />;
+  if (user.email_verified !== true) {
+    return (
+      <Navigate
+        to={`/verify-email-pending?email=${encodeURIComponent(user.email)}`}
+        replace
+      />
+    );
+  }
   if (user.role === 'seller') return <Navigate to="/seller" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   return <Navigate to="/" replace />;
+}
+
+function HomeRouteGuard() {
+  const { user, loading, initialized } = useAuthStore();
+  if (!initialized || loading) return <PageLoader />;
+  if (user && user.email_verified !== true) {
+    return (
+      <Navigate
+        to={`/verify-email-pending?email=${encodeURIComponent(user.email)}`}
+        replace
+      />
+    );
+  }
+  return <BuyerHome />;
 }
 
 const PageLoader = () => (
@@ -93,7 +115,7 @@ function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* ── Buyer / Storefront ── */}
-            <Route path="/"                            element={<BuyerHome />} />
+            <Route path="/"                            element={<HomeRouteGuard />} />
             <Route path="/search"                      element={<SearchResults />} />
             <Route path="/products"                     element={<SearchResults />} />
             <Route path="/products/:id"                element={<BuyerProductDetail />} />

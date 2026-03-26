@@ -49,6 +49,7 @@ import assistantRoutes from './src/routes/assistantRoutes';
 import aiChatRoutes from './src/routes/aiChatRoutes';
 import aiAgentRoutes from './src/routes/aiAgentRoutes';
 import buyerNotificationRoutes from './src/routes/buyerNotificationRoutes';
+import { sanitizeInput } from './src/middleware/sanitizeInput';
 import './src/jobs/escrowJobs';
 import { websocketService } from './src/services/websocketService';
 import { getAllowedCorsOrigins } from './src/config/publicEnv';
@@ -95,6 +96,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(sanitizeInput);
 app.use(cookieParser());
 app.use(morgan('dev'));
 

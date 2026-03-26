@@ -66,9 +66,8 @@ export function SelectRole() {
 
       // Email verification required (Google sign-up or existing unverified user)
       if (data.needsVerification && data.email) {
-        showToast('Check your email for the 6-digit verification code.', 'success');
-        // Backend already sent OTP on this path
-        navigate(`/auth?tab=login&verifyEmail=1&sent=1&email=${encodeURIComponent(data.email)}`);
+        showToast('Verification link sent. Check your inbox.', 'success');
+        navigate(`/verify-email-pending?email=${encodeURIComponent(data.email)}&source=google`);
         setLoading(false);
         return;
       }
@@ -91,6 +90,7 @@ export function SelectRole() {
       const userProfile = {
         id: data.user.id?.toString() || data.user._id?.toString() || '',
         email: data.user.email,
+        email_verified: data.user.emailVerified ?? true,
         full_name: data.user.fullName,
         role: data.user.role,
         seller_status: data.user.sellerVerificationStatus,

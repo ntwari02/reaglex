@@ -159,7 +159,8 @@ export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) 
         className="flex-1 flex flex-col min-h-0 min-w-0 lg:min-w-[50%] overflow-y-auto"
         style={{
           background: rightBg,
-          padding: 'clamp(12px, 3vh, 32px) clamp(16px, 4vw, 32px)',
+          padding:
+            'max(env(safe-area-inset-top), 12px) clamp(16px, 4vw, 32px) max(env(safe-area-inset-bottom), 16px)',
         }}
       >
         {children}

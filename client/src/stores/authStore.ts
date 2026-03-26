@@ -8,6 +8,7 @@ function mapBackendUserToProfile(data: any): Profile {
   return {
     id: data.id?.toString() || data._id?.toString() || '',
     email: data.email,
+    email_verified: data.emailVerified ?? true,
     full_name: data.fullName,
     role: data.role,
     seller_status: data.sellerVerificationStatus,
@@ -190,6 +191,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               const userProfile: Profile = {
                 id: data.user._id?.toString() || data.user.id?.toString() || '',
                 email: data.user.email,
+                email_verified: data.user.emailVerified ?? true,
                 full_name: data.user.fullName,
                 role: data.user.role,
                 seller_status: data.user.sellerVerificationStatus,

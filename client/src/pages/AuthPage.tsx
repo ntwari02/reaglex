@@ -620,6 +620,7 @@ export default function AuthPage() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
+  const [cardTilt, setCardTilt] = useState({ x: 0, y: 0 });
 
   // Password reset OTP state (separate from email-verification OTP)
   const [resetEmail, setResetEmail] = useState('');
@@ -943,6 +944,7 @@ export default function AuthPage() {
 
   const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
   const cardBg = isDark ? '#111420' : '#ffffff';
+  const cardTiltTransform = `perspective(1100px) rotateX(${cardTilt.x}deg) rotateY(${cardTilt.y}deg) translateZ(0)`;
 
   return (
     <AuthPremiumLayout>
@@ -957,9 +959,30 @@ export default function AuthPage() {
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="w-full max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
-            style={{ background: cardBg, boxShadow: cardShadow }}
+            onMouseMove={(e) => {
+              if (window.innerWidth <= 640) return;
+              if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+              const r = e.currentTarget.getBoundingClientRect();
+              const rx = ((e.clientY - r.top) / r.height - 0.5) * -7;
+              const ry = ((e.clientX - r.left) / r.width - 0.5) * 7;
+              setCardTilt({ x: Number(rx.toFixed(2)), y: Number(ry.toFixed(2)) });
+            }}
+            onMouseLeave={() => setCardTilt({ x: 0, y: 0 })}
+            className="auth-mobile-app-card w-full max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
+            style={{ background: cardBg, boxShadow: cardShadow, transform: cardTiltTransform }}
           >
+            <div className="auth-mobile-app-glow auth-mobile-app-glow--orange" />
+            <div className="auth-mobile-app-glow auth-mobile-app-glow--violet" />
+            <div className="relative z-10 flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+              </div>
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-faint)' }}>
+                Reaglex Secure
+              </p>
+            </div>
             <AnimatePresence mode="wait">
               {rightPanelState === 'auth' && (
                 <motion.div
@@ -971,17 +994,17 @@ export default function AuthPage() {
                 >
                   {/* Tab switcher: Sign In | Register with sliding pill */}
                   <div className="flex items-center justify-between mb-5">
-                    <div className="inline-flex items-center p-1 rounded-[14px] relative" style={{ background: 'var(--bg-tertiary)' }}>
+                    <div className="inline-flex w-full sm:w-auto items-center p-1 rounded-[14px] relative" style={{ background: 'var(--bg-tertiary)' }}>
                       <Link
                         to="/auth?tab=login"
-                        className="relative z-10 px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
+                        className="relative z-10 flex-1 text-center px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
                         style={{ color: validTab === 'login' || validTab === 'forgot' ? 'var(--text-primary)' : 'var(--text-muted)' }}
                       >
                         Sign In
                       </Link>
                       <Link
                         to="/auth?tab=signup"
-                        className="relative z-10 px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
+                        className="relative z-10 flex-1 text-center px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
                         style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)' }}
                       >
                         Register

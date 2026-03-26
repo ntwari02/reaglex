@@ -465,14 +465,25 @@ export const authAPI = {
   /**
    * Resend verification email (for unverified accounts)
    */
-  async resendVerificationEmail(email: string) {
+  async resendVerificationEmail(email: string, source?: string) {
     const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, source }),
     });
     return handleResponse<{ message: string }>(response);
+  },
+
+  async verifyEmailLink(token: string, email?: string) {
+    const params = new URLSearchParams();
+    params.set('token', token);
+    if (email) params.set('email', email);
+    const response = await fetch(`${API_BASE_URL}/auth/verify-email?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    return handleResponse<{ message: string; token?: string; user?: any }>(response);
   },
 
   /**

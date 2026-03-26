@@ -5,7 +5,7 @@ import AuthLayout from '../components/AuthLayout';
 import { API_BASE_URL } from '../lib/config';
 
 const inputClass =
-  'w-full px-4 py-3 rounded-2xl text-sm outline-none transition-all bg-white border placeholder-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100';
+  'w-full px-4 py-3 rounded-2xl text-sm outline-none transition-all bg-[var(--bg-secondary)] border border-[var(--divider)] placeholder-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100';
 
 export function ForgotPassword() {
   const navigate = useNavigate();
@@ -59,9 +59,9 @@ export function ForgotPassword() {
             </svg>
           </div>
           <div>
-            <h3 className="font-bold text-base" style={{ color: '#111827' }}>Check your inbox</h3>
-            <p className="text-sm mt-1" style={{ color: '#6b7280' }}>
-              We sent a 6-digit code to <strong style={{ color: '#111827' }}>{email}</strong>. It expires in 15 minutes.
+            <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>Check your inbox</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+              We sent a 6-digit code to <strong style={{ color: 'var(--text-primary)' }}>{email}</strong>. It expires in 15 minutes.
             </p>
           </div>
           <Link to="/reset-password" className="inline-block px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: '#ff8c42' }}>
@@ -73,7 +73,7 @@ export function ForgotPassword() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-sm" style={{ color: '#6b7280' }}>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Enter the email associated with your account and we'll send you reset instructions.
           </p>
 
@@ -90,7 +90,7 @@ export function ForgotPassword() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email address"
             className={inputClass}
-            style={{ borderColor: '#e5e7eb' }}
+            style={{ color: 'var(--text-primary)' }}
           />
 
           <button
@@ -105,7 +105,7 @@ export function ForgotPassword() {
             {loading ? 'Sending…' : 'Send Reset Link'}
           </button>
 
-          <p className="text-center text-xs" style={{ color: '#9ca3af' }}>
+          <p className="text-center text-xs" style={{ color: 'var(--text-faint)' }}>
             Remember your password?{' '}
             <Link to="/login" className="font-semibold hover:underline" style={{ color: '#ff8c42' }}>
               Sign In

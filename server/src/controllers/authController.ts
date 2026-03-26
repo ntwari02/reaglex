@@ -57,8 +57,11 @@ async function issueEmailVerificationOtp(user: InstanceType<typeof User>): Promi
 async function issueEmailVerificationLink(user: InstanceType<typeof User>): Promise<void> {
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + EMAIL_LINK_EXPIRY_MS);
+  // Invalidate any previous link/OTP when issuing a new link.
   user.emailVerificationToken = token;
   user.emailVerificationExpires = expiresAt;
+  user.emailVerificationOtp = undefined;
+  user.emailVerificationOtpExpires = undefined;
   await user.save();
   await sendVerificationEmail(user.email, user.fullName, token, '24 hours');
 }
@@ -849,7 +852,6 @@ export async function googleCallback(req: Request, res: Response) {
       return res.redirect(`${CLIENT_URL}/login?error=no_email`);
     }
 
-    const useOtpFlow = shouldUseEmailOtpFlow(req);
     // Find user (include verification fields for email-verification check)
     let user = await User.findOne({ $or: [{ email }, { googleId }] })
       .select('+emailVerificationToken +emailVerificationExpires');
@@ -873,30 +875,16 @@ export async function googleCallback(req: Request, res: Response) {
       }
       await user.save();
 
-      // Buyers: no email verification when signing in with Google (Google already verified the email)
-      // Sellers/admins: require email verification (link or OTP)
+      // Google sign-in must respect our own email verification state.
       if (!user.emailVerified) {
-        if (user.role === 'buyer') {
-          user.emailVerified = true;
-          user.emailVerificationToken = undefined;
-          user.emailVerificationExpires = undefined;
-          await user.save();
-          // Fall through to normal sign-in (no email sent, no redirect to verify page)
-        } else {
-          if (useOtpFlow) {
-            await issueEmailVerificationOtp(user).catch((e) =>
-              console.warn('[auth] Google callback: verification OTP failed', e)
-            );
-          } else {
-            await issueEmailVerificationLink(user).catch((e) =>
-              console.warn('[auth] Google callback: verification email failed', e)
-            );
-          }
-          const pendingUrl = new URL(`${CLIENT_URL}/verify-email-pending`);
-          pendingUrl.searchParams.set('email', user.email);
-          pendingUrl.searchParams.set('source', 'google');
-          return res.redirect(pendingUrl.toString());
-        }
+        await issueEmailVerificationLink(user).catch((e) =>
+          console.warn('[auth] Google callback: verification email failed', e)
+        );
+        const pendingUrl = new URL(`${CLIENT_URL}/verify-email-pending`);
+        pendingUrl.searchParams.set('email', user.email);
+        pendingUrl.searchParams.set('source', 'google');
+        pendingUrl.searchParams.set('sent', '1');
+        return res.redirect(pendingUrl.toString());
       }
     } else {
       // New user - redirect to role selection instead of creating immediately
@@ -1021,7 +1009,6 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
     // Debug: Log Google info from temp token
     console.log('Google info from temp token:', { googleId, email, name, picture });
 
-    const useOtpFlow = shouldUseEmailOtpFlow(req);
     // Check if user was created in the meantime
     let user = await User.findOne({ $or: [{ email }, { googleId }] })
       .select('+emailVerificationToken +emailVerificationExpires');
@@ -1034,33 +1021,18 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
         });
       }
 
-      // Buyers: no email verification (Google already verified). Sellers/admins: require verification.
+      // Google sign-up must respect our own email verification state.
       if (!user.emailVerified) {
-        if (user.role === 'buyer') {
-          user.emailVerified = true;
-          user.emailVerificationToken = undefined;
-          user.emailVerificationExpires = undefined;
-          await user.save();
-          // Fall through to return token / 2FA check below (no email, no needsVerification)
-        } else {
-          if (useOtpFlow) {
-            await issueEmailVerificationOtp(user).catch((e) =>
-              console.warn('[auth] Google complete: verification OTP failed', e)
-            );
-          } else {
-            await issueEmailVerificationLink(user).catch((e) =>
-              console.warn('[auth] Google complete: verification email failed', e)
-            );
-          }
-          return res.json({
-            success: true,
-            needsVerification: true,
-            email: user.email,
-            message: useOtpFlow
-              ? 'Please verify your email. We sent a 6-digit code to your inbox.'
-              : 'Please verify your email. We sent a verification link to your inbox.',
-          });
-        }
+        await issueEmailVerificationLink(user).catch((e) =>
+          console.warn('[auth] Google complete: verification email failed', e)
+        );
+        return res.json({
+          success: true,
+          needsVerification: true,
+          email: user.email,
+          source: 'google',
+          message: 'Please verify your email. We sent a verification link to your inbox.',
+        });
       }
 
       // User already exists and is verified - update profile picture and login
@@ -1088,9 +1060,8 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
       });
     }
 
-    // Create new user with selected role. Buyers: no email verification (Google verified). Sellers: require verification.
+    // Create new user with selected role. Email verification is required for Google flow too.
     const isSeller = role === 'seller';
-    const isBuyer = role === 'buyer';
     console.log('Creating new user with Google picture:', picture);
     user = await User.create({
       fullName: name || email.split('@')[0],
@@ -1099,43 +1070,19 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
       passwordHash: '', // OAuth users don't need password
       role,
       avatarUrl: picture || undefined,
-      emailVerified: isBuyer, // Buyer: trust Google. Seller/admin: require verification.
+      emailVerified: false,
       sellerVerificationStatus: isSeller ? 'pending' : undefined,
       isSellerVerified: isSeller ? false : undefined,
     });
     console.log('User created with avatarUrl:', user.avatarUrl);
 
-    if (!isBuyer) {
-      if (useOtpFlow) {
-        issueEmailVerificationOtp(user).catch((e) => console.warn('[auth] Google register: verification OTP error', e));
-      } else {
-        issueEmailVerificationLink(user).catch((e) => console.warn('[auth] Google register: verification email error', e));
-      }
-    }
-
-    if (isBuyer) {
-      const token = generateAuthToken(user);
-      return res.status(201).json({
-        success: true,
-        token,
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          sellerVerificationStatus: user.sellerVerificationStatus,
-          isSellerVerified: user.isSellerVerified,
-          avatarUrl: user.avatarUrl,
-        },
-      });
-    }
+    issueEmailVerificationLink(user).catch((e) => console.warn('[auth] Google register: verification email error', e));
     return res.status(201).json({
       success: true,
       needsVerification: true,
       email: user.email,
-      message: useOtpFlow
-        ? 'Account created. Please check your email for a 6-digit verification code before signing in.'
-        : 'Account created. Please check your email and click the verification link before signing in.',
+      source: 'google',
+      message: 'Account created. Please check your email and click the verification link before signing in.',
     });
   } catch (error: any) {
     console.error('Complete Google registration error:', error);
@@ -1292,13 +1239,16 @@ export async function resetPassword(req: Request, res: Response) {
 export async function verifyEmail(req: Request, res: Response) {
   try {
     const token = (req.query.token as string)?.trim();
+    const email = (req.query.email as string)?.trim().toLowerCase();
     if (!token) {
       return res.status(400).json({ message: 'Invalid verification link.' });
     }
-    const user = await User.findOne({
+    const filter: any = {
       emailVerificationToken: token,
       emailVerificationExpires: { $gt: new Date() },
-    }).select('+emailVerificationToken +emailVerificationExpires');
+    };
+    if (email) filter.email = email;
+    const user = await User.findOne(filter).select('+emailVerificationToken +emailVerificationExpires');
     if (!user) {
       return res.status(400).json({ message: 'Verification link is invalid or expired. Request a new one.' });
     }
@@ -1309,7 +1259,41 @@ export async function verifyEmail(req: Request, res: Response) {
     user.emailVerificationOtpExpires = undefined;
     await user.save();
     sendWelcomeEmail(user.email, user.fullName).catch((e) => console.warn('[auth] welcome email error', e));
-    return res.status(200).json({ message: 'Email verified successfully. You can now sign in.' });
+    const authToken = generateAuthToken(user);
+    // Register active device session for admin/seller logins.
+    try {
+      const decoded = decodeAuthToken(authToken);
+      if ((user.role === 'admin' || user.role === 'seller') && decoded?.jti) {
+        const { deviceId, userAgent, ipAddress } = getDeviceInfo(req);
+        await ActiveSession.findOneAndUpdate(
+          { userId: user._id },
+          {
+            tokenId: decoded.jti,
+            deviceId,
+            userAgent,
+            ipAddress,
+            lastActiveAt: new Date(),
+          },
+          { upsert: true, new: true }
+        );
+      }
+    } catch (e) {
+      console.warn('[auth] verify-email: failed to register active session', e);
+    }
+    return res.status(200).json({
+      message: 'Email verified successfully.',
+      token: authToken,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        role: user.role,
+        sellerVerificationStatus: user.sellerVerificationStatus,
+        isSellerVerified: user.isSellerVerified,
+        avatarUrl: user.avatarUrl,
+      },
+    });
   } catch (err: any) {
     console.error('Verify email error:', err);
     return res.status(500).json({ message: 'Verification failed. Please try again.' });
@@ -1322,7 +1306,9 @@ export async function verifyEmail(req: Request, res: Response) {
  * Security: does not reveal whether an account exists (same response for valid/invalid email when unauthenticated).
  */
 export async function resendVerification(req: Request, res: Response) {
-  const useOtpFlow = shouldUseEmailOtpFlow(req);
+  const source = (req.body?.source as string)?.trim().toLowerCase();
+  const forceLinkFlow = source === 'google';
+  const useOtpFlow = forceLinkFlow ? false : shouldUseEmailOtpFlow(req);
   const genericSuccess = useOtpFlow
     ? 'If an account exists with this email, you will receive a verification code shortly.'
     : 'If an account exists with this email, you will receive a verification link shortly.';
@@ -1350,7 +1336,7 @@ export async function resendVerification(req: Request, res: Response) {
       return res.status(200).json({ message: 'Verification code sent to your email. It expires in 10 minutes.' });
     }
     await issueEmailVerificationLink(user);
-    return res.status(200).json({ message: 'Verification email sent. Check your inbox.' });
+    return res.status(200).json({ message: 'New link sent — check your inbox' });
   } catch (err: any) {
     console.error('Resend verification error:', err);
     return res.status(500).json({ message: 'Failed to resend verification email.' });

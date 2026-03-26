@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Mail, Loader2, ArrowRight, RefreshCw, Sparkles, KeyRound, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Mail, Loader2, ArrowRight, RefreshCw, Sparkles } from 'lucide-react';
 import { useToastStore } from '../stores/toastStore';
 import { authAPI } from '../lib/api';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
@@ -10,86 +10,52 @@ const PRIMARY = '#f97316';
 
 export function VerifyEmailPending() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const emailFromUrl = searchParams.get('email') || '';
   const source = searchParams.get('source');
+  const alreadySent = searchParams.get('sent') === '1';
   const { showToast } = useToastStore();
   const [resendLoading, setResendLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const autoSentRef = useRef(false);
 
-  const [otpEmail, setOtpEmail] = useState(emailFromUrl);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const [otpSendLoading, setOtpSendLoading] = useState(false);
-  const [otpVerifyLoading, setOtpVerifyLoading] = useState(false);
-  const [otpError, setOtpError] = useState('');
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  useEffect(() => {
-    if (emailFromUrl) setOtpEmail(emailFromUrl);
-  }, [emailFromUrl]);
-
-  const email = emailFromUrl || otpEmail;
-
-  const handleResend = async () => {
+  const email = emailFromUrl;
+  const handleResend = async (isAuto = false) => {
     if (!email || resendLoading) return;
+    if (!isAuto && cooldown > 0) return;
     setResendLoading(true);
     try {
-      await authAPI.resendVerificationEmail(email);
-      showToast('Verification link sent! Check your inbox.', 'success');
+      await authAPI.resendVerificationEmail(email, source || undefined);
+      if (isAuto) {
+        showToast('Verification link sent. Check your inbox.', 'success');
+      } else {
+        showToast('New link sent — check your inbox', 'success');
+      }
+      setCooldown(60);
     } catch (e: any) {
-      showToast(e.message || 'Failed to resend. Try again later.', 'error');
+      if (!isAuto) showToast(e.message || 'Failed to resend. Try again later.', 'error');
     } finally {
       setResendLoading(false);
     }
   };
 
-  const handleSendOtp = async () => {
-    const e = (emailFromUrl || otpEmail).trim();
-    if (!e || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) || otpSendLoading) return;
-    setOtpSendLoading(true);
-    setOtpError('');
-    try {
-      await authAPI.requestVerificationOtp(e);
-      setOtpSent(true);
-      setOtpDigits(['', '', '', '', '', '']);
-      showToast('Verification code sent. Check your email.', 'success');
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch (err: any) {
-      setOtpError(err.message || 'Failed to send code.');
-    } finally {
-      setOtpSendLoading(false);
-    }
-  };
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value !== '' && !/^\d$/.test(value)) return;
-    const next = [...otpDigits];
-    next[index] = value;
-    setOtpDigits(next);
-    setOtpError('');
-    if (value && index < 5) otpRefs.current[index + 1]?.focus();
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) otpRefs.current[index - 1]?.focus();
-  };
-
-  const handleVerifyOtp = async () => {
-    const code = otpDigits.join('');
-    const e = (emailFromUrl || otpEmail).trim();
-    if (code.length !== 6 || !e) return;
-    setOtpVerifyLoading(true);
-    setOtpError('');
-    try {
-      await authAPI.verifyEmailWithOtp(e, code);
-      showToast('Email verified! You can sign in now.', 'success');
-      navigate('/login', { replace: true });
-    } catch (err: any) {
-      setOtpError(err.message || 'Invalid code.');
-    } finally {
-      setOtpVerifyLoading(false);
-    }
-  };
+  useEffect(() => {
+    // For Google signup path, automatically send verification link on arrival.
+    if (source !== 'google') return;
+    if (alreadySent) return;
+    if (!email) return;
+    if (autoSentRef.current) return;
+    autoSentRef.current = true;
+    handleResend(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, email, alreadySent]);
 
   const openInbox = () => {
     window.open('https://mail.google.com/mail/u/0/#search/in%3Ainbox', '_blank', 'noopener,noreferrer');
@@ -142,7 +108,7 @@ export function VerifyEmailPending() {
           )}
 
           <p className="text-center text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            Verify using link or code
+            Verify using link
           </p>
           <div className="space-y-3">
             <button
@@ -157,7 +123,7 @@ export function VerifyEmailPending() {
             <button
               type="button"
               onClick={handleResend}
-              disabled={resendLoading}
+              disabled={resendLoading || cooldown > 0}
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium border-2 transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               style={{
                 borderColor: 'rgba(249,115,22,0.4)',
@@ -170,98 +136,12 @@ export function VerifyEmailPending() {
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              {resendLoading ? 'Sending…' : 'Resend verification link'}
+              {resendLoading
+                ? 'Sending…'
+                : cooldown > 0
+                  ? `Resend verification link (${cooldown}s)`
+                  : 'Resend verification link'}
             </button>
-          </div>
-
-          <div className="pt-6 border-t border-orange-100 dark:border-orange-500/20 mt-6">
-            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <KeyRound className="w-5 h-5" style={{ color: PRIMARY }} />
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Or verify with a one-time code
-                </h2>
-              </div>
-              {email && (
-                <Link
-                  to={`/verify-otp?email=${encodeURIComponent(email)}`}
-                  className="text-xs font-medium flex items-center gap-1 transition-colors"
-                  style={{ color: PRIMARY }}
-                >
-                  Beautiful verify page <ExternalLink className="w-3.5 h-3.5" />
-                </Link>
-              )}
-            </div>
-            {!otpSent ? (
-              <div className="space-y-3">
-                {!emailFromUrl && (
-                  <input
-                    type="email"
-                    placeholder="Your email"
-                    value={otpEmail}
-                    onChange={(e) => { setOtpEmail(e.target.value); setOtpError(''); }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-400 outline-none"
-                  />
-                )}
-                {otpError && <p className="text-sm text-red-600 dark:text-red-400">{otpError}</p>}
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={otpSendLoading || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((emailFromUrl || otpEmail).trim())}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-white transition-all disabled:opacity-50"
-                  style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)` }}
-                >
-                  {otpSendLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  {otpSendLoading ? 'Sending…' : 'Send me a 6-digit code'}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Enter the code sent to <span className="font-medium text-gray-900 dark:text-white">{emailFromUrl || otpEmail}</span>
-                </p>
-                <div className="flex justify-center gap-2">
-                  {otpDigits.map((d, i) => (
-                    <input
-                      key={i}
-                      ref={(el) => { otpRefs.current[i] = el; }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={d}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className="w-11 h-12 text-center text-lg font-semibold rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"
-                    />
-                  ))}
-                </div>
-                {otpError && <p className="text-sm text-red-600 dark:text-red-400 text-center">{otpError}</p>}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleVerifyOtp}
-                    disabled={otpVerifyLoading}
-                    className="flex-1 py-3 rounded-xl font-medium text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)` }}
-                  >
-                    {otpVerifyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    {otpVerifyLoading ? 'Verifying…' : 'Verify code'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setOtpSent(false); setOtpError(''); }}
-                    className="px-4 py-3 rounded-xl font-medium border-2 transition-colors"
-                    style={{
-                      borderColor: 'rgba(249,115,22,0.4)',
-                      color: PRIMARY,
-                      background: 'rgba(249,115,22,0.08)',
-                    }}
-                  >
-                    New code
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
           </div>
 

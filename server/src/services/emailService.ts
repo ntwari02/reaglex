@@ -171,16 +171,23 @@ export async function sendVerificationEmail(
   token: string,
   expiresIn = '24 hours'
 ): Promise<{ success: boolean; error?: string }> {
-  const verifyUrl = `${CLIENT_URL}/verify-email?token=${encodeURIComponent(token)}`;
-  const html = getVerificationEmailHtml({
-    name,
-    verifyUrl,
-    appName: APP_NAME,
-    expiresIn,
-  });
+  const verifyUrl = `${CLIENT_URL}/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(to)}`;
+  const safeName = name || 'there';
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6;">
+      <p>Hi ${safeName},</p>
+      <p>Please verify your Reaglex account.</p>
+      <p>
+        <a href="${verifyUrl}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#f97316;color:#fff;text-decoration:none;font-weight:600;">
+          Verify my email
+        </a>
+      </p>
+      <p style="font-size:13px;color:#6b7280;">This link expires in ${expiresIn}.</p>
+    </div>
+  `;
   return sendEmail({
     to,
-    subject: `Verify your email – ${APP_NAME}`,
+    subject: 'Verify your Reaglex account',
     html,
   });
 }
