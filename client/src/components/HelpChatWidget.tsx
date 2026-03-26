@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { API_BASE_URL } from '@/lib/config';
 
 type Sender = 'bot' | 'user';
+
+interface ProductCardPayload {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  imageUrls: string[];
+}
 
 interface ChatMessage {
   id: string;
@@ -11,6 +20,22 @@ interface ChatMessage {
   ts: string;
   helpful?: 'up' | 'down' | null;
   kind?: 'track' | 'escrow' | 'return' | 'payment' | 'seller' | 'greeting' | 'default';
+  /** Rich payload from /api/ai/chat agent */
+  productCards?: ProductCardPayload[];
+  paymentLink?: string;
+  paymentAmount?: number;
+  paymentCurrency?: string;
+}
+
+function inferKind(text: string): ChatMessage['kind'] {
+  const t = (text || '').toLowerCase();
+  if (t.includes('track') || t.includes('order')) return 'track';
+  if (t.includes('escrow')) return 'escrow';
+  if (t.includes('return') || t.includes('refund')) return 'return';
+  if (t.includes('payment') || t.includes('card') || t.includes('money')) return 'payment';
+  if (t.includes('seller') || t.includes('store') || t.includes('product')) return 'seller';
+  if (t.includes('hello') || t.includes('hi')) return 'greeting';
+  return 'default';
 }
 
 const STORAGE_KEY = 'reaglex_help_chat';
@@ -30,10 +55,8 @@ export default function HelpChatWidget() {
   const location = useLocation();
   const path = location.pathname;
 
-  // Hide on auth and seller/admin dashboards (must NOT short-circuit hooks)
+  // Hide on auth-only flows (assistant available on buyer + seller + admin storefront areas)
   const isHidden =
-    path.startsWith('/seller') ||
-    path.startsWith('/admin') ||
     path === '/login' ||
     path === '/signup' ||
     path === '/forgot-password' ||
@@ -147,31 +170,99 @@ export default function HelpChatWidget() {
     });
   };
 
-  const addMessage = (from: Sender, text: string, kind?: ChatMessage['kind']) => {
+  const addMessage = (
+    from: Sender,
+    text: string,
+    kind?: ChatMessage['kind'],
+    extras?: Pick<
+      ChatMessage,
+      'productCards' | 'paymentLink' | 'paymentAmount' | 'paymentCurrency'
+    >
+  ) => {
     const msg: ChatMessage = {
       id: `${from}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       from,
       text,
       ts: 'Just now',
       kind,
+      ...extras,
     };
     setMessages((prev) => [...prev.slice(-MAX_MESSAGES + 1), msg]);
     return msg;
   };
 
-  const handleSend = (value?: string) => {
+  const handleSend = async (value?: string) => {
     const content = (value ?? input).trim();
     if (!content) return;
     setInput('');
     setHasInteracted(true);
     const userMsg = addMessage('user', content);
     setTyping(true);
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      let response = await fetch(`${API_BASE_URL}/ai/chat`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ message: userMsg.text }),
+      });
+
+      if (!response.ok && (response.status === 503 || response.status >= 500)) {
+        response = await fetch(`${API_BASE_URL}/assistant/chat`, {
+          method: 'POST',
+          headers,
+          credentials: 'include',
+          body: JSON.stringify({ message: userMsg.text }),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error('assistant-unavailable');
+      }
+
+      const data = await response.json();
+      const text = String(data?.reply || '').trim();
+      const products = Array.isArray(data?.products) ? data.products : [];
+      const productCards: ProductCardPayload[] | undefined =
+        products.length > 0
+          ? products.map((p: any) => ({
+              id: String(p.id),
+              name: String(p.name || ''),
+              price: Number(p.price) || 0,
+              currency: String(p.currency || 'USD'),
+              imageUrls: Array.isArray(p.imageUrls) ? p.imageUrls : p.images || [],
+            }))
+          : undefined;
+      const pay = data?.payment;
+      const extras =
+        productCards?.length || pay?.paymentLink
+          ? {
+              productCards,
+              paymentLink: pay?.paymentLink as string | undefined,
+              paymentAmount: pay?.amount as number | undefined,
+              paymentCurrency: pay?.currency as string | undefined,
+            }
+          : undefined;
+
+      addMessage(
+        'bot',
+        text || 'How can I help you today?',
+        inferKind(text),
+        extras
+      );
+    } catch {
+      // Fallback for local/dev when assistant API key is not configured
       const reply = getBotReply(userMsg.text.toLowerCase());
       addMessage('bot', reply.text, reply.kind);
+    } finally {
       setTyping(false);
       setTimeout(() => scrollToBottom(), 50);
-    }, 800);
+    }
   };
 
   const getBotReply = (raw: string): { text: string; kind: ChatMessage['kind'] } => {
@@ -830,6 +921,107 @@ export default function HelpChatWidget() {
                       >
                         {m.text}
                       </div>
+                      {m.from === 'bot' && m.productCards && m.productCards.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: 8,
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 8,
+                            maxWidth: '100%',
+                          }}
+                        >
+                          {m.productCards.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => navigate(`/products/${p.id}`)}
+                              style={{
+                                width: 120,
+                                padding: 0,
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: 10,
+                                overflow: 'hidden',
+                                background: 'var(--card-bg)',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: '100%',
+                                  height: 72,
+                                  background: '#f1f5f9',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                {p.imageUrls?.[0] ? (
+                                  <img
+                                    src={p.imageUrls[0]}
+                                    alt=""
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                    }}
+                                  />
+                                ) : (
+                                  <span style={{ fontSize: 22 }}>📦</span>
+                                )}
+                              </div>
+                              <div style={{ padding: '6px 8px' }}>
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: 'var(--text-primary)',
+                                    lineHeight: 1.25,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                  }}
+                                >
+                                  {p.name}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: PRIMARY,
+                                    marginTop: 2,
+                                  }}
+                                >
+                                  {p.currency} {p.price.toFixed(2)}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {m.from === 'bot' && m.paymentLink && (
+                        <a
+                          href={m.paymentLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            marginTop: 8,
+                            display: 'inline-block',
+                            padding: '8px 14px',
+                            borderRadius: 10,
+                            background: PRIMARY,
+                            color: '#fff',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            boxShadow: '0 4px 10px rgba(249,115,22,0.25)',
+                          }}
+                        >
+                          Pay {m.paymentAmount != null ? `${m.paymentCurrency || ''} ${m.paymentAmount}`.trim() : 'now'}{' '}
+                          →
+                        </a>
+                      )}
                       <span
                         style={{
                           marginTop: 2,

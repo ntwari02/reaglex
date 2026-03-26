@@ -19,19 +19,14 @@ import {
   sendDeviceApprovalEmail,
   isEmailConfigured,
 } from '../services/emailService';
+import { getClientUrl, getServerUrl } from '../config/publicEnv';
 
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
 
-// Support BOTH local development and production
-const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
-const CLIENT_URL =
-  process.env.CLIENT_URL || (isProd ? 'https://www.reaglex.com' : 'http://localhost:5173');
-const SERVER_URL =
-  process.env.SERVER_URL ||
-  process.env.RENDER_EXTERNAL_URL ||
-  (isProd ? 'https://reaglex.onrender.com' : 'http://localhost:5000');
+const CLIENT_URL = getClientUrl();
+const SERVER_URL = getServerUrl();
 const GOOGLE_CALLBACK_URL =
-  process.env.GOOGLE_CALLBACK_URL || `${SERVER_URL}/api/auth/google/callback`;
+  process.env.GOOGLE_CALLBACK_URL?.trim() || `${SERVER_URL}/api/auth/google/callback`;
 
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 const EMAIL_LINK_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours

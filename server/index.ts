@@ -45,8 +45,13 @@ import adminOrdersRoutes from './src/routes/adminOrdersRoutes';
 import paymentRoutes from './src/routes/paymentRoutes';
 import webhookRoutes from './src/routes/webhookRoutes';
 import seoRoutes from './src/routes/seoRoutes';
+import assistantRoutes from './src/routes/assistantRoutes';
+import aiChatRoutes from './src/routes/aiChatRoutes';
+import aiAgentRoutes from './src/routes/aiAgentRoutes';
+import buyerNotificationRoutes from './src/routes/buyerNotificationRoutes';
 import './src/jobs/escrowJobs';
 import { websocketService } from './src/services/websocketService';
+import { getAllowedCorsOrigins } from './src/config/publicEnv';
 
 const app = express();
 const httpServer = createServer(app);
@@ -63,22 +68,21 @@ app.set('trust proxy', 1);
 if (!MONGO_URI) {
   console.error('MONGO_URI is not set in .env');
 }
-if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-  console.warn('SMTP_USER or SMTP_PASS not set; password reset and verification emails will not be sent. See server/EMAIL_SETUP.md.');
+const emailProvider = (process.env.EMAIL_PROVIDER || 'smtp').toLowerCase();
+if (emailProvider === 'resend') {
+  if (!process.env.RESEND_API_KEY?.trim() || !process.env.RESEND_FROM_EMAIL?.trim()) {
+    console.warn(
+      '[email] EMAIL_PROVIDER=resend but RESEND_API_KEY or RESEND_FROM_EMAIL is missing; outbound mail will fail.',
+    );
+  }
+} else if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  console.warn(
+    '[email] SMTP_USER or SMTP_PASS not set; password reset and verification emails will not be sent. See server/EMAIL_SETUP.md.',
+  );
 }
 
-// Global middlewares - CORS: allow both local dev and production
-const defaultOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://www.reaglex.com',
-  'https://reaglex.vercel.app',
-];
-const envOrigins = (process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || '')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
-const allowedCorsOrigins = envOrigins.length > 0 ? envOrigins : defaultOrigins;
+// Global middlewares - CORS: from CLIENT_URL + ALLOWED_ORIGINS (see publicEnv)
+const allowedCorsOrigins = getAllowedCorsOrigins();
 
 app.use(
   cors({
@@ -160,6 +164,8 @@ app.use('/api/seller/inbox', inboxRoutes);
 
 // Buyer inbox routes
 app.use('/api/buyer/inbox', buyerInboxRoutes);
+// Buyer notification routes
+app.use('/api/buyer/notifications', buyerNotificationRoutes);
 // Buyer dispute routes
 app.use('/api/buyer/disputes', buyerDisputeRoutes);
 
@@ -195,6 +201,9 @@ app.use('/api/admin/orders', adminOrdersRoutes);
 app.use('/api/payments', paymentRoutes);
 // Webhooks
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/assistant', assistantRoutes);
+app.use('/api/ai', aiChatRoutes);
+app.use('/api/ai', aiAgentRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);

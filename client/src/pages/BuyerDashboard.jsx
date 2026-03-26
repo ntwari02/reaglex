@@ -1330,9 +1330,7 @@ export default function BuyerDashboard() {
     };
   };
 
-  const uiOrders = (orders && orders.length
-    ? orders
-    : MOCK_ORDERS);
+  const uiOrders = Array.isArray(orders) ? orders : [];
 
   const mapApiAddressToUi = (addr, index, user) => {
     if (!addr) return null;

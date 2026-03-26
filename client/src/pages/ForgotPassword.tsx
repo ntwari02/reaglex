@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
+import { API_BASE_URL } from '../lib/config';
 
 const inputClass =
   'w-full px-4 py-3 rounded-2xl text-sm outline-none transition-all bg-white border placeholder-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100';
@@ -25,7 +26,6 @@ export function ForgotPassword() {
     }
 
     try {
-      import { API_BASE_URL } from '../lib/config';
       const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,3 +116,4 @@ export function ForgotPassword() {
     </AuthLayout>
   );
 }
+

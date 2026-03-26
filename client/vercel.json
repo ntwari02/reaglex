@@ -1,20 +1,3 @@
 {
-  "rewrites": [
-    {
-      "source": "/products/:id",
-      "destination": "https://reaglex-seo-ssr.onrender.com/products/:id"
-    },
-    {
-      "source": "/robots.txt",
-      "destination": "https://reaglex.onrender.com/robots.txt"
-    },
-    {
-      "source": "/sitemap.xml",
-      "destination": "https://reaglex.onrender.com/sitemap.xml"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

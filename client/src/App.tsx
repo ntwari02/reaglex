@@ -19,7 +19,7 @@ import { useAuthStore } from './stores/authStore';
 import { ToastNotification } from './components/ToastNotification';
 // @ts-ignore JSX module without TS typings
 import CartDrawer from './components/CartDrawer';
-import HelpChatWidget from './components/HelpChatWidget';
+import AssistantChat from './components/AssistantChat';
 
 // ── Buyer pages (lazy) ────────────────────────────────────────────────────────
 // @ts-ignore JSX modules without TS typings
@@ -89,7 +89,7 @@ function App() {
         <ScrollToTop />
         <ToastNotification />
         <CartDrawer />
-        <HelpChatWidget />
+        <AssistantChat />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* ── Buyer / Storefront ── */}

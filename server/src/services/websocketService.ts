@@ -5,6 +5,7 @@ import { AuthTokenPayload } from '../utils/generateToken';
 import { MessageThread, Message } from '../models/MessageThread';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
+import { getAllowedCorsOrigins } from '../config/publicEnv';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -24,11 +25,7 @@ class WebSocketService {
   private connectedUsers: Map<string, SocketUser> = new Map(); // userId -> SocketUser
 
   initialize(httpServer: HttpServer) {
-    const defaultWsOrigins = 'http://localhost:5173,https://www.reaglex.com,https://reaglex.vercel.app';
-    const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || defaultWsOrigins)
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean);
+    const allowedOrigins = getAllowedCorsOrigins();
     this.io = new SocketIOServer(httpServer, {
       cors: {
         origin: (origin, cb) => {

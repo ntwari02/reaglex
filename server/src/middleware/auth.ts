@@ -74,4 +74,53 @@ export function authorize(...allowedRoles: string[]) {
   };
 }
 
+/**
+ * Attach `req.user` when a valid JWT is present; otherwise continue (guest).
+ * Invalid/expired tokens are ignored so the route can still run as guest.
+ */
+export async function optionalAuthenticate(
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction
+) {
+  const authHeader = req.headers.authorization;
+  let token: string | null = null;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else if ((req as any).cookies?.token) {
+    token = (req as any).cookies.token;
+  }
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as AuthTokenPayload & { jti?: string };
+    const user = await User.findById(decoded.id).select('accountStatus role');
+    if (!user) {
+      return next();
+    }
+    if (user.accountStatus === 'inactive' || user.accountStatus === 'banned') {
+      return next();
+    }
+
+    if ((user.role === 'admin' || user.role === 'seller') && decoded.jti) {
+      const session = await ActiveSession.findOne({ userId: decoded.id });
+      if (!session || session.tokenId !== decoded.jti) {
+        return next();
+      }
+      session.lastActiveAt = new Date();
+      await session.save();
+    }
+
+    req.user = decoded;
+  } catch {
+    // treat as guest
+  }
+
+  next();
+}
+
 

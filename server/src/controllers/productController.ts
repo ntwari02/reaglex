@@ -8,15 +8,14 @@ function normalizeMediaUrl(maybeUrl: unknown): unknown {
   const s = maybeUrl.trim();
   if (!s) return s;
 
-  // If the DB stored absolute server URLs (localhost or production), convert to relative path.
-  // Frontend resolves these using SERVER_URL from env.
-  const serverUrl = process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || '';
+  // If the DB stored absolute server URLs (localhost or current API host), convert to relative path.
+  // Frontend resolves these using VITE_SERVER_URL.
+  const serverUrl = (process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
   const localhostOrigins = ['http://localhost:5000', 'https://localhost:5000', 'http://127.0.0.1:5000', 'https://127.0.0.1:5000'];
   for (const origin of localhostOrigins) {
     if (s.startsWith(origin)) return s.slice(origin.length) || '/';
   }
   if (serverUrl && s.startsWith(serverUrl)) return s.slice(serverUrl.length) || '/';
-  if (s.startsWith('https://reaglex.onrender.com')) return s.replace(/^https:\/\/reaglex\.onrender\.com/, '') || '/';
 
   return maybeUrl;
 }

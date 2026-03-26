@@ -13,6 +13,7 @@ import {
 import { User } from '../models/User';
 import { Product } from '../models/Product';
 import { Order } from '../models/Order';
+import { getClientUrl } from '../config/publicEnv';
 
 // Default commission rates by category
 const DEFAULT_COMMISSION_RATES: { [key: string]: number } = {
@@ -160,7 +161,7 @@ export async function generateAffiliateLink(req: AuthenticatedRequest, res: Resp
     }
 
     // Generate URL
-    const baseUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'https://www.reaglex.com' : 'http://localhost:5173');
+    const baseUrl = (process.env.FRONTEND_URL || '').trim() || getClientUrl();
     const params = new URLSearchParams({
       ref: affiliate.affiliateCode,
       ...(productId && { product: productId }),
@@ -712,7 +713,7 @@ export async function recordConversion(req: AuthenticatedRequest, res: Response)
 
     // If no specific link found, create a general one
     if (!link) {
-      const baseUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? 'https://www.reaglex.com' : 'http://localhost:5173');
+      const baseUrl = (process.env.FRONTEND_URL || '').trim() || getClientUrl();
       const url = `${baseUrl}/products?ref=${affiliate.affiliateCode}`;
       link = await AffiliateLink.findOneAndUpdate(
         { affiliateId: affiliate._id, productId: null },

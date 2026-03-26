@@ -1,5 +1,12 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load server/.env whether this file runs from src (ts-node) or dist/src/seo (node)
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
 import express, { Request, Response } from 'express';
 import axios from 'axios';
+import { getServerUrl } from '../config/publicEnv';
 
 /**
  * SEO SSR server (SEO-only renderer).
@@ -14,12 +21,11 @@ import axios from 'axios';
 const SEO_SSR_PORT = Number(process.env.SEO_SSR_PORT || process.env.PORT || 5001);
 
 // Origin of your existing API server (the one serving `/api/products/...`)
-const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
-const API_ORIGIN = process.env.API_ORIGIN || (isProd ? 'https://reaglex.onrender.com' : 'http://localhost:5000');
+const API_ORIGIN = (process.env.API_ORIGIN || '').trim() || getServerUrl();
 const API_BASE = `${API_ORIGIN.replace(/\/$/, '')}/api`;
 
 // Where images are served from (defaults to same origin as API server)
-const MEDIA_ORIGIN = process.env.MEDIA_ORIGIN || API_ORIGIN;
+const MEDIA_ORIGIN = (process.env.MEDIA_ORIGIN || '').trim() || API_ORIGIN;
 
 // If set, use this domain for canonical URLs in HTML.
 // Otherwise we infer it from request headers (x-forwarded-host/proto).
