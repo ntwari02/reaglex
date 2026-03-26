@@ -47,9 +47,8 @@ export function VerifyEmail() {
         navigate('/auth?tab=login&verifyEmail=1', { replace: true });
       } catch (e: any) {
         if (cancelled) return;
-        showToast(e.message || 'Verification link is invalid or expired.', 'error');
         const params = new URLSearchParams();
-        params.set('email', emailFromUrl);
+        if (emailFromUrl) params.set('email', emailFromUrl);
         params.set('source', 'google');
         navigate(`/verify-email-pending?${params.toString()}`, { replace: true });
       }

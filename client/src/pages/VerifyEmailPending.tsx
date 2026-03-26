@@ -25,9 +25,7 @@ export function VerifyEmailPending() {
     setResendLoading(true);
     try {
       await authAPI.resendVerificationEmail(email, source || undefined);
-      if (isAuto) {
-        showToast('Verification link sent. Check your inbox.', 'success');
-      } else {
+      if (!isAuto) {
         showToast('New link sent — check your inbox', 'success');
       }
       setCooldown(60);

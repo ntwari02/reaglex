@@ -1243,13 +1243,19 @@ export async function verifyEmail(req: Request, res: Response) {
     if (!token) {
       return res.status(400).json({ message: 'Invalid verification link.' });
     }
-    const filter: any = {
+
+    const baseFilter: any = {
       emailVerificationToken: token,
       emailVerificationExpires: { $gt: new Date() },
     };
-    if (email) filter.email = email;
-    const user = await User.findOne(filter).select('+emailVerificationToken +emailVerificationExpires');
+
+    // Match by token first, then enforce case-insensitive email match if provided.
+    // This avoids false negatives from email casing differences in links.
+    const user = await User.findOne(baseFilter).select('+emailVerificationToken +emailVerificationExpires');
     if (!user) {
+      return res.status(400).json({ message: 'Verification link is invalid or expired. Request a new one.' });
+    }
+    if (email && user.email.toLowerCase() !== email) {
       return res.status(400).json({ message: 'Verification link is invalid or expired. Request a new one.' });
     }
     user.emailVerified = true;
