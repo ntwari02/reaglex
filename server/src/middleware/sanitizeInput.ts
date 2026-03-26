@@ -33,9 +33,19 @@ function sanitizeValue(value: unknown): unknown {
 
 export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
   try {
-    if (req.body) req.body = sanitizeValue(req.body) as Request['body'];
-    if (req.query) req.query = sanitizeValue(req.query) as Request['query'];
-    if (req.params) req.params = sanitizeValue(req.params) as Request['params'];
+    // Body is safe to normalize and reassign after JSON parsing.
+    if (req.body) {
+      req.body = sanitizeValue(req.body) as Request['body'];
+    }
+
+    // For query/params, validate recursively but avoid direct reassignment:
+    // some Express internals expose these as special objects/getters.
+    if (req.query) {
+      sanitizeValue(req.query);
+    }
+    if (req.params) {
+      sanitizeValue(req.params);
+    }
     next();
   } catch {
     res.status(400).json({ message: 'Invalid input payload.' });

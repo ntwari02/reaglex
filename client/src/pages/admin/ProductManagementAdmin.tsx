@@ -55,6 +55,8 @@ interface Product {
   sales: number;
   rating: number;
   hasDiscount: boolean;
+  description?: string;
+  images?: string[];
 }
 
 function mapApiProductToProduct(p: any): Product {
@@ -89,7 +91,9 @@ export default function ProductManagementAdmin() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [viewProductData, setViewProductData] = useState<any | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
   const [activeView, setActiveView] = useState<'list' | 'analytics' | 'moderation' | 'logs'>('list');
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<Record<string, 'top' | 'bottom'>>({});
@@ -518,8 +522,16 @@ export default function ProductManagementAdmin() {
   };
 
   const handleViewProduct = (product: Product) => {
-    // TODO: Navigate to product detail page or open modal
-    showToast(`Viewing product: ${product.name} (SKU: ${product.sku}, Price: $${product.price})`, 'info');
+    setViewLoading(true);
+    adminProductsAPI
+      .getProduct(product.id)
+      .then(({ product: full }) => {
+        setViewProductData(full || product);
+      })
+      .catch((e) => {
+        showToast(e instanceof Error ? e.message : 'Failed to load product details', 'error');
+      })
+      .finally(() => setViewLoading(false));
   };
 
   const handleDuplicateProduct = (product: Product) => {
@@ -1052,8 +1064,13 @@ export default function ProductManagementAdmin() {
                               </button>
                               <button
                                 onClick={() => {
-                                  setSelectedProduct(product);
-                                  setShowAddProduct(true);
+                                  adminProductsAPI
+                                    .getProduct(product.id)
+                                    .then(({ product: full }) => {
+                                      setSelectedProduct(full || product);
+                                      setShowAddProduct(true);
+                                    })
+                                    .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to load product', 'error'));
                                   setOpenDropdownId(null);
                                 }}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
@@ -1160,6 +1177,79 @@ export default function ProductManagementAdmin() {
             loadDashboard();
           }}
         />
+      )}
+
+      {viewLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-lg dark:bg-gray-900 dark:text-gray-200">
+            Loading product...
+          </div>
+        </div>
+      )}
+
+      {/* View Product Modal */}
+      {viewProductData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Product Details</h3>
+              <button
+                onClick={() => setViewProductData(null)}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+            <div className="grid gap-4 p-5 sm:grid-cols-2">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Name</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{viewProductData.name || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">SKU</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{viewProductData.sku || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Category</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200">{viewProductData.category || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Seller</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200">{viewProductData.sellerName || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Price</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200">${Number(viewProductData.price || 0).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Stock</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200">{viewProductData.stock ?? 0}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Description</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200">{viewProductData.description || 'No description provided.'}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-5 py-4 dark:border-gray-800">
+              <button
+                onClick={() => {
+                  setViewProductData(null);
+                  setSelectedProduct(viewProductData);
+                  setShowAddProduct(true);
+                }}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => window.open(`/products/${viewProductData.id || viewProductData._id}`, '_blank')}
+                className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Preview
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Confirm Dialog */}

@@ -374,7 +374,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
               }}
             >
               <div
-                className="auth-mobile-app-card w-full max-w-md mx-auto rounded-[24px] lg:rounded-[16px_0_0_16px] px-4 sm:px-7 py-5 sm:py-7 shadow-xl overflow-hidden"
+                className="auth-mobile-app-card w-full max-w-[460px] sm:max-w-md mx-auto rounded-[24px] lg:rounded-[16px_0_0_16px] px-6 sm:px-7 py-6 sm:py-7 shadow-xl overflow-hidden"
                 style={{
                   background: isDark ? '#111420' : '#ffffff',
                   boxShadow: isDark
@@ -384,7 +384,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
               >
                 <div className="auth-mobile-app-glow auth-mobile-app-glow--orange" />
                 <div className="auth-mobile-app-glow auth-mobile-app-glow--violet" />
-                <div className="relative z-10 flex items-center justify-between mb-3 px-1">
+                <div className="relative z-10 flex items-center justify-between mb-3 px-1 sm:px-2">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -394,7 +394,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                     Reaglex Secure
                   </p>
                 </div>
-                <div className="relative z-10">
+                <div className="relative z-10 px-1.5 sm:px-2">
                 {/* Seller / buyer toggle */}
                 <div className="flex items-center justify-between mb-5 sm:mb-6">
                   <div>

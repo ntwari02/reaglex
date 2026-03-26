@@ -85,7 +85,7 @@ function PremiumInput({
   const isLarge = size === 'large';
   return (
     <div className={isLarge ? 'mb-0' : 'mb-2'}>
-      <label className={`block font-bold uppercase tracking-wider ${isLarge ? 'text-[12px] mb-1.5' : 'text-[11px] mb-1'}`} style={{ color: 'var(--text-primary)', letterSpacing: '0.6px' }}>
+      <label className={`block font-bold uppercase tracking-wider ${isLarge ? 'text-[12px] mb-2' : 'text-[11px] mb-1.5'}`} style={{ color: 'var(--text-primary)', letterSpacing: '0.6px' }}>
         {label}{required ? ' *' : ''}
       </label>
       <div className="relative">
@@ -218,7 +218,7 @@ function LoginFormContent({
         </motion.div>
       )}
 
-      <div className="mb-4">
+      <div className="mb-5">
         <PremiumInput
           size="large"
           label="Email or Phone"
@@ -235,7 +235,7 @@ function LoginFormContent({
           autoFocus
         />
       </div>
-      <div className="mb-5">
+      <div className="mb-6">
         <PremiumInput
           size="large"
           label="Password"
@@ -256,7 +256,7 @@ function LoginFormContent({
         />
       </div>
 
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-6">
         <label className="flex items-center gap-2 cursor-pointer">
           <button
             type="button"
@@ -298,7 +298,7 @@ function LoginFormContent({
         {loading && !success && 'Signing in...'}
       </motion.button>
 
-      <div className="flex items-center gap-3 my-5">
+      <div className="flex items-center gap-3 my-6">
         <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, var(--divider))' }} />
         <span className="text-[12px]" style={{ color: 'var(--text-faint)' }}>Or continue with</span>
         <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, var(--divider))' }} />
@@ -314,7 +314,7 @@ function LoginFormContent({
         Google
       </button>
 
-      <p className="text-center text-[13px] mt-5" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-center text-[13px] mt-6" style={{ color: 'var(--text-muted)' }}>
         Don&apos;t have an account? <Link to="/auth?tab=signup" className="font-bold hover:underline" style={{ color: PRIMARY }}>Create one free →</Link>
       </p>
     </motion.form>
@@ -385,10 +385,10 @@ function SignupFormContent({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-6"
     >
       <h2 className="text-[20px] font-extrabold" style={{ color: 'var(--text-primary)' }}>Create account 🚀</h2>
-      <p className="text-[13px] -mt-3" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers</p>
+      <p className="text-[13px] -mt-4 mb-1" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers</p>
 
       {error && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px]" style={{ background: 'rgba(239,68,68,0.10)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.30)', color: '#f87171' }}>
@@ -968,12 +968,12 @@ export default function AuthPage() {
               setCardTilt({ x: Number(rx.toFixed(2)), y: Number(ry.toFixed(2)) });
             }}
             onMouseLeave={() => setCardTilt({ x: 0, y: 0 })}
-            className="auth-mobile-app-card w-full max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
+            className="auth-mobile-app-card w-full max-w-[460px] sm:max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
             style={{ background: cardBg, boxShadow: cardShadow, transform: cardTiltTransform }}
           >
             <div className="auth-mobile-app-glow auth-mobile-app-glow--orange" />
             <div className="auth-mobile-app-glow auth-mobile-app-glow--violet" />
-            <div className="relative z-10 flex items-center justify-between mb-3 px-1">
+            <div className="relative z-10 flex items-center justify-between mb-3 px-1 sm:px-2">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -991,6 +991,7 @@ export default function AuthPage() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -14 }}
                   transition={{ duration: 0.25 }}
+                  className="px-1 sm:px-2"
                 >
                   {/* Tab switcher: Sign In | Register with sliding pill */}
                   <div className="flex items-center justify-between mb-5">
@@ -1028,12 +1029,12 @@ export default function AuthPage() {
 
                   <AnimatePresence mode="wait">
                     {validTab === 'forgot' && (
-                      <motion.div key="forgot" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                      <motion.div key="forgot" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="pt-1">
                         <ForgotFormContent onSent={(email) => { goToReset(email).catch(() => undefined); }} />
                       </motion.div>
                     )}
                     {validTab === 'login' && (
-                      <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                      <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="pt-1">
                         <LoginFormContent
                           role="buyer"
                           onRequireEmailVerification={async (email) => {
@@ -1043,7 +1044,7 @@ export default function AuthPage() {
                       </motion.div>
                     )}
                     {validTab === 'signup' && (
-                      <motion.div key="signup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                      <motion.div key="signup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="pt-1">
                         <SignupFormContent
                           onRegistered={async (email) => {
                             // After successful register, immediately send OTP and swap panel
