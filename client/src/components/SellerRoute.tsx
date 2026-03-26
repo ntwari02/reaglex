@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSellerAccess } from '../hooks/useSellerAccess';
+import { useAuthStore } from '../stores/authStore';
 
 type SellerRouteProps = {
   children: ReactNode;
@@ -110,6 +111,7 @@ function SellerAccessDenied() {
 
 export default function SellerRoute({ children }: SellerRouteProps) {
   const location = useLocation();
+  const user = useAuthStore((s) => s.user);
   const { isLoggedIn, isSeller } = useSellerAccess();
 
   if (!isLoggedIn) {
@@ -117,6 +119,16 @@ export default function SellerRoute({ children }: SellerRouteProps) {
       <Navigate
         to="/become-seller"
         state={{ reason: 'login_required', intended: location.pathname }}
+        replace
+      />
+    );
+  }
+
+  // Keep seller area secure: require verified email before entering seller routes.
+  if (user && user.email_verified !== true) {
+    return (
+      <Navigate
+        to={`/verify-email-pending?email=${encodeURIComponent(user.email)}`}
         replace
       />
     );

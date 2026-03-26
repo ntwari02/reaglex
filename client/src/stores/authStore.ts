@@ -50,7 +50,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUserAndToken: (user, token) => {
     localStorage.setItem('auth_token', token);
     localStorage.setItem('user', JSON.stringify(user));
-    set({ user, loading: false });
+    // Ensure route guards consider the user ready immediately.
+    set({ user, loading: false, initialized: true });
   },
 
   signOut: async (reason) => {
@@ -174,6 +175,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initialize: async () => {
     try {
+      const initToken = localStorage.getItem('auth_token');
+      const isStale = () => localStorage.getItem('auth_token') !== initToken;
+
       // Check for stored user from MongoDB backend
       const userStr = localStorage.getItem('user');
       if (userStr) {
@@ -202,11 +206,20 @@ export const useAuthStore = create<AuthState>((set) => ({
                 updated_at: data.user.updatedAt || new Date().toISOString(),
               };
               // Update localStorage with fresh data
+              // If another flow updated the token while we were fetching, don't overwrite.
+              if (isStale()) {
+                set({ loading: false, initialized: true });
+                return;
+              }
               localStorage.setItem('user', JSON.stringify(userProfile));
               set({ user: userProfile, loading: false, initialized: true });
               return;
             } catch (e: any) {
               // Token invalid, auth error, or account deactivated - clear storage
+              if (isStale()) {
+                set({ loading: false, initialized: true });
+                return;
+              }
               if (
                 e?.status === 401 ||
                 e?.status === 403 ||
@@ -226,10 +239,18 @@ export const useAuthStore = create<AuthState>((set) => ({
               return;
             }
           } else {
+            if (isStale()) {
+              set({ loading: false, initialized: true });
+              return;
+            }
             set({ user, loading: false, initialized: true });
             return;
           }
         } catch (e) {
+          if (isStale()) {
+            set({ loading: false, initialized: true });
+            return;
+          }
           localStorage.removeItem('user');
           localStorage.removeItem('auth_token');
         }
@@ -240,6 +261,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (demoUserStr) {
         try {
           const demoUser = JSON.parse(demoUserStr);
+          if (isStale()) {
+            set({ loading: false, initialized: true });
+            return;
+          }
           set({ user: demoUser, loading: false, initialized: true });
           return;
         } catch (e) {
@@ -248,8 +273,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       // No user found, set to null
+      if (isStale()) {
+        // Token/user changed since initialize started; don't wipe the verified user.
+        set({ loading: false, initialized: true });
+        return;
+      }
       set({ user: null, loading: false, initialized: true });
     } catch (error) {
+      // If token changed while we were initializing, avoid overriding the latest auth state.
+      if (isStale()) {
+        set({ loading: false, initialized: true });
+        return;
+      }
       console.error('Error initializing auth:', error);
       set({ user: null, loading: false, initialized: true });
     }

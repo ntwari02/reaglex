@@ -75,6 +75,15 @@ export default function AdminRoute({ children }: AdminRouteProps) {
     );
   }
 
+  if (user.email_verified !== true) {
+    return (
+      <Navigate
+        to={`/verify-email-pending?email=${encodeURIComponent(user.email)}`}
+        replace
+      />
+    );
+  }
+
   if (!isAdmin) {
     return <AdminAccessDenied />;
   }

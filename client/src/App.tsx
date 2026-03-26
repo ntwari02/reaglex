@@ -75,7 +75,7 @@ function DashboardRedirect() {
   }
   if (user.role === 'seller') return <Navigate to="/seller" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
-  return <Navigate to="/" replace />;
+  return <Navigate to="/account" replace />;
 }
 
 function HomeRouteGuard() {
@@ -90,6 +90,20 @@ function HomeRouteGuard() {
     );
   }
   return <BuyerHome />;
+}
+
+function AccountRouteGuard() {
+  const { user, loading, initialized } = useAuthStore();
+  if (!initialized || loading) return <PageLoader />;
+  if (user && user.email_verified !== true) {
+    return (
+      <Navigate
+        to={`/verify-email-pending?email=${encodeURIComponent(user.email)}`}
+        replace
+      />
+    );
+  }
+  return <BuyerDashboard />;
 }
 
 const PageLoader = () => (
@@ -123,7 +137,7 @@ function App() {
             <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
             <Route path="/track/:orderId"              element={<OrderTracking />} />
             <Route path="/track"                       element={<OrderTracking />} />
-            <Route path="/account"                     element={<BuyerDashboard />} />
+            <Route path="/account"                     element={<AccountRouteGuard />} />
             <Route path="/notifications"               element={<BuyerNotifications />} />
             <Route path="/returns"                     element={<Returns />} />
             <Route path="/messages"                    element={<Messages />} />

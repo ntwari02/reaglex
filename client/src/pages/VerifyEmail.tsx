@@ -40,7 +40,7 @@ export function VerifyEmail() {
           showToast('Email verified successfully.', 'success');
           if (result.user.role === 'seller') navigate('/seller', { replace: true });
           else if (result.user.role === 'admin') navigate('/admin', { replace: true });
-          else navigate('/', { replace: true });
+          else navigate('/account', { replace: true });
           return;
         }
         showToast(result.message || 'Email verified. Please sign in.', 'success');
@@ -49,7 +49,6 @@ export function VerifyEmail() {
         if (cancelled) return;
         const params = new URLSearchParams();
         if (emailFromUrl) params.set('email', emailFromUrl);
-        params.set('source', 'google');
         navigate(`/verify-email-pending?${params.toString()}`, { replace: true });
       }
     };

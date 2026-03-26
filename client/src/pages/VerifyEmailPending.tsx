@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Loader2, ArrowRight, RefreshCw, Sparkles } from 'lucide-react';
 import { useToastStore } from '../stores/toastStore';
+import { useAuthStore } from '../stores/authStore';
 import { authAPI } from '../lib/api';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
 import { useTheme } from '../contexts/ThemeContext';
@@ -17,6 +18,8 @@ export function VerifyEmailPending() {
   const [resendLoading, setResendLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const autoSentRef = useRef(false);
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
 
   const email = emailFromUrl;
   const handleResend = async (isAuto = false) => {
@@ -45,15 +48,26 @@ export function VerifyEmailPending() {
   }, [cooldown]);
 
   useEffect(() => {
+    // If the user is already verified (e.g., they clicked the link in another tab),
+    // immediately redirect to the right dashboard to avoid "re-gaining" this page.
+    if (user?.email_verified === true) {
+      if (user.role === 'seller') navigate('/seller', { replace: true });
+      else if (user.role === 'admin') navigate('/admin', { replace: true });
+      else navigate('/account', { replace: true });
+    }
+  }, [user?.email_verified, user?.role, navigate]);
+
+  useEffect(() => {
     // For Google signup path, automatically send verification link on arrival.
     if (source !== 'google') return;
     if (alreadySent) return;
     if (!email) return;
+    if (user?.email_verified === true) return;
     if (autoSentRef.current) return;
     autoSentRef.current = true;
     handleResend(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, email, alreadySent]);
+  }, [source, email, alreadySent, user?.email_verified]);
 
   const openInbox = () => {
     window.open('https://mail.google.com/mail/u/0/#search/in%3Ainbox', '_blank', 'noopener,noreferrer');
