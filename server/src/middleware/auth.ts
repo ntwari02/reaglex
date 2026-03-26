@@ -5,6 +5,10 @@ import { User } from '../models/User';
 import { ActiveSession } from '../models/ActiveSession';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+// Updating `ActiveSession.lastActiveAt` performs a DB write.
+// Throttle this to reduce latency under load.
+const SESSION_TOUCH_MIN_MS =
+  Number(process.env.SESSION_TOUCH_MIN_MS) || 5 * 60 * 1000; // 5 minutes
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthTokenPayload;
@@ -49,8 +53,11 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
           code: 'SESSION_REPLACED',
         });
       }
-      session.lastActiveAt = new Date();
-      await session.save();
+      const lastActiveAtMs = session.lastActiveAt?.getTime?.() || 0;
+      if (Date.now() - lastActiveAtMs > SESSION_TOUCH_MIN_MS) {
+        session.lastActiveAt = new Date();
+        await session.save();
+      }
     }
     
     req.user = decoded;
@@ -111,8 +118,11 @@ export async function optionalAuthenticate(
       if (!session || session.tokenId !== decoded.jti) {
         return next();
       }
-      session.lastActiveAt = new Date();
-      await session.save();
+      const lastActiveAtMs = session.lastActiveAt?.getTime?.() || 0;
+      if (Date.now() - lastActiveAtMs > SESSION_TOUCH_MIN_MS) {
+        session.lastActiveAt = new Date();
+        await session.save();
+      }
     }
 
     req.user = decoded;

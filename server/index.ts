@@ -97,6 +97,25 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
+
+// Basic request timing to quickly spot backend bottlenecks.
+// If a request takes longer than 2s, we log method/route/status/duration.
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    if (ms > 2000) {
+      const userId = (req as any).user?.id;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[slow] ${req.method} ${req.originalUrl} -> ${res.statusCode} ${ms.toFixed(0)}ms${
+          userId ? ` (user:${userId})` : ''
+        }`,
+      );
+    }
+  });
+  next();
+});
 app.use(helmet());
 app.use(compression());
 // Static files for uploaded images and audio
@@ -229,14 +248,15 @@ const connectDB = async () => {
     }
 
     const options: mongoose.ConnectOptions = {
-      serverSelectionTimeoutMS: 30000, // Increased from 10s to 30s for better DNS resolution
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 30000, // Connection timeout
+      // Reduce worst-case cold-start latency (better than waiting 2+ minutes).
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 20000,
+      connectTimeoutMS: 10000,
       retryWrites: true,
       retryReads: true,
       maxPoolSize: 10, // Maintain up to 10 socket connections
       minPoolSize: 2, // Maintain at least 2 socket connections
-      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+      maxIdleTimeMS: 20000, // Close connections after 20 seconds of inactivity
     };
 
     // For development: allow invalid certificates to resolve TLS handshake issues
@@ -246,7 +266,7 @@ const connectDB = async () => {
     }
 
     // Add retry logic for connection
-    let retries = 3;
+    let retries = 2;
     let lastError: any;
     
     while (retries > 0) {
@@ -257,8 +277,8 @@ const connectDB = async () => {
         lastError = err;
         retries--;
         if (retries > 0) {
-          console.log(`⚠️  MongoDB connection attempt failed. Retrying in 3 seconds... (${3 - retries} retries left)`);
-          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds before retry
+          console.log(`⚠️  MongoDB connection attempt failed. Retrying in 1 second... (${2 - retries} retries left)`);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
         }
       }
     }

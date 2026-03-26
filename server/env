@@ -1,0 +1,34 @@
+# =============================================================================
+# LOCAL DEVELOPMENT — server/.env (gitignored)
+# =============================================================================
+# For Render production, set the same keys in the host Environment with:
+#   NODE_ENV=production
+#   CLIENT_URL / SERVER_URL / GOOGLE_CALLBACK_URL / ALLOWED_ORIGINS (production values)
+# =============================================================================
+
+PORT=5000
+NODE_ENV=development
+
+CLIENT_URL=http://localhost:5173
+SERVER_URL=http://localhost:5000
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+CORS_ORIGINS=http://localhost:5173,https://reaglex.vercel.app,https://reaglex.com,https://www.reaglex.com
+# Do not set ALLOWED_ORIGINS locally unless you need extra origins — dev merges defaults + env.
+# Production (Render): ALLOWED_ORIGINS=https://www.reaglex.com,https://reaglex.vercel.app
+
+MONGO_URI=mongodb+srv://reaglex:Loading99.99@reagle-x.uh9s5rn.mongodb.net/ReaglexDB?retryWrites=true&w=majority&appName=Reagle-x
+
+JWT_SECRET=WIf9vxleqD7np1VQSoHNbwOcP6ARmyJCBXzUFZMsg30iLkK4Edhur2aj8tYTG5
+
+GOOGLE_CLIENT_ID=741760208950-lfu41h4ondb829nvsl0is0fqkd6qf671.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+
+GEMINI_API_KEY=AIzaSyAzSZx8BjT1ArSjEEMogR-OHv2rfEIR0Es
+GEMINI_MODEL=gemini-flash-latest
+
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=re_Z48GaQMi_QD43tbTvfLCQDmU5ufry9NDW
+RESEND_FROM_EMAIL=noreply@reaglex.com
+
+SMTP_USER=twizerimanajeanclaude35@gmail.com
+SMTP_PASS=xdxvgmtxgkqgxklh

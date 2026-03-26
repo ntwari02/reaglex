@@ -79,7 +79,8 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
         { name: regex },
         { description: regex },
         { sku: regex },
-        { tags: { $in: [regex] } }
+        // `tags` is an array of strings; matching the regex against any element.
+        { tags: regex }
       ];
     }
 
@@ -100,17 +101,17 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
       sortObj.createdAt = -1; // Default: newest first
     }
 
-    // Fetch products
-    const products = await Product.find(filter)
-      .sort(sortObj)
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
+    // Fetch products + total count in parallel to reduce latency.
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Product.countDocuments(filter),
+    ]);
 
     const normalizedProducts = products.map((p) => normalizeProductMedia(p));
-
-    // Get total count for pagination
-    const total = await Product.countDocuments(filter);
 
     return res.json({
       products: normalizedProducts,
@@ -139,22 +140,22 @@ export async function trackProductView(req: AuthenticatedRequest, res: Response)
       return res.status(400).json({ message: 'Invalid product ID' });
     }
 
-    // Increment view count
-    const result = await Product.updateOne(
-      { _id: productId },
-      { $inc: { views: 1 } }
-    );
+    // Increment view count and return the updated view count in one round-trip.
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      { $inc: { views: 1 } },
+      { new: true }
+    )
+      .select('views')
+      .lean();
 
-    if (result.matchedCount === 0) {
+    if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-
-    // Get updated product to return current view count
-    const product = await Product.findById(productId).select('views').lean();
     
     return res.json({ 
       success: true, 
-      views: product?.views || 0 
+      views: product.views || 0 
     });
   } catch (error: any) {
     console.error('Track product view error:', error);
@@ -173,19 +174,22 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ message: 'Invalid product ID' });
     }
 
-    const product = normalizeProductMedia(await Product.findById(productId).lean());
+    // Fetch + increment views in one round-trip.
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
+      { $inc: { views: 1 } },
+      { new: true }
+    ).lean();
+
+    const product = normalizeProductMedia(updatedProduct);
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Increment views when product is fetched
-    await Product.updateOne({ _id: productId }, { $inc: { views: 1 } });
-
     return res.json({ 
       product: {
-        ...product,
-        views: (product.views || 0) + 1, // Return incremented value
+        ...product
       }
     });
   } catch (error: any) {
