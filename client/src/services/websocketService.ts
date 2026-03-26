@@ -5,8 +5,9 @@
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import type { Message, MessageThread } from './inboxApi';
+import { SERVER_URL } from '../lib/config';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:5000';
+const WS_URL = (import.meta as any).env?.VITE_WS_URL?.trim() || SERVER_URL.replace(/^http/, 'ws');
 
 class WebSocketService {
   private socket: Socket | null = null;

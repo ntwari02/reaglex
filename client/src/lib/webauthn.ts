@@ -3,7 +3,8 @@
  * Converts server JSON options to/from the format required by navigator.credentials.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from './config';
+const API_BASE = API_BASE_URL;
 
 function base64urlToBuffer(base64url: string): ArrayBuffer {
   const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');

@@ -6,6 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToastStore } from '@/stores/toastStore';
 import * as XLSX from 'xlsx';
 import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
+import { SERVER_URL, API_BASE_URL } from '@/lib/config';
+
+const API_HOST = SERVER_URL;
+const API_BASE = `${API_BASE_URL}/seller/inventory`;
 
 type Variant = {
   color?: string;
@@ -88,14 +92,11 @@ const ProductManagement: React.FC = () => {
     stock: '',
   });
 
-  const API_HOST = 'http://localhost:5000';
-  const API_BASE = `${API_HOST}/api/seller/inventory`;
-
   const resolveImageUrl = (url: string): string => {
     if (!url) return url;
     return url.startsWith('http://') || url.startsWith('https://')
       ? url
-      : `${API_HOST}${url}`;
+      : `${API_HOST}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
   const getAuthHeaders = () => {

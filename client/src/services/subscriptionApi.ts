@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:5000/api/seller/subscription';
+import { API_BASE_URL } from '../lib/config';
+
+const API_BASE = `${API_BASE_URL}/seller/subscription`;
 
 /**
  * Get authentication headers

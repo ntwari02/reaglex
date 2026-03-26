@@ -12,6 +12,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { updateCollection } from '@/lib/collections';
+import { API_BASE_URL, resolveAssetUrl } from '@/lib/config';
+
+const SELLER_COLLECTIONS_API = `${API_BASE_URL}/seller/collections`;
+const SELLER_INVENTORY_API = `${API_BASE_URL}/seller/inventory`;
 
 export default function CollectionManagement() {
   const { toast } = useToast();
@@ -72,7 +76,7 @@ export default function CollectionManagement() {
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch('http://localhost:5000/api/seller/collections', {
+      const res = await fetch(SELLER_COLLECTIONS_API, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -139,7 +143,7 @@ export default function CollectionManagement() {
       onConfirm: async () => {
         try {
           const token = localStorage.getItem('auth_token');
-          const res = await fetch(`http://localhost:5000/api/seller/collections/${id}`, {
+          const res = await fetch(`${SELLER_COLLECTIONS_API}/${id}`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
@@ -259,7 +263,7 @@ export default function CollectionManagement() {
       // Check for existing slug using backend API
       while (true) {
         const token = localStorage.getItem('auth_token');
-        const res = await fetch(`http://localhost:5000/api/seller/collections?slug=${newSlug}`, {
+        const res = await fetch(`${SELLER_COLLECTIONS_API}?slug=${newSlug}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -305,7 +309,7 @@ export default function CollectionManagement() {
         placement_priority: (collection as any).placement_priority || 0,
       };
 
-      const res = await fetch('http://localhost:5000/api/seller/collections', {
+      const res = await fetch(SELLER_COLLECTIONS_API, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -330,7 +334,7 @@ export default function CollectionManagement() {
           
           // Add products to the new collection one by one
           for (const productId of productIds) {
-            const addRes = await fetch(`http://localhost:5000/api/seller/collections/${createdCollection._id || createdCollection.id}/products`, {
+            const addRes = await fetch(`${SELLER_COLLECTIONS_API}/${createdCollection._id || createdCollection.id}/products`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -379,7 +383,7 @@ export default function CollectionManagement() {
                 const token = localStorage.getItem('auth_token');
                 await Promise.all(
                   selectedCollections.map((id) =>
-                    fetch(`http://localhost:5000/api/seller/collections/${id}`, {
+                    fetch(`${SELLER_COLLECTIONS_API}/${id}`, {
                       method: 'DELETE',
                       headers: {
                         'Content-Type': 'application/json',
@@ -410,7 +414,7 @@ export default function CollectionManagement() {
           const token = localStorage.getItem('auth_token');
           await Promise.all(
             selectedCollections.map((id) =>
-              fetch(`http://localhost:5000/api/seller/collections/${id}`, {
+              fetch(`${SELLER_COLLECTIONS_API}/${id}`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
@@ -432,7 +436,7 @@ export default function CollectionManagement() {
           const token = localStorage.getItem('auth_token');
           const results = await Promise.allSettled(
             selectedCollections.map((id) =>
-              fetch(`http://localhost:5000/api/seller/collections/${id}`, {
+              fetch(`${SELLER_COLLECTIONS_API}/${id}`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
@@ -473,7 +477,7 @@ export default function CollectionManagement() {
           const token = localStorage.getItem('auth_token');
           await Promise.all(
             selectedCollections.map((id) =>
-              fetch(`http://localhost:5000/api/seller/collections/${id}`, {
+              fetch(`${SELLER_COLLECTIONS_API}/${id}`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1280,7 +1284,7 @@ function CollectionFormModal({
     setLoadingProducts(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch('http://localhost:5000/api/seller/inventory/products', {
+      const res = await fetch(`${SELLER_INVENTORY_API}/products`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -1318,7 +1322,7 @@ function CollectionFormModal({
     if (!collection) return;
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch(`http://localhost:5000/api/seller/collections/${collection.id}/products`, {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/${collection.id}/products`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -1400,7 +1404,7 @@ function CollectionFormModal({
 
       console.log('Uploading image:', { type, fileName: file.name, fileSize: file.size });
 
-      const res = await fetch('http://localhost:5000/api/seller/collections/upload-images', {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/upload-images`, {
         method: 'POST',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -1422,9 +1426,9 @@ function CollectionFormModal({
       console.log('Upload success response:', data);
       
       if (type === 'cover' && data.cover_image_url) {
-        setFormData(prev => ({ ...prev, cover_image_url: `http://localhost:5000${data.cover_image_url}` }));
+        setFormData(prev => ({ ...prev, cover_image_url: resolveAssetUrl(data.cover_image_url) }));
       } else if (type === 'thumbnail' && data.thumbnail_image_url) {
-        setFormData(prev => ({ ...prev, image_url: `http://localhost:5000${data.thumbnail_image_url}` }));
+        setFormData(prev => ({ ...prev, image_url: resolveAssetUrl(data.thumbnail_image_url) }));
       }
 
       // Reset file input so same file can be selected again if needed
@@ -1522,8 +1526,8 @@ function CollectionFormModal({
       }
 
       const url = collection
-        ? `http://localhost:5000/api/seller/collections/${collection.id}`
-        : 'http://localhost:5000/api/seller/collections';
+        ? `${SELLER_COLLECTIONS_API}/${collection.id}`
+        : SELLER_COLLECTIONS_API;
       const method = collection ? 'PATCH' : 'POST';
 
       const res = await fetch(url, {
@@ -1608,7 +1612,7 @@ function CollectionFormModal({
     setPreviewLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch('http://localhost:5000/api/seller/collections/preview', {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1702,7 +1706,7 @@ function CollectionFormModal({
       const token = localStorage.getItem('auth_token');
       
       // Use preview endpoint (works for both new and existing collections)
-      const res = await fetch('http://localhost:5000/api/seller/collections/preview', {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2888,7 +2892,7 @@ function CollectionProductsModal({
     // Get user from auth store or API
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch('http://localhost:5000/api/auth/me', {
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -2913,7 +2917,7 @@ function CollectionProductsModal({
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch(`http://localhost:5000/api/seller/collections/${collection.id}/products`, {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/${collection.id}/products`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -2960,7 +2964,7 @@ function CollectionProductsModal({
   const loadAllProducts = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch('http://localhost:5000/api/seller/inventory/products', {
+      const res = await fetch(`${SELLER_INVENTORY_API}/products`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -3014,7 +3018,7 @@ function CollectionProductsModal({
 
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch(`http://localhost:5000/api/seller/collections/${collection.id}/products`, {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/${collection.id}/products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3056,7 +3060,7 @@ function CollectionProductsModal({
 
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch(`http://localhost:5000/api/seller/collections/${collection.id}/products/${productId}`, {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/${collection.id}/products/${productId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -3128,7 +3132,7 @@ function CollectionProductsModal({
     try {
       const token = localStorage.getItem('auth_token');
       const productIds = newProducts.map(p => p.id);
-      const res = await fetch(`http://localhost:5000/api/seller/collections/${collection.id}/products/reorder`, {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/${collection.id}/products/reorder`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -3494,7 +3498,7 @@ function CollectionPreviewModal({
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch(`http://localhost:5000/api/seller/collections/${collection.id}/products`, {
+      const res = await fetch(`${SELLER_COLLECTIONS_API}/${collection.id}/products`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

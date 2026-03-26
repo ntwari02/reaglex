@@ -1,4 +1,5 @@
 import flw from '../config/flutterwave';
+import { getClientUrl } from '../config/publicEnv';
 import { Order } from '../models/Order';
 import { EscrowWallet } from '../models/EscrowWallet';
 import { TransactionLog } from '../models/TransactionLog';
@@ -44,13 +45,18 @@ export async function initializePayment(orderId: string, buyer: InitializePaymen
     throw new Error('Order not found');
   }
 
+  const siteBase = getClientUrl();
+  if (!siteBase) {
+    throw new Error('CLIENT_URL is not set; cannot build payment redirect URL');
+  }
+
   const txRef = `REAGLEX-${order._id}-${Date.now()}`;
 
   const payload: any = {
     tx_ref: txRef,
     amount: order.total,
     currency: order.paymentMethod === 'RWF' ? 'RWF' : 'USD',
-    redirect_url: `${process.env.APP_URL}/payment/verify`,
+    redirect_url: `${siteBase}/payment/verify`,
     customer: {
       email: buyer.email,
       phonenumber: buyer.phone,
@@ -59,7 +65,7 @@ export async function initializePayment(orderId: string, buyer: InitializePaymen
     customizations: {
       title: 'Reaglex Payment',
       description: `Order ${order._id}`,
-      logo: 'https://reaglex.com/logo.png',
+      logo: `${siteBase}/logo.jpg`,
     },
     meta: {
       order_id: order._id.toString(),

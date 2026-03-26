@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ShoppingBag, Heart, Star } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 
 function extractImageSrc(src) {
   if (!src) return null;

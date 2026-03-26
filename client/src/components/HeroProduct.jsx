@@ -5,7 +5,7 @@ import { ShoppingBag, Heart, Play, Star, Plus, Minus } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import ProductInfoCard from './ProductInfoCard';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 
 function extractImageSrc(src) {
   if (!src) return null;

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Product } from '../types';
+import { API_BASE_URL } from '../lib/config';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -9,11 +10,9 @@ interface ProductDetailModalProps {
 }
 
 export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailModalProps) {
-  // Track view when modal opens
   useEffect(() => {
     if (isOpen && product?.id) {
-      // Track product view
-      fetch(`http://localhost:5000/api/products/${product.id}/view`, {
+      fetch(`${API_BASE_URL}/products/${product.id}/view`, {
         method: 'POST',
         credentials: 'include',
       }).catch((error) => {

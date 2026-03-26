@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useToastStore } from './toastStore';
+import { API_BASE_URL } from '../lib/config';
 import type { CartItem, Product, ProductVariant, Profile } from '../types';
 
 export interface SellerGroup {
@@ -246,7 +247,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     // For now, this is a placeholder that can be extended with API calls
     
     // Simple validation - in production, this should call an API endpoint
-    const API_BASE = 'http://localhost:5000/api';
+    const API_BASE = API_BASE_URL;
     try {
       const response = await fetch(`${API_BASE}/coupons/validate?code=${encodeURIComponent(code.toUpperCase())}&subtotal=${subtotal}`, {
         method: 'GET',
@@ -320,7 +321,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       if (!groups[sellerId]) {
         // Fetch seller profile from API
         try {
-          const API_BASE = 'http://localhost:5000/api';
+          const API_BASE = API_BASE_URL;
           const response = await fetch(`${API_BASE}/sellers/${sellerId}`, {
             method: 'GET',
             headers: {
@@ -403,7 +404,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       // Fetch current product data from API
       let product = null;
       try {
-        const API_BASE = 'http://localhost:5000/api';
+        const API_BASE = API_BASE_URL;
         const response = await fetch(`${API_BASE}/products/${item.product_id}`, {
           method: 'GET',
           headers: {
@@ -465,7 +466,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       // Only sync prices for logged-in user items with product_id
       let product = null;
       try {
-        const API_BASE = 'http://localhost:5000/api';
+        const API_BASE = API_BASE_URL;
         const response = await fetch(`${API_BASE}/products/${item.product_id}`, {
           method: 'GET',
           headers: {

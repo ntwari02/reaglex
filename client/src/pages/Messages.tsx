@@ -15,28 +15,14 @@ import ChatListIndicator from '../components/ChatListIndicator';
 import { useVoiceNoteAutoplay } from '../hooks/useVoiceNoteAutoplay';
 import { useGlobalChatIndicators } from '../hooks/useGlobalChatIndicators';
 import type { ChatIndicator as ChatIndicatorType } from '../hooks/useGlobalChatIndicators';
+import { resolveAssetUrl } from '../lib/config';
 
-// Get server base URL for file attachments
-const getFileUrl = (path: string): string => {
-  if (!path) return '';
-  // If path already includes http, return as is
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
-  // Otherwise, prepend server base URL
-  const serverBase = import.meta.env.VITE_SERVER_URL || import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  return `${serverBase}${path.startsWith('/') ? path : '/' + path}`;
-};
+const getFileUrl = (path: string): string => resolveAssetUrl(path) || path;
 
-// Helper to resolve avatar URL (handles both full URLs and relative paths)
 const resolveAvatarUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
-  }
-  // If it's a relative path, prepend the API host
-  const API_HOST = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  return `${API_HOST}${url.startsWith('/') ? url : '/' + url}`;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+  return resolveAssetUrl(url);
 };
 
 import {

@@ -1,6 +1,7 @@
 import type { Collection, CollectionCondition, Product } from '@/types';
 
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE_URL } from './config';
+const API_BASE = API_BASE_URL;
 
 /**
  * Collection Service - Handles all collection-related operations

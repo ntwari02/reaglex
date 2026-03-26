@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 const AUTO_SLIDE_INTERVAL = 3000; // ms
 
 function extractImageSrc(src) {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,6 +6,7 @@ import {
   Package, Tag, MessageSquare, Star, AlertCircle, Search,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
+import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
 
 const PRIMARY = '#f97316';
 const SUCCESS = '#10b981';
@@ -32,24 +33,21 @@ const TYPE_CONFIG = {
   alert: { icon: '⚠️', label: 'Alert', color: ERROR, bg: `linear-gradient(135deg,${ERROR},#dc2626)` },
 };
 
-const MOCK_NOTIFICATIONS = [
-  { id: '1', type: 'order', title: 'Order Shipped!', message: 'Your order ORD-1234 is on the way', time: '2m ago', dateGroup: 'TODAY', unread: true, orderId: 'ORD-1234', productName: 'Watch', productPrice: 4, status: 'Shipped', createdAt: Date.now() - 120000 },
-  { id: '2', type: 'deal', title: 'Flash Deal: 20% off Electronics', message: 'Today only — ends soon', time: '1h ago', dateGroup: 'TODAY', unread: true, countdownEnd: Date.now() + 2 * 3600 * 1000 + 47 * 60 * 1000 + 33 * 1000, discount: 20, productName: 'Wireless Earbuds', createdAt: Date.now() - 3600000 },
-  { id: '3', type: 'system', title: 'Welcome to Reaglex!', message: 'Complete your profile to get started', time: '2d ago', dateGroup: 'THIS WEEK', unread: false, progress: 65, createdAt: Date.now() - 2 * 86400000 },
-  { id: '4', type: 'message', title: 'New message from Premium Store', message: 'Yes, we can ship to your location...', time: '3h ago', dateGroup: 'TODAY', unread: true, storeName: 'Premium Store', createdAt: Date.now() - 3 * 3600000 },
-  { id: '5', type: 'review', title: 'How was your order?', message: 'Rate your recent purchase: Watch', time: '1d ago', dateGroup: 'YESTERDAY', unread: false, productName: 'Watch', createdAt: Date.now() - 86400000 },
-  { id: '6', type: 'order', title: 'Order Delivered', message: 'Your order ORD-1233 was delivered', time: '2d ago', dateGroup: 'THIS WEEK', unread: false, orderId: 'ORD-1233', productName: 'Phone Case', productPrice: 12, status: 'Delivered', createdAt: Date.now() - 2 * 86400000 },
-  { id: '7', type: 'deal', title: 'Weekend Sale: 15% off', message: 'Use code WEEKEND15 at checkout', time: '3d ago', dateGroup: 'LAST WEEK', unread: false, discount: 15, createdAt: Date.now() - 3 * 86400000 },
-  { id: '8', type: 'system', title: 'Profile reminder', message: 'Add your phone number for order updates', time: '1 week ago', dateGroup: 'THIS MONTH', unread: false, createdAt: Date.now() - 8 * 86400000 },
-];
+function getDateGroup(createdAt) {
+  const d = new Date(createdAt || Date.now());
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startGiven = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.floor((+startToday - +startGiven) / 86400000);
+  if (diffDays <= 0) return 'TODAY';
+  if (diffDays === 1) return 'YESTERDAY';
+  if (diffDays <= 7) return 'THIS WEEK';
+  if (diffDays <= 14) return 'LAST WEEK';
+  if (diffDays <= 31) return 'THIS MONTH';
+  return 'EARLIER';
+}
 
 const PER_PAGE = 20;
-const RECENT_ACTIVITY = [
-  { id: 'a1', text: 'You viewed ORD-1234', time: '10m ago' },
-  { id: 'a2', text: 'You saved Watch to wishlist', time: '1h ago' },
-  { id: 'a3', text: 'You left a review', time: '2h ago' },
-];
-
 function useCountdown(endMs) {
   const safeEnd = endMs && endMs > Date.now() ? endMs : null;
   const [left, setLeft] = useState(() => (safeEnd ? Math.max(0, Math.floor((safeEnd - Date.now()) / 1000)) : 0));
@@ -65,7 +63,7 @@ function useCountdown(endMs) {
 }
 
 export default function BuyerNotifications() {
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
   const [filterTab, setFilterTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -109,9 +107,39 @@ export default function BuyerNotifications() {
     messages: notifications.filter((n) => n.type === 'message').length,
   };
 
+  const recentActivity = useMemo(
+    () =>
+      [...notifications]
+        .sort((a, b) => +new Date(b.createdAt || 0) - +new Date(a.createdAt || 0))
+        .slice(0, 5)
+        .map((n) => ({
+          id: n.id,
+          text: n.title || 'Notification',
+          time: n.time || '',
+        })),
+    [notifications],
+  );
+
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
+    let mounted = true;
+    setLoading(true);
+    buyerNotificationsApi
+      .getNotifications(100)
+      .then((data) => {
+        if (!mounted) return;
+        const rows = Array.isArray(data?.notifications) ? data.notifications : [];
+        setNotifications(rows.map((n) => ({ ...n, dateGroup: getDateGroup(n.createdAt) })));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setNotifications([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -515,11 +543,15 @@ export default function BuyerNotifications() {
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.45 }} className="rounded-2xl bg-[var(--card-bg)] p-5" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               <h3 className="font-bold text-sm mb-3" style={{ color: '#0f172a' }}>Recent Activity</h3>
               <div className="space-y-2">
-                {RECENT_ACTIVITY.map((a) => (
-                  <button key={a.id} type="button" className="w-full text-left py-2 px-3 rounded-lg hover:bg-[var(--bg-secondary)] text-sm transition-colors" style={{ color: '#475569' }}>
-                    {a.text} <span className="text-xs" style={{ color: '#94a3b8' }}>{a.time}</span>
-                  </button>
-                ))}
+                {recentActivity.length === 0 ? (
+                  <p className="text-sm px-1" style={{ color: '#94a3b8' }}>No recent activity yet.</p>
+                ) : (
+                  recentActivity.map((a) => (
+                    <div key={a.id} className="w-full text-left py-2 px-3 rounded-lg text-sm" style={{ color: '#475569' }}>
+                      {a.text} <span className="text-xs" style={{ color: '#94a3b8' }}>{a.time}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </motion.div>
           </aside>

@@ -16,7 +16,7 @@ import { useBuyerCart } from '../stores/buyerCartStore';
 import { useToastStore } from '../stores/toastStore';
 import api, { paymentAPI } from '../services/api';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 const PRIMARY = '#f97316';
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -1330,9 +1330,7 @@ export default function BuyerDashboard() {
     };
   };
 
-  const uiOrders = (orders && orders.length
-    ? orders
-    : MOCK_ORDERS);
+  const uiOrders = Array.isArray(orders) ? orders : [];
 
   const mapApiAddressToUi = (addr, index, user) => {
     if (!addr) return null;

@@ -5,7 +5,7 @@ import { useToastStore } from '../stores/toastStore';
 import { Loader2, KeyRound, Shield, Mail } from 'lucide-react';
 import { authAPI } from '../lib/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from '../lib/config';
 
 export function GoogleCallback() {
   const navigate = useNavigate();

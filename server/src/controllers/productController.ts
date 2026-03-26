@@ -8,14 +8,14 @@ function normalizeMediaUrl(maybeUrl: unknown): unknown {
   const s = maybeUrl.trim();
   if (!s) return s;
 
-  // If the DB stored absolute localhost URLs from development, convert them to a relative path.
-  // This prevents the frontend from trying to load assets from `localhost:*` in production.
-  if (s.startsWith('http://localhost:5000') || s.startsWith('https://localhost:5000')) {
-    return s.replace(/^https?:\/\/localhost:5000/, '');
+  // If the DB stored absolute server URLs (localhost or current API host), convert to relative path.
+  // Frontend resolves these using VITE_SERVER_URL.
+  const serverUrl = (process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+  const localhostOrigins = ['http://localhost:5000', 'https://localhost:5000', 'http://127.0.0.1:5000', 'https://127.0.0.1:5000'];
+  for (const origin of localhostOrigins) {
+    if (s.startsWith(origin)) return s.slice(origin.length) || '/';
   }
-  if (s.startsWith('http://127.0.0.1:5000') || s.startsWith('https://127.0.0.1:5000')) {
-    return s.replace(/^https?:\/\/127\.0\.0\.1:5000/, '');
-  }
+  if (serverUrl && s.startsWith(serverUrl)) return s.slice(serverUrl.length) || '/';
 
   return maybeUrl;
 }

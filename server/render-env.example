@@ -1,0 +1,29 @@
+# Paste these as Environment Variables on Render (production). Do not commit real secrets.
+# Client (Vercel) should use client/.env.production — VITE_API_URL → this SERVER_URL + /api
+
+PORT=5000
+NODE_ENV=production
+
+CLIENT_URL=https://www.reaglex.com
+SERVER_URL=https://reaglex.onrender.com
+# Required in production when multiple browser origins hit the API (main site + Vercel)
+ALLOWED_ORIGINS=https://www.reaglex.com,https://reaglex.vercel.app
+
+GOOGLE_CALLBACK_URL=https://reaglex.onrender.com/api/auth/google/callback
+
+MONGO_URI=mongodb+srv://USER:PASS@cluster.mongodb.net/DB_NAME
+JWT_SECRET=generate_a_long_random_string
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-flash-latest
+
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=noreply@reaglex.com
+
+# Optional SMTP if not using Resend
+# SMTP_USER=
+# SMTP_PASS=

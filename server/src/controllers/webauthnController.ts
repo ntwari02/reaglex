@@ -10,10 +10,11 @@ import { User } from '../models/User';
 import { WebauthnCredential } from '../models/WebauthnCredential';
 import { generateAuthToken } from '../utils/generateToken';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { getClientUrl } from '../config/publicEnv';
 
 const rpName = process.env.WEBAUTHN_RP_NAME || 'Reaglex';
 const rpID = process.env.WEBAUTHN_RP_ID || 'localhost';
-const origin = process.env.WEBAUTHN_ORIGIN || process.env.CLIENT_URL || 'http://localhost:5173';
+const origin = (process.env.WEBAUTHN_ORIGIN || '').trim() || getClientUrl();
 
 // In-memory challenge store (use Redis in production for multi-instance). TTL 5 min.
 const registrationChallenges = new Map<string, { options: PublicKeyCredentialCreationOptionsJSON; userId: string }>();

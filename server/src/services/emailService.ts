@@ -10,12 +10,13 @@ import {
   getNotificationEmailHtml,
   getDeviceApprovalEmailHtml,
 } from '../email/templates';
+import { getClientUrl } from '../config/publicEnv';
 
 function getEnv(key: string, fallback = ''): string {
   return String(process.env[key] || fallback).trim();
 }
 
-const CLIENT_URL = getEnv('CLIENT_URL') || 'http://localhost:5173';
+const CLIENT_URL = getClientUrl();
 const APP_NAME = getEnv('APP_NAME') || 'Reaglex';
 const EMAIL_PROVIDER = getEnv('EMAIL_PROVIDER', 'smtp').toLowerCase();
 

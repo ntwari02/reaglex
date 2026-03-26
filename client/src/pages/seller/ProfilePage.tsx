@@ -11,10 +11,11 @@ import { profileAPI } from '@/lib/api';
 import imageCompression from 'browser-image-compression';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import InputDialog from '@/components/ui/InputDialog';
+import { API_BASE_URL, SERVER_URL, resolveAssetUrl } from '@/lib/config';
 
 const ProfilePage: React.FC = () => {
   const { showToast } = useToastStore();
-  const API_BASE = 'http://localhost:5000/api/seller/settings';
+  const API_BASE = `${API_BASE_URL}/seller/settings`;
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'payout' | 'notifications' | 'policies' | 'team'>('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -276,7 +277,7 @@ const ProfilePage: React.FC = () => {
       return url;
     }
     // If it's a relative path, prepend the API host
-    const API_HOST = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const API_HOST = SERVER_URL;
     return `${API_HOST}${url}`;
   };
 
@@ -310,7 +311,7 @@ const ProfilePage: React.FC = () => {
         setProfile((prev) => ({
           ...prev,
           storeName: settings.storeName || '',
-          storeLogo: settings.storeLogo ? `http://localhost:5000${settings.storeLogo}` : '',
+          storeLogo: settings.storeLogo ? resolveAssetUrl(settings.storeLogo) : '',
           sellerBio: settings.storeDescription || '',
           name: '', // This comes from user profile, not seller settings
           email: '', // This comes from user profile, not seller settings
@@ -325,7 +326,7 @@ const ProfilePage: React.FC = () => {
             saturday: '',
             sunday: '',
           },
-          storeBanner: settings.storeBanner ? `http://localhost:5000${settings.storeBanner}` : '',
+          storeBanner: settings.storeBanner ? resolveAssetUrl(settings.storeBanner) : '',
         }));
 
         // Load store contact if available
@@ -479,7 +480,7 @@ const ProfilePage: React.FC = () => {
     const fetch2FAStatus = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const response = await fetch('http://localhost:5000/api/profile/me/2fa/status', {
+        const response = await fetch(`${API_BASE_URL}/profile/me/2fa/status`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           credentials: 'include',
         });
@@ -501,7 +502,7 @@ const ProfilePage: React.FC = () => {
     const fetchLoginHistory = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const response = await fetch('http://localhost:5000/api/profile/me/login-history', {
+        const response = await fetch(`${API_BASE_URL}/profile/me/login-history`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           credentials: 'include',
         });
@@ -543,7 +544,7 @@ const ProfilePage: React.FC = () => {
           const data = await response.json();
           if (data.verificationDocuments) {
             const docs: any = {};
-            const baseUrl = 'http://localhost:5000';
+            const baseUrl = SERVER_URL;
             
             if (data.verificationDocuments.businessLicense) {
               const url = data.verificationDocuments.businessLicense.startsWith('http') 
@@ -948,7 +949,7 @@ const ProfilePage: React.FC = () => {
       // Update profile with the full URL
       setProfile(prev => ({
         ...prev,
-        [key]: `http://localhost:5000${imageUrl}`,
+        [key]: resolveAssetUrl(imageUrl),
       }));
 
       showToast(`${key === 'storeLogo' ? 'Logo' : 'Banner'} uploaded successfully`, 'success');
@@ -1008,7 +1009,7 @@ const ProfilePage: React.FC = () => {
       }
 
       const data = await response.json();
-      const baseUrl = 'http://localhost:5000';
+      const baseUrl = SERVER_URL;
       const fileUrl = data.documentUrl.startsWith('http') 
         ? data.documentUrl 
         : `${baseUrl}${data.documentUrl}`;
@@ -1042,7 +1043,7 @@ const ProfilePage: React.FC = () => {
   const verifyPassword = async (password: string): Promise<boolean> => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:5000/api/profile/me/verify-password', {
+      const response = await fetch(`${API_BASE_URL}/profile/me/verify-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2060,7 +2061,7 @@ const ProfilePage: React.FC = () => {
                 setIsChangingPassword(true);
                 try {
                   const token = localStorage.getItem('auth_token');
-                  const response = await fetch('http://localhost:5000/api/profile/me/change-password', {
+                  const response = await fetch(`${API_BASE_URL}/profile/me/change-password`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -3533,7 +3534,7 @@ const ProfilePage: React.FC = () => {
                       setIsDisabling(true);
                       try {
                         const token = localStorage.getItem('auth_token');
-                        const response = await fetch('http://localhost:5000/api/profile/me/2fa/disable', {
+                        const response = await fetch(`${API_BASE_URL}/profile/me/2fa/disable`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
@@ -3586,7 +3587,7 @@ const ProfilePage: React.FC = () => {
                           setIsGeneratingQR(true);
                           try {
                             const token = localStorage.getItem('auth_token');
-                            const response = await fetch('http://localhost:5000/api/profile/me/2fa/qr', {
+                            const response = await fetch(`${API_BASE_URL}/profile/me/2fa/qr`, {
                               headers: token ? { Authorization: `Bearer ${token}` } : undefined,
                               credentials: 'include',
                             });
@@ -3673,7 +3674,7 @@ const ProfilePage: React.FC = () => {
                           setIsVerifying(true);
                           try {
                             const token = localStorage.getItem('auth_token');
-                            const response = await fetch('http://localhost:5000/api/profile/me/2fa/verify', {
+                            const response = await fetch(`${API_BASE_URL}/profile/me/2fa/verify`, {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',

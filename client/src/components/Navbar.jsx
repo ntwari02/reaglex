@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ShoppingBag, Heart, Bell, Menu, X, ChevronDown, ChevronRight,
   Package, MapPin, CreditCard, Star, RotateCcw, Settings, LogOut, Clock, Flame,
-  Globe, DollarSign, HelpCircle, Sun, Moon, Shield,
+  Globe, DollarSign, HelpCircle, Sun, Moon, Shield, Bot,
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useWishlistStore } from '../stores/wishlistStore';
 import { productAPI } from '../services/api';
 import NotificationsDropdown from './NotificationsDropdown';
+import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
 import { useTheme } from '../contexts/ThemeContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
@@ -261,7 +262,7 @@ function useClickOutside(ref, handler) {
   }, [ref, handler]);
 }
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { SERVER_URL } from '../lib/config';
 function resolveImg(src) {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80&q=80';
   if (src.startsWith('http')) return src;
@@ -403,6 +404,26 @@ function MainHeader({
     setNotifUnreadCount(count);
     if (isNew) { setBellRing(true); setTimeout(() => setBellRing(false), 500); }
   }, []);
+  useEffect(() => {
+    let mounted = true;
+    if (!user) {
+      setNotifUnreadCount(0);
+      return;
+    }
+    buyerNotificationsApi
+      .getUnreadCount()
+      .then((data) => {
+        if (!mounted) return;
+        setNotifUnreadCount(Number(data?.count || 0));
+        prevNotifUnreadRef.current = Number(data?.count || 0);
+      })
+      .catch(() => {
+        if (mounted) setNotifUnreadCount(0);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
   useClickOutside(profileRef, () => setProfileOpen(false));
   useClickOutside(cartRef, () => setCartHoverOpen(false));
   useClickOutside(categoryRef, () => setCategoryDropdownOpen(false));
@@ -665,6 +686,16 @@ function MainHeader({
           )}
         </button>
         {/* Notifications */}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event('reaglex:assistant:open'))}
+          className="hidden md:flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition group"
+          title="AI Assistant"
+          aria-label="Open AI Assistant"
+        >
+          <Bot className="w-[22px] h-[22px] text-gray-500 group-hover:text-orange-500 transition-colors" />
+        </button>
+
         <div className="relative hidden md:block" ref={notifRef}>
           <button
             type="button"

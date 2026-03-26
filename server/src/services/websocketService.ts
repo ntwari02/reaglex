@@ -5,6 +5,7 @@ import { AuthTokenPayload } from '../utils/generateToken';
 import { MessageThread, Message } from '../models/MessageThread';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
+import { getAllowedCorsOrigins } from '../config/publicEnv';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -24,12 +25,7 @@ class WebSocketService {
   private connectedUsers: Map<string, SocketUser> = new Map(); // userId -> SocketUser
 
   initialize(httpServer: HttpServer) {
-    const allowedOrigins = [
-      process.env.CLIENT_URL || 'http://localhost:5173',
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:5000',
-    ].filter(Boolean);
+    const allowedOrigins = getAllowedCorsOrigins();
     this.io = new SocketIOServer(httpServer, {
       cors: {
         origin: (origin, cb) => {

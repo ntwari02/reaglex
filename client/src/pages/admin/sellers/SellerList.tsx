@@ -45,6 +45,7 @@ import {
   FileText,
   ExternalLink,
 } from 'lucide-react';
+import { resolveAssetUrl } from '@/lib/config';
 
 type SellerStatus = 'active' | 'pending' | 'suspended' | 'rejected' | 'banned' | 'warned' | 'inactive';
 type KycStatus = 'verified' | 'pending' | 'rejected';
@@ -81,26 +82,16 @@ interface SellerListProps {
   onViewSeller: (sellerId: string) => void;
 }
 
-// Helper to resolve avatar URL (handles both full URLs and relative paths)
 const resolveAvatarUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
-  }
-  // If it's a relative path, prepend the API host
-  const API_HOST = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  return `${API_HOST}${url.startsWith('/') ? url : '/' + url}`;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+  return resolveAssetUrl(url);
 };
 
-// Helper to resolve document/file URL (handles both full URLs and relative paths)
 const resolveDocumentUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  // If it's a relative path, prepend the API host
-  const API_HOST = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  return `${API_HOST}${url.startsWith('/') ? url : '/' + url}`;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return resolveAssetUrl(url);
 };
 
 // StatCard component

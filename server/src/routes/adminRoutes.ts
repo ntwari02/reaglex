@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, authorize } from '../middleware/auth';
 import { 
   getBuyers, getUserDetails, updateUserStatus, createUser, updateUser, deleteUser, getUserStats,
   getSellers, getSellerDetails, updateSellerStatus, createSeller, updateSeller, deleteSeller, getSellerStats
@@ -7,8 +7,8 @@ import {
 
 const router = Router();
 
-// All admin routes require authentication only
-router.use(authenticate);
+// All admin routes require authentication AND admin role
+router.use(authenticate, authorize('admin'));
 
 // Get user statistics
 router.get('/users/stats', getUserStats);

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MoreVertical } from 'lucide-react';
+import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
 
 const PRIMARY = '#f97316';
 const EASE = [0.25, 0.46, 0.45, 0.94];
@@ -22,22 +23,14 @@ const TYPE_CONFIG = {
   review: { icon: '⭐', circleBg: '#eab308', label: 'Rate now', linkColor: '#eab308' },
 };
 
-const MOCK_NOTIFICATIONS = [
-  { id: '1', type: 'order', title: 'Order Shipped!', message: 'Your order ORD-1234 is on the way', time: '2m ago', orderId: 'ORD-1234', unread: true },
-  { id: '2', type: 'deal', title: 'Flash Deal: 20% off Electronics', message: 'Today only — ends in 3h 24m', time: '1h ago', unread: true, countdown: '3h 24m' },
-  { id: '3', type: 'system', title: 'Welcome to Reaglex!', message: 'Complete your profile to get started', time: '2d ago', unread: true, progress: 60 },
-  { id: '4', type: 'message', title: 'New message from Premium Store', message: 'Yes, we can ship to your location...', time: '3h ago', unread: true },
-  { id: '5', type: 'review', title: 'How was your order?', message: 'Rate your recent purchase: Watch', time: '1d ago', unread: false },
-  { id: '6', type: 'order', title: 'Order Delivered', message: 'Your order ORD-1233 was delivered', time: '2d ago', orderId: 'ORD-1233', unread: false },
-];
-
 export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
   const tabCounts = {
@@ -79,6 +72,29 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
     markAsRead(n.id);
     onClose();
   }, [markAsRead, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let mounted = true;
+    setLoading(true);
+    buyerNotificationsApi
+      .getNotifications(30)
+      .then((data) => {
+        if (!mounted) return;
+        const rows = Array.isArray(data?.notifications) ? data.notifications : [];
+        setNotifications(rows);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setNotifications([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -176,7 +192,9 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
 
             {/* List */}
             <div className="notif-list-scroll flex-1 overflow-y-auto min-h-0" style={{ maxHeight: 380 }}>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="py-6 px-6 text-sm" style={{ color: '#6b7280' }}>Loading notifications...</div>
+              ) : filtered.length === 0 ? (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-12 px-6" style={{ minHeight: 200 }}>
                   <motion.span className="text-4xl mb-3 notif-empty-bell-swing inline-block">🔔</motion.span>
                   <p className="font-bold text-base" style={{ color: '#111827' }}>All caught up! 🎉</p>
