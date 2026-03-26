@@ -7,14 +7,11 @@
 # =============================================================================
 
 PORT=5000
-NODE_ENV=development
+NODE_ENV=production
+CLIENT_URL=https://www.reaglex.com
+SERVER_URL=https://reaglex.onrender.com
+ALLOWED_ORIGINS=https://www.reaglex.com
 
-CLIENT_URL=http://localhost:5173
-SERVER_URL=http://localhost:5000
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
-CORS_ORIGINS=http://localhost:5173,https://reaglex.vercel.app,https://reaglex.com,https://www.reaglex.com
-# Do not set ALLOWED_ORIGINS locally unless you need extra origins — dev merges defaults + env.
-# Production (Render): ALLOWED_ORIGINS=https://www.reaglex.com,https://reaglex.vercel.app
 
 MONGO_URI=mongodb+srv://reaglex:Loading99.99@reagle-x.uh9s5rn.mongodb.net/ReaglexDB?retryWrites=true&w=majority&appName=Reagle-x
 
@@ -22,6 +19,7 @@ JWT_SECRET=WIf9vxleqD7np1VQSoHNbwOcP6ARmyJCBXzUFZMsg30iLkK4Edhur2aj8tYTG5
 
 GOOGLE_CLIENT_ID=741760208950-lfu41h4ondb829nvsl0is0fqkd6qf671.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=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
+GOOGLE_CALLBACK_URL=https://reaglex.onrender.com/api/auth/google/callback
 
 GEMINI_API_KEY=AIzaSyAzSZx8BjT1ArSjEEMogR-OHv2rfEIR0Es
 GEMINI_MODEL=gemini-flash-latest
