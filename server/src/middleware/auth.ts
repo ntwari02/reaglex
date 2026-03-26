@@ -12,6 +12,13 @@ const SESSION_TOUCH_MIN_MS =
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthTokenPayload;
+  // Some routes directly access these properties on AuthenticatedRequest.
+  // Keep them permissive to avoid route-level TS errors.
+  body: any;
+  params: any;
+  query: any;
+  file?: any;
+  files?: any;
 }
 
 export async function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
