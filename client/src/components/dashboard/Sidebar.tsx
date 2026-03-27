@@ -74,7 +74,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       };
 
   const sidebarContent = (
-  <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth sidebar transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600">
+  <div
+    className="flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth sidebar transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600"
+    style={{
+      background:
+        'linear-gradient(135deg, rgba(15,23,42,0.94), rgba(15,23,42,0.88))',
+      borderRight: '1px solid rgba(148,163,184,0.28)',
+      backdropFilter: 'blur(18px)',
+    }}
+  >
       <div className="p-6 flex items-center justify-between sidebar-profile">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 ${accentClasses.badgeBg} rounded-lg flex items-center justify-center`}>
