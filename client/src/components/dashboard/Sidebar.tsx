@@ -75,27 +75,21 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const sidebarContent = (
   <div
-    className="flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth sidebar transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600"
-    style={{
-      background:
-        'linear-gradient(135deg, rgba(15,23,42,0.94), rgba(15,23,42,0.88))',
-      borderRight: '1px solid rgba(148,163,184,0.28)',
-      backdropFilter: 'blur(18px)',
-    }}
+    className="flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth sidebar transition-colors duration-300 bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-gray-100 backdrop-blur border-r border-gray-200 dark:border-gray-800 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600"
   >
-      <div className="p-6 flex items-center justify-between sidebar-profile">
+      <div className="p-6 flex items-center justify-between sidebar-profile border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 ${accentClasses.badgeBg} rounded-lg flex items-center justify-center`}>
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-on-dark)' }}>{title}</h2>
-            <p className="text-xs" style={{ color: 'var(--text-on-dark)' }}>{tier}</p>
+            <h2 className="text-[16px] font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{tier}</p>
           </div>
         </div>
         <button 
           onClick={() => setSidebarOpen(false)}
-          className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          className="lg:hidden rounded-md p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
@@ -115,8 +109,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                   setSidebarOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative overflow-hidden group sidebar-nav-item",
-                  isActive && `active ${accentClasses.activeShadow}`
+                  "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item",
+                  isActive
+                    ? `${accentClasses.activeShadow} text-white hover:bg-transparent`
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200"
                 )}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -129,12 +125,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                   />
                 )}
                 <Icon
-                  className="w-5 h-5 relative z-10 sidebar-nav-icon"
-                  style={isActive ? { color: '#ffffff' } : undefined}
+                  className="w-[18px] h-[18px] relative z-10 sidebar-nav-icon"
                 />
                 <span
-                  className="font-medium relative z-10"
-                  style={isActive ? { color: '#ffffff' } : undefined}
+                  className={cn(
+                    "font-medium relative z-10 transition-colors",
+                    isActive
+                      ? "text-white"
+                      : "text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white"
+                  )}
                 >
                   {item.label}
                 </span>
@@ -144,9 +143,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </nav>
 
-      <div className="p-4 border-t transition-colors duration-300 text-xs" style={{ borderColor: 'var(--divider)', color: 'var(--text-muted)' }}>
+      <div className="p-4 border-t bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800 transition-colors duration-300 text-xs text-gray-500 dark:text-gray-400">
         <p className="text-center">
-          Need help? Open <span className="font-semibold">Support Center</span> in the menu.
+          Need help? Open{' '}
+          <span className="font-semibold text-orange-500">Support Center</span> in the menu.
         </p>
       </div>
     </div>

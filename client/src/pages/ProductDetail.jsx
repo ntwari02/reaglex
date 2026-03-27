@@ -17,9 +17,30 @@ const PRIMARY = '#f97316';
 const ease = [0.25, 0.46, 0.45, 0.94];
 
 function resolveImage(src) {
-  if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80';
-  if (src.startsWith('http')) return src;
-  return `${SERVER_URL}${src}`;
+  const fallback = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80';
+  if (!src) return fallback;
+
+  // Some products store images as objects (e.g. { src }, { url }, { imageUrl }).
+  // Older DB data can also store a mix of strings and objects.
+  let candidate = src;
+  if (typeof candidate === 'object') {
+    candidate =
+      candidate?.src ||
+      candidate?.url ||
+      candidate?.image ||
+      candidate?.imageUrl ||
+      candidate?.path;
+  }
+
+  if (typeof candidate !== 'string') return fallback;
+  const trimmed = candidate.trim();
+  if (!trimmed) return fallback;
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+
+  if (trimmed.startsWith('/')) return `${SERVER_URL}${trimmed}`;
+  return `${SERVER_URL}/${trimmed}`;
 }
 
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
