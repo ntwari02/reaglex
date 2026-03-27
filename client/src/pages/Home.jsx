@@ -134,6 +134,8 @@ export default function Home() {
   const [allProducts, setAllProducts]   = useState([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [featuredError, setFeaturedError] = useState(null);
+  const [isWakingUp, setIsWakingUp] = useState(false);
+  const wakeUpTimerRef = useRef(null);
   const [activeBanner, setActiveBanner] = useState(0);
   const countdown = useCountdown(5);
 
@@ -176,6 +178,8 @@ export default function Home() {
   const fetchFeatured = useCallback(async () => {
     setLoadingFeatured(true);
     setFeaturedError(null);
+    if (wakeUpTimerRef.current) clearTimeout(wakeUpTimerRef.current);
+    wakeUpTimerRef.current = setTimeout(() => setIsWakingUp(true), 3000);
     try {
       const data = await productAPI.getProducts({ limit: 16, page: 1 });
       const items = Array.isArray(data) ? data : data.products || data.data || data.items || [];
@@ -183,9 +187,11 @@ export default function Home() {
       setFeaturedProducts(items.slice(0, 8));
       if (items.length > 0) setHeroProduct(items[0]);
     } catch (err) {
-      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
-      setFeaturedError(isTimeout ? 'Server is slow — start the backend on port 5000.' : 'Could not load products.');
+      setFeaturedError('Could not load products. Please try again.');
     } finally {
+      if (wakeUpTimerRef.current) clearTimeout(wakeUpTimerRef.current);
+      wakeUpTimerRef.current = null;
+      setIsWakingUp(false);
       setLoadingFeatured(false);
     }
   }, []);
@@ -354,7 +360,18 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center h-80 gap-4">
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                 className="w-12 h-12 rounded-full border-4 border-orange-200 border-t-orange-500" />
-              <p className="text-sm" style={{ color: '#9ca3af' }}>Loading products…</p>
+              {isWakingUp ? (
+                <div className="text-center px-6">
+                  <p className="text-sm" style={{ color: '#6B7280' }}>
+                    Server is starting up, please wait a moment...
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
+                    This only happens after periods of inactivity.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm" style={{ color: '#9ca3af' }}>Loading products…</p>
+              )}
             </div>
           ) : featuredError ? (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}

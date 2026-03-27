@@ -37,17 +37,31 @@ export function getAllowedCorsOrigins(): string[] {
   const envList = split(process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || '');
   const localhostPack = ['http://localhost:5173', 'http://localhost:3000'];
 
+  const expandWww = (origin: string): string[] => {
+    try {
+      const u = new URL(origin);
+      const host = u.hostname;
+      if (host.startsWith('www.')) {
+        const bare = host.slice(4);
+        return [origin, `${u.protocol}//${bare}`];
+      }
+      return [origin, `${u.protocol}//www.${host}`];
+    } catch {
+      return [origin];
+    }
+  };
+
   if (isProductionNodeEnv()) {
-    if (envList.length > 0) return envList;
+    if (envList.length > 0) return [...new Set(envList.flatMap(expandWww))];
     if (client) {
       console.warn(
         '[cors] ALLOWED_ORIGINS is empty in production; using CLIENT_URL only. Add other app origins (e.g. Vercel preview) to ALLOWED_ORIGINS.',
       );
-      return [client];
+      return [...new Set(expandWww(client))];
     }
     console.error('[cors] Set CLIENT_URL and ALLOWED_ORIGINS in production.');
     return [];
   }
 
-  return [...new Set([...localhostPack, ...(client ? [client] : []), ...envList])];
+  return [...new Set([...localhostPack, ...(client ? expandWww(client) : []), ...envList.flatMap(expandWww)])];
 }

@@ -53,11 +53,13 @@ import { sanitizeInput } from './src/middleware/sanitizeInput';
 import './src/jobs/escrowJobs';
 import { websocketService } from './src/services/websocketService';
 import { getAllowedCorsOrigins } from './src/config/publicEnv';
+import keepAlive from './keepAlive';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 const httpServer = createServer(app);
 const PORT = Number(process.env.PORT) || 5000;
-const MONGO_URI = process.env.MONGO_URI || '';
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || '';
 
 // Render and other reverse proxies set `X-Forwarded-For`.
 // IMPORTANT: use a hop count (not boolean `true`) to avoid
@@ -66,8 +68,12 @@ const MONGO_URI = process.env.MONGO_URI || '';
 app.set('trust proxy', 1);
 
 // Basic validation to help during setup
-if (!MONGO_URI) {
-  console.error('MONGO_URI is not set in .env');
+const required = ['MONGODB_URI'];
+for (const key of required) {
+  if (!process.env[key] && !process.env.MONGO_URI) {
+    console.error(`[FATAL] Missing environment variable: ${key}`);
+    process.exit(1);
+  }
 }
 const emailProvider = (process.env.EMAIL_PROVIDER || 'smtp').toLowerCase();
 if (emailProvider === 'resend') {
@@ -120,6 +126,24 @@ app.use((req, res, next) => {
 });
 app.use(helmet());
 app.use(compression());
+
+// Rate limiting (protects against abuse and reduces load under concurrency)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again in a few minutes.' },
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts, please try again later.' },
+});
+app.use('/api', apiLimiter);
+app.use('/api/auth', authLimiter);
 // Static files for uploaded images and audio
 // Allow product images to be embedded from a different origin (e.g. Vite dev server on 5173)
 // by relaxing the Cross-Origin-Resource-Policy for this path only.
@@ -158,7 +182,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', message: 'Reaglex API is running' });
+  res.status(200).json({
+    status: 'ok',
+    message: 'Reaglex API is running',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Auth routes
@@ -252,13 +281,14 @@ const connectDB = async () => {
     const options: mongoose.ConnectOptions = {
       // Reduce worst-case cold-start latency (better than waiting 2+ minutes).
       serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 20000,
+      socketTimeoutMS: 45000,
       connectTimeoutMS: 10000,
       retryWrites: true,
       retryReads: true,
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      minPoolSize: 2, // Maintain at least 2 socket connections
-      maxIdleTimeMS: 20000, // Close connections after 20 seconds of inactivity
+      maxPoolSize: 20,
+      minPoolSize: 5,
+      maxIdleTimeMS: 45000,
+      heartbeatFrequencyMS: 10000,
     };
 
     // For development: allow invalid certificates to resolve TLS handshake issues
@@ -306,6 +336,10 @@ const connectDB = async () => {
 };
 
 connectDB();
+
+// Best-effort keepalive pings. Note: Render free tier can still suspend the service;
+// this helps keep it warm while it is running.
+keepAlive();
 
 
 

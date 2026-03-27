@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../lib/config';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 20000, // 20s — gives the server time to cold-start
+  timeout: 60000, // 60s — enough time for Render cold start
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -31,16 +31,40 @@ async function withRetry(fn, retries = 2, delayMs = 1500) {
   }
 }
 
+// ── Retry logic (global) ───────────────────────────────────────────────────────
+// Retry on network errors / timeouts or 5xx responses up to 3 times with backoff.
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error?.config;
+    if (!config) return Promise.reject(error);
+
+    const status = error?.response?.status;
+    const shouldRetry = !error.response || status >= 500;
+
+    if (shouldRetry) {
+      config._retryCount = config._retryCount || 0;
+      if (config._retryCount < 3) {
+        config._retryCount += 1;
+        const delay = Math.pow(2, config._retryCount - 1) * 1000; // 1s,2s,4s
+        await new Promise((r) => setTimeout(r, delay));
+        console.log(`[API] Retrying request (attempt ${config._retryCount}/3):`, config.url);
+        return api(config);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // ─── Products ────────────────────────────────────────────────────────────────
 
 export const productAPI = {
   /** List products with optional filters — retries on timeout/network errors */
-  getProducts: (params = {}) =>
-    withRetry(() => api.get('/products', { params }).then((r) => r.data)),
+  getProducts: (params = {}) => api.get('/products', { params }).then((r) => r.data),
 
   /** Single product by ID — retries on timeout/network errors */
-  getProductById: (id) =>
-    withRetry(() => api.get(`/products/${id}`).then((r) => r.data)),
+  getProductById: (id) => api.get(`/products/${id}`).then((r) => r.data),
 
   /** Track a product view — fire-and-forget, never throws */
   trackView: (id) => api.post(`/products/${id}/view`).catch(() => null),

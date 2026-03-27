@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { listProducts, trackProductView, getProductById } from '../controllers/productController';
+import { cacheMiddleware } from '../middleware/cache';
 
 const router = Router();
 
 // Public routes (no authentication required for viewing products)
 // List all products (with filtering and pagination)
-router.get('/', listProducts);
+router.get('/', cacheMiddleware(60), listProducts);
 
 // Track product view
 router.post('/:productId/view', trackProductView);

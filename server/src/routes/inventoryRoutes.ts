@@ -3,6 +3,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticate, authorize } from '../middleware/auth';
+import { isCloudinaryConfigured } from '../services/cloudinary';
+import { uploadBufferToCloudinary } from '../utils/uploadToCloudinary';
 import {
   listProducts,
   createProduct,
@@ -19,10 +21,10 @@ import {
 
 const router = Router();
 
-// Configure Multer storage for product images
+// Configure Multer storage for product images.
+// Render has an ephemeral filesystem, so prefer Cloudinary when configured.
 const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'products');
-
-const storage = multer.diskStorage({
+const diskStorage = multer.diskStorage({
   destination: (_req: Request, _file: any, cb: (error: Error | null, destination: string) => void) => {
     fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
@@ -34,7 +36,19 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage: isCloudinaryConfigured() ? multer.memoryStorage() : diskStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (
+    _req: Request,
+    file: Express.Multer.File,
+    cb: (error: Error | null, acceptFile?: boolean) => void
+  ) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    cb(new Error('Only image files are allowed (jpeg, jpg, png, webp, gif)'));
+  },
+});
 
 // All routes require authenticated sellers
 router.use(authenticate, authorize('seller'));
@@ -49,13 +63,29 @@ router.post('/products/bulk-update', bulkUpdateProducts);
 router.post(
   '/products/upload-images',
   upload.array('images', 5),
-  (req: Request, res: Response) => {
-    const files = (req as any).files as any[];
+  async (req: Request, res: Response) => {
+    const files = ((req as any).files as Express.Multer.File[]) || [];
     const safeFiles = Array.isArray(files) ? files : [];
-    const urls = safeFiles.map((file) => {
-      return `/uploads/products/${path.basename(file.path)}`;
-    });
-    return res.status(201).json({ urls });
+    if (safeFiles.length === 0) return res.status(400).json({ message: 'No images uploaded.' });
+
+    // Cloudinary path: upload buffers and return absolute URLs.
+    if (isCloudinaryConfigured()) {
+      const uploads = await Promise.all(
+        safeFiles.map((f) =>
+          uploadBufferToCloudinary({
+            buffer: f.buffer,
+            folder: 'reaglex/products',
+            resourceType: 'image',
+          }),
+        ),
+      );
+      const urls = uploads.map((u) => u.url);
+      return res.status(201).json({ urls, provider: 'cloudinary' });
+    }
+
+    // Local disk path (dev / persistent disk): return relative paths served by express.static(/uploads).
+    const urls = safeFiles.map((file) => `/uploads/products/${path.basename(file.path)}`);
+    return res.status(201).json({ urls, provider: 'local' });
   }
 );
 

@@ -84,6 +84,12 @@ const productSchema = new Schema<IProduct>(
   { timestamps: true }
 );
 
+// Indexes to keep /api/products fast under concurrency
+productSchema.index({ createdAt: -1 });
+productSchema.index({ category: 1, createdAt: -1 });
+productSchema.index({ status: 1, createdAt: -1 });
+productSchema.index({ name: 'text', description: 'text' });
+
 export const Product = mongoose.model<IProduct>('Product', productSchema);
 
 
