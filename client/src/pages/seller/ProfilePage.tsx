@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
-import { profileAPI } from '@/lib/api';
+import { profileAPI, authAPI } from '@/lib/api';
 import imageCompression from 'browser-image-compression';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import InputDialog from '@/components/ui/InputDialog';
@@ -839,7 +839,6 @@ const ProfilePage: React.FC = () => {
 
       // Refresh user data from backend to ensure we have the latest avatar URL
       try {
-        const { authAPI } = await import('@/lib/api');
         const currentUserData = await authAPI.getCurrentUser();
         
         // Map backend user to Profile format

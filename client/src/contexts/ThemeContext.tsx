@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { profileAPI } from '../lib/api';
 
 type Theme = 'dark' | 'light';
 type Language = 'en' | 'fr' | 'rw' | 'sw';
@@ -94,7 +95,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (user && !isInitialLoad && dbPreferencesLoaded) {
       const saveThemeToDB = async () => {
         try {
-          const { profileAPI } = await import('../lib/api');
           await profileAPI.updatePreferences({ theme });
         } catch (error) {
           if (isAuthSessionError(error)) {
@@ -120,7 +120,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (user && !dbPreferencesLoaded) {
       const loadPreferencesFromDB = async () => {
         try {
-          const { profileAPI } = await import('../lib/api');
           const profileData = await profileAPI.getProfile();
 
           if (profileData.preferences) {
@@ -180,7 +179,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (user && dbPreferencesLoaded) {
       const saveLanguageToDB = async () => {
         try {
-          const { profileAPI } = await import('../lib/api');
           await profileAPI.updatePreferences({ language: lang });
         } catch (error) {
           if (isAuthSessionError(error)) {
@@ -202,7 +200,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (user && dbPreferencesLoaded) {
       const saveCurrencyToDB = async () => {
         try {
-          const { profileAPI } = await import('../lib/api');
           await profileAPI.updatePreferences({ currency: curr });
         } catch (error) {
           if (isAuthSessionError(error)) {

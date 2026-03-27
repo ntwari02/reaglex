@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
 import { API_BASE_URL } from '../lib/config';
+import { authAPI } from '../lib/api';
 
 function hasSQLInjectionRisk(value: string): boolean {
   const pattern = /(;|--|\/\*|\*\/|\b(OR|AND)\b\s+\d+=\d+|\bxp_)/i;
@@ -97,7 +98,6 @@ export function Login() {
     const poll = async () => {
       if (cancelled) return;
       try {
-        const { authAPI } = await import('../lib/api');
         const result = await authAPI.checkPendingRequest(deviceApprovalRequestId);
         if (cancelled) return;
         if (result.approved && result.token && result.user) {
@@ -257,7 +257,6 @@ export function Login() {
     setSubmittingOtp(true);
     setOtpError('');
     try {
-      const { authAPI } = await import('../lib/api');
       const data = await authAPI.verify2FA(twoFATempToken, code);
       if ('requiresDeviceApproval' in data && data.requiresDeviceApproval) {
         setDeviceApprovalRequestId(data.requestId);
@@ -298,7 +297,6 @@ export function Login() {
     setTwoFASetupLoading(true);
     setOtpError('');
     try {
-      const { authAPI } = await import('../lib/api');
       const data = await authAPI.setup2FAStart(twoFATempToken);
       setTwoFAQRCode(data.qrCode);
       setTwoFAManualKey(data.manualEntryKey);
@@ -322,7 +320,6 @@ export function Login() {
     setSubmittingOtp(true);
     setOtpError('');
     try {
-      const { authAPI } = await import('../lib/api');
       const data = await authAPI.setup2FAConfirm(twoFATempToken, code);
       if ('requiresDeviceApproval' in data && data.requiresDeviceApproval) {
         setDeviceApprovalRequestId(data.requestId);
@@ -363,7 +360,6 @@ export function Login() {
     setResendLoading(true);
     setFormError('');
     try {
-      const { authAPI } = await import('../lib/api');
       await authAPI.resendVerificationEmail(identifier.trim());
       showToast('Verification link sent. Check your inbox (and spam folder).', 'success');
       setShowResendVerification(false);
@@ -382,7 +378,6 @@ export function Login() {
     setOtpSendLoading(true);
     setOtpVerifyError('');
     try {
-      const { authAPI } = await import('../lib/api');
       await authAPI.requestVerificationOtp(email);
       setOtpSent(true);
       setOtpDigits(['', '', '', '', '', '']);
@@ -417,7 +412,6 @@ export function Login() {
     setOtpVerifyLoading(true);
     setOtpVerifyError('');
     try {
-      const { authAPI } = await import('../lib/api');
       await authAPI.verifyEmailWithOtp(email, code);
       showToast('Email verified! You can sign in now.', 'success');
       setShowResendVerification(false);

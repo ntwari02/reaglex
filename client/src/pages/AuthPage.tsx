@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { useTheme } from '../contexts/ThemeContext';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
+import { authAPI } from '../lib/api';
 
 const PRIMARY = '#f97316';
 const SUCCESS = '#10b981';
@@ -722,7 +723,6 @@ export default function AuthPage() {
     setSending(true);
     setOtpError('');
     try {
-      const { authAPI } = await import('../lib/api');
       await authAPI.requestVerificationOtp(e);
       setOtpEmail(e);
       setExpiresAtMs(Date.now() + 10 * 60 * 1000);
@@ -796,7 +796,6 @@ export default function AuthPage() {
     setVerifying(true);
     setOtpError('');
     try {
-      const { authAPI } = await import('../lib/api');
       const result = await authAPI.verifyEmailWithOtp(otpEmail, code);
       if (result?.token && result?.user) {
         const userProfile = {

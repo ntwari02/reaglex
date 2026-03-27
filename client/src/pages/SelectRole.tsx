@@ -5,6 +5,7 @@ import { useToastStore } from '../stores/toastStore';
 import { ShoppingBag, Briefcase, Loader2 } from 'lucide-react';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
 import { useTheme } from '../contexts/ThemeContext';
+import { API_BASE_URL } from '../lib/config';
 
 export function SelectRole() {
   const navigate = useNavigate();
@@ -45,7 +46,6 @@ export function SelectRole() {
     setLoading(true);
 
     try {
-      const { API_BASE_URL } = await import('../lib/config');
       const response = await fetch(`${API_BASE_URL}/auth/google/complete`, {
         method: 'POST',
         headers: {

@@ -4,6 +4,7 @@ import { Eye, EyeOff, User, Briefcase, Mail, Phone, AlertCircle, Check, Fingerpr
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
+import { API_BASE_URL } from '../lib/config';
 
 function hasSQLInjectionRisk(value: string): boolean {
   const pattern = /(;|--|\/\*|\*\/|\b(OR|AND)\b\s+\d+=\d+|\bxp_)/i;
@@ -84,8 +85,7 @@ export function Signup() {
     }
 
     try {
-      const apiBase = (await import('../lib/config')).API_BASE_URL;
-      const response = await fetch(`${apiBase}/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -531,8 +531,7 @@ export function Signup() {
         <button
           type="button"
           onClick={() => {
-            const base = (await import('../lib/config')).API_BASE_URL;
-            window.location.href = `${base}/auth/google?role=${formData.role}`;
+            window.location.href = `${API_BASE_URL}/auth/google?role=${formData.role}`;
           }}
           className="w-full h-[52px] rounded-[14px] flex items-center justify-center gap-3 px-4 text-[15px] font-semibold transition-all hover:opacity-95 active:scale-[0.99]"
           style={{

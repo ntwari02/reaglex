@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import {
@@ -108,6 +108,88 @@ export default function ProductDetail() {
   const [expandedQa, setExpandedQa] = useState(null);
   const [relatedOffset, setRelatedOffset] = useState(0);
 
+  // Build SEO inputs in a stable way to avoid hook-order bugs and unnecessary updates.
+  const productId = product?._id || product?.id || id;
+  const title = product?.title || product?.name || 'Product';
+  const category = product?.category || 'Clothing';
+  const images = useMemo(() => {
+    const list = (product?.images?.length ? product.images : [product?.image]).filter(Boolean);
+    return list;
+  }, [product?.images, product?.image]);
+  const canonicalUrl = useMemo(() => {
+    try {
+      return `${window.location.origin}/products/${productId}`;
+    } catch {
+      return `/products/${productId}`;
+    }
+  }, [productId]);
+  const primaryImage = useMemo(() => (images?.[0] ? resolveImage(images[0]) : undefined), [images]);
+
+  const seoConfig = useMemo(() => {
+    if (!product) {
+      return {
+        title: 'Product | Reaglex',
+        description: 'View product details on REAGLE-X.',
+        canonicalUrl,
+        noIndex: false,
+        jsonLdScriptId: 'reaglex-jsonld-product',
+        jsonLd: null,
+      };
+    }
+
+    const price = product?.price || 0;
+    const stock = product?.stockQuantity ?? product?.stock ?? 0;
+    const rating = Number(product?.averageRating || product?.rating || 0) || 0;
+    const reviewsCount = Number(product?.totalReviews || product?.reviewCount || 0) || 0;
+
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: title,
+      description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
+      sku: product?.sku || product?._id || id,
+      category,
+      image: (images || []).slice(0, 6).map((img) => resolveImage(img)).filter(Boolean),
+      brand: { '@type': 'Brand', name: product?.brand || 'Reaglex' },
+      offers: {
+        '@type': 'Offer',
+        price: Number(price) || 0,
+        priceCurrency: product?.currency || 'USD',
+        availability: stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        url: canonicalUrl,
+      },
+      aggregateRating: rating || reviewsCount ? {
+        '@type': 'AggregateRating',
+        ratingValue: Number(rating) || 0,
+        reviewCount: Number(reviewsCount) || 0,
+      } : undefined,
+    };
+
+    return {
+      title: product?.seoTitle || `${title} | Reaglex`,
+      description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
+      keywords: product?.seoKeywords,
+      canonicalUrl,
+      openGraph: {
+        title: product?.seoTitle || `${title} | Reaglex`,
+        description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
+        image: primaryImage,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: product?.seoTitle || `${title} | Reaglex`,
+        description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
+        image: primaryImage,
+      },
+      noIndex: false,
+      jsonLdScriptId: 'reaglex-jsonld-product',
+      jsonLd,
+    };
+  }, [product, title, category, images, primaryImage, canonicalUrl, id]);
+
+  // Always call hooks unconditionally (fixes reload crashes / hook-order issues).
+  useSeo(seoConfig);
+
   useEffect(() => {
     setShowStickyBar(!addToCartInView);
   }, [addToCartInView]);
@@ -204,7 +286,6 @@ export default function ProductDetail() {
       </BuyerLayout>
     );
 
-  const images = (product.images?.length ? product.images : [product.image]).filter(Boolean);
   const price = product.price || 0;
   const oldPrice = product.compareAtPrice || product.originalPrice || null;
   const discount = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
@@ -212,57 +293,6 @@ export default function ProductDetail() {
   const reviewsCount = product.totalReviews || product.reviewCount || 124;
   const stock = product.stockQuantity ?? product.stock ?? 10;
   const seller = product.seller?.storeName || product.sellerName || 'Premium Store';
-  const category = product.category || 'Clothing';
-  const title = product.title || product.name || 'Product';
-
-  const productId = product?._id || id;
-  const canonicalUrl = `${window.location.origin}/products/${productId}`;
-
-  const primaryImage = images?.[0] ? resolveImage(images[0]) : undefined;
-
-  useSeo({
-    title: product?.seoTitle || `${title} | Reaglex`,
-    description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
-    keywords: product?.seoKeywords,
-    canonicalUrl,
-    openGraph: {
-      title: product?.seoTitle || `${title} | Reaglex`,
-      description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
-      image: primaryImage,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: product?.seoTitle || `${title} | Reaglex`,
-      description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
-      image: primaryImage,
-    },
-    noIndex: false,
-    jsonLdScriptId: 'reaglex-jsonld-product',
-    jsonLd: product
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'Product',
-          name: title,
-          description: product?.seoDescription || product?.description || `Buy ${title} at REAGLE-X.`,
-          sku: product?.sku || product?._id || id,
-          category,
-          image: (images || []).slice(0, 6).map((img) => resolveImage(img)).filter(Boolean),
-          brand: { '@type': 'Brand', name: product?.brand || 'Reaglex' },
-          offers: {
-            '@type': 'Offer',
-            price: Number(price) || 0,
-            priceCurrency: product?.currency || 'USD',
-            availability: stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-            url: canonicalUrl,
-          },
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: Number(rating) || 0,
-            reviewCount: Number(reviewsCount) || 0,
-          },
-        }
-      : null,
-  });
 
   const installment = (price / 3).toFixed(2);
   const reviewBars = [

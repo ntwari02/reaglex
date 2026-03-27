@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Profile } from '../types';
 import { useToastStore } from './toastStore';
+import { authAPI } from '../lib/api';
 
 let lastSessionReplacedToastAt = 0;
 
@@ -72,7 +73,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email: string, password: string) => {
     try {
-      const { authAPI } = await import('../lib/api');
       const data = await authAPI.login(email, password);
 
       // Seller/Admin with 2FA required: no token yet, caller must handle 2FA step
@@ -188,7 +188,6 @@ export const useAuthStore = create<AuthState>((set) => ({
           // Verify token is still valid by calling /me endpoint
           if (token) {
             try {
-              const { authAPI } = await import('../lib/api');
               const data = await authAPI.getCurrentUser();
               
               // Map backend user to Profile format (MongoDB uses _id)
