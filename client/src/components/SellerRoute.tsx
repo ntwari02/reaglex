@@ -112,7 +112,20 @@ function SellerAccessDenied() {
 export default function SellerRoute({ children }: SellerRouteProps) {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
+  const { loading, initialized } = useAuthStore();
   const { isLoggedIn, isSeller } = useSellerAccess();
+
+  // Prevent redirect loops on full page reload while auth store is still initializing.
+  if (!initialized || loading) {
+    return (
+      <div
+        className="min-h-[60vh] flex items-center justify-center"
+        style={{ background: 'var(--bg-page)' }}
+      >
+        <div className="w-12 h-12 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
