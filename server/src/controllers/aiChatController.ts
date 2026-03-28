@@ -49,6 +49,8 @@ export async function postAiChat(req: AuthenticatedRequest, res: Response) {
       role,
       products: result.products,
       payment: result.payment,
+      model: result.modelUsed,
+      fallbackOccurred: result.fallbackOccurred,
     });
   } catch (error: any) {
     const msg = error?.message || 'AI chat failed';

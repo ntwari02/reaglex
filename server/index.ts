@@ -56,6 +56,9 @@ import { websocketService } from './src/services/websocketService';
 import { getAllowedCorsOrigins } from './src/config/publicEnv';
 import keepAlive from './keepAlive';
 import rateLimit from 'express-rate-limit';
+import { recordApiTiming, seedMonitorLogsOnce } from './src/services/systemMonitor.service';
+import systemMonitorRoutes from './src/routes/systemMonitor.routes';
+import securityAnalysisRoutes from './src/routes/securityAnalysis.routes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -106,6 +109,22 @@ app.use(express.json());
 app.use(sanitizeInput);
 app.use(cookieParser());
 app.use(morgan('dev'));
+
+// System monitor: sample API latency & errors (additive, in-memory).
+app.use((req, res, next) => {
+  const t0 = Date.now();
+  res.on('finish', () => {
+    try {
+      if (req.originalUrl.startsWith('/api')) {
+        seedMonitorLogsOnce();
+        recordApiTiming(req.originalUrl.split('?')[0], Date.now() - t0, res.statusCode);
+      }
+    } catch {
+      /* ignore */
+    }
+  });
+  next();
+});
 
 // Basic request timing to quickly spot backend bottlenecks.
 // If a request takes longer than 2s, we log method/route/status/duration.
@@ -220,6 +239,8 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/assistant', assistantRoutes);
 app.use('/api/ai', aiChatRoutes);
 app.use('/api/ai', aiAgentRoutes);
+app.use('/api/system', systemMonitorRoutes);
+app.use('/api/security-analysis', securityAnalysisRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);

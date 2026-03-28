@@ -8,6 +8,13 @@
 import fs from 'fs';
 import path from 'path';
 import { GoogleGenerativeAI, FunctionCallingMode, SchemaType } from '@google/generative-ai';
+import { determineTaskComplexity } from '../ai-assistant/engine/complexity';
+import { neverStopExecute } from '../ai-assistant/engine/neverStop';
+import {
+  getModelBlacklist,
+  getModelScorer,
+  getAiMetrics,
+} from '../ai-assistant/singleton';
 import mongoose from 'mongoose';
 import { getServerUrl } from '../config/publicEnv';
 import { Order } from '../models/Order';
@@ -41,6 +48,9 @@ export interface AgentChatResult {
     type: 'order' | 'shipping' | 'store' | 'product' | 'return';
     message: string;
   };
+  /** Model id or "none" when all models failed. */
+  modelUsed?: string;
+  fallbackOccurred?: boolean;
 }
 
 const AI_DOC_FILES = [
@@ -537,18 +547,16 @@ function buildSystemPrompt(ctx: AgentContext, docs: string): string {
   ].join('\n');
 }
 
-export async function handleAgentChat(
+const AGENT_BUSY =
+  'All AI models are currently busy. Please try again shortly.';
+
+async function runUnifiedAgentWithModel(
+  modelName: string,
   userMessage: string,
   ctx: AgentContext
 ): Promise<AgentChatResult> {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
-
-  const modelName = (
-    process.env.GEMINI_AGENT_MODEL ||
-    process.env.GEMINI_MODEL ||
-    'gemini-1.5-pro'
-  ).trim();
 
   const docs = loadAiDocsForPrompt();
 
@@ -597,6 +605,37 @@ export async function handleAgentChat(
   return {
     reply,
     products: extras.products?.length ? extras.products : undefined,
+  };
+}
+
+export async function handleAgentChat(
+  userMessage: string,
+  ctx: AgentContext
+): Promise<AgentChatResult> {
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
+
+  const complexity = determineTaskComplexity(userMessage);
+  const outcome = await neverStopExecute({
+    assignedTier: complexity.tier,
+    blacklist: getModelBlacklist(),
+    scorer: getModelScorer(),
+    metrics: getAiMetrics(),
+    run: (modelId) => runUnifiedAgentWithModel(modelId, userMessage, ctx),
+  });
+
+  if (!outcome.ok) {
+    return {
+      reply: AGENT_BUSY,
+      modelUsed: 'none',
+      fallbackOccurred: true,
+    };
+  }
+
+  return {
+    ...outcome.value,
+    modelUsed: outcome.model,
+    fallbackOccurred: outcome.fallbackOccurred,
   };
 }
 

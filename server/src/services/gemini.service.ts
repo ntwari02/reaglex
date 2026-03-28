@@ -3,6 +3,13 @@
  * Uses @google/generative-ai SDK (ChatSession + function responses).
  */
 import { GoogleGenerativeAI, FunctionCallingMode, SchemaType } from '@google/generative-ai';
+import { determineTaskComplexity } from '../ai-assistant/engine/complexity';
+import { neverStopExecute } from '../ai-assistant/engine/neverStop';
+import {
+  getModelBlacklist,
+  getModelScorer,
+  getAiMetrics,
+} from '../ai-assistant/singleton';
 import mongoose from 'mongoose';
 import { getServerUrl } from '../config/publicEnv';
 import { Order } from '../models/Order';
@@ -39,6 +46,8 @@ export interface GeminiChatResult {
     amount?: number;
     currency?: string;
   };
+  modelUsed?: string;
+  fallbackOccurred?: boolean;
 }
 
 function baseUrl(): string {
@@ -465,7 +474,11 @@ function getTextFromResponse(response: any): string {
     .trim();
 }
 
-export async function handleChat(
+const LEGACY_AGENT_BUSY =
+  'All AI models are currently busy. Please try again shortly.';
+
+async function runLegacyAgentWithModel(
+  modelName: string,
   userMessage: string,
   ctx: GeminiChatContext
 ): Promise<GeminiChatResult> {
@@ -473,12 +486,6 @@ export async function handleChat(
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not set');
   }
-
-  const modelName = (
-    process.env.GEMINI_AGENT_MODEL ||
-    process.env.GEMINI_MODEL ||
-    'gemini-1.5-pro'
-  ).trim();
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
@@ -540,4 +547,37 @@ export async function handleChat(
   if (extras.payment?.paymentLink) out.payment = extras.payment;
 
   return out;
+}
+
+export async function handleChat(
+  userMessage: string,
+  ctx: GeminiChatContext
+): Promise<GeminiChatResult> {
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not set');
+  }
+
+  const complexity = determineTaskComplexity(userMessage);
+  const outcome = await neverStopExecute({
+    assignedTier: complexity.tier,
+    blacklist: getModelBlacklist(),
+    scorer: getModelScorer(),
+    metrics: getAiMetrics(),
+    run: (modelId) => runLegacyAgentWithModel(modelId, userMessage, ctx),
+  });
+
+  if (!outcome.ok) {
+    return {
+      reply: LEGACY_AGENT_BUSY,
+      modelUsed: 'none',
+      fallbackOccurred: true,
+    };
+  }
+
+  return {
+    ...outcome.value,
+    modelUsed: outcome.model,
+    fallbackOccurred: outcome.fallbackOccurred,
+  };
 }

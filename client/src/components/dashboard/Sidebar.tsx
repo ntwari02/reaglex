@@ -18,10 +18,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface MenuItem {
+export interface MenuItem {
   id: string;
   label: string;
   icon: LucideIcon;
+  /** Small status chip (e.g. OK / WARN / CRITICAL) */
+  badge?: string;
+  badgeTone?: 'ok' | 'warn' | 'critical' | 'neutral';
 }
 
 interface SidebarProps {
@@ -33,6 +36,19 @@ interface SidebarProps {
   title: string;
   tier: string;
   accentVariant?: 'emerald' | 'orange';
+}
+
+function badgeClasses(tone: MenuItem['badgeTone']) {
+  switch (tone) {
+    case 'ok':
+      return 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+    case 'warn':
+      return 'bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30';
+    case 'critical':
+      return 'bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/35';
+    default:
+      return 'bg-gray-500/15 text-gray-600 dark:text-gray-300 border border-gray-500/25';
+  }
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -89,7 +105,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <button 
           onClick={() => setSidebarOpen(false)}
-          className="lg:hidden rounded-md p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+          type="button"
+          aria-label="Close menu"
+          className="lg:hidden min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
@@ -109,7 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   setSidebarOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item",
+                  "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item",
                   isActive
                     ? `${accentClasses.activeShadow} text-white hover:bg-transparent`
                     : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200"
@@ -124,19 +142,30 @@ const Sidebar: React.FC<SidebarProps> = ({
                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   />
                 )}
-                <Icon
-                  className="w-[18px] h-[18px] relative z-10 sidebar-nav-icon"
-                />
-                <span
-                  className={cn(
-                    "font-medium relative z-10 transition-colors",
-                    isActive
-                      ? "text-white"
-                      : "text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white"
-                  )}
-                >
-                  {item.label}
-                </span>
+                <div className="flex items-center gap-3 flex-1 min-w-0 relative z-10">
+                  <Icon className="w-[18px] h-[18px] shrink-0 sidebar-nav-icon" />
+                  <span
+                    className={cn(
+                      'font-medium transition-colors truncate text-left',
+                      isActive
+                        ? 'text-white'
+                        : 'text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white',
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={cn(
+                      'relative z-10 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0',
+                      badgeClasses(item.badgeTone),
+                      isActive && 'border-white/30 text-white bg-white/15',
+                    )}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </motion.button>
             );
           })}

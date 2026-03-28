@@ -14,7 +14,10 @@ import {
   Star,
   FolderKanban,
   Settings,
+  Activity,
+  ShieldCheck,
 } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/config';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
 import Notifications from '@/components/dashboard/Notifications';
@@ -31,13 +34,24 @@ import MarketingCenter from '@/pages/admin/marketing/MarketingCenter';
 import ReviewsCenter from '@/pages/admin/reviews/ReviewsCenter';
 import CollectionsCenter from '@/pages/admin/collections/CollectionsCenter';
 import { AdminProfile } from '@/pages/admin/AdminProfile';
+import SystemAnalysisPage from '@/pages/admin/SystemAnalysisPage';
+import SecurityAnalysisPage from '@/pages/admin/SecurityAnalysisPage';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
+import type { MenuItem } from '@/components/dashboard/Sidebar';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [systemBadge, setSystemBadge] = useState<{ text: string; tone: MenuItem['badgeTone'] }>({
+    text: '…',
+    tone: 'neutral',
+  });
+  const [securityBadge, setSecurityBadge] = useState<{ text: string; tone: MenuItem['badgeTone'] }>({
+    text: '…',
+    tone: 'neutral',
+  });
   
   // Extract the route segment after /admin/
   const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -50,6 +64,8 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const validRoutes = [
       'dashboard',
+      'system-analysis',
+      'security-analysis',
       'users',
       'sellers',
       'products',
@@ -74,6 +90,31 @@ const AdminDashboard: React.FC = () => {
     }
   }, [location.pathname, navigate, pathSegments, adminIndex]);
 
+  useEffect(() => {
+    const t = localStorage.getItem('auth_token');
+    if (!t) return;
+    const h = { Authorization: `Bearer ${t}` };
+    fetch(`${API_BASE_URL}/system/health`, { headers: h })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d?.status) return;
+        const st = String(d.status);
+        if (st === 'OK') setSystemBadge({ text: 'OK', tone: 'ok' });
+        else if (st === 'WARN') setSystemBadge({ text: 'WARN', tone: 'warn' });
+        else setSystemBadge({ text: 'CRIT', tone: 'critical' });
+      })
+      .catch(() => {});
+    fetch(`${API_BASE_URL}/security-analysis/overview`, { headers: h })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (typeof d?.score !== 'number') return;
+        if (d.score >= 75) setSecurityBadge({ text: 'OK', tone: 'ok' });
+        else if (d.score >= 45) setSecurityBadge({ text: 'WARN', tone: 'warn' });
+        else setSecurityBadge({ text: 'RISK', tone: 'critical' });
+      })
+      .catch(() => {});
+  }, [location.pathname]);
+
   const setActiveTab = (tabId: string) => {
     if (tabId === 'dashboard') {
       navigate('/admin');
@@ -94,6 +135,20 @@ const AdminDashboard: React.FC = () => {
         accentVariant="emerald"
         menuItems={[
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          {
+            id: 'system-analysis',
+            label: 'System Analysis',
+            icon: Activity,
+            badge: systemBadge.text,
+            badgeTone: systemBadge.tone,
+          },
+          {
+            id: 'security-analysis',
+            label: 'Security Analysis',
+            icon: ShieldCheck,
+            badge: securityBadge.text,
+            badgeTone: securityBadge.tone,
+          },
           { id: 'users', label: 'Users', icon: Users },
           { id: 'sellers', label: 'Sellers', icon: StoreIcon },
           { id: 'products', label: 'Products', icon: Package },
@@ -119,10 +174,12 @@ const AdminDashboard: React.FC = () => {
           accentVariant="emerald"
         />
         
-        <main className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth bg-gray-50/50 dark:bg-black/30 p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden scroll-smooth bg-gray-50/50 dark:bg-black/30 p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
           <Routes>
             <Route index element={<AdminOverview />} />
             <Route path="dashboard" element={<AdminOverview />} />
+            <Route path="system-analysis" element={<SystemAnalysisPage />} />
+            <Route path="security-analysis" element={<SecurityAnalysisPage />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="sellers" element={<SellerStoreManagement />} />
             <Route path="products" element={<ProductManagementAdmin />} />

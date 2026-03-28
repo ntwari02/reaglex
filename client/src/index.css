@@ -19,10 +19,23 @@
     font-family: 'Times New Roman', Times, serif;
   }
 
+  html {
+    overflow-x: clip;
+    max-width: 100vw;
+  }
+
   body {
     background-color: var(--bg-page);
     color: var(--text-primary);
     font-family: 'Times New Roman', Times, serif;
+    overflow-x: hidden;
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #root {
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
 
   /* Dark mode overrides for legacy hard-coded text colors on buyer pages */

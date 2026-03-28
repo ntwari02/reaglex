@@ -36,7 +36,13 @@ export async function postAiAgent(req: AuthenticatedRequest, res: Response) {
     };
 
     const result = await handleAgentChat(message, ctx);
-    return res.json(result);
+    return res.json({
+      reply: result.reply,
+      products: result.products,
+      actionResult: result.actionResult,
+      model: result.modelUsed,
+      fallbackOccurred: result.fallbackOccurred,
+    });
   } catch (error: any) {
     const msg = error?.message || 'AI agent failed';
     if (msg.includes('GEMINI_API_KEY')) {

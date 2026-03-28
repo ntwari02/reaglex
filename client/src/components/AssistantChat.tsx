@@ -28,6 +28,7 @@ interface ChatMessage {
 
 const STORAGE_KEY = 'reaglex_unified_assistant_chat';
 const MAX_MESSAGES = 50;
+const SEND_COOLDOWN_MS = 10_000;
 const PRIMARY = '#f97316';
 
 function inferKind(text: string): string {
@@ -56,14 +57,19 @@ export default function AssistantChat() {
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [poweredByModel, setPoweredByModel] = useState<string | null>(null);
+  const [fallbackNotice, setFallbackNotice] = useState(false);
+  const [sendCooldownUntil, setSendCooldownUntil] = useState(0);
+  const [cooldownTick, setCooldownTick] = useState(0);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
+  const lastUserMessageRef = useRef('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const raw = window.sessionStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as ChatMessage[];
         if (Array.isArray(parsed) && parsed.length) {
@@ -89,11 +95,17 @@ export default function AssistantChat() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)));
     } catch {
       // ignore
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (sendCooldownUntil <= Date.now()) return;
+    const t = window.setInterval(() => setCooldownTick((n) => n + 1), 1000);
+    return () => window.clearInterval(t);
+  }, [sendCooldownUntil]);
 
   useEffect(() => {
     if (open) {
@@ -128,10 +140,13 @@ export default function AssistantChat() {
   const handleSend = async () => {
     const content = input.trim();
     if (!content || typing) return;
+    if (Date.now() < sendCooldownUntil) return;
     setInput('');
+    lastUserMessageRef.current = content;
 
     const userMsg = addMessage('user', content);
     setTyping(true);
+    setFallbackNotice(false);
 
     try {
       const token = localStorage.getItem('auth_token');
@@ -171,6 +186,12 @@ export default function AssistantChat() {
 
       const reply = String(data?.reply || '').trim() || 'How can I help you today?';
 
+      const modelName = data?.model != null ? String(data.model) : '';
+      if (modelName) setPoweredByModel(modelName);
+      setFallbackNotice(!!data?.fallbackOccurred);
+
+      setSendCooldownUntil(Date.now() + SEND_COOLDOWN_MS);
+
       const productsRaw = Array.isArray(data?.products) ? data.products : [];
       const products: ProductCard[] | undefined = productsRaw.length
         ? productsRaw.map((p: any) => ({
@@ -205,10 +226,18 @@ export default function AssistantChat() {
         "I'm having trouble reaching the AI agent right now.\n\nTry again, or ask about products, order tracking, or shipping.";
       addMessage('bot', reply);
       scrollToBottom();
+      setPoweredByModel(null);
     } finally {
       setTyping(false);
     }
   };
+
+  const cooldownRemainingSec = Math.max(
+    0,
+    Math.ceil((sendCooldownUntil - Date.now()) / 1000),
+  );
+  const sendDisabled =
+    typing || !input.trim() || Date.now() < sendCooldownUntil;
 
   if (isHidden) return null;
 
@@ -284,6 +313,18 @@ export default function AssistantChat() {
                   <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
                     Role-aware actions
                   </div>
+                  {poweredByModel && (
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: 'var(--text-muted)',
+                        marginTop: 4,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Powered by: {poweredByModel}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -302,6 +343,20 @@ export default function AssistantChat() {
                 ×
               </button>
             </div>
+
+            {fallbackNotice && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  fontSize: 11,
+                  color: '#b45309',
+                  background: 'rgba(251,191,36,0.15)',
+                  borderBottom: '1px solid var(--divider)',
+                }}
+              >
+                A fallback model was used so your request could complete.
+              </div>
+            )}
 
             <div
               ref={messagesRef}
@@ -409,13 +464,19 @@ export default function AssistantChat() {
             </div>
 
             <div style={{ padding: 12, borderTop: '1px solid var(--divider)' }}>
-              <div style={{ display: 'flex', gap: 8 }}>
+              {cooldownRemainingSec > 0 && (
+                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>
+                  Send cooldown: {cooldownRemainingSec}s (you can keep typing)
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask about products, orders, shipping..."
                   style={{
                     flex: 1,
+                    minWidth: 120,
                     borderRadius: 14,
                     border: '1px solid var(--border-subtle)',
                     background: 'var(--input-bg)',
@@ -425,24 +486,43 @@ export default function AssistantChat() {
                     fontSize: 12.5,
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSend();
+                    if (e.key === 'Enter' && !sendDisabled) handleSend();
                   }}
                 />
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={typing || !input.trim()}
+                  disabled={sendDisabled}
+                  title={sendDisabled && Date.now() < sendCooldownUntil ? 'Cooldown active' : 'Send'}
                   style={{
                     width: 48,
                     borderRadius: 14,
                     border: 'none',
-                    cursor: typing || !input.trim() ? 'not-allowed' : 'pointer',
-                    background: typing || !input.trim() ? '#e5e7eb' : `linear-gradient(135deg,${PRIMARY},#ea580c)`,
+                    cursor: sendDisabled ? 'not-allowed' : 'pointer',
+                    background: sendDisabled ? '#e5e7eb' : `linear-gradient(135deg,${PRIMARY},#ea580c)`,
                     color: '#fff',
                     fontWeight: 900,
                   }}
                 >
                   →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (lastUserMessageRef.current) setInput(lastUserMessageRef.current);
+                  }}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 14,
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--card-bg-subtle)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Retry
                 </button>
               </div>
             </div>

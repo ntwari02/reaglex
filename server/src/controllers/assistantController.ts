@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
+import { getAIRouter } from '../ai-assistant/singleton';
 
 type UserRole = 'guest' | 'buyer' | 'seller' | 'admin';
 
@@ -112,8 +113,8 @@ function buildSystemPrompt(role: UserRole, docs: string): string {
 
 export async function chatWithAssistant(req: Request, res: Response) {
   try {
-    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-    if (!apiKey) {
+    const router = getAIRouter();
+    if (!router) {
       return res.status(503).json({
         message: 'Assistant is not configured. Set GEMINI_API_KEY on the server.',
       });
@@ -126,40 +127,19 @@ export async function chatWithAssistant(req: Request, res: Response) {
 
     const role = getRoleFromRequest(req);
     const docs = loadAiDocsForPrompt();
-    const model = (process.env.GEMINI_MODEL || 'gemini-1.5-flash').trim();
+    const systemInstruction = buildSystemPrompt(role, docs);
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      model,
-    )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const routed = await router.routeAssistant(systemInstruction, message, `role:${role}`);
 
-    const body = {
-      systemInstruction: {
-        parts: [{ text: buildSystemPrompt(role, docs) }],
-      },
-      contents: [{ role: 'user', parts: [{ text: message }] }],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 700,
-      },
-    };
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+    return res.json({
+      reply: routed.text,
+      role,
+      model: routed.model,
+      tier: routed.tier,
+      complexityScore: routed.complexity.complexityScore,
+      cacheHit: routed.cacheHit,
+      fallbackOccurred: routed.fallbackOccurred,
     });
-
-    const data: any = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const err = data?.error?.message || 'Assistant request failed.';
-      return res.status(502).json({ message: err });
-    }
-
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text || '').join(' ').trim() ||
-      'I can help with products, orders, payments, and account workflows. What would you like to do?';
-
-    return res.json({ reply, role });
   } catch (error: any) {
     return res.status(500).json({ message: error?.message || 'Assistant internal error.' });
   }

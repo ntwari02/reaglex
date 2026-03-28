@@ -19,6 +19,9 @@ GOOGLE_CLIENT_SECRET=
 
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-flash-latest
+# AI router: model lists are NOT required in .env — defaults rotate by tier in code.
+# Override only if you need explicit IDs: TIER1_MODELS, TIER2_MODELS, TIER3_MODELS (comma-separated).
+# Optional: GEMINI_TIMEOUT_MS (5000–15000), EMBEDDING_MODEL (e.g. text-embedding-004)
 
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=

@@ -166,7 +166,8 @@ const Header: React.FC<HeaderProps> = ({
           variant="ghost"
           size="icon"
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+          className="lg:hidden min-h-[44px] min-w-[44px] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+          aria-label="Open menu"
         >
           <Menu className="w-6 h-6" />
         </Button>
@@ -188,7 +189,7 @@ const Header: React.FC<HeaderProps> = ({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? (
@@ -202,7 +203,8 @@ const Header: React.FC<HeaderProps> = ({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setNotificationsOpen(!notificationsOpen)}
-          className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+          className="relative min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+          aria-label="Notifications"
         >
           <Bell className="w-6 h-6 text-gray-600 dark:text-gray-400" />
           {notificationCount > 0 && (
