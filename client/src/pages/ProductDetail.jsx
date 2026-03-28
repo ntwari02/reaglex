@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import {
-  ShoppingBag, Heart, Star, ChevronLeft, Truck, Shield, RefreshCcw,
-  Plus, Minus, Share2, ZoomIn, Check, X, Link2,
+  ShoppingBag, Heart, Star, ChevronLeft, Truck, Shield,
+  Plus, Minus, Share2, ZoomIn, Check, X, Link2, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
+import './ProductDetail.css';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import ProductCard from '../components/ProductCard';
 import { productAPI } from '../services/api';
@@ -13,7 +14,7 @@ import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useSeo } from '../utils/useSeo';
 
 import { SERVER_URL } from '../lib/config';
-const PRIMARY = '#f97316';
+const PRIMARY = '#FF6B00';
 const ease = [0.25, 0.46, 0.45, 0.94];
 
 function resolveImage(src) {
@@ -58,13 +59,6 @@ const TABS = [
   { id: 'qa', label: 'Q&A' },
 ];
 
-const TRUST_BADGES = [
-  { icon: Truck, label: 'Free Shipping', sub: 'On orders $30+', color: '#2563eb' },
-  { icon: Shield, label: 'Secure Pay', sub: 'Encrypted', color: '#10b981' },
-  { icon: RefreshCcw, label: 'Easy Returns', sub: '30-day', color: PRIMARY },
-  { icon: Shield, label: 'Buyer Protection', sub: 'Full refund guaranteed', color: '#8b5cf6' },
-];
-
 const STAGGER = {
   breadcrumb: 0,
   image: 0.1,
@@ -107,6 +101,9 @@ export default function ProductDetail() {
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [expandedQa, setExpandedQa] = useState(null);
   const [relatedOffset, setRelatedOffset] = useState(0);
+  const [overviewTab, setOverviewTab] = useState('overview');
+  const [voteUp, setVoteUp] = useState(187);
+  const [voteDown, setVoteDown] = useState(14);
 
   // Build SEO inputs in a stable way to avoid hook-order bugs and unnecessary updates.
   const productId = product?._id || product?.id || id;
@@ -320,12 +317,17 @@ export default function ProductDetail() {
   const visibleRelated = related.slice(relatedOffset, relatedOffset + 4);
   const recentFiltered = recentItems.filter((p) => (p._id || p.id) !== id).slice(0, 6);
 
+  const shortDesc = (product.description || '').trim().slice(0, 160) || 'Premium quality — see details below.';
+  const sellerRating = Math.min(5, Math.max(0, Number(product.seller?.rating ?? rating) || rating));
+
   return (
     <BuyerLayout>
       <div
-        className="min-h-screen w-full px-4 sm:px-6 lg:px-10 xl:px-16 pt-6 pb-24"
-        style={{ background: 'var(--bg-page)', fontFamily: 'Inter, system-ui, sans-serif' }}
+        className="pd-page min-h-screen w-full px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 pb-24 font-sans"
+        style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
       >
+        <div className="pd-ambient-glow" aria-hidden />
+        <div className="pd-max mx-auto max-w-[1400px]">
         {/* ═══ TIER 1: Breadcrumb + Back to Results ═══ */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -351,14 +353,14 @@ export default function ProductDetail() {
           </Link>
         </motion.div>
 
-        {/* ═══ Main: Image + Info ═══ */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 xl:gap-12 mb-16">
+        {/* ═══ Main: Image + Info + Overview ═══ */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-10 mb-16 items-start">
           {/* ═══ TIER 2: Image section ═══ */}
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: STAGGER.image, ease }}
-            className="space-y-4"
+            className="space-y-4 xl:col-span-5 pd-col-image"
           >
             <div
               className="relative rounded-2xl overflow-hidden bg-[var(--card-bg)] cursor-zoom-in product-image-wrapper"
@@ -439,23 +441,27 @@ export default function ProductDetail() {
             )}
           </motion.div>
 
-          {/* ═══ TIER 3: Product info ═══ */}
-          <div className="flex flex-col gap-5">
+          {/* ═══ TIER 3: Product info (center) ═══ */}
+          <div className="flex flex-col gap-5 xl:col-span-4 min-w-0">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.category, duration: 0.4, ease }}>
-              <Link to={`/search?category=${encodeURIComponent(category)}`} className="inline-block px-3 py-1.5 rounded-full text-sm font-semibold transition-transform hover:scale-105" style={{ background: '#fff7ed', color: PRIMARY }}>
+              <Link to={`/search?category=${encodeURIComponent(category)}`} className="inline-block px-3 py-1.5 rounded-full text-sm font-semibold transition-transform hover:scale-105 dark:bg-orange-950/40" style={{ background: '#fff7ed', color: PRIMARY }}>
                 {category}
               </Link>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.title, duration: 0.4, ease }} className="flex flex-wrap items-center gap-2">
-              <h1
-                className="font-bold leading-tight product-title"
-                style={{ color: 'var(--text-primary)', fontSize: 32 }}
-              >
+            <div className="pd-loved-badge">
+              <Star className="w-3.5 h-3.5 pd-loved-star fill-current shrink-0" />
+              <span>#1 MOST LOVED</span>
+            </div>
+
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.title, duration: 0.4, ease }} className="flex flex-wrap items-start gap-2">
+              <h1 className="text-3xl md:text-4xl leading-tight product-title pd-title-grad">
                 {title}
               </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-green-700 bg-green-50">Verified Product ✓</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-green-700 bg-green-50 dark:bg-green-900/40 dark:text-green-300 shrink-0">Verified Product ✓</span>
             </motion.div>
+
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{shortDesc}</p>
 
             {/* Rating */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.rating, duration: 0.4, ease }} className="flex flex-wrap items-center gap-2">
@@ -472,38 +478,15 @@ export default function ProductDetail() {
             </motion.div>
 
             {/* Price - count-up effect */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.price, duration: 0.4, ease }}>
+            <div className="pd-price-block">
               <div className="flex flex-wrap items-baseline gap-3">
                 <PriceCountUp value={price} duration={0.8} delay={STAGGER.price} />
-                {oldPrice && <span className="text-lg line-through" style={{ color: '#9ca3af' }}>${oldPrice.toFixed(2)}</span>}
+                {oldPrice && <span className="text-lg line-through text-gray-400 dark:text-gray-500">${oldPrice.toFixed(2)}</span>}
                 {discount > 0 && <span className="px-2 py-0.5 rounded text-xs font-bold text-white" style={{ background: '#ef4444' }}>-{discount}%</span>}
               </div>
-              <p className="text-sm mt-1" style={{ color: '#6b7280' }}>or 3 payments of ${installment}</p>
-            </motion.div>
-
-            {/* Seller card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: STAGGER.seller, duration: 0.4, ease }}
-              className="p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)] hover:shadow-md transition-shadow product-overview-card"
-              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}
-            >
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: '#7c3aed' }}>P</div>
-                  <div>
-                    <p className="font-bold text-sm product-overview-seller" style={{ color: '#111827' }}>{seller}</p>
-                    <p className="text-xs product-overview-sub" style={{ color: '#6b7280' }}>⭐ 4.9 seller · 247 sales</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-green-500" title="Online" />
-                  <span className="text-xs" style={{ color: '#6b7280' }}>Online Now</span>
-                </div>
-              </div>
-              <Link to="/search" className="inline-block mt-2 text-sm font-semibold" style={{ color: PRIMARY }}>Visit Store →</Link>
-            </motion.div>
+              <div className="pd-price-line" aria-hidden />
+              <p className="text-sm mt-2 text-gray-500 dark:text-gray-400">or 3 payments of ${installment}</p>
+            </div>
 
             {/* Stock */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.seller + 0.05 }}>
@@ -542,88 +525,192 @@ export default function ProductDetail() {
             </motion.div>
 
             {/* Quantity */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.selectors + 0.1 }} className="flex items-center gap-3">
-              <span className="text-sm font-semibold" style={{ color: '#374151' }}>Quantity</span>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.selectors + 0.1 }} className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Quantity</span>
               <motion.div
                 animate={quantityShake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
                 transition={{ duration: 0.4 }}
-                className="flex items-center rounded-xl border-2 border-[var(--divider)] overflow-hidden bg-[var(--card-bg)] quantity-control"
+                className="pd-qty-wrap"
               >
-                <button
-                  type="button"
-                  onClick={decrementQty}
-                  className="w-12 h-12 flex items-center justify-center hover:bg-orange-50 transition-colors quantity-btn"
-                  style={{ color: '#374151' }}
-                >
-                  <Minus className="w-4 h-4" />
+                <button type="button" onClick={decrementQty} className="pd-qty-btn" aria-label="Decrease quantity">
+                  <Minus className="w-4 h-4 mx-auto" />
                 </button>
-                <span
-                  className="w-14 text-center font-bold text-lg quantity-value"
-                  style={{ color: '#111827' }}
-                >
+                <span className="min-w-[40px] text-center text-base font-bold text-gray-900 dark:text-white tabular-nums">
                   {quantity}
                 </span>
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.min(stock || 99, q + 1))}
                   disabled={quantity >= (stock || 99)}
-                  className="w-12 h-12 flex items-center justify-center hover:bg-orange-50 transition-colors disabled:opacity-40 quantity-btn"
-                  style={{ color: '#374151' }}
+                  className="pd-qty-btn disabled:opacity-40"
+                  aria-label="Increase quantity"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-4 h-4 mx-auto" />
                 </button>
               </motion.div>
             </motion.div>
 
-            {/* Add to Cart + Wishlist */}
-            <motion.div ref={addToCartRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.addButton, type: 'spring', stiffness: 300 }} className="flex gap-3">
+            {/* Add to Cart + Order now + Wishlist */}
+            <motion.div
+              ref={addToCartRef}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: STAGGER.addButton, type: 'spring', stiffness: 300 }}
+              className="flex flex-col sm:flex-row flex-wrap items-stretch gap-3"
+            >
               <motion.button
                 type="button"
                 onClick={handleAddToCart}
                 disabled={stock === 0 || addState === 'adding'}
-                className="flex-1 h-14 rounded-xl font-semibold flex items-center justify-center gap-2 text-white disabled:opacity-50"
-                style={{ background: addState === 'added' ? '#10b981' : PRIMARY, boxShadow: addState === 'idle' ? '0 4px 20px rgba(249,115,22,0.35)' : 'none' }}
+                className={`pd-add-cart pd-shimmer flex-1 min-h-[52px] ${addState === 'added' ? '!bg-emerald-600 !shadow-none' : ''}`}
+                style={addState === 'added' ? { background: '#059669' } : undefined}
                 whileHover={addState === 'idle' ? { scale: 1.01 } : {}}
-                whileTap={{ scale: 0.97 }}
+                whileTap={{ scale: 0.98 }}
               >
                 {addState === 'adding' && <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                {addState === 'idle' && <ShoppingBag className="w-5 h-5" />}
+                {addState === 'idle' && <ShoppingBag className="w-5 h-5 pd-cart-ico" />}
                 {addState === 'idle' && 'Add to Cart'}
                 {addState === 'adding' && 'Adding...'}
                 {addState === 'added' && 'Added to Cart ✓'}
               </motion.button>
-              <motion.button type="button" onClick={() => setWishlisted(!wishlisted)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-14 h-14 rounded-xl flex items-center justify-center border-2 bg-[var(--card-bg)] wishlist-btn" style={{ borderColor: wishlisted ? '#ef4444' : '#e5e7eb' }} title="Save to Wishlist">
-                <Heart className="w-5 h-5" fill={wishlisted ? '#ef4444' : 'none'} stroke={wishlisted ? '#ef4444' : '#374151'} />
-              </motion.button>
-            </motion.div>
-
-            {/* Buy Now - hover: slide-in orange from right */}
-            <motion.button
-              type="button"
-              onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
-              className="relative w-full h-14 rounded-xl font-semibold text-white flex items-center justify-center gap-2 overflow-hidden"
-              style={{ background: '#111827' }}
-              whileHover="hover"
-              initial="idle"
-              variants={{ idle: {}, hover: {} }}
-            >
-              <motion.span className="absolute inset-0 z-0" style={{ background: PRIMARY }} variants={{ idle: { x: '100%' }, hover: { x: 0 } }} transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }} />
-              <span className="relative z-10">Buy Now →</span>
-            </motion.button>
-
-            {/* ═══ TIER 4: Trust badges ═══ */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: STAGGER.trust, duration: 0.4, ease }} className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--divider)]" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-              {TRUST_BADGES.map(({ icon: Icon, label, sub, color }, idx) => (
-                <motion.div key={label} className="flex flex-col items-center text-center gap-1 p-2 rounded-xl hover:shadow-md transition-shadow" whileHover={{ y: -2 }}>
-                  <motion.span whileHover={idx === 0 ? { x: [0, 4, 0] } : idx === 1 ? { scale: [1, 1.15, 1] } : idx === 2 ? { rotate: 180 } : { scale: [1, 1.1, 1] }} transition={{ duration: 0.4 }}>
-                    <Icon className="w-5 h-5" style={{ color }} />
-                  </motion.span>
-                  <span className="text-xs font-semibold" style={{ color: '#111827' }}>{label}</span>
-                  <span className="text-[10px]" style={{ color: '#6b7280' }}>{sub}</span>
-                </motion.div>
-              ))}
+              <div className="flex items-center justify-center gap-4 sm:flex-initial">
+                <button
+                  type="button"
+                  onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
+                  className="pd-order-link whitespace-nowrap py-3 text-sm"
+                >
+                  Order now
+                </button>
+                <motion.button
+                  type="button"
+                  onClick={() => setWishlisted(!wishlisted)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-14 h-14 rounded-xl flex items-center justify-center border-2 bg-[var(--card-bg)] wishlist-btn shrink-0"
+                  style={{ borderColor: wishlisted ? '#ef4444' : '#e5e7eb' }}
+                  title="Save to Wishlist"
+                >
+                  <Heart className="w-5 h-5" fill={wishlisted ? '#ef4444' : 'none'} stroke={wishlisted ? '#ef4444' : '#374151'} />
+                </motion.button>
+              </div>
             </motion.div>
           </div>
+
+          {/* ═══ TIER 3b: Overview panel (right) ═══ */}
+          <aside className="xl:col-span-3 w-full">
+            <div className="pd-overview-card pd-overview-enter">
+              <div className="pd-overview-inner">
+                <div className="pd-tab-shell" style={{ animation: 'pd-fade-in 250ms ease 900ms both' }}>
+                  <button
+                    type="button"
+                    className={`pd-tab-btn ${overviewTab === 'overview' ? 'pd-tab-btn--active' : ''}`}
+                    onClick={() => setOverviewTab('overview')}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    type="button"
+                    className={`pd-tab-btn ${overviewTab === 'details' ? 'pd-tab-btn--active' : ''}`}
+                    onClick={() => setOverviewTab('details')}
+                  >
+                    Details
+                  </button>
+                </div>
+
+                {overviewTab === 'overview' && (
+                  <div>
+                    <div className="pd-store-block">
+                      <div className="relative w-14 h-14 flex-shrink-0">
+                        <div className="pd-badge-3d-back" aria-hidden />
+                        <div className="pd-badge-3d-front">
+                          <span className="text-xl font-extrabold text-white leading-none tabular-nums">{sellerRating.toFixed(1)}</span>
+                          <Star className="w-3 h-3 text-white/90 fill-white" strokeWidth={0} />
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-[15px] font-bold text-gray-900 dark:text-white">{seller}</p>
+                          <span className="pd-verified-pill">✓ Verified</span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{reviewsCount} reviews</p>
+                        <div className="pd-store-stars flex gap-0.5 mt-1">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <span key={i} className="pd-star-n">
+                              <Star
+                                className="w-3.5 h-3.5"
+                                fill={i <= Math.round(sellerRating) ? '#FF6B00' : 'none'}
+                                stroke="#FF6B00"
+                              />
+                            </span>
+                          ))}
+                        </div>
+                        <Link to="/search" className="inline-block mt-2 text-xs font-semibold hover:underline" style={{ color: PRIMARY }}>
+                          Visit Store →
+                        </Link>
+                      </div>
+                    </div>
+
+                    <p className="pd-overview-desc">{shortDesc}</p>
+
+                    <div className="flex flex-wrap gap-3 mb-5">
+                      <button
+                        type="button"
+                        className="pd-vote-up"
+                        onClick={() => setVoteUp((v) => v + 1)}
+                      >
+                        <ThumbsUp className="w-[18px] h-[18px] shrink-0" strokeWidth={2.5} />
+                        {voteUp}
+                      </button>
+                      <button
+                        type="button"
+                        className="pd-vote-down"
+                        onClick={() => setVoteDown((v) => v + 1)}
+                      >
+                        <ThumbsDown className="w-[18px] h-[18px] shrink-0" strokeWidth={2.5} />
+                        {voteDown}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2.5">
+                      <div className="pd-trust-row pd-trust-row--buyer">
+                        <span className="pd-trust-accent pd-trust-accent--orange" aria-hidden />
+                        <div className="pd-trust-icon-wrap pd-trust-icon-wrap--o pl-1">
+                          <Shield className="w-[18px] h-[18px]" strokeWidth={2} />
+                        </div>
+                        <span className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">Buyer protection guaranteed</span>
+                      </div>
+                      <div className="pd-trust-row pd-trust-row--ship">
+                        <span className="pd-trust-accent pd-trust-accent--purple" aria-hidden />
+                        <div className="pd-trust-icon-wrap pd-trust-icon-wrap--p pl-1">
+                          <Truck className="w-[18px] h-[18px]" strokeWidth={2} />
+                        </div>
+                        <span className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">Fast &amp; free shipping</span>
+                      </div>
+                    </div>
+
+                    <div className="pd-seller-ping">
+                      <span className="pd-pulse-dot" aria-hidden />
+                      <span className="text-xs font-medium text-green-800 dark:text-green-300">Seller typically responds within 1 hour</span>
+                    </div>
+                  </div>
+                )}
+
+                {overviewTab === 'details' && (
+                  <div className="pd-tab-panel-details space-y-4">
+                    <p>{product.description || 'No description available.'}</p>
+                    <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      {specs.slice(0, 6).map((row) => (
+                        <li key={row.prop} className="flex gap-2">
+                          <span className="font-semibold text-gray-800 dark:text-gray-200 shrink-0">{row.prop}:</span>
+                          <span>{row.value}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
 
         {/* ═══ TIER 5: Tabs ═══ */}
@@ -809,6 +896,7 @@ export default function ProductDetail() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </div>
 
       {/* Lightbox with arrows */}
@@ -862,7 +950,7 @@ function PriceCountUp({ value, duration = 0.8, delay = 0 }) {
     requestAnimationFrame(tick);
   }, [value, duration, delay]);
   return (
-    <span className="font-black text-4xl product-price" style={{ color: 'var(--text-primary)' }}>
+    <span className="pd-price-num font-black text-4xl product-price tabular-nums" style={{ color: 'var(--text-primary)' }}>
       ${display.toFixed(2)}
     </span>
   );
