@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { authenticate } from '../middleware/auth';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { uploadAvatar: uploadAvatarMiddleware } = require('../../config/cloudinary');
 import {
   getProfile,
   getPublicProfile,
@@ -29,43 +28,6 @@ import {
 
 const router = Router();
 
-// Configure Multer storage for profile images
-const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'profile');
-
-const storage = multer.diskStorage({
-  destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
-  },
-  filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, `profile-${uniqueSuffix}${ext}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit (increased to match frontend)
-  },
-  fileFilter: (_req: any, file: any, cb: any) => {
-    // Check MIME type first (more reliable)
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const allowedExtensions = /\.(jpeg|jpg|png|gif|webp)$/i;
-    
-    const isValidMimeType = allowedMimeTypes.includes(file.mimetype);
-    const isValidExtension = allowedExtensions.test(file.originalname);
-    
-    // Accept if either MIME type or extension is valid (more lenient)
-    if (isValidMimeType || isValidExtension) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
-    }
-  },
-});
-
 // All profile routes require authentication
 router.use(authenticate);
 
@@ -74,7 +36,7 @@ router.get('/me', getProfile);
 router.get('/public/:userId', getPublicProfile);
 router.patch('/me', updateProfile);
 // Avatar upload
-router.post('/me/avatar', upload.single('avatar'), uploadAvatar);
+router.post('/me/avatar', uploadAvatarMiddleware, uploadAvatar);
 
 // Address management
 router.post('/me/addresses', addAddress);

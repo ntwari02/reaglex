@@ -1,9 +1,11 @@
 import { Router, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import mongoose from 'mongoose';
 import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth';
+import { cloudinaryUploadBuffers } from '../middleware/cloudinaryMemoryUpload';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { uploadLogo, uploadBanner, deleteImage } = require('../../config/cloudinary');
 import { SellerSettings } from '../models/SellerSettings';
 import {
   getSellerSettings,
@@ -47,56 +49,8 @@ const getSellerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null 
 
 const router = Router();
 
-// Configure Multer storage for store images (logo and banner)
-const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'store');
-const verificationUploadDir = path.join(__dirname, '..', '..', 'uploads', 'store', 'verification');
-
-const storeImageStorage = multer.diskStorage({
-  destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
-  },
-  filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname) || '.jpg';
-    const prefix = file.fieldname === 'logo' ? 'logo' : 'banner';
-    cb(null, `${prefix}-${uniqueSuffix}${ext}`);
-  },
-});
-
-const verificationDocStorage = multer.diskStorage({
-  destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
-    fs.mkdirSync(verificationUploadDir, { recursive: true });
-    cb(null, verificationUploadDir);
-  },
-  filename: (req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname) || '.pdf';
-    const docType = req.params?.docType || 'document';
-    cb(null, `${docType}-${uniqueSuffix}${ext}`);
-  },
-});
-
-const upload = multer({
-  storage: storeImageStorage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit (increased from 5MB)
-  },
-  fileFilter: (_req: any, file: any, cb: any) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
-    }
-  },
-});
-
 const uploadVerificationDoc = multer({
-  storage: verificationDocStorage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
@@ -143,7 +97,7 @@ const handleMulterError = (err: any, req: any, res: Response, next: any) => {
 router.post(
   '/store/logo',
   (req: AuthenticatedRequest, res: Response, next: any) => {
-    upload.single('logo')(req, res, (err: any) => {
+    uploadLogo(req, res, (err: any) => {
       if (err) {
         return handleMulterError(err, req, res, next);
       }
@@ -161,10 +115,13 @@ router.post(
         return res.status(401).json({ message: 'Authentication required' });
       }
 
-      const fileUrl = `/uploads/store/${req.file.filename}`;
+      const fileUrl = req.file.path;
 
-      // Update seller settings with the logo URL
       let settings = await SellerSettings.findOne({ sellerId });
+      if (settings?.storeLogo) {
+        await deleteImage(settings.storeLogo);
+      }
+
       if (!settings) {
         settings = await SellerSettings.create({
           sellerId,
@@ -207,7 +164,7 @@ router.post(
 router.post(
   '/store/banner',
   (req: AuthenticatedRequest, res: Response, next: any) => {
-    upload.single('banner')(req, res, (err: any) => {
+    uploadBanner(req, res, (err: any) => {
       if (err) {
         return handleMulterError(err, req, res, next);
       }
@@ -225,10 +182,13 @@ router.post(
         return res.status(401).json({ message: 'Authentication required' });
       }
 
-      const fileUrl = `/uploads/store/${req.file.filename}`;
+      const fileUrl = req.file.path;
 
-      // Update seller settings with the banner URL
       let settings = await SellerSettings.findOne({ sellerId });
+      if (settings?.storeBanner) {
+        await deleteImage(settings.storeBanner);
+      }
+
       if (!settings) {
         settings = await SellerSettings.create({
           sellerId,
@@ -324,6 +284,7 @@ router.post(
       next();
     });
   },
+  cloudinaryUploadBuffers('reaglex/shops/verification'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!req.file) {
@@ -342,10 +303,15 @@ router.post(
         return res.status(400).json({ message: 'Invalid document type' });
       }
 
-      const fileUrl = `/uploads/store/verification/${req.file.filename}`;
+      const fileUrl = req.file.path;
+
+      let settings = await SellerSettings.findOne({ sellerId });
+      const prevUrl = settings?.verificationDocuments && (settings.verificationDocuments as any)[docType];
+      if (typeof prevUrl === 'string' && prevUrl) {
+        await deleteImage(prevUrl);
+      }
 
       // Update seller settings with the document URL
-      let settings = await SellerSettings.findOne({ sellerId });
       if (!settings) {
         settings = await SellerSettings.create({
           sellerId,

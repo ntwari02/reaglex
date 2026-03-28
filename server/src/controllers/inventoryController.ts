@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { deleteImage } = require('../../config/cloudinary');
 import { Product } from '../models/Product';
 import { Warehouse } from '../models/Warehouse';
 import { StockHistory } from '../models/StockHistory';
@@ -213,10 +215,16 @@ export async function deleteProduct(req: AuthenticatedRequest, res: Response) {
   const { id } = req.params;
 
   try {
-    const deleted = await Product.findOneAndDelete({ _id: id, sellerId });
-    if (!deleted) {
+    const existing = await Product.findOne({ _id: id, sellerId });
+    if (!existing) {
       return res.status(404).json({ message: 'Product not found' });
     }
+
+    if (existing.images?.length) {
+      await Promise.all(existing.images.map((url) => deleteImage(url)));
+    }
+
+    await existing.deleteOne();
 
     return res.json({ message: 'Product deleted' });
   } catch (err: any) {

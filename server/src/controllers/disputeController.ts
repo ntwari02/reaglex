@@ -312,7 +312,7 @@ export async function uploadEvidence(req: AuthenticatedRequest, res: Response) {
 
       return {
         type: evidenceType,
-        url: `/uploads/disputes/${file.filename}`,
+        url: file.path,
         description: notes || file.originalname,
         uploadedAt: new Date(),
       };

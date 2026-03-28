@@ -295,7 +295,7 @@ export async function uploadBuyerEvidence(req: AuthenticatedRequest, res: Respon
       }
       return {
         type: evidenceType,
-        url: `/uploads/disputes/${file.filename}`,
+        url: file.path,
         description: file.originalname,
         uploadedAt: new Date(),
       };

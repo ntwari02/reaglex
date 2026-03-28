@@ -1,8 +1,8 @@
 import { Router, Request } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth';
+import { cloudinaryUploadBuffers } from '../middleware/cloudinaryMemoryUpload';
 import {
   getDisputes,
   getDispute,
@@ -14,33 +14,8 @@ type FileFilterCallback = ((error: Error) => void) | ((error: null, acceptFile: 
 
 const router = Router();
 
-// Configure Multer for dispute evidence
-const uploadsDir = path.join(__dirname, '../../uploads/disputes');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const disputeStorage = multer.diskStorage({
-  destination: (
-    req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, destination: string) => void
-  ) => {
-    cb(null, uploadsDir);
-  },
-  filename: (
-    req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, filename: string) => void
-  ) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `dispute-${uniqueSuffix}${ext}`);
-  },
-});
-
 const disputeUpload = multer({
-  storage: disputeStorage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit (increased for videos)
   },
@@ -75,7 +50,12 @@ router.get('/:disputeId', getDispute);
 router.post('/:disputeId/response', submitSellerResponse);
 
 // Upload evidence
-router.post('/:disputeId/evidence', disputeUpload.array('files', 10), uploadEvidence);
+router.post(
+  '/:disputeId/evidence',
+  disputeUpload.array('files', 10),
+  cloudinaryUploadBuffers('reaglex/disputes'),
+  uploadEvidence,
+);
 
 export default router;
 

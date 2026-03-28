@@ -29,6 +29,7 @@
     "mongoose": "^9.0.1",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^6.10.1",
@@ -57,7 +58,8 @@
     "seo:ssr:dev": "ts-node-dev --respawn --transpile-only src/seo/seoSsrServer.ts",
     "seo:ssr": "node dist/src/seo/seoSsrServer.js",
     "seed:disputes": "ts-node src/scripts/seedDisputes.ts",
-    "seed:inbox": "ts-node src/scripts/seedInboxData.ts"
+    "seed:inbox": "ts-node src/scripts/seedInboxData.ts",
+    "migrate:images": "node scripts/migrateImages.js"
   },
   "keywords": [],
   "author": "",

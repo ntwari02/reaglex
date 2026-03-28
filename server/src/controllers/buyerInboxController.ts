@@ -387,7 +387,7 @@ export async function sendMessage(req: AuthenticatedRequest, res: Response) {
       return {
         filename: att.filename || att.path?.split('/').pop() || '',
         originalName: att.originalName || att.filename || '',
-        path: att.path || `/uploads/inbox/${att.filename}`,
+        path: att.path || '',
         size: att.size || 0,
         mimetype: att.mimetype || 'application/octet-stream',
         type: isAudio ? 'voice' : isImage ? 'image' : 'file',

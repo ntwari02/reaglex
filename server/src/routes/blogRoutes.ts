@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import type { Request } from 'express';
 import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { uploadBlogThumbnail, deleteImage } = require('../../config/cloudinary');
 import {
   getBlogPosts,
   getBlogPostBySlug,
@@ -20,43 +19,6 @@ import {
 } from '../controllers/blogController';
 
 const router = Router();
-
-// Configure Multer for blog thumbnail uploads
-const uploadsDir = path.join(__dirname, '../../uploads/blog');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const blogStorage = multer.diskStorage({
-  destination: (_req: AuthenticatedRequest, _file: any, cb: (error: Error | null, destination: string) => void) => {
-    cb(null, uploadsDir);
-  },
-  filename: (_req: AuthenticatedRequest, file: any, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, `blog-${uniqueSuffix}${ext}`);
-  },
-});
-
-const blogUpload = multer({
-  storage: blogStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (
-    _req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, acceptFile?: boolean) => void
-  ) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
-    }
-  },
-});
 
 // Public routes (no authentication required)
 router.get('/', getBlogPosts);
@@ -81,7 +43,12 @@ router.post(
   '/:slug/thumbnail',
   authenticate,
   authorize('admin', 'seller'),
-  blogUpload.single('thumbnail'),
+  (req: AuthenticatedRequest, res, next) => {
+    uploadBlogThumbnail(req as Request, res, (err: unknown) => {
+      if (err) return next(err);
+      next();
+    });
+  },
   async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.file) {
@@ -89,31 +56,23 @@ router.post(
       }
 
       const { slug } = req.params;
-      const thumbnailUrl = `/uploads/blog/${req.file.filename}`;
+      const thumbnailUrl = req.file.path;
 
-      // Update blog post with thumbnail URL
       const { BlogPost } = await import('../models/Blog');
       const blogPost = await BlogPost.findOne({ slug });
 
       if (!blogPost) {
-        // Delete uploaded file if blog post not found
-        fs.unlinkSync(req.file.path);
+        await deleteImage(thumbnailUrl);
         return res.status(404).json({ message: 'Blog post not found' });
       }
 
-      // Check permissions
       if (req.user?.role !== 'admin' && blogPost.authorId.toString() !== req.user?.id) {
-        // Delete uploaded file if unauthorized
-        fs.unlinkSync(req.file.path);
+        await deleteImage(thumbnailUrl);
         return res.status(403).json({ message: 'Forbidden: you can only update your own posts' });
       }
 
-      // Delete old thumbnail if exists
       if (blogPost.thumbnail) {
-        const oldThumbnailPath = path.join(__dirname, '../..', blogPost.thumbnail);
-        if (fs.existsSync(oldThumbnailPath)) {
-          fs.unlinkSync(oldThumbnailPath);
-        }
+        await deleteImage(blogPost.thumbnail);
       }
 
       blogPost.thumbnail = thumbnailUrl;
@@ -122,14 +81,12 @@ router.post(
       return res.json({ message: 'Thumbnail uploaded successfully', thumbnailUrl });
     } catch (error: any) {
       console.error('Upload thumbnail error:', error);
-      // Delete uploaded file on error
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
+      if (req.file?.path) {
+        await deleteImage(req.file.path);
       }
       return res.status(500).json({ message: 'Failed to upload thumbnail' });
     }
-  }
+  },
 );
 
 export default router;
-

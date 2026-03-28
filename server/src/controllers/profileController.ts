@@ -1,6 +1,5 @@
 import { Response } from 'express';
 import { z } from 'zod';
-import path from 'path';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { User, IAddress, IPaymentMethod } from '../models/User';
@@ -645,8 +644,15 @@ export async function uploadAvatar(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Generate the URL path for the uploaded file
-    const avatarUrl = `/uploads/profile/${path.basename(file.path)}`;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { deleteImage } = require('../../config/cloudinary');
+
+    const existingUser = await User.findById(req.user.id).select('avatarUrl');
+    if (existingUser?.avatarUrl) {
+      await deleteImage(existingUser.avatarUrl);
+    }
+
+    const avatarUrl = file.path as string;
 
     // Update user's avatar URL
     const user = await User.findByIdAndUpdate(

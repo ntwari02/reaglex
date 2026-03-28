@@ -572,6 +572,22 @@ const ProductManagement: React.FC = () => {
     }
   };
 
+  const handleRemoveProductImage = (index: number) => {
+    if (editingProduct) {
+      const next = [...(editingProduct.images || [])];
+      next.splice(index, 1);
+      setEditingProduct({
+        ...editingProduct,
+        images: next,
+      });
+    } else {
+      setNewProduct((prev) => ({
+        ...prev,
+        images: prev.images.filter((_, i) => i !== index),
+      }));
+    }
+  };
+
   // Close export menu when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1694,14 +1710,23 @@ const ProductManagement: React.FC = () => {
                     {(editingProduct?.images || newProduct.images).map(
                       (url, idx) => (
                         <div
-                          key={idx}
-                          className="w-16 h-16 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800"
+                          key={`${url}-${idx}`}
+                          className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 group"
                         >
                           <img
                             src={resolveImageUrl(url)}
                             alt={`Product ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
+                          <button
+                            type="button"
+                            aria-label="Remove image"
+                            title="Remove image"
+                            onClick={() => handleRemoveProductImage(idx)}
+                            className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-bl-md bg-black/70 text-white opacity-100 transition hover:bg-red-600 md:opacity-0 md:group-hover:opacity-100"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       )
                     )}

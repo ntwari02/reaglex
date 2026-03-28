@@ -3,6 +3,7 @@ import path from 'path';
 
 // Load .env first so RESEND_API_KEY and others are available when other modules load
 dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, 'env') });
 
 import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
@@ -144,41 +145,6 @@ const authLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 app.use('/api/auth', authLimiter);
-// Static files for uploaded images and audio
-// Allow product images to be embedded from a different origin (e.g. Vite dev server on 5173)
-// by relaxing the Cross-Origin-Resource-Policy for this path only.
-app.use(
-  '/uploads',
-  helmet.crossOriginResourcePolicy({ policy: 'cross-origin' })
-);
-
-// B) Serve static files with proper content-type headers (especially for audio files)
-// CRITICAL: Do not modify audio binary - serve exactly as uploaded
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-  setHeaders: (res, filePath, stat) => {
-    // B) Server must respond audio with proper headers
-    // Content-Type: audio/webm or audio/ogg (matching file type)
-    // Content-Length must be correct (set automatically by express.static)
-    if (filePath.endsWith('.webm')) {
-      res.setHeader('Content-Type', 'audio/webm');
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Content-Length', stat.size.toString());
-    } else if (filePath.endsWith('.ogg')) {
-      res.setHeader('Content-Type', 'audio/ogg');
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Content-Length', stat.size.toString());
-    } else if (filePath.endsWith('.m4a') || filePath.endsWith('.mp4')) {
-      res.setHeader('Content-Type', 'audio/mp4');
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Content-Length', stat.size.toString());
-    } else if (filePath.endsWith('.wav')) {
-      res.setHeader('Content-Type', 'audio/wav');
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Content-Length', stat.size.toString());
-    }
-    // Express.static will handle other file types automatically
-  }
-}));
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
@@ -261,6 +227,25 @@ app.use(seoRoutes);
 // 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({ message: 'Route not found', path: req.path });
+});
+
+// Handle multer and Cloudinary upload errors
+app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  if (err?.name === 'MulterError') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        error: 'File too large. Maximum size is 10MB per image.',
+        message: 'File too large. Maximum size is 10MB per image.',
+      });
+    }
+    return res.status(400).json({ error: err.message, message: err.message });
+  }
+
+  if (err?.message && String(err.message).includes('Invalid file type')) {
+    return res.status(400).json({ error: err.message, message: err.message });
+  }
+
+  next(err);
 });
 
 // Error handler

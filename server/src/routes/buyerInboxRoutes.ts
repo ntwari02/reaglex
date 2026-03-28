@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import type { Request } from 'express';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
+import { cloudinaryUploadBuffers } from '../middleware/cloudinaryMemoryUpload';
 import {
   getThreads,
   getThread,
@@ -22,25 +22,8 @@ import {
 
 const router = Router();
 
-// Configure Multer for inbox attachments (same as seller)
-const uploadsDir = path.join(__dirname, '../../uploads/inbox');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const inboxStorage = multer.diskStorage({
-  destination: (_req: Request, _file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
-    cb(null, uploadsDir);
-  },
-  filename: (_req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `inbox-${uniqueSuffix}${ext}`);
-  },
-});
-
 const inboxUpload = multer({
-  storage: inboxStorage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit per file
   },
@@ -194,7 +177,11 @@ router.get('/threads/:threadId', getThread);
 router.post('/threads', createThread);
 
 // Upload attachments for messages (including voice notes)
-router.post('/upload', inboxUpload.array('attachments', 5), (req: AuthenticatedRequest, res) => {
+router.post(
+  '/upload',
+  inboxUpload.array('attachments', 5),
+  cloudinaryUploadBuffers('reaglex/inbox'),
+  (req: AuthenticatedRequest, res) => {
   try {
     if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
@@ -223,7 +210,7 @@ router.post('/upload', inboxUpload.array('attachments', 5), (req: AuthenticatedR
       return {
         filename: file.filename,
         originalName: file.originalname,
-        path: `/uploads/inbox/${file.filename}`,
+        path: file.path,
         size: file.size,
         mimetype: file.mimetype,
         type: isAudio ? 'voice' : isImage ? 'image' : 'file',
@@ -244,7 +231,11 @@ router.post('/upload', inboxUpload.array('attachments', 5), (req: AuthenticatedR
 });
 
 // Send a message in a thread (with optional file attachments)
-router.post('/threads/:threadId/messages', inboxUpload.array('attachments', 5), async (req: AuthenticatedRequest, res) => {
+router.post(
+  '/threads/:threadId/messages',
+  inboxUpload.array('attachments', 5),
+  cloudinaryUploadBuffers('reaglex/inbox'),
+  async (req: AuthenticatedRequest, res) => {
   try {
     console.log('[Route] Received send message request');
     console.log('[Route] Body keys:', Object.keys(req.body));
@@ -264,7 +255,7 @@ router.post('/threads/:threadId/messages', inboxUpload.array('attachments', 5), 
           return {
             filename: file.filename,
             originalName: file.originalname,
-            path: `/uploads/inbox/${file.filename}`,
+            path: file.path,
             size: file.size,
             mimetype: file.mimetype,
             type: isAudio ? 'voice' : isImage ? 'image' : 'file',

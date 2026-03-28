@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import type { Request } from 'express';
 import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth';
+import { cloudinaryUploadBuffers } from '../middleware/cloudinaryMemoryUpload';
 import {
   getTickets,
   getTicket,
@@ -16,25 +16,8 @@ import {
 
 const router = Router();
 
-// Configure Multer for ticket attachments
-const uploadsDir = path.join(__dirname, '../../uploads/tickets');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const ticketStorage = multer.diskStorage({
-  destination: (_req: Request, _file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
-    cb(null, uploadsDir);
-  },
-  filename: (_req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `ticket-${uniqueSuffix}${ext}`);
-  },
-});
-
 const ticketUpload = multer({
-  storage: ticketStorage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
@@ -87,7 +70,11 @@ router.get('/:ticketId', getTicket);
 router.post('/', createTicket);
 
 // Upload attachments for ticket creation
-router.post('/upload', ticketUpload.array('attachments', 5), (req: AuthenticatedRequest, res) => {
+router.post(
+  '/upload',
+  ticketUpload.array('attachments', 5),
+  cloudinaryUploadBuffers('reaglex/tickets'),
+  (req: AuthenticatedRequest, res) => {
   try {
     if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
@@ -96,7 +83,7 @@ router.post('/upload', ticketUpload.array('attachments', 5), (req: Authenticated
     const files = (req.files as Express.Multer.File[]).map((file) => ({
       filename: file.filename,
       originalName: file.originalname,
-      path: `/uploads/tickets/${file.filename}`,
+      path: file.path,
       size: file.size,
       mimetype: file.mimetype,
     }));
@@ -112,15 +99,17 @@ router.post('/upload', ticketUpload.array('attachments', 5), (req: Authenticated
 });
 
 // Add a message to a ticket
-router.post('/:ticketId/messages', ticketUpload.array('attachments', 5), async (req: AuthenticatedRequest, res) => {
+router.post(
+  '/:ticketId/messages',
+  ticketUpload.array('attachments', 5),
+  cloudinaryUploadBuffers('reaglex/tickets'),
+  async (req: AuthenticatedRequest, res) => {
   try {
     // Handle file uploads first
     const attachments: string[] = [];
     if (req.files && (req.files as Express.Multer.File[]).length > 0) {
       attachments.push(
-        ...(req.files as Express.Multer.File[]).map(
-          (file) => `/uploads/tickets/${file.filename}`
-        )
+        ...(req.files as Express.Multer.File[]).map((file) => file.path)
       );
     }
 
