@@ -20,6 +20,7 @@ import {
   isEmailConfigured,
 } from '../services/emailService';
 import { getClientUrl, getServerUrl } from '../config/publicEnv';
+import { recordLoginFailure, recordLoginSuccess } from '../services/systemMonitor.service';
 
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
 
@@ -219,11 +220,13 @@ export async function login(req: Request, res: Response) {
 
     const user = await User.findOne({ email });
     if (!user) {
+      recordLoginFailure(req, 'Invalid credentials — unknown email', email);
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     // Check if user account is inactive or banned
     if (user.accountStatus === 'inactive' || user.accountStatus === 'banned') {
+      recordLoginFailure(req, 'Sign-in blocked — account inactive/banned', user.email);
       return res.status(403).json({ 
         message: 'Your account has been deactivated. Please contact support for assistance.' 
       });
@@ -231,6 +234,7 @@ export async function login(req: Request, res: Response) {
 
     // Check if user is OAuth-only (no password set)
     if (!user.passwordHash || user.passwordHash.trim() === '') {
+      recordLoginFailure(req, 'OAuth-only account — password sign-in rejected', user.email);
       return res.status(400).json({ 
         message: 'This account uses Google Sign-In. Please sign in with Google instead.' 
       });
@@ -238,11 +242,13 @@ export async function login(req: Request, res: Response) {
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
+      recordLoginFailure(req, 'Invalid password', user.email);
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     // Require email verification before sign-in (Gmail verification flow)
     if (!user.emailVerified) {
+      recordLoginFailure(req, 'Email not verified', user.email);
       return res.status(403).json({
         message: 'Please verify your email before signing in. Check your inbox for a 6-digit code, or request a new code.',
         code: 'EMAIL_NOT_VERIFIED',
@@ -300,6 +306,7 @@ export async function login(req: Request, res: Response) {
     // (or device approval is requested when another device is active).
     if (user.role === 'admin' || user.role === 'seller') {
       const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
+        recordLoginSuccess(req, user.role, user.email);
         res
           .cookie('token', token, {
             httpOnly: true,
@@ -325,6 +332,7 @@ export async function login(req: Request, res: Response) {
     }
 
     const token = generateAuthToken(user);
+    recordLoginSuccess(req, user.role, user.email);
     return res
       .cookie('token', token, {
         httpOnly: true,
@@ -383,6 +391,7 @@ export async function verify2FA(req: Request, res: Response) {
       window: 2,
     });
     if (!valid) {
+      recordLoginFailure(req, 'Invalid 2FA code', user.email);
       return res.status(400).json({ message: 'Invalid verification code. Try again.' });
     }
     const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {

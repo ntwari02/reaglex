@@ -5,7 +5,12 @@ import {
   getSystemHealth,
   getApiMonitoringList,
   getMonitorLogs,
-  getUserSellerBehavior,
+  getActivityStream,
+  getAlerts,
+  getGlobalStatus,
+  getUptimeBuckets24h,
+  getTerminalBuffers,
+  seedMonitorLogsOnce,
 } from '../services/systemMonitor.service';
 import { getSecurityOverview } from '../services/securityAnalysis.service';
 
@@ -52,20 +57,38 @@ export function attachSystemMonitorNamespaces(io: Server): void {
     });
   });
 
+  const TICK_MS = 1500;
+
   setInterval(() => {
+    seedMonitorLogsOnce();
     const health = getSystemHealth();
+    const endpoints = getApiMonitoringList();
+    const activity = getActivityStream(40);
+    const alerts = getAlerts();
+    const status = getGlobalStatus();
+    const buckets24h = getUptimeBuckets24h();
+    const terminals = getTerminalBuffers();
+
+    systemNs.to('system-monitors').emit('system:bundle', {
+      health,
+      endpoints,
+      activity,
+      alerts,
+      status,
+      buckets24h,
+      terminals,
+      ts: new Date().toISOString(),
+    });
+
     systemNs.to('system-monitors').emit('system:health:update', health);
-    const endpoints = getApiMonitoringList().slice(0, 20);
     systemNs.to('system-monitors').emit('system:api:update', { endpoints });
-    const logs = getMonitorLogs().slice(0, 1);
-    if (logs[0]) {
-      systemNs.to('system-monitors').emit('system:log:new', logs[0]);
+    systemNs.to('system-monitors').emit('system:activity', activity);
+
+    const latest = getMonitorLogs().slice(0, 1)[0];
+    if (latest) {
+      systemNs.to('system-monitors').emit('system:log:new', latest);
     }
-    const behavior = getUserSellerBehavior().filter((r) => r.status === 'FLAGGED').slice(0, 3);
-    if (behavior.length) {
-      systemNs.to('system-monitors').emit('system:user:alert', { rows: behavior });
-    }
-  }, 5000);
+  }, TICK_MS);
 
   setInterval(() => {
     const overview = getSecurityOverview();

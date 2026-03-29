@@ -117,7 +117,20 @@ app.use((req, res, next) => {
     try {
       if (req.originalUrl.startsWith('/api')) {
         seedMonitorLogsOnce();
-        recordApiTiming(req.originalUrl.split('?')[0], Date.now() - t0, res.statusCode);
+        const xf = req.headers['x-forwarded-for'];
+        const clientIp =
+          typeof xf === 'string'
+            ? xf.split(',')[0]?.trim() || ''
+            : req.ip || req.socket.remoteAddress || '';
+        recordApiTiming({
+          path: req.originalUrl.split('?')[0],
+          method: req.method,
+          ms: Date.now() - t0,
+          statusCode: res.statusCode,
+          clientIp: clientIp || '—',
+          userAgent: req.get('user-agent') || '',
+          payloadBytes: Number(req.headers['content-length'] || 0),
+        });
       }
     } catch {
       /* ignore */

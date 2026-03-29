@@ -4,11 +4,13 @@ import { io } from 'socket.io-client';
 import {
   AlertTriangle,
   CheckCircle2,
+  KeyRound,
   Radar,
   RefreshCw,
   ScanSearch,
   Shield,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import { API_BASE_URL, SERVER_URL } from '@/lib/config';
 import { useSecurityAnalysisUiStore } from '@/stores/securityAnalysisUiStore';
@@ -23,8 +25,21 @@ function scoreColor(score: number) {
 }
 
 export default function SecurityAnalysisPage() {
-  const { overview, findings, surfaceNodes, events, compliance, setOverview, setFindings, setSurface, setEvents, setCompliance } =
-    useSecurityAnalysisUiStore();
+  const {
+    overview,
+    findings,
+    surfaceNodes,
+    events,
+    compliance,
+    authEvents,
+    behaviorRows,
+    setOverview,
+    setFindings,
+    setSurface,
+    setEvents,
+    setCompliance,
+    setAuthActivity,
+  } = useSecurityAnalysisUiStore();
   const [scanning, setScanning] = useState(false);
   const [socketTick, setSocketTick] = useState<number | null>(null);
 
@@ -38,19 +53,21 @@ export default function SecurityAnalysisPage() {
 
   const load = useCallback(async () => {
     const h = authHeaders();
-    const [ov, fv, sf, ev, cp] = await Promise.all([
+    const [ov, fv, sf, ev, cp, au] = await Promise.all([
       fetch(`${API_BASE_URL}/security-analysis/overview`, { headers: h }).then((r) => r.json()),
       fetch(`${API_BASE_URL}/security-analysis/vulnerabilities`, { headers: h }).then((r) => r.json()),
       fetch(`${API_BASE_URL}/security-analysis/surface`, { headers: h }).then((r) => r.json()),
       fetch(`${API_BASE_URL}/security-analysis/events`, { headers: h }).then((r) => r.json()),
       fetch(`${API_BASE_URL}/security-analysis/compliance`, { headers: h }).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/security-analysis/auth-activity`, { headers: h }).then((r) => r.json()),
     ]);
     setOverview(ov);
     setFindings(fv.findings ?? []);
     setSurface(sf.nodes ?? []);
     setEvents(ev.events ?? []);
     setCompliance(cp.items ?? []);
-  }, [authHeaders, setOverview, setFindings, setSurface, setEvents, setCompliance]);
+    setAuthActivity(au.events ?? [], au.behavior ?? []);
+  }, [authHeaders, setOverview, setFindings, setSurface, setEvents, setCompliance, setAuthActivity]);
 
   useEffect(() => {
     void load();
@@ -197,6 +214,128 @@ export default function SecurityAnalysisPage() {
               </div>
             </>
           )}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-violet-500/30 dark:border-violet-500/25 bg-gradient-to-br from-violet-500/5 via-transparent to-cyan-500/5 dark:from-violet-950/40 dark:to-gray-950/50 overflow-hidden backdrop-blur-sm">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-violet-400" />
+            Identity &amp; sign-in intelligence
+          </h2>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-gray-500">
+            Buyer · Seller · Admin telemetry
+          </span>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x divide-gray-200 dark:divide-gray-800">
+          <div className="p-4 min-w-0">
+            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              <Shield className="w-3.5 h-3.5 text-emerald-400" />
+              Auth stream (success / failure / blocked)
+            </p>
+            <div className="space-y-2 max-h-[280px] overflow-y-auto font-mono text-[11px] pr-1">
+              {authEvents.length === 0 && (
+                <p className="text-gray-500 italic">No sign-in events recorded yet — log in as buyer, seller, or admin to populate this feed.</p>
+              )}
+              {authEvents.map((a) => (
+                <motion.div
+                  key={a.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={cn(
+                    'rounded-lg border px-2.5 py-2',
+                    a.type === 'LOGIN_FAIL' && 'border-red-500/40 bg-red-500/5',
+                    a.type === 'LOGIN_OK' && 'border-emerald-500/35 bg-emerald-500/5',
+                    a.type === 'LOGIN_BLOCKED' && 'border-orange-500/40 bg-orange-500/5',
+                    a.type === 'ROLE_SIGNIN' && 'border-cyan-500/35 bg-cyan-500/5',
+                  )}
+                >
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span
+                      className={cn(
+                        'uppercase tracking-wide',
+                        a.type === 'LOGIN_FAIL' && 'text-red-400',
+                        a.type === 'LOGIN_OK' && 'text-emerald-400',
+                        a.type === 'LOGIN_BLOCKED' && 'text-amber-400',
+                        a.type === 'ROLE_SIGNIN' && 'text-cyan-400',
+                      )}
+                    >
+                      {a.type}
+                    </span>
+                    {a.role && <span className="text-gray-500">· {a.role}</span>}
+                    <span className="text-gray-500 ml-auto tabular-nums">
+                      {new Date(a.at).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 mt-1 break-words">{a.detail}</p>
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    IP {a.ip}
+                    {a.email ? ` · ${a.email}` : ''}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+          <div className="p-4 min-w-0">
+            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-cyan-400" />
+              User &amp; seller signals (moved from System Analysis)
+            </p>
+            <div className="overflow-x-auto max-h-[280px] overflow-y-auto">
+              <table className="w-full text-left text-xs min-w-[420px]">
+                <thead className="text-gray-500 uppercase sticky top-0 bg-white/95 dark:bg-gray-950/95">
+                  <tr>
+                    <th className="py-1.5 pr-2">Role</th>
+                    <th className="py-1.5 pr-2">Action</th>
+                    <th className="py-1.5 pr-2">Detail</th>
+                    <th className="py-1.5 pr-2">Risk</th>
+                    <th className="py-1.5 pr-2">Status</th>
+                    <th className="py-1.5">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {behaviorRows.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-3 text-gray-500 italic">
+                        No behavior rows yet.
+                      </td>
+                    </tr>
+                  )}
+                  {behaviorRows.map((b) => (
+                    <tr
+                      key={`${b.userId}-${b.at}-${b.action}`}
+                      className={cn(
+                        'border-t border-gray-200 dark:border-gray-800',
+                        b.risk === 'HIGH' && 'bg-red-500/5',
+                        b.risk === 'MEDIUM' && 'bg-amber-500/5',
+                      )}
+                    >
+                      <td className="py-2 pr-2 font-mono text-cyan-300">{b.role}</td>
+                      <td className="py-2 pr-2 max-w-[120px] truncate" title={b.action}>
+                        {b.action}
+                      </td>
+                      <td className="py-2 pr-2 max-w-[180px] truncate text-gray-500" title={b.detail}>
+                        {b.detail || '—'}
+                      </td>
+                      <td className="py-2 pr-2">
+                        <span
+                          className={cn(
+                            b.risk === 'HIGH' && 'text-red-400',
+                            b.risk === 'MEDIUM' && 'text-amber-400',
+                            b.risk === 'LOW' && 'text-emerald-400',
+                          )}
+                        >
+                          {b.risk}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-2">{b.status}</td>
+                      <td className="py-2 whitespace-nowrap text-gray-500">{new Date(b.at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
