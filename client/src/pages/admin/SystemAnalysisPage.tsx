@@ -75,6 +75,7 @@ export default function SystemAnalysisPage() {
     setTerminals,
     setLogs,
     prependLog,
+    prependActivity,
     setSettings,
     setLogFilter,
     applyBundle,
@@ -165,10 +166,33 @@ export default function SystemAnalysisPage() {
     s.on('system:log:new', (entry: { id: string; level: string; message: string; at: string }) => {
       prependLog(entry);
     });
+    s.on('system_metrics_update', (payload: { health?: NonNullable<typeof health>; ts?: string }) => {
+      if (payload?.health) setHealth(payload.health);
+    });
+    s.on(
+      'api_request_event',
+      (row: { method: string; path: string; ms: number; status: number; at: string; clientIp?: string }) => {
+        prependActivity({
+          id: `evt-${row.at}-${row.path}-${row.method}-${Math.random().toString(36).slice(2, 7)}`,
+          method: row.method,
+          path: row.path,
+          ms: row.ms,
+          status: row.status,
+          at: row.at,
+          clientIp: row.clientIp,
+        });
+      },
+    );
+    s.on('system_alert_event', (payload: { alerts?: typeof alerts }) => {
+      if (payload?.alerts?.length) setAlerts(payload.alerts as NonNullable<typeof alerts>);
+    });
+    s.on('terminal_event_stream', (payload: { terminals?: Record<string, string[]> }) => {
+      if (payload?.terminals) setTerminals(payload.terminals);
+    });
     return () => {
       s.disconnect();
     };
-  }, [applyBundle, prependLog, setActivity, setEndpoints, setHealth]);
+  }, [applyBundle, prependActivity, prependLog, setActivity, setAlerts, setEndpoints, setHealth, setTerminals]);
 
   useEffect(() => {
     const el = activityRef.current;

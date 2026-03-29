@@ -11,6 +11,8 @@ import {
   getUptimeBuckets24h,
   getTerminalBuffers,
   seedMonitorLogsOnce,
+  systemMonitorBus,
+  type ApiRequestEventPayload,
 } from '../services/systemMonitor.service';
 import { getSecurityOverview } from '../services/securityAnalysis.service';
 
@@ -57,6 +59,10 @@ export function attachSystemMonitorNamespaces(io: Server): void {
     });
   });
 
+  systemMonitorBus.on('api_request', (payload: ApiRequestEventPayload) => {
+    systemNs.to('system-monitors').emit('api_request_event', payload);
+  });
+
   const TICK_MS = 1500;
 
   setInterval(() => {
@@ -69,6 +75,8 @@ export function attachSystemMonitorNamespaces(io: Server): void {
     const buckets24h = getUptimeBuckets24h();
     const terminals = getTerminalBuffers();
 
+    const ts = new Date().toISOString();
+
     systemNs.to('system-monitors').emit('system:bundle', {
       health,
       endpoints,
@@ -77,12 +85,15 @@ export function attachSystemMonitorNamespaces(io: Server): void {
       status,
       buckets24h,
       terminals,
-      ts: new Date().toISOString(),
+      ts,
     });
 
     systemNs.to('system-monitors').emit('system:health:update', health);
+    systemNs.to('system-monitors').emit('system_metrics_update', { health, ts });
     systemNs.to('system-monitors').emit('system:api:update', { endpoints });
     systemNs.to('system-monitors').emit('system:activity', activity);
+    systemNs.to('system-monitors').emit('system_alert_event', { alerts, ts });
+    systemNs.to('system-monitors').emit('terminal_event_stream', { terminals, ts });
 
     const latest = getMonitorLogs().slice(0, 1)[0];
     if (latest) {

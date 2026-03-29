@@ -81,6 +81,7 @@ interface SystemAnalysisUiState {
   setTerminals: (t: Record<string, string[]>) => void;
   setLogs: (l: SystemAnalysisUiState['logs']) => void;
   prependLog: (l: SystemAnalysisUiState['logs'][0]) => void;
+  prependActivity: (row: ActivityRow) => void;
   setSettings: (s: SystemAnalysisUiState['settings']) => void;
   setLogFilter: (f: SystemAnalysisUiState['logFilter']) => void;
   applyBundle: (b: {
@@ -117,6 +118,10 @@ export const useSystemAnalysisUiStore = create<SystemAnalysisUiState>((set) => (
   prependLog: (entry) =>
     set((s) => ({
       logs: [entry, ...s.logs].slice(0, 200),
+    })),
+  prependActivity: (row) =>
+    set((s) => ({
+      activity: [row, ...s.activity.filter((x) => x.id !== row.id)].slice(0, 200),
     })),
   setSettings: (settings) => set({ settings }),
   setLogFilter: (logFilter) => set({ logFilter }),

@@ -31,28 +31,62 @@ const GOOGLE_CALLBACK_URL =
 
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 const EMAIL_LINK_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+const OTP_EMAIL_COOLDOWN_MS = Number(process.env.OTP_RESEND_COOLDOWN_MS) || 45_000;
 
-function isLocalhostHostname(hostname?: string | null): boolean {
-  if (!hostname) return false;
-  const h = hostname.toLowerCase();
-  return h.includes('localhost') || h.startsWith('127.0.0.1') || h.startsWith('::1');
-}
+const lastVerificationOtpSent = new Map<string, number>();
+const lastPasswordResetOtpSent = new Map<string, number>();
 
-function shouldUseEmailOtpFlow(req?: Request): boolean {
+/**
+ * Email OTP for registration / verification when enabled.
+ * - USE_EMAIL_OTP=false → magic-link-only flow (when in production).
+ * - USE_EMAIL_OTP=true → force OTP.
+ * - Default: OTP in non-production; in production, OTP when transactional email is configured.
+ */
+function shouldUseEmailOtpFlow(_req?: Request): boolean {
+  const v = process.env.USE_EMAIL_OTP?.trim().toLowerCase();
+  if (v === 'false' || v === '0') return false;
+  if (v === 'true' || v === '1') return true;
   const env = (process.env.NODE_ENV || '').toLowerCase();
-  if (env === 'production') return false;
-  if (isLocalhostHostname(req?.hostname)) return true;
-  if (isLocalhostHostname(CLIENT_URL)) return true;
-  return true;
+  if (env !== 'production') return true;
+  return isEmailConfigured();
 }
 
-async function issueEmailVerificationOtp(user: InstanceType<typeof User>): Promise<void> {
+async function verifyStoredOtp(stored: string | undefined, digits: string): Promise<boolean> {
+  if (!stored || !/^\d{6}$/.test(digits)) return false;
+  if (stored.startsWith('$2')) {
+    return bcrypt.compare(digits, stored);
+  }
+  return stored === digits;
+}
+
+async function issueEmailVerificationOtp(
+  user: InstanceType<typeof User>,
+  opts?: { bypassCooldown?: boolean },
+): Promise<void> {
+  const emailKey = user.email.trim().toLowerCase();
+  if (!opts?.bypassCooldown) {
+    const now = Date.now();
+    const last = lastVerificationOtpSent.get(emailKey) ?? 0;
+    if (last > 0 && now - last < OTP_EMAIL_COOLDOWN_MS) {
+      const err = new Error('OTP_RATE_LIMIT') as Error & { status: number; retryAfterSec: number };
+      err.status = 429;
+      err.retryAfterSec = Math.ceil((OTP_EMAIL_COOLDOWN_MS - (now - last)) / 1000);
+      throw err;
+    }
+  }
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
-  user.emailVerificationOtp = code;
+  user.emailVerificationOtp = await bcrypt.hash(code, 10);
   user.emailVerificationOtpExpires = expiresAt;
   await user.save();
-  await sendVerificationOtpEmail(user.email, user.fullName, code, '10 minutes');
+  const result = await sendVerificationOtpEmail(user.email, user.fullName, code, '10 minutes');
+  if (!result.success) {
+    user.emailVerificationOtp = undefined;
+    user.emailVerificationOtpExpires = undefined;
+    await user.save();
+    throw new Error(result.error || 'Failed to send verification email');
+  }
+  lastVerificationOtpSent.set(emailKey, Date.now());
 }
 
 async function issueEmailVerificationLink(user: InstanceType<typeof User>): Promise<void> {
@@ -194,7 +228,9 @@ export async function register(req: Request, res: Response) {
 
     const useOtpFlow = shouldUseEmailOtpFlow(req);
     if (useOtpFlow) {
-      issueEmailVerificationOtp(user).catch((e) => console.warn('[auth] register: verification OTP error', e));
+      issueEmailVerificationOtp(user, { bypassCooldown: true }).catch((e) =>
+        console.warn('[auth] register: verification OTP error', e),
+      );
     } else {
       issueEmailVerificationLink(user).catch((e) => console.warn('[auth] register: verification link error', e));
     }
@@ -1109,6 +1145,7 @@ const RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes (OTP)
 export async function forgotPassword(req: Request, res: Response) {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
+    const emailKey = email.trim().toLowerCase();
 
     const user = await findUserByEmailCaseInsensitive(email)
       .select('_id fullName email passwordHash passwordResetOtp passwordResetOtpExpires')
@@ -1118,10 +1155,16 @@ export async function forgotPassword(req: Request, res: Response) {
       return res.status(200).json({ message: 'If an account exists with this email, you will receive a reset link shortly.' });
     }
 
+    const now = Date.now();
+    const last = lastPasswordResetOtpSent.get(emailKey) ?? 0;
+    if (last > 0 && now - last < OTP_EMAIL_COOLDOWN_MS) {
+      return res.status(429).json({ message: 'Please wait before requesting another reset code.' });
+    }
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
-    user.passwordResetOtp = code;
+    user.passwordResetOtp = await bcrypt.hash(code, 10);
     user.passwordResetOtpExpires = expiresAt;
     await user.save();
 
@@ -1132,6 +1175,7 @@ export async function forgotPassword(req: Request, res: Response) {
       return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' });
     }
 
+    lastPasswordResetOtpSent.set(emailKey, Date.now());
     return res.status(200).json({ message: 'If an account exists with this email, you will receive a 6-digit reset code shortly.' });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
@@ -1174,7 +1218,7 @@ export async function resetPasswordWithOtp(req: Request, res: Response) {
       await user.save();
       return res.status(400).json({ message: 'Invalid or expired code. Please request a new one.' });
     }
-    if (user.passwordResetOtp !== normalizedCode) {
+    if (!(await verifyStoredOtp(user.passwordResetOtp, normalizedCode))) {
       return res.status(400).json({ message: 'Invalid or expired code. Please request a new one.' });
     }
 
@@ -1347,7 +1391,16 @@ export async function resendVerification(req: Request, res: Response) {
       return res.status(400).json({ message: 'Email is already verified. You can sign in.' });
     }
     if (useOtpFlow) {
-      await issueEmailVerificationOtp(user);
+      try {
+        await issueEmailVerificationOtp(user);
+      } catch (e: any) {
+        if (e?.status === 429) {
+          return res.status(429).json({
+            message: `Please wait ${e.retryAfterSec}s before requesting another verification code.`,
+          });
+        }
+        throw e;
+      }
       return res.status(200).json({ message: 'Verification code sent to your email. It expires in 10 minutes.' });
     }
     await issueEmailVerificationLink(user);
@@ -1366,8 +1419,16 @@ export async function resendVerification(req: Request, res: Response) {
 const OTP_GENERIC_RESPONSE = 'If an account exists with this email, you will receive a verification code shortly.';
 export async function requestVerificationOtp(req: Request, res: Response) {
   try {
+    if (!isEmailConfigured()) {
+      return res.status(503).json({
+        message:
+          'Email delivery is not configured on this server. Use the verification link from your registration email if you have one.',
+      });
+    }
     if (!shouldUseEmailOtpFlow(req)) {
-      return res.status(400).json({ message: 'OTP verification is only available in local development mode.' });
+      return res.status(400).json({
+        message: 'OTP is disabled for this deployment. Use the verification link sent to your email.',
+      });
     }
     const email = (req.body?.email as string)?.trim();
     if (!email) {
@@ -1380,7 +1441,16 @@ export async function requestVerificationOtp(req: Request, res: Response) {
     if (user.emailVerified) {
       return res.status(400).json({ message: 'Email is already verified. You can sign in.' });
     }
-    await issueEmailVerificationOtp(user);
+    try {
+      await issueEmailVerificationOtp(user);
+    } catch (e: any) {
+      if (e?.status === 429) {
+        return res.status(429).json({
+          message: `Please wait ${e.retryAfterSec}s before requesting another verification code.`,
+        });
+      }
+      throw e;
+    }
     return res.status(200).json({ message: 'Verification code sent to your email. It expires in 10 minutes.' });
   } catch (err: any) {
     console.error('Request verification OTP error:', err);
@@ -1429,7 +1499,7 @@ export async function verifyEmailWithOtp(req: Request, res: Response) {
       await user.save();
       return res.status(400).json({ message: 'Verification code expired. Request a new code.' });
     }
-    if (user.emailVerificationOtp !== code) {
+    if (!(await verifyStoredOtp(user.emailVerificationOtp, code))) {
       return res.status(400).json({ message: 'Invalid verification code.' });
     }
     user.emailVerified = true;

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AuthTokenPayload } from '../utils/generateToken';
 import { User } from '../models/User';
 import { ActiveSession } from '../models/ActiveSession';
+import { noteUserRequest } from '../services/systemMonitor.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 // Updating `ActiveSession.lastActiveAt` performs a DB write.
@@ -68,6 +69,7 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
     }
     
     req.user = decoded;
+    noteUserRequest(String(decoded.id), decoded.role);
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Invalid or expired token', code: 'AUTH_INVALID' });

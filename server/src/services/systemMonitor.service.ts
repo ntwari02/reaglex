@@ -2,8 +2,22 @@
  * Live system monitor: OS metrics, API intelligence, activity stream, auth telemetry.
  */
 import os from 'os';
+import { EventEmitter } from 'node:events';
 import { execSync } from 'child_process';
 import type { Request } from 'express';
+
+/** Payload for real-time API row streaming (SOC-style). */
+export interface ApiRequestEventPayload {
+  method: string;
+  path: string;
+  ms: number;
+  status: number;
+  at: string;
+  clientIp?: string;
+}
+
+export const systemMonitorBus = new EventEmitter();
+systemMonitorBus.setMaxListeners(0);
 
 export type HealthStatus = 'OK' | 'WARN' | 'CRITICAL';
 
@@ -89,6 +103,10 @@ export interface MonitorSettings {
   monitoringEnabled: boolean;
   cpuWarn: number;
   cpuCritical: number;
+  ramWarn: number;
+  ramCritical: number;
+  diskWarn: number;
+  diskCritical: number;
   errorRateWarn: number;
   apiSlowWarnMs: number;
   apiSlowCriticalMs: number;
@@ -124,6 +142,10 @@ let settings: MonitorSettings = {
   monitoringEnabled: true,
   cpuWarn: 70,
   cpuCritical: 85,
+  ramWarn: 80,
+  ramCritical: 92,
+  diskWarn: 85,
+  diskCritical: 95,
   errorRateWarn: 5,
   apiSlowWarnMs: 1000,
   apiSlowCriticalMs: 3000,
@@ -140,7 +162,7 @@ let cpuSamplerStarted = false;
 const globalHitTimestamps: number[] = [];
 
 const loginFailByIp = new Map<string, number>();
-const reqPerMinuteByUser = new Map<string, { count: number; windowStart: number }>();
+const reqPerMinuteByUser = new Map<string, { count: number; windowStart: number; role?: string }>();
 
 let alertsCache: SystemAlert[] = [];
 
@@ -171,10 +193,26 @@ function pushLog(level: LogEntry['level'], message: string, meta?: Record<string
   if (logs.length > MAX_LOGS) logs.pop();
 }
 
+function diskUsagePercentWinPs(driveLetter: string): number | null {
+  try {
+    const out = execSync(
+      `powershell -NoProfile -NonInteractive -Command "(Get-PSDrive -Name '${driveLetter}').Used / ((Get-PSDrive -Name '${driveLetter}').Used + (Get-PSDrive -Name '${driveLetter}').Free) * 100"`,
+      { encoding: 'utf8', timeout: 12_000, windowsHide: true },
+    );
+    const v = parseFloat(String(out).trim().replace(',', '.'));
+    if (!Number.isFinite(v) || v < 0) return null;
+    return Math.min(100, Math.round(v * 10) / 10);
+  } catch {
+    return null;
+  }
+}
+
 function diskUsagePercent(): number {
   try {
     if (process.platform === 'win32') {
       const drive = (process.cwd().match(/^([A-Za-z]):/) || ['', 'C'])[1].toUpperCase();
+      const psPct = diskUsagePercentWinPs(drive);
+      if (psPct != null) return psPct;
       const wmic = process.env.SystemRoot
         ? `${process.env.SystemRoot}\\System32\\wbem\\WMIC.exe`
         : 'wmic';
@@ -290,12 +328,37 @@ function recomputeAlerts(h: SystemHealthPayload, apis: ApiEndpointStat[]) {
       at: now,
     });
   }
-  if (h.ramPercent >= settings.cpuCritical) {
+  if (h.ramPercent >= settings.ramCritical || h.memoryPressurePercent >= settings.ramCritical) {
     next.push({
       id: `a-ram-${Date.now()}`,
       level: 'critical',
       title: 'Memory pressure critical',
-      message: `System RAM usage ~${h.ramPercent}%`,
+      message: `RAM ~${h.ramPercent}% · pressure ~${h.memoryPressurePercent}%`,
+      at: now,
+    });
+  } else if (h.ramPercent >= settings.ramWarn || h.memoryPressurePercent >= settings.ramWarn) {
+    next.push({
+      id: `a-ramw-${Date.now()}`,
+      level: 'warning',
+      title: 'Memory elevated',
+      message: `RAM ~${h.ramPercent}% · pressure ~${h.memoryPressurePercent}%`,
+      at: now,
+    });
+  }
+  if (h.diskPercent >= settings.diskCritical) {
+    next.push({
+      id: `a-disk-${Date.now()}`,
+      level: 'critical',
+      title: 'Disk space critical',
+      message: `Disk usage ~${h.diskPercent}%`,
+      at: now,
+    });
+  } else if (h.diskPercent >= settings.diskWarn) {
+    next.push({
+      id: `a-diskw-${Date.now()}`,
+      level: 'warning',
+      title: 'Disk usage high',
+      message: `Disk ~${h.diskPercent}%`,
       at: now,
     });
   }
@@ -393,6 +456,15 @@ export function recordApiTiming(input: RecordApiTimingInput) {
   });
   if (activityStream.length > MAX_ACTIVITY) activityStream.pop();
 
+  systemMonitorBus.emit('api_request', {
+    method: input.method,
+    path: input.path.split('?')[0],
+    ms: input.ms,
+    status: input.statusCode,
+    at: new Date().toISOString(),
+    clientIp: input.clientIp?.slice(0, 45),
+  } satisfies ApiRequestEventPayload);
+
   if (input.ms > settings.apiSlowWarnMs) {
     pushLog('warning', `Slow ${key}`, { ms: input.ms, statusCode: input.statusCode });
     pushTerminal('perf', `Latency ${input.ms}ms on ${input.path}`);
@@ -427,14 +499,16 @@ export function getSystemHealth(): SystemHealthPayload {
   let status: HealthStatus = 'OK';
   if (
     cpuPercent >= settings.cpuCritical ||
-    ramPercent >= settings.cpuCritical ||
-    diskPercent >= settings.cpuCritical
+    ramPercent >= settings.ramCritical ||
+    diskPercent >= settings.diskCritical ||
+    memoryPressurePercent >= settings.ramCritical
   )
     status = 'CRITICAL';
   else if (
     cpuPercent >= settings.cpuWarn ||
-    ramPercent >= settings.cpuWarn ||
-    diskPercent >= settings.cpuWarn
+    ramPercent >= settings.ramWarn ||
+    diskPercent >= settings.diskWarn ||
+    memoryPressurePercent >= settings.ramWarn
   )
     status = 'WARN';
 
@@ -586,36 +660,61 @@ export function executeTerminalAction(
 }
 
 export function getUserSellerBehavior(): BehaviorRow[] {
-  const now = Date.now();
-  return [
-    {
-      userId: '507f1f77bcf86cd799439011',
-      role: 'buyer',
-      action: 'api_burst',
-      risk: 'MEDIUM',
-      status: 'FLAGGED',
-      detail: '>50 req/min pattern (threshold relaxed)',
-      at: new Date(now - 3600_000).toISOString(),
-    },
-    {
-      userId: '507f1f77bcf86cd799439012',
-      role: 'seller',
-      action: 'login_failures',
-      risk: 'HIGH',
-      status: 'FLAGGED',
-      detail: 'Multiple failed logins from new IP',
-      at: new Date(now - 7200_000).toISOString(),
-    },
-    {
-      userId: 'guest',
-      role: 'guest',
-      action: 'browse',
-      risk: 'LOW',
-      status: 'OK',
-      detail: 'Normal catalog traffic',
-      at: new Date(now - 60_000).toISOString(),
-    },
-  ];
+  const rows: BehaviorRow[] = [];
+  const thresh = settings.sensitivity === 'strict' ? 40 : settings.sensitivity === 'relaxed' ? 120 : 80;
+
+  for (const [userId, w] of reqPerMinuteByUser.entries()) {
+    if (w.count > thresh) {
+      const role = (w.role as BehaviorRow['role']) || 'buyer';
+      rows.push({
+        userId,
+        role,
+        action: 'high_request_rate',
+        risk: w.count > thresh * 2 ? 'HIGH' : 'MEDIUM',
+        status: 'FLAGGED',
+        detail: `~${w.count} authenticated requests in the current 1m window (threshold ${thresh})`,
+        at: new Date(w.windowStart + 60_000).toISOString(),
+      });
+    }
+  }
+
+  for (const ev of authSecurityEvents) {
+    if (ev.type === 'LOGIN_FAIL') {
+      rows.push({
+        userId: ev.email || ev.ip,
+        role: 'guest',
+        action: 'login_failure',
+        risk: 'HIGH',
+        status: 'FLAGGED',
+        detail: ev.detail,
+        at: ev.at,
+      });
+    } else if (ev.type === 'ROLE_SIGNIN') {
+      const r = (ev.role as BehaviorRow['role']) || 'buyer';
+      rows.push({
+        userId: ev.email || ev.ip,
+        role: r,
+        action: 'sign_in',
+        risk: 'LOW',
+        status: 'OK',
+        detail: ev.detail,
+        at: ev.at,
+      });
+    } else if (ev.type === 'LOGIN_BLOCKED') {
+      rows.push({
+        userId: ev.email || ev.ip,
+        role: (ev.role as BehaviorRow['role']) || 'guest',
+        action: 'login_blocked',
+        risk: 'HIGH',
+        status: 'FLAGGED',
+        detail: ev.detail,
+        at: ev.at,
+      });
+    }
+  }
+
+  rows.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  return rows.slice(0, 50);
 }
 
 export function getAuthSecurityEvents(): AuthSecurityEvent[] {
@@ -687,9 +786,10 @@ export function updateMonitorSettings(patch: Partial<MonitorSettings>): MonitorS
   return { ...settings };
 }
 
-export function noteUserRequest(userId: string) {
+export function noteUserRequest(userId: string, role?: string) {
   const now = Date.now();
-  const w = reqPerMinuteByUser.get(userId) ?? { count: 0, windowStart: now };
+  const w = reqPerMinuteByUser.get(userId) ?? { count: 0, windowStart: now, role };
+  if (role) w.role = role;
   if (now - w.windowStart > 60_000) {
     w.count = 1;
     w.windowStart = now;
@@ -714,11 +814,33 @@ export function seedMonitorLogsOnce() {
   pushTerminal('svc', 'Express middleware chain armed');
   if (!cpuSamplerStarted) {
     cpuSamplerStarted = true;
+    let cpuUsageRef = process.cpuUsage();
+    let wallRef = Date.now();
     const timer = setInterval(() => {
-      lastCpuPercent = sampleCpuAcrossCores();
+      const wall = Date.now();
+      const dtMs = Math.max(1, wall - wallRef);
+      wallRef = wall;
+      const dtSec = dtMs / 1000;
+      const diff = process.cpuUsage(cpuUsageRef);
+      cpuUsageRef = process.cpuUsage();
+      const busyUs = diff.user + diff.system;
+      const cores = Math.max(1, os.cpus().length);
+      const procCpu =
+        dtSec > 0 ? Math.min(100, Math.round(((busyUs / 1e6) / (dtSec * cores)) * 1000) / 10) : 0;
+      const osSample = sampleCpuAcrossCores();
+      lastCpuPercent = Math.max(osSample, procCpu);
+      if (process.platform === 'win32' && lastCpuPercent < 0.5 && procCpu > 0) {
+        lastCpuPercent = procCpu;
+      }
       cpuTrend.push(lastCpuPercent);
       if (cpuTrend.length > MAX_TREND) cpuTrend.shift();
     }, 1000);
     (timer as NodeJS.Timeout).unref?.();
+    setTimeout(() => {
+      sampleCpuAcrossCores();
+      setTimeout(() => {
+        lastCpuPercent = Math.max(lastCpuPercent, sampleCpuAcrossCores());
+      }, 120);
+    }, 40);
   }
 }
