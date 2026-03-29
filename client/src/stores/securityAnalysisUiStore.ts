@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-interface SecurityOverview {
+export interface SecurityOverview {
   score: number;
   grade: string;
   findingsSummary: { critical: number; high: number; medium: number; low: number; pass: number };
@@ -10,7 +10,7 @@ interface SecurityOverview {
   subScores: Record<string, number>;
 }
 
-interface SecurityAnalysisUiState {
+export interface SecurityAnalysisUiState {
   overview: SecurityOverview | null;
   findings: Array<{
     id: string;

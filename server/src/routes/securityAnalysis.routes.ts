@@ -14,24 +14,49 @@ const router = Router();
 
 router.use(authenticate, authorize('admin'));
 
-router.get('/overview', (_req: AuthenticatedRequest, res: Response) => {
-  res.json(getSecurityOverview());
+router.get('/overview', async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    res.json(await getSecurityOverview());
+  } catch (e) {
+    console.error('[security-analysis] overview', e);
+    res.status(500).json({ message: 'Failed to load security overview' });
+  }
 });
 
-router.get('/vulnerabilities', (_req: AuthenticatedRequest, res: Response) => {
-  res.json({ findings: getSecurityFindings() });
+router.get('/vulnerabilities', async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    res.json({ findings: await getSecurityFindings() });
+  } catch (e) {
+    console.error('[security-analysis] vulnerabilities', e);
+    res.status(500).json({ findings: [], message: 'Failed to load findings' });
+  }
 });
 
-router.get('/surface', (_req: AuthenticatedRequest, res: Response) => {
-  res.json(getAttackSurface());
+router.get('/surface', async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    res.json(await getAttackSurface());
+  } catch (e) {
+    console.error('[security-analysis] surface', e);
+    res.status(500).json({ nodes: [], message: 'Failed to load surface' });
+  }
 });
 
-router.get('/events', (_req: AuthenticatedRequest, res: Response) => {
-  res.json({ events: getSecurityEvents() });
+router.get('/events', async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    res.json({ events: await getSecurityEvents() });
+  } catch (e) {
+    console.error('[security-analysis] events', e);
+    res.status(500).json({ events: [], message: 'Failed to load events' });
+  }
 });
 
-router.get('/compliance', (_req: AuthenticatedRequest, res: Response) => {
-  res.json({ items: getComplianceOwasp() });
+router.get('/compliance', async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    res.json({ items: await getComplianceOwasp() });
+  } catch (e) {
+    console.error('[security-analysis] compliance', e);
+    res.status(500).json({ items: [], message: 'Failed to load compliance' });
+  }
 });
 
 router.post('/scan/run', (req: AuthenticatedRequest, res: Response) => {

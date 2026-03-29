@@ -49,9 +49,9 @@ function MiniSparkline({ values, className }: { values: number[]; className?: st
 }
 
 const TERM_CARDS = [
-  { id: 'perf', title: 'Latency core', subtitle: 'API timing & saturation' },
-  { id: 'deps', title: 'Dependencies', subtitle: 'Package intelligence (sim)' },
-  { id: 'svc', title: 'Services', subtitle: 'Gateway & workers' },
+  { id: 'perf', title: 'API intelligence', subtitle: 'Live routes from monitor' },
+  { id: 'deps', title: 'Dependencies', subtitle: 'package.json + npm ls + audit' },
+  { id: 'svc', title: 'System banner', subtitle: 'Host · OS · Node · memory' },
 ] as const;
 
 export default function SystemAnalysisPage() {
@@ -547,7 +547,7 @@ export default function SystemAnalysisPage() {
               </div>
               <p className="text-sm font-semibold text-white">{tc.title}</p>
               <div className="mt-3 max-h-[140px] overflow-y-auto font-mono text-[10px] space-y-1 text-emerald-400/90">
-                {(terminals[tc.id] || ['[boot] channel ready…']).map((line, i) => (
+                {(terminals[tc.id] || ['Fetching live intel from server…']).map((line, i) => (
                   <div key={`${i}-${line.slice(0, 12)}`}>{line}</div>
                 ))}
               </div>

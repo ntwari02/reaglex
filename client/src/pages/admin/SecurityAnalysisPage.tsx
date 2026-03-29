@@ -13,7 +13,11 @@ import {
   Users,
 } from 'lucide-react';
 import { API_BASE_URL, SERVER_URL } from '@/lib/config';
-import { useSecurityAnalysisUiStore } from '@/stores/securityAnalysisUiStore';
+import {
+  useSecurityAnalysisUiStore,
+  type SecurityOverview,
+  type SecurityAnalysisUiState,
+} from '@/stores/securityAnalysisUiStore';
 import { cn } from '@/lib/utils';
 
 function scoreColor(score: number) {
@@ -42,6 +46,7 @@ export default function SecurityAnalysisPage() {
   } = useSecurityAnalysisUiStore();
   const [scanning, setScanning] = useState(false);
   const [socketTick, setSocketTick] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const authHeaders = useCallback(() => {
     const token = localStorage.getItem('auth_token');
@@ -52,21 +57,38 @@ export default function SecurityAnalysisPage() {
   }, []);
 
   const load = useCallback(async () => {
+    setLoadError(null);
     const h = authHeaders();
-    const [ov, fv, sf, ev, cp, au] = await Promise.all([
-      fetch(`${API_BASE_URL}/security-analysis/overview`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/security-analysis/vulnerabilities`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/security-analysis/surface`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/security-analysis/events`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/security-analysis/compliance`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/security-analysis/auth-activity`, { headers: h }).then((r) => r.json()),
-    ]);
-    setOverview(ov);
-    setFindings(fv.findings ?? []);
-    setSurface(sf.nodes ?? []);
-    setEvents(ev.events ?? []);
-    setCompliance(cp.items ?? []);
-    setAuthActivity(au.events ?? [], au.behavior ?? []);
+    const read = async (path: string) => {
+      const r = await fetch(`${API_BASE_URL}${path}`, { headers: h });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const msg = typeof data?.message === 'string' ? data.message : `Request failed (${r.status})`;
+        throw new Error(`${path}: ${msg}`);
+      }
+      return data;
+    };
+    try {
+      const [ov, fv, sf, ev, cp, au] = await Promise.all([
+        read('/security-analysis/overview'),
+        read('/security-analysis/vulnerabilities'),
+        read('/security-analysis/surface'),
+        read('/security-analysis/events'),
+        read('/security-analysis/compliance'),
+        read('/security-analysis/auth-activity'),
+      ]);
+      if (ov && typeof ov.score === 'number') setOverview(ov);
+      else setOverview(null);
+      setFindings(Array.isArray(fv.findings) ? fv.findings : []);
+      setSurface(Array.isArray(sf.nodes) ? sf.nodes : []);
+      setEvents(Array.isArray(ev.events) ? ev.events : []);
+      setCompliance(Array.isArray(cp.items) ? cp.items : []);
+      setAuthActivity(Array.isArray(au.events) ? au.events : [], Array.isArray(au.behavior) ? au.behavior : []);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to load security data';
+      setLoadError(msg);
+      console.error('[SecurityAnalysis]', e);
+    }
   }, [authHeaders, setOverview, setFindings, setSurface, setEvents, setCompliance, setAuthActivity]);
 
   useEffect(() => {
@@ -79,24 +101,47 @@ export default function SecurityAnalysisPage() {
     const base = SERVER_URL.replace(/\/$/, '');
     const s = io(`${base}/security`, { auth: { token }, transports: ['websocket', 'polling'] });
     s.emit('subscribe:security');
-    s.on('security:scan:tick', (p: { score?: number }) => {
+    s.on('security:scan:tick', (p: { score?: number; grade?: string }) => {
       if (typeof p?.score === 'number') setSocketTick(p.score);
+    });
+    s.on('security:bundle', (payload: Record<string, unknown>) => {
+      const ov = payload.overview as SecurityOverview | undefined;
+      if (ov && typeof ov.score === 'number') {
+        setOverview(ov);
+        setSocketTick(ov.score);
+      }
+      const fv = payload.findings as { findings?: SecurityAnalysisUiState['findings'] } | undefined;
+      if (fv?.findings) setFindings(fv.findings);
+      const sf = payload.surface as { nodes?: SecurityAnalysisUiState['surfaceNodes'] } | undefined;
+      if (sf?.nodes) setSurface(sf.nodes);
+      const ev = payload.events as { events?: SecurityAnalysisUiState['events'] } | undefined;
+      if (ev?.events) setEvents(ev.events);
+      const cp = payload.compliance as { items?: SecurityAnalysisUiState['compliance'] } | undefined;
+      if (cp?.items) setCompliance(cp.items);
+    });
+    s.on('connect_error', (err) => {
+      console.warn('[SecurityAnalysis] socket', err.message);
     });
     return () => {
       s.disconnect();
     };
-  }, []);
+  }, [setOverview, setFindings, setSurface, setEvents, setCompliance]);
 
   const displayScore = socketTick ?? overview?.score ?? 0;
 
   const runScan = async () => {
     setScanning(true);
     try {
-      await fetch(`${API_BASE_URL}/security-analysis/scan/run`, {
+      const r = await fetch(`${API_BASE_URL}/security-analysis/scan/run`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ mode: 'standard' }),
       });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setLoadError(typeof data?.message === 'string' ? data.message : `Scan failed (${r.status})`);
+        return;
+      }
       await load();
     } finally {
       setScanning(false);
@@ -143,6 +188,16 @@ export default function SecurityAnalysisPage() {
           </button>
         </div>
       </motion.div>
+
+      {loadError && (
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex flex-wrap items-center justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            {loadError}
+          </span>
+          <span className="text-xs text-red-300/80">Sign in as admin and ensure the API is reachable ({API_BASE_URL})</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <motion.div

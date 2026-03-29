@@ -2,6 +2,8 @@
  * Live system monitor: OS metrics, API intelligence, activity stream, auth telemetry.
  */
 import os from 'os';
+import fs from 'fs';
+import path from 'path';
 import { EventEmitter } from 'node:events';
 import { execSync } from 'child_process';
 import type { Request } from 'express';
@@ -173,6 +175,121 @@ const terminalBuffers: Record<string, string[]> = {
   svc: [],
 };
 const MAX_TERM_LINES = 40;
+
+let lastTerminalIntelRefresh = 0;
+const TERMINAL_INTEL_MS = 15_000;
+
+function termStamp(): string {
+  return new Date().toISOString().slice(11, 19);
+}
+
+function formatLine(line: string): string {
+  return `[${termStamp()}] ${line}`;
+}
+
+/** Force next getTerminalBuffers() to rebuild live intel. */
+export function refreshTerminalIntelNow(): void {
+  lastTerminalIntelRefresh = 0;
+}
+
+function rebuildTerminalIntelBuffers(): void {
+  const appName = process.env.APP_NAME || 'Reaglex';
+
+  const svcLines: string[] = [
+    formatLine(`======== ${appName.toUpperCase()} · RUNTIME ========`),
+    formatLine(`host ${os.hostname()} · ${os.type()} ${os.release()} · arch ${os.arch()}`),
+    formatLine(`node ${process.version} · pid ${process.pid} · uptime ${Math.floor(process.uptime())}s`),
+    formatLine(`cwd ${process.cwd()}`),
+    formatLine(
+      `rss ${(process.memoryUsage().rss / 1048576).toFixed(1)}MB · heap ${(process.memoryUsage().heapUsed / 1048576).toFixed(1)}MB`,
+    ),
+  ];
+  terminalBuffers.svc = svcLines.slice(0, MAX_TERM_LINES);
+
+  const depLines: string[] = [];
+  const tryPaths = [
+    path.join(process.cwd(), 'package.json'),
+    path.join(process.cwd(), '..', 'package.json'),
+  ];
+  let pkgPath = '';
+  for (const p of tryPaths) {
+    if (fs.existsSync(p)) {
+      pkgPath = p;
+      break;
+    }
+  }
+  if (!pkgPath) {
+    depLines.push(formatLine('[!] package.json not found (cwd or parent)'));
+  } else {
+    try {
+      const raw = fs.readFileSync(pkgPath, 'utf8');
+      const pkg = JSON.parse(raw) as {
+        name?: string;
+        version?: string;
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+      };
+      depLines.push(formatLine(`[pkg] ${pkg.name ?? 'app'}@${pkg.version ?? '?'} · ${pkgPath}`));
+      const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).sort();
+      depLines.push(formatLine(`[manifest] ${deps.length} top-level deps (prod+dev)`));
+      for (const d of deps.slice(0, 22)) {
+        const v = pkg.dependencies?.[d] || pkg.devDependencies?.[d];
+        depLines.push(formatLine(`  ${d} ${v ?? ''}`));
+      }
+      if (deps.length > 22) depLines.push(formatLine(`  … +${deps.length - 22} more in package.json`));
+    } catch (e) {
+      depLines.push(formatLine(`[!] package.json read error: ${String(e).slice(0, 120)}`));
+    }
+  }
+
+  const cwdForNpm = pkgPath ? path.dirname(pkgPath) : process.cwd();
+  try {
+    const out = execSync('npm ls --json --depth=0', {
+      encoding: 'utf8',
+      timeout: 20_000,
+      cwd: cwdForNpm,
+      windowsHide: true,
+      maxBuffer: 5 * 1024 * 1024,
+    });
+    const j = JSON.parse(out) as {
+      problems?: string[];
+      error?: { code?: string; missing?: Record<string, string> };
+    };
+    if (j.problems?.length) {
+      depLines.push(formatLine(`[npm ls] ${j.problems.length} issue(s)`));
+      for (const p of j.problems.slice(0, 10)) depLines.push(formatLine(`  ${p}`));
+    } else {
+      depLines.push(formatLine('[npm ls] depth=0 tree OK'));
+    }
+    if (j.error?.missing && typeof j.error.missing === 'object') {
+      for (const [name, by] of Object.entries(j.error.missing)) {
+        depLines.push(formatLine(`[MISSING] ${name} ← required by ${by}`));
+      }
+      depLines.push(
+        formatLine('[hint] On the server host run: cd ' + cwdForNpm + ' && npm install'),
+      );
+    }
+  } catch (e: unknown) {
+    const err = e as { stderr?: Buffer; message?: string };
+    const msg = (err.stderr?.toString() || err.message || String(e)).split('\n')[0]?.slice(0, 200);
+    depLines.push(formatLine(`[npm ls] ${msg || 'failed (timeout or invalid JSON)'}`));
+  }
+  terminalBuffers.deps = depLines.slice(0, MAX_TERM_LINES);
+
+  const apis = getApiMonitoringList().slice(0, 14);
+  const perfLines: string[] = [
+    formatLine('—— live API intelligence (from monitor) ——'),
+    ...apis.map((a) =>
+      formatLine(
+        `${a.method} ${a.endpoint} · avg ${a.avgResponseMs}ms · rps ${a.rps} · err ${a.errorRatePercent}% · n=${a.requests}`,
+      ),
+    ),
+  ];
+  if (apis.length === 0) {
+    perfLines.push(formatLine('No /api samples yet — generate traffic to populate.'));
+  }
+  terminalBuffers.perf = perfLines.slice(0, MAX_TERM_LINES);
+}
 
 function pushTerminal(card: string, line: string) {
   const arr = terminalBuffers[card] ?? (terminalBuffers[card] = []);
@@ -613,6 +730,15 @@ export function getUptimeBuckets7d(): number[] {
 }
 
 export function getTerminalBuffers(): Record<string, string[]> {
+  const now = Date.now();
+  if (now - lastTerminalIntelRefresh >= TERMINAL_INTEL_MS) {
+    lastTerminalIntelRefresh = now;
+    try {
+      rebuildTerminalIntelBuffers();
+    } catch (e) {
+      pushLog('warning', 'Terminal intel rebuild failed', { err: String(e) });
+    }
+  }
   return JSON.parse(JSON.stringify(terminalBuffers)) as Record<string, string[]>;
 }
 
@@ -633,8 +759,11 @@ export function executeTerminalAction(
   const lines: string[] = [];
   switch (action) {
     case 'simulate_fix_deps':
-      pushTerminal(cardId, 'Resolved dependency advisories (simulation).');
-      lines.push('[OK] Dependency plan applied (sandbox)');
+      refreshTerminalIntelNow();
+      rebuildTerminalIntelBuffers();
+      lastTerminalIntelRefresh = Date.now();
+      pushTerminal(cardId, 'Live dependency snapshot refreshed (package.json + npm ls).');
+      lines.push('[OK] Intel refreshed — run npm install on server if MISSING lines appear');
       pushLog('info', 'Terminal action: simulate_fix_deps', { cardId });
       break;
     case 'simulate_restart_monitor':
@@ -642,10 +771,38 @@ export function executeTerminalAction(
       lines.push('[OK] Monitor service bounce complete');
       pushLog('info', 'Terminal action: restart monitor', { cardId });
       break;
-    case 'simulate_audit_packages':
-      pushTerminal(cardId, 'npm audit --production (simulation) completed.');
-      lines.push('[OK] Audit report merged into Security Analysis');
+    case 'simulate_audit_packages': {
+      const cwdForNpm = process.cwd();
+      try {
+        const out = execSync('npm audit --json', {
+          encoding: 'utf8',
+          timeout: 90_000,
+          cwd: cwdForNpm,
+          windowsHide: true,
+          maxBuffer: 8 * 1024 * 1024,
+        });
+        const j = JSON.parse(out) as { metadata?: { vulnerabilities?: Record<string, number> } };
+        const v = j.metadata?.vulnerabilities || {};
+        const summary = `critical=${v.critical ?? 0} high=${v.high ?? 0} moderate=${v.moderate ?? 0} low=${v.low ?? 0}`;
+        pushTerminal('deps', `npm audit: ${summary}`);
+        lines.push(`[OK] npm audit ${summary}`);
+      } catch (e: unknown) {
+        const err = e as { status?: number; stdout?: string; message?: string };
+        let summary = err.message || 'audit failed';
+        try {
+          if (err.stdout) {
+            const j = JSON.parse(err.stdout) as { metadata?: { vulnerabilities?: Record<string, number> } };
+            const v = j.metadata?.vulnerabilities || {};
+            summary = `critical=${v.critical ?? 0} high=${v.high ?? 0} mod=${v.moderate ?? 0}`;
+            pushTerminal('deps', `npm audit (non-zero exit): ${summary}`);
+          }
+        } catch {
+          pushTerminal('deps', `npm audit: ${summary.slice(0, 160)}`);
+        }
+        lines.push(`[OK] Audit run finished (${err.status ?? 'err'}) — see deps terminal`);
+      }
       break;
+    }
     case 'simulate_clear_cache':
       pushTerminal(cardId, 'Cleared in-memory API histogram windows.');
       for (const [, v] of apiStats) {

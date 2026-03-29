@@ -14,7 +14,13 @@ import {
   systemMonitorBus,
   type ApiRequestEventPayload,
 } from '../services/systemMonitor.service';
-import { getSecurityOverview } from '../services/securityAnalysis.service';
+import {
+  getSecurityOverview,
+  getSecurityFindings,
+  getAttackSurface,
+  getSecurityEvents,
+  getComplianceOwasp,
+} from '../services/securityAnalysis.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -102,7 +108,30 @@ export function attachSystemMonitorNamespaces(io: Server): void {
   }, TICK_MS);
 
   setInterval(() => {
-    const overview = getSecurityOverview();
-    securityNs.to('security-monitors').emit('security:scan:tick', { score: overview.score, grade: overview.grade });
+    void (async () => {
+      try {
+        const [overview, findings, surface, events, compliance] = await Promise.all([
+          getSecurityOverview(),
+          getSecurityFindings(),
+          getAttackSurface(),
+          getSecurityEvents(),
+          getComplianceOwasp(),
+        ]);
+        securityNs.to('security-monitors').emit('security:scan:tick', {
+          score: overview.score,
+          grade: overview.grade,
+        });
+        securityNs.to('security-monitors').emit('security:bundle', {
+          overview,
+          findings: { findings },
+          surface,
+          events: { events },
+          compliance: { items: compliance },
+          ts: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('[socket] security bundle failed', e);
+      }
+    })();
   }, 8000);
 }
