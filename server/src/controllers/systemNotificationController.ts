@@ -28,30 +28,30 @@ export async function getNotifications(req: AuthenticatedRequest, res: Response)
     // Get seller info to determine audience
     const seller = await User.findById(sellerId).select('sellerVerificationStatus isSellerVerified').lean();
     const isVerified = seller?.isSellerVerified || false;
-    const verificationStatus = seller?.sellerVerificationStatus || 'pending';
-
-    // Build filter
+    // Build filter: audience AND not expired
     const filter: any = {
-      $or: [
-        { targetAudience: 'all_sellers' },
-        { targetAudience: 'specific_seller', targetSellerId: sellerId },
+      $and: [
+        {
+          $or: [
+            { targetAudience: 'all_sellers' },
+            { targetAudience: 'specific_seller', targetSellerId: sellerId },
+          ],
+        },
+        {
+          $or: [
+            { expiresAt: { $exists: false } },
+            { expiresAt: { $gt: new Date() } },
+          ],
+        },
       ],
     };
 
     // Add verified/pending filters
     if (isVerified) {
-      filter.$or.push({ targetAudience: 'verified_sellers' });
+      filter.$and[0].$or.push({ targetAudience: 'verified_sellers' });
     } else {
-      filter.$or.push({ targetAudience: 'pending_sellers' });
+      filter.$and[0].$or.push({ targetAudience: 'pending_sellers' });
     }
-
-    // Expiration filter
-    filter.$or.push({
-      $or: [
-        { expiresAt: { $exists: false } },
-        { expiresAt: { $gt: new Date() } },
-      ],
-    });
 
     if (unreadOnly === 'true') {
       filter.readBy = { $ne: sellerId };
@@ -124,26 +124,28 @@ export async function getUnreadCount(req: AuthenticatedRequest, res: Response) {
     const isVerified = seller?.isSellerVerified || false;
 
     const filter: any = {
-      $or: [
-        { targetAudience: 'all_sellers' },
-        { targetAudience: 'specific_seller', targetSellerId: sellerId },
+      $and: [
+        {
+          $or: [
+            { targetAudience: 'all_sellers' },
+            { targetAudience: 'specific_seller', targetSellerId: sellerId },
+          ],
+        },
+        {
+          $or: [
+            { expiresAt: { $exists: false } },
+            { expiresAt: { $gt: new Date() } },
+          ],
+        },
       ],
       readBy: { $ne: sellerId },
     };
 
     if (isVerified) {
-      filter.$or.push({ targetAudience: 'verified_sellers' });
+      filter.$and[0].$or.push({ targetAudience: 'verified_sellers' });
     } else {
-      filter.$or.push({ targetAudience: 'pending_sellers' });
+      filter.$and[0].$or.push({ targetAudience: 'pending_sellers' });
     }
-
-    // Expiration filter
-    filter.$or.push({
-      $or: [
-        { expiresAt: { $exists: false } },
-        { expiresAt: { $gt: new Date() } },
-      ],
-    });
 
     const count = await SystemNotification.countDocuments(filter);
 

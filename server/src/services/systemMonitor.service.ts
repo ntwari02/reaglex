@@ -689,7 +689,7 @@ export function getGlobalStatus(): {
 } {
   const h = getSystemHealth();
   const apis = getApiMonitoringList();
-  const errApis = apis.filter((a) => a.errorRatePercent > 10 || !a.lastOk).length;
+  const errApis = apis.filter((a) => a.errorRatePercent > 10 || a.lastStatus === 'ERROR').length;
   if (h.status === 'CRITICAL' || errApis > 5)
     return {
       label: 'Partial outage risk',

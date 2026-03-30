@@ -29,6 +29,7 @@ export async function getDashboard(req: AuthenticatedRequest, res: Response) {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     const [
       totalSent,
@@ -39,6 +40,8 @@ export async function getDashboard(req: AuthenticatedRequest, res: Response) {
       failedCount,
       scheduledCount,
       recentLogs,
+      prevTotalSent,
+      prevFailedCount,
     ] = await Promise.all([
       SentNotificationLog.countDocuments({ sentAt: { $gte: startOfMonth } }),
       SentNotificationLog.countDocuments({ type: 'email', sentAt: { $gte: startOfMonth } }),
@@ -51,10 +54,20 @@ export async function getDashboard(req: AuthenticatedRequest, res: Response) {
         .sort({ sentAt: -1 })
         .limit(20)
         .lean(),
+      SentNotificationLog.countDocuments({ sentAt: { $gte: startOfPrevMonth, $lt: startOfMonth } }),
+      SentNotificationLog.countDocuments({
+        status: 'failed',
+        sentAt: { $gte: startOfPrevMonth, $lt: startOfMonth },
+      }),
     ]);
 
     const total = totalSent || 1;
     const deliveryRate = Math.round(((totalSent - failedCount) / total) * 1000) / 10;
+    const prevTotalSafe = prevTotalSent || 1;
+    const prevDeliveryRate = Math.round(((prevTotalSent - prevFailedCount) / prevTotalSafe) * 1000) / 10;
+    const totalChange =
+      prevTotalSent > 0 ? Math.round((((totalSent - prevTotalSent) / prevTotalSent) * 100) * 10) / 10 : 0;
+    const deliveryChange = Math.round((deliveryRate - prevDeliveryRate) * 10) / 10;
 
     const recent = (recentLogs as any[]).map((r) => {
       const { _id, ...rest } = r;
@@ -81,8 +94,8 @@ export async function getDashboard(req: AuthenticatedRequest, res: Response) {
         deliveryRate,
         failedCount,
         scheduledCount,
-        totalChange: '+12',
-        deliveryChange: '+2.3',
+        totalChange,
+        deliveryChange,
       },
       recentNotifications: recent,
     });
@@ -329,30 +342,31 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
       ]),
     ]);
 
-    const channelData = byChannel.length ? byChannel : [
-      { label: 'Email', value: 0 },
-      { label: 'SMS', value: 0 },
-      { label: 'Push', value: 0 },
-      { label: 'In-App', value: 0 },
-    ];
-    const geoData = byGeo.length ? byGeo.map((x: any) => ({ label: String(x.label).slice(0, 20), value: x.value })) : [
-      { label: 'US', value: 0 },
-      { label: 'UK', value: 0 },
-      { label: 'CA', value: 0 },
-      { label: 'AU', value: 0 },
-    ];
-    const failedList = failedReasons.length ? failedReasons : [
-      { reason: 'SMS blocked', count: 0 },
-      { reason: 'Email bounced', count: 0 },
-      { reason: 'Push token expired', count: 0 },
-    ];
+    const channelData = byChannel;
+    const geoData = byGeo.map((x: any) => ({ label: String(x.label).slice(0, 20), value: x.value }));
+    const failedList = failedReasons;
+
+    const [emailSent, emailFailed, smsSent, smsFailed, pushSent, pushFailed, totalSent, totalFailed] =
+      await Promise.all([
+        SentNotificationLog.countDocuments({ type: 'email', sentAt: { $gte: startOfMonth } }),
+        SentNotificationLog.countDocuments({ type: 'email', status: 'failed', sentAt: { $gte: startOfMonth } }),
+        SentNotificationLog.countDocuments({ type: 'sms', sentAt: { $gte: startOfMonth } }),
+        SentNotificationLog.countDocuments({ type: 'sms', status: 'failed', sentAt: { $gte: startOfMonth } }),
+        SentNotificationLog.countDocuments({ type: 'push', sentAt: { $gte: startOfMonth } }),
+        SentNotificationLog.countDocuments({ type: 'push', status: 'failed', sentAt: { $gte: startOfMonth } }),
+        SentNotificationLog.countDocuments({ sentAt: { $gte: startOfMonth } }),
+        SentNotificationLog.countDocuments({ status: 'failed', sentAt: { $gte: startOfMonth } }),
+      ]);
+
+    const pct = (ok: number, totalCount: number) =>
+      totalCount > 0 ? Math.round((ok / totalCount) * 1000) / 10 : 0;
 
     res.json({
       metrics: {
-        emailOpenRate: 42.5,
-        smsDelivery: 98.2,
-        clickThroughRate: 12.8,
-        pushDelivery: 94.5,
+        emailOpenRate: pct(emailSent - emailFailed, emailSent),
+        smsDelivery: pct(smsSent - smsFailed, smsSent),
+        clickThroughRate: pct(totalSent - totalFailed, totalSent),
+        pushDelivery: pct(pushSent - pushFailed, pushSent),
       },
       channelData,
       geoData,
@@ -530,23 +544,10 @@ export async function deleteAutomationRule(req: AuthenticatedRequest, res: Respo
   }
 }
 
-// ---------- Permissions ----------
-const DEFAULT_PERMISSIONS = [
-  { name: 'Create Notifications', description: 'Allow creating new notifications', allowed: ['Admin', 'Manager'] },
-  { name: 'Send Broadcasts', description: 'Allow sending broadcast notifications', allowed: ['Admin'] },
-  { name: 'Edit Templates', description: 'Allow editing notification templates', allowed: ['Admin', 'Manager'] },
-  { name: 'Manage Integrations', description: 'Allow managing integration settings', allowed: ['Admin'] },
-  { name: 'View Logs', description: 'Allow viewing notification logs', allowed: ['Admin', 'Manager', 'Support'] },
-];
-
 export async function getPermissions(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
-    let list = await NotificationPermission.find({}).lean().sort({ name: 1 });
-    if (list.length === 0) {
-      await NotificationPermission.insertMany(DEFAULT_PERMISSIONS);
-      list = await NotificationPermission.find({}).lean().sort({ name: 1 });
-    }
+    const list = await NotificationPermission.find({}).lean().sort({ name: 1 });
     const permissions = list.map((p: any) => {
       const { _id, ...rest } = p;
       return { ...rest, id: toId(p) };

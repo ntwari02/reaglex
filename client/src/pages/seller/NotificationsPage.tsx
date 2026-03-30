@@ -1,139 +1,128 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
-  Package,
-  Gift,
-  MessageSquare,
   Store,
-  Shield,
   FileText,
-  CheckCircle,
-  TrendingDown,
   Settings,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { sellerNotificationsApi } from '@/services/sellerNotificationsApi';
 
 interface Notification {
-  id: number;
-  type: 'order' | 'promotion' | 'system' | 'message' | 'seller' | 'security';
-  icon: any;
+  id: string;
+  _id?: string;
+  type: 'info' | 'warning' | 'error' | 'success' | 'policy_update' | 'system_announcement';
   title: string;
   message: string;
-  date: string;
+  createdAt: string;
   unread: boolean;
-  iconBg: string;
-  iconColor: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   actionLink?: string;
-  actionLabel?: string;
-  category: string;
+  actionLabel?: string | null;
 }
 
 const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      type: 'seller',
-      icon: Store,
-      title: 'New Order Received',
-      message: 'You have received a new order #ORD-1235 worth $249.99',
-      date: '12/12/2025',
-      unread: true,
-      iconBg: 'bg-emerald-100 dark:bg-emerald-900/20',
-      iconColor: 'text-emerald-600 dark:text-emerald-400',
-      priority: 'high',
-      actionLink: '/seller/orders',
-      actionLabel: 'View Order',
-      category: 'seller',
-    },
-    {
-      id: 2,
-      type: 'seller',
-      icon: Package,
-      title: 'Low Stock Alert',
-      message: 'Wireless Headphones stock is running low (12 units remaining)',
-      date: '11/12/2025',
-      unread: true,
-      iconBg: 'bg-yellow-100 dark:bg-yellow-900/20',
-      iconColor: 'text-yellow-600 dark:text-yellow-400',
-      priority: 'medium',
-      actionLink: '/seller/inventory',
-      actionLabel: 'Restock',
-      category: 'seller',
-    },
-    {
-      id: 3,
-      type: 'message',
-      icon: MessageSquare,
-      title: 'New Customer Message',
-      message: 'Customer sent you a message about order #ORD-1234',
-      date: '10/12/2025',
-      unread: false,
-      iconBg: 'bg-purple-100 dark:bg-purple-900/20',
-      iconColor: 'text-purple-600 dark:text-purple-400',
-      priority: 'medium',
-      actionLink: '/seller/inbox',
-      actionLabel: 'View Message',
-      category: 'message',
-    },
-    {
-      id: 4,
-      type: 'seller',
-      icon: CheckCircle,
-      title: 'Product Approved',
-      message: 'Your product "Wireless Headphones" has been approved and is now live',
-      date: '09/12/2025',
-      unread: false,
-      iconBg: 'bg-green-100 dark:bg-green-900/20',
-      iconColor: 'text-green-600 dark:text-green-400',
-      priority: 'low',
-      actionLink: '/seller/products',
-      actionLabel: 'View Product',
-      category: 'seller',
-    },
-    {
-      id: 5,
-      type: 'promotion',
-      icon: Gift,
-      title: 'Promotion Opportunity',
-      message: 'Flash sale event starting soon! Add your products to participate',
-      date: '08/12/2025',
-      unread: false,
-      iconBg: 'bg-orange-100 dark:bg-orange-900/20',
-      iconColor: 'text-orange-600 dark:text-orange-400',
-      priority: 'low',
-      actionLink: '/seller/products',
-      actionLabel: 'Join Sale',
-      category: 'promotion',
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filters = [
+  const filters: Array<{ id: string; label: string; icon: typeof Bell }> = [
     { id: 'all', label: 'All', icon: Bell },
-    { id: 'seller', label: 'Seller', icon: Store },
-    { id: 'order', label: 'Orders', icon: Package },
-    { id: 'message', label: 'Messages', icon: MessageSquare },
-    { id: 'promotion', label: 'Promotions', icon: Gift },
-    { id: 'system', label: 'System', icon: FileText },
+    { id: 'success', label: 'Success', icon: CheckCircle2 },
+    { id: 'warning', label: 'Warnings', icon: AlertTriangle },
+    { id: 'error', label: 'Errors', icon: AlertTriangle },
+    { id: 'system_announcement', label: 'Announcements', icon: FileText },
+    { id: 'policy_update', label: 'Policy', icon: Store },
   ];
 
-  const filteredNotifications = activeFilter === 'all' 
-    ? notifications 
-    : notifications.filter(n => n.category === activeFilter);
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    sellerNotificationsApi
+      .getNotifications(100)
+      .then((data) => {
+        if (!mounted) return;
+        const rows = Array.isArray(data?.notifications) ? data.notifications : [];
+        const mapped = rows.map((n: any) => ({
+          ...n,
+          id: String(n._id || n.id),
+          unread: !Array.isArray(n.readBy) || !n.readBy.length,
+          actionLink: n.actionUrl,
+          actionLabel: n.actionText || 'Open',
+        }));
+        setNotifications(mapped);
+      })
+      .catch(() => {
+        if (mounted) setNotifications([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
 
-  const unreadCount = notifications.filter(n => n.unread).length;
-  const filteredUnreadCount = filteredNotifications.filter(n => n.unread).length;
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+  const filteredNotifications = useMemo(
+    () =>
+      activeFilter === 'all'
+        ? notifications
+        : notifications.filter((n) => n.type === activeFilter),
+    [activeFilter, notifications],
+  );
+
+  const unreadCount = notifications.filter((n) => n.unread).length;
+  const filteredUnreadCount = filteredNotifications.filter((n) => n.unread).length;
+
+  const getMeta = (type: Notification['type']) => {
+    if (type === 'warning' || type === 'error') {
+      return {
+        icon: AlertTriangle,
+        iconBg: 'bg-yellow-100 dark:bg-yellow-900/20',
+        iconColor: 'text-yellow-600 dark:text-yellow-400',
+      };
+    }
+    if (type === 'success') {
+      return {
+        icon: CheckCircle2,
+        iconBg: 'bg-emerald-100 dark:bg-emerald-900/20',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
+      };
+    }
+    if (type === 'policy_update' || type === 'system_announcement') {
+      return {
+        icon: FileText,
+        iconBg: 'bg-blue-100 dark:bg-blue-900/20',
+        iconColor: 'text-blue-600 dark:text-blue-400',
+      };
+    }
+    return {
+      icon: Info,
+      iconBg: 'bg-gray-100 dark:bg-gray-700',
+      iconColor: 'text-gray-600 dark:text-gray-300',
+    };
   };
 
-  const markAsRead = (id: number) => {
-    setNotifications(prev => prev.map(n => 
-      n.id === id ? { ...n, unread: false } : n
-    ));
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString();
+  };
+
+  const markAllAsRead = () => {
+    const unreadIds = notifications.filter((n) => n.unread).map((n) => n.id);
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    void Promise.all(unreadIds.map((id) => sellerNotificationsApi.markAsRead(id).catch(() => null)));
+  };
+
+  const markAsRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+    void sellerNotificationsApi.markAsRead(id).catch(() => null);
   };
 
   return (
@@ -202,7 +191,9 @@ const NotificationsPage: React.FC = () => {
 
       {/* Notifications List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        {filteredNotifications.length === 0 ? (
+        {loading ? (
+          <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading notifications...</div>
+        ) : filteredNotifications.length === 0 ? (
           <div className="p-12 text-center">
             <Bell className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <p className="text-lg font-medium text-gray-500 dark:text-gray-400">No notifications</p>
@@ -213,7 +204,8 @@ const NotificationsPage: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {filteredNotifications.map((notification) => {
-              const Icon = notification.icon;
+              const meta = getMeta(notification.type);
+              const Icon = meta.icon;
               return (
                 <div
                   key={notification.id}
@@ -226,16 +218,8 @@ const NotificationsPage: React.FC = () => {
                 >
                   <div className="flex items-start gap-4">
                     {/* Icon */}
-                    <div className={`w-12 h-12 ${notification.iconBg} rounded-lg flex items-center justify-center flex-shrink-0 border-2 ${
-                      notification.type === 'seller' 
-                        ? 'border-emerald-300 dark:border-emerald-700' 
-                        : notification.type === 'order'
-                        ? 'border-blue-300 dark:border-blue-700'
-                        : notification.type === 'message'
-                        ? 'border-purple-300 dark:border-purple-700'
-                        : 'border-orange-300 dark:border-orange-700'
-                    }`}>
-                      <Icon className={`h-6 w-6 ${notification.iconColor}`} strokeWidth={2} />
+                    <div className={`w-12 h-12 ${meta.iconBg} rounded-lg flex items-center justify-center flex-shrink-0 border-2 border-orange-300 dark:border-orange-700`}>
+                      <Icon className={`h-6 w-6 ${meta.iconColor}`} strokeWidth={2} />
                     </div>
                     
                     {/* Content */}
@@ -257,18 +241,17 @@ const NotificationsPage: React.FC = () => {
                       </p>
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">
-                          {notification.date}
+                          {formatDate(notification.createdAt)}
                         </p>
-                        {notification.actionLink && notification.actionLabel && (
+                        {notification.actionLink && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Use navigate to ensure proper routing within seller dashboard
-                              navigate(notification.actionLink!);
+                              navigate(notification.actionLink);
                             }}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
                           >
-                            {notification.actionLabel}
+                            {notification.actionLabel || 'Open'}
                           </button>
                         )}
                       </div>
