@@ -7,6 +7,7 @@ import path from 'path';
 import { EventEmitter } from 'node:events';
 import { execSync } from 'child_process';
 import type { Request } from 'express';
+import { ingestRequestBurst } from './securityIntelligence.service';
 
 /** Payload for real-time API row streaming (SOC-style). */
 export interface ApiRequestEventPayload {
@@ -958,6 +959,7 @@ export function noteUserRequest(userId: string, role?: string) {
   if (w.count > thresh) {
     pushLog('warning', `High request rate`, { userId, rpm: w.count });
   }
+  ingestRequestBurst(userId, role, w.count);
 }
 
 let seeded = false;

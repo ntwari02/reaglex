@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { handleAgentChat, AgentContext } from '../services/GeminiAgentService';
+import { performCheckoutSingleProduct, type ShippingSpeed } from '../services/commerceCheckout.helper';
 
 function roleFromUser(role?: string) {
   if (role === 'admin') return 'admin';
@@ -39,6 +40,8 @@ export async function postAiAgent(req: AuthenticatedRequest, res: Response) {
     return res.json({
       reply: result.reply,
       products: result.products,
+      productLayout: result.productLayout,
+      checkout: result.checkout,
       actionResult: result.actionResult,
       model: result.modelUsed,
       fallbackOccurred: result.fallbackOccurred,
@@ -51,6 +54,73 @@ export async function postAiAgent(req: AuthenticatedRequest, res: Response) {
     // eslint-disable-next-line no-console
     console.error('postAiAgent error:', error);
     return res.status(500).json({ message: msg });
+  }
+}
+
+/**
+ * POST /api/ai/checkout
+ * Authenticated buyer: create order + payment session for one product (same logic as checkoutSingleProduct tool).
+ */
+export async function postAiCheckout(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user || req.user.role !== 'buyer') {
+      return res.status(403).json({ message: 'Buyer account required.' });
+    }
+
+    const body = req.body || {};
+    const productId = String(body.productId || '').trim();
+    if (!productId) {
+      return res.status(400).json({ message: 'productId is required.' });
+    }
+
+    const quantity = Math.max(1, Math.min(99, Number(body.quantity) || 1));
+    const fullName = String(body.fullName || '').trim();
+    const phone = String(body.phone || '').trim();
+    const addressLine1 = String(body.addressLine1 || '').trim();
+    const addressLine2 = body.addressLine2 ? String(body.addressLine2).trim() : '';
+    const city = String(body.city || '').trim();
+    const state = String(body.state || '').trim();
+    const postalCode = String(body.postalCode || '').trim();
+    const country = String(body.country || '').trim();
+
+    if (!fullName || !phone || !addressLine1 || !city || !postalCode || !country) {
+      return res.status(400).json({ message: 'Missing required shipping fields.' });
+    }
+
+    const speedRaw = String(body.shippingSpeed || 'standard').toLowerCase();
+    const shippingSpeed: ShippingSpeed = ['express', 'international'].includes(speedRaw)
+      ? (speedRaw as ShippingSpeed)
+      : 'standard';
+
+    const result = await performCheckoutSingleProduct({
+      buyerId: req.user.id,
+      productId,
+      quantity,
+      shipping: {
+        fullName,
+        phone,
+        addressLine1,
+        addressLine2: addressLine2 || undefined,
+        city,
+        state,
+        postalCode,
+        country,
+      },
+      shippingSpeed,
+    });
+
+    if (!result.ok) {
+      return res.status(400).json({ message: result.error || 'Checkout failed' });
+    }
+
+    return res.json({
+      orderNumber: result.orderNumber,
+      paymentLink: result.paymentLink,
+      amount: result.amount,
+      currency: result.currency,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || 'Checkout failed' });
   }
 }
 

@@ -20,6 +20,10 @@ import { getServerUrl } from '../config/publicEnv';
 import { Order } from '../models/Order';
 import { Product } from '../models/Product';
 import { Dispute } from '../models/Dispute';
+import {
+  performCheckoutSingleProduct,
+  type ShippingSpeed,
+} from './commerceCheckout.helper';
 
 type AgentRole = 'guest' | 'buyer' | 'seller' | 'admin';
 
@@ -38,11 +42,23 @@ export interface ProductCard {
   currency: string;
   category?: string;
   imageUrls: string[];
+  /** Stock count when available (for UI; do not treat as guarantee after delay). */
+  stock?: number;
+  statusLabel?: string;
 }
 
 export interface AgentChatResult {
   reply: string;
   products?: ProductCard[];
+  /** When the last search returned exactly one in-stock item, client may emphasize a single-product layout. */
+  productLayout?: 'single' | 'grid';
+  /** Buyer checkout: order reference + payment link from server (never fabricate URLs). */
+  checkout?: {
+    orderNumber: string;
+    paymentLink?: string;
+    amount?: number;
+    currency?: string;
+  };
   // Optional structured action summary (for UI)
   actionResult?: {
     type: 'order' | 'shipping' | 'store' | 'product' | 'return';
@@ -235,6 +251,62 @@ const functionDeclarations = [
       required: ['query'],
     },
   },
+  {
+    name: 'checkoutSingleProduct',
+    description:
+      'Buyer only: after the user chose a product (from productInquiry) and provided shipping details, create a pending order and return a real payment link. Use productId from tool results only — never ask the user for database IDs.',
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        productId: { type: SchemaType.STRING, description: 'Product id from productInquiry results' },
+        quantity: { type: SchemaType.NUMBER, description: 'Quantity (default 1)' },
+        fullName: { type: SchemaType.STRING },
+        phone: { type: SchemaType.STRING },
+        addressLine1: { type: SchemaType.STRING },
+        addressLine2: { type: SchemaType.STRING },
+        city: { type: SchemaType.STRING },
+        state: { type: SchemaType.STRING },
+        postalCode: { type: SchemaType.STRING },
+        country: { type: SchemaType.STRING },
+        shippingSpeed: {
+          type: SchemaType.STRING,
+          description: 'standard | express | international',
+        },
+      },
+      required: [
+        'productId',
+        'fullName',
+        'phone',
+        'addressLine1',
+        'city',
+        'state',
+        'postalCode',
+        'country',
+      ],
+    },
+  },
+  {
+    name: 'sellerCreateProduct',
+    description:
+      'Seller only: create a new product listing. SKU is optional (server can generate). Use imageUrls as public HTTPS URLs if the user provides links.',
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        name: { type: SchemaType.STRING },
+        sku: { type: SchemaType.STRING, description: 'Optional; auto-generated if omitted' },
+        price: { type: SchemaType.NUMBER },
+        stock: { type: SchemaType.NUMBER },
+        category: { type: SchemaType.STRING },
+        description: { type: SchemaType.STRING },
+        imageUrls: {
+          type: SchemaType.ARRAY,
+          items: { type: SchemaType.STRING },
+          description: 'Optional list of image URLs',
+        },
+      },
+      required: ['name', 'price'],
+    },
+  },
 ];
 
 const MAX_TOOL_ITERATIONS = 6;
@@ -273,6 +345,11 @@ function getFunctionCallsFromResponse(response: any): { name: string; args: Reco
   return out;
 }
 
+function stripUnsafeMarkup(text: string): string {
+  const t = String(text || '');
+  return t.replace(/<[^>]*>/g, '').trim();
+}
+
 function getTextFromResponse(response: any): string {
   const r = getResponseObject(response);
   if (r && typeof r.text === 'function') {
@@ -297,7 +374,11 @@ async function executeTool(
   toolName: string,
   args: Record<string, unknown>,
   ctx: AgentContext,
-  extras: { products?: ProductCard[] }
+  extras: {
+    products?: ProductCard[];
+    checkout?: AgentChatResult['checkout'];
+    productLayout?: 'single' | 'grid';
+  }
 ): Promise<Record<string, unknown>> {
   try {
     switch (toolName) {
@@ -335,9 +416,17 @@ async function executeTool(
           currency,
           category: p.category,
           imageUrls: (p.images || []).slice(0, 4).map((u: string) => resolveImageUrl(u)),
+          stock: typeof p.stock === 'number' ? p.stock : undefined,
+          statusLabel:
+            p.status === 'out_of_stock'
+              ? 'Out of stock'
+              : p.status === 'low_stock'
+                ? 'Low stock'
+                : 'In stock',
         }));
 
         extras.products = products;
+        extras.productLayout = docs.length === 1 ? 'single' : 'grid';
         return {
           ok: true,
           products: products.map((p) => ({
@@ -349,6 +438,131 @@ async function executeTool(
             imageUrls: p.imageUrls,
           })),
         };
+      }
+
+      case 'checkoutSingleProduct': {
+        assertRole(ctx.role, ['buyer'], 'checkoutSingleProduct');
+        if (!ctx.userId) return { ok: false, error: 'Sign in as a buyer to checkout' };
+
+        const productId = args.productId ? String(args.productId).trim() : '';
+        const qty =
+          typeof args.quantity === 'number' && !Number.isNaN(args.quantity)
+            ? Math.max(1, Math.min(99, Math.floor(args.quantity)))
+            : 1;
+        const fullName = args.fullName ? String(args.fullName).trim() : '';
+        const phone = args.phone ? String(args.phone).trim() : '';
+        const addressLine1 = args.addressLine1 ? String(args.addressLine1).trim() : '';
+        const addressLine2 = args.addressLine2 ? String(args.addressLine2).trim() : '';
+        const city = args.city ? String(args.city).trim() : '';
+        const state = args.state ? String(args.state).trim() : '';
+        const postalCode = args.postalCode ? String(args.postalCode).trim() : '';
+        const country = args.country ? String(args.country).trim() : '';
+        const speedRaw = args.shippingSpeed ? String(args.shippingSpeed).toLowerCase() : 'standard';
+        const shippingSpeed: ShippingSpeed = ['express', 'international'].includes(speedRaw)
+          ? (speedRaw as ShippingSpeed)
+          : 'standard';
+
+        if (!productId || !fullName || !phone || !addressLine1 || !city || !postalCode || !country) {
+          return { ok: false, error: 'Missing required shipping or product fields' };
+        }
+
+        const result = await performCheckoutSingleProduct({
+          buyerId: ctx.userId,
+          productId,
+          quantity: qty,
+          shipping: {
+            fullName,
+            phone,
+            addressLine1,
+            addressLine2: addressLine2 || undefined,
+            city,
+            state,
+            postalCode,
+            country,
+          },
+          shippingSpeed,
+        });
+
+        if (!result.ok) {
+          return { ok: false, error: result.error || 'Checkout failed' };
+        }
+
+        extras.checkout = {
+          orderNumber: result.orderNumber || '',
+          paymentLink: result.paymentLink,
+          amount: result.amount,
+          currency: result.currency,
+        };
+
+        return {
+          ok: true,
+          orderNumber: result.orderNumber,
+          paymentAvailable: !!result.paymentLink,
+          amount: result.amount,
+          currency: result.currency,
+          message:
+            'Order created. Share the payment link from the app UI when available; confirm the order number with the customer in plain language (do not paste raw database identifiers).',
+        };
+      }
+
+      case 'sellerCreateProduct': {
+        assertRole(ctx.role, ['seller'], 'sellerCreateProduct');
+        if (!ctx.userId) return { ok: false, error: 'Sign in required' };
+
+        const name = args.name ? String(args.name).trim() : '';
+        const price = typeof args.price === 'number' && !Number.isNaN(args.price) ? args.price : NaN;
+        if (!name || Number.isNaN(price)) {
+          return { ok: false, error: 'name and valid price are required' };
+        }
+
+        const sku =
+          args.sku && String(args.sku).trim()
+            ? String(args.sku).trim()
+            : `SKU-AI-${Date.now()}`;
+        const stock =
+          typeof args.stock === 'number' && !Number.isNaN(args.stock)
+            ? Math.max(0, Math.floor(args.stock))
+            : 0;
+        const category = args.category ? String(args.category).trim() : undefined;
+        const description = args.description ? String(args.description).trim() : undefined;
+        const imageUrls = Array.isArray(args.imageUrls)
+          ? (args.imageUrls as unknown[]).map((u) => String(u).trim()).filter(Boolean)
+          : [];
+
+        const sellerOid = new mongoose.Types.ObjectId(ctx.userId);
+
+        const existingSku = await Product.findOne({ sellerId: sellerOid, sku }).lean();
+        if (existingSku) {
+          return { ok: false, error: 'SKU already exists for your store; pick another or omit sku to auto-generate' };
+        }
+
+        try {
+          const product = await Product.create({
+            sellerId: sellerOid,
+            name,
+            sku,
+            price,
+            stock,
+            category,
+            description,
+            images: imageUrls.length ? imageUrls : undefined,
+            status: stock > 0 ? 'in_stock' : 'out_of_stock',
+          });
+
+          return {
+            ok: true,
+            listingName: product.name,
+            sku: product.sku,
+            stock: product.stock,
+            message: `Product "${product.name}" was added to your inventory (SKU ${product.sku}).`,
+          };
+        } catch (e: any) {
+          const code = e?.code;
+          if (code === 11000) {
+            return { ok: false, error: 'Duplicate SKU or listing conflict; try a different SKU.' };
+          }
+          throw e;
+        }
       }
 
       case 'getStoreData': {
@@ -540,7 +754,13 @@ function buildSystemPrompt(ctx: AgentContext, docs: string): string {
     '- Do not request passwords or secrets.',
     '- Never mention API keys, JWT contents, or environment variables.',
     '- If a tool returns an authorization error, explain to the user that they do not have permission.',
-    '- For product search, show product cards with images from tool results when available.',
+    '- NEVER output HTML or pseudo-markup (no <p>, <div>, <br>, etc.). Use plain sentences and short bullet lists.',
+    '- NEVER ask the user for product_id, order_id, or Mongo/ObjectId values. Resolve IDs from tool results only.',
+    '- When productInquiry returns exactly one product, guide the user to confirm quantity and shipping, then call checkoutSingleProduct with those details.',
+    '- When multiple products match, help the user choose using names and prices; still never ask for raw IDs.',
+    '- For checkout, only call checkoutSingleProduct after the user provided a full shipping address and phone.',
+    '- Do not invent payment links; payment links come only from checkoutSingleProduct tool results (surfaced by the app UI).',
+    '- For sellers creating listings, use sellerCreateProduct with structured fields; do not claim success without a successful tool response.',
     '',
     'INTERNAL DOCUMENTATION (source of truth):',
     docs || '(No documentation loaded on server.)',
@@ -573,7 +793,11 @@ async function runUnifiedAgentWithModel(
     },
   });
 
-  const extras: { products?: ProductCard[] } = {};
+  const extras: {
+    products?: ProductCard[];
+    checkout?: AgentChatResult['checkout'];
+    productLayout?: 'single' | 'grid';
+  } = {};
   const chat = model.startChat({});
 
   let result = await chat.sendMessage(userMessage);
@@ -599,12 +823,16 @@ async function runUnifiedAgentWithModel(
   }
 
   const reply =
-    getTextFromResponse(response) ||
-    'I can help with products, order tracking, and role-safe support actions. Tell me what you need.';
+    stripUnsafeMarkup(
+      getTextFromResponse(response) ||
+        'I can help with products, order tracking, and role-safe support actions. Tell me what you need.'
+    );
 
   return {
     reply,
     products: extras.products?.length ? extras.products : undefined,
+    productLayout: extras.productLayout,
+    checkout: extras.checkout,
   };
 }
 

@@ -17,6 +17,7 @@ import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './components/AdminDashboard';
 import { useAuthStore } from './stores/authStore';
 import { ToastNotification } from './components/ToastNotification';
+import { SecurityTelemetryProbe } from './components/SecurityTelemetryProbe';
 // @ts-ignore JSX module without TS typings
 import CartDrawer from './components/CartDrawer';
 import AssistantChat from './components/AssistantChat';
@@ -123,6 +124,7 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <SecurityTelemetryProbe />
         <ToastNotification />
         <CartDrawer />
         <AssistantChat />

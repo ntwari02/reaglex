@@ -21,6 +21,12 @@ import {
   getSecurityEvents,
   getComplianceOwasp,
 } from '../services/securityAnalysis.service';
+import {
+  getIntelligenceSnapshot,
+  syncAuthMirror,
+  syncBehaviorMirror,
+} from '../services/securityIntelligence.service';
+import { getAuthSecurityEvents, getUserSellerBehavior } from '../services/systemMonitor.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -134,4 +140,19 @@ export function attachSystemMonitorNamespaces(io: Server): void {
       }
     })();
   }, 8000);
+
+  const INTEL_MS = 2000;
+  setInterval(() => {
+    try {
+      syncAuthMirror(getAuthSecurityEvents());
+      syncBehaviorMirror(getUserSellerBehavior());
+      const intelligence = getIntelligenceSnapshot();
+      securityNs.to('security-monitors').emit('security:intelligence', {
+        ...intelligence,
+        ts: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn('[socket] security intelligence tick failed', e);
+    }
+  }, INTEL_MS);
 }

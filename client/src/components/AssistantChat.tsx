@@ -12,6 +12,8 @@ interface ProductCard {
   currency: string;
   category?: string;
   imageUrls: string[];
+  stock?: number;
+  statusLabel?: string;
 }
 
 interface ChatMessage {
@@ -21,6 +23,9 @@ interface ChatMessage {
   ts: string;
   helpful?: 'up' | 'down' | null;
   productCards?: ProductCard[];
+  /** From agent: one strong match vs many */
+  productLayout?: 'single' | 'grid';
+  orderNumber?: string;
   paymentLink?: string;
   paymentAmount?: number;
   paymentCurrency?: string;
@@ -61,6 +66,21 @@ export default function AssistantChat() {
   const [fallbackNotice, setFallbackNotice] = useState(false);
   const [sendCooldownUntil, setSendCooldownUntil] = useState(0);
   const [cooldownTick, setCooldownTick] = useState(0);
+
+  /** Inline checkout when user taps Buy now (IDs stay in state — never typed by user). */
+  const [checkoutTarget, setCheckoutTarget] = useState<ProductCard | null>(null);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutForm, setCheckoutForm] = useState({
+    quantity: 1,
+    fullName: '',
+    phone: '',
+    addressLine1: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: '',
+    shippingSpeed: 'standard' as 'standard' | 'express' | 'international',
+  });
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
@@ -137,6 +157,74 @@ export default function AssistantChat() {
     listEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const submitInlineCheckout = async () => {
+    if (!checkoutTarget || checkoutBusy) return;
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      addMessage(
+        'bot',
+        'Please sign in as a buyer to complete checkout. You can log in and open the assistant again.',
+      );
+      return;
+    }
+    const f = checkoutForm;
+    if (!f.fullName.trim() || !f.phone.trim() || !f.addressLine1.trim() || !f.city.trim() || !f.postalCode.trim() || !f.country.trim()) {
+      addMessage('bot', 'Please fill in all required shipping fields before paying.');
+      return;
+    }
+    setCheckoutBusy(true);
+    try {
+      const r = await fetch(`${API_BASE_URL}/ai/checkout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          productId: checkoutTarget.id,
+          quantity: Math.max(1, Math.min(99, checkoutForm.quantity || 1)),
+          fullName: f.fullName.trim(),
+          phone: f.phone.trim(),
+          addressLine1: f.addressLine1.trim(),
+          city: f.city.trim(),
+          state: f.state.trim(),
+          postalCode: f.postalCode.trim(),
+          country: f.country.trim(),
+          shippingSpeed: f.shippingSpeed,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        addMessage('bot', String(data?.message || 'Checkout could not be completed.'));
+        scrollToBottom();
+        return;
+      }
+      const orderNumber = data?.orderNumber ? String(data.orderNumber) : undefined;
+      const paymentLink = data?.paymentLink ? String(data.paymentLink) : undefined;
+      const amount = data?.amount != null ? Number(data.amount) : undefined;
+      const currency = data?.currency ? String(data.currency) : checkoutTarget.currency;
+      addMessage(
+        'bot',
+        orderNumber
+          ? `Your order ${orderNumber} is ready. Use Pay now to complete payment securely.`
+          : 'Your order is ready. Use Pay now to complete payment securely.',
+        {
+          orderNumber,
+          paymentLink,
+          paymentAmount: amount,
+          paymentCurrency: currency,
+        },
+      );
+      setCheckoutTarget(null);
+      scrollToBottom();
+    } catch {
+      addMessage('bot', 'Could not reach checkout. Try again in a moment.');
+    } finally {
+      setCheckoutBusy(false);
+    }
+  };
+
   const handleSend = async () => {
     const content = input.trim();
     if (!content || typing) return;
@@ -201,21 +289,41 @@ export default function AssistantChat() {
             currency: String(p.currency || 'USD'),
             category: p.category ? String(p.category) : undefined,
             imageUrls: Array.isArray(p.imageUrls) ? p.imageUrls : Array.isArray(p.images) ? p.images : [],
+            stock: p.stock != null ? Number(p.stock) : undefined,
+            statusLabel: p.statusLabel ? String(p.statusLabel) : undefined,
           }))
         : undefined;
 
-      const paymentLink: string | undefined = data?.payment?.paymentLink
-        ? String(data.payment.paymentLink)
-        : undefined;
+      const checkout = data?.checkout as
+        | { orderNumber?: string; paymentLink?: string; amount?: number; currency?: string }
+        | undefined;
+
+      const paymentLink: string | undefined =
+        checkout?.paymentLink ??
+        (data?.payment?.paymentLink ? String(data.payment.paymentLink) : undefined);
 
       const paymentAmount: number | undefined =
-        data?.payment?.amount != null ? Number(data.payment.amount) : undefined;
-      const paymentCurrency: string | undefined = data?.payment?.currency
-        ? String(data.payment.currency)
-        : undefined;
+        checkout?.amount != null
+          ? Number(checkout.amount)
+          : data?.payment?.amount != null
+            ? Number(data.payment.amount)
+            : undefined;
+      const paymentCurrency: string | undefined =
+        checkout?.currency != null
+          ? String(checkout.currency)
+          : data?.payment?.currency
+            ? String(data.payment.currency)
+            : undefined;
+
+      const orderNumber = checkout?.orderNumber ? String(checkout.orderNumber) : undefined;
+
+      const productLayout =
+        data?.productLayout === 'single' && products?.length === 1 ? 'single' : products?.length ? 'grid' : undefined;
 
       addMessage('bot', reply, {
         productCards: products?.length ? products : undefined,
+        productLayout,
+        orderNumber,
         paymentLink,
         paymentAmount,
         paymentCurrency,
@@ -368,8 +476,18 @@ export default function AssistantChat() {
             >
               {messages.map((m) => {
                 const isUser = m.from === 'user';
+                const layout = m.productLayout === 'single' && m.productCards?.length === 1 ? 'single' : 'grid';
                 return (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
+                  <div
+                    key={m.id}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: isUser ? 'flex-end' : 'flex-start',
+                      width: '100%',
+                      marginBottom: 12,
+                    }}
+                  >
                     <div
                       style={{
                         maxWidth: '84%',
@@ -386,48 +504,167 @@ export default function AssistantChat() {
                       {m.text}
                     </div>
                     {!isUser && m.productCards && m.productCards.length > 0 && (
-                      <div style={{ width: '100%', paddingLeft: 10, marginTop: 10 }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          {m.productCards.map((p) => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => navigate(`/products/${p.id}`)}
-                              style={{
-                                width: 140,
-                                borderRadius: 12,
-                                border: '1px solid var(--border-subtle)',
-                                background: 'var(--card-bg)',
-                                cursor: 'pointer',
-                                overflow: 'hidden',
-                                textAlign: 'left',
-                              }}
-                            >
-                              <div style={{ height: 74, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {p.imageUrls?.[0] ? (
-                                  <img src={p.imageUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                  <span style={{ fontSize: 22 }}>📦</span>
-                                )}
-                              </div>
-                              <div style={{ padding: '6px 8px' }}>
-                                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                  {p.name}
+                      <div style={{ width: '100%', marginTop: 10 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 10,
+                            justifyContent: layout === 'single' ? 'center' : 'flex-start',
+                          }}
+                        >
+                          {m.productCards.map((p) => {
+                            const single = layout === 'single';
+                            const cardW = single ? '100%' : 140;
+                            const imgH = single ? 140 : 74;
+                            return (
+                              <div
+                                key={p.id}
+                                style={{
+                                  width: single ? '100%' : 140,
+                                  maxWidth: single ? 320 : cardW,
+                                  borderRadius: 14,
+                                  border: '1px solid var(--border-subtle)',
+                                  background: 'var(--card-bg)',
+                                  overflow: 'hidden',
+                                  boxShadow: single ? '0 8px 24px rgba(2,6,23,0.08)' : undefined,
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/products/${p.id}`)}
+                                  style={{
+                                    width: '100%',
+                                    border: 'none',
+                                    padding: 0,
+                                    cursor: 'pointer',
+                                    background: 'transparent',
+                                    textAlign: 'left',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      height: imgH,
+                                      background: '#f1f5f9',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    {p.imageUrls?.[0] ? (
+                                      <img
+                                        src={p.imageUrls[0]}
+                                        alt=""
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                      />
+                                    ) : (
+                                      <span style={{ fontSize: 28 }}>📦</span>
+                                    )}
+                                  </div>
+                                  <div style={{ padding: '8px 10px' }}>
+                                    <div
+                                      style={{
+                                        fontSize: single ? 12.5 : 11,
+                                        fontWeight: 800,
+                                        color: 'var(--text-primary)',
+                                        lineHeight: 1.25,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                      }}
+                                    >
+                                      {p.name}
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: 12,
+                                        color: PRIMARY,
+                                        marginTop: 4,
+                                        fontWeight: 800,
+                                      }}
+                                    >
+                                      {p.currency} {p.price.toFixed(2)}
+                                    </div>
+                                    {p.statusLabel && (
+                                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                                        {p.statusLabel}
+                                        {p.stock != null ? ` · ${p.stock} left` : ''}
+                                      </div>
+                                    )}
+                                  </div>
+                                </button>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    gap: 8,
+                                    padding: '0 10px 10px',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCheckoutTarget(p);
+                                      setOpen(true);
+                                    }}
+                                    style={{
+                                      flex: 1,
+                                      minWidth: 100,
+                                      padding: '8px 10px',
+                                      borderRadius: 12,
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      background: `linear-gradient(135deg,${PRIMARY},#ea580c)`,
+                                      color: '#fff',
+                                      fontWeight: 800,
+                                      fontSize: 11.5,
+                                    }}
+                                  >
+                                    Buy now
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(`/products/${p.id}`)}
+                                    style={{
+                                      flex: 1,
+                                      minWidth: 100,
+                                      padding: '8px 10px',
+                                      borderRadius: 12,
+                                      border: '1px solid var(--border-subtle)',
+                                      cursor: 'pointer',
+                                      background: 'var(--card-bg-subtle)',
+                                      color: 'var(--text-primary)',
+                                      fontWeight: 700,
+                                      fontSize: 11.5,
+                                    }}
+                                  >
+                                    View product
+                                  </button>
                                 </div>
-                                <div style={{ fontSize: 11, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>
-                                  {p.currency} {p.price.toFixed(2)}
-                                </div>
                               </div>
-                            </button>
-                          ))}
+                            );
+                          })}
                         </div>
+                      </div>
+                    )}
+                    {!isUser && m.orderNumber && (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        Order ref: {m.orderNumber}
                       </div>
                     )}
                     {!isUser && m.paymentLink && (
                       <div
                         style={{
                           width: '100%',
-                          paddingLeft: 10,
                           marginTop: 10,
                           display: 'flex',
                           justifyContent: 'flex-start',
@@ -448,7 +685,10 @@ export default function AssistantChat() {
                             fontSize: 12.5,
                           }}
                         >
-                          Pay now{m.paymentAmount != null ? ` (${m.paymentCurrency || ''} ${m.paymentAmount})` : ''}
+                          Pay now
+                          {m.paymentAmount != null
+                            ? ` (${m.paymentCurrency || ''} ${Number(m.paymentAmount).toFixed(2)})`
+                            : ''}
                         </a>
                       </div>
                     )}
@@ -462,6 +702,230 @@ export default function AssistantChat() {
                 </div>
               )}
             </div>
+
+            {checkoutTarget && (
+              <div
+                style={{
+                  padding: '10px 12px',
+                  borderTop: '1px solid var(--divider)',
+                  background: 'var(--card-bg-subtle)',
+                  maxHeight: 220,
+                  overflowY: 'auto',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 900, fontSize: 12, color: 'var(--text-primary)' }}>
+                    Checkout · {checkoutTarget.name}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutTarget(null)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: 18,
+                      color: 'var(--text-muted)',
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    Qty
+                    <input
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={checkoutForm.quantity}
+                      onChange={(e) =>
+                        setCheckoutForm((f) => ({
+                          ...f,
+                          quantity: Math.max(1, Math.min(99, Number(e.target.value) || 1)),
+                        }))
+                      }
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                  </label>
+                  <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    Phone
+                    <input
+                      value={checkoutForm.phone}
+                      onChange={(e) => setCheckoutForm((f) => ({ ...f, phone: e.target.value }))}
+                      placeholder="Required"
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                  </label>
+                  <label style={{ gridColumn: '1 / -1', fontSize: 10, color: 'var(--text-muted)' }}>
+                    Full name
+                    <input
+                      value={checkoutForm.fullName}
+                      onChange={(e) => setCheckoutForm((f) => ({ ...f, fullName: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                  </label>
+                  <label style={{ gridColumn: '1 / -1', fontSize: 10, color: 'var(--text-muted)' }}>
+                    Address line 1
+                    <input
+                      value={checkoutForm.addressLine1}
+                      onChange={(e) => setCheckoutForm((f) => ({ ...f, addressLine1: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                  </label>
+                  <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    City
+                    <input
+                      value={checkoutForm.city}
+                      onChange={(e) => setCheckoutForm((f) => ({ ...f, city: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                  </label>
+                  <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    State / region
+                    <input
+                      value={checkoutForm.state}
+                      onChange={(e) => setCheckoutForm((f) => ({ ...f, state: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                  </label>
+                  <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    Postal code
+                    <input
+                      value={checkoutForm.postalCode}
+                      onChange={(e) => setCheckoutForm((f) => ({ ...f, postalCode: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                  </label>
+                  <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    Country
+                    <input
+                      value={checkoutForm.country}
+                      onChange={(e) => setCheckoutForm((f) => ({ ...f, country: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                  </label>
+                  <label style={{ gridColumn: '1 / -1', fontSize: 10, color: 'var(--text-muted)' }}>
+                    Shipping
+                    <select
+                      value={checkoutForm.shippingSpeed}
+                      onChange={(e) =>
+                        setCheckoutForm((f) => ({
+                          ...f,
+                          shippingSpeed: e.target.value as typeof f.shippingSpeed,
+                        }))
+                      }
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <option value="standard">Standard</option>
+                      <option value="express">Express</option>
+                      <option value="international">International</option>
+                    </select>
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  disabled={checkoutBusy}
+                  onClick={() => void submitInlineCheckout()}
+                  style={{
+                    marginTop: 10,
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    border: 'none',
+                    cursor: checkoutBusy ? 'not-allowed' : 'pointer',
+                    background: checkoutBusy ? '#e5e7eb' : `linear-gradient(135deg,${PRIMARY},#ea580c)`,
+                    color: '#fff',
+                    fontWeight: 900,
+                    fontSize: 12.5,
+                  }}
+                >
+                  {checkoutBusy ? 'Creating order…' : 'Create order & payment link'}
+                </button>
+              </div>
+            )}
 
             <div style={{ padding: 12, borderTop: '1px solid var(--divider)' }}>
               {cooldownRemainingSec > 0 && (

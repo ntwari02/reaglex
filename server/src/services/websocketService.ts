@@ -7,6 +7,7 @@ import { User } from '../models/User';
 import mongoose from 'mongoose';
 import { getAllowedCorsOrigins } from '../config/publicEnv';
 import { attachSystemMonitorNamespaces } from '../socket/systemMonitorSockets';
+import { socketPresenceRegister, socketPresenceUnregister } from './socketRegistry';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -75,6 +76,7 @@ class WebSocketService {
         socketId: socket.id,
         role: socket.userRole || 'buyer',
       });
+      socketPresenceRegister(socket.userId, socket.userRole || 'buyer');
 
       // Join user's personal room
       socket.join(`user:${socket.userId}`);
@@ -86,6 +88,7 @@ class WebSocketService {
       socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.userId}`);
         this.connectedUsers.delete(socket.userId!);
+        socketPresenceUnregister(socket.userId!);
       });
 
       // Handle errors
