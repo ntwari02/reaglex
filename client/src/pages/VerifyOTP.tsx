@@ -21,8 +21,14 @@ export function VerifyOTP() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  /** When linked with ?email=, open the 6-digit step first (code was usually sent at signup). */
   useEffect(() => {
-    if (emailFromUrl) setEmail(emailFromUrl);
+    const e = emailFromUrl.trim();
+    if (!e) return;
+    setEmail(e);
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+      setStep('code');
+    }
   }, [emailFromUrl]);
 
   useEffect(() => {

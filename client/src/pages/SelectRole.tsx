@@ -67,7 +67,7 @@ export function SelectRole() {
       // Email verification required (Google sign-up or existing unverified user)
       if (data.needsVerification && data.email) {
         showToast('Verification link sent. Check your inbox.', 'success');
-        navigate(`/verify-email-pending?email=${encodeURIComponent(data.email)}&source=google`);
+        navigate(`/verify-otp?email=${encodeURIComponent(data.email)}&source=google`);
         setLoading(false);
         return;
       }

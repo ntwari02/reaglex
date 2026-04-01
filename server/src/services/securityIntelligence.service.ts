@@ -3,7 +3,10 @@
  * Privacy: no passwords; emails masked in API responses.
  */
 import { EventEmitter } from 'node:events';
+import mongoose from 'mongoose';
 import { getConnectedUsersByRole } from './socketRegistry';
+import { User } from '../models/User';
+import { lookupIpGeoLabel, summarizeUserAgent } from '../utils/ipGeoLookup';
 
 export type UserRole = 'buyer' | 'seller' | 'admin' | 'guest';
 
@@ -34,7 +37,12 @@ export interface VirtualSessionGhost {
   lastActions: Array<{ at: string; type: string; detail: string }>;
   reconstructedUi: { title: string; sections: string[]; hints: string[] };
   maskedIdentifier: string;
+  /** Short UA snippet (legacy display) */
   deviceHint: string;
+  /** Full User-Agent string when available */
+  userAgentFull?: string;
+  /** Last observed client IP from telemetry */
+  ipAddress?: string;
   sessionStartedAt: string;
   lastSeenAt: string;
   riskScore: number;
@@ -249,6 +257,8 @@ export function recordTelemetry(
     reconstructedUi: { title: '—', sections: [], hints: [] },
     maskedIdentifier: '—',
     deviceHint: '—',
+    userAgentFull: undefined,
+    ipAddress: undefined,
     sessionStartedAt: new Date(sessionStart.get(userId) ?? now).toISOString(),
     lastSeenAt: new Date().toISOString(),
     riskScore: 0,
@@ -261,6 +271,8 @@ export function recordTelemetry(
   ghost.lastSeenAt = new Date().toISOString();
   ghost.maskedIdentifier = `User …${userId.slice(-6)}`;
   ghost.deviceHint = userAgent.slice(0, 80) || 'Unknown client';
+  ghost.userAgentFull = userAgent.slice(0, 1024) || undefined;
+  ghost.ipAddress = ip || undefined;
   ghost.lastActions.unshift({
     at: new Date().toISOString(),
     type: action,
@@ -320,6 +332,102 @@ export function syncBehaviorMirror(
       bumpRisk(b.userId, b.risk === 'HIGH' ? 22 : 12, b.detail, b.role);
     }
   }
+}
+
+function maskPhone(phone?: string | null): string | null {
+  if (!phone || String(phone).length < 4) return phone ? '••••' : null;
+  const p = String(phone);
+  return `${p.slice(0, 2)}…${p.slice(-2)}`;
+}
+
+export interface SessionSubjectDetail {
+  account: {
+    fullName: string;
+    email: string;
+    phoneMasked: string | null;
+    role: string;
+    accountStatus?: string;
+    emailVerified: boolean;
+    profileLocation?: string;
+    memberSince: string;
+    lastLoginAt: string | null;
+    lastLoginIp: string | null;
+    lastLoginLocation?: string;
+    lastLoginDevice?: string;
+  } | null;
+  session: {
+    userId: string;
+    currentRoute: string;
+    routeLabel: string;
+    riskScore: number;
+    riskBand: VirtualSessionGhost['riskBand'];
+    ipAddress?: string;
+    geoLabel: string;
+    userAgentFull?: string;
+    deviceSummary: string;
+    sessionStartedAt: string;
+    lastSeenAt: string;
+  } | null;
+}
+
+/**
+ * Admin-only: merge DB account fields with live telemetry ghost (IP/UA/geo).
+ */
+export async function getSessionSubjectDetailForAdmin(userId: string): Promise<SessionSubjectDetail> {
+  const id = String(userId || '').trim();
+  let account: SessionSubjectDetail['account'] = null;
+
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    const u = await User.findById(new mongoose.Types.ObjectId(id))
+      .select('fullName email phone role accountStatus emailVerified createdAt location security.loginHistory')
+      .lean();
+    if (u) {
+      const lh = Array.isArray((u as any).security?.loginHistory) ? (u as any).security.loginHistory : [];
+      const last = lh.length ? lh[0] : null;
+      account = {
+        fullName: String((u as any).fullName || ''),
+        email: String((u as any).email || ''),
+        phoneMasked: maskPhone((u as any).phone),
+        role: String((u as any).role || ''),
+        accountStatus: (u as any).accountStatus ? String((u as any).accountStatus) : undefined,
+        emailVerified: !!(u as any).emailVerified,
+        profileLocation: (u as any).location ? String((u as any).location) : undefined,
+        memberSince: (u as any).createdAt ? new Date((u as any).createdAt).toISOString() : '',
+        lastLoginAt: last?.date ? new Date(last.date).toISOString() : null,
+        lastLoginIp: last?.ip ? String(last.ip) : null,
+        lastLoginLocation: last?.location ? String(last.location) : undefined,
+        lastLoginDevice: last?.device ? String(last.device) : undefined,
+      };
+    }
+  }
+
+  const ghost = sessionMap.get(id);
+  let geoLabel = '';
+  const ua = ghost?.userAgentFull || ghost?.deviceHint || '';
+  const sum = summarizeUserAgent(ua);
+  const deviceSummary = `${sum.device} · ${sum.browser} on ${sum.os}`;
+
+  if (ghost?.ipAddress) {
+    geoLabel = await lookupIpGeoLabel(ghost.ipAddress);
+  }
+
+  const session: SessionSubjectDetail['session'] = ghost
+    ? {
+        userId: ghost.userId,
+        currentRoute: ghost.currentRoute,
+        routeLabel: ghost.routeLabel,
+        riskScore: ghost.riskScore,
+        riskBand: ghost.riskBand,
+        ipAddress: ghost.ipAddress,
+        geoLabel: geoLabel || (ghost.ipAddress ? 'Resolving…' : 'No IP yet'),
+        userAgentFull: ghost.userAgentFull,
+        deviceSummary,
+        sessionStartedAt: ghost.sessionStartedAt,
+        lastSeenAt: ghost.lastSeenAt,
+      }
+    : null;
+
+  return { account, session };
 }
 
 export function logAdminSessionViewerAccess(adminId: string, targetUserId: string) {

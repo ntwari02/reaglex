@@ -13,6 +13,7 @@ import {
   getIntelligenceSnapshot,
   recordTelemetry,
   logAdminSessionViewerAccess,
+  getSessionSubjectDetailForAdmin,
   type UserRole,
 } from '../services/securityIntelligence.service';
 
@@ -127,6 +128,22 @@ router.post('/audit/session-viewer', (req: AuthenticatedRequest, res: Response) 
   } catch (e) {
     console.error('[security-analysis] audit', e);
     res.status(500).json({ message: 'Audit log failed' });
+  }
+});
+
+/** Rich subject detail for virtual session viewer (account + IP/geo/device). Admin-only. */
+router.get('/session-subject/:userId', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = String(req.params.userId || '').trim();
+    if (!uid) {
+      res.status(400).json({ message: 'userId required' });
+      return;
+    }
+    const detail = await getSessionSubjectDetailForAdmin(uid);
+    res.json(detail);
+  } catch (e) {
+    console.error('[security-analysis] session-subject', e);
+    res.status(500).json({ message: 'Failed to load session subject' });
   }
 });
 

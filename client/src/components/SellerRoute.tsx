@@ -141,7 +141,7 @@ export default function SellerRoute({ children }: SellerRouteProps) {
   if (user && user.email_verified !== true) {
     return (
       <Navigate
-        to={`/verify-email-pending?email=${encodeURIComponent(user.email)}`}
+        to={`/verify-otp?email=${encodeURIComponent(user.email)}`}
         replace
       />
     );

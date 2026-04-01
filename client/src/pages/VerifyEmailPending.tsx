@@ -114,13 +114,25 @@ export function VerifyEmailPending() {
           </p>
 
           {email && (
-            <p className="text-center text-sm font-medium text-orange-800 dark:text-orange-200 bg-orange-50 dark:bg-orange-950/40 rounded-xl py-3 px-4 mb-6 break-all border border-orange-100 dark:border-orange-500/20">
+            <p className="text-center text-sm font-medium text-orange-800 dark:text-orange-200 bg-orange-50 dark:bg-orange-950/40 rounded-xl py-3 px-4 mb-4 break-all border border-orange-100 dark:border-orange-500/20">
               {email}
             </p>
           )}
 
+          <Link
+            to={email ? `/verify-otp?email=${encodeURIComponent(email)}` : '/verify-otp'}
+            className="mb-4 w-full flex items-center justify-center gap-2 py-4 px-4 rounded-xl font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)` }}
+          >
+            Enter 6-digit code — recommended
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mb-6">
+            Use the verification code from your email for the fastest path. Prefer clicking a link in the message? Use the options below.
+          </p>
+
           <p className="text-center text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            Verify using link
+            Or verify using email link
           </p>
           <div className="space-y-3">
             <button

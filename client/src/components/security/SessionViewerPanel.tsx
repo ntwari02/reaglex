@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Ghost, MonitorSmartphone } from 'lucide-react';
+import { Eye, Ghost, MonitorSmartphone, MapPin, User, Globe, Shield, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { VirtualSessionGhost } from './securityIntelTypes';
+import type { VirtualSessionGhost, SessionSubjectDetail } from './securityIntelTypes';
 import { API_BASE_URL } from '@/lib/config';
 
 function bandStyle(band: VirtualSessionGhost['riskBand']) {
@@ -19,6 +19,9 @@ export function SessionViewerPanel({
   onAudit?: (targetUserId: string) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(sessions[0]?.userId ?? null);
+  const [detail, setDetail] = useState<SessionSubjectDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessions.length === 0) {
@@ -30,6 +33,46 @@ export function SessionViewerPanel({
       return sessions[0].userId;
     });
   }, [sessions]);
+
+  const loadDetail = useCallback(async (userId: string) => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+    setDetailLoading(true);
+    setDetailError(null);
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/security-analysis/session-subject/${encodeURIComponent(userId)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        },
+      );
+      if (!r.ok) {
+        setDetailError('Could not load account details');
+        setDetail(null);
+        return;
+      }
+      const j = (await r.json()) as SessionSubjectDetail;
+      setDetail(j);
+    } catch {
+      setDetailError('Could not load account details');
+      setDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selected) {
+      setDetail(null);
+      return;
+    }
+    void loadDetail(selected);
+  }, [selected, loadDetail]);
 
   const sel = sessions.find((s) => s.userId === selected) ?? sessions[0];
 
@@ -53,8 +96,11 @@ export function SessionViewerPanel({
     }
   };
 
+  const acc = detail?.account;
+  const sess = detail?.session;
+
   return (
-    <div className="rounded-2xl border border-violet-500/20 bg-slate-950/70 backdrop-blur-xl overflow-hidden flex flex-col min-h-[420px] max-h-[520px]">
+    <div className="rounded-2xl border border-violet-500/20 bg-slate-950/70 backdrop-blur-xl overflow-hidden flex flex-col min-h-[420px] max-h-[640px]">
       <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2 bg-gradient-to-r from-violet-950/50 to-transparent">
         <Ghost className="w-4 h-4 text-violet-400" />
         <div>
@@ -96,10 +142,108 @@ export function SessionViewerPanel({
               transition={{ duration: 0.25 }}
               className="space-y-4"
             >
+              {detailLoading && (
+                <div className="flex items-center gap-2 text-[11px] text-violet-300/90">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Loading account & network context…
+                </div>
+              )}
+              {detailError && (
+                <p className="text-[11px] text-amber-400/90">{detailError}</p>
+              )}
+
+              {acc && (
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/20 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-400/90">
+                    <User className="w-3.5 h-3.5" />
+                    Account
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                    <p className="text-slate-300">
+                      <span className="text-slate-500">Name · </span>
+                      {acc.fullName || '—'}
+                    </p>
+                    <p className="text-slate-300 break-all">
+                      <span className="text-slate-500">Email · </span>
+                      {acc.email}
+                    </p>
+                    <p className="text-slate-300">
+                      <span className="text-slate-500">Phone · </span>
+                      {acc.phoneMasked || '—'}
+                    </p>
+                    <p className="text-slate-300">
+                      <span className="text-slate-500">Role · </span>
+                      {acc.role}
+                    </p>
+                    <p className="text-slate-300">
+                      <span className="text-slate-500">Status · </span>
+                      {acc.accountStatus || 'active'}
+                    </p>
+                    <p className="text-slate-300">
+                      <span className="text-slate-500">Email verified · </span>
+                      {acc.emailVerified ? 'Yes' : 'No'}
+                    </p>
+                    {acc.profileLocation && (
+                      <p className="text-slate-300 sm:col-span-2">
+                        <span className="text-slate-500">Profile location · </span>
+                        {acc.profileLocation}
+                      </p>
+                    )}
+                    <p className="text-slate-400 text-[10px] sm:col-span-2">
+                      Member since {acc.memberSince ? new Date(acc.memberSince).toLocaleString() : '—'}
+                    </p>
+                    {(acc.lastLoginAt || acc.lastLoginIp) && (
+                      <p className="text-slate-400 text-[10px] sm:col-span-2">
+                        Last sign-in ·{' '}
+                        {acc.lastLoginAt ? new Date(acc.lastLoginAt).toLocaleString() : '—'}
+                        {acc.lastLoginIp ? ` · IP ${acc.lastLoginIp}` : ''}
+                        {acc.lastLoginLocation ? ` · ${acc.lastLoginLocation}` : ''}
+                        {acc.lastLoginDevice ? ` · ${acc.lastLoginDevice}` : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {sess && (
+                <div className="rounded-xl border border-violet-500/25 bg-violet-950/15 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-violet-300/90">
+                    <Globe className="w-3.5 h-3.5" />
+                    Live telemetry
+                  </div>
+                  <div className="grid grid-cols-1 gap-1.5 text-[11px] text-slate-300">
+                    <p className="flex items-start gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 shrink-0 text-violet-400 mt-0.5" />
+                      <span>
+                        <span className="text-slate-500">Coarse location · </span>
+                        {sess.geoLabel}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="text-slate-500">IP · </span>
+                      <span className="font-mono">{sess.ipAddress || '—'}</span>
+                    </p>
+                    <p>
+                      <span className="text-slate-500">Device / browser · </span>
+                      {sess.deviceSummary}
+                    </p>
+                    <p className="text-[10px] text-slate-500 break-all font-mono leading-snug">
+                      UA · {sess.userAgentFull || sel.userAgentFull || sel.deviceHint}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-2">
                 <span className={cn('text-[10px] font-mono px-2 py-1 rounded-lg border', bandStyle(sel.riskBand))}>
                   Risk {sel.riskScore} · {sel.riskBand}
                 </span>
+                {sess && (
+                  <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    Telemetry risk aligned
+                  </span>
+                )}
                 <span className="text-[10px] text-slate-500 font-mono">
                   Session {new Date(sel.sessionStartedAt).toLocaleTimeString()} → now
                 </span>
@@ -135,7 +279,9 @@ export function SessionViewerPanel({
                 </p>
               </div>
 
-              <p className="text-[10px] text-slate-600 font-mono break-all">Device: {sel.deviceHint}</p>
+              <p className="text-[10px] text-slate-600 font-mono break-all">
+                Device (short): {sel.deviceHint}
+              </p>
             </motion.div>
           )}
         </div>

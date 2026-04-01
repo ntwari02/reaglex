@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
+import { adminCreateSystemInboxBroadcast } from '../controllers/systemNotificationController';
 import {
   getDashboard,
   sendNotification,
@@ -39,6 +40,9 @@ router.get('/dashboard', getDashboard);
 
 // Send notification
 router.post('/send', sendNotification);
+
+/** In-app system inbox row (visible to buyers/sellers/admins per audience) */
+router.post('/in-app', adminCreateSystemInboxBroadcast);
 
 // Templates
 router.get('/templates', getTemplates);

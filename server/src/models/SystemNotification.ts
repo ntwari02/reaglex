@@ -1,12 +1,24 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type SystemNotificationAudience =
+  | 'all_sellers'
+  | 'verified_sellers'
+  | 'pending_sellers'
+  | 'specific_seller'
+  | 'all_buyers'
+  | 'all_admins'
+  | 'everyone'
+  | 'specific_user';
+
 export interface ISystemNotification extends Document {
   title: string;
   message: string;
   type: 'info' | 'warning' | 'error' | 'success' | 'policy_update' | 'system_announcement';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  targetAudience: 'all_sellers' | 'verified_sellers' | 'pending_sellers' | 'specific_seller';
+  targetAudience: SystemNotificationAudience;
   targetSellerId?: mongoose.Types.ObjectId;
+  /** When targetAudience is specific_user — any role */
+  targetUserId?: mongoose.Types.ObjectId;
   isRead: boolean;
   readBy: mongoose.Types.ObjectId[];
   actionRequired: boolean;
@@ -36,11 +48,21 @@ const systemNotificationSchema = new Schema<ISystemNotification>(
     },
     targetAudience: {
       type: String,
-      enum: ['all_sellers', 'verified_sellers', 'pending_sellers', 'specific_seller'],
+      enum: [
+        'all_sellers',
+        'verified_sellers',
+        'pending_sellers',
+        'specific_seller',
+        'all_buyers',
+        'all_admins',
+        'everyone',
+        'specific_user',
+      ],
       required: true,
       index: true,
     },
     targetSellerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    targetUserId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     isRead: { type: Boolean, default: false },
     readBy: { type: [Schema.Types.ObjectId], default: [] },
     actionRequired: { type: Boolean, default: false },
@@ -54,6 +76,7 @@ const systemNotificationSchema = new Schema<ISystemNotification>(
 
 // Indexes
 systemNotificationSchema.index({ targetAudience: 1, targetSellerId: 1, createdAt: -1 });
+systemNotificationSchema.index({ targetAudience: 1, targetUserId: 1, createdAt: -1 });
 systemNotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export const SystemNotification = mongoose.model<ISystemNotification>('SystemNotification', systemNotificationSchema);

@@ -204,7 +204,8 @@ app.use('/api/seller/knowledge-base', knowledgeBaseRoutes);
 app.use('/api/seller/disputes', disputeRoutes);
 // Seller account health routes
 app.use('/api/seller/account-health', accountHealthRoutes);
-// Seller system notification routes
+// System inbox (sellers, buyers, admins) — also mounted under /seller for backward compatibility
+app.use('/api/notifications', systemNotificationRoutes);
 app.use('/api/seller/notifications', systemNotificationRoutes);
 
 // Seller inbox routes

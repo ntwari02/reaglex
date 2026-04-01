@@ -30,10 +30,43 @@ export interface VirtualSessionGhost {
   reconstructedUi: { title: string; sections: string[]; hints: string[] };
   maskedIdentifier: string;
   deviceHint: string;
+  userAgentFull?: string;
+  ipAddress?: string;
   sessionStartedAt: string;
   lastSeenAt: string;
   riskScore: number;
   riskBand: 'safe' | 'suspicious' | 'dangerous';
+}
+
+/** Admin-only detail from GET /security-analysis/session-subject/:userId */
+export interface SessionSubjectDetail {
+  account: {
+    fullName: string;
+    email: string;
+    phoneMasked: string | null;
+    role: string;
+    accountStatus?: string;
+    emailVerified: boolean;
+    profileLocation?: string;
+    memberSince: string;
+    lastLoginAt: string | null;
+    lastLoginIp: string | null;
+    lastLoginLocation?: string;
+    lastLoginDevice?: string;
+  } | null;
+  session: {
+    userId: string;
+    currentRoute: string;
+    routeLabel: string;
+    riskScore: number;
+    riskBand: string;
+    ipAddress?: string;
+    geoLabel: string;
+    userAgentFull?: string;
+    deviceSummary: string;
+    sessionStartedAt: string;
+    lastSeenAt: string;
+  } | null;
 }
 
 export interface RiskSample {

@@ -38,17 +38,15 @@ const lastPasswordResetOtpSent = new Map<string, number>();
 
 /**
  * Email OTP for registration / verification when enabled.
- * - USE_EMAIL_OTP=false → magic-link-only flow (when in production).
+ * - USE_EMAIL_OTP=false → magic-link-only flow (explicit opt-out).
  * - USE_EMAIL_OTP=true → force OTP.
- * - Default: OTP in non-production; in production, OTP when transactional email is configured.
+ * - Default: OTP (6-digit code) is the primary verification path; link-based flow is secondary in the UI.
  */
 function shouldUseEmailOtpFlow(_req?: Request): boolean {
   const v = process.env.USE_EMAIL_OTP?.trim().toLowerCase();
   if (v === 'false' || v === '0') return false;
   if (v === 'true' || v === '1') return true;
-  const env = (process.env.NODE_ENV || '').toLowerCase();
-  if (env !== 'production') return true;
-  return isEmailConfigured();
+  return true;
 }
 
 async function verifyStoredOtp(stored: string | undefined, digits: string): Promise<boolean> {

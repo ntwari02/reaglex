@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Order } from '../models/Order';
 import { MessageThread } from '../models/MessageThread';
+import { SystemNotification } from '../models/SystemNotification';
 
 type BuyerNotificationType = 'order' | 'message' | 'system';
 
@@ -111,7 +112,40 @@ async function buildBuyerNotifications(
     };
   });
 
-  return [...orderItems, ...messageItems]
+  const sysFilter: Record<string, unknown> = {
+    $and: [
+      {
+        $or: [
+          { targetAudience: 'everyone' },
+          { targetAudience: 'all_buyers' },
+          { targetAudience: 'specific_user', targetUserId: buyerId },
+        ],
+      },
+      {
+        $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+      },
+    ],
+  };
+
+  const sysRows = await SystemNotification.find(sysFilter).sort({ createdAt: -1 }).limit(limit).lean();
+
+  const systemItems: BuyerNotificationItem[] = sysRows.map((n: any) => {
+    const createdAt = n.createdAt || new Date();
+    const unread = !n.readBy?.some((id: mongoose.Types.ObjectId) => id.toString() === buyerId.toString());
+    return {
+      id: `system:${n._id}`,
+      type: 'system',
+      title: String(n.title || 'Announcement'),
+      message: String(n.message || ''),
+      time: formatRelativeTime(createdAt),
+      createdAt: new Date(createdAt).toISOString(),
+      unread,
+      orderId: undefined,
+      threadId: undefined,
+    };
+  });
+
+  return [...orderItems, ...messageItems, ...systemItems]
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, limit);
 }

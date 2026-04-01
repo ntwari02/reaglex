@@ -49,7 +49,7 @@ export function VerifyEmail() {
         if (cancelled) return;
         const params = new URLSearchParams();
         if (emailFromUrl) params.set('email', emailFromUrl);
-        navigate(`/verify-email-pending?${params.toString()}`, { replace: true });
+        navigate(`/verify-otp?${params.toString()}`, { replace: true });
       }
     };
     run();
