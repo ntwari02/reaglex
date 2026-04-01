@@ -9,7 +9,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { SERVER_URL } from '../../lib/config';
 
-// Helper to resolve avatar URL (handles both full URLs and relative paths)
+// Helper to resolve avatar URLs (handles both full URLs and relative paths)
 // Adds cache-busting parameter to ensure fresh image loads
 const resolveAvatarUrl = (url: string | null | undefined, cacheBust?: boolean): string | null => {
   if (!url) return null;
