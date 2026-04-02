@@ -736,7 +736,16 @@ async function executeTool(
         return { ok: false, error: `Unknown tool: ${toolName}` };
     }
   } catch (err: any) {
-    return { ok: false, error: err?.message || 'Tool execution failed' };
+    const raw = String(err?.message || 'Tool execution failed');
+    const looksInternal =
+      /flutterwave|stripe|secret|api[_\s]?key|\.env|mongodb|ECONNREFUSED|JWT_SECRET|password/i.test(raw);
+    if (looksInternal && ctx.role !== 'admin') {
+      return {
+        ok: false,
+        error: 'That action could not be completed right now. Please try again in a few minutes.',
+      };
+    }
+    return { ok: false, error: raw };
   }
 }
 
@@ -753,6 +762,8 @@ function buildSystemPrompt(ctx: AgentContext, docs: string): string {
     'Strict rules:',
     '- Do not request passwords or secrets.',
     '- Never mention API keys, JWT contents, or environment variables.',
+    '- Never tell buyers or sellers about missing server config (e.g. payment gateway keys, Flutterwave, SMTP). If a tool fails with a technical/config error, say something friendly like: "We could not complete that right now. Please try again in a few minutes." Suggest contacting support only if it keeps failing.',
+    '- For admin role only: you may acknowledge operational issues at a high level (e.g. "payment integration needs configuration") without exposing secret names or .env contents.',
     '- If a tool returns an authorization error, explain to the user that they do not have permission.',
     '- NEVER output HTML or pseudo-markup (no <p>, <div>, <br>, etc.). Use plain sentences and short bullet lists.',
     '- NEVER ask the user for product_id, order_id, or Mongo/ObjectId values. Resolve IDs from tool results only.',

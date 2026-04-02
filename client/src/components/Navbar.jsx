@@ -424,6 +424,27 @@ function MainHeader({
       mounted = false;
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const refresh = () => {
+      buyerNotificationsApi
+        .getUnreadCount()
+        .then((data) => {
+          const n = Number(data?.count || 0);
+          if (n > prevNotifUnreadRef.current) {
+            setBellRing(true);
+            setTimeout(() => setBellRing(false), 500);
+          }
+          prevNotifUnreadRef.current = n;
+          setNotifUnreadCount(n);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('systemInboxUnreadRefresh', refresh);
+    return () => window.removeEventListener('systemInboxUnreadRefresh', refresh);
+  }, [user]);
+
   useClickOutside(profileRef, () => setProfileOpen(false));
   useClickOutside(cartRef, () => setCartHoverOpen(false));
   useClickOutside(categoryRef, () => setCategoryDropdownOpen(false));

@@ -7,6 +7,7 @@ import { SupportArticle } from '../models/SupportArticle';
 import { SupportSettings } from '../models/SupportSettings';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
+import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -274,6 +275,7 @@ export async function updateTicket(req: AuthenticatedRequest, res: Response) {
     const { status, priority, assignedTo } = req.body;
     const ticket = await SupportTicket.findById(ticketId);
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+    const previousStatus = ticket.status;
 
     if (status) {
       ticket.status = status;
@@ -285,6 +287,18 @@ export async function updateTicket(req: AuthenticatedRequest, res: Response) {
       ticket.assignedTo = assignedTo ? new mongoose.Types.ObjectId(assignedTo) : undefined;
     }
     await ticket.save();
+
+    if (status && previousStatus !== ticket.status && req.user?.id) {
+      void createSystemInboxAndFanout({
+        title: `Ticket ${ticket.ticketNumber} updated`,
+        message: `Support ticket status is now: ${ticket.status}.`,
+        type: 'info',
+        priority: 'medium',
+        targetAudience: 'specific_user',
+        targetUserId: ticket.sellerId,
+        createdBy: req.user.id,
+      });
+    }
 
     const updated = await SupportTicket.findById(ticketId)
       .populate('sellerId', 'fullName email')
@@ -338,6 +352,18 @@ export async function addTicketMessage(req: AuthenticatedRequest, res: Response)
     if (!ticket.firstResponseAt) ticket.firstResponseAt = new Date();
     if (ticket.status === 'resolved') ticket.status = 'in_progress';
     await ticket.save();
+
+    if (!newMessage.isInternal) {
+      void createSystemInboxAndFanout({
+        title: `Support update: ${ticket.ticketNumber}`,
+        message: message.trim().slice(0, 800),
+        type: 'info',
+        priority: 'medium',
+        targetAudience: 'specific_user',
+        targetUserId: ticket.sellerId,
+        createdBy: userId,
+      });
+    }
 
     const updated = await SupportTicket.findById(ticketId)
       .populate('sellerId', 'fullName email')

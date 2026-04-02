@@ -17,6 +17,7 @@ import { adminNotificationsAPI } from '@/lib/api';
 
 export default function CreateSendNotification() {
   const [targetGroup, setTargetGroup] = useState('all_customers');
+  const [specificUserId, setSpecificUserId] = useState('');
   const [notificationType, setNotificationType] = useState<string[]>(['inapp']);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -42,6 +43,7 @@ export default function CreateSendNotification() {
         subject,
         message,
         recipient: targetGroup === 'specific_user' ? 'user' : 'broadcast',
+        specificUserId: targetGroup === 'specific_user' ? specificUserId.trim() : undefined,
       });
       setSendSuccess(true);
       setTimeout(() => setSendSuccess(false), 4000);
@@ -102,6 +104,23 @@ export default function CreateSendNotification() {
                 );
               })}
             </div>
+            {targetGroup === 'specific_user' && (
+              <div className="mt-4">
+                <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  User ID (Mongo ObjectId)
+                </label>
+                <input
+                  type="text"
+                  value={specificUserId}
+                  onChange={(e) => setSpecificUserId(e.target.value)}
+                  placeholder="e.g. 674a…"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white font-mono"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Required for in-app delivery to one user. Find ID in User management.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Notification Types */}

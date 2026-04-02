@@ -16,6 +16,7 @@ import {
   Settings,
   Activity,
   ShieldCheck,
+  Crown,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/config';
 import Sidebar from '@/components/dashboard/Sidebar';
@@ -27,6 +28,7 @@ import SellerStoreManagement from '@/pages/admin/SellerStoreManagement';
 import ProductManagementAdmin from '@/pages/admin/ProductManagementAdmin';
 import OrderManagementAdmin from '@/pages/admin/OrderManagementAdmin';
 import PaymentsFinancial from '@/pages/admin/PaymentsFinancial';
+import SellerSubscriptionsAdmin from '@/pages/admin/SellerSubscriptionsAdmin';
 import SupportCenter from '@/pages/admin/support/SupportCenter';
 import LogisticsCenter from '@/pages/admin/logistics/LogisticsCenter';
 import NotificationsCenter from '@/pages/admin/notifications/NotificationsCenter';
@@ -71,6 +73,7 @@ const AdminDashboard: React.FC = () => {
       'products',
       'orders',
       'finance',
+      'seller-subscriptions',
       'support',
       'logistics',
       'notifications',
@@ -154,6 +157,7 @@ const AdminDashboard: React.FC = () => {
           { id: 'products', label: 'Products', icon: Package },
           { id: 'orders', label: 'Orders', icon: ShoppingCart },
           { id: 'finance', label: 'Finance', icon: DollarSign },
+          { id: 'seller-subscriptions', label: 'Seller subscriptions', icon: Crown },
           { id: 'support', label: 'Support', icon: AlertTriangle },
           { id: 'logistics', label: 'Logistics', icon: Truck },
           { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -185,6 +189,7 @@ const AdminDashboard: React.FC = () => {
             <Route path="products" element={<ProductManagementAdmin />} />
             <Route path="orders" element={<OrderManagementAdmin />} />
             <Route path="finance" element={<PaymentsFinancial />} />
+            <Route path="seller-subscriptions" element={<SellerSubscriptionsAdmin />} />
             <Route path="support" element={<SupportCenter />} />
             <Route path="logistics" element={<LogisticsCenter />} />
             <Route path="notifications" element={<NotificationsCenter />} />

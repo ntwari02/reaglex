@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { SystemNotification } from '../models/SystemNotification';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
+import { fanoutAfterSystemInboxCreate } from '../services/systemInboxFanout';
 
 const getCurrentUserOid = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null => {
   if (!req.user?.id) return null;
@@ -83,13 +84,8 @@ export async function getNotifications(req: AuthenticatedRequest, res: Response)
       .limit(Number(limit))
       .lean();
 
-    const unreadIds = notifications
-      .filter((n) => !n.readBy?.some((id) => id.toString() === userId.toString()))
-      .map((n) => n._id);
-
-    if (unreadIds.length > 0) {
-      await SystemNotification.updateMany({ _id: { $in: unreadIds } }, { $addToSet: { readBy: userId } });
-    }
+    // Do not mark items read on list fetch — that broke unread badges and "real" inbox behavior.
+    // Clients should call POST /:notificationId/read when the user actually opens an item.
 
     return res.json({ notifications });
   } catch (error: any) {
@@ -212,6 +208,7 @@ export async function adminCreateSystemInboxBroadcast(req: AuthenticatedRequest,
     }
 
     const created = await SystemNotification.create(doc);
+    await fanoutAfterSystemInboxCreate(created.toObject() as any);
     return res.status(201).json({ ok: true, id: String(created._id) });
   } catch (error: any) {
     console.error('adminCreateSystemInboxBroadcast error:', error);

@@ -10,6 +10,7 @@ import { AdminSystemAlert } from '../models/AdminSystemAlert';
 import { User } from '../models/User';
 import { sendNotificationEmail, isEmailConfigured } from '../services/emailService';
 import mongoose from 'mongoose';
+import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -151,12 +152,48 @@ export async function sendNotification(req: AuthenticatedRequest, res: Response)
       }
     }
 
+    if ((types.includes('inapp') || types.includes('system')) && req.user?.id) {
+      const title = (subject || 'Announcement').slice(0, 240);
+      const bodyText = (message || '').slice(0, 8000);
+      if (title.trim() || bodyText.trim()) {
+        const specificUserId = String(body.specificUserId || '').trim();
+        let inboxAudience: 'all_buyers' | 'all_sellers' | 'specific_user' | null = 'all_buyers';
+        if (targetGroup === 'all_sellers') inboxAudience = 'all_sellers';
+        else if (targetGroup === 'specific_user') inboxAudience = 'specific_user';
+        else if (targetGroup === 'custom_segment') inboxAudience = null;
+
+        if (inboxAudience === 'specific_user') {
+          if (mongoose.Types.ObjectId.isValid(specificUserId)) {
+            await createSystemInboxAndFanout({
+              title,
+              message: bodyText,
+              type: types.includes('system') ? 'warning' : 'system_announcement',
+              priority: types.includes('system') ? 'high' : 'medium',
+              targetAudience: 'specific_user',
+              targetUserId: specificUserId,
+              createdBy: req.user.id,
+            });
+          }
+        } else if (inboxAudience) {
+          await createSystemInboxAndFanout({
+            title,
+            message: bodyText,
+            type: types.includes('system') ? 'warning' : 'system_announcement',
+            priority: types.includes('system') ? 'high' : 'medium',
+            targetAudience: inboxAudience,
+            createdBy: req.user.id,
+          });
+        }
+      }
+    }
+
     for (const type of types) {
-      if (!['email', 'sms', 'push', 'inapp'].includes(type)) continue;
-      if (type === 'email' && emailsToSend.length > 0) continue;
+      const logType = type === 'system' ? 'inapp' : type;
+      if (!['email', 'sms', 'push', 'inapp'].includes(logType)) continue;
+      if (logType === 'email' && emailsToSend.length > 0) continue;
       const log = await SentNotificationLog.create({
         recipient,
-        type: type as 'email' | 'sms' | 'push' | 'inapp',
+        type: logType as 'email' | 'sms' | 'push' | 'inapp',
         subject,
         body: message,
         status: 'sent',

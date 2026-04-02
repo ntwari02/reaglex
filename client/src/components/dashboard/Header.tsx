@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Bell, Menu, Search, User, Sun, Moon, ChevronDown, Settings, Package, BarChart3, ShoppingBag, LogOut, Store, Layers } from 'lucide-react';
@@ -7,7 +7,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { SERVER_URL } from '../../lib/config';
+import { SERVER_URL, API_BASE_URL } from '../../lib/config';
+import { systemInboxApi } from '@/services/systemInboxApi';
 
 // Helper to resolve avatar URLs (handles both full URLs and relative paths)
 // Adds cache-busting parameter to ensure fresh image loads
@@ -59,7 +60,9 @@ const Header: React.FC<HeaderProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuthStore();
   const { unreadMessageCount } = useNotificationStore();
-  const notificationCount = unreadMessageCount; // Dynamic based on unread messages
+  const [systemInboxUnread, setSystemInboxUnread] = useState(0);
+
+  const notificationCount = unreadMessageCount + systemInboxUnread;
   const navigate = useNavigate();
   const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -82,6 +85,33 @@ const Header: React.FC<HeaderProps> = ({
 
   const isSeller = location.pathname.startsWith('/seller');
   const isAdmin = location.pathname.startsWith('/admin');
+
+  const refreshSystemInboxUnread = useCallback(() => {
+    if (!isSeller && !isAdmin) {
+      setSystemInboxUnread(0);
+      return;
+    }
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      setSystemInboxUnread(0);
+      return;
+    }
+    systemInboxApi
+      .unreadCount()
+      .then((c) => setSystemInboxUnread(Number.isFinite(c) ? c : 0))
+      .catch(() => setSystemInboxUnread(0));
+  }, [isSeller, isAdmin]);
+
+  useEffect(() => {
+    refreshSystemInboxUnread();
+    const t = window.setInterval(refreshSystemInboxUnread, 90_000);
+    const onRefresh = () => refreshSystemInboxUnread();
+    window.addEventListener('systemInboxUnreadRefresh', onRefresh);
+    return () => {
+      window.clearInterval(t);
+      window.removeEventListener('systemInboxUnreadRefresh', onRefresh);
+    };
+  }, [refreshSystemInboxUnread]);
 
   // Listen for avatar updates and user state changes
   useEffect(() => {
@@ -211,9 +241,9 @@ const Header: React.FC<HeaderProps> = ({
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg shadow-red-500/30"
+              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center shadow-lg shadow-red-500/30"
             >
-              {notificationCount}
+              {notificationCount > 99 ? '99+' : notificationCount}
             </motion.span>
           )}
         </motion.button>

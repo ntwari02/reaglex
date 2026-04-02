@@ -39,6 +39,18 @@ export const buyerNotificationsApi = {
     });
     return handleJson(response);
   },
+
+  /** Persist read state for system inbox rows (`id` like `system:<mongoId>`). */
+  async markSystemNotificationRead(compositeId) {
+    if (typeof compositeId !== 'string' || !compositeId.startsWith('system:')) return;
+    const raw = compositeId.slice('system:'.length);
+    const response = await fetch(`${API_BASE_URL}/notifications/${encodeURIComponent(raw)}/read`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    return handleJson(response);
+  },
 };
 
 export default buyerNotificationsApi;

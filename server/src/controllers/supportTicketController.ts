@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { SupportTicket, ISupportTicket } from '../models/SupportTicket';
 import mongoose from 'mongoose';
+import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
 
 // Helper to get seller ID from request
 const getSellerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null => {
@@ -221,6 +222,16 @@ export async function createTicket(req: AuthenticatedRequest, res: Response) {
       status: 'open',
     });
 
+    const pr = data.priority || 'medium';
+    void createSystemInboxAndFanout({
+      title: `New support ticket ${ticket.ticketNumber || ''}`.trim(),
+      message: `${data.subject}\n\n${String(data.description).slice(0, 600)}`,
+      type: 'info',
+      priority: pr === 'urgent' || pr === 'high' ? 'high' : 'medium',
+      targetAudience: 'all_admins',
+      createdBy: sellerId,
+    });
+
     return res.status(201).json({
       message: 'Ticket created successfully',
       ticket,
@@ -291,6 +302,15 @@ export async function addMessage(req: AuthenticatedRequest, res: Response) {
     }
 
     await ticket.save();
+
+    void createSystemInboxAndFanout({
+      title: `Ticket ${ticket.ticketNumber} — seller replied`,
+      message: String(validation.data.message).slice(0, 600),
+      type: 'info',
+      priority: 'medium',
+      targetAudience: 'all_admins',
+      createdBy: sellerId,
+    });
 
     return res.json({
       message: 'Message added successfully',

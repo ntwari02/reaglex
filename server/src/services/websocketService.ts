@@ -317,6 +317,27 @@ class WebSocketService {
   }
 
   /**
+   * Real-time system inbox hint (bell badge + panels should refetch unread / list).
+   */
+  emitSystemInboxNotification(
+    userIds: string[],
+    payload: {
+      notificationId: string;
+      title: string;
+      message: string;
+      type: string;
+      priority: string;
+      createdAt: string;
+    },
+  ) {
+    if (!this.io || !userIds.length) return;
+    for (const uid of userIds) {
+      if (!uid) continue;
+      this.io.to(`user:${uid}`).emit('system_inbox_notification', payload);
+    }
+  }
+
+  /**
    * Get connected users count
    */
   getConnectedUsersCount(): number {

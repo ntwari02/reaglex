@@ -43,6 +43,10 @@ import adminReviewsRoutes from './src/routes/adminReviewsRoutes';
 import adminCollectionsRoutes from './src/routes/adminCollectionsRoutes';
 import adminProductsRoutes from './src/routes/adminProductsRoutes';
 import adminOrdersRoutes from './src/routes/adminOrdersRoutes';
+import adminSellerSubscriptionRoutes from './src/routes/adminSellerSubscriptionRoutes';
+import publicContentRoutes from './src/routes/publicContentRoutes';
+import adminSiteContentRoutes from './src/routes/adminSiteContentRoutes';
+import { startScheduledNotificationWorker } from './src/jobs/scheduledNotificationWorker';
 import paymentRoutes from './src/routes/paymentRoutes';
 import webhookRoutes from './src/routes/webhookRoutes';
 import seoRoutes from './src/routes/seoRoutes';
@@ -188,6 +192,8 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+app.use('/api/public', publicContentRoutes);
+
 // Auth routes
 app.use('/api/auth', authRoutes);
 // Profile routes
@@ -246,6 +252,8 @@ app.use('/api/admin/reviews', adminReviewsRoutes);
 app.use('/api/admin/collections', adminCollectionsRoutes);
 app.use('/api/admin/products', adminProductsRoutes);
 app.use('/api/admin/orders', adminOrdersRoutes);
+app.use('/api/admin/seller-subscriptions', adminSellerSubscriptionRoutes);
+app.use('/api/admin/site', adminSiteContentRoutes);
 // Payments & escrow routes
 app.use('/api/payments', paymentRoutes);
 // Webhooks
@@ -340,7 +348,9 @@ const connectDB = async () => {
     }
     
     console.log('✅ Connected to MongoDB');
-    
+
+    startScheduledNotificationWorker();
+
     // Initialize WebSocket server
     websocketService.initialize(httpServer);
     

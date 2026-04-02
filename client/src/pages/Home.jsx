@@ -12,7 +12,7 @@ import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useSeo } from '../utils/useSeo';
 
-import { SERVER_URL } from '../lib/config';
+import { SERVER_URL, API_BASE_URL } from '../lib/config';
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
   if (src.startsWith('http')) return src;
@@ -36,7 +36,7 @@ const CATEGORIES = [
 ];
 
 // ── Promo banners ─────────────────────────────────────────────────────────────
-const BANNERS = [
+const DEFAULT_BANNERS = [
   {
     title: 'Mega Sale — Up to 70% Off',
     sub: 'Biggest deals of the season. Limited time only.',
@@ -137,6 +137,7 @@ export default function Home() {
   const [isWakingUp, setIsWakingUp] = useState(false);
   const wakeUpTimerRef = useRef(null);
   const [activeBanner, setActiveBanner] = useState(0);
+  const [promoBanners, setPromoBanners] = useState(DEFAULT_BANNERS);
   const countdown = useCountdown(5);
 
   const recentItems = useRecentlyViewed((s) => s.items);
@@ -169,11 +170,27 @@ export default function Home() {
     },
   });
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/public/home-promo-banners`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d?.banners?.length) return;
+        setPromoBanners(d.banners);
+        setActiveBanner(0);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Auto-rotate banners
   useEffect(() => {
-    const id = setInterval(() => setActiveBanner(p => (p + 1) % BANNERS.length), 4500);
+    const n = Math.max(1, promoBanners.length);
+    const id = setInterval(() => setActiveBanner((p) => (p + 1) % n), 4500);
     return () => clearInterval(id);
-  }, []);
+  }, [promoBanners.length]);
 
   const fetchFeatured = useCallback(async () => {
     setLoadingFeatured(true);
@@ -282,7 +299,7 @@ export default function Home() {
         <section>
           <div className="relative rounded-3xl overflow-hidden" style={{ minHeight: '160px' }}>
             <AnimatePresence mode="wait">
-              {BANNERS.map((b, i) => i === activeBanner && (
+              {promoBanners.map((b, i) => i === activeBanner && (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: 40 }}
@@ -310,7 +327,7 @@ export default function Home() {
             </AnimatePresence>
             {/* Dots */}
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {BANNERS.map((_, i) => (
+              {promoBanners.map((_, i) => (
                 <button key={i} onClick={() => setActiveBanner(i)}
                   className="h-1.5 rounded-full transition-all"
                   style={{ width: i === activeBanner ? 20 : 6, background: i === activeBanner ? 'white' : 'rgba(255,255,255,0.5)' }} />

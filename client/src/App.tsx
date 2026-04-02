@@ -116,6 +116,32 @@ const PageLoader = () => (
   </div>
 );
 
+/** Keeps Socket.IO connected for signed-in users so system inbox updates reach the bell in real time. */
+function GlobalRealtimeBridge() {
+  const user = useAuthStore((s) => s.user);
+  useEffect(() => {
+    if (!user?.id || !localStorage.getItem('auth_token')) {
+      import('./services/websocketService').then(({ websocketService }) => {
+        websocketService.onSystemInboxNotification = undefined;
+        websocketService.disconnect();
+      });
+      return;
+    }
+    let cancelled = false;
+    import('./services/websocketService').then(({ websocketService }) => {
+      if (cancelled) return;
+      websocketService.connect();
+      websocketService.onSystemInboxNotification = () => {
+        window.dispatchEvent(new Event('systemInboxUnreadRefresh'));
+      };
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+  return null;
+}
+
 function App() {
   const { initialize } = useAuthStore();
   useEffect(() => { initialize(); }, [initialize]);
@@ -124,6 +150,7 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <GlobalRealtimeBridge />
         <SecurityTelemetryProbe />
         <ToastNotification />
         <CartDrawer />

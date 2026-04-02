@@ -2,6 +2,7 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Order, OrderStatus } from '../models/Order';
+import { notifyBuyerOrderStatusChange } from '../services/orderInboxNotifications';
 
 // GET /api/seller/orders
 export async function getSellerOrders(req: AuthenticatedRequest, res: Response) {
@@ -49,6 +50,11 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
 
     const orderObjectId = new mongoose.Types.ObjectId(orderId);
 
+    const prior = await Order.findOne({ _id: orderObjectId, sellerId: sellerObjectId } as any).lean();
+    if (!prior) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
     const now = new Date();
     const timelineEntry = {
       status: status.charAt(0).toUpperCase() + status.slice(1),
@@ -75,6 +81,16 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
       return res.status(404).json({ message: 'Order not found' });
     }
 
+    if (prior.status !== updated.status) {
+      void notifyBuyerOrderStatusChange({
+        buyerId: updated.buyerId,
+        orderNumber: updated.orderNumber,
+        newStatus: updated.status,
+        previousStatus: prior.status,
+        actorUserId: req.user.id,
+      });
+    }
+
     return res.json({ order: updated });
   } catch (err: any) {
     console.error('Error updating seller order status:', err);
@@ -97,6 +113,11 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
     };
 
     const orderObjectId = new mongoose.Types.ObjectId(orderId);
+
+    const prior = await Order.findOne({ _id: orderObjectId, sellerId: sellerObjectId } as any).lean();
+    if (!prior) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
 
     const now = new Date();
     const shouldMarkShipped = !!trackingNumber;
@@ -130,6 +151,16 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
 
     if (!updated) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (prior.status !== updated.status) {
+      void notifyBuyerOrderStatusChange({
+        buyerId: updated.buyerId,
+        orderNumber: updated.orderNumber,
+        newStatus: updated.status,
+        previousStatus: prior.status,
+        actorUserId: req.user.id,
+      });
     }
 
     return res.json({ order: updated });

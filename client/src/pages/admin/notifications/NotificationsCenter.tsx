@@ -11,6 +11,7 @@ import {
   Zap,
   Shield,
   AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import NotificationsDashboard from './NotificationsDashboard';
 import CreateSendNotification from './CreateSendNotification';
@@ -23,6 +24,7 @@ import IntegrationSettings from './IntegrationSettings';
 import AutomationRules from './AutomationRules';
 import NotificationPermissions from './NotificationPermissions';
 import SystemAlerts from './SystemAlerts';
+import BuyerHomePromoEditor from './BuyerHomePromoEditor';
 
 type TabId =
   | 'dashboard'
@@ -35,7 +37,8 @@ type TabId =
   | 'integrations'
   | 'automation'
   | 'permissions'
-  | 'alerts';
+  | 'alerts'
+  | 'buyer-home-promos';
 
 export default function NotificationsCenter() {
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
@@ -52,6 +55,7 @@ export default function NotificationsCenter() {
     { id: 'automation' as TabId, label: 'Automation', icon: Zap },
     { id: 'permissions' as TabId, label: 'Permissions', icon: Shield },
     { id: 'alerts' as TabId, label: 'System Alerts', icon: AlertTriangle },
+    { id: 'buyer-home-promos' as TabId, label: 'Buyer home promos', icon: Sparkles },
   ];
 
   const renderTabContent = () => {
@@ -78,6 +82,8 @@ export default function NotificationsCenter() {
         return <NotificationPermissions />;
       case 'alerts':
         return <SystemAlerts />;
+      case 'buyer-home-promos':
+        return <BuyerHomePromoEditor />;
       default:
         return <NotificationsDashboard />;
     }
@@ -92,6 +98,11 @@ export default function NotificationsCenter() {
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Manage notifications for admins, sellers, and customers
+        </p>
+        <p className="mt-3 text-sm rounded-xl border border-amber-200/80 bg-amber-50/90 dark:bg-amber-950/30 dark:border-amber-800/60 text-amber-900 dark:text-amber-100 px-4 py-3">
+          <strong className="font-semibold">Note:</strong> the bell in the admin header is your{' '}
+          <em>personal</em> system inbox (same API as sellers/buyers). This page is the operations center:
+          broadcasts, templates, schedules, logs, and storefront promo banners.
         </p>
       </div>
 

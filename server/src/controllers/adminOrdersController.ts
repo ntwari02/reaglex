@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Order } from '../models/Order';
 import mongoose from 'mongoose';
+import { notifyBuyerOrderStatusChange } from '../services/orderInboxNotifications';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -272,6 +273,7 @@ export async function updateOrderStatus(req: AuthenticatedRequest, res: Response
     const byId = mongoose.Types.ObjectId.isValid(orderId);
     const order = await Order.findOne(byId ? { _id: orderId } : { orderNumber: orderId });
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    const previousStatus = order.status;
 
     const update: any = {};
     if (newStatus) {
@@ -290,6 +292,15 @@ export async function updateOrderStatus(req: AuthenticatedRequest, res: Response
     const updated = await Order.findByIdAndUpdate(order._id, { $set: update }, { new: true })
       .populate('sellerId', 'fullName email')
       .lean();
+    if (updated && newStatus && previousStatus !== updated.status && req.user?.id) {
+      void notifyBuyerOrderStatusChange({
+        buyerId: updated.buyerId,
+        orderNumber: updated.orderNumber,
+        newStatus: updated.status,
+        previousStatus,
+        actorUserId: req.user.id,
+      });
+    }
     const out = toOrderShape(updated);
     (out as any).sellerName = (updated as any).sellerId?.fullName || (updated as any).sellerId?.email || '';
     res.json({ order: out });

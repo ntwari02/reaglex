@@ -52,12 +52,20 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
               (activeTab === 'system' && n.type === 'system')
           );
 
-  const markAsRead = useCallback((id) => {
+  const markAsRead = useCallback((id, row) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+    if (row?.type === 'system' && typeof id === 'string' && id.startsWith('system:')) {
+      buyerNotificationsApi.markSystemNotificationRead(id).catch(() => {});
+    }
   }, []);
 
   const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    setNotifications((prev) => {
+      prev.filter((n) => n.unread && n.type === 'system' && String(n.id).startsWith('system:')).forEach((n) => {
+        buyerNotificationsApi.markSystemNotificationRead(n.id).catch(() => {});
+      });
+      return prev.map((n) => ({ ...n, unread: false }));
+    });
   }, []);
 
   const deleteNotification = useCallback((id) => {
@@ -69,7 +77,7 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
   }, []);
 
   const handleItemClick = useCallback((n) => {
-    markAsRead(n.id);
+    markAsRead(n.id, n);
     onClose();
   }, [markAsRead, onClose]);
 
@@ -267,7 +275,7 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
                                     className="absolute right-0 top-full mt-1 py-1 w-44 rounded-lg bg-white border border-gray-200 shadow-lg z-10"
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    <button type="button" onClick={() => { markAsRead(n.id); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                                    <button type="button" onClick={() => { markAsRead(n.id, n); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
                                       Mark as read
                                     </button>
                                     <button type="button" onClick={() => { deleteNotification(n.id); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">

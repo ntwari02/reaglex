@@ -1560,7 +1560,14 @@ export const adminNotificationsAPI = {
       recentNotifications: any[];
     }>),
 
-  sendNotification: (body: { targetGroup?: string; types?: string[]; subject?: string; message?: string; recipient?: string }) =>
+  sendNotification: (body: {
+    targetGroup?: string;
+    types?: string[];
+    subject?: string;
+    message?: string;
+    recipient?: string;
+    specificUserId?: string;
+  }) =>
     fetch(`${NOTIFICATIONS_BASE}/send`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -1756,6 +1763,24 @@ export const adminNotificationsAPI = {
       headers: getAuthHeaders(),
       credentials: 'include',
     }).then(handleResponse<{ message: string }>),
+};
+
+const ADMIN_SITE_BASE = `${API_BASE_URL}/admin/site`;
+
+export const adminSiteContentAPI = {
+  getHomePromoBanners: () =>
+    fetch(`${ADMIN_SITE_BASE}/home-promo-banners`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ banners: any[] }>),
+  putHomePromoBanners: (banners: unknown[]) =>
+    fetch(`${ADMIN_SITE_BASE}/home-promo-banners`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ banners }),
+    }).then(handleResponse<{ ok: boolean; banners: any[] }>),
 };
 
 /**

@@ -101,6 +101,20 @@ class WebSocketService {
       this.onUnreadCountUpdate?.(data.count);
     });
 
+    this.socket.on(
+      'system_inbox_notification',
+      (data: {
+        notificationId: string;
+        title: string;
+        message: string;
+        type: string;
+        priority: string;
+        createdAt: string;
+      }) => {
+        this.onSystemInboxNotification?.(data);
+      },
+    );
+
     this.socket.on('joined_thread', (data: { threadId: string }) => {
       console.log('Joined thread:', data.threadId);
     });
@@ -182,6 +196,14 @@ class WebSocketService {
   onUserRecording?: (threadId: string, userId: string, isRecording: boolean, duration?: number) => void;
   onUserSelectingFile?: (threadId: string, userId: string, isSelecting: boolean, fileName?: string) => void;
   onUnreadCountUpdate?: (count: number) => void;
+  onSystemInboxNotification?: (data: {
+    notificationId: string;
+    title: string;
+    message: string;
+    type: string;
+    priority: string;
+    createdAt: string;
+  }) => void;
 }
 
 // Export singleton instance
