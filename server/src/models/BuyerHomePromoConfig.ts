@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IHomePromoBanner {
   title: string;
@@ -11,7 +11,8 @@ export interface IHomePromoBanner {
   sortOrder: number;
 }
 
-export interface IBuyerHomePromoConfig extends Document {
+/** String `_id` singleton (`default`) conflicts with `Document['_id']`; omit and redeclare. */
+export interface IBuyerHomePromoConfig extends Omit<Document, '_id'> {
   _id: string;
   banners: IHomePromoBanner[];
 }
@@ -38,7 +39,7 @@ const buyerHomePromoConfigSchema = new Schema<IBuyerHomePromoConfig>(
   { collection: 'buyer_home_promo_config' },
 );
 
-export const BuyerHomePromoConfig = mongoose.model<IBuyerHomePromoConfig>(
+export const BuyerHomePromoConfig: Model<IBuyerHomePromoConfig> = mongoose.model<IBuyerHomePromoConfig>(
   'BuyerHomePromoConfig',
   buyerHomePromoConfigSchema,
 );

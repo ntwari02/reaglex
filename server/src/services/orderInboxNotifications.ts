@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { createSystemInboxAndFanout } from './systemInboxFanout';
 
 const NOTIFY_STATUSES = new Set(['packed', 'shipped', 'delivered', 'cancelled']);
@@ -14,7 +13,8 @@ const STATUS_MESSAGE: Record<string, string> = {
  * When order status changes, add a buyer-specific system inbox row + real-time fan-out.
  */
 export async function notifyBuyerOrderStatusChange(params: {
-  buyerId: mongoose.Types.ObjectId | string;
+  /** Accepts ObjectId from lean documents, strings, or any BSON id shape */
+  buyerId: unknown;
   orderNumber: string;
   newStatus: string;
   previousStatus?: string | null;
@@ -30,7 +30,7 @@ export async function notifyBuyerOrderStatusChange(params: {
     type: newStatus === 'cancelled' ? 'warning' : 'success',
     priority: newStatus === 'cancelled' ? 'high' : 'medium',
     targetAudience: 'specific_user',
-    targetUserId: buyerId,
+    targetUserId: String(buyerId),
     createdBy: actorUserId,
   });
 }
