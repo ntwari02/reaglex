@@ -50,13 +50,13 @@ if (!siteBase) {
 throw new Error('CLIENT_URL is not set; cannot build payment redirect URL');
 }
 
-const txRef = REAGLEX-${order._id}-${Date.now()};
+const txRef = `REAGLEX-${order._id}-${Date.now()}`;
 
 const payload: any = {
 tx_ref: txRef,
 amount: order.total,
 currency: order.paymentMethod === 'RWF' ? 'RWF' : 'USD',
-redirect_url: ${siteBase}/payment/verify,
+redirect_url: `${siteBase}/payment/verify`,
 customer: {
 email: buyer.email,
 phonenumber: buyer.phone,
@@ -64,8 +64,8 @@ name: buyer.fullName,
 },
 customizations: {
 title: 'Reaglex Payment',
-description: Order ${order._id},
-logo: ${siteBase}/logo.jpg,
+description: `Order ${order._id}`,
+logo: `${siteBase}/logo.jpg`,
 },
 meta: {
 order_id: order._id.toString(),
