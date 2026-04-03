@@ -587,8 +587,7 @@ export async function adminOverrideSellerLimits(req: AuthenticatedRequest, res: 
     const subscription = await SellerSubscription.findOne({ user_id: new mongoose.Types.ObjectId(userId) });
     if (!subscription) return res.status(404).json({ message: 'Subscription not found' });
     const adminId = String(req.user!.id);
-    const prevOverrides = (subscription.metadata as { admin_limit_overrides?: Record<string, unknown> })
-      ?.admin_limit_overrides || {};
+    const prevOverrides = subscription.metadata.admin_limit_overrides || {};
     const admin_limit_overrides = { ...prevOverrides };
     if (body.productLimit !== undefined) admin_limit_overrides.product_limit = body.productLimit;
     if (body.apiCallsPerMonth !== undefined) admin_limit_overrides.api_calls_per_month = body.apiCallsPerMonth;

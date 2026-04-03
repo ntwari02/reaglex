@@ -272,6 +272,8 @@ export interface ISellerSubscription extends Document {
     version: number;
     schema_version: string;
     notes?: string;
+    /** Admin-only caps; enforced in ops UI until billing syncs */
+    admin_limit_overrides?: Record<string, unknown>;
   };
   status: string;
   is_active: boolean;

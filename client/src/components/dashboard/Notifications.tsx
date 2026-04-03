@@ -150,7 +150,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
             onClick={onClose}
             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
           />
-
+          
           <motion.div
             initial={{ x: '100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -196,7 +196,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                     filter.id === 'all'
                       ? unreadCount
                       : filter.id === 'unread'
-                        ? unreadCount
+                    ? unreadCount 
                         : mapped.filter((m) => m.category === filter.id && m.unread).length;
                   const isActive = activeFilter === filter.id;
                   return (
@@ -214,9 +214,9 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                       {count > 0 && filter.id !== 'all' && (
                         <span
                           className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                            isActive
-                              ? 'bg-orange-600 dark:bg-orange-500 text-white'
-                              : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
+                          isActive
+                            ? 'bg-orange-600 dark:bg-orange-500 text-white'
+                            : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
                           }`}
                         >
                           {count}
@@ -289,14 +289,14 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                               strokeWidth={2}
                             />
                           </div>
-
+                          
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-1">
                               <h4
                                 className={`font-bold text-sm ${
-                                  notification.unread
-                                    ? 'text-gray-900 dark:text-white'
-                                    : 'text-gray-700 dark:text-gray-300'
+                                notification.unread 
+                                  ? 'text-gray-900 dark:text-white' 
+                                  : 'text-gray-700 dark:text-gray-300'
                                 }`}
                               >
                                 {notification.title}
