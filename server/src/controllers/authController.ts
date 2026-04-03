@@ -17,6 +17,7 @@ import {
   sendPasswordResetOtpEmail,
   sendWelcomeEmail,
   sendDeviceApprovalEmail,
+  sendLoginNotificationEmail,
   isEmailConfigured,
 } from '../services/emailService';
 import { getClientUrl, getServerUrl } from '../config/publicEnv';
@@ -121,6 +122,19 @@ function getDeviceInfo(req: Request): { deviceId: string; userAgent: string; ipA
 
 const PENDING_REQUEST_EXPIRY_MS = 15 * 60 * 1000; // 15 min
 
+function fireLoginNotificationEmail(user: InstanceType<typeof User>, req: Request) {
+  if (!isEmailConfigured()) return;
+  const { userAgent, ipAddress } = getDeviceInfo(req);
+  const deviceInfo = (userAgent || 'Unknown client').slice(0, 160);
+  void sendLoginNotificationEmail({
+    to: user.email,
+    name: user.fullName,
+    deviceInfo,
+    ipAddress: ipAddress || '—',
+    role: String(user.role),
+  }).catch((e) => console.warn('[auth] login notification email failed', e));
+}
+
 /** For admin/seller: either issue token and register session, or return requiresDeviceApproval */
 async function completeLoginWithDeviceSession(
   user: InstanceType<typeof User>,
@@ -137,6 +151,7 @@ async function completeLoginWithDeviceSession(
     const decoded = decodeAuthToken(token);
     if (!decoded?.jti) {
       sendToken(token);
+      fireLoginNotificationEmail(user, req);
       return true;
     }
     await ActiveSession.findOneAndUpdate(
@@ -151,6 +166,7 @@ async function completeLoginWithDeviceSession(
       { upsert: true, new: true }
     );
     sendToken(token);
+    fireLoginNotificationEmail(user, req);
     return true;
   }
 
@@ -367,6 +383,7 @@ export async function login(req: Request, res: Response) {
 
     const token = generateAuthToken(user);
     recordLoginSuccess(req, user.role, user.email);
+    fireLoginNotificationEmail(user, req);
     return res
       .cookie('token', token, {
         httpOnly: true,
@@ -1007,6 +1024,7 @@ export async function googleCallback(req: Request, res: Response) {
     } catch (e) {
       console.warn('[auth] Google callback: failed to register active session', e);
     }
+    fireLoginNotificationEmail(user, req);
     const redirectUrl = new URL(`${CLIENT_URL}/auth/google/callback`);
     redirectUrl.searchParams.set('token', token);
     redirectUrl.searchParams.set('success', 'true');
@@ -1088,6 +1106,7 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
         console.log('Warning: No picture in temp token for existing user');
       }
       const token = generateAuthToken(user);
+      fireLoginNotificationEmail(user, req);
       return res.json({
         success: true,
         token,

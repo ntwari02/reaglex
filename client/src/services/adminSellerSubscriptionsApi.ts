@@ -83,7 +83,7 @@ export const adminSellerSubscriptionsApi = {
     return json<{ message: string }>(res);
   },
 
-  async setStatus(userId: string, action: 'suspend' | 'reactivate') {
+  async setStatus(userId: string, action: 'suspend' | 'reactivate' | 'pause') {
     const res = await fetch(
       `${API_BASE_URL}/admin/seller-subscriptions/seller/${encodeURIComponent(userId)}/status`,
       {
@@ -120,5 +120,72 @@ export const adminSellerSubscriptionsApi = {
       },
     );
     return json<{ message: string }>(res);
+  },
+
+  async extendRenewal(userId: string, days: number) {
+    const res = await fetch(
+      `${API_BASE_URL}/admin/seller-subscriptions/seller/${encodeURIComponent(userId)}/extend-renewal`,
+      {
+        method: 'POST',
+        headers: authHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ days }),
+      },
+    );
+    return json<{ message: string; renewal_date?: string }>(res);
+  },
+
+  async extendTrial(userId: string, days: number) {
+    const res = await fetch(
+      `${API_BASE_URL}/admin/seller-subscriptions/seller/${encodeURIComponent(userId)}/extend-trial`,
+      {
+        method: 'POST',
+        headers: authHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ days }),
+      },
+    );
+    return json<{ message: string; trial_end_date?: string }>(res);
+  },
+
+  async overrideLimits(
+    userId: string,
+    body: { productLimit?: number | null; apiCallsPerMonth?: number | null; storageBytes?: number | null },
+  ) {
+    const res = await fetch(
+      `${API_BASE_URL}/admin/seller-subscriptions/seller/${encodeURIComponent(userId)}/override-limits`,
+      {
+        method: 'PATCH',
+        headers: authHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(body),
+      },
+    );
+    return json<{ message: string; overrides: Record<string, unknown> }>(res);
+  },
+
+  async applyCoupon(userId: string, code: string) {
+    const res = await fetch(
+      `${API_BASE_URL}/admin/seller-subscriptions/seller/${encodeURIComponent(userId)}/apply-coupon`,
+      {
+        method: 'POST',
+        headers: authHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ code }),
+      },
+    );
+    return json<{ message: string; code: string }>(res);
+  },
+
+  async retryPayment(userId: string) {
+    const res = await fetch(
+      `${API_BASE_URL}/admin/seller-subscriptions/seller/${encodeURIComponent(userId)}/retry-payment`,
+      {
+        method: 'POST',
+        headers: authHeaders(),
+        credentials: 'include',
+      },
+    );
+    return json<{ message: string; simulated?: boolean }>(res);
   },
 };

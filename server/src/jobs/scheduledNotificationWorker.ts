@@ -1,6 +1,8 @@
 import { ScheduledNotification } from '../models/ScheduledNotification';
 import { User } from '../models/User';
+import { SentNotificationLog } from '../models/SentNotificationLog';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
+import { sendNotificationEmail, isEmailConfigured } from '../services/emailService';
 
 function mapScheduledTargetToAudience(
   target: string,
@@ -10,6 +12,20 @@ function mapScheduledTargetToAudience(
   if (t.includes('admin')) return 'all_admins';
   if (t.includes('everyone') || t.includes('all user')) return 'everyone';
   return 'all_buyers';
+}
+
+const EMAIL_BATCH = 80;
+
+async function collectEmailsForScheduledTarget(target: string): Promise<string[]> {
+  const aud = mapScheduledTargetToAudience(target);
+  const pick = async (filter: Record<string, unknown>) => {
+    const rows = await User.find(filter).select('email').limit(EMAIL_BATCH).lean();
+    return rows.map((r: { email?: string }) => r.email).filter(Boolean) as string[];
+  };
+  if (aud === 'all_sellers') return pick({ role: 'seller' });
+  if (aud === 'all_admins') return pick({ role: 'admin' });
+  if (aud === 'everyone') return pick({});
+  return pick({ role: 'buyer' });
 }
 
 let started = false;
@@ -47,6 +63,27 @@ export function startScheduledNotificationWorker(): void {
               priority: type === 'system' ? 'high' : 'medium',
               targetAudience: aud,
               createdBy,
+            });
+          }
+        }
+
+        if (type === 'email' && isEmailConfigured()) {
+          const subject = String(s.subject || s.name || 'Scheduled message').slice(0, 240);
+          const body = String(s.body || '').slice(0, 8000);
+          const recipients = await collectEmailsForScheduledTarget(String(s.target));
+          for (const to of recipients) {
+            const result = await sendNotificationEmail({
+              to,
+              subject,
+              body,
+            });
+            await SentNotificationLog.create({
+              recipient: to,
+              type: 'email',
+              subject,
+              body,
+              status: result.success ? 'sent' : 'failed',
+              sentAt: new Date(),
             });
           }
         }

@@ -12,8 +12,21 @@ import {
   Paperclip,
   Eye,
   X,
+  CalendarClock,
 } from 'lucide-react';
 import { adminNotificationsAPI } from '@/lib/api';
+
+function scheduledTargetLabel(targetGroup: string): string {
+  if (targetGroup === 'all_sellers') return 'All Sellers';
+  if (targetGroup === 'all_customers') return 'All Customers';
+  return 'All Customers';
+}
+
+function scheduledChannelType(types: string[]): string {
+  if (types.includes('system')) return 'system';
+  if (types.includes('email') && !types.includes('inapp')) return 'email';
+  return 'inapp';
+}
 
 export default function CreateSendNotification() {
   const [targetGroup, setTargetGroup] = useState('all_customers');
@@ -22,7 +35,12 @@ export default function CreateSendNotification() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState('');
   const [sending, setSending] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState(false);
 
@@ -51,6 +69,71 @@ export default function CreateSendNotification() {
       setSendError(e instanceof Error ? e.message : 'Failed to send');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleSchedule = async () => {
+    setSendError(null);
+    setSendSuccess(false);
+    if (!scheduleAt) {
+      setSendError('Pick a date and time for the schedule.');
+      return;
+    }
+    if (targetGroup === 'specific_user') {
+      setSendError('Scheduled sends use audience targets (customers or sellers). Use Send Now for one user, or choose All Customers / All Sellers.');
+      return;
+    }
+    const when = new Date(scheduleAt);
+    if (Number.isNaN(when.getTime()) || when.getTime() < Date.now() - 60_000) {
+      setSendError('Schedule time must be in the future.');
+      return;
+    }
+    setScheduling(true);
+    try {
+      const types = notificationType.length ? notificationType : ['inapp'];
+      await adminNotificationsAPI.createScheduled({
+        name: (subject || 'Scheduled notification').slice(0, 120),
+        target: scheduledTargetLabel(targetGroup),
+        scheduledFor: when.toISOString(),
+        recurring: false,
+        type: scheduledChannelType(types),
+        subject: subject || 'Notification',
+        body: message || '',
+      });
+      setSendSuccess(true);
+      setShowSchedule(false);
+      setTimeout(() => setSendSuccess(false), 5000);
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'Schedule failed');
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  const handleTestSend = async () => {
+    setSendError(null);
+    setSendSuccess(false);
+    const to = testEmail.trim();
+    if (!to.includes('@')) {
+      setSendError('Enter a valid email for test send.');
+      return;
+    }
+    setTesting(true);
+    try {
+      await adminNotificationsAPI.sendNotification({
+        targetGroup,
+        types: ['email'],
+        subject: subject || 'Test notification',
+        message: message || '(empty body)',
+        recipient: to,
+        specificUserId: targetGroup === 'specific_user' ? specificUserId.trim() : undefined,
+      });
+      setSendSuccess(true);
+      setTimeout(() => setSendSuccess(false), 4000);
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'Test send failed');
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -213,11 +296,39 @@ export default function CreateSendNotification() {
                 <Send className="mr-2 inline h-4 w-4" />
                 {sending ? 'Sending...' : 'Send Now'}
               </button>
-              <button className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                Schedule Send
+              <button
+                type="button"
+                onClick={() => {
+                  setSendError(null);
+                  if (!scheduleAt) {
+                    const d = new Date(Date.now() + 3600000);
+                    d.setMinutes(0, 0, 0);
+                    setScheduleAt(d.toISOString().slice(0, 16));
+                  }
+                  setShowSchedule(true);
+                }}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300"
+              >
+                <CalendarClock className="mr-2 inline h-4 w-4" />
+                Schedule send
               </button>
-              <button className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                Test Send
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">Test send (email only)</label>
+              <input
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={handleTestSend}
+                disabled={testing}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:border-cyan-400 dark:border-gray-700 dark:text-gray-300 disabled:opacity-60"
+              >
+                {testing ? 'Sending test…' : 'Send test email'}
               </button>
             </div>
           </div>
@@ -245,6 +356,49 @@ export default function CreateSendNotification() {
       </div>
 
       {/* Preview Modal */}
+      {showSchedule && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => !scheduling && setShowSchedule(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Schedule send</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              In-app and system rows fan out on the worker; email schedules send to the selected audience (batch cap
+              applies).
+            </p>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Send at (local)</label>
+            <input
+              type="datetime-local"
+              value={scheduleAt}
+              onChange={(e) => setScheduleAt(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300"
+                disabled={scheduling}
+                onClick={() => setShowSchedule(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={scheduling}
+                onClick={handleSchedule}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {scheduling ? 'Saving…' : 'Create schedule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showPreview && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"

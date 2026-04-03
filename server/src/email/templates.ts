@@ -139,6 +139,40 @@ export function getPasswordResetOtpEmailHtml(options: {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Reset your password')}</body></html>`;
 }
 
+/** Sign-in alert: sent after each successful login when email is configured */
+export function getLoginNotificationEmailHtml(options: {
+  name: string;
+  deviceInfo: string;
+  ipAddress: string;
+  role: string;
+  appName?: string;
+  loginUrl?: string;
+  signedInAt?: string;
+}) {
+  const appName = options.appName || 'Reaglex';
+  const loginUrl = options.loginUrl || '#';
+  const when = options.signedInAt || new Date().toUTCString();
+  const content = `
+  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name || 'there'},</p>
+  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">Your <strong>${appName}</strong> account was signed in successfully.</p>
+  <div style="background: #f3f4f6; border-radius: 12px; padding: 16px 20px; margin: 20px 0; border-left: 4px solid #10b981;">
+    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">When</p>
+    <p style="margin: 0 0 16px; font-size: 14px; color: #111827;">${when}</p>
+    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">Role</p>
+    <p style="margin: 0 0 16px; font-size: 14px; color: #111827;">${options.role}</p>
+    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">Device / client</p>
+    <p style="margin: 0 0 16px; font-size: 14px; color: #111827; word-break: break-all;">${options.deviceInfo}</p>
+    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">IP address</p>
+    <p style="margin: 0; font-size: 14px; color: #111827;">${options.ipAddress}</p>
+  </div>
+  <p style="margin: 0 0 24px; font-size: 14px; color: #6b7280;">If this wasn’t you, change your password and contact support immediately.</p>
+  <p style="text-align: center; margin: 0;">
+    <a href="${loginUrl}" style="${buttonStyle}">Go to ${appName}</a>
+  </p>
+  <div style="${footerStyle}">Automated security notice from ${appName}. You received this because a login completed for your account.</div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'New sign-in')}</body></html>`;
+}
+
 export function getSecurityAlertEmailHtml(options: {
   name: string;
   message: string;

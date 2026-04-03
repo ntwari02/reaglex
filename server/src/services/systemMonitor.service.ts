@@ -7,7 +7,9 @@ import path from 'path';
 import { EventEmitter } from 'node:events';
 import { execSync } from 'child_process';
 import type { Request } from 'express';
+import mongoose from 'mongoose';
 import { ingestRequestBurst } from './securityIntelligence.service';
+import { isEmailConfigured } from './emailService';
 
 /** Payload for real-time API row streaming (SOC-style). */
 export interface ApiRequestEventPayload {
@@ -37,6 +39,12 @@ export interface SystemHealthPayload {
   /** Last N CPU samples (0–100) for sparkline */
   cpuTrend: number[];
   globalRequestsPerSecond: number;
+  /** SaaS / integrations snapshot for ops dashboards */
+  integrations?: {
+    mongoConnected: boolean;
+    sellerSubscriptionAdmin: 'ready';
+    loginAlertEmail: 'enabled' | 'disabled';
+  };
 }
 
 export interface ApiEndpointStat {
@@ -642,6 +650,11 @@ export function getSystemHealth(): SystemHealthPayload {
     timestamp: new Date().toISOString(),
     cpuTrend: cpuTrend.length ? [...cpuTrend] : [cpuPercent],
     globalRequestsPerSecond: Math.round(grps * 100) / 100,
+    integrations: {
+      mongoConnected: mongoose.connection.readyState === 1,
+      sellerSubscriptionAdmin: 'ready',
+      loginAlertEmail: isEmailConfigured() ? 'enabled' : 'disabled',
+    },
   };
 }
 

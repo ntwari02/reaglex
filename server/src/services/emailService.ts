@@ -9,6 +9,7 @@ import {
   getSecurityAlertEmailHtml,
   getNotificationEmailHtml,
   getDeviceApprovalEmailHtml,
+  getLoginNotificationEmailHtml,
 } from '../email/templates';
 import { getClientUrl } from '../config/publicEnv';
 
@@ -285,6 +286,37 @@ export async function sendNotificationEmail(options: {
   return sendEmail({
     to: options.to,
     subject: options.subject,
+    html,
+  });
+}
+
+/** Optional: set SEND_LOGIN_ALERT_EMAIL=false to disable post-login emails */
+export async function sendLoginNotificationEmail(options: {
+  to: string;
+  name: string;
+  deviceInfo: string;
+  ipAddress: string;
+  role: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const disabled = String(process.env.SEND_LOGIN_ALERT_EMAIL || '').toLowerCase();
+  if (disabled === 'false' || disabled === '0') {
+    return { success: true };
+  }
+  if (!isEmailConfigured()) {
+    return { success: false, error: 'Email not configured' };
+  }
+  const html = getLoginNotificationEmailHtml({
+    name: options.name,
+    deviceInfo: options.deviceInfo,
+    ipAddress: options.ipAddress,
+    role: options.role,
+    appName: APP_NAME,
+    loginUrl: `${CLIENT_URL}/login`,
+    signedInAt: new Date().toUTCString(),
+  });
+  return sendEmail({
+    to: options.to,
+    subject: `New sign-in to your ${APP_NAME} account`,
     html,
   });
 }
