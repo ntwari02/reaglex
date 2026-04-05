@@ -16,8 +16,19 @@ export function SelectRole() {
   const [loading, setLoading] = useState(false);
   const [googleName, setGoogleName] = useState<string>('');
   const [googleEmail, setGoogleEmail] = useState<string>('');
+  const [referralProgramEnabled, setReferralProgramEnabled] = useState(true);
 
   const temp = searchParams.get('temp');
+  const referralFromUrl = searchParams.get('ref')?.trim();
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/public/marketing/referral-status`)
+      .then((r) => r.json())
+      .then((d: { referralProgramEnabled?: boolean }) => {
+        if (typeof d.referralProgramEnabled === 'boolean') setReferralProgramEnabled(d.referralProgramEnabled);
+      })
+      .catch(() => {});
+  }, []);
 
   // Decode temp token to get Google user info
   useEffect(() => {
@@ -55,6 +66,7 @@ export function SelectRole() {
         body: JSON.stringify({
           temp,
           role,
+          ...(referralProgramEnabled && referralFromUrl ? { referralCode: referralFromUrl } : {}),
         }),
       });
 

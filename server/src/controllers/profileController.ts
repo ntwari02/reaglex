@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { User, IAddress, IPaymentMethod } from '../models/User';
 import { AuthenticatedRequest } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
+import { ensureReferralCodeForUser } from '../services/referralReward.service';
 
 // Validation schemas
 const updateProfileSchema = z.object({
@@ -91,6 +92,7 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
+    await ensureReferralCodeForUser(req.user.id);
     const user = await User.findById(req.user.id).select('-passwordHash');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });

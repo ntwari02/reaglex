@@ -14,6 +14,7 @@ import { MarketingCreative } from '../models/MarketingCreative';
 import { ReferralSettings } from '../models/ReferralSettings';
 import { MarketingSettings } from '../models/MarketingSettings';
 import { AIMarketingSettings } from '../models/AIMarketingSettings';
+import { MarketingReferralReward } from '../models/MarketingReferralReward';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -939,6 +940,7 @@ export async function getReferralSettings(req: AuthenticatedRequest, res: Respon
     if (!doc) doc = await (ReferralSettings as any).create({});
     const d = doc as any;
     res.json({
+      programEnabled: d.programEnabled !== false,
       rewardType: d.rewardType,
       rewardAmount: d.rewardAmount,
       maxReferralsPerUser: d.maxReferralsPerUser,
@@ -956,12 +958,14 @@ export async function updateReferralSettings(req: AuthenticatedRequest, res: Res
     let doc = await ReferralSettings.findOne();
     if (!doc) doc = await (ReferralSettings as any).create({});
     const d = doc as any;
+    if (body.programEnabled != null) d.programEnabled = Boolean(body.programEnabled);
     if (body.rewardType != null) d.rewardType = body.rewardType as 'cash' | 'points' | 'coupon';
     if (body.rewardAmount != null) d.rewardAmount = Number(body.rewardAmount);
     if (body.maxReferralsPerUser != null) d.maxReferralsPerUser = Number(body.maxReferralsPerUser);
     if (body.fraudDetection != null) d.fraudDetection = Boolean(body.fraudDetection);
     await d.save();
     res.json({
+      programEnabled: d.programEnabled !== false,
       rewardType: d.rewardType,
       rewardAmount: d.rewardAmount,
       maxReferralsPerUser: d.maxReferralsPerUser,
@@ -975,11 +979,16 @@ export async function updateReferralSettings(req: AuthenticatedRequest, res: Res
 export async function getReferralStats(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
-    // Placeholder stats until we have a Referral model / tracking
+    const [totalReferrals, distinctReferrers, paidAgg] = await Promise.all([
+      MarketingReferralReward.countDocuments(),
+      MarketingReferralReward.distinct('referrerUserId'),
+      MarketingReferralReward.aggregate([{ $group: { _id: null, total: { $sum: '$rewardAmount' } } }]),
+    ]);
+    const rewardsPaid = Math.round((paidAgg[0]?.total ?? 0) * 100) / 100;
     res.json({
-      totalReferrals: 0,
-      activeReferrers: 0,
-      rewardsPaid: 0,
+      totalReferrals,
+      activeReferrers: distinctReferrers.length,
+      rewardsPaid,
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch referral stats' });

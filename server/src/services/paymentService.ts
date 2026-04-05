@@ -5,6 +5,7 @@ import { EscrowWallet } from '../models/EscrowWallet';
 import { TransactionLog } from '../models/TransactionLog';
 import { sendNotification } from './notificationService';
 import { scheduleAutoRelease } from './escrowService';
+import { processReferralRewardOnOrderPaid } from './referralReward.service';
 
 export interface InitializePaymentInput {
 orderId: string;
@@ -154,6 +155,12 @@ await sendNotification(order.buyerId.toString(), 'PAYMENT_RECEIVED');
 await sendNotification(order.sellerId.toString(), 'NEW_ORDER_PAID');  
 
 await scheduleAutoRelease(orderId);  
+
+void processReferralRewardOnOrderPaid({
+  _id: order._id,
+  buyerId: order.buyerId,
+  total: order.total,
+});
 
 return { success: true, status: 'ESCROW_HOLD' as const };
 

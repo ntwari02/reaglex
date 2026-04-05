@@ -1,6 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IReferralSettings extends Document {
+  /** When false, new referral links at signup and new rewards on paid orders are skipped. */
+  programEnabled: boolean;
   rewardType: 'cash' | 'points' | 'coupon';
   rewardAmount: number;
   maxReferralsPerUser: number;
@@ -10,6 +12,7 @@ export interface IReferralSettings extends Document {
 
 const referralSettingsSchema = new Schema<IReferralSettings>(
   {
+    programEnabled: { type: Boolean, default: true },
     rewardType: { type: String, enum: ['cash', 'points', 'coupon'], default: 'cash' },
     rewardAmount: { type: Number, default: 10 },
     maxReferralsPerUser: { type: Number, default: 10 },

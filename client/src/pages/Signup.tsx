@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, Briefcase, Mail, Phone, AlertCircle, Check, Fingerprint, Shield } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
@@ -32,7 +32,17 @@ export function Signup() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
   const [referralCode, setReferralCode] = useState('');
+  const [referralProgramEnabled, setReferralProgramEnabled] = useState(true);
   const [biometricLoading, setBiometricLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/public/marketing/referral-status`)
+      .then((r) => r.json())
+      .then((d: { referralProgramEnabled?: boolean }) => {
+        if (typeof d.referralProgramEnabled === 'boolean') setReferralProgramEnabled(d.referralProgramEnabled);
+      })
+      .catch(() => {});
+  }, []);
 
   const fullName = `${formData.firstName || ''} ${formData.lastName || ''}`.trim();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
@@ -94,6 +104,7 @@ export function Signup() {
           email: formData.email,
           password: formData.password,
           role: formData.role,
+          ...(referralProgramEnabled && referralCode.trim() ? { referralCode: referralCode.trim() } : {}),
         }),
       });
       const data = await response.json();
@@ -435,40 +446,42 @@ export function Signup() {
           </div>
         </div>
 
-        {/* Referral code (optional) */}
-        <div className="space-y-1">
-          {!referralOpen ? (
-            <button
-              type="button"
-              onClick={() => setReferralOpen(true)}
-              className="text-[13px] font-medium"
-              style={{ color: '#f97316' }}
-            >
-              Have a referral code?
-            </button>
-          ) : (
-            <div className="space-y-1.5">
-              <label
+        {/* Referral code (optional) — hidden when admin disables the program */}
+        {referralProgramEnabled ? (
+          <div className="space-y-1">
+            {!referralOpen ? (
+              <button
+                type="button"
+                onClick={() => setReferralOpen(true)}
                 className="text-[13px] font-medium"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: '#f97316' }}
               >
-                Referral code (optional)
-              </label>
-              <input
-                type="text"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value)}
-                placeholder="Enter referral code"
-                className="w-full h-[48px] rounded-[14px] px-4 text-[14px] outline-none bg-[var(--bg-secondary)]"
-                style={{
-                  boxShadow:
-                    '0 0 0 1.5px rgba(0,0,0,0.08)',
-                  color: 'var(--text-primary)',
-                }}
-              />
-            </div>
-          )}
-        </div>
+                Have a referral code?
+              </button>
+            ) : (
+              <div className="space-y-1.5">
+                <label
+                  className="text-[13px] font-medium"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Referral code (optional)
+                </label>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  placeholder="Enter referral code"
+                  className="w-full h-[48px] rounded-[14px] px-4 text-[14px] outline-none bg-[var(--bg-secondary)]"
+                  style={{
+                    boxShadow:
+                      '0 0 0 1.5px rgba(0,0,0,0.08)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {/* Terms */}
         <label className="flex items-start gap-2 cursor-pointer pt-1">

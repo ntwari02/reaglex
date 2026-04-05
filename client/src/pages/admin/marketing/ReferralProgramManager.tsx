@@ -6,10 +6,12 @@ import {
   Users,
   TrendingUp,
   Shield,
+  Power,
 } from 'lucide-react';
 import { adminMarketingAPI } from '@/lib/api';
 
 export default function ReferralProgramManager() {
+  const [programEnabled, setProgramEnabled] = useState(true);
   const [rewardType, setRewardType] = useState<'cash' | 'points' | 'coupon'>('cash');
   const [rewardAmount, setRewardAmount] = useState(10);
   const [maxReferrals, setMaxReferrals] = useState(10);
@@ -25,6 +27,7 @@ export default function ReferralProgramManager() {
       adminMarketingAPI.getReferralStats(),
     ])
       .then(([settingsRes, statsRes]) => {
+        setProgramEnabled(settingsRes.programEnabled !== false);
         setRewardType((settingsRes.rewardType as 'cash' | 'points' | 'coupon') || 'cash');
         setRewardAmount(settingsRes.rewardAmount ?? 10);
         setMaxReferrals(settingsRes.maxReferralsPerUser ?? 10);
@@ -42,7 +45,13 @@ export default function ReferralProgramManager() {
   const handleSave = () => {
     setSaving(true);
     adminMarketingAPI
-      .updateReferralSettings({ rewardType, rewardAmount, maxReferralsPerUser: maxReferrals, fraudDetection })
+      .updateReferralSettings({
+        programEnabled,
+        rewardType,
+        rewardAmount,
+        maxReferralsPerUser: maxReferrals,
+        fraudDetection,
+      })
       .then(() => {})
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to save'))
       .finally(() => setSaving(false));
@@ -56,9 +65,17 @@ export default function ReferralProgramManager() {
           Referral Program Manager
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Configure referral settings and track performance
+          Invited users enter your referral code at signup; a reward is recorded when their first order is paid (Flutterwave
+          verify).
         </p>
       </div>
+
+      {!programEnabled && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+          Referral program is off: signup and Google role completion will not attach referral codes, and no new rewards are
+          created when orders are paid.
+        </div>
+      )}
 
       {/* Settings */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
@@ -66,6 +83,28 @@ export default function ReferralProgramManager() {
           Referral Settings
         </h3>
         <div className="space-y-4">
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+            <div className="flex items-center gap-3">
+              <Power className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Referral program</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  When off, signup referral codes and new rewards on paid orders are disabled. Existing links in the database
+                  are unchanged.
+                </p>
+              </div>
+            </div>
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                checked={programEnabled}
+                onChange={(e) => setProgramEnabled(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700"></div>
+            </label>
+          </div>
+
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Reward Type
@@ -166,7 +205,7 @@ export default function ReferralProgramManager() {
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Referrals</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Referrals completed (first paid order)</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.totalReferrals.toLocaleString()}
               </p>

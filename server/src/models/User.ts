@@ -109,6 +109,10 @@ export interface IUser extends Document {
     // Account status
     accountStatus?: 'active' | 'pending' | 'banned' | 'warned' | 'inactive';
   warningCount?: number;
+  /** Unique shareable code for the marketing referral program */
+  referralCode?: string;
+  /** User who referred this account (reward triggers on referee's first paid order) */
+  referredBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -285,6 +289,20 @@ const userSchema = new Schema<IUser>(
     warningCount: {
       type: Number,
       default: 0,
+    },
+    referralCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      sparse: true,
+      unique: true,
+      index: true,
+    },
+    referredBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      sparse: true,
+      index: true,
     },
   },
   { timestamps: true }

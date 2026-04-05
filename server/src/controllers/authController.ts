@@ -22,6 +22,7 @@ import {
 } from '../services/emailService';
 import { getClientUrl, getServerUrl } from '../config/publicEnv';
 import { recordLoginFailure, recordLoginSuccess } from '../services/systemMonitor.service';
+import { ensureReferralCodeForUser, applyReferralCodeOnRegister } from '../services/referralReward.service';
 
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
 
@@ -208,6 +209,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   role: z.enum(['buyer', 'seller', 'admin']).optional().default('buyer'),
+  referralCode: z.string().max(32).optional(),
 });
 
 const loginSchema = z.object({
@@ -218,7 +220,7 @@ const loginSchema = z.object({
 export async function register(req: Request, res: Response) {
   
   try {
-    const { fullName, email, password, role } = registerSchema.parse(req.body);
+    const { fullName, email, password, role, referralCode: signupReferralCode } = registerSchema.parse(req.body);
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -239,6 +241,13 @@ export async function register(req: Request, res: Response) {
       sellerVerificationStatus: isSeller ? 'pending' : undefined,
       isSellerVerified: isSeller ? false : undefined,
     });
+
+    try {
+      await ensureReferralCodeForUser(user._id);
+      await applyReferralCodeOnRegister(user._id, signupReferralCode);
+    } catch (refErr) {
+      console.warn('[auth] register referral setup', refErr);
+    }
 
     const useOtpFlow = shouldUseEmailOtpFlow(req);
     if (useOtpFlow) {
@@ -1041,7 +1050,11 @@ export async function googleCallback(req: Request, res: Response) {
  */
 export async function completeGoogleRegistration(req: Request, res: Response) {
   try {
-    const { temp, role } = req.body;
+    const { temp, role, referralCode: googleReferralCode } = req.body as {
+      temp?: string;
+      role?: string;
+      referralCode?: string;
+    };
 
     if (!temp || !role) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -1137,6 +1150,13 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
       isSellerVerified: isSeller ? false : undefined,
     });
     console.log('User created with avatarUrl:', user.avatarUrl);
+
+    try {
+      await ensureReferralCodeForUser(user._id);
+      await applyReferralCodeOnRegister(user._id, googleReferralCode);
+    } catch (refErr) {
+      console.warn('[auth] Google register referral setup', refErr);
+    }
 
     issueEmailVerificationLink(user).catch((e) => console.warn('[auth] Google register: verification email error', e));
     return res.status(201).json({

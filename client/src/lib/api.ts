@@ -2330,14 +2330,30 @@ export const adminMarketingAPI = {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
-    }).then(handleResponse<{ rewardType: string; rewardAmount: number; maxReferralsPerUser: number; fraudDetection: boolean }>),
+    }).then(
+      handleResponse<{
+        programEnabled: boolean;
+        rewardType: string;
+        rewardAmount: number;
+        maxReferralsPerUser: number;
+        fraudDetection: boolean;
+      }>,
+    ),
   updateReferralSettings: (body: Record<string, unknown>) =>
     fetch(`${MARKETING_BASE}/referral/settings`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       credentials: 'include',
       body: JSON.stringify(body),
-    }).then(handleResponse<{ rewardType: string; rewardAmount: number; maxReferralsPerUser: number; fraudDetection: boolean }>),
+    }).then(
+      handleResponse<{
+        programEnabled: boolean;
+        rewardType: string;
+        rewardAmount: number;
+        maxReferralsPerUser: number;
+        fraudDetection: boolean;
+      }>,
+    ),
   getReferralStats: () =>
     fetch(`${MARKETING_BASE}/referral/stats`, {
       method: 'GET',
