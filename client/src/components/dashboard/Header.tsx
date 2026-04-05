@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bell, Menu, Search, User, Sun, Moon, ChevronDown, Settings, Package, BarChart3, ShoppingBag, LogOut, Store, Layers } from 'lucide-react';
+import { Bell, Menu, Search, User, Sun, Moon, ChevronDown, Settings, Package, BarChart3, ShoppingBag, LogOut, Store, Layers, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -57,7 +58,8 @@ const Header: React.FC<HeaderProps> = ({
   userRole,
   accentVariant = 'emerald',
 }) => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, language, setLanguage } = useTheme();
+  const { t } = useTranslation();
   const { user, signOut } = useAuthStore();
   const { unreadMessageCount } = useNotificationStore();
   const [systemInboxUnread, setSystemInboxUnread] = useState(0);
@@ -69,6 +71,8 @@ const Header: React.FC<HeaderProps> = ({
   const [avatarKey, setAvatarKey] = useState(0); // Force re-render counter
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
   
   // Force re-render when user.avatar_url changes
   // Handle both snake_case (avatar_url) and camelCase (avatarUrl) for compatibility
@@ -148,16 +152,19 @@ const Header: React.FC<HeaderProps> = ({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setLangMenuOpen(false);
+      }
     };
 
-    if (showUserMenu) {
+    if (showUserMenu || langMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showUserMenu]);
+  }, [showUserMenu, langMenuOpen]);
 
   const handleProfileClick = () => {
     // Determine profile route based on current path
@@ -197,7 +204,7 @@ const Header: React.FC<HeaderProps> = ({
           size="icon"
           onClick={() => setSidebarOpen(true)}
           className="lg:hidden min-h-[44px] min-w-[44px] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
-          aria-label="Open menu"
+          aria-label={t('header.openMenu')}
         >
           <Menu className="w-6 h-6" />
         </Button>
@@ -207,7 +214,7 @@ const Header: React.FC<HeaderProps> = ({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t('search.placeholderShort')}
               className={`w-full bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700/50 rounded-lg pl-10 pr-4 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 ${accent.focusRing} focus:border-transparent transition-all`}
             />
           </div>
@@ -220,7 +227,7 @@ const Header: React.FC<HeaderProps> = ({
           whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
           className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
         >
           {theme === 'dark' ? (
             <Sun className="w-6 h-6 text-yellow-400" />
@@ -229,12 +236,58 @@ const Header: React.FC<HeaderProps> = ({
           )}
         </motion.button>
 
+        <div className="relative" ref={langMenuRef}>
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setLangMenuOpen((o) => !o)}
+            className="min-h-[44px] min-w-[44px] sm:min-w-[52px] inline-flex items-center justify-center gap-1 p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+            title={t('header.language')}
+            aria-label={t('header.language')}
+            aria-expanded={langMenuOpen}
+            aria-haspopup="menu"
+          >
+            <Globe className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <span className="hidden sm:inline text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+              {language}
+            </span>
+          </motion.button>
+          {langMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white py-1 shadow-xl z-40 dark:border-gray-700 dark:bg-gray-900"
+              role="menu"
+            >
+              {(['en', 'fr', 'rw'] as const).map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setLanguage(code);
+                    setLangMenuOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                    language === code
+                      ? 'bg-emerald-50 font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200'
+                      : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {t(`languages.${code}`)}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </div>
+
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setNotificationsOpen(!notificationsOpen)}
           className="relative min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
-          aria-label="Notifications"
+          aria-label={t('nav.notifications')}
         >
           <Bell className="w-6 h-6 text-gray-600 dark:text-gray-400" />
           {notificationCount > 0 && (
@@ -258,8 +311,8 @@ const Header: React.FC<HeaderProps> = ({
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label="User menu"
-              title="User menu"
+              aria-label={t('header.userMenu')}
+              title={t('header.userMenu')}
             >
               {avatarUrl ? (
                 <img

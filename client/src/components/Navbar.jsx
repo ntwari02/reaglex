@@ -14,6 +14,7 @@ import { productAPI } from '../services/api';
 import NotificationsDropdown from './NotificationsDropdown';
 import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from '../i18n/useTranslation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 const PRIMARY = '#f97316';
@@ -73,10 +74,11 @@ const MEGA_CATEGORIES = [
   { icon: '🍔', name: 'Food & Grocery' },
 ];
 
-const ANNOUNCEMENTS = [
-  "New arrivals every Monday",
-  "Secure payments with escrow protection",
-  "24/7 Customer Support",
+const ANNOUNCEMENT_KEYS = ['topbar.announcement1', 'topbar.announcement2', 'topbar.announcement3'];
+const LANG_OPTIONS = [
+  { code: 'en', labelKey: 'languages.en' },
+  { code: 'fr', labelKey: 'languages.fr' },
+  { code: 'rw', labelKey: 'languages.rw' },
 ];
 
 const NAV_LINKS = [
@@ -89,12 +91,6 @@ const NAV_LINKS = [
   { to: '#', label: 'Blog' },
 ];
 
-const LANGUAGES = [
-  { code: 'EN', label: 'English' },
-  { code: 'FR', label: 'French' },
-  { code: 'RW', label: 'Kinyarwanda' },
-];
-
 const CURRENCIES = [
   { code: 'USD', symbol: '$', label: 'USD' },
   { code: 'EUR', symbol: '€', label: 'EUR' },
@@ -102,7 +98,7 @@ const CURRENCIES = [
 ];
 
 // ── Tier 1: Utility bar ───────────────────────────────────────────────────────
-function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency }) {
+function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) {
   const [announcementIndex, setAnnouncementIndex] = useState(0);
   const [langOpen, setLangOpen] = useState(false);
   const [currOpen, setCurrOpen] = useState(false);
@@ -110,10 +106,10 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency }) {
   const currRef = useRef(null);
 
   useEffect(() => {
-    const t = setInterval(() => {
-      setAnnouncementIndex((i) => (i + 1) % ANNOUNCEMENTS.length);
+    const timer = setInterval(() => {
+      setAnnouncementIndex((i) => (i + 1) % ANNOUNCEMENT_KEYS.length);
     }, 4000);
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, []);
 
   useClickOutside(langRef, () => setLangOpen(false));
@@ -132,7 +128,7 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency }) {
       }}
     >
       <p className="text-xs truncate topbar-text" style={{ maxWidth: 220 }}>
-        Free shipping on orders over $50 🚚
+        {t('header.freeShipping')} 🚚
       </p>
 
       <div className="flex-1 flex justify-center min-w-0 mx-4">
@@ -146,7 +142,7 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency }) {
               transition={{ duration: 0.3 }}
               className="text-xs topbar-text"
             >
-              {ANNOUNCEMENTS[announcementIndex]}
+              {t(ANNOUNCEMENT_KEYS[announcementIndex])}
             </motion.p>
           </AnimatePresence>
         </div>
@@ -160,7 +156,7 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency }) {
             className="flex items-center gap-1 text-xs hover:opacity-90 transition"
             style={{ color: 'var(--topbar-text)' }}
           >
-            <Globe className="w-3.5 h-3.5" /> {language}
+            <Globe className="w-3.5 h-3.5" /> {String(language).toUpperCase()}
           </button>
           <AnimatePresence>
             {langOpen && (
@@ -176,7 +172,7 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency }) {
                   color: 'var(--dropdown-text)',
                 }}
               >
-                {LANGUAGES.map((l) => (
+                {LANG_OPTIONS.map((l) => (
                   <button
                     key={l.code}
                     type="button"
@@ -184,7 +180,7 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency }) {
                     className="w-full text-left px-4 py-2 text-xs hover:bg-orange-50 transition"
                     style={{ color: l.code === language ? PRIMARY : 'var(--dropdown-text)' }}
                   >
-                    {l.label}
+                    {t(l.labelKey)}
                   </button>
                 ))}
               </motion.div>
@@ -236,14 +232,14 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency }) {
           className="text-xs font-medium hover:opacity-90 transition"
           style={{ color: PRIMARY }}
         >
-          Sell on Reaglex
+          {t('header.sellOnReaglex')}
         </Link>
         <Link
           to="/help"
           className="text-xs hover:opacity-90 transition flex items-center gap-1"
           style={{ color: 'var(--topbar-text)' }}
         >
-          <HelpCircle className="w-3.5 h-3.5" /> Help Center
+          <HelpCircle className="w-3.5 h-3.5" /> {t('header.helpCenter')}
         </Link>
       </div>
     </div>
@@ -281,6 +277,7 @@ function MainHeader({
   searchQuery, setSearchQuery, searchFocus, setSearchFocus, category, setCategory,
   language, currency, openAuth, user, signOut, onLogoutClick, cartCount, openCart, cartItems, wishlistCount,
   onMobileMenuOpen,
+  t,
 }) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -565,7 +562,7 @@ function MainHeader({
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => { setSearchFocus(true); setSuggestionsOpen(true); }}
               onBlur={() => setTimeout(() => setSearchFocus(false), 180)}
-              placeholder="Search products, brands, stores..."
+              placeholder={t('search.placeholder')}
               className="w-full px-3 py-2 pr-8 text-sm outline-none min-w-0 search-input bg-transparent"
             />
             {searchQuery.length > 0 && (
@@ -573,7 +570,7 @@ function MainHeader({
                 type="button"
                 onClick={() => { setSearchQuery(''); setSuggestionsOpen(false); setSuggestionIndex(-1); }}
                 className="absolute right-2 p-1 rounded-full hover:bg-gray-200 transition"
-                aria-label="Clear search"
+                aria-label={t('buttons.clear')}
               >
                 <X className="w-4 h-4" style={{ color: '#6b7280' }} />
               </button>
@@ -1077,6 +1074,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
 function MobileDrawer({
   open, onClose, user, signOut, onLogoutClick, openAuth, cartCount, openCart, wishlistCount,
   language, setLanguage, currency, setCurrency, searchQuery, setSearchQuery, onSearchSubmit,
+  t,
 }) {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -1099,14 +1097,14 @@ function MobileDrawer({
             className="fixed top-0 right-0 bottom-0 w-full max-w-sm bg-white dark:bg-gray-900 z-[160] flex flex-col shadow-2xl md:hidden transition-colors duration-300"
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
-              <span className="font-bold text-lg text-gray-900 dark:text-white">Menu</span>
+              <span className="font-bold text-lg text-gray-900 dark:text-white">{t('nav.menu')}</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={toggleTheme}
                   className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
-                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  aria-label={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
+                  title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
                 >
                   {theme === 'dark' ? (
                     <Sun className="w-5 h-5 text-yellow-400" />
@@ -1142,7 +1140,7 @@ function MobileDrawer({
                   className="w-full py-3 rounded-xl text-white font-semibold"
                   style={{ background: PRIMARY }}
                 >
-                  Login / Register
+                  {t('header.loginRegister')}
                 </button>
               </div>
             )}
@@ -1154,7 +1152,7 @@ function MobileDrawer({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
+                  placeholder={t('search.placeholderShort')}
                   className="flex-1 px-4 py-2.5 text-sm outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 <button type="submit" className="p-2.5" style={{ background: PRIMARY }}>
@@ -1186,12 +1184,26 @@ function MobileDrawer({
                   {label}
                 </Link>
               ))}
-              <Link to="/" onClick={onClose} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Home</Link>
+              <Link to="/" onClick={onClose} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{t('nav.home')}</Link>
 
-              <div className="mt-6 px-4 flex items-center gap-4">
-                <button type="button" className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                  <Globe className="w-4 h-4" /> {language}
-                </button>
+              <div className="mt-6 px-4 flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('header.language')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {LANG_OPTIONS.map((l) => (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => setLanguage(l.code)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                        language === l.code
+                          ? 'border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20'
+                          : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400'
+                      }`}
+                    >
+                      {String(l.code).toUpperCase()}
+                    </button>
+                  ))}
+                </div>
                 <span className="text-sm text-gray-500 dark:text-gray-400">{currency}</span>
               </div>
             </div>
@@ -1202,14 +1214,14 @@ function MobileDrawer({
                 onClick={() => { onClose(); openCart(); }}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
               >
-                <ShoppingBag className="w-4 h-4" /> Cart {cartCount > 0 && `(${cartCount})`}
+                <ShoppingBag className="w-4 h-4" /> {t('nav.cart')} {cartCount > 0 && `(${cartCount})`}
               </button>
               <Link
                 to="/account?tab=wishlist"
                 onClick={onClose}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
               >
-                <Heart className="w-4 h-4" /> Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
+                <Heart className="w-4 h-4" /> {t('nav.wishlist')} {wishlistCount > 0 && `(${wishlistCount})`}
               </Link>
             </div>
 
@@ -1220,7 +1232,7 @@ function MobileDrawer({
                   onClick={() => { onLogoutClick(); onClose(); }}
                   className="w-full py-2 text-sm font-medium flex items-center justify-center gap-2 text-red-600 dark:text-red-400"
                 >
-                  <LogOut className="w-4 h-4" /> Logout
+                  <LogOut className="w-4 h-4" /> {t('buttons.logout')}
                 </button>
               </div>
             )}
@@ -1234,10 +1246,11 @@ function MobileDrawer({
 // ── Main Navbar export ───────────────────────────────────────────────────────
 export default function Navbar() {
   const navigate = useNavigate();
+  const { language, setLanguage } = useTheme();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
   const [category, setCategory] = useState('All Categories');
-  const [language, setLanguage] = useState('EN');
   const [currency, setCurrency] = useState(CURRENCIES[0]);
   const [megaOpen, setMegaOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1280,6 +1293,7 @@ export default function Navbar() {
           setLanguage={setLanguage}
           currencyDisplay={currency.symbol + ' ' + currency.code}
           setCurrency={setCurrency}
+          t={t}
         />
       </div>
 
@@ -1312,6 +1326,7 @@ export default function Navbar() {
           cartItems={cartItems}
           wishlistCount={wishlistCount}
           onMobileMenuOpen={() => setMobileMenuOpen(true)}
+          t={t}
         />
 
         {/* Mobile: search bar full width below logo row */}
@@ -1324,10 +1339,10 @@ export default function Navbar() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products, brands, stores..."
+              placeholder={t('search.placeholder')}
               className="flex-1 px-4 text-sm outline-none min-w-0 bg-transparent search-input"
             />
-            <button type="submit" className="px-4 flex-shrink-0" style={{ background: PRIMARY }}>
+            <button type="submit" className="px-4 flex-shrink-0" style={{ background: PRIMARY }} aria-label={t('buttons.search')}>
               <Search className="w-5 h-5 text-white" />
             </button>
           </div>
@@ -1357,6 +1372,7 @@ export default function Navbar() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onSearchSubmit={handleSearchSubmit}
+        t={t}
       />
 
       {/* Logout confirmation modal */}

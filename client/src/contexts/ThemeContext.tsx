@@ -6,6 +6,16 @@ type Theme = 'dark' | 'light';
 type Language = 'en' | 'fr' | 'rw' | 'sw';
 type Currency = 'USD' | 'EUR' | 'RWF' | 'KES';
 
+function normalizeLanguage(raw: string | undefined | null): Language {
+  const lower = String(raw || 'en').toLowerCase();
+  if (lower === 'en' || lower === 'fr' || lower === 'rw' || lower === 'sw') return lower;
+  const upper = String(raw || '').toUpperCase();
+  if (upper === 'EN') return 'en';
+  if (upper === 'FR') return 'fr';
+  if (upper === 'RW') return 'rw';
+  return 'en';
+}
+
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
@@ -78,7 +88,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   const [language, setLanguage] = useState<Language>(() => {
-    try { return (localStorage.getItem('language') as Language) || 'en'; } catch { return 'en'; }
+    try {
+      return normalizeLanguage(localStorage.getItem('language'));
+    } catch {
+      return 'en';
+    }
   });
 
   const [currency, setCurrency] = useState<Currency>(() => {
@@ -128,8 +142,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
               localStorage.setItem('theme', profileData.preferences.theme);
             }
             if (profileData.preferences.language) {
-              setLanguage(profileData.preferences.language as Language);
-              localStorage.setItem('language', profileData.preferences.language);
+              const lang = normalizeLanguage(profileData.preferences.language);
+              setLanguage(lang);
+              localStorage.setItem('language', lang);
             }
             if (profileData.preferences.currency) {
               setCurrency(profileData.preferences.currency as Currency);
@@ -173,13 +188,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.lang = language;
+  }, [language]);
+
   const handleSetLanguage = (lang: Language) => {
-    setLanguage(lang);
-    localStorage.setItem('language', lang);
+    const next = normalizeLanguage(lang);
+    setLanguage(next);
+    localStorage.setItem('language', next);
     if (user && dbPreferencesLoaded) {
       const saveLanguageToDB = async () => {
         try {
-          await profileAPI.updatePreferences({ language: lang });
+          await profileAPI.updatePreferences({ language: next });
         } catch (error) {
           if (isAuthSessionError(error)) {
             await useAuthStore
