@@ -6,6 +6,7 @@ import {
   ChevronRight, Lock, CheckCircle, Building2, Send,
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
+import { useTranslation } from '../i18n/useTranslation';
 
 const PRIMARY = '#f97316';
 const FOOTER_BG = 'linear-gradient(180deg, #020617, #0f172a)';
@@ -53,7 +54,7 @@ function FooterLink({ to, children }) {
   );
 }
 
-function SellerFooterLink({ label, href, protectedLink, onClick }) {
+function SellerFooterLink({ label, tooltipLabel, href, protectedLink, onClick }) {
   const [hovered, setHovered] = useState(false);
   const baseColor = '#848aaa';
 
@@ -102,7 +103,7 @@ function SellerFooterLink({ label, href, protectedLink, onClick }) {
               whiteSpace: 'nowrap',
             }}
           >
-            Seller account required
+            {tooltipLabel}
           </div>
         </div>
       )}
@@ -150,65 +151,73 @@ function TrustBadge({ icon: Icon, label }) {
 }
 
 const SHOP_LINKS = [
-  { label: 'All Products', href: '/search' },
-  { label: "Today's Deals 🔥", href: '/search?sort=discount' },
-  { label: "New Arrivals ✨", href: '/search?sort=newest' },
-  { label: 'Top Rated ⭐', href: '/search?sort=rating' },
-  { label: 'Flash Sales ⚡', href: '/search?sort=discount' },
-  { label: 'Gift Cards 🎁', href: '/search?q=gift+card' },
-  { label: 'Bulk Orders', href: '/search?q=bulk' },
+  { labelKey: 'footer.links.shop.allProducts', href: '/search' },
+  { labelKey: 'nav.deals', href: '/search?sort=discount' },
+  { labelKey: 'nav.newArrivals', href: '/search?sort=newest' },
+  { labelKey: 'footer.links.shop.topRated', href: '/search?sort=rating' },
+  { labelKey: 'footer.links.shop.flashSales', href: '/search?sort=discount' },
+  { labelKey: 'footer.links.shop.giftCards', href: '/search?q=gift+card' },
+  { labelKey: 'footer.links.shop.bulkOrders', href: '/search?q=bulk' },
 ];
 
 const ACCOUNT_LINKS = [
-  { label: 'My Dashboard', href: '/account' },
-  { label: 'My Orders', href: '/account?tab=orders' },
-  { label: 'Wishlist', href: '/account?tab=wishlist' },
-  { label: 'Messages', href: '/messages' },
-  { label: 'My Reviews', href: '/account?tab=reviews' },
-  { label: 'Addresses', href: '/account?tab=addresses' },
-  { label: 'Payment Methods', href: '/account?tab=payment' },
-  { label: 'Returns & Refunds', href: '/returns' },
+  { labelKey: 'nav.dashboard', href: '/account' },
+  { labelKey: 'nav.orders', href: '/account?tab=orders' },
+  { labelKey: 'nav.wishlist', href: '/account?tab=wishlist' },
+  { labelKey: 'nav.messages', href: '/messages' },
+  { labelKey: 'footer.links.account.myReviews', href: '/account?tab=reviews' },
+  { labelKey: 'account.addresses', href: '/account?tab=addresses' },
+  { labelKey: 'account.paymentMethods', href: '/account?tab=payment' },
+  { labelKey: 'footer.links.account.returnsRefunds', href: '/returns' },
 ];
 
 const SELL_LINKS = [
-  { label: 'Become a Seller', href: '/become-seller', protected: false },
-  { label: 'Seller Dashboard', href: '/seller', protected: true },
-  { label: 'Seller Guidelines', href: '/seller/guidelines', protected: false },
-  { label: 'Fees & Pricing', href: '/seller/fees', protected: false },
-  { label: 'Seller Protection', href: '/seller/protection', protected: true },
-  { label: 'Advertise with Us', href: '/seller/advertise', protected: false },
+  { labelKey: 'header.becomeSeller', href: '/become-seller', protected: false },
+  { labelKey: 'header.sellerDashboard', href: '/seller', protected: true },
+  { labelKey: 'footer.links.sell.sellerGuidelines', href: '/seller/guidelines', protected: false },
+  { labelKey: 'footer.links.sell.feesPricing', href: '/seller/fees', protected: false },
+  { labelKey: 'footer.links.sell.sellerProtection', href: '/seller/protection', protected: true },
+  { labelKey: 'footer.links.sell.advertiseWithUs', href: '/seller/advertise', protected: false },
 ];
 
 const SUPPORT_LINKS = [
-  { label: 'Help Center', href: '/help' },
-  { label: 'Contact Us', href: '/contact' },
-  { label: 'Track My Order', href: '/track' },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'Report a Problem', href: '/report-problem' },
-  { label: 'Buyer Protection', href: '/buyer-protection' },
-  { label: 'Privacy Policy', href: '/privacy' },
-  { label: 'Cookie Settings', href: '/cookie-settings' },
+  { labelKey: 'header.helpCenter', href: '/help' },
+  { labelKey: 'footer.links.support.contactUs', href: '/contact' },
+  { labelKey: 'nav.trackOrder', href: '/track' },
+  { labelKey: 'footer.links.support.faq', href: '/faq' },
+  { labelKey: 'footer.links.support.reportProblem', href: '/report-problem' },
+  { labelKey: 'header.buyerProtection', href: '/buyer-protection' },
+  { labelKey: 'footer.links.support.privacyPolicy', href: '/privacy' },
+  { labelKey: 'footer.links.support.cookieSettings', href: '/cookie-settings' },
 ];
 
 const SOCIAL_LINKS = [
-  { icon: Facebook, label: 'Facebook', href: 'https://facebook.com' },
-  { icon: Twitter, label: 'Twitter / X', href: 'https://twitter.com' },
-  { icon: Instagram, label: 'Instagram', href: 'https://instagram.com' },
-  { icon: Linkedin, label: 'LinkedIn', href: 'https://linkedin.com' },
-  { icon: Youtube, label: 'YouTube', href: 'https://youtube.com' },
-  { icon: Music2, label: 'TikTok', href: 'https://tiktok.com' },
+  { icon: Facebook, labelKey: 'footer.social.facebook', href: 'https://facebook.com' },
+  { icon: Twitter, labelKey: 'footer.social.twitter', href: 'https://twitter.com' },
+  { icon: Instagram, labelKey: 'footer.social.instagram', href: 'https://instagram.com' },
+  { icon: Linkedin, labelKey: 'footer.social.linkedin', href: 'https://linkedin.com' },
+  { icon: Youtube, labelKey: 'footer.social.youtube', href: 'https://youtube.com' },
+  { icon: Music2, labelKey: 'footer.social.tiktok', href: 'https://tiktok.com' },
 ];
 
-const PAYMENT_LABELS = ['Visa', 'Mastercard', 'PayPal', 'MTN MoMo', 'Airtel Money', 'Stripe'];
+const PAYMENT_LABELS = [
+  'footer.payments.visa',
+  'footer.payments.mastercard',
+  'footer.payments.paypal',
+  'footer.payments.mtnMomo',
+  'footer.payments.airtelMoney',
+  'footer.payments.stripe',
+];
 
 const BOTTOM_LINKS = [
-  { label: 'Privacy Policy', href: '/privacy' },
-  { label: 'Terms of Service', href: '/terms' },
-  { label: 'Cookies', href: '/cookies' },
-  { label: 'Sitemap', href: '/sitemap' },
+  { labelKey: 'footer.links.support.privacyPolicy', href: '/privacy' },
+  { labelKey: 'footer.links.bottom.termsOfService', href: '/terms' },
+  { labelKey: 'footer.links.bottom.cookies', href: '/cookies' },
+  { labelKey: 'footer.links.bottom.sitemap', href: '/sitemap' },
 ];
 
 export default function Footer() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
@@ -257,10 +266,10 @@ export default function Footer() {
 
         <div>
           <h3 className="font-bold text-2xl text-white mb-1">
-            Get the Best Deals First! 🔥
+            {t('footer.newsletterTitle')} 🔥
           </h3>
           <p className="text-white text-sm opacity-90">
-            Subscribe and never miss a flash sale or new arrival
+            {t('footer.newsletterSubtitle')}
           </p>
         </div>
         <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-2 flex-shrink-0">
@@ -271,7 +280,7 @@ export default function Footer() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email address..."
+                placeholder={t('footer.emailPlaceholder')}
                 className="flex-1 min-w-0 py-2.5 sm:py-3 text-sm outline-none bg-transparent"
                 style={{ color: '#1a1a1a' }}
               />
@@ -283,10 +292,10 @@ export default function Footer() {
               className="flex items-center justify-center gap-2 px-6 py-3 font-bold text-white text-sm rounded-r-full transition-colors"
               style={{ background: BOTTOM_BG }}
             >
-              Subscribe <Send className="w-4 h-4" />
+              {t('footer.subscribe')} <Send className="w-4 h-4" />
             </motion.button>
           </div>
-          <p className="text-white text-xs opacity-70">No spam. Unsubscribe anytime.</p>
+          <p className="text-white text-xs opacity-70">{t('footer.noSpam')}</p>
         </form>
       </div>
 
@@ -320,19 +329,19 @@ export default function Footer() {
                 </span>
               </Link>
               <p className="text-sm font-medium mb-1" style={{ color: BODY_COLOR }}>
-                Smart Shopping. Trusted Sellers. Fast Delivery.
+                {t('footer.brandTagline')}
               </p>
               <p className="text-sm mb-4 leading-relaxed" style={{ color: BODY_COLOR, maxWidth: 280 }}>
-                Reaglex is a premium marketplace connecting buyers and sellers worldwide with escrow protection.
+                {t('footer.brandDescription')}
               </p>
               <div className="flex flex-wrap gap-2 mb-5">
-                <TrustBadge icon={Lock} label="Secure Payments" />
-                <TrustBadge icon={CheckCircle} label="Verified Sellers" />
-                <TrustBadge icon={Building2} label="Escrow Protected" />
+                <TrustBadge icon={Lock} label={t('footer.badges.securePayments')} />
+                <TrustBadge icon={CheckCircle} label={t('footer.badges.verifiedSellers')} />
+                <TrustBadge icon={Building2} label={t('footer.badges.escrowProtected')} />
               </div>
               <div className="flex flex-wrap gap-3 mb-5">
-                {SOCIAL_LINKS.map(({ icon, label, href }) => (
-                  <SocialIcon key={label} href={href} icon={icon} label={label} />
+                {SOCIAL_LINKS.map(({ icon, labelKey, href }) => (
+                  <SocialIcon key={labelKey} href={href} icon={icon} label={t(labelKey)} />
                 ))}
               </div>
               <div className="flex flex-wrap gap-2">
@@ -346,7 +355,7 @@ export default function Footer() {
                     boxShadow: 'none',
                   }}
                 >
-                  🍎 App Store
+                  {t('footer.appStore')}
                 </a>
                 <a
                   href="#"
@@ -358,39 +367,40 @@ export default function Footer() {
                     boxShadow: 'none',
                   }}
                 >
-                  ▶ Google Play
+                  {t('footer.googlePlay')}
                 </a>
               </div>
             </div>
 
             {/* COLUMN 2 — Shop */}
             <div>
-              <ColumnHeading>Shop</ColumnHeading>
+              <ColumnHeading>{t('nav.shop')}</ColumnHeading>
               <nav className="flex flex-col">
-                {SHOP_LINKS.map(({ label, href }) => (
-                  <FooterLink key={label} to={href}>{label}</FooterLink>
+                {SHOP_LINKS.map(({ labelKey, href }) => (
+                  <FooterLink key={labelKey} to={href}>{t(labelKey)}</FooterLink>
                 ))}
               </nav>
             </div>
 
             {/* COLUMN 3 — Account */}
             <div>
-              <ColumnHeading>Account</ColumnHeading>
+              <ColumnHeading>{t('nav.account')}</ColumnHeading>
               <nav className="flex flex-col">
-                {ACCOUNT_LINKS.map(({ label, href }) => (
-                  <FooterLink key={label} to={href}>{label}</FooterLink>
+                {ACCOUNT_LINKS.map(({ labelKey, href }) => (
+                  <FooterLink key={labelKey} to={href}>{t(labelKey)}</FooterLink>
                 ))}
               </nav>
             </div>
 
             {/* COLUMN 4 — Sell on Reaglex */}
             <div>
-              <ColumnHeading>Sell with us</ColumnHeading>
+              <ColumnHeading>{t('footer.sellWithUs')}</ColumnHeading>
               <nav className="flex flex-col mb-4">
-                {SELL_LINKS.map(({ label, href, protected: protectedLink }) => (
+                {SELL_LINKS.map(({ labelKey, href, protected: protectedLink }) => (
                   <SellerFooterLink
-                    key={label}
-                    label={label}
+                    key={labelKey}
+                    label={t(labelKey)}
+                    tooltipLabel={t('footer.links.sell.sellerAccountRequired')}
                     href={href}
                     protectedLink={protectedLink}
                     onClick={protectedLink
@@ -411,31 +421,31 @@ export default function Footer() {
                   boxShadow: 'none',
                 }}
               >
-                Start Selling Today
+                {t('footer.startSellingToday')}
                 <ChevronRight className="w-4 h-4 footer-cta-icon" />
               </Link>
             </div>
 
             {/* COLUMN 5 — Support */}
             <div>
-              <ColumnHeading>Support</ColumnHeading>
+              <ColumnHeading>{t('nav.help')}</ColumnHeading>
               <nav className="flex flex-col mb-6">
-                {SUPPORT_LINKS.map(({ label, href }) => {
+                {SUPPORT_LINKS.map(({ labelKey, href }) => {
                   if (href === '/help') {
                     return (
                       <button
-                        key={label}
+                        key={labelKey}
                         type="button"
                         onClick={() => window.dispatchEvent(new Event('reaglex-open-help-chat'))}
                         className="text-sm mb-1 text-left"
                         style={{ color: BODY_COLOR, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
                       >
-                        {label}
+                        {t(labelKey)}
                       </button>
                     );
                   }
                   return (
-                    <FooterLink key={label} to={href}>{label}</FooterLink>
+                    <FooterLink key={labelKey} to={href}>{t(labelKey)}</FooterLink>
                   );
                 })}
               </nav>
@@ -450,7 +460,7 @@ export default function Footer() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Clock className="w-4 h-4 flex-shrink-0" style={{ color: PRIMARY }} />
-                  Mon–Fri, 8am–6pm (CAT)
+                  {t('footer.supportHours')}
                 </p>
               </div>
             </div>
@@ -487,22 +497,22 @@ export default function Footer() {
         }}
       >
         <p className="footer-bottom-text text-[13px] order-2 sm:order-1 text-center sm:text-left" style={{ color: BODY_COLOR }}>
-          © {currentYear} <span style={{ fontFamily: "'Mea Culpa', serif", fontWeight: 700, fontSize: '1.05em' }}>Reaglex</span>. All rights reserved. Made with <span className="footer-heart">❤️</span> in Rwanda 🇷🇼
+          © {currentYear} <span style={{ fontFamily: "'Mea Culpa', serif", fontWeight: 700, fontSize: '1.05em' }}>Reaglex</span>. {t('footer.rightsReservedPrefix')} <span className="footer-heart">❤️</span> {t('footer.rightsReservedSuffix')}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
-          {PAYMENT_LABELS.map((label) => (
+          {PAYMENT_LABELS.map((labelKey) => (
             <span
-              key={label}
+              key={labelKey}
               className="footer-payment-badge px-2.5 py-1 rounded-full text-[11px] font-medium"
               style={{ background: 'rgba(255,255,255,0.08)', color: BODY_COLOR }}
             >
-              {label}
+              {t(labelKey)}
             </span>
           ))}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 order-3 text-[13px]" style={{ color: BODY_COLOR }}>
-          {BOTTOM_LINKS.map(({ label, href }, i) => (
-            <span key={label} className="flex items-center gap-2">
+          {BOTTOM_LINKS.map(({ labelKey, href }, i) => (
+            <span key={labelKey} className="flex items-center gap-2">
               {i > 0 && <span className="opacity-50">·</span>}
               <Link
                 to={href}
@@ -514,7 +524,7 @@ export default function Footer() {
                   boxShadow: 'none',
                 }}
               >
-                {label}
+                {t(labelKey)}
               </Link>
             </span>
           ))}

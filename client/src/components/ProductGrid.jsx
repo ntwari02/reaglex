@@ -3,15 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SlidersHorizontal, ChevronDown } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { productAPI } from '../services/api';
+import { useTranslation } from '../i18n/useTranslation';
 
 const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'price_asc', label: 'Price: Low → High' },
-  { value: 'price_desc', label: 'Price: High → Low' },
-  { value: 'rating', label: 'Top Rated' },
+  { value: 'newest', labelKey: 'search.sortNewest' },
+  { value: 'price_asc', labelKey: 'search.sortPriceAsc' },
+  { value: 'price_desc', labelKey: 'search.sortPriceDesc' },
+  { value: 'rating', labelKey: 'search.sortTopRated' },
 ];
 
 export default function ProductGrid({ searchQuery = '' }) {
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,8 +48,8 @@ export default function ProductGrid({ searchQuery = '' }) {
       const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
       setError(
         isTimeout
-          ? 'Server is slow or offline — make sure the backend is running on port 5000.'
-          : 'Could not load products. Please try again.'
+          ? 'messages.serverSlowOrOffline'
+          : 'messages.productsLoadError'
       );
       setProducts([]);
     } finally {
@@ -63,7 +65,7 @@ export default function ProductGrid({ searchQuery = '' }) {
     fetchProducts();
   }, [fetchProducts]);
 
-  const currentSort = SORT_OPTIONS.find((o) => o.value === sort)?.label || 'Sort';
+  const currentSort = t(SORT_OPTIONS.find((o) => o.value === sort)?.labelKey || 'buttons.sort');
 
   return (
     <section>
@@ -77,11 +79,11 @@ export default function ProductGrid({ searchQuery = '' }) {
       >
         <div>
           <h2 className="text-2xl font-black" style={{ color: '#1a1a1a', letterSpacing: '-0.5px' }}>
-            {searchQuery ? `Results for "${searchQuery}"` : 'All Products'}
+            {searchQuery ? `${t('search.resultsFor')} "${searchQuery}"` : t('home.exploreAllProducts')}
           </h2>
           {!loading && (
             <p className="text-sm mt-0.5" style={{ color: '#9ca3af' }}>
-              {products.length} item{products.length !== 1 ? 's' : ''} found
+              {products.length} {t('product.itemsFound')}
             </p>
           )}
         </div>
@@ -124,7 +126,7 @@ export default function ProductGrid({ searchQuery = '' }) {
                       fontWeight: sort === opt.value ? 600 : 400,
                     }}
                   >
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </button>
                 ))}
               </motion.div>
@@ -136,13 +138,13 @@ export default function ProductGrid({ searchQuery = '' }) {
       {/* Error */}
       {error && (
         <div className="text-center py-16">
-          <p className="text-sm mb-4" style={{ color: '#9ca3af' }}>{error}</p>
+          <p className="text-sm mb-4" style={{ color: '#9ca3af' }}>{t(error || 'messages.errorGeneric')}</p>
           <button
             onClick={fetchProducts}
             className="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold"
             style={{ background: 'linear-gradient(135deg, #ff8c42, #ff5f00)' }}
           >
-            Retry
+            {t('buttons.retry')}
           </button>
         </div>
       )}
@@ -171,9 +173,9 @@ export default function ProductGrid({ searchQuery = '' }) {
           className="text-center py-20"
         >
           <div className="text-6xl mb-4">🛍️</div>
-          <h3 className="text-lg font-bold mb-2" style={{ color: '#1a1a1a' }}>No products found</h3>
+          <h3 className="text-lg font-bold mb-2" style={{ color: '#1a1a1a' }}>{t('messages.noResults')}</h3>
           <p className="text-sm" style={{ color: '#9ca3af' }}>
-            {searchQuery ? `No results for "${searchQuery}"` : 'No products available yet.'}
+            {searchQuery ? `${t('search.noMatches')} "${searchQuery}"` : t('home.noProductsYet')}
           </p>
         </motion.div>
       )}
@@ -203,7 +205,7 @@ export default function ProductGrid({ searchQuery = '' }) {
             className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
             style={{ background: 'white', color: '#374151', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}
           >
-            ← Prev
+            ← {t('buttons.back')}
           </motion.button>
 
           {[...Array(Math.min(totalPages, 7))].map((_, i) => {
@@ -234,7 +236,7 @@ export default function ProductGrid({ searchQuery = '' }) {
             className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
             style={{ background: 'white', color: '#374151', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}
           >
-            Next →
+            {t('buttons.next')} →
           </motion.button>
         </motion.div>
       )}

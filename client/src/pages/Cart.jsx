@@ -6,6 +6,7 @@ import CartItem from '../components/cart/CartItem';
 import CartSummary from '../components/cart/CartSummary';
 import RecommendedProducts from '../components/cart/RecommendedProducts';
 import { useBuyerCart } from '../stores/buyerCartStore';
+import { useTranslation } from '../i18n/useTranslation';
 
 import { SERVER_URL } from '../lib/config';
 
@@ -23,6 +24,7 @@ const LIFESTYLE_IMAGES = [
 ];
 
 export default function Cart() {
+  const { t } = useTranslation();
   const navigate  = useNavigate();
   const items     = useBuyerCart((s) => s.items);
   const removeItem    = useBuyerCart((s) => s.removeItem);
@@ -64,7 +66,7 @@ export default function Cart() {
           >
             <img
               src={featuredImg}
-              alt="Featured product"
+              alt={t('cart.featuredProductAlt')}
               className="w-full h-full object-cover"
               onError={(e) => { e.target.src = LIFESTYLE_IMAGES[0]; }}
             />
@@ -90,7 +92,7 @@ export default function Cart() {
           style={{ color: 'white' }}
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-semibold tracking-wide">Continue Shopping</span>
+          <span className="text-sm font-semibold tracking-wide">{t('cart.continueShopping')}</span>
         </motion.button>
 
         {/* Brand watermark */}
@@ -188,10 +190,10 @@ export default function Cart() {
                 </motion.div>
                 <div className="text-center">
                   <h3 className="font-bold text-lg" style={{ color: '#111827' }}>
-                    Your cart is empty
+                    {t('cart.emptyTitle')}
                   </h3>
                   <p className="text-sm mt-1" style={{ color: '#9ca3af' }}>
-                    Add something amazing to get started
+                    {t('cart.emptySubtitle')}
                   </p>
                 </div>
                 <Link to="/">
@@ -201,7 +203,7 @@ export default function Cart() {
                     className="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold"
                     style={{ background: '#111827' }}
                   >
-                    Browse Products
+                    {t('cart.browseProducts')}
                   </motion.button>
                 </Link>
               </motion.div>
@@ -214,9 +216,9 @@ export default function Cart() {
               <div className="mt-2">
                 <div className="flex items-center justify-between mb-1">
                   <h2 className="font-bold text-base" style={{ color: '#111827' }}>
-                    Your Cart
+                    {t('cart.yourCart')}
                     <span className="ml-2 text-xs font-normal" style={{ color: '#9ca3af' }}>
-                      ({cartCount} {cartCount === 1 ? 'item' : 'items'})
+                      ({cartCount} {cartCount === 1 ? t('cart.itemSingular') : t('cart.itemPlural')})
                     </span>
                   </h2>
                   <motion.button
@@ -227,7 +229,7 @@ export default function Cart() {
                     style={{ color: '#ef4444', background: 'rgba(239,68,68,0.06)' }}
                   >
                     <X className="w-3 h-3" />
-                    Clear all
+                    {t('cart.clearAll')}
                   </motion.button>
                 </div>
 
@@ -253,7 +255,7 @@ export default function Cart() {
               >
                 <CartSummary
                   subtotal={subtotal}
-                  onCheckout={() => alert('Checkout coming soon!')}
+                  onCheckout={() => alert(t('cart.checkoutComingSoon'))}
                 />
               </motion.div>
 

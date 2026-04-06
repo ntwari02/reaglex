@@ -3,27 +3,29 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MoreVertical } from 'lucide-react';
 import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
+import { useTranslation } from '../i18n/useTranslation';
 
 const PRIMARY = '#f97316';
 const EASE = [0.25, 0.46, 0.45, 0.94];
 
 const TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'unread', label: 'Unread' },
-  { id: 'orders', label: 'Orders' },
-  { id: 'deals', label: 'Deals' },
-  { id: 'system', label: 'System' },
+  { id: 'all', labelKey: 'notifications.filters.all' },
+  { id: 'unread', labelKey: 'notifications.filters.unread' },
+  { id: 'orders', labelKey: 'notifications.filters.orders' },
+  { id: 'deals', labelKey: 'notifications.filters.deals' },
+  { id: 'system', labelKey: 'notifications.filters.system' },
 ];
 
 const TYPE_CONFIG = {
-  order: { icon: '📦', circleBg: PRIMARY, label: 'Track Order →', linkColor: PRIMARY },
-  deal: { icon: '🏷️', circleBg: '#10b981', label: 'Shop Now →', linkColor: '#10b981' },
-  system: { icon: '👋', circleBg: '#2563eb', label: 'Complete Profile →', linkColor: '#2563eb' },
-  message: { icon: '💬', circleBg: '#8b5cf6', label: 'Reply →', linkColor: '#8b5cf6' },
-  review: { icon: '⭐', circleBg: '#eab308', label: 'Rate now', linkColor: '#eab308' },
+  order: { icon: '📦', circleBg: PRIMARY, labelKey: 'notifications.actions.trackOrder', linkColor: PRIMARY },
+  deal: { icon: '🏷️', circleBg: '#10b981', labelKey: 'notifications.actions.shopNow', linkColor: '#10b981' },
+  system: { icon: '👋', circleBg: '#2563eb', labelKey: 'notifications.actions.completeProfile', linkColor: '#2563eb' },
+  message: { icon: '💬', circleBg: '#8b5cf6', labelKey: 'notifications.actions.reply', linkColor: '#8b5cf6' },
+  review: { icon: '⭐', circleBg: '#eab308', labelKey: 'notifications.actions.rateNow', linkColor: '#eab308' },
 };
 
 export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -153,20 +155,20 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
             <div className="flex-shrink-0 px-5 py-4 border-b" style={{ borderColor: '#f4f5f7' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-[17px]" style={{ color: '#111827' }}>Notifications</h3>
+                  <h3 className="font-bold text-[17px]" style={{ color: '#111827' }}>{t('nav.notifications')}</h3>
                   {unreadCount > 0 && (
                     <motion.span initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="px-2 py-0.5 rounded-full text-xs font-bold text-white" style={{ background: PRIMARY }}>
-                      {unreadCount} new
+                      {unreadCount} {t('notifications.new')}
                     </motion.span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   {unreadCount > 0 && (
                     <button type="button" onClick={markAllRead} className="text-[13px] font-medium hover:underline" style={{ color: PRIMARY }}>
-                      Mark all read
+                      {t('notifications.markAllRead')}
                     </button>
                   )}
-                  <Link to="/account?tab=settings" onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition" title="Notification settings">
+                  <Link to="/account?tab=settings" onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition" title={t('notifications.settings')}>
                     <span className="text-base opacity-70 hover:opacity-100" style={{ filter: 'grayscale(0.5)' }}>⚙️</span>
                   </Link>
                 </div>
@@ -181,7 +183,7 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
                     className="flex-1 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1"
                     style={{ color: activeTab === t.id ? PRIMARY : '#6b7280' }}
                   >
-                    {t.label}
+                    {t(t.labelKey)}
                     {tabCounts[t.id] > 0 && (
                       <span className="min-w-[18px] h-[18px] rounded-full bg-gray-200 text-[10px] font-bold flex items-center justify-center" style={{ color: '#374151' }}>
                         {tabCounts[t.id]}
@@ -201,12 +203,12 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
             {/* List */}
             <div className="notif-list-scroll flex-1 overflow-y-auto min-h-0" style={{ maxHeight: 380 }}>
               {loading ? (
-                <div className="py-6 px-6 text-sm" style={{ color: '#6b7280' }}>Loading notifications...</div>
+                <div className="py-6 px-6 text-sm" style={{ color: '#6b7280' }}>{t('notifications.loading')}</div>
               ) : filtered.length === 0 ? (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-12 px-6" style={{ minHeight: 200 }}>
                   <motion.span className="text-4xl mb-3 notif-empty-bell-swing inline-block">🔔</motion.span>
-                  <p className="font-bold text-base" style={{ color: '#111827' }}>All caught up! 🎉</p>
-                  <p className="text-[13px] mt-0.5" style={{ color: '#6b7280' }}>No new notifications</p>
+                  <p className="font-bold text-base" style={{ color: '#111827' }}>{t('notifications.allCaughtUp')} 🎉</p>
+                  <p className="text-[13px] mt-0.5" style={{ color: '#6b7280' }}>{t('notifications.noNew')}</p>
                 </motion.div>
               ) : (
                 <div className="py-1" onClick={() => setMenuOpenId(null)} role="presentation">
@@ -242,9 +244,9 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
                                 </Link>
                               )}
                             </div>
-                            {(config.label && (n.type === 'order' || n.type === 'deal' || n.type === 'system' || n.type === 'message')) && (
+                            {(config.labelKey && (n.type === 'order' || n.type === 'deal' || n.type === 'system' || n.type === 'message')) && (
                               <button type="button" onClick={(e) => { e.stopPropagation(); handleItemClick(n); }} className="text-xs font-semibold mt-1 hover:underline" style={{ color: config.linkColor }}>
-                                {config.label}
+                                {t(config.labelKey)}
                               </button>
                             )}
                             {n.type === 'review' && (
@@ -276,13 +278,13 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <button type="button" onClick={() => { markAsRead(n.id, n); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                                      Mark as read
+                                      {t('notifications.markAsRead')}
                                     </button>
                                     <button type="button" onClick={() => { deleteNotification(n.id); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
-                                      Delete notification
+                                      {t('notifications.delete')}
                                     </button>
                                     <button type="button" onClick={() => setMenuOpenId(null)} className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                                      Mute this type
+                                      {t('notifications.muteType')}
                                     </button>
                                   </motion.div>
                                 )}
@@ -299,9 +301,9 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
 
             {/* Footer */}
             <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: '#f4f5f7', background: '#fafafa', borderRadius: '0 0 20px 20px' }}>
-              <span className="text-xs" style={{ color: '#9ca3af' }}>Showing {filtered.length} of {notifications.length} notifications</span>
+              <span className="text-xs" style={{ color: '#9ca3af' }}>{t('notifications.showing')} {filtered.length} / {notifications.length}</span>
               <Link to="/notifications" onClick={onClose} className="text-xs font-semibold flex items-center gap-0.5 hover:gap-1 transition-all" style={{ color: PRIMARY }}>
-                View All Notifications →
+                {t('notifications.viewAll')} →
               </Link>
             </div>
           </motion.div>

@@ -22,17 +22,25 @@ function getNested(obj: Record<string, unknown>, path: string): string | undefin
 }
 
 const enRecord = en as unknown as Record<string, unknown>;
+const legacyMessageKeyMap: Record<string, string> = {
+  'An error occurred': 'messages.genericError',
+  'Product not found.': 'messages.productNotFound',
+  'Please agree to the terms.': 'checkout.errors.agreeTerms',
+  'Failed to initialize payment': 'checkout.errors.paymentInitFailed',
+  'Payment initialization failed': 'checkout.errors.paymentInitFailed',
+};
 
 /**
  * Resolve a dotted key (e.g. "nav.home"). Empty strings in fr/rw fall back to English.
  * Unknown keys fall back to the key path.
  */
 export function translate(locale: string, key: string): string {
+  const normalizedKey = legacyMessageKeyMap[key] ?? key;
   const loc = (locale === 'sw' ? 'en' : locale) as Locale;
   const table = catalogs[loc] ?? en;
-  const primary = getNested(table as unknown as Record<string, unknown>, key);
+  const primary = getNested(table as unknown as Record<string, unknown>, normalizedKey);
   if (primary !== undefined && primary !== '') return primary;
-  const fb = getNested(enRecord, key);
+  const fb = getNested(enRecord, normalizedKey);
   if (fb !== undefined && fb !== '') return fb;
   return key;
 }

@@ -75,8 +75,8 @@ export async function applyReferralCodeOnRegister(
  * When an order is successfully paid, if the buyer was referred, create a single referral reward (first paid order only).
  */
 export async function processReferralRewardOnOrderPaid(order: {
-  _id: mongoose.Types.ObjectId;
-  buyerId: mongoose.Types.ObjectId;
+  _id: mongoose.Types.ObjectId | mongoose.Schema.Types.ObjectId | string;
+  buyerId: mongoose.Types.ObjectId | mongoose.Schema.Types.ObjectId | string;
   total: number;
 }): Promise<void> {
   try {
@@ -103,7 +103,8 @@ export async function processReferralRewardOnOrderPaid(order: {
     const codeUsed = referrer?.referralCode || 'UNKNOWN';
 
     try {
-      await MarketingReferralReward.create({
+      // Use constructor + save so TS matches Mongoose 8 model typings (create() overload resolution can misfire).
+      await new MarketingReferralReward({
         referrerUserId: buyer.referredBy,
         refereeUserId: order.buyerId,
         referralCodeUsed: codeUsed,
@@ -113,7 +114,7 @@ export async function processReferralRewardOnOrderPaid(order: {
         rewardType,
         // Counts toward admin "Rewards paid" total; switch to 'pending' if you add a finance approval step.
         status: 'paid',
-      });
+      }).save();
     } catch (err: unknown) {
       const code = (err as { code?: number })?.code;
       if (code === 11000) return;

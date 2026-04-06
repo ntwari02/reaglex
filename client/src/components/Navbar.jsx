@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const PRIMARY = '#f97316';
 const PRIMARY_HOVER = '#ea580c';
 const DROPDOWN_SHADOW = '0 8px 24px rgba(0,0,0,0.12)';
+const ALL_CATEGORIES = 'All Categories';
 
 // ── Recent searches (localStorage, max 8) ───────────────────────────────────────
 const RECENT_KEY = 'reaglex_recent_searches';
@@ -82,13 +83,13 @@ const LANG_OPTIONS = [
 ];
 
 const NAV_LINKS = [
-  { to: '/', label: 'Home' },
-  { to: '/search?sort=newest', label: "New Arrivals ✨" },
-  { to: '/search?sort=discount', label: "Today's Deals 🔥", badge: 'HOT' },
-  { to: '/search?sort=rating', label: 'Top Sellers ⭐' },
-  { to: '/search', label: 'Stores' },
-  { to: '/track', label: 'Track My Order' },
-  { to: '#', label: 'Blog' },
+  { to: '/', labelKey: 'nav.home' },
+  { to: '/search?sort=newest', labelKey: 'nav.newArrivals' },
+  { to: '/search?sort=discount', labelKey: 'nav.deals', badge: 'HOT' },
+  { to: '/search?sort=rating', labelKey: 'nav.topSellers' },
+  { to: '/search', labelKey: 'nav.stores' },
+  { to: '/track', labelKey: 'nav.trackOrder' },
+  { to: '#', labelKey: 'nav.blog' },
 ];
 
 const CURRENCIES = [
@@ -333,16 +334,16 @@ function MainHeader({
     const recent = recentSearches.slice(0, 3);
     const trending = TRENDING.slice(0, 2);
     if (hasQuery && products.length === 0) {
-      actions.push({ type: 'noResult', label: 'Browse all products', onClick: () => { navigate('/search'); setSuggestionsOpen(false); } });
+      actions.push({ type: 'noResult', label: t('search.noMatches'), onClick: () => { navigate('/search'); setSuggestionsOpen(false); } });
     } else {
       if (products.length > 0) products.slice(0, 5).forEach((p) => {
         actions.push({ type: 'product', data: p, onClick: () => { navigate(`/products/${p._id || p.id}`); setSuggestionsOpen(false); } });
       });
       recent.forEach((r) => {
-        actions.push({ type: 'recent', label: r, onClick: () => { setSearchQuery(r); addRecentSearch(r); navigate(`/search?q=${encodeURIComponent(r)}${category && category !== 'All Categories' ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); } });
+        actions.push({ type: 'recent', label: r, onClick: () => { setSearchQuery(r); addRecentSearch(r); navigate(`/search?q=${encodeURIComponent(r)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); } });
       });
       trending.forEach((t) => {
-        actions.push({ type: 'trending', label: t, onClick: () => { setSearchQuery(t); addRecentSearch(t); navigate(`/search?q=${encodeURIComponent(t)}${category && category !== 'All Categories' ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); } });
+        actions.push({ type: 'trending', label: t, onClick: () => { setSearchQuery(t); addRecentSearch(t); navigate(`/search?q=${encodeURIComponent(t)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); } });
       });
     }
     return actions.slice(0, 8);
@@ -451,7 +452,7 @@ function MainHeader({
     const q = searchQuery.trim();
     if (q) {
       addRecentSearch(q);
-      navigate(`/search?q=${encodeURIComponent(q)}${category && category !== 'All Categories' ? `&category=${encodeURIComponent(category)}` : ''}`);
+      navigate(`/search?q=${encodeURIComponent(q)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`);
       setSuggestionsOpen(false);
     }
   };
@@ -598,7 +599,7 @@ function MainHeader({
             >
               {searchQuery.trim() && suggestions.products?.length === 0 && (
                 <div className="py-4 px-4">
-                  <p className="text-sm" style={{ color: '#6b7280' }}>No results for &apos;{searchQuery.trim()}&apos;</p>
+                  <p className="text-sm" style={{ color: '#6b7280' }}>{t('search.noMatches')} &apos;{searchQuery.trim()}&apos;</p>
                   <Link
                     to="/search"
                     onClick={() => setSuggestionsOpen(false)}
@@ -606,7 +607,7 @@ function MainHeader({
                     className={`inline-block mt-2 text-sm font-semibold ${suggestionIndex === 0 ? 'opacity-90' : ''}`}
                     style={{ color: PRIMARY }}
                   >
-                    Browse all products →
+                    {t('nav.shop')} →
                   </Link>
                 </div>
               )}
@@ -649,14 +650,14 @@ function MainHeader({
                       <div key={r} className="flex items-center group">
                         <button
                           type="button"
-                          onClick={() => { setSearchQuery(r); addRecentSearch(r); navigate(`/search?q=${encodeURIComponent(r)}${category && category !== 'All Categories' ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); }}
+                          onClick={() => { setSearchQuery(r); addRecentSearch(r); navigate(`/search?q=${encodeURIComponent(r)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); }}
                           data-suggestion-index={rowIndex}
                           className={`flex-1 text-left px-4 py-2 text-sm transition flex items-center gap-2 min-w-0 ${suggestionIndex === rowIndex ? 'bg-orange-50' : 'hover:bg-orange-50'}`}
                           style={{ color: '#374151' }}
                         >
                           {r}
                         </button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); removeRecentSearch(r); }} className="p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition" aria-label="Remove">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); removeRecentSearch(r); }} className="p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition" aria-label={t('buttons.remove')}>
                           <X className="w-3.5 h-3.5" style={{ color: '#6b7280' }} />
                         </button>
                       </div>
@@ -672,7 +673,7 @@ function MainHeader({
                     <button
                       key={t}
                       type="button"
-                      onClick={() => { setSearchQuery(t); addRecentSearch(t); navigate(`/search?q=${encodeURIComponent(t)}${category && category !== 'All Categories' ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); }}
+                      onClick={() => { setSearchQuery(t); addRecentSearch(t); navigate(`/search?q=${encodeURIComponent(t)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); }}
                       data-suggestion-index={rowIndex}
                       className={`w-full text-left px-4 py-2 text-sm transition ${suggestionIndex === rowIndex ? 'bg-orange-50' : 'hover:bg-orange-50'}`}
                       style={{ color: '#374151' }}
@@ -694,8 +695,8 @@ function MainHeader({
           type="button"
           onClick={toggleTheme}
           className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
+          title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
         >
           {theme === 'dark' ? (
             <Sun className="w-5 h-5 text-yellow-400" />
@@ -708,8 +709,8 @@ function MainHeader({
           type="button"
           onClick={() => window.dispatchEvent(new Event('reaglex:assistant:open'))}
           className="hidden md:flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition group"
-          title="AI Assistant"
-          aria-label="Open AI Assistant"
+          title={t('nav.help')}
+          aria-label={t('nav.help')}
         >
           <Bot className="w-[22px] h-[22px] text-gray-500 group-hover:text-orange-500 transition-colors" />
         </button>
@@ -746,7 +747,7 @@ function MainHeader({
         <Link
           to="/account?tab=wishlist"
           className="relative hidden md:flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition group"
-          title="My Wishlist"
+          title={t('wishlist.title')}
         >
           <Heart className="w-[22px] h-[22px] group-hover:fill-red-500 group-hover:stroke-red-500 transition" style={{ color: '#6b7280' }} />
           {wishlistCount > 0 && (
@@ -804,7 +805,7 @@ function MainHeader({
                   ))}
                 </div>
                 <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Subtotal: ${subtotal.toFixed(2)}</span>
+                  <span className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>{t('cart.subtotal')}: ${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex gap-2 px-4 pb-3">
                   <button
@@ -813,7 +814,7 @@ function MainHeader({
                     className="flex-1 py-2 rounded-lg text-sm font-semibold border transition"
                     style={{ borderColor: PRIMARY, color: PRIMARY }}
                   >
-                    View Cart
+                    {t('buttons.viewCart')}
                   </button>
                   <Link
                     to="/checkout"
@@ -821,7 +822,7 @@ function MainHeader({
                     className="flex-1 py-2 rounded-lg text-sm font-semibold text-white text-center transition"
                     style={{ background: PRIMARY }}
                   >
-                    Checkout
+                    {t('buttons.checkout')}
                   </Link>
                 </div>
               </motion.div>
@@ -879,28 +880,28 @@ function MainHeader({
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate text-gray-900 dark:text-white">{user.full_name || 'User'}</p>
+                        <p className="font-semibold text-sm truncate text-gray-900 dark:text-white">{user.full_name || t('nav.profile')}</p>
                         <p className="text-xs truncate text-gray-500 dark:text-gray-400">{user.email}</p>
                       </div>
                     </div>
                     <div className="border-t border-gray-100 dark:border-gray-700 py-2">
                       {[
-                        { icon: Package, label: 'My Orders', to: '/account?tab=orders' },
-                        { icon: Heart, label: 'Wishlist', to: '/account?tab=wishlist' },
-                        { icon: MapPin, label: 'Addresses', to: '/account?tab=addresses' },
-                        { icon: CreditCard, label: 'Payment Methods', to: '/account?tab=payment' },
-                        { icon: Star, label: 'My Reviews', to: '/account?tab=reviews' },
-                        { icon: RotateCcw, label: 'Returns', to: '/returns' },
-                        { icon: Shield, label: '🛡️ Buyer Protection', to: '/buyer-protection' },
-                        { icon: Settings, label: 'Account Settings', to: '/account' },
-                      ].map(({ icon: Icon, label, to }) => (
+                        { icon: Package, labelKey: 'nav.orders', to: '/account?tab=orders' },
+                        { icon: Heart, labelKey: 'nav.wishlist', to: '/account?tab=wishlist' },
+                        { icon: MapPin, labelKey: 'account.addresses', to: '/account?tab=addresses' },
+                        { icon: CreditCard, labelKey: 'account.paymentMethods', to: '/account?tab=payment' },
+                        { icon: Star, labelKey: 'nav.messages', to: '/account?tab=reviews' },
+                        { icon: RotateCcw, labelKey: 'header.returns', to: '/returns' },
+                        { icon: Shield, labelKey: 'header.buyerProtection', to: '/buyer-protection' },
+                        { icon: Settings, labelKey: 'account.profileSettings', to: '/account' },
+                      ].map(({ icon: Icon, labelKey, to }) => (
                         <Link
-                          key={label}
+                          key={labelKey}
                           to={to}
                           onClick={() => setProfileOpen(false)}
                           className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 transition text-gray-700 dark:text-gray-300"
                         >
-                          <Icon className="w-4 h-4 flex-shrink-0" /> {label}
+                          <Icon className="w-4 h-4 flex-shrink-0" /> {t(labelKey)}
                         </Link>
                       ))}
                     </div>
@@ -910,7 +911,7 @@ function MainHeader({
                         onClick={() => { onLogoutClick(); setProfileOpen(false); }}
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition text-red-600 dark:text-red-400"
                       >
-                        <LogOut className="w-4 h-4" /> Logout
+                        <LogOut className="w-4 h-4" /> {t('buttons.logout')}
                       </button>
                     </div>
                   </motion.div>
@@ -924,7 +925,7 @@ function MainHeader({
               className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
               style={{ background: PRIMARY }}
             >
-              Login / Register
+              {t('header.loginRegister')}
             </button>
           )}
         </div>
@@ -943,7 +944,7 @@ function MainHeader({
 }
 
 // ── Tier 3: Category nav bar ──────────────────────────────────────────────────
-function CategoryNav({ megaOpen, setMegaOpen }) {
+function CategoryNav({ megaOpen, setMegaOpen, t }) {
   const location = useLocation();
   const [megaHover, setMegaHover] = useState(false);
   const megaRef = useRef(null);
@@ -964,7 +965,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
           className="flex items-center gap-2 h-full px-4 rounded-lg text-sm font-semibold transition"
           style={{ color: 'white', background: PRIMARY }}
         >
-          <Menu className="w-4 h-4" /> All Categories
+          <Menu className="w-4 h-4" /> {t('nav.categories')}
         </button>
 
         <AnimatePresence>
@@ -997,7 +998,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
                 </div>
                 <div className="flex-1 p-4 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
                   <div className="text-center">
-                    <p className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Today's Deals 🔥</p>
+                    <p className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>{t('nav.deals')}</p>
                     <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Up to 70% off — limited time</p>
                     <Link
                       to="/search?sort=discount"
@@ -1005,7 +1006,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
                       className="inline-block px-4 py-2 rounded-lg text-sm font-semibold text-white"
                       style={{ background: PRIMARY }}
                     >
-                      Shop Deals
+                      {t('buttons.buy')}
                     </Link>
                   </div>
                 </div>
@@ -1016,11 +1017,11 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
       </div>
 
       <nav className="flex-1 flex items-center gap-6 overflow-x-auto scrollbar-hide px-4">
-        {NAV_LINKS.map(({ to, label, badge }) => {
+        {NAV_LINKS.map(({ to, labelKey, badge }) => {
           const isActive = location.pathname === to || (to === '/search' && location.pathname === '/search');
           return (
             <Link
-              key={label}
+              key={labelKey}
               to={to}
               className="flex-shrink-0 flex items-center gap-1 py-2 text-sm font-medium transition whitespace-nowrap"
               style={{
@@ -1028,7 +1029,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
                 borderBottom: isActive ? '2px solid var(--nav-link-hover)' : '2px solid transparent',
               }}
             >
-              {label}
+              {t(labelKey)}
               {badge && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
                   {badge}
@@ -1044,7 +1045,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
           to="/seller"
           className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-orange-500 hover:text-orange-600"
         >
-          Seller Dashboard <ChevronRight className="w-4 h-4" />
+          {t('header.sellerDashboard')} <ChevronRight className="w-4 h-4" />
         </Link>
       ) : isSellerPending ? (
         <Link
@@ -1052,7 +1053,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
           className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition"
           style={{ color: '#fbbf24' }}
         >
-          Application Pending ⏳
+          {t('header.applicationPending')} ⏳
         </Link>
       ) : (
         <Link
@@ -1063,7 +1064,7 @@ function CategoryNav({ megaOpen, setMegaOpen }) {
           }}
           className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-orange-500 hover:text-orange-600"
         >
-          Become a Seller <ChevronRight className="w-4 h-4" />
+          {t('header.becomeSeller')} <ChevronRight className="w-4 h-4" />
         </Link>
       )}
     </div>
@@ -1128,7 +1129,7 @@ function MobileDrawer({
                   {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate text-gray-900 dark:text-white">{user.full_name || 'User'}</p>
+                  <p className="font-semibold truncate text-gray-900 dark:text-white">{user.full_name || t('nav.profile')}</p>
                   <p className="text-xs truncate text-gray-500 dark:text-gray-400">{user.email}</p>
                 </div>
               </div>
@@ -1162,7 +1163,7 @@ function MobileDrawer({
             </form>
 
             <div className="flex-1 overflow-y-auto py-4">
-              <p className="px-4 text-xs font-semibold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">Shop</p>
+              <p className="px-4 text-xs font-semibold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">{t('nav.shop')}</p>
               {MEGA_CATEGORIES.map(({ icon, name }) => (
                 <Link
                   key={name}
@@ -1173,15 +1174,15 @@ function MobileDrawer({
                   <span>{icon}</span> {name}
                 </Link>
               ))}
-              <p className="px-4 text-xs font-semibold uppercase tracking-wider mt-4 mb-2 text-gray-400 dark:text-gray-500">Links</p>
-              {NAV_LINKS.filter((l) => l.to !== '/').map(({ to, label }) => (
+              <p className="px-4 text-xs font-semibold uppercase tracking-wider mt-4 mb-2 text-gray-400 dark:text-gray-500">{t('nav.menu')}</p>
+              {NAV_LINKS.filter((l) => l.to !== '/').map(({ to, labelKey }) => (
                 <Link
-                  key={label}
+                  key={labelKey}
                   to={to}
                   onClick={onClose}
                   className={`flex items-center gap-3 px-4 py-3 text-sm transition ${location.pathname === to ? 'text-orange-500' : 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400'}`}
                 >
-                  {label}
+                  {t(labelKey)}
                 </Link>
               ))}
               <Link to="/" onClick={onClose} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{t('nav.home')}</Link>
@@ -1250,7 +1251,7 @@ export default function Navbar() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
-  const [category, setCategory] = useState('All Categories');
+  const [category, setCategory] = useState(ALL_CATEGORIES);
   const [currency, setCurrency] = useState(CURRENCIES[0]);
   const [megaOpen, setMegaOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1276,7 +1277,7 @@ export default function Navbar() {
     const q = searchQuery.trim();
     if (q) {
       addRecentSearch(q);
-      navigate(`/search?q=${encodeURIComponent(q)}${category && category !== 'All Categories' ? `&category=${encodeURIComponent(category)}` : ''}`);
+      navigate(`/search?q=${encodeURIComponent(q)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`);
       setMobileMenuOpen(false);
     }
   };
@@ -1351,7 +1352,7 @@ export default function Navbar() {
 
       {/* Tier 3 */}
       <div style={{ position: 'relative', zIndex: 101 }}>
-        <CategoryNav megaOpen={megaOpen} setMegaOpen={setMegaOpen} />
+        <CategoryNav megaOpen={megaOpen} setMegaOpen={setMegaOpen} t={t} />
       </div>
 
       {/* Mobile drawer */}
@@ -1380,10 +1381,10 @@ export default function Navbar() {
         <DialogContent className="max-w-sm bg-white dark:bg-gray-900 border border-red-200 dark:border-red-700">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-red-600 dark:text-red-400">
-              Log out?
+              {t('dialog.logoutTitle')}
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
-              Are you sure you want to log out? You will need to sign in again to access your account.
+              {t('dialog.logoutConfirm')}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-4">
@@ -1392,7 +1393,7 @@ export default function Navbar() {
               onClick={() => setShowLogoutConfirm(false)}
               className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
             >
-              Cancel
+              {t('buttons.cancel')}
             </button>
             <button
               type="button"
@@ -1402,7 +1403,7 @@ export default function Navbar() {
               }}
               className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition"
             >
-              Log out
+              {t('buttons.logout')}
             </button>
           </div>
         </DialogContent>

@@ -50,7 +50,8 @@
     "next": "Next",
     "submit": "Submit",
     "send": "Send",
-    "retry": "Try again"
+    "retry": "Try again",
+    "open": "Open"
   },
   "product": {
     "price": "Price",
@@ -76,7 +77,9 @@
     "shippingFrom": "Shipping from",
     "estimatedDelivery": "Estimated delivery",
     "relatedProducts": "Related products",
-    "youMayAlsoLike": "You may also like"
+    "youMayAlsoLike": "You may also like",
+    "preview": "Preview",
+    "itemsFound": "items found"
   },
   "cart": {
     "title": "Shopping cart",
@@ -94,7 +97,17 @@
     "savedForLater": "Saved for later",
     "moveToCart": "Move to cart",
     "promoCode": "Promo code",
-    "applyPromo": "Apply code"
+    "applyPromo": "Apply code",
+    "featuredProductAlt": "Featured product",
+    "continueShopping": "Continue Shopping",
+    "emptyTitle": "Your cart is empty",
+    "emptySubtitle": "Add something amazing to get started",
+    "browseProducts": "Browse Products",
+    "yourCart": "Your Cart",
+    "itemSingular": "item",
+    "itemPlural": "items",
+    "clearAll": "Clear all",
+    "checkoutComingSoon": "Checkout coming soon!"
   },
   "checkout": {
     "title": "Checkout",
@@ -108,7 +121,66 @@
     "deliveryOptions": "Delivery options",
     "contactInfo": "Contact information",
     "orderNotes": "Order notes (optional)",
-    "secureCheckout": "Secure checkout"
+    "secureCheckout": "Secure checkout",
+    "steps": {
+      "address": "Address",
+      "delivery": "Delivery",
+      "payment": "Payment",
+      "confirm": "Confirm"
+    },
+    "delivery": {
+      "standard": "Standard Shipping",
+      "standardSub": "5-7 business days",
+      "express": "Express Shipping",
+      "expressSub": "2-3 business days",
+      "overnight": "Overnight Delivery",
+      "overnightSub": "Next business day"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "street": "Street Address",
+      "city": "City",
+      "state": "State / Province",
+      "zip": "ZIP / Postal Code",
+      "country": "Country",
+      "cardholderName": "Cardholder Name",
+      "cardNumber": "Card Number (1234 5678 9012 3456)",
+      "expiry": "MM / YY",
+      "cvv": "CVV"
+    },
+    "errors": {
+      "agreeTerms": "Please agree to the terms.",
+      "paymentInitFailed": "Payment initialization failed"
+    },
+    "emptyCart": "Your cart is empty",
+    "shopNow": "Shop Now",
+    "backToCart": "Back to Cart",
+    "continueToDelivery": "Continue to Delivery ->",
+    "deliveryMethod": "Delivery Method",
+    "continueToPayment": "Continue to Payment ->",
+    "reviewOrder": "Review Order ->",
+    "reviewYourOrder": "Review Your Order",
+    "qty": "Qty:",
+    "agreePrefix": "I agree to the",
+    "termsOfService": "Terms of Service",
+    "agreeMiddle": "and understand the",
+    "refundPolicy": "Refund Policy",
+    "escrowNote": "Your payment is protected by escrow. Funds are released to the seller only after you confirm delivery.",
+    "placingOrder": "Placing Order...",
+    "placeOrder": "Place Order",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "tax10": "Tax (10%)",
+    "total": "Total",
+    "escrowProtected": "Escrow-protected checkout",
+    "paymentMethods": {
+      "card": "Credit / Debit Card",
+      "paypal": "PayPal",
+      "mobileMoney": "Mobile Money",
+      "crypto": "Cryptocurrency"
+    }
   },
   "order": {
     "title": "Order",
@@ -134,7 +206,21 @@
     "alreadyHaveAccount": "Already have an account?",
     "noAccount": "Don't have an account?",
     "verifyEmail": "Verify your email",
-    "twoFactor": "Two-factor authentication"
+    "twoFactor": "Two-factor authentication",
+    "signingInAs": "Signing in as",
+    "buyer": "Buyer",
+    "seller": "Seller",
+    "continueAgreement": "By continuing you agree to our",
+    "smartShopping": "Smart Shopping",
+    "trustedSellers": "Trusted Sellers.",
+    "heroSubtitle": "Join 50,000+ buyers and sellers on Rwanda's premier escrow-protected marketplace.",
+    "fastDelivery": "Fast Delivery",
+    "liveMarketplaceSnapshot": "LIVE MARKETPLACE SNAPSHOT",
+    "joinNewMembersPrefix": "Join",
+    "joinNewMembersSuffix": "new members this month",
+    "activeUsers": "Active Users",
+    "peopleSignedInToday": "people signed in today",
+    "reaglexSecure": "Reaglex Secure"
   },
   "messages": {
     "loading": "Loading…",
@@ -149,7 +235,15 @@
     "removedFromCart": "Removed from cart",
     "copied": "Copied to clipboard",
     "noResults": "No results found",
-    "offline": "You appear to be offline"
+    "offline": "You appear to be offline",
+    "productsLoadError": "Could not load products. Please try again.",
+    "searchLoadError": "Could not load results. Please try again.",
+    "serverStarting": "Server is starting up, please wait a moment...",
+    "afterInactivity": "This only happens after periods of inactivity.",
+    "loadingProducts": "Loading products...",
+    "serverSlowOrOffline": "Server is slow or offline - make sure the backend is running on port 5000.",
+    "genericError": "An error occurred",
+    "productNotFound": "Product not found."
   },
   "search": {
     "placeholder": "Search products, brands, stores…",
@@ -165,7 +259,18 @@
     "resultsFor": "Results for \"{{query}}\"",
     "recentSearches": "Recent searches",
     "trending": "Trending",
-    "noMatches": "No matches for your search"
+    "noMatches": "No matches for your search",
+    "advancedSearch": "Advanced Search",
+    "gridView": "Grid view",
+    "listView": "List view",
+    "backToTop": "Back to top",
+    "sortNewest": "Newest",
+    "sortBestDeals": "Best Deals",
+    "sortPriceAsc": "Price: Low to High",
+    "sortPriceDesc": "Price: High to Low",
+    "sortTopRated": "Top Rated",
+    "sortMostPopular": "Most Popular",
+    "sortFreeShippingFirst": "Free Shipping First"
   },
   "topbar": {
     "announcement1": "New arrivals every Monday",
@@ -185,7 +290,15 @@
     "loginRegister": "Log in / Register",
     "becomeSeller": "Become a Seller",
     "sellerDashboard": "Seller Dashboard",
-    "applicationPending": "Application Pending"
+    "applicationPending": "Application Pending",
+    "verifiedSeller": "Verified Seller",
+    "sellerVerificationRejected": "Seller (Verification Rejected)",
+    "sellerPendingApproval": "Seller (Pending Government & Admin Approval)",
+    "products": "Products",
+    "inventory": "Inventory",
+    "analytics": "Analytics",
+    "returns": "Returns",
+    "buyerProtection": "Buyer Protection"
   },
   "wishlist": {
     "title": "Wishlist",
@@ -226,6 +339,237 @@
     "new": "New",
     "sale": "Sale",
     "free": "Free",
-    "each": "each"
+    "each": "each",
+    "seeAll": "See all"
+  },
+  "home": {
+    "findAnything": "Find anything you need",
+    "thousandsFromVerified": "Thousands of products from verified sellers",
+    "browseCategories": "Browse Categories",
+    "browseCollection": "Browse Collection",
+    "recentlyViewed": "Recently Viewed",
+    "exploreAllProducts": "Explore All Products",
+    "featured": "Featured",
+    "noProductsYet": "No products available yet."
+  },
+  "categories": {
+    "electronics": "Electronics",
+    "fashion": "Fashion",
+    "homeGarden": "Home & Garden",
+    "sports": "Sports",
+    "books": "Books",
+    "toys": "Toys",
+    "beauty": "Beauty",
+    "automotive": "Automotive",
+    "food": "Food",
+    "gaming": "Gaming",
+    "health": "Health",
+    "tools": "Tools",
+    "clothing": "Clothing",
+    "accessories": "Accessories",
+    "foodGrocery": "Food & Grocery"
+  },
+  "filters": {
+    "clearAll": "Clear all",
+    "priceRange": "Price Range",
+    "minPrice": "Min $",
+    "maxPrice": "Max $",
+    "freeShipping": "Free Shipping",
+    "freeShippingOnly": "Free Shipping Only",
+    "minimumRating": "Minimum Rating",
+    "tryAdjusting": "No products found. Try adjusting your filters.",
+    "price": {
+      "under25": "Under $25",
+      "25to50": "$25 - $50",
+      "50to100": "$50 - $100",
+      "100to250": "$100 - $250",
+      "over250": "Over $250"
+    }
+  },
+  "marketing": {
+    "flashSale": "Flash Sale",
+    "endsIn": "Ends in:",
+    "dealsDiscounts": "Deals & Discounts",
+    "bestValueNow": "Best value products right now",
+    "topRatedProducts": "Top Rated Products",
+    "highestRatedCommunity": "Highest rated by our community",
+    "mostLoved": "#1 Most loved",
+    "premiumQuality": "Premium quality with exceptional craftsmanship.",
+    "trust": {
+      "fullRefund": "Full refund if item not received",
+      "shipsFast": "Ships within 24-48 hours",
+      "kycVerified": "All sellers are KYC-verified",
+      "escrowProtected": "Escrow-protected transactions"
+    },
+    "banners": {
+      "megaSale": {
+        "title": "Mega Sale - Up to 70% Off",
+        "sub": "Biggest deals of the season. Limited time only.",
+        "cta": "Shop Now"
+      },
+      "freeShipping": {
+        "title": "Free Shipping on Orders $30+",
+        "sub": "Shop from hundreds of verified sellers worldwide.",
+        "cta": "Browse All"
+      },
+      "newArrivals": {
+        "title": "New Arrivals Every Day",
+        "sub": "Fresh products added daily from top sellers.",
+        "cta": "See New"
+      }
+    }
+  },
+  "notifications": {
+    "notice": "Notice",
+    "new": "new",
+    "unread": "unread",
+    "none": "No notifications",
+    "noNew": "No new notifications",
+    "allCaughtUp": "All caught up",
+    "loading": "Loading notifications...",
+    "markAllRead": "Mark all read",
+    "markAsRead": "Mark as read",
+    "delete": "Delete notification",
+    "muteType": "Mute this type",
+    "viewAll": "View all",
+    "showing": "Showing",
+    "settings": "Notification settings",
+    "signInToSee": "Sign in to see notifications.",
+    "inboxTitle": "Your inbox",
+    "filters": {
+      "all": "All",
+      "unread": "Unread",
+      "updates": "Updates",
+      "alerts": "Alerts",
+      "orders": "Orders",
+      "deals": "Deals",
+      "system": "System"
+    },
+    "actions": {
+      "trackOrder": "Track Order ->",
+      "shopNow": "Shop Now ->",
+      "completeProfile": "Complete Profile ->",
+      "reply": "Reply ->",
+      "rateNow": "Rate now"
+    }
+  },
+  "footer": {
+    "newsletterTitle": "Get the Best Deals First!",
+    "newsletterSubtitle": "Subscribe and never miss a flash sale or new arrival",
+    "emailPlaceholder": "Enter your email address...",
+    "subscribe": "Subscribe",
+    "noSpam": "No spam. Unsubscribe anytime.",
+    "brandTagline": "Smart Shopping. Trusted Sellers. Fast Delivery.",
+    "brandDescription": "Reaglex is a premium marketplace connecting buyers and sellers worldwide with escrow protection.",
+    "sellWithUs": "Sell with us",
+    "startSellingToday": "Start Selling Today",
+    "supportHours": "Mon-Fri, 8am-6pm (CAT)",
+    "rightsReservedPrefix": "All rights reserved. Made with",
+    "rightsReservedSuffix": "in Rwanda 🇷🇼",
+    "appStore": "App Store",
+    "googlePlay": "Google Play",
+    "badges": {
+      "securePayments": "Secure Payments",
+      "verifiedSellers": "Verified Sellers",
+      "escrowProtected": "Escrow Protected"
+    },
+    "social": {
+      "facebook": "Facebook",
+      "twitter": "Twitter / X",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn",
+      "youtube": "YouTube",
+      "tiktok": "TikTok"
+    },
+    "links": {
+      "shop": {
+        "allProducts": "All Products",
+        "topRated": "Top Rated",
+        "flashSales": "Flash Sales",
+        "giftCards": "Gift Cards",
+        "bulkOrders": "Bulk Orders"
+      },
+      "account": {
+        "myReviews": "My Reviews",
+        "returnsRefunds": "Returns & Refunds"
+      },
+      "sell": {
+        "sellerGuidelines": "Seller Guidelines",
+        "feesPricing": "Fees & Pricing",
+        "sellerProtection": "Seller Protection",
+        "advertiseWithUs": "Advertise with Us",
+        "sellerAccountRequired": "Seller account required"
+      },
+      "support": {
+        "contactUs": "Contact Us",
+        "faq": "FAQ",
+        "reportProblem": "Report a Problem",
+        "privacyPolicy": "Privacy Policy",
+        "cookieSettings": "Cookie Settings"
+      },
+      "bottom": {
+        "termsOfService": "Terms of Service",
+        "cookies": "Cookies",
+        "sitemap": "Sitemap"
+      }
+    },
+    "payments": {
+      "visa": "Visa",
+      "mastercard": "Mastercard",
+      "paypal": "PayPal",
+      "mtnMomo": "MTN MoMo",
+      "airtelMoney": "Airtel Money",
+      "stripe": "Stripe"
+    }
+  },
+  "sidebar": {
+    "disputes": "Disputes",
+    "inboxRfqs": "Inbox & RFQs",
+    "collections": "Collections",
+    "subscription": "Subscription",
+    "supportCenter": "Support Center",
+    "needHelpOpen": "Need help? Open",
+    "inMenu": "in the menu"
+  },
+  "orderConfirmation": {
+    "placedTitle": "Order Placed! 🎉",
+    "placedSubtitle": "Thank you for your purchase. Your order has been confirmed.",
+    "orderNumber": "Order #",
+    "estimatedDelivery": "Estimated Delivery",
+    "standardShipping": "Standard Shipping",
+    "onTime": "On time",
+    "premiumStore": "Premium Store",
+    "processing": "Processing",
+    "items": "item(s)",
+    "escrowActive": "Escrow Protection Active",
+    "escrowNote": "Your payment is held securely. Funds will only be released to the seller once you confirm delivery.",
+    "trackOrder": "Track Order",
+    "downloadInvoice": "Download Invoice",
+    "continueShopping": "Continue Shopping"
+  },
+  "returns": {
+    "selectReasonError": "Please select a reason.",
+    "submittedTitle": "Return Submitted!",
+    "submittedMessage": "Your return request has been submitted. Our team will review it within 1-2 business days. You'll receive an email update shortly.",
+    "viewStatus": "View Return Status",
+    "continueShopping": "Continue Shopping",
+    "requestTitle": "Request a Return",
+    "requestSubtitle": "Fill in the details below. Our team will review your request within 1-2 business days.",
+    "buyerProtection": "Buyer Protection Applies",
+    "buyerProtectionNote": "All purchases are covered under our Buyer Protection Policy. If your claim is valid, you'll receive a full refund.",
+    "orderId": "Order ID *",
+    "orderIdPlaceholder": "e.g. ORD-1001",
+    "reason": "Reason for Return *",
+    "describeIssue": "Describe the Issue",
+    "describePlaceholder": "Please provide as much detail as possible...",
+    "uploadEvidence": "Upload Evidence",
+    "uploadEvidenceHint": "(optional, max 5 images)",
+    "clickUpload": "Click to upload photos / videos",
+    "refundMethod": "Preferred Refund Method",
+    "originalPaymentMethod": "Original Payment Method",
+    "reaglexWallet": "Reaglex Wallet",
+    "warning": "False or fraudulent return claims may result in account suspension. Please provide accurate information.",
+    "submitting": "⏳ Submitting…",
+    "submitRequest": "Submit Return Request"
   }
 }

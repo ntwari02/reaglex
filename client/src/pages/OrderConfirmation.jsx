@@ -2,8 +2,10 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, Package, Truck, Download, MapPin } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
+import { useTranslation } from '../i18n/useTranslation';
 
 export default function OrderConfirmation() {
+  const { t } = useTranslation();
   const { orderId } = useParams();
   const today = new Date();
   const delivery = new Date(today.getTime() + 5 * 24 * 3600 * 1000);
@@ -31,14 +33,14 @@ export default function OrderConfirmation() {
           </motion.div>
 
           <h1 className="text-3xl font-black mb-2" style={{ color: '#1a1a1a', letterSpacing: '-1px' }}>
-            Order Placed! 🎉
+            {t('orderConfirmation.placedTitle')}
           </h1>
           <p className="text-sm mb-1" style={{ color: '#6b7280' }}>
-            Thank you for your purchase. Your order has been confirmed.
+            {t('orderConfirmation.placedSubtitle')}
           </p>
           <p className="text-xs font-bold px-4 py-1.5 rounded-full inline-block mb-8"
             style={{ background: '#fff7ed', color: '#ff8c42' }}>
-            Order # {orderId}
+            {t('orderConfirmation.orderNumber')} {orderId}
           </p>
 
           {/* Order info card */}
@@ -51,25 +53,25 @@ export default function OrderConfirmation() {
                   <Package className="w-5 h-5" style={{ color: '#ff8c42' }} />
                 </div>
                 <div>
-                  <p className="font-bold text-sm" style={{ color: '#1a1a1a' }}>Estimated Delivery</p>
-                  <p className="text-xs" style={{ color: '#9ca3af' }}>Standard Shipping</p>
+                  <p className="font-bold text-sm" style={{ color: '#1a1a1a' }}>{t('orderConfirmation.estimatedDelivery')}</p>
+                  <p className="text-xs" style={{ color: '#9ca3af' }}>{t('orderConfirmation.standardShipping')}</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="font-bold text-sm" style={{ color: '#1a1a1a' }}>{fmt(delivery)}</p>
-                <p className="text-xs" style={{ color: '#22c55e' }}>On time</p>
+                <p className="text-xs" style={{ color: '#22c55e' }}>{t('orderConfirmation.onTime')}</p>
               </div>
             </div>
 
             {/* Sub-orders by seller */}
             {[
-              { seller: 'Premium Store', items: 1, status: 'Processing', eta: fmt(delivery) },
+              { seller: t('orderConfirmation.premiumStore'), items: 1, status: t('orderConfirmation.processing'), eta: fmt(delivery) },
             ].map((o, i) => (
               <div key={i} className="flex items-center justify-between p-3 rounded-xl"
                 style={{ background: '#fafafa' }}>
                 <div>
                   <p className="font-semibold text-sm" style={{ color: '#1a1a1a' }}>📦 {o.seller}</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>{o.items} item(s) · ETA: {o.eta}</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>{o.items} {t('orderConfirmation.items')} · ETA: {o.eta}</p>
                 </div>
                 <span className="px-3 py-1 rounded-full text-xs font-semibold"
                   style={{ background: 'rgba(255,140,66,0.1)', color: '#ff8c42' }}>{o.status}</span>
@@ -82,9 +84,9 @@ export default function OrderConfirmation() {
             style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)' }}>
             <span className="text-xl flex-shrink-0">🔒</span>
             <div>
-              <p className="font-semibold text-sm" style={{ color: '#16a34a' }}>Escrow Protection Active</p>
+              <p className="font-semibold text-sm" style={{ color: '#16a34a' }}>{t('orderConfirmation.escrowActive')}</p>
               <p className="text-xs mt-0.5" style={{ color: '#6b7280' }}>
-                Your payment is held securely. Funds will only be released to the seller once you confirm delivery.
+                {t('orderConfirmation.escrowNote')}
               </p>
             </div>
           </div>
@@ -95,19 +97,19 @@ export default function OrderConfirmation() {
               <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm"
                 style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)', boxShadow: '0 6px 20px rgba(255,140,66,0.35)' }}>
-                <Truck className="w-4 h-4" /> Track Order
+                <Truck className="w-4 h-4" /> {t('orderConfirmation.trackOrder')}
               </motion.button>
             </Link>
             <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm"
               style={{ background: 'white', color: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-              <Download className="w-4 h-4" /> Download Invoice
+              <Download className="w-4 h-4" /> {t('orderConfirmation.downloadInvoice')}
             </motion.button>
             <Link to="/" className="flex-1">
               <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm"
                 style={{ background: '#f3f4f6', color: '#374151' }}>
-                Continue Shopping
+                {t('orderConfirmation.continueShopping')}
               </motion.button>
             </Link>
           </div>

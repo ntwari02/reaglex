@@ -4,6 +4,7 @@ import { Bell, FileText, AlertTriangle, X, Settings, ExternalLink, Loader2 } fro
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { systemInboxApi, type SystemInboxRow } from '@/services/systemInboxApi';
+import { useTranslation } from '@/i18n/useTranslation';
 
 interface NotificationsProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ function priorityUi(p: string): 'high' | 'medium' | 'low' {
 }
 
 const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.user?.id || '');
@@ -49,7 +51,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
       const { notifications } = await systemInboxApi.list(50, false);
       setRows(Array.isArray(notifications) ? notifications : []);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Could not load notifications');
+      setError(e instanceof Error ? e.message : t('messages.error'));
       setRows([]);
     } finally {
       setLoading(false);
@@ -65,14 +67,14 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
   const mapped = rows.map((n) => ({
     raw: n,
     id: String(n._id),
-    title: n.title || 'Notice',
+    title: n.title || t('notifications.notice'),
     message: n.message || '',
     date: n.createdAt ? new Date(n.createdAt).toLocaleString() : '',
     unread: isUnread(n),
     category: categoryForType(n.type || ''),
     priority: priorityUi(n.priority || 'medium'),
     actionLink: n.actionUrl,
-    actionLabel: n.actionText || (n.actionUrl ? 'Open' : undefined),
+    actionLabel: n.actionText || (n.actionUrl ? t('buttons.open') : undefined),
   }));
 
   const filtered =
@@ -133,10 +135,10 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
   };
 
   const filters: { id: FilterId; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'unread', label: 'Unread' },
-    { id: 'announcement', label: 'Updates' },
-    { id: 'alert', label: 'Alerts' },
+    { id: 'all', label: t('notifications.filters.all') },
+    { id: 'unread', label: t('notifications.filters.unread') },
+    { id: 'announcement', label: t('notifications.filters.updates') },
+    { id: 'alert', label: t('notifications.filters.alerts') },
   ];
 
   return (
@@ -162,19 +164,20 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your inbox</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('notifications.inboxTitle')}</h2>
                     <button
                       type="button"
                       onClick={onClose}
                       className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                      aria-label="Close notifications"
+                      aria-label={t('buttons.close')}
                     >
                       <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                     </button>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {filteredUnreadCount > 0 ? `${filteredUnreadCount} unread` : 'All caught up'} · Your personal
-                    inbox (orders, support, broadcasts). Admin Notification Center is under the main menu.
+                    {filteredUnreadCount > 0
+                      ? `${filteredUnreadCount} ${t('notifications.unread')}`
+                      : t('notifications.allCaughtUp')}
                   </p>
                 </div>
               </div>
@@ -185,7 +188,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                     onClick={() => void markAllAsRead()}
                     className="px-3 py-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
                   >
-                    Mark all read
+                    {t('notifications.markAllRead')}
                   </button>
                 )}
               </div>
@@ -230,7 +233,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
 
             <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth p-4 bg-gray-50 dark:bg-gray-900">
               {!userId && (
-                <p className="text-sm text-center text-gray-500 py-8">Sign in to see notifications.</p>
+                <p className="text-sm text-center text-gray-500 py-8">{t('notifications.signInToSee')}</p>
               )}
               {userId && loading && (
                 <div className="flex justify-center py-12">
@@ -243,7 +246,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
               {userId && !loading && !error && filtered.length === 0 && (
                 <div className="p-8 text-center">
                   <Bell className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No notifications</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('notifications.none')}</p>
                 </div>
               )}
               {userId && !loading && !error && filtered.length > 0 && (
@@ -341,7 +344,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                 onClick={onClose}
                 className="text-sm font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-500 transition-colors"
               >
-                View all
+                {t('notifications.viewAll')}
               </Link>
               <Link
                 to={getSettingsUrl()}
@@ -349,7 +352,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                 className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
               >
                 <Settings className="h-4 w-4" />
-                Settings
+                {t('nav.settings')}
               </Link>
             </div>
           </motion.div>

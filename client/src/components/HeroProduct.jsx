@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Heart, Play, Star, Plus, Minus } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import ProductInfoCard from './ProductInfoCard';
+import { useTranslation } from '../i18n/useTranslation';
 
 import { SERVER_URL } from '../lib/config';
 
@@ -22,6 +23,7 @@ function resolveImage(src) {
 }
 
 export default function HeroProduct({ product }) {
+  const { t } = useTranslation();
   const [quantity, setQuantity] = useState(1);
   const [wishlisted, setWishlisted] = useState(false);
   const [addedAnim, setAddedAnim] = useState(false);
@@ -43,7 +45,7 @@ export default function HeroProduct({ product }) {
   const oldPrice = product.compareAtPrice || product.originalPrice || null;
   const discount = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const rating = product.averageRating || product.rating || 4.8;
-  const category = product.category || product.categoryName || 'Featured';
+  const category = product.category || product.categoryName || t('home.featured');
 
   const handleAddToCart = () => {
     addItem(product, quantity);
@@ -119,7 +121,7 @@ export default function HeroProduct({ product }) {
                 style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(10px)' }}
               >
                 <Play className="w-3.5 h-3.5" fill="white" />
-                Preview
+                {t('product.preview')}
               </motion.button>
 
               {/* Wishlist */}
@@ -164,7 +166,7 @@ export default function HeroProduct({ product }) {
         <div className="flex items-center gap-2">
           <Star className="w-4 h-4" fill="#ff8c42" stroke="none" />
           <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#ff8c42' }}>
-            #1 Most loved
+            {t('marketing.mostLoved')}
           </span>
         </div>
 
@@ -186,7 +188,7 @@ export default function HeroProduct({ product }) {
                 lineHeight: 1.1,
               }}
             >
-              {(product.title || product.name || 'Product').toUpperCase()}
+              {(product.title || product.name || t('product.details')).toUpperCase()}
             </h1>
           </motion.div>
         </AnimatePresence>
@@ -196,7 +198,7 @@ export default function HeroProduct({ product }) {
           className="text-sm leading-relaxed max-w-sm product-desc"
           style={{ color: 'var(--text-secondary)' }}
         >
-          {product.description?.slice(0, 120) || 'Premium quality with exceptional craftsmanship.'}
+          {product.description?.slice(0, 120) || t('marketing.premiumQuality')}
           {(product.description?.length || 0) > 120 ? '…' : ''}
         </p>
 
@@ -264,7 +266,7 @@ export default function HeroProduct({ product }) {
             }}
           >
             <ShoppingBag className="w-4 h-4" />
-            {addedAnim ? 'Added!' : 'Add to Cart'}
+            {addedAnim ? t('messages.addedToCart') : t('buttons.addToCart')}
           </motion.button>
 
           {/* View detail */}
@@ -273,7 +275,7 @@ export default function HeroProduct({ product }) {
             className="text-xs font-semibold underline underline-offset-2"
             style={{ color: '#6c63ff' }}
           >
-            Order now
+            {t('buttons.buy')}
           </Link>
         </div>
       </motion.div>

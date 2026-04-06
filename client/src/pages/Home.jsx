@@ -11,6 +11,7 @@ import { productAPI } from '../services/api';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useSeo } from '../utils/useSeo';
+import { useTranslation } from '../i18n/useTranslation';
 
 import { SERVER_URL, API_BASE_URL } from '../lib/config';
 const resolveImg = (src) => {
@@ -21,42 +22,42 @@ const resolveImg = (src) => {
 
 // ── Static categories ─────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { icon: '📱', label: 'Electronics',  q: 'electronics' },
-  { icon: '👗', label: 'Fashion',      q: 'fashion' },
-  { icon: '🏠', label: 'Home & Garden',q: 'home' },
-  { icon: '⚽', label: 'Sports',       q: 'sports' },
-  { icon: '📚', label: 'Books',        q: 'books' },
-  { icon: '🧸', label: 'Toys',         q: 'toys' },
-  { icon: '💄', label: 'Beauty',       q: 'beauty' },
-  { icon: '🚗', label: 'Automotive',   q: 'automotive' },
-  { icon: '🍔', label: 'Food',         q: 'food' },
-  { icon: '🎮', label: 'Gaming',       q: 'gaming' },
-  { icon: '🌿', label: 'Health',       q: 'health' },
-  { icon: '🛠️', label: 'Tools',        q: 'tools' },
+  { icon: '📱', labelKey: 'categories.electronics', q: 'electronics' },
+  { icon: '👗', labelKey: 'categories.fashion', q: 'fashion' },
+  { icon: '🏠', labelKey: 'categories.homeGarden', q: 'home' },
+  { icon: '⚽', labelKey: 'categories.sports', q: 'sports' },
+  { icon: '📚', labelKey: 'categories.books', q: 'books' },
+  { icon: '🧸', labelKey: 'categories.toys', q: 'toys' },
+  { icon: '💄', labelKey: 'categories.beauty', q: 'beauty' },
+  { icon: '🚗', labelKey: 'categories.automotive', q: 'automotive' },
+  { icon: '🍔', labelKey: 'categories.food', q: 'food' },
+  { icon: '🎮', labelKey: 'categories.gaming', q: 'gaming' },
+  { icon: '🌿', labelKey: 'categories.health', q: 'health' },
+  { icon: '🛠️', labelKey: 'categories.tools', q: 'tools' },
 ];
 
 // ── Promo banners ─────────────────────────────────────────────────────────────
 const DEFAULT_BANNERS = [
   {
-    title: 'Mega Sale — Up to 70% Off',
-    sub: 'Biggest deals of the season. Limited time only.',
-    cta: 'Shop Now',
+    titleKey: 'marketing.banners.megaSale.title',
+    subKey: 'marketing.banners.megaSale.sub',
+    ctaKey: 'marketing.banners.megaSale.cta',
     href: '/search?sort=discount',
     bg: 'linear-gradient(135deg,#ff8c42 0%,#ff5f00 100%)',
     emoji: '🔥',
   },
   {
-    title: 'Free Shipping on Orders $30+',
-    sub: 'Shop from hundreds of verified sellers worldwide.',
-    cta: 'Browse All',
+    titleKey: 'marketing.banners.freeShipping.title',
+    subKey: 'marketing.banners.freeShipping.sub',
+    ctaKey: 'marketing.banners.freeShipping.cta',
     href: '/search',
     bg: 'linear-gradient(135deg,#6c63ff 0%,#4f46e5 100%)',
     emoji: '🚀',
   },
   {
-    title: 'New Arrivals Every Day',
-    sub: 'Fresh products added daily from top sellers.',
-    cta: 'See New',
+    titleKey: 'marketing.banners.newArrivals.title',
+    subKey: 'marketing.banners.newArrivals.sub',
+    ctaKey: 'marketing.banners.newArrivals.cta',
     href: '/search?sort=newest',
     bg: 'linear-gradient(135deg,#059669 0%,#047857 100%)',
     emoji: '✨',
@@ -89,6 +90,7 @@ const pad = (n) => String(n).padStart(2, '0');
 
 // ── Reusable section header ───────────────────────────────────────────────────
 function SectionHeader({ icon: Icon, title, subtitle, href, color = '#ff8c42' }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-end justify-between mb-5">
       <div className="flex items-center gap-3">
@@ -116,7 +118,7 @@ function SectionHeader({ icon: Icon, title, subtitle, href, color = '#ff8c42' })
       {href && (
         <Link to={href} className="flex items-center gap-1 text-xs font-semibold hover:underline transition"
           style={{ color }}>
-          See all <ChevronRight className="w-3.5 h-3.5" />
+          {t('common.seeAll')} <ChevronRight className="w-3.5 h-3.5" />
         </Link>
       )}
     </div>
@@ -125,6 +127,7 @@ function SectionHeader({ icon: Icon, title, subtitle, href, color = '#ff8c42' })
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function Home() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -204,7 +207,7 @@ export default function Home() {
       setFeaturedProducts(items.slice(0, 8));
       if (items.length > 0) setHeroProduct(items[0]);
     } catch (err) {
-      setFeaturedError('Could not load products. Please try again.');
+      setFeaturedError('messages.productsLoadError');
     } finally {
       if (wakeUpTimerRef.current) clearTimeout(wakeUpTimerRef.current);
       wakeUpTimerRef.current = null;
@@ -241,13 +244,13 @@ export default function Home() {
               className="text-3xl sm:text-4xl font-black mb-2"
               style={{ color: 'var(--text-primary)', letterSpacing: '-1px' }}
             >
-              Find anything you need
+              {t('home.findAnything')}
             </h1>
             <p
               className="text-sm"
               style={{ color: 'var(--text-muted)' }}
             >
-              Thousands of products from verified sellers
+              {t('home.thousandsFromVerified')}
             </p>
           </div>
 
@@ -260,7 +263,7 @@ export default function Home() {
                 <Search className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
                 <input
                   type="text"
-                  placeholder='Search products, brands, sellers…'
+                  placeholder={t('search.placeholder')}
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
                   className="flex-1 py-3.5 text-sm outline-none bg-transparent"
@@ -273,14 +276,14 @@ export default function Home() {
                 className="px-6 py-3 rounded-2xl text-white font-semibold text-sm"
                 style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)', boxShadow: '0 6px 20px rgba(255,140,66,0.35)' }}
               >
-                Search
+                {t('buttons.search')}
               </motion.button>
             </div>
           </form>
 
           {/* Quick category pills */}
           <div className="flex gap-2 flex-wrap justify-center mt-4">
-            {['Electronics','Fashion','Sports','Gaming','Beauty'].map(c => (
+            {['electronics', 'fashion', 'sports', 'gaming', 'beauty'].map((c) => (
               <Link key={c} to={`/search?q=${c.toLowerCase()}`}
                 className="px-3 py-1 rounded-full text-xs font-medium transition hover:shadow-md"
                 style={{
@@ -289,7 +292,7 @@ export default function Home() {
                   border: '1px solid transparent',
                 }}
               >
-                {c}
+                {t(`categories.${c}`)}
               </Link>
             ))}
           </div>
@@ -311,14 +314,14 @@ export default function Home() {
                 >
                   <div>
                     <p className="text-4xl mb-2">{b.emoji}</p>
-                    <h3 className="text-xl sm:text-2xl font-black text-white mb-1">{b.title}</h3>
-                    <p className="text-sm text-white/80 mb-4">{b.sub}</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-white mb-1">{b.titleKey ? t(b.titleKey) : b.title}</h3>
+                    <p className="text-sm text-white/80 mb-4">{b.subKey ? t(b.subKey) : b.sub}</p>
                     <Link to={b.href}>
                       <motion.button
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
                         className="px-5 py-2 rounded-xl font-bold text-sm"
                         style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '2px solid rgba(255,255,255,0.4)' }}>
-                        {b.cta} →
+                        {b.ctaKey ? t(b.ctaKey) : b.cta} →
                       </motion.button>
                     </Link>
                   </div>
@@ -338,9 +341,9 @@ export default function Home() {
 
         {/* ── Categories ── */}
         <section>
-          <SectionHeader icon={Tag} title="Browse Categories" href="/search" color="#6c63ff" />
+          <SectionHeader icon={Tag} title={t('home.browseCategories')} href="/search" color="#6c63ff" />
           <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-            {CATEGORIES.map(({ icon, label, q }) => (
+            {CATEGORIES.map(({ icon, labelKey, q }) => (
               <Link key={q} to={`/search?q=${q}`}>
                 <motion.div
                   whileHover={{ y: -4, boxShadow: '0 12px 28px rgba(0,0,0,0.12)' }}
@@ -348,7 +351,7 @@ export default function Home() {
                   style={{ background: 'white', boxShadow: '0 4px 14px rgba(0,0,0,0.06)', minWidth: '88px' }}
                 >
                   <span className="text-2xl">{icon}</span>
-                  <span className="text-xs font-semibold text-center whitespace-nowrap" style={{ color: '#374151' }}>{label}</span>
+                  <span className="text-xs font-semibold text-center whitespace-nowrap" style={{ color: '#374151' }}>{t(labelKey)}</span>
                 </motion.div>
               </Link>
             ))}
@@ -360,7 +363,7 @@ export default function Home() {
           <section>
             <div className="flex items-center gap-3 mb-3 px-1">
               <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(180deg,#ff8c42,#ff5f00)' }} />
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#9ca3af' }}>Browse Collection</span>
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#9ca3af' }}>{t('home.browseCollection')}</span>
             </div>
             <ProductCarousel
               products={featuredProducts}
@@ -380,14 +383,14 @@ export default function Home() {
               {isWakingUp ? (
                 <div className="text-center px-6">
                   <p className="text-sm" style={{ color: '#6B7280' }}>
-                    Server is starting up, please wait a moment...
+                    {t('messages.serverStarting')}
                   </p>
                   <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
-                    This only happens after periods of inactivity.
+                    {t('messages.afterInactivity')}
                   </p>
                 </div>
               ) : (
-                <p className="text-sm" style={{ color: '#9ca3af' }}>Loading products…</p>
+                <p className="text-sm" style={{ color: '#9ca3af' }}>{t('messages.loadingProducts')}</p>
               )}
             </div>
           ) : featuredError ? (
@@ -395,11 +398,11 @@ export default function Home() {
               className="flex flex-col items-center justify-center h-64 gap-4 rounded-3xl"
               style={{ background: 'rgba(255,255,255,0.7)', border: '1px dashed #e5e7eb' }}>
               <span className="text-4xl">⚡</span>
-              <p className="font-semibold text-sm text-center px-8" style={{ color: '#6b7280' }}>{featuredError}</p>
+              <p className="font-semibold text-sm text-center px-8" style={{ color: '#6b7280' }}>{t(featuredError || 'messages.errorGeneric')}</p>
               <motion.button whileTap={{ scale: 0.97 }} onClick={fetchFeatured}
                 className="px-5 py-2 rounded-xl text-white text-sm font-semibold"
                 style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)' }}>
-                Retry
+                {t('buttons.retry')}
               </motion.button>
             </motion.div>
           ) : (
@@ -415,12 +418,12 @@ export default function Home() {
                 <div className="w-1.5 h-7 rounded-full" style={{ background: '#ef4444' }} />
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4" style={{ color: '#ef4444' }} />
-                  <h2 className="text-lg font-black" style={{ color: '#1a1a1a' }}>Flash Sale</h2>
+                  <h2 className="text-lg font-black" style={{ color: '#1a1a1a' }}>{t('marketing.flashSale')}</h2>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" style={{ color: '#ef4444' }} />
-                <span className="text-xs font-semibold" style={{ color: '#6b7280' }}>Ends in:</span>
+                <span className="text-xs font-semibold" style={{ color: '#6b7280' }}>{t('marketing.endsIn')}</span>
                 {[pad(countdown.h), pad(countdown.m), pad(countdown.s)].map((v, i) => (
                   <span key={i} className="flex items-center gap-1">
                     <AnimatePresence mode="wait">
@@ -456,7 +459,7 @@ export default function Home() {
         {/* ── Deals & Discounts ── */}
         {(deals.length > 0 || allProducts.length > 4) && (
           <section>
-            <SectionHeader icon={TrendingUp} title="Deals & Discounts" subtitle="Best value products right now"
+            <SectionHeader icon={TrendingUp} title={t('marketing.dealsDiscounts')} subtitle={t('marketing.bestValueNow')}
               href="/search?sort=discount" color="#ef4444" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
               {(deals.length > 0 ? deals : allProducts.slice(4, 8)).map((p, i) => (
@@ -469,7 +472,7 @@ export default function Home() {
         {/* ── Top Rated ── */}
         {topRated.length > 0 && (
           <section>
-            <SectionHeader icon={Star} title="Top Rated Products" subtitle="Highest rated by our community"
+            <SectionHeader icon={Star} title={t('marketing.topRatedProducts')} subtitle={t('marketing.highestRatedCommunity')}
               href="/search?sort=rating" color="#f59e0b" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
               {topRated.map((p, i) => (
@@ -482,7 +485,7 @@ export default function Home() {
         {/* ── Recently Viewed ── */}
         {recentItems.length > 0 && (
           <section>
-            <SectionHeader icon={Eye} title="Recently Viewed" href="/search" color="#6c63ff" />
+            <SectionHeader icon={Eye} title={t('home.recentlyViewed')} href="/search" color="#6c63ff" />
             <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
               {recentItems.map((p, i) => (
                 <Link key={p._id || p.id || i} to={`/products/${p._id || p.id}`}>
@@ -510,11 +513,11 @@ export default function Home() {
         {/* ── Buyer Trust Strip ── */}
         <section>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
-            {[
-              { icon: '🔒', title: 'Buyer Protection', sub: 'Full refund if item not received' },
-              { icon: '🚚', title: 'Fast Delivery', sub: 'Ships within 24–48 hours' },
-              { icon: '✅', title: 'Verified Sellers', sub: 'All sellers are KYC-verified' },
-              { icon: '💳', title: 'Secure Payments', sub: 'Escrow-protected transactions' },
+              {[
+              { icon: '🔒', title: t('header.buyerProtection'), sub: t('marketing.trust.fullRefund') },
+              { icon: '🚚', title: t('auth.fastDelivery'), sub: t('marketing.trust.shipsFast') },
+              { icon: '✅', title: t('footer.badges.verifiedSellers'), sub: t('marketing.trust.kycVerified') },
+              { icon: '💳', title: t('footer.badges.securePayments'), sub: t('marketing.trust.escrowProtected') },
             ].map(({ icon, title, sub }) => (
               <motion.div key={title} whileHover={{ y: -3 }}
                 className="flex items-start gap-3 p-4 rounded-2xl"
@@ -538,12 +541,12 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-6 rounded-full" style={{ background: 'linear-gradient(180deg,#6c63ff,#a78bfa)' }} />
               <h2 className="text-lg font-bold" style={{ color: '#1a1a1a' }}>
-                {searchQuery ? `Results for "${searchQuery}"` : 'Explore All Products'}
+                {searchQuery ? `${t('search.resultsFor')} "${searchQuery}"` : t('home.exploreAllProducts')}
               </h2>
             </div>
             <Link to="/search" className="flex items-center gap-1.5 text-xs font-semibold hover:underline"
               style={{ color: '#6c63ff' }}>
-              Advanced Search <ArrowRight className="w-3.5 h-3.5" />
+              {t('search.advancedSearch')} <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
           <ProductGrid searchQuery={searchQuery} />

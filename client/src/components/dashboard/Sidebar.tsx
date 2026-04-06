@@ -17,6 +17,7 @@ import {
   LifeBuoy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/i18n/useTranslation';
 
 export interface MenuItem {
   id: string;
@@ -61,18 +62,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   tier,
   accentVariant = 'emerald',
 }) => {
+  const { t } = useTranslation();
   const defaultMenuItems: MenuItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'orders', label: 'Orders', icon: ShoppingCart },
-    { id: 'disputes', label: 'Disputes', icon: AlertTriangle },
-    { id: 'inbox', label: 'Inbox & RFQs', icon: MessageCircle },
-    { id: 'products', label: 'Products', icon: Box },
-    { id: 'collections', label: 'Collections', icon: FolderKanban },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'subscription', label: 'Subscription', icon: Crown },
-    { id: 'support', label: 'Support Center', icon: LifeBuoy },
-    { id: 'settings', label: 'Profile & Settings', icon: Settings },
+    { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { id: 'inventory', label: t('header.inventory'), icon: Package },
+    { id: 'orders', label: t('nav.orders'), icon: ShoppingCart },
+    { id: 'disputes', label: t('sidebar.disputes'), icon: AlertTriangle },
+    { id: 'inbox', label: t('sidebar.inboxRfqs'), icon: MessageCircle },
+    { id: 'products', label: t('header.products'), icon: Box },
+    { id: 'collections', label: t('sidebar.collections'), icon: FolderKanban },
+    { id: 'analytics', label: t('header.analytics'), icon: BarChart3 },
+    { id: 'subscription', label: t('sidebar.subscription'), icon: Crown },
+    { id: 'support', label: t('sidebar.supportCenter'), icon: LifeBuoy },
+    { id: 'settings', label: t('account.profileSettings'), icon: Settings },
   ];
 
   const itemsToRender = menuItems || defaultMenuItems;
@@ -106,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <button 
           onClick={() => setSidebarOpen(false)}
           type="button"
-          aria-label="Close menu"
+          aria-label={t('buttons.close')}
           className="lg:hidden min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
           <X className="w-6 h-6" />
@@ -174,8 +176,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="p-4 border-t bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800 transition-colors duration-300 text-xs text-gray-500 dark:text-gray-400">
         <p className="text-center">
-          Need help? Open{' '}
-          <span className="font-semibold text-orange-500">Support Center</span> in the menu.
+          {t('sidebar.needHelpOpen')}{' '}
+          <span className="font-semibold text-orange-500">{t('sidebar.supportCenter')}</span> {t('sidebar.inMenu')}.
         </p>
       </div>
     </div>

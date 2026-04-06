@@ -1,6 +1,7 @@
 import type { ReactNode, CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from '../i18n/useTranslation';
 // @ts-ignore Temporary: Navbar is implemented in JS
 import Navbar from './Navbar';
 
@@ -15,6 +16,7 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ tab, children, authBasePath, hideHeader }: AuthLayoutProps) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const isDark = theme === 'dark';
 
   const wrapperStyle: CSSProperties = hideHeader
@@ -34,11 +36,11 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
             className="text-[11px] font-semibold uppercase tracking-[0.16em] mb-1"
             style={{ color: 'var(--text-muted)' }}
           >
-            Signing in as
+            {t('auth.signingInAs')}
           </p>
           <div className="flex items-center gap-1 text-[12px]">
-            <span style={{ color: 'var(--text-secondary)' }}>Buyer</span>
-            <span style={{ color: 'rgba(148,163,184,0.8)' }}>/ Seller</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('auth.buyer')}</span>
+            <span style={{ color: 'rgba(148,163,184,0.8)' }}>/ {t('auth.seller')}</span>
           </div>
         </div>
         <div
@@ -54,7 +56,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
               color: tab === 'login' ? 'var(--text-primary)' : 'var(--text-muted)',
             }}
           >
-            Sign In
+            {t('buttons.login')}
           </Link>
           <Link
             to={authBasePath ? `${authBasePath}?tab=signup` : '/signup'}
@@ -65,13 +67,13 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
               color: tab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)',
             }}
           >
-            Register
+            {t('buttons.register')}
           </Link>
         </div>
       </div>
       {children}
       <p className="mt-6 text-[11px] text-center leading-relaxed" style={{ color: 'var(--text-faint)' }}>
-        By continuing you agree to our <span style={{ color: '#f97316' }}>Terms of Service</span> and <span style={{ color: '#f97316' }}>Privacy Policy</span>.
+        {t('auth.continueAgreement')} <span style={{ color: '#f97316' }}>{t('footer.links.bottom.termsOfService')}</span> {t('common.and')} <span style={{ color: '#f97316' }}>{t('footer.links.support.privacyPolicy')}</span>.
       </p>
     </>
   );
@@ -161,7 +163,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                       className="text-[13px]"
                       style={{ color: 'rgba(255,255,255,0.6)' }}
                     >
-                      Buy &amp; Sell Anything
+                      {t('footer.brandTagline')}
                     </p>
                   </div>
                 </div>
@@ -169,7 +171,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                 {/* Hero text */}
                 <div className="space-y-4 mt-6 max-w-md">
                   <h1 className="text-[32px] sm:text-[38px] lg:text-[42px] font-black leading-tight text-white">
-                    Smart Shopping
+                    {t('auth.smartShopping')}
                     <br />
                     <span
                       style={{
@@ -178,23 +180,22 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                         WebkitTextFillColor: 'transparent',
                       }}
                     >
-                      Trusted Sellers.
+                      {t('auth.trustedSellers')}
                     </span>
                   </h1>
                   <p
                     className="text-sm sm:text-[15px] max-w-[340px]"
                     style={{ color: 'rgba(255,255,255,0.6)' }}
                   >
-                    Join 50,000+ buyers and sellers on Rwanda&apos;s premier escrow-protected
-                    marketplace.
+                    {t('auth.heroSubtitle')}
                   </p>
 
                   {/* Trust badges */}
                   <div className="flex flex-wrap gap-2 pt-1">
                     {[
-                      { icon: '🔒', label: 'Escrow Protected' },
-                      { icon: '✓', label: 'Verified Sellers' },
-                      { icon: '⚡', label: 'Fast Delivery' },
+                      { icon: '🔒', label: t('footer.badges.escrowProtected') },
+                      { icon: '✓', label: t('footer.badges.verifiedSellers') },
+                      { icon: '⚡', label: t('auth.fastDelivery') },
                     ].map((b) => (
                       <div
                         key={b.label}
@@ -228,7 +229,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                       className="text-[11px] font-semibold mb-3 uppercase tracking-[0.16em]"
                       style={{ color: 'rgba(248,250,252,0.7)' }}
                     >
-                      LIVE MARKETPLACE SNAPSHOT
+                      {t('auth.liveMarketplaceSnapshot')}
                     </p>
                     <div className="space-y-2.5">
                       {[
@@ -319,7 +320,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                       className="text-[12px]"
                       style={{ color: 'rgba(255,255,255,0.7)' }}
                     >
-                      Join <span className="font-semibold">2,847</span> new members this month
+                      {t('auth.joinNewMembersPrefix')} <span className="font-semibold">2,847</span> {t('auth.joinNewMembersSuffix')}
                     </p>
                   </div>
                 </div>
@@ -327,9 +328,9 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                 {/* Stats row */}
                 <div className="flex items-center justify-between gap-4 pt-2">
                   {[
-                    { value: '50K+', label: 'Active Users' },
-                    { value: '10K+', label: 'Products' },
-                    { value: '4.9★', label: 'Rating' },
+                    { value: '50K+', label: t('auth.activeUsers') },
+                    { value: '10K+', label: t('header.products') },
+                    { value: '4.9★', label: t('product.rating') },
                   ].map((s, idx) => (
                     <div key={s.label} className="flex items-center gap-4 flex-1">
                       {idx !== 0 && <div className="auth-stats-divider" />}
@@ -360,7 +361,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                     className="text-[12px]"
                     style={{ color: 'rgba(255,255,255,0.65)' }}
                   >
-                    <span className="font-semibold">234</span> people signed in today
+                    <span className="font-semibold">234</span> {t('auth.peopleSignedInToday')}
                   </p>
                 </div>
               </div>
@@ -391,7 +392,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                     <span className="w-2 h-2 rounded-full bg-rose-400" />
                   </div>
                   <p className="text-[10px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-faint)' }}>
-                    Reaglex Secure
+                    {t('auth.reaglexSecure')}
                   </p>
                 </div>
                 <div className="relative z-10 px-1.5 sm:px-2">
@@ -402,7 +403,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                       className="text-[11px] font-semibold uppercase tracking-[0.16em] mb-1"
                       style={{ color: 'var(--text-muted)' }}
                     >
-                      Signing in as
+                      {t('auth.signingInAs')}
                     </p>
                     <div className="flex items-center gap-1 text-[12px]">
                       <span
@@ -410,14 +411,14 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                           color: 'var(--text-secondary)',
                         }}
                       >
-                        Buyer
+                        {t('auth.buyer')}
                       </span>
                       <span
                         style={{
                           color: 'rgba(148,163,184,0.8)',
                         }}
                       >
-                        / Seller
+                        / {t('auth.seller')}
                       </span>
                     </div>
                   </div>
@@ -451,7 +452,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                             : 'var(--text-muted)',
                       }}
                     >
-                      Sign In
+                      {t('buttons.login')}
                     </Link>
                     <Link
                       to={authBasePath ? `${authBasePath}?tab=signup` : '/signup'}
@@ -475,7 +476,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                             : 'var(--text-muted)',
                       }}
                     >
-                      Register
+                      {t('buttons.register')}
                     </Link>
                   </div>
                 </div>
@@ -488,9 +489,9 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                   className="mt-6 text-[11px] text-center leading-relaxed"
                   style={{ color: 'var(--text-faint)' }}
                 >
-                  By continuing you agree to our{' '}
-                  <span style={{ color: '#f97316' }}>Terms of Service</span> and{' '}
-                  <span style={{ color: '#f97316' }}>Privacy Policy</span>.
+                  {t('auth.continueAgreement')}{' '}
+                  <span style={{ color: '#f97316' }}>{t('footer.links.bottom.termsOfService')}</span> {t('common.and')}{' '}
+                  <span style={{ color: '#f97316' }}>{t('footer.links.support.privacyPolicy')}</span>.
                 </p>
                 </div>
               </div>

@@ -11,30 +11,39 @@ import ProductListItem from '../components/ProductListItem';
 import { productAPI } from '../services/api';
 import { getSavedViewMode, setSavedViewMode } from '../utils/filterProducts';
 import { useSeo } from '../utils/useSeo';
+import { useTranslation } from '../i18n/useTranslation';
 
 const PRICE_RANGES = [
-  { label: 'Under $25',   min: 0,   max: 25 },
-  { label: '$25 – $50',   min: 25,  max: 50 },
-  { label: '$50 – $100',  min: 50,  max: 100 },
-  { label: '$100 – $250', min: 100, max: 250 },
-  { label: 'Over $250',   min: 250, max: 999999 },
+  { labelKey: 'filters.price.under25', min: 0, max: 25 },
+  { labelKey: 'filters.price.25to50', min: 25, max: 50 },
+  { labelKey: 'filters.price.50to100', min: 50, max: 100 },
+  { labelKey: 'filters.price.100to250', min: 100, max: 250 },
+  { labelKey: 'filters.price.over250', min: 250, max: 999999 },
 ];
 
 const RATINGS = [4, 3, 2];
 
 const ALL_CATEGORIES = [
-  'Electronics', 'Clothing', 'Accessories', 'Home & Garden',
-  'Sports', 'Beauty', 'Books', 'Toys', 'Automotive', 'Food & Grocery',
+  { value: 'Electronics', key: 'categories.electronics' },
+  { value: 'Clothing', key: 'categories.clothing' },
+  { value: 'Accessories', key: 'categories.accessories' },
+  { value: 'Home & Garden', key: 'categories.homeGarden' },
+  { value: 'Sports', key: 'categories.sports' },
+  { value: 'Beauty', key: 'categories.beauty' },
+  { value: 'Books', key: 'categories.books' },
+  { value: 'Toys', key: 'categories.toys' },
+  { value: 'Automotive', key: 'categories.automotive' },
+  { value: 'Food & Grocery', key: 'categories.foodGrocery' },
 ];
 
 const SORT_OPTIONS = [
-  { value: 'newest',       label: 'Newest' },
-  { value: 'discount',     label: 'Best Deals' },
-  { value: 'price_asc',    label: 'Price: Low → High' },
-  { value: 'price_desc',   label: 'Price: High → Low' },
-  { value: 'rating',       label: 'Top Rated' },
-  { value: 'popular',      label: 'Most Popular' },
-  { value: 'free_ship',    label: 'Free Shipping First' },
+  { value: 'newest', labelKey: 'search.sortNewest' },
+  { value: 'discount', labelKey: 'search.sortBestDeals' },
+  { value: 'price_asc', labelKey: 'search.sortPriceAsc' },
+  { value: 'price_desc', labelKey: 'search.sortPriceDesc' },
+  { value: 'rating', labelKey: 'search.sortTopRated' },
+  { value: 'popular', labelKey: 'search.sortMostPopular' },
+  { value: 'free_ship', labelKey: 'search.sortFreeShippingFirst' },
 ];
 
 // ── Shared card style ─────────────────────────────────────────────────────────
@@ -63,6 +72,7 @@ function SidebarContent({
   category, setCategory, categories, setCategories,
   freeShipping, setFreeShipping,
 }) {
+  const { t } = useTranslation();
   const hasFilters = priceRange || minRating || (category && category !== 'All Categories') || categories?.length > 0 || freeShipping;
   const [shake, setShake] = useState(false);
 
@@ -87,7 +97,7 @@ function SidebarContent({
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)]">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 filter-icon-pulse" style={{ color: '#f97316' }} />
-          <span className="font-bold text-sm text-[var(--text-primary)]">Filters</span>
+          <span className="font-bold text-sm text-[var(--text-primary)]">{t('search.filters')}</span>
         </div>
         <AnimatePresence>
           {hasFilters && (
@@ -98,7 +108,7 @@ function SidebarContent({
               onClick={handleClearAll}
               className="text-xs font-semibold text-red-500"
             >
-              Clear all
+              {t('filters.clearAll')}
             </motion.button>
           )}
         </AnimatePresence>
@@ -107,14 +117,15 @@ function SidebarContent({
       <div className="p-5 space-y-6">
         {/* Price Range pills */}
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider mb-3 text-[var(--text-faint)]">Price Range</p>
+          <p className="text-xs font-bold uppercase tracking-wider mb-3 text-[var(--text-faint)]">{t('filters.priceRange')}</p>
           <div className="space-y-1.5">
-            {PRICE_RANGES.map(r => {
-              const active = priceRange?.label === r.label;
+            {PRICE_RANGES.map((r) => {
+              const label = t(r.labelKey);
+              const active = priceRange?.label === label;
               return (
                 <motion.button
-                  key={r.label}
-                  onClick={() => setPriceRange(active ? null : r)}
+                  key={r.labelKey}
+                  onClick={() => setPriceRange(active ? null : { ...r, label })}
                   className={`relative w-full text-left px-3 py-2 rounded-full text-xs font-medium overflow-hidden transition-colors ${
                     active
                       ? 'bg-[#3b82f6] text-white shadow-sm'
@@ -123,7 +134,7 @@ function SidebarContent({
                   whileTap={{ scale: 0.98 }}
                 >
                   <span className="relative z-10 flex items-center justify-between">
-                    {r.label}
+                    {label}
                     {active && (
                       <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }}>✓</motion.span>
                     )}
@@ -137,7 +148,7 @@ function SidebarContent({
             <input
               type="number"
               min={0}
-              placeholder="Min $"
+              placeholder={t('filters.minPrice')}
               value={customMinPrice}
               onChange={(e) => setCustomMinPrice(e.target.value)}
               className="w-20 px-2 py-1.5 rounded-lg border border-[var(--divider-strong)] bg-[var(--card-bg)] dark:bg-gray-700 text-[var(--text-primary)] text-xs"
@@ -145,7 +156,7 @@ function SidebarContent({
             <input
               type="number"
               min={0}
-              placeholder="Max $"
+              placeholder={t('filters.maxPrice')}
               value={customMaxPrice}
               onChange={(e) => setCustomMaxPrice(e.target.value)}
               className="w-20 px-2 py-1.5 rounded-lg border border-[var(--divider-strong)] bg-[var(--card-bg)] dark:bg-gray-700 text-[var(--text-primary)] text-xs"
@@ -156,7 +167,7 @@ function SidebarContent({
               className="px-2 py-1.5 rounded-lg text-xs font-semibold text-white"
               style={{ background: '#f97316' }}
             >
-              Apply
+              {t('buttons.apply')}
             </button>
           </div>
         </div>
@@ -166,22 +177,22 @@ function SidebarContent({
         {/* Category checkboxes */}
         <div>
           <p className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between text-[var(--text-faint)]">
-            Category
+            {t('search.category')}
             {categories?.length > 0 && (
-              <button type="button" onClick={() => setCategories([])} className="text-[10px] text-orange-500">Clear</button>
+              <button type="button" onClick={() => setCategories([])} className="text-[10px] text-orange-500">{t('buttons.clear')}</button>
             )}
           </p>
           <div className="space-y-1.5">
-            {ALL_CATEGORIES.map(cat => (
-              <label key={cat} className="flex items-center gap-2 cursor-pointer rounded-md px-1 py-1 hover:bg-[var(--bg-tertiary)] transition-colors">
+            {ALL_CATEGORIES.map((cat) => (
+              <label key={cat.value} className="flex items-center gap-2 cursor-pointer rounded-md px-1 py-1 hover:bg-[var(--bg-tertiary)] transition-colors">
                 <input
                   type="checkbox"
-                  checked={categories?.includes(cat) || false}
-                  onChange={() => toggleCategory(cat)}
+                  checked={categories?.includes(cat.value) || false}
+                  onChange={() => toggleCategory(cat.value)}
                   className="rounded border-gray-500/60"
                   style={{ accentColor: '#3b82f6' }}
                 />
-                <span className="text-xs text-[var(--text-secondary)] dark:text-gray-300">{cat}</span>
+                <span className="text-xs text-[var(--text-secondary)] dark:text-gray-300">{t(cat.key)}</span>
               </label>
             ))}
           </div>
@@ -191,7 +202,7 @@ function SidebarContent({
 
         {/* Free Shipping */}
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider mb-2 text-[var(--text-faint)]">Free Shipping</p>
+          <p className="text-xs font-bold uppercase tracking-wider mb-2 text-[var(--text-faint)]">{t('filters.freeShipping')}</p>
           <label className="flex items-center gap-2 cursor-pointer rounded-md px-1 py-1 hover:bg-[var(--bg-tertiary)] transition-colors">
             <input
               type="checkbox"
@@ -200,7 +211,7 @@ function SidebarContent({
               className="rounded border-gray-500/60"
               style={{ accentColor: '#3b82f6' }}
             />
-            <span className="text-xs text-[var(--text-secondary)] dark:text-gray-300">Free Shipping Only</span>
+            <span className="text-xs text-[var(--text-secondary)] dark:text-gray-300">{t('filters.freeShippingOnly')}</span>
           </label>
         </div>
 
@@ -208,7 +219,7 @@ function SidebarContent({
 
         {/* Min Rating */}
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider mb-3 text-[var(--text-faint)]">Minimum Rating</p>
+          <p className="text-xs font-bold uppercase tracking-wider mb-3 text-[var(--text-faint)]">{t('filters.minimumRating')}</p>
           <div className="space-y-1.5">
             {RATINGS.map(r => {
               const active = minRating === r;
@@ -311,6 +322,7 @@ function buildSearchParams({ q, category, minPrice, maxPrice, minRating, sort, f
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function SearchResults() {
+  const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const q = params.get('q') || params.get('search') || '';
@@ -462,7 +474,7 @@ export default function SearchResults() {
       setTotal(data.pagination?.total ?? items.length);
       setTotalPages(data.pagination?.totalPages ?? 1);
     } catch {
-      setError('Could not load results. Please try again.');
+      setError('messages.searchLoadError');
     } finally {
       setLoading(false);
     }
@@ -473,16 +485,16 @@ export default function SearchResults() {
 
   // Page title
   useEffect(() => {
-    document.title = q ? `Results for: '${q}' — Reaglex` : 'Products — Reaglex';
+    document.title = q ? `${t('search.resultsFor')} '${q}' — Reaglex` : `${t('home.exploreAllProducts')} — Reaglex`;
     return () => { document.title = 'Reaglex'; };
-  }, [q]);
+  }, [q, t]);
 
   // Keep search input in sync with URL q when navigating to this page with query
   useEffect(() => {
     setSearchInput(q);
   }, [q]);
 
-  const sortLabel = SORT_OPTIONS.find(o => o.value === activeSort)?.label || 'Sort';
+  const sortLabel = t(SORT_OPTIONS.find((o) => o.value === activeSort)?.labelKey || 'buttons.sort');
 
   const handlePageSearchSubmit = (e) => {
     e.preventDefault();
@@ -605,15 +617,15 @@ export default function SearchResults() {
                     type="text"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Search products..."
+                    placeholder={t('search.placeholder')}
                     className="flex-1 py-2 px-1 text-sm outline-none bg-transparent min-w-0 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500"
                   />
-                  <button type="submit" className="px-3 py-2 text-xs font-semibold text-orange-500">Search</button>
+                  <button type="submit" className="px-3 py-2 text-xs font-semibold text-orange-500">{t('buttons.search')}</button>
                 </form>
                 {/* Title + count */}
                 <div>
                   <p className="font-bold text-base text-[var(--text-primary)]">
-                    {q ? `Results for "${q}"` : 'All Products'}
+                    {q ? `${t('search.resultsFor')} "${q}"` : t('home.exploreAllProducts')}
                   </p>
                   {!loading && (
                     <motion.p
@@ -623,7 +635,7 @@ export default function SearchResults() {
                       transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
                       className="text-xs mt-0.5 text-[var(--text-faint)]"
                     >
-                      {total} product{total !== 1 ? 's' : ''} found{q ? ` for '${q}'` : ''}
+                      {total} {t('product.itemsFound')}{q ? ` ${t('search.resultsFor')} '${q}'` : ''}
                     </motion.p>
                   )}
                 </div>
@@ -637,7 +649,7 @@ export default function SearchResults() {
                     className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition text-[var(--text-secondary)] border-[var(--divider-strong)] ${hasFilters ? 'bg-[#0b1120] text-[#bfdbfe] border-[#3b82f6]' : 'bg-[var(--card-bg)]'}`}
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
-                    Filters{hasFilters ? ' •' : ''}
+                    {t('search.filters')}{hasFilters ? ' •' : ''}
                   </button>
 
                   {/* Sort dropdown */}
@@ -665,7 +677,7 @@ export default function SearchResults() {
                               onClick={() => { setActiveSort(o.value); setSortOpen(false); }}
                               className={`flex items-center justify-between w-full px-4 py-2.5 text-left text-xs transition hover:bg-orange-50 dark:hover:bg-orange-900/20 ${activeSort === o.value ? 'text-orange-500 font-semibold' : 'text-[var(--text-secondary)] dark:text-gray-300'}`}
                             >
-                              {o.label}
+                              {t(o.labelKey)}
                               {activeSort === o.value && <span className="text-orange-500">✓</span>}
                             </button>
                           ))}
@@ -681,7 +693,7 @@ export default function SearchResults() {
                         key={m}
                         onClick={() => { setViewMode(m); setSavedViewMode(m); }}
                         className={`p-2 transition ${viewMode === m ? 'bg-orange-500' : 'bg-[var(--card-bg)] dark:bg-gray-700 hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-600'}`}
-                        title={m === 'grid' ? 'Grid view' : 'List view'}
+                        title={m === 'grid' ? t('search.gridView') : t('search.listView')}
                       >
                         <Icon className={`w-4 h-4 ${viewMode === m ? 'text-white' : 'text-[var(--text-muted)] dark:text-gray-300'}`} />
                       </button>
@@ -708,13 +720,13 @@ export default function SearchResults() {
                         style={{ background: '#020617', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.55)', boxShadow: '0 0 0 1px rgba(15,23,42,0.9)' }}
                       >
                         {tag.label}
-                        <button type="button" onClick={tag.remove} className="p-0.5 rounded-full hover:bg-orange-200 transition" aria-label="Remove filter">
+                        <button type="button" onClick={tag.remove} className="p-0.5 rounded-full hover:bg-orange-200 transition" aria-label={t('buttons.remove')}>
                           <X className="w-3 h-3" />
                         </button>
                       </motion.span>
                     ))}
                     <button type="button" onClick={clearAllFilters} className="text-xs font-semibold" style={{ color: '#ef4444' }}>
-                      Clear All
+                      {t('filters.clearAll')}
                     </button>
                   </motion.div>
                 )}
@@ -762,13 +774,13 @@ export default function SearchResults() {
               {/* Error */}
               {error && !loading && (
                 <div className="text-center py-20 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)]" style={CARD}>
-                  <p className="text-sm mb-4 text-[var(--text-faint)]">{error}</p>
+                  <p className="text-sm mb-4 text-[var(--text-faint)]">{t(error || 'messages.errorGeneric')}</p>
                   <button
                     onClick={loadProducts}
                     className="px-5 py-2 rounded-full text-white text-xs font-semibold"
                     style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)' }}
                   >
-                    Retry
+                    {t('buttons.retry')}
                   </button>
                 </div>
               )}
@@ -790,10 +802,10 @@ export default function SearchResults() {
                     🔍
                   </motion.div>
                   <h3 className="font-bold text-lg mb-2 text-[var(--text-primary)]">
-                    No products found
+                    {t('messages.noResults')}
                   </h3>
                   <p className="text-sm mb-6 text-[var(--text-muted)]">
-                    No products found. Try adjusting your filters.
+                    {t('filters.tryAdjusting')}
                   </p>
                   {hasFilters && (
                     <motion.button
@@ -804,7 +816,7 @@ export default function SearchResults() {
                       className="px-6 py-3 rounded-xl text-white text-sm font-semibold"
                       style={{ background: '#f97316' }}
                     >
-                      Clear Filters
+                      {t('search.clearFilters')}
                     </motion.button>
                   )}
                 </motion.div>
@@ -847,7 +859,7 @@ export default function SearchResults() {
                         onClick={() => setPage(p => p - 1)}
                         className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40 border border-[var(--divider-strong)] bg-[var(--card-bg)] text-[var(--text-secondary)] dark:text-gray-300 hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-700 transition"
                       >
-                        ← Prev
+                        ← {t('buttons.back')}
                       </button>
                       {[...Array(Math.min(totalPages, 7))].map((_, i) => (
                         <button
@@ -868,7 +880,7 @@ export default function SearchResults() {
                         onClick={() => setPage(p => p + 1)}
                         className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40 border border-[var(--divider-strong)] bg-[var(--card-bg)] text-[var(--text-secondary)] dark:text-gray-300 hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-700 transition"
                       >
-                        Next →
+                        {t('buttons.next')} →
                       </button>
                     </div>
                   )}
@@ -886,7 +898,7 @@ export default function SearchResults() {
                     onClick={() => productListRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
                     className="fixed bottom-8 right-8 z-20 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg"
                     style={{ background: '#f97316', boxShadow: '0 4px 20px rgba(249,115,22,0.4)' }}
-                    aria-label="Back to top"
+                    aria-label={t('search.backToTop')}
                   >
                     <ChevronUp className="w-6 h-6" />
                   </motion.button>

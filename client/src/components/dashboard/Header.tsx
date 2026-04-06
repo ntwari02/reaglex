@@ -372,17 +372,17 @@ const Header: React.FC<HeaderProps> = ({
                         {user?.seller_status === 'approved' ? (
                           <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
                             <Store className="h-3 w-3" />
-                            Verified Seller
+                            {t('header.verifiedSeller')}
                           </span>
                         ) : user?.seller_status === 'rejected' ? (
                           <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
                             <Store className="h-3 w-3" />
-                            Seller (Verification Rejected)
+                            {t('header.sellerVerificationRejected')}
                           </span>
                         ) : (
                           <span className="text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
                             <Store className="h-3 w-3" />
-                            Seller (Pending Government & Admin Approval)
+                            {t('header.sellerPendingApproval')}
                           </span>
                         )}
                       </div>
@@ -399,7 +399,7 @@ const Header: React.FC<HeaderProps> = ({
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
                         >
                           <BarChart3 className="h-4 w-4" />
-                          Dashboard
+                          {t('nav.dashboard')}
                         </button>
                         <button
                           onClick={() => {
@@ -409,7 +409,7 @@ const Header: React.FC<HeaderProps> = ({
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
                         >
                           <Package className="h-4 w-4" />
-                          Products
+                          {t('header.products')}
                         </button>
                         <button
                           onClick={() => {
@@ -419,7 +419,7 @@ const Header: React.FC<HeaderProps> = ({
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
                         >
                           <Layers className="h-4 w-4" />
-                          Inventory
+                          {t('header.inventory')}
                         </button>
                         <button
                           onClick={() => {
@@ -429,7 +429,7 @@ const Header: React.FC<HeaderProps> = ({
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
                         >
                           <ShoppingBag className="h-4 w-4" />
-                          Orders
+                          {t('nav.orders')}
                         </button>
                         <button
                           onClick={() => {
@@ -439,7 +439,7 @@ const Header: React.FC<HeaderProps> = ({
                           className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
                         >
                           <BarChart3 className="h-4 w-4" />
-                          Analytics
+                          {t('header.analytics')}
                         </button>
                         <div className="my-1.5 border-t border-gray-200 dark:border-gray-700" />
                       </>
@@ -449,7 +449,7 @@ const Header: React.FC<HeaderProps> = ({
                       className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
                     >
                       <Settings className="h-4 w-4" />
-                      Profile & Settings
+                      {t('account.profileSettings')}
                     </button>
                     <div className="my-1.5 border-t border-gray-200 dark:border-gray-700" />
                     <button
@@ -457,7 +457,7 @@ const Header: React.FC<HeaderProps> = ({
                       className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm text-red-600 dark:text-red-400 transition-colors font-medium"
                     >
                       <LogOut className="h-4 w-4" />
-                      Logout
+                      {t('buttons.logout')}
                     </button>
                   </div>
                 </motion.div>
@@ -472,10 +472,10 @@ const Header: React.FC<HeaderProps> = ({
         <DialogContent className="max-w-sm bg-white dark:bg-gray-900 border border-red-200 dark:border-red-700">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-red-600 dark:text-red-400">
-              Logout
+              {t('dialog.logoutTitle')}
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
-              Are you sure you want to log out from your seller account? Any unsaved changes in your dashboard pages will be lost.
+              {t('dialog.logoutConfirmSeller')}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-4">
@@ -485,7 +485,7 @@ const Header: React.FC<HeaderProps> = ({
               className="border-gray-300 dark:border-gray-700"
               onClick={() => setShowLogoutConfirm(false)}
             >
-              Cancel
+              {t('buttons.cancel')}
             </Button>
             <Button
               type="button"
@@ -495,7 +495,7 @@ const Header: React.FC<HeaderProps> = ({
                 setShowLogoutConfirm(false);
               }}
             >
-              Logout
+              {t('buttons.logout')}
             </Button>
           </div>
         </DialogContent>
