@@ -33,8 +33,12 @@ export type EscrowStatus =
   | 'AUTO_RELEASED';
 
 export interface IOrderPayment {
+  provider?: 'flutterwave' | 'momo';
   flutterwaveTransactionId?: string;
   flutterwaveReference?: string;
+  momoReferenceId?: string;
+  momoFinancialTransactionId?: string;
+  momoStatus?: string;
   amount?: number;
   currency?: string;
   method?: string; // card, mobilemoney, banktransfer
@@ -151,8 +155,12 @@ const orderSchema = new Schema<IOrder>(
     trackingNumber: { type: String },
     timeline: { type: [orderTimelineSchema], default: [] },
     payment: {
+      provider: { type: String, enum: ['flutterwave', 'momo'] },
       flutterwaveTransactionId: { type: String },
       flutterwaveReference: { type: String },
+      momoReferenceId: { type: String, index: true },
+      momoFinancialTransactionId: { type: String },
+      momoStatus: { type: String },
       amount: { type: Number },
       currency: { type: String },
       method: { type: String },

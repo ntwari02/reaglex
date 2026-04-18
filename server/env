@@ -34,3 +34,17 @@ RESEND_FROM_EMAIL=noreply@reaglex.com
 
 SMTP_USER=twizerimanajeanclaude35@gmail.com
 SMTP_PASS=xdxvgmtxgkqgxklh
+
+## MTN MoMo Collections (SANDBOX)
+
+MOMO_BASE_URL=https://sandbox.momodeveloper.mtn.com
+
+MOMO_SUBSCRIPTION_KEY=3239e053b5d458f9232e3a17fe03
+
+MOMO_API_USER=e12aaa49-ff37-4695-975d-d476dc5b94a4
+
+MOMO_API_KEY=34154413fc5f452dbc15cc35ff6758a1
+
+MOMO_TARGET_ENVIRONMENT=sandbox
+
+MOMO_CALLBACK_URL=https://reaglex.onrender.com/api/payments/momo/callback

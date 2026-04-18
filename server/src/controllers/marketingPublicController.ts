@@ -6,8 +6,11 @@ export async function getPublicReferralProgramStatus(_req: Request, res: Respons
   try {
     const s = await ReferralSettings.findOne().select('programEnabled').lean();
     const enabled = !s || (s as { programEnabled?: boolean }).programEnabled !== false;
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
     res.json({ referralProgramEnabled: enabled });
   } catch {
+    res.set('Cache-Control', 'no-store, private');
     res.json({ referralProgramEnabled: true });
   }
 }

@@ -45,6 +45,9 @@ export interface GeminiChatResult {
     orderId?: string;
     amount?: number;
     currency?: string;
+    provider?: 'flutterwave' | 'momo';
+    referenceId?: string;
+    message?: string;
   };
   modelUsed?: string;
   fallbackOccurred?: boolean;
@@ -393,24 +396,51 @@ async function executeTool(
       }
 
       try {
-        const init = await initializePayment(order._id.toString(), {
-          _id: ctx.userId,
-          email: ctx.email || '',
-          phone: ctx.phone,
-          fullName: ctx.fullName || ctx.email || 'Customer',
-        });
+        const pm = args.paymentMethod === 'momo' ? 'momo' : 'flutterwave';
+        const init = await initializePayment(
+          order._id.toString(),
+          {
+            _id: ctx.userId,
+            email: ctx.email || '',
+            phone: ctx.phone,
+            fullName: ctx.fullName || ctx.email || 'Customer',
+          },
+          {
+            paymentMethod: pm,
+            momoPhone: args.momoPhone != null ? String(args.momoPhone) : undefined,
+          }
+        );
+        if (init.provider === 'flutterwave') {
+          extras.payment = {
+            paymentLink: init.paymentLink,
+            orderId: order._id.toString(),
+            amount: init.amount,
+            currency: order.paymentMethod === 'RWF' ? 'RWF' : 'USD',
+          };
+          return {
+            ok: true,
+            paymentLink: init.paymentLink,
+            orderId: order._id.toString(),
+            amount: init.amount,
+            txRef: init.txRef,
+          };
+        }
         extras.payment = {
-          paymentLink: init.paymentLink,
-          orderId: order._id.toString(),
+          provider: 'momo',
+          referenceId: init.referenceId,
+          orderId: init.orderId,
           amount: init.amount,
-          currency: order.paymentMethod === 'RWF' ? 'RWF' : 'USD',
+          currency: init.currency,
+          message: init.message,
         };
         return {
           ok: true,
-          paymentLink: init.paymentLink,
-          orderId: order._id.toString(),
+          orderId: init.orderId,
+          momoReferenceId: init.referenceId,
+          message: init.message,
           amount: init.amount,
-          txRef: init.txRef,
+          currency: init.currency,
+          paymentProvider: 'momo',
         };
       } catch (e: any) {
         return { ok: false, error: e?.message || 'Payment initialization failed.' };

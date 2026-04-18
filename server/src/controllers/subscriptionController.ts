@@ -12,12 +12,8 @@ import {
   calculateRenewalDate,
   calculateProratedAmount,
 } from '../utils/subscriptionTransformers';
-import {
-  simulatePayment,
-  simulateTokenizePaymentMethod,
-  validateCardNumber,
-  validateExpiryDate,
-} from '../services/paymentSimulator';
+import { simulateTokenizePaymentMethod, validateCardNumber, validateExpiryDate } from '../services/paymentSimulator';
+import { chargeDefaultPaymentMethodForSubscription } from '../services/subscriptionBilling.service';
 import mongoose from 'mongoose';
 
 /**
@@ -1168,19 +1164,20 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
     // Simulate payment (only if plan costs money)
     let paymentResult = null;
     if (newPlan.price > 0 && defaultPaymentMethod) {
-      paymentResult = await simulatePayment({
-        amount: paymentAmount,
-        currency: 'USD',
-        paymentMethodId: defaultPaymentMethod.payment_method_id,
-        description: isNewSubscription 
+      paymentResult = await chargeDefaultPaymentMethodForSubscription(
+        defaultPaymentMethod,
+        paymentAmount,
+        newPlan.currency || 'USD',
+        isNewSubscription
           ? `New subscription: ${newPlan.tier_name}`
           : `Subscription upgrade from ${subscription.current_plan.tier_name} to ${newPlan.tier_name}`,
-        metadata: {
+        {
           old_plan_id: oldPlanId,
           new_plan_id: newPlan.plan_id,
           prorated: !isNewSubscription,
-        },
-      });
+          subscriptionUserId: req.user!.id,
+        }
+      );
 
       if (!paymentResult.success) {
         return res.status(402).json({

@@ -56,6 +56,7 @@ import aiAgentRoutes from './src/routes/aiAgentRoutes';
 import buyerNotificationRoutes from './src/routes/buyerNotificationRoutes';
 import { sanitizeInput } from './src/middleware/sanitizeInput';
 import './src/jobs/escrowJobs';
+import './src/jobs/subscriptionRenewalJob';
 import { websocketService } from './src/services/websocketService';
 import { getAllowedCorsOrigins } from './src/config/publicEnv';
 import keepAlive from './keepAlive';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Settings, CheckCircle, XCircle, AlertTriangle, Key, Webhook, TestTube, Edit } from 'lucide-react';
 import { adminFinanceAPI } from '@/lib/api';
 
@@ -6,6 +6,7 @@ type GatewayStatus = 'online' | 'offline' | 'issues';
 
 interface Gateway {
   id: string;
+  key?: string;
   name: string;
   type: string;
   status: GatewayStatus;
@@ -24,29 +25,82 @@ export default function PaymentGateways() {
   const [configApiKey, setConfigApiKey] = useState('');
   const [configWebhookUrl, setConfigWebhookUrl] = useState('');
 
-  useEffect(() => {
-    adminFinanceAPI.getGateways().then((res) => {
-      setGateways(res.gateways.map((g: any) => ({
-        id: g.id,
-        name: g.name,
-        type: g.type,
-        status: g.status,
-        isEnabled: g.isEnabled,
-        apiKey: g.apiKey,
-        webhookUrl: g.webhookUrl,
-        lastChecked: g.lastChecked ? new Date(g.lastChecked).toLocaleString() : undefined,
-        issues: g.issues || [],
-      })));
-    }).catch(() => setGateways([])).finally(() => setLoading(false));
+  const loadGateways = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
+    adminFinanceAPI
+      .getGateways()
+      .then((res) => {
+        setGateways(
+          res.gateways.map((g: any) => ({
+            id: g.id,
+            key: g.key,
+            name: g.name,
+            type: g.type,
+            status: g.status,
+            isEnabled: g.isEnabled,
+            apiKey: g.apiKey,
+            webhookUrl: g.webhookUrl,
+            lastChecked: g.lastChecked ? new Date(g.lastChecked).toLocaleString() : undefined,
+            issues: g.issues || [],
+          }))
+        );
+      })
+      .catch(() => setGateways([]))
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
   }, []);
+
+  useEffect(() => {
+    loadGateways(false);
+  }, [loadGateways]);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') loadGateways(true);
+    };
+    const onFocus = () => loadGateways(true);
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [loadGateways]);
 
   const toggleGateway = (gatewayId: string) => {
     const g = gateways.find((x) => x.id === gatewayId);
     if (!g) return;
     const newEnabled = !g.isEnabled;
-    adminFinanceAPI.updateGateway(gatewayId, { isEnabled: newEnabled }).then((res) => {
-      setGateways((prev) => prev.map((x) => (x.id === gatewayId ? { ...x, isEnabled: res.gateway?.isEnabled ?? newEnabled, status: newEnabled ? (x.status === 'offline' ? 'online' : x.status) : 'offline' } : x)));
-    }).catch(() => {});
+    adminFinanceAPI
+      .updateGateway(gatewayId, { isEnabled: newEnabled })
+      .then((res) => {
+        const g = res.gateway;
+        const enabled = typeof g?.isEnabled === 'boolean' ? g.isEnabled : newEnabled;
+        setGateways((prev) =>
+          prev.map((x) =>
+            x.id === gatewayId
+              ? {
+                  ...x,
+                  isEnabled: enabled,
+                  status: enabled ? (x.status === 'offline' ? 'online' : x.status) : 'offline',
+                  apiKey: g?.apiKeyMasked ?? x.apiKey,
+                  webhookUrl: g?.webhookUrl ?? x.webhookUrl,
+                }
+              : x
+          )
+        );
+        void loadGateways(true);
+        try {
+          window.dispatchEvent(new CustomEvent('reaglex:payment-gateways-changed'));
+          const bc = new BroadcastChannel('reaglex-payment-gateways');
+          bc.postMessage({ type: 'changed', at: Date.now() });
+          bc.close();
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {});
   };
 
   const getStatusBadge = (status: GatewayStatus) => {

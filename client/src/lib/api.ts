@@ -997,16 +997,18 @@ export const adminFinanceAPI = {
       body: JSON.stringify(body),
     }).then(handleResponse<{ message: string; format: string; rowCount: number; data: any[] }>),
   getGateways: () =>
-    fetch(`${FINANCE_BASE}/gateways`, {
+    fetch(`${FINANCE_BASE}/gateways?_=${Date.now()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: { ...getAuthHeaders(), 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
       credentials: 'include',
+      cache: 'no-store',
     }).then(handleResponse<{ gateways: any[] }>),
   updateGateway: (id: string, body: { isEnabled?: boolean; apiKeyMasked?: string; webhookUrl?: string; testMode?: boolean }) =>
     fetch(`${FINANCE_BASE}/gateways/${id}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       credentials: 'include',
+      cache: 'no-store',
       body: JSON.stringify(body),
     }).then(handleResponse<{ gateway: any }>),
   getRefunds: (params?: { status?: string; search?: string; page?: number; limit?: number }) => {

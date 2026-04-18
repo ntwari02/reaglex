@@ -22,7 +22,7 @@ export function SelectRole() {
   const referralFromUrl = searchParams.get('ref')?.trim();
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/public/marketing/referral-status`)
+    fetch(`${API_BASE_URL}/public/marketing/referral-status?t=${Date.now()}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((d: { referralProgramEnabled?: boolean }) => {
         if (typeof d.referralProgramEnabled === 'boolean') setReferralProgramEnabled(d.referralProgramEnabled);

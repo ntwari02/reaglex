@@ -81,11 +81,28 @@ export const authAPI = {
   getCurrentUser: () => api.get('/auth/me').then((r) => r.data),
 };
 
+// ─── Orders (buyer checkout) ─────────────────────────────────────────────────
+
+export const orderAPI = {
+  create: (body) => api.post('/orders', body).then((r) => r.data),
+};
+
 // ─── Payments & Escrow ────────────────────────────────────────────────────────
 
 export const paymentAPI = {
-  initialize: (orderId) =>
-    api.post('/payments/initialize', { orderId }).then((r) => r.data),
+  /** @param payload `{ orderId, paymentMethod?: 'flutterwave'|'momo', momoPhone?: string }` or legacy string orderId */
+  initialize: (orderIdOrPayload) => {
+    const body =
+      typeof orderIdOrPayload === 'string' ? { orderId: orderIdOrPayload } : orderIdOrPayload;
+    return api.post('/payments/initialize', body).then((r) => r.data);
+  },
+  getMomoStatus: (referenceId) =>
+    api
+      .get(`/payments/momo/status/${encodeURIComponent(referenceId)}`, {
+        params: { _: Date.now() },
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+      })
+      .then((r) => r.data),
   verify: (transactionId, orderId) =>
     api
       .get('/payments/verify', {

@@ -129,14 +129,22 @@ export async function performCheckoutSingleProduct(
 
     await order.save();
 
-    const paymentInit = await initializePayment(order._id.toString(), {
-      _id: user._id.toString(),
-      email: user.email || '',
-      phone: user.phone,
-      fullName: (user as any).fullName ?? user.email ?? 'Customer',
-    });
+    const paymentInit = await initializePayment(
+      order._id.toString(),
+      {
+        _id: user._id.toString(),
+        email: user.email || '',
+        phone: user.phone,
+        fullName: (user as any).fullName ?? user.email ?? 'Customer',
+      },
+      { paymentMethod: 'flutterwave' }
+    );
 
     const currency = order.paymentMethod === 'RWF' ? 'RWF' : 'USD';
+
+    if (paymentInit.provider !== 'flutterwave' || !paymentInit.paymentLink) {
+      return { ok: false, error: 'Checkout requires Flutterwave for this flow' };
+    }
 
     return {
       ok: true,

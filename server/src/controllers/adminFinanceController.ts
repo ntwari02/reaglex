@@ -8,6 +8,7 @@ import { RefundRequest } from '../models/RefundRequest';
 import { Chargeback } from '../models/Chargeback';
 import { TaxRule } from '../models/TaxRule';
 import { PaymentGatewayConfig } from '../models/PaymentGatewayConfig';
+import { ensureCorePaymentGateways } from '../services/paymentGateway.service';
 import { FinanceSettings } from '../models/FinanceSettings';
 import { EscrowWallet } from '../models/EscrowWallet';
 import { User } from '../models/User';
@@ -287,20 +288,15 @@ export async function getTransactions(req: AuthenticatedRequest, res: Response) 
 export async function getGateways(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
-    let gateways = await PaymentGatewayConfig.find().lean();
-    if (gateways.length === 0) {
-      await PaymentGatewayConfig.insertMany([
-        { key: 'stripe', name: 'Stripe', type: 'Card Payments', status: 'online', isEnabled: true, apiKeyMasked: 'sk_live_***', issues: [], testMode: false },
-        { key: 'paypal', name: 'PayPal', type: 'Digital Wallet', status: 'online', isEnabled: true, apiKeyMasked: 'paypal_***', issues: [], testMode: false },
-        { key: 'mtn_mobile_money', name: 'MTN Mobile Money', type: 'Mobile Money', status: 'online', isEnabled: true, apiKeyMasked: 'mtn_***', issues: [], testMode: false },
-        { key: 'airtel_money', name: 'Airtel Money', type: 'Mobile Money', status: 'issues', isEnabled: true, apiKeyMasked: 'airtel_***', issues: ['Webhook delivery failures detected'], testMode: false },
-        { key: 'flutterwave', name: 'Flutterwave', type: 'Payment Gateway', status: 'offline', isEnabled: false, issues: [], testMode: false },
-      ]);
-      gateways = await PaymentGatewayConfig.find().lean();
-    }
+    await ensureCorePaymentGateways();
+    const gateways = await PaymentGatewayConfig.find().lean();
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.json({
       gateways: gateways.map((g: any) => ({
         id: g._id.toString(),
+        key: g.key,
         name: g.name,
         type: g.type,
         status: g.status,
@@ -326,9 +322,29 @@ export async function updateGateway(req: AuthenticatedRequest, res: Response) {
       id,
       { ...(isEnabled !== undefined && { isEnabled }), ...(apiKeyMasked !== undefined && { apiKeyMasked }), ...(webhookUrl !== undefined && { webhookUrl }), ...(testMode !== undefined && { testMode }) },
       { new: true }
-    );
+    )
+      .lean();
     if (!g) return res.status(404).json({ message: 'Gateway not found' });
-    res.json({ gateway: g });
+    const row = g as any;
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.json({
+      gateway: {
+        _id: row._id,
+        id: row._id.toString(),
+        key: row.key,
+        name: row.name,
+        type: row.type,
+        status: row.status,
+        isEnabled: row.isEnabled,
+        apiKeyMasked: row.apiKeyMasked,
+        webhookUrl: row.webhookUrl,
+        lastChecked: row.lastChecked,
+        issues: row.issues || [],
+        testMode: row.testMode,
+      },
+    });
   } catch (err: any) {
     res.status(500).json({ message: err?.message || 'Failed to update gateway' });
   }

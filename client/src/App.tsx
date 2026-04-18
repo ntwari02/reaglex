@@ -31,6 +31,8 @@ const BuyerProductDetail   = lazy(() => import('./pages/ProductDetail'));
 const SearchResults        = lazy(() => import('./pages/SearchResults'));
 // @ts-ignore JSX modules without TS typings
 const Checkout             = lazy(() => import('./pages/Checkout'));
+// @ts-ignore JSX module without TS typings
+const MomoPaymentWait      = lazy(() => import('./pages/MomoPaymentWait'));
 // @ts-ignore JSX modules without TS typings
 const OrderConfirmation    = lazy(() => import('./pages/OrderConfirmation'));
 // @ts-ignore JSX modules without TS typings
@@ -163,6 +165,7 @@ function App() {
             <Route path="/products"                     element={<SearchResults />} />
             <Route path="/products/:id"                element={<BuyerProductDetail />} />
             <Route path="/checkout"                    element={<Checkout />} />
+            <Route path="/checkout/momo-wait"          element={<MomoPaymentWait />} />
             <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
             <Route path="/track/:orderId"              element={<OrderTracking />} />
             <Route path="/track"                       element={<OrderTracking />} />

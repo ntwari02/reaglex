@@ -1,6 +1,15 @@
 import { Router, Response } from 'express';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
-import { initializePayment, verifyPayment } from '../services/paymentService';
+import {
+  initializePayment,
+  verifyPayment,
+  syncMomoOrderPayment,
+  handleMomoCallbackPayload,
+} from '../services/paymentService';
+import {
+  assertPaymentGatewayEnabled,
+  PaymentGatewayDisabledError,
+} from '../services/paymentGateway.service';
 import { releaseEscrow } from '../services/escrowService';
 import { raiseDispute, resolveDispute } from '../services/disputeService';
 import { Order } from '../models/Order';
@@ -10,10 +19,17 @@ import mongoose from 'mongoose';
 
 const router = Router();
 
-// Initialize payment
+const MOMO_REFERENCE_UUID =
+  /^[\da-f]{8}-[\da-f]{4}-[1-5][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
+
+// Initialize payment (Flutterwave or MTN MoMo Collections)
 router.post('/initialize', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { orderId } = req.body;
+    const { orderId, paymentMethod: rawMethod, momoPhone } = req.body as {
+      orderId?: string;
+      paymentMethod?: string;
+      momoPhone?: string;
+    };
     if (!orderId) {
       return res.status(400).json({ message: 'orderId is required' });
     }
@@ -27,18 +43,92 @@ router.post('/initialize', authenticate, async (req: AuthenticatedRequest, res: 
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    const paymentInit = await initializePayment(orderId, {
-      _id: req.user.id,
-      email: req.user.email,
-      phone: req.user.phone,
-      fullName: req.user.fullName ?? req.user.email,
-    } as any);
+    const paymentMethod = rawMethod === 'momo' ? 'momo' : 'flutterwave';
+
+    const paymentInit = await initializePayment(
+      orderId,
+      {
+        _id: req.user.id,
+        email: req.user.email,
+        phone: req.user.phone,
+        fullName: req.user.fullName ?? req.user.email,
+      } as any,
+      { paymentMethod, momoPhone }
+    );
 
     return res.json(paymentInit);
   } catch (err: any) {
+    if (err instanceof PaymentGatewayDisabledError) {
+      return res.status(403).json({
+        message: 'This payment method is currently disabled',
+        code: err.code,
+        gatewayKey: err.gatewayKey,
+      });
+    }
     // eslint-disable-next-line no-console
     console.error('Initialize payment error:', err);
-    return res.status(500).json({ message: 'Failed to initialize payment' });
+    const msg = typeof err?.message === 'string' ? err.message : 'Failed to initialize payment';
+    const clientError =
+      msg.includes('not configured') ||
+      msg.includes('phone number') ||
+      msg.includes('RWF') ||
+      msg.includes('CLIENT_URL') ||
+      msg.includes('public callback URL') ||
+      msg.includes('MOMO_CALLBACK_URL') ||
+      msg.includes('SERVER_URL');
+    return res.status(clientError ? 400 : 500).json({ message: msg });
+  }
+});
+
+// MTN MoMo: poll status and finalize escrow when successful (authenticated buyer)
+router.get('/momo/status/:referenceId', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const { referenceId } = req.params;
+    if (!referenceId || !MOMO_REFERENCE_UUID.test(referenceId)) {
+      return res.status(400).json({ message: 'Invalid reference id' });
+    }
+
+    await assertPaymentGatewayEnabled('mtn_momo');
+
+    const result = await syncMomoOrderPayment(referenceId, { buyerUserId: req.user.id });
+    return res.json(result);
+  } catch (err: any) {
+    if (err instanceof PaymentGatewayDisabledError) {
+      return res.status(403).json({
+        message: 'This payment method is currently disabled',
+        code: err.code,
+        gatewayKey: err.gatewayKey,
+      });
+    }
+    // eslint-disable-next-line no-console
+    console.error('MoMo status error:', err);
+    return res.status(500).json({ message: err?.message || 'Failed to sync payment status' });
+  }
+});
+
+// MTN MoMo callback / webhook (verified server-side against MTN status API)
+router.post('/momo/callback', async (req, res) => {
+  try {
+    const headerRef = req.get('X-Reference-Id') || req.get('x-reference-id') || undefined;
+    let raw = req.body;
+    if (typeof raw === 'string') {
+      try {
+        raw = JSON.parse(raw) as unknown;
+      } catch {
+        raw = {};
+      }
+    }
+    const body =
+      raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+    const out = await handleMomoCallbackPayload(body, headerRef);
+    return res.status(out.ok ? 200 : 400).json(out);
+  } catch (err: any) {
+    // eslint-disable-next-line no-console
+    console.error('MoMo callback error:', err);
+    return res.status(500).json({ ok: false, message: err?.message || 'Callback failed' });
   }
 });
 
@@ -53,6 +143,13 @@ router.get('/verify', async (req, res) => {
     const result = await verifyPayment(transaction_id, order_id);
     return res.json(result);
   } catch (err: any) {
+    if (err instanceof PaymentGatewayDisabledError) {
+      return res.status(403).json({
+        message: 'This payment method is currently disabled',
+        code: err.code,
+        gatewayKey: err.gatewayKey,
+      });
+    }
     // eslint-disable-next-line no-console
     console.error('Verify payment error:', err);
     return res.status(500).json({ message: 'Payment verification failed' });

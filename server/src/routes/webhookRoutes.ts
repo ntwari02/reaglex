@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { verifyPayment } from '../services/paymentService';
+import { assertPaymentGatewayEnabled } from '../services/paymentGateway.service';
 import { Order } from '../models/Order';
 import { sendNotification } from '../services/notificationService';
 
@@ -19,6 +20,15 @@ router.post('/flutterwave/webhook', async (req: Request, res: Response) => {
     switch (payload.event) {
       case 'charge.completed':
         if (payload.data.status === 'successful') {
+          const oid = payload.data?.meta?.order_id;
+          if (oid) {
+            const ord = await Order.findById(oid).lean();
+            const awaiting =
+              ord && (ord as any).escrow?.status === 'PENDING' && !(ord as any).payment?.paidAt;
+            if (awaiting) {
+              await assertPaymentGatewayEnabled('flutterwave');
+            }
+          }
           await verifyPayment(payload.data.id, payload.data.meta.order_id);
         }
         break;
