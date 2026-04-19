@@ -41,6 +41,21 @@ function escapeRegexChars(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/** Admin UI may send Mongo `_id` or canonical `key` (e.g. `mtn_momo`) — never cast arbitrary strings to ObjectId. */
+function looksLikeMongoObjectId(id: string): boolean {
+  return /^[a-f0-9]{24}$/i.test(String(id || '').trim());
+}
+
+async function findPaymentGatewayByIdOrKey(idOrKey: string) {
+  const raw = String(idOrKey || '').trim();
+  if (!raw) return null;
+  if (looksLikeMongoObjectId(raw)) {
+    const byId = await PaymentGatewayConfig.findById(raw);
+    if (byId) return byId;
+  }
+  return PaymentGatewayConfig.findOne({ key: raw });
+}
+
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
     res.status(403).json({ message: 'Forbidden: admin access required' });
@@ -355,41 +370,46 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
 
     const gateways = await Promise.all(
       ordered.map(async (g: any) => {
-        const registryDef = GATEWAY_REGISTRY.find((d) => d.key === g.key);
-        const canonicalProfile = (registryDef?.profile ?? resolveProfileForKey(g.key)) as CredentialProfile;
+        let row = g;
+        if (!row._id && row.key) {
+          const hit = await PaymentGatewayConfig.findOne({ key: row.key }).lean();
+          if (hit) row = hit;
+        }
+        const registryDef = GATEWAY_REGISTRY.find((d) => d.key === row.key);
+        const canonicalProfile = (registryDef?.profile ?? resolveProfileForKey(row.key)) as CredentialProfile;
         let configured = false;
         try {
-          configured = await isGatewayFullyConfigured(g.key);
+          configured = await isGatewayFullyConfigured(row.key);
         } catch {
           configured = false;
         }
         return {
-          id: g._id ? g._id.toString() : g.key,
-          key: g.key,
-          name: g.name,
-          type: g.type,
-          status: g.status,
-          isEnabled: g.isEnabled,
+          id: row._id ? row._id.toString() : row.key,
+          key: row.key,
+          name: row.name,
+          type: row.type,
+          status: row.status,
+          isEnabled: row.isEnabled,
           credentialProfile: canonicalProfile,
-          fieldMeta: getFieldMetaForGatewayKey(g.key),
-          maskedSummary: g.maskedSummary && typeof g.maskedSummary === 'object' ? g.maskedSummary : {},
-          apiKeyMasked: g.apiKeyMasked,
-          webhookUrl: g.webhookUrl,
+          fieldMeta: getFieldMetaForGatewayKey(row.key),
+          maskedSummary: row.maskedSummary && typeof row.maskedSummary === 'object' ? row.maskedSummary : {},
+          apiKeyMasked: row.apiKeyMasked,
+          webhookUrl: row.webhookUrl,
           suggestedWebhookUrl:
-            g.key === 'flutterwave'
+            row.key === 'flutterwave'
               ? suggestedFlutterwaveWebhookUrl()
-              : g.key === 'mtn_momo'
+              : row.key === 'mtn_momo'
                 ? suggestedMomoCallbackUrl()
-                : g.key === 'stripe'
+                : row.key === 'stripe'
                   ? suggestedStripeWebhookUrl()
-                  : g.key === 'paypal'
+                  : row.key === 'paypal'
                     ? suggestedPaypalWebhookUrl()
                     : undefined,
           isConfigured: configured,
-          lastChecked: g.lastChecked,
-          issues: g.issues || [],
-          testMode: g.testMode,
-          healthLogs: Array.isArray(g.healthLogs) ? g.healthLogs.slice(-20) : [],
+          lastChecked: row.lastChecked,
+          issues: row.issues || [],
+          testMode: row.testMode,
+          healthLogs: Array.isArray(row.healthLogs) ? row.healthLogs.slice(-20) : [],
         };
       })
     );
@@ -409,7 +429,7 @@ export async function updateGateway(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
     const { isEnabled, apiKeyMasked, webhookUrl, testMode } = req.body;
-    const existing = await PaymentGatewayConfig.findById(id);
+    const existing = await findPaymentGatewayByIdOrKey(id);
     if (!existing) return res.status(404).json({ message: 'Gateway not found' });
 
     if (isEnabled === true) {
@@ -423,7 +443,7 @@ export async function updateGateway(req: AuthenticatedRequest, res: Response) {
     }
 
     const g = await PaymentGatewayConfig.findByIdAndUpdate(
-      id,
+      existing._id,
       {
         ...(isEnabled !== undefined && { isEnabled }),
         ...(apiKeyMasked !== undefined && { apiKeyMasked }),
@@ -470,7 +490,7 @@ export async function revealGatewayCredentials(req: AuthenticatedRequest, res: R
     if (!(await allowGatewaySecretOperation(req, password))) {
       return res.status(401).json({ message: 'Invalid password' });
     }
-    const g = await PaymentGatewayConfig.findById(req.params.id);
+    const g = await findPaymentGatewayByIdOrKey(req.params.id);
     if (!g) return res.status(404).json({ message: 'Gateway not found' });
     const profile = (g.credentialProfile || resolveProfileForKey(g.key)) as CredentialProfile;
     if (profile === 'none') {
@@ -502,7 +522,7 @@ export async function saveGatewayCredentials(req: AuthenticatedRequest, res: Res
     if (!credentials || typeof credentials !== 'object') {
       return res.status(400).json({ message: 'credentials object is required' });
     }
-    const g = await PaymentGatewayConfig.findById(req.params.id);
+    const g = await findPaymentGatewayByIdOrKey(req.params.id);
     if (!g) return res.status(404).json({ message: 'Gateway not found' });
     const profile = (g.credentialProfile || resolveProfileForKey(g.key)) as CredentialProfile;
     if (profile === 'none') {
@@ -537,7 +557,7 @@ export async function testGatewayConnection(req: AuthenticatedRequest, res: Resp
     if (!(await allowGatewaySecretOperation(req, password))) {
       return res.status(401).json({ message: 'Invalid password' });
     }
-    const g = await PaymentGatewayConfig.findById(req.params.id);
+    const g = await findPaymentGatewayByIdOrKey(req.params.id);
     if (!g) return res.status(404).json({ message: 'Gateway not found' });
 
     let flutterwaveOverride: { publicKey: string; secretKey: string } | undefined;
