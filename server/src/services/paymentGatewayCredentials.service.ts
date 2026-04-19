@@ -29,6 +29,8 @@ export type GatewayFieldMeta = {
   label: string;
   kind: 'text' | 'secret' | 'url';
   hint?: string;
+  /** UI grouping (admin Payment Gateways modal) */
+  group?: string;
 };
 
 const CANONICAL_KEYS = [
@@ -61,60 +63,76 @@ export function getFieldMetaForProfile(profile: CredentialProfile): GatewayField
   switch (profile) {
     case 'flutterwave':
       return [
-        { name: 'publicKey', label: 'Public Key', kind: 'secret' },
-        { name: 'secretKey', label: 'Secret Key', kind: 'secret' },
-        { name: 'encryptionKey', label: 'Encryption Key', kind: 'secret', hint: 'Flutterwave Encryption Key (checksum / advanced flows).' },
+        { name: 'publicKey', label: 'Public Key', kind: 'secret', group: 'Required credentials' },
+        { name: 'secretKey', label: 'Secret Key', kind: 'secret', group: 'Required credentials' },
+        { name: 'encryptionKey', label: 'Encryption Key', kind: 'secret', group: 'Required credentials', hint: 'From Flutterwave dashboard (checksum / card encryption).' },
         {
           name: 'webhookUrl',
           label: 'Webhook URL',
           kind: 'url',
-          hint: 'Register this exact URL in Flutterwave dashboard → Webhooks (same as suggested on the card).',
+          group: 'Webhooks & verification',
+          hint: 'Same URL you register under Flutterwave → Settings → Webhooks (copy from “Suggested listener URL” above when possible).',
         },
         {
           name: 'webhookSecretHash',
-          label: 'Webhook Secret Hash (verif-hash)',
+          label: 'Webhook secret (verif-hash)',
           kind: 'secret',
-          hint: 'Set the same “Secret Hash” in Flutterwave. Incoming webhooks must match this value in the verif-hash header.',
+          group: 'Webhooks & verification',
+          hint: 'Flutterwave “Secret Hash”; must match the verif-hash header on incoming webhooks.',
         },
       ];
     case 'mtn_momo':
       return [
-        { name: 'baseUrl', label: 'API base URL', kind: 'url', hint: 'Collections API host from MTN (sandbox vs production).' },
-        { name: 'subscriptionKey', label: 'Subscription Key (Ocp-Apim-Subscription-Key)', kind: 'secret' },
-        { name: 'apiUser', label: 'API User', kind: 'text', hint: 'UUID from MTN MoMo developer portal.' },
-        { name: 'apiKey', label: 'API Key', kind: 'secret' },
-        { name: 'targetEnvironment', label: 'Target environment', kind: 'text', hint: 'sandbox or mtnrwanda (production)' },
+        { name: 'apiUser', label: 'API User ID', kind: 'text', group: 'Required', hint: 'UUID from MTN MoMo developer portal (Collections product).' },
+        { name: 'apiKey', label: 'API Key', kind: 'secret', group: 'Required' },
+        { name: 'subscriptionKey', label: 'Subscription Key', kind: 'secret', group: 'Required', hint: 'Sent as Ocp-Apim-Subscription-Key.' },
         {
           name: 'callbackUrl',
-          label: 'Callback / webhook URL',
+          label: 'Webhook URL',
           kind: 'url',
-          hint: 'Must match the callback URL on your MTN product (use the suggested URL on the card when SERVER_URL is correct).',
+          group: 'Required',
+          hint: 'MTN Collections callback URL — must match your MTN product (use the suggested URL when SERVER_URL is correct).',
         },
+        {
+          name: 'baseUrl',
+          label: 'API base URL',
+          kind: 'url',
+          group: 'Advanced',
+          hint: 'Sandbox example: https://sandbox.momodeveloper.mtn.com — use the host MTN gave you for your environment.',
+        },
+        { name: 'targetEnvironment', label: 'Target environment', kind: 'text', group: 'Advanced', hint: 'sandbox or mtnrwanda (production).' },
       ];
     case 'stripe':
       return [
-        { name: 'publishableKey', label: 'Publishable key (pk_…)', kind: 'secret' },
-        { name: 'secretKey', label: 'Secret key (sk_…)', kind: 'secret' },
-        { name: 'webhookSecret', label: 'Webhook signing secret (whsec_…)', kind: 'secret', hint: 'Stripe Dashboard → Webhooks → endpoint signing secret (/api/webhooks/stripe/webhook).' },
-        { name: 'environment', label: 'Environment', kind: 'text', hint: 'sandbox or live (informational; keys determine mode)' },
+        { name: 'publishableKey', label: 'Publishable key', kind: 'secret', group: 'Required', hint: 'pk_live_… or pk_test_…' },
+        { name: 'secretKey', label: 'Secret key', kind: 'secret', group: 'Required', hint: 'sk_live_… or sk_test_…' },
+        {
+          name: 'webhookSecret',
+          label: 'Webhook secret',
+          kind: 'secret',
+          group: 'Required',
+          hint: 'Signing secret (whsec_…) for endpoint /api/webhooks/stripe/webhook.',
+        },
       ];
     case 'paypal':
       return [
-        { name: 'clientId', label: 'Client ID', kind: 'secret' },
-        { name: 'clientSecret', label: 'Client Secret', kind: 'secret' },
-        { name: 'environment', label: 'Mode (sandbox / live)', kind: 'text', hint: 'Type sandbox or live' },
-        { name: 'webhookId', label: 'Webhook ID', kind: 'text', hint: 'From PayPal dashboard for your listener URL (/api/webhooks/paypal/webhook).' },
+        { name: 'clientId', label: 'Client ID', kind: 'secret', group: 'Required' },
+        { name: 'clientSecret', label: 'Secret', kind: 'secret', group: 'Required' },
+        { name: 'environment', label: 'Mode', kind: 'text', group: 'Required', hint: 'sandbox or live' },
+        { name: 'webhookId', label: 'Webhook ID', kind: 'text', group: 'Required', hint: 'PayPal Developer → Webhooks → ID for /api/webhooks/paypal/webhook' },
       ];
     case 'airtel_api':
       return [
-        { name: 'clientId', label: 'Client ID', kind: 'secret' },
-        { name: 'clientSecret', label: 'Client Secret', kind: 'secret' },
-        { name: 'merchantId', label: 'Merchant ID', kind: 'text', hint: 'Airtel merchant identifier (when provided by Airtel).' },
-        { name: 'baseUrl', label: 'API base URL', kind: 'url', hint: 'Sandbox: https://openapiuat.airtel.africa — Live: https://openapi.airtel.africa' },
-        { name: 'country', label: 'Country code', kind: 'text', hint: 'RW for Rwanda' },
-        { name: 'currency', label: 'Currency', kind: 'text', hint: 'RWF' },
-        { name: 'environment', label: 'Environment', kind: 'text', hint: 'sandbox or live' },
-        { name: 'webhookUrl', label: 'Webhook URL (optional)', kind: 'url', hint: 'If Airtel supports callbacks for your account, store it here for reference.' },
+        { name: 'clientId', label: 'Client ID', kind: 'secret', group: 'Required' },
+        { name: 'clientSecret', label: 'Client Secret', kind: 'secret', group: 'Required' },
+        { name: 'merchantId', label: 'Merchant ID', kind: 'text', group: 'Required', hint: 'From Airtel Africa Open API / partner onboarding.' },
+        {
+          name: 'webhookUrl',
+          label: 'Webhook URL',
+          kind: 'url',
+          group: 'Required',
+          hint: 'Callback URL registered with Airtel for your merchant (required for a complete production setup).',
+        },
       ];
     case 'generic_api_secret':
       return [
@@ -148,6 +166,53 @@ export function buildMaskedSummary(
     }
   }
   return out;
+}
+
+function trimStr(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : '';
+}
+
+/** Masked summaries use an ellipsis; do not persist those back over real secrets. */
+function isMaskedPlaceholder(s: string): boolean {
+  return s.includes('\u2026') && s.length < 120;
+}
+
+function mergeIncomingOntoPrevious(prev: Record<string, unknown>, inc: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...prev };
+  for (const [k, v] of Object.entries(inc)) {
+    if (typeof v !== 'string') {
+      if (v !== undefined && v !== null) out[k] = v;
+      continue;
+    }
+    const t = v.trim();
+    if (!t) continue;
+    if (isMaskedPlaceholder(t)) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Merge admin form payload with previously stored secrets (empty or masked fields do not wipe keys).
+ * Applies safe defaults for Airtel / MTN optional columns not shown in the short admin form.
+ */
+export function mergeCredentialsForSave(
+  profile: CredentialProfile,
+  incoming: Record<string, unknown>,
+  previous: Record<string, unknown> | null
+): Record<string, unknown> {
+  const prev = previous && typeof previous === 'object' ? { ...previous } : {};
+  const merged = mergeIncomingOntoPrevious(prev, incoming);
+  if (profile === 'airtel_api') {
+    if (!trimStr(merged.baseUrl)) merged.baseUrl = 'https://openapiuat.airtel.africa';
+    if (!trimStr(merged.country)) merged.country = 'RW';
+    if (!trimStr(merged.currency)) merged.currency = 'RWF';
+    if (!trimStr(merged.environment)) merged.environment = 'sandbox';
+  }
+  if (profile === 'mtn_momo') {
+    if (!trimStr(merged.targetEnvironment)) merged.targetEnvironment = 'sandbox';
+  }
+  return merged;
 }
 
 function pickMergedStr(dbVal: unknown, envVal: string | undefined): string {
@@ -380,6 +445,18 @@ export async function getAirtelCredentialsResolved(): Promise<AirtelResolvedConf
   return { clientId, clientSecret, ...(merchantId ? { merchantId } : {}), baseUrl, country, currency };
 }
 
+/** OAuth test config from merged credential object (includes defaults for base URL / country / currency). */
+export function buildAirtelDraftConfigFromMerged(plain: Record<string, unknown>): AirtelResolvedConfig | null {
+  const clientId = trimStr(plain.clientId);
+  const clientSecret = trimStr(plain.clientSecret);
+  const merchantId = trimStr(plain.merchantId);
+  const baseUrl = trimStr(plain.baseUrl).replace(/\/$/, '') || 'https://openapiuat.airtel.africa';
+  const country = trimStr(plain.country) || 'RW';
+  const currency = trimStr(plain.currency) || 'RWF';
+  if (!clientId || !clientSecret || !merchantId) return null;
+  return { clientId, clientSecret, merchantId, baseUrl, country, currency };
+}
+
 export async function isGatewayFullyConfigured(key: string): Promise<boolean> {
   await ensureAllPaymentGateways();
   const row = await PaymentGatewayConfig.findOne({ key }).lean();
@@ -423,7 +500,11 @@ export async function isGatewayFullyConfigured(key: string): Promise<boolean> {
   if (key === 'airtel_money') {
     try {
       const c = await getAirtelCredentialsResolved();
-      return Boolean(c.clientId && c.clientSecret && c.merchantId && c.baseUrl && c.country && c.currency);
+      const raw = parseDecrypted(row as any);
+      const webhookUrl = trimStr(raw?.webhookUrl);
+      return Boolean(
+        c.clientId && c.clientSecret && c.merchantId && c.baseUrl && c.country && c.currency && webhookUrl
+      );
     } catch {
       return false;
     }
@@ -557,6 +638,7 @@ export async function testGatewayByKey(
   opts?: {
     momoOverride?: MomoResolvedConfig | null;
     flutterwaveOverride?: { publicKey: string; secretKey: string };
+    airtelOverride?: AirtelResolvedConfig;
   }
 ): Promise<{ ok: boolean; message: string }> {
   const profile = resolveProfileForKey(key);
@@ -589,7 +671,7 @@ export async function testGatewayByKey(
   }
   if (key === 'airtel_money') {
     const { testAirtelConnection } = await import('./airtelMoney.service');
-    return testAirtelConnection();
+    return testAirtelConnection(opts?.airtelOverride);
   }
   if (profile === 'generic_api_secret') {
     const row = await PaymentGatewayConfig.findOne({ key }).lean();

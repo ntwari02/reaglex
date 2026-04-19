@@ -139,10 +139,13 @@ export function normalizeAirtelMsisdn(raw: string, countryCode = '250'): string 
   return digits.length >= 11 ? digits : null;
 }
 
-export async function testAirtelConnection(): Promise<{ ok: boolean; message: string }> {
+export async function testAirtelConnection(cfg?: AirtelResolvedConfig): Promise<{ ok: boolean; message: string }> {
   try {
-    await getAirtelAccessToken();
-    return { ok: true, message: 'Connected — Airtel OAuth token obtained' };
+    await getAirtelAccessToken(cfg);
+    return {
+      ok: true,
+      message: cfg ? 'Connected — Airtel OAuth token obtained (draft credentials)' : 'Connected — Airtel OAuth token obtained',
+    };
   } catch (e) {
     const ax = e as AxiosError;
     const detail = ax.response?.data ?? ax.message;

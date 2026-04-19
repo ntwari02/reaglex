@@ -4,7 +4,18 @@ import { adminFinanceAPI } from '@/lib/api';
 
 type GatewayStatus = 'online' | 'offline' | 'issues';
 
-type FieldMeta = { name: string; label: string; kind: 'text' | 'secret' | 'url'; hint?: string };
+type FieldMeta = { name: string; label: string; kind: 'text' | 'secret' | 'url'; hint?: string; group?: string };
+
+const CONFIGURE_INTRO_BY_KEY: Record<string, string> = {
+  flutterwave:
+    'Public key, secret key, encryption key, webhook URL, and webhook secret hash (verif-hash). Stored encrypted; never commit these to source control.',
+  mtn_momo:
+    'API User ID, API Key, Subscription Key, and webhook (callback) URL are required. API host and target environment are under Advanced — use the values MTN gave you for sandbox or production.',
+  airtel_money:
+    'Client ID, Client Secret, Merchant ID, and webhook URL. API host, country, and currency default to Rwanda sandbox values when omitted.',
+  stripe: 'Publishable key, secret key, and webhook signing secret (whsec_…) for your Stripe endpoint.',
+  paypal: 'Client ID, secret, mode (sandbox or live), and PayPal webhook ID for signature verification.',
+};
 
 interface Gateway {
   id: string;
@@ -354,8 +365,8 @@ export default function PaymentGateways() {
           >
             <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Configure {selectedGateway.name}</h3>
             <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
-              Enter the credentials your payment provider issued. Use “Test connection” before enabling the gateway for
-              buyers.
+              {(selectedGateway.key && CONFIGURE_INTRO_BY_KEY[selectedGateway.key]) ||
+                'Enter the credentials your payment provider issued. Use “Test connection” before enabling the gateway for buyers.'}
             </p>
 
             {selectedGateway.suggestedWebhookUrl && (
@@ -381,31 +392,40 @@ export default function PaymentGateways() {
                 {(selectedGateway.fieldMeta || []).length === 0 ? (
                   <p className="text-sm text-amber-700 dark:text-amber-300">No field definitions for this profile.</p>
                 ) : (
-                  (selectedGateway.fieldMeta || []).map((field) => (
-                    <div key={field.name}>
-                      <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">{field.label}</label>
-                      {field.hint && <p className="mb-1 text-[11px] text-gray-500 dark:text-gray-400">{field.hint}</p>}
-                      {field.kind === 'url' ? (
-                        <textarea
-                          rows={2}
-                          value={formValues[field.name] ?? ''}
-                          onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
-                          className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                          autoComplete="off"
-                          spellCheck={false}
-                        />
-                      ) : (
-                        <input
-                          type={field.kind === 'secret' ? 'password' : 'text'}
-                          value={formValues[field.name] ?? ''}
-                          onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
-                          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                          autoComplete="off"
-                          spellCheck={false}
-                        />
-                      )}
-                    </div>
-                  ))
+                  (selectedGateway.fieldMeta || []).map((field, idx) => {
+                    const prevField = (selectedGateway.fieldMeta || [])[idx - 1];
+                    const showGroup = Boolean(field.group && field.group !== prevField?.group);
+                    return (
+                      <div key={field.name}>
+                        {showGroup && (
+                          <h4 className="mb-2 mt-1 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {field.group}
+                          </h4>
+                        )}
+                        <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">{field.label}</label>
+                        {field.hint && <p className="mb-1 text-[11px] text-gray-500 dark:text-gray-400">{field.hint}</p>}
+                        {field.kind === 'url' ? (
+                          <textarea
+                            rows={2}
+                            value={formValues[field.name] ?? ''}
+                            onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                            className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                            autoComplete="off"
+                            spellCheck={false}
+                          />
+                        ) : (
+                          <input
+                            type={field.kind === 'secret' ? 'password' : 'text'}
+                            value={formValues[field.name] ?? ''}
+                            onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                            autoComplete="off"
+                            spellCheck={false}
+                          />
+                        )}
+                      </div>
+                    );
+                  })
                 )}
 
                 <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300">

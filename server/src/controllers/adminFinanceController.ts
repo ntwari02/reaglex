@@ -12,12 +12,14 @@ import { PaymentGatewayConfig } from '../models/PaymentGatewayConfig';
 import { ensureCorePaymentGateways } from '../services/paymentGateway.service';
 import {
   appendGatewayHealthLog,
+  buildAirtelDraftConfigFromMerged,
   buildMaskedSummary,
   GATEWAY_REGISTRY,
   getFieldMetaForProfile,
   getMomoResolvedConfig,
   invalidatePaymentRuntimeCaches,
   isGatewayFullyConfigured,
+  mergeCredentialsForSave,
   resolveProfileForKey,
   saveEncryptedCredentials,
   suggestedFlutterwaveWebhookUrl,
@@ -25,6 +27,7 @@ import {
   suggestedPaypalWebhookUrl,
   suggestedStripeWebhookUrl,
   testGatewayByKey,
+  type AirtelResolvedConfig,
   type CredentialProfile,
 } from '../services/paymentGatewayCredentials.service';
 import { decryptCredentialsJson } from '../services/paymentSecretsCrypto.service';
@@ -505,11 +508,16 @@ export async function saveGatewayCredentials(req: AuthenticatedRequest, res: Res
       return res.status(400).json({ message: 'This gateway does not use API credentials' });
     }
 
-    await saveEncryptedCredentials(g._id.toString(), profile, credentials);
+    const prevPlain = g.encryptedCredentials
+      ? (decryptCredentialsJson(g.encryptedCredentials) as Record<string, unknown>)
+      : null;
+    const merged = mergeCredentialsForSave(profile, credentials as Record<string, unknown>, prevPlain);
+
+    await saveEncryptedCredentials(g._id.toString(), profile, merged);
     await appendGatewayHealthLog(g._id.toString(), 'info', 'Encrypted credentials saved');
     invalidatePaymentRuntimeCaches();
 
-    const maskedSummary = buildMaskedSummary(profile, credentials);
+    const maskedSummary = buildMaskedSummary(profile, merged);
     res.json({
       ok: true,
       maskedSummary,
@@ -541,15 +549,23 @@ export async function testGatewayConnection(req: AuthenticatedRequest, res: Resp
       }
     }
 
+    const profile = (g.credentialProfile || resolveProfileForKey(g.key)) as CredentialProfile;
+    const prevPlain = g.encryptedCredentials
+      ? (decryptCredentialsJson(g.encryptedCredentials) as Record<string, unknown>)
+      : null;
+
     let momoOverride = null as Awaited<ReturnType<typeof getMomoResolvedConfig>>;
     if (g.key === 'mtn_momo' && credentials && typeof credentials === 'object') {
-      const c = credentials as Record<string, string>;
-      const baseUrl = String(c.baseUrl || '').trim().replace(/\/$/, '');
-      const subscriptionKey = String(c.subscriptionKey || '').trim();
-      const apiUser = String(c.apiUser || '').trim();
-      const apiKey = String(c.apiKey || '').trim();
-      const targetEnvironment = String(c.targetEnvironment || 'sandbox').trim();
-      const callbackUrl = String(c.callbackUrl || '').trim();
+      const merged = mergeCredentialsForSave(profile, credentials as Record<string, unknown>, prevPlain) as Record<
+        string,
+        string
+      >;
+      const baseUrl = String(merged.baseUrl || '').trim().replace(/\/$/, '');
+      const subscriptionKey = String(merged.subscriptionKey || '').trim();
+      const apiUser = String(merged.apiUser || '').trim();
+      const apiKey = String(merged.apiKey || '').trim();
+      const targetEnvironment = String(merged.targetEnvironment || 'sandbox').trim();
+      const callbackUrl = String(merged.callbackUrl || '').trim();
       if (baseUrl && subscriptionKey && apiUser && apiKey) {
         momoOverride = {
           baseUrl,
@@ -562,7 +578,14 @@ export async function testGatewayConnection(req: AuthenticatedRequest, res: Resp
       }
     }
 
-    const result = await testGatewayByKey(g.key, { momoOverride, flutterwaveOverride });
+    let airtelOverride: AirtelResolvedConfig | undefined;
+    if (g.key === 'airtel_money' && credentials && typeof credentials === 'object') {
+      const merged = mergeCredentialsForSave(profile, credentials as Record<string, unknown>, prevPlain);
+      const draft = buildAirtelDraftConfigFromMerged(merged);
+      if (draft) airtelOverride = draft;
+    }
+
+    const result = await testGatewayByKey(g.key, { momoOverride, flutterwaveOverride, airtelOverride });
     await appendGatewayHealthLog(
       g._id.toString(),
       result.ok ? 'info' : 'warn',
