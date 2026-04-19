@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Edit, Lock, TestTube, ScrollText } from 'lucide-react';
+import { AlertTriangle, Edit, TestTube, ScrollText } from 'lucide-react';
 import { adminFinanceAPI } from '@/lib/api';
 
 type GatewayStatus = 'online' | 'offline' | 'issues';
@@ -18,6 +18,7 @@ interface Gateway {
   maskedSummary?: Record<string, string>;
   suggestedWebhookUrl?: string;
   isConfigured?: boolean;
+  apiKeyMasked?: string;
   webhookUrl?: string;
   lastChecked?: string;
   issues?: string[];
@@ -38,9 +39,9 @@ export default function PaymentGateways() {
   const [selectedGateway, setSelectedGateway] = useState<Gateway | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<'password' | 'edit'>('password');
-  const [adminPassword, setAdminPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [apiKeyMaskedInput, setApiKeyMaskedInput] = useState('');
+  const [webhookUrlInput, setWebhookUrlInput] = useState('');
+  const [testModeInput, setTestModeInput] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -65,6 +66,7 @@ export default function PaymentGateways() {
             maskedSummary: g.maskedSummary || {},
             suggestedWebhookUrl: g.suggestedWebhookUrl,
             isConfigured: g.isConfigured,
+            apiKeyMasked: g.apiKeyMasked,
             webhookUrl: g.webhookUrl,
             lastChecked: g.lastChecked ? new Date(g.lastChecked).toLocaleString() : undefined,
             issues: g.issues || [],
@@ -98,40 +100,28 @@ export default function PaymentGateways() {
 
   const openConfigure = (g: Gateway) => {
     setSelectedGateway(g);
-    setAdminPassword('');
-    setPasswordError('');
-    setFormValues(emptyForm(g.fieldMeta));
+    setApiKeyMaskedInput(g.apiKeyMasked || '');
+    setWebhookUrlInput(g.webhookUrl || g.suggestedWebhookUrl || '');
+    setTestModeInput(!!g.testMode);
+    setFormValues({ ...emptyForm(g.fieldMeta), ...(g.maskedSummary || {}) });
     setTestMessage(null);
     setShowLogs(false);
-    if (g.credentialProfile === 'none') {
-      setStep('edit');
-    } else {
-      setStep('password');
-    }
     setShowConfigModal(true);
-  };
-
-  const unlockAndLoad = async () => {
-    if (!selectedGateway) return;
-    setPasswordError('');
-    setSaving(true);
-    try {
-      const res = await adminFinanceAPI.revealGatewayCredentials(selectedGateway.id, adminPassword);
-      if (res.credentials && typeof res.credentials === 'object') {
-        const next: Record<string, string> = { ...emptyForm(selectedGateway.fieldMeta) };
-        Object.entries(res.credentials).forEach(([k, v]) => {
-          if (typeof v === 'string') next[k] = v;
-        });
-        setFormValues(next);
-      } else {
-        setFormValues(emptyForm(selectedGateway.fieldMeta));
-      }
-      setStep('edit');
-    } catch {
-      setPasswordError('Invalid password or could not load secrets.');
-    } finally {
-      setSaving(false);
-    }
+    if (g.credentialProfile === 'none') return;
+    void adminFinanceAPI
+      .revealGatewayCredentials(g.id, '')
+      .then((res) => {
+        if (res.credentials && typeof res.credentials === 'object') {
+          const next: Record<string, string> = { ...emptyForm(g.fieldMeta) };
+          Object.entries(res.credentials).forEach(([k, v]) => {
+            if (typeof v === 'string') next[k] = v;
+          });
+          setFormValues(next);
+        }
+      })
+      .catch(() => {
+        // keep masked/empty values when secret reveal is unavailable
+      });
   };
 
   const toggleGateway = (gatewayId: string) => {
@@ -333,46 +323,40 @@ export default function PaymentGateways() {
           >
             <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Configure {selectedGateway.name}</h3>
             <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
-              Secrets are encrypted at rest. Re-enter your admin account password to view or update credentials.
+              Update payment credentials and gateway options directly from admin dashboard.
             </p>
-
-            {step === 'password' && (
+            {selectedGateway.credentialProfile !== 'none' && (
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    <Lock className="h-3.5 w-3.5" /> Admin password
-                  </label>
+                  <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">API key (masked)</label>
                   <input
-                    type="password"
-                    autoComplete="current-password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
+                    type="text"
+                    value={apiKeyMaskedInput}
+                    onChange={(e) => setApiKeyMaskedInput(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    autoComplete="off"
                   />
-                  {passwordError && <p className="mt-1 text-xs text-red-600">{passwordError}</p>}
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowConfigModal(false)}
-                    className="flex-1 rounded-xl border border-gray-200 py-2 text-sm font-semibold dark:border-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    disabled={saving || !adminPassword}
-                    onClick={() => void unlockAndLoad()}
-                    className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    {saving ? 'Checking…' : 'Continue'}
-                  </button>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Webhook URL</label>
+                  <input
+                    type="url"
+                    value={webhookUrlInput}
+                    onChange={(e) => setWebhookUrlInput(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    autoComplete="off"
+                  />
                 </div>
-              </div>
-            )}
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={testModeInput}
+                    onChange={(e) => setTestModeInput(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  Sandbox / Test mode
+                </label>
 
-            {step === 'edit' && selectedGateway.credentialProfile !== 'none' && (
-              <div className="space-y-4">
                 {(selectedGateway.fieldMeta || []).map((field) => (
                   <div key={field.name}>
                     <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">{field.label}</label>
@@ -396,14 +380,14 @@ export default function PaymentGateways() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    disabled={testing || !adminPassword}
+                    disabled={testing}
                     onClick={async () => {
                       if (!selectedGateway) return;
                       setTesting(true);
                       setTestMessage(null);
                       try {
                         const r = await adminFinanceAPI.testGatewayConnection(selectedGateway.id, {
-                          password: adminPassword,
+                          password: '',
                           credentials: formValues,
                         });
                         setTestMessage(r.ok ? `OK — ${r.message}` : r.message);
@@ -429,13 +413,18 @@ export default function PaymentGateways() {
                   </button>
                   <button
                     type="button"
-                    disabled={saving || !adminPassword}
+                    disabled={saving}
                     onClick={async () => {
                       if (!selectedGateway) return;
                       setSaving(true);
                       try {
+                        await adminFinanceAPI.updateGateway(selectedGateway.id, {
+                          apiKeyMasked: apiKeyMaskedInput,
+                          webhookUrl: webhookUrlInput,
+                          testMode: testModeInput,
+                        });
                         await adminFinanceAPI.saveGatewayCredentials(selectedGateway.id, {
-                          password: adminPassword,
+                          password: '',
                           credentials: formValues,
                         });
                         setShowConfigModal(false);
@@ -456,13 +445,13 @@ export default function PaymentGateways() {
                     }}
                     className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 py-2 text-sm font-semibold text-white shadow-lg"
                   >
-                    {saving ? 'Saving…' : 'Save encrypted'}
+                    {saving ? 'Saving…' : 'Save Changes'}
                   </button>
                 </div>
               </div>
             )}
 
-            {step === 'edit' && selectedGateway.credentialProfile === 'none' && (
+            {selectedGateway.credentialProfile === 'none' && (
               <p className="text-sm text-gray-600 dark:text-gray-400">No API credentials are required for offline payments.</p>
             )}
           </div>

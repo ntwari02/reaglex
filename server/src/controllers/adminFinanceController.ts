@@ -52,6 +52,16 @@ async function verifyAdminPassword(req: AuthenticatedRequest, password: unknown)
   return bcrypt.compare(pw, user.passwordHash);
 }
 
+/**
+ * Allow secret operations for authenticated admin sessions directly.
+ * If password is provided, verify it; if omitted, rely on admin session auth.
+ */
+async function allowGatewaySecretOperation(req: AuthenticatedRequest, password: unknown): Promise<boolean> {
+  const pw = typeof password === 'string' ? password.trim() : '';
+  if (!pw) return !!req.user && req.user.role === 'admin';
+  return verifyAdminPassword(req, pw);
+}
+
 /** GET /api/admin/finance/dashboard - metrics + revenue over time */
 export async function getDashboard(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
@@ -430,7 +440,7 @@ export async function revealGatewayCredentials(req: AuthenticatedRequest, res: R
   if (!ensureAdmin(req, res)) return;
   try {
     const { password } = req.body as { password?: string };
-    if (!(await verifyAdminPassword(req, password))) {
+    if (!(await allowGatewaySecretOperation(req, password))) {
       return res.status(401).json({ message: 'Invalid password' });
     }
     const g = await PaymentGatewayConfig.findById(req.params.id);
@@ -459,7 +469,7 @@ export async function saveGatewayCredentials(req: AuthenticatedRequest, res: Res
   if (!ensureAdmin(req, res)) return;
   try {
     const { password, credentials } = req.body as { password?: string; credentials?: Record<string, unknown> };
-    if (!(await verifyAdminPassword(req, password))) {
+    if (!(await allowGatewaySecretOperation(req, password))) {
       return res.status(401).json({ message: 'Invalid password' });
     }
     if (!credentials || typeof credentials !== 'object') {
@@ -492,7 +502,7 @@ export async function testGatewayConnection(req: AuthenticatedRequest, res: Resp
   if (!ensureAdmin(req, res)) return;
   try {
     const { password, credentials } = req.body as { password?: string; credentials?: Record<string, unknown> };
-    if (!(await verifyAdminPassword(req, password))) {
+    if (!(await allowGatewaySecretOperation(req, password))) {
       return res.status(401).json({ message: 'Invalid password' });
     }
     const g = await PaymentGatewayConfig.findById(req.params.id);
