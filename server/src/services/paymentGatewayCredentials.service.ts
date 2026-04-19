@@ -140,9 +140,21 @@ export function getFieldMetaForProfile(profile: CredentialProfile): GatewayField
         { name: 'secretKey', label: 'Secret Key', kind: 'secret' },
         { name: 'webhookUrl', label: 'Webhook URL', kind: 'url' },
       ];
+    case 'none':
+      return [];
     default:
       return [];
   }
+}
+
+/**
+ * Field definitions for the admin UI must follow the gateway **key**, not a possibly stale
+ * `credentialProfile` stored in MongoDB (invalid values produced an empty form).
+ */
+export function getFieldMetaForGatewayKey(key: string): GatewayFieldMeta[] {
+  const def = GATEWAY_REGISTRY.find((x) => x.key === key);
+  const profile = def?.profile ?? resolveProfileForKey(key);
+  return getFieldMetaForProfile(profile);
 }
 
 function maskValue(v: string): string {

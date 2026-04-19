@@ -15,7 +15,7 @@ import {
   buildAirtelDraftConfigFromMerged,
   buildMaskedSummary,
   GATEWAY_REGISTRY,
-  getFieldMetaForProfile,
+  getFieldMetaForGatewayKey,
   getMomoResolvedConfig,
   invalidatePaymentRuntimeCaches,
   isGatewayFullyConfigured,
@@ -355,7 +355,8 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
 
     const gateways = await Promise.all(
       ordered.map(async (g: any) => {
-        const profile = (g.credentialProfile || resolveProfileForKey(g.key)) as CredentialProfile;
+        const registryDef = GATEWAY_REGISTRY.find((d) => d.key === g.key);
+        const canonicalProfile = (registryDef?.profile ?? resolveProfileForKey(g.key)) as CredentialProfile;
         let configured = false;
         try {
           configured = await isGatewayFullyConfigured(g.key);
@@ -369,8 +370,8 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
           type: g.type,
           status: g.status,
           isEnabled: g.isEnabled,
-          credentialProfile: profile,
-          fieldMeta: getFieldMetaForProfile(profile),
+          credentialProfile: canonicalProfile,
+          fieldMeta: getFieldMetaForGatewayKey(g.key),
           maskedSummary: g.maskedSummary && typeof g.maskedSummary === 'object' ? g.maskedSummary : {},
           apiKeyMasked: g.apiKeyMasked,
           webhookUrl: g.webhookUrl,

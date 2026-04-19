@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Copy, Edit, TestTube, ScrollText } from 'lucide-react';
 import { adminFinanceAPI } from '@/lib/api';
+import { mergeFieldMetaFromApi } from './paymentGatewayFieldMetaFallback';
 
 type GatewayStatus = 'online' | 'offline' | 'issues';
 
@@ -66,11 +67,11 @@ export default function PaymentGateways() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const fallbackGateways: Gateway[] = [
-    { id: 'flutterwave', key: 'flutterwave', name: 'Flutterwave', type: 'Payment Gateway', status: 'offline', isEnabled: false },
-    { id: 'mtn_momo', key: 'mtn_momo', name: 'MTN Mobile Money', type: 'Mobile Money', status: 'offline', isEnabled: false },
-    { id: 'airtel_money', key: 'airtel_money', name: 'Airtel Money', type: 'Mobile Money', status: 'offline', isEnabled: false },
-    { id: 'stripe', key: 'stripe', name: 'Stripe', type: 'Card Payments', status: 'offline', isEnabled: false },
-    { id: 'paypal', key: 'paypal', name: 'PayPal', type: 'Digital Wallet', status: 'offline', isEnabled: false },
+    { id: 'flutterwave', key: 'flutterwave', name: 'Flutterwave', type: 'Payment Gateway', status: 'offline', isEnabled: false, fieldMeta: mergeFieldMetaFromApi('flutterwave', []) },
+    { id: 'mtn_momo', key: 'mtn_momo', name: 'MTN Mobile Money', type: 'Mobile Money', status: 'offline', isEnabled: false, fieldMeta: mergeFieldMetaFromApi('mtn_momo', []) },
+    { id: 'airtel_money', key: 'airtel_money', name: 'Airtel Money', type: 'Mobile Money', status: 'offline', isEnabled: false, fieldMeta: mergeFieldMetaFromApi('airtel_money', []) },
+    { id: 'stripe', key: 'stripe', name: 'Stripe', type: 'Card Payments', status: 'offline', isEnabled: false, fieldMeta: mergeFieldMetaFromApi('stripe', []) },
+    { id: 'paypal', key: 'paypal', name: 'PayPal', type: 'Digital Wallet', status: 'offline', isEnabled: false, fieldMeta: mergeFieldMetaFromApi('paypal', []) },
   ];
 
   const loadGateways = useCallback((silent = false) => {
@@ -88,7 +89,7 @@ export default function PaymentGateways() {
             status: g.status,
             isEnabled: g.isEnabled,
             credentialProfile: g.credentialProfile,
-            fieldMeta: g.fieldMeta,
+            fieldMeta: mergeFieldMetaFromApi(g.key, g.fieldMeta),
             maskedSummary: g.maskedSummary || {},
             suggestedWebhookUrl: g.suggestedWebhookUrl,
             isConfigured: g.isConfigured,
@@ -390,7 +391,11 @@ export default function PaymentGateways() {
             {selectedGateway.credentialProfile !== 'none' && (
               <div className="space-y-4">
                 {(selectedGateway.fieldMeta || []).length === 0 ? (
-                  <p className="text-sm text-amber-700 dark:text-amber-300">No field definitions for this profile.</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    No credential fields are defined for this gateway key ({selectedGateway.key || 'unknown'}). Ensure the
+                    server is updated and try refreshing; if this persists, the gateway may need to be re-seeded in the
+                    database.
+                  </p>
                 ) : (
                   (selectedGateway.fieldMeta || []).map((field, idx) => {
                     const prevField = (selectedGateway.fieldMeta || [])[idx - 1];
