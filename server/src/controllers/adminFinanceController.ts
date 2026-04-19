@@ -334,14 +334,35 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
     await ensureCorePaymentGateways();
     const rows = await PaymentGatewayConfig.find().lean();
     const byKey = new Map(rows.map((r: any) => [r.key, r]));
-    const ordered = GATEWAY_REGISTRY.map((def) => byKey.get(def.key)).filter(Boolean) as any[];
+    const ordered = GATEWAY_REGISTRY.map((def) => byKey.get(def.key) || {
+      _id: null,
+      key: def.key,
+      name: def.name,
+      type: def.type,
+      status: def.defaultEnabled ? 'online' : 'offline',
+      isEnabled: def.defaultEnabled,
+      credentialProfile: def.profile,
+      maskedSummary: {},
+      issues: [],
+      testMode: false,
+      healthLogs: [],
+    });
 
     const gateways = await Promise.all(
       ordered.map(async (g: any) => {
         const profile = (g.credentialProfile || resolveProfileForKey(g.key)) as CredentialProfile;
-        const configured = await isGatewayFullyConfigured(g.key);
+        let configured = false;
+        try {
+          configured = await isGatewayFullyConfigured(g.key);
+        } catch {
+          configured = false;
+        }
+        const stripeWebhookSuggestion =
+          g.key === 'stripe' && suggestedFlutterwaveWebhookUrl()
+            ? `${suggestedFlutterwaveWebhookUrl().replace('/flutterwave/webhook', '/stripe/webhook')}`
+            : undefined;
         return {
-          id: g._id.toString(),
+          id: g._id ? g._id.toString() : g.key,
           key: g.key,
           name: g.name,
           type: g.type,
@@ -357,6 +378,8 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
               ? suggestedFlutterwaveWebhookUrl()
               : g.key === 'mtn_momo'
                 ? suggestedMomoCallbackUrl()
+                : g.key === 'stripe'
+                  ? stripeWebhookSuggestion
                 : undefined,
           isConfigured: configured,
           lastChecked: g.lastChecked,

@@ -47,12 +47,22 @@ export default function PaymentGateways() {
   const [testing, setTesting] = useState(false);
   const [testMessage, setTestMessage] = useState<string | null>(null);
   const [showLogs, setShowLogs] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const fallbackGateways: Gateway[] = [
+    { id: 'flutterwave', key: 'flutterwave', name: 'Flutterwave', type: 'Payment Gateway', status: 'offline', isEnabled: false },
+    { id: 'mtn_momo', key: 'mtn_momo', name: 'MTN Mobile Money', type: 'Mobile Money', status: 'offline', isEnabled: false },
+    { id: 'airtel_money', key: 'airtel_money', name: 'Airtel Money', type: 'Mobile Money', status: 'offline', isEnabled: false },
+    { id: 'stripe', key: 'stripe', name: 'Stripe', type: 'Card Payments', status: 'offline', isEnabled: false },
+    { id: 'paypal', key: 'paypal', name: 'PayPal', type: 'Digital Wallet', status: 'offline', isEnabled: false },
+  ];
 
   const loadGateways = useCallback((silent = false) => {
     if (!silent) setLoading(true);
     adminFinanceAPI
       .getGateways()
       .then((res) => {
+        setLoadError(null);
         setGateways(
           (res.gateways || []).map((g: any) => ({
             id: g.id,
@@ -75,7 +85,11 @@ export default function PaymentGateways() {
           }))
         );
       })
-      .catch(() => setGateways([]))
+      .catch((err: any) => {
+        const msg = err?.message || err?.response?.data?.message || 'Failed to load payment gateways';
+        setLoadError(msg);
+        setGateways(fallbackGateways);
+      })
       .finally(() => {
         if (!silent) setLoading(false);
       });
@@ -177,11 +191,14 @@ export default function PaymentGateways() {
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Payment gateways</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Checkout uses <strong className="font-medium text-gray-800 dark:text-gray-200">Flutterwave</strong> for cards/hosted
-          checkout and <strong className="font-medium text-gray-800 dark:text-gray-200">MTN MoMo Rwanda</strong> for direct
-          mobile money. Other providers are stored for administration; enable only after credentials are saved and tested.
+          Admin can configure gateway credentials directly here. No .env edits are required once credentials are saved in this dashboard.
         </p>
       </div>
+      {loadError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+          {loadError}
+        </div>
+      )}
 
       {loading && <div className="text-center text-gray-500 py-4">Loading...</div>}
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
