@@ -32,7 +32,6 @@ export function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [referralOpen, setReferralOpen] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [referralProgramEnabled, setReferralProgramEnabled] = useState(true);
   const [biometricLoading, setBiometricLoading] = useState(false);
@@ -49,7 +48,6 @@ export function Signup() {
   useEffect(() => {
     if (!referralProgramEnabled || !referralFromUrl) return;
     setReferralCode(referralFromUrl.toUpperCase());
-    setReferralOpen(true);
   }, [referralProgramEnabled, referralFromUrl]);
 
   const fullName = `${formData.firstName || ''} ${formData.lastName || ''}`.trim();
@@ -456,38 +454,30 @@ export function Signup() {
 
         {/* Referral code (optional) — hidden when admin disables the program */}
         {referralProgramEnabled ? (
-          <div className="space-y-1">
-            {!referralOpen ? (
-              <button
-                type="button"
-                onClick={() => setReferralOpen(true)}
-                className="text-[13px] font-medium"
-                style={{ color: '#f97316' }}
-              >
-                Have a referral code?
-              </button>
-            ) : (
-              <div className="space-y-1.5">
-                <label
-                  className="text-[13px] font-medium"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  Referral code (optional)
-                </label>
-                <input
-                  type="text"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
-                  placeholder="Enter referral code"
-                  className="w-full h-[48px] rounded-[14px] px-4 text-[14px] outline-none bg-[var(--bg-secondary)]"
-                  style={{
-                    boxShadow:
-                      '0 0 0 1.5px rgba(0,0,0,0.08)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-              </div>
-            )}
+          <div className="space-y-1.5">
+            {referralFromUrl ? (
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                Referral from link applied. You can edit the code below.
+              </p>
+            ) : null}
+            <label
+              className="text-[13px] font-medium"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Referral code (optional)
+            </label>
+            <input
+              type="text"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value)}
+              placeholder="Enter referral code"
+              className="w-full h-[48px] rounded-[14px] px-4 text-[14px] outline-none bg-[var(--bg-secondary)]"
+              style={{
+                boxShadow:
+                  '0 0 0 1.5px rgba(0,0,0,0.08)',
+                color: 'var(--text-primary)',
+              }}
+            />
           </div>
         ) : null}
 

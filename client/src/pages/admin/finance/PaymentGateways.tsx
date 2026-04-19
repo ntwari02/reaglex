@@ -200,12 +200,12 @@ export default function PaymentGateways() {
         </div>
       )}
 
-      {loading && <div className="text-center text-gray-500 py-4">Loading...</div>}
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      {loading && <div className="py-4 text-center text-gray-500">Loading...</div>}
+      <div className="space-y-4">
         {gateways.map((gateway) => (
           <div
             key={gateway.id}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900"
+            className="rounded-2xl border border-gray-200 bg-white p-5 shadow dark:border-gray-800 dark:bg-gray-900"
           >
             <div className="mb-4 flex items-start justify-between gap-2">
               <div>

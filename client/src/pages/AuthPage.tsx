@@ -340,7 +340,6 @@ function SignupFormContent({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [referralProgramEnabled, setReferralProgramEnabled] = useState(true);
-  const [referralOpen, setReferralOpen] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const strength = getPasswordStrength(fd.password);
   const reqs = checkPasswordReqs(fd.password);
@@ -360,7 +359,6 @@ function SignupFormContent({
   useEffect(() => {
     if (!referralProgramEnabled || !referralFromUrl) return;
     setReferralCode(referralFromUrl.toUpperCase());
-    setReferralOpen(true);
   }, [referralProgramEnabled, referralFromUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -494,31 +492,18 @@ function SignupFormContent({
 
       {referralProgramEnabled ? (
         <div className="space-y-1">
-          {!referralOpen ? (
-            <button
-              type="button"
-              onClick={() => setReferralOpen(true)}
-              className="text-[12px] font-semibold hover:underline"
-              style={{ color: PRIMARY }}
-            >
-              Have a referral code?
-            </button>
-          ) : (
-            <div className="space-y-1">
-              {referralFromUrl ? (
-                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  Referral from link applied — you can edit the code below.
-                </p>
-              ) : null}
-              <PremiumInput
-                label="Referral code (optional)"
-                value={referralCode}
-                onChange={(v) => setReferralCode(v)}
-                placeholder="e.g. RX-xxxxxxxx"
-                leftIcon={User}
-              />
-            </div>
-          )}
+          {referralFromUrl ? (
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              Referral from link applied — you can edit the code below.
+            </p>
+          ) : null}
+          <PremiumInput
+            label="Referral code (optional)"
+            value={referralCode}
+            onChange={(v) => setReferralCode(v)}
+            placeholder="e.g. RX-xxxxxxxx"
+            leftIcon={User}
+          />
         </div>
       ) : null}
 
