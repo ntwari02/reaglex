@@ -4,8 +4,11 @@ import {
   initializePayment,
   verifyPayment,
   syncMomoOrderPayment,
+  syncAirtelOrderPayment,
   handleMomoCallbackPayload,
 } from '../services/paymentService';
+import { processStripeCheckoutSession } from '../services/stripeCheckout.service';
+import { capturePayPalOrder } from '../services/paypalCheckout.service';
 import {
   assertPaymentGatewayEnabled,
   PaymentGatewayDisabledError,
@@ -22,13 +25,23 @@ const router = Router();
 const MOMO_REFERENCE_UUID =
   /^[\da-f]{8}-[\da-f]{4}-[1-5][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 
-// Initialize payment (Flutterwave or MTN MoMo Collections)
+function mapCheckoutPaymentMethod(raw?: string): 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel' {
+  const m = String(raw || 'flutterwave').toLowerCase();
+  if (m === 'momo' || m === 'mtn' || m === 'mtn_momo') return 'momo';
+  if (m === 'stripe') return 'stripe';
+  if (m === 'paypal') return 'paypal';
+  if (m === 'airtel' || m === 'airtel_money') return 'airtel';
+  return 'flutterwave';
+}
+
+// Initialize payment (Flutterwave, MTN, Stripe Checkout, PayPal, Airtel)
 router.post('/initialize', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { orderId, paymentMethod: rawMethod, momoPhone } = req.body as {
+    const { orderId, paymentMethod: rawMethod, momoPhone, airtelPhone } = req.body as {
       orderId?: string;
       paymentMethod?: string;
       momoPhone?: string;
+      airtelPhone?: string;
     };
     if (!orderId) {
       return res.status(400).json({ message: 'orderId is required' });
@@ -43,7 +56,7 @@ router.post('/initialize', authenticate, async (req: AuthenticatedRequest, res: 
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    const paymentMethod = rawMethod === 'momo' ? 'momo' : 'flutterwave';
+    const paymentMethod = mapCheckoutPaymentMethod(rawMethod);
 
     const paymentInit = await initializePayment(
       orderId,
@@ -53,7 +66,7 @@ router.post('/initialize', authenticate, async (req: AuthenticatedRequest, res: 
         phone: req.user.phone,
         fullName: req.user.fullName ?? req.user.email,
       } as any,
-      { paymentMethod, momoPhone }
+      { paymentMethod, momoPhone, airtelPhone }
     );
 
     return res.json(paymentInit);
@@ -129,6 +142,69 @@ router.post('/momo/callback', async (req, res) => {
     // eslint-disable-next-line no-console
     console.error('MoMo callback error:', err);
     return res.status(500).json({ ok: false, message: err?.message || 'Callback failed' });
+  }
+});
+
+// Stripe Checkout: complete after redirect (SPA calls this with session_id)
+router.get('/stripe/complete', async (req, res) => {
+  try {
+    const sessionId = String((req.query as { session_id?: string }).session_id || '').trim();
+    if (!sessionId) {
+      return res.status(400).json({ message: 'session_id is required' });
+    }
+    await assertPaymentGatewayEnabled('stripe');
+    const out = await processStripeCheckoutSession(sessionId);
+    return res.json(out);
+  } catch (err: unknown) {
+    const e = err as { message?: string };
+    if (err instanceof PaymentGatewayDisabledError) {
+      return res.status(403).json({ message: 'Stripe is disabled', code: err.code });
+    }
+    return res.status(500).json({ message: e?.message || 'Stripe completion failed' });
+  }
+});
+
+// PayPal: return handler — query token is the PayPal order ID
+router.get('/paypal/complete', async (req, res) => {
+  try {
+    const token = String((req.query as { token?: string }).token || '').trim();
+    if (!token) {
+      return res.status(400).json({ message: 'token (PayPal order id) is required' });
+    }
+    await assertPaymentGatewayEnabled('paypal');
+    const out = await capturePayPalOrder(token);
+    return res.json(out);
+  } catch (err: unknown) {
+    const e = err as { message?: string };
+    if (err instanceof PaymentGatewayDisabledError) {
+      return res.status(403).json({ message: 'PayPal is disabled', code: err.code });
+    }
+    return res.status(500).json({ message: e?.message || 'PayPal capture failed' });
+  }
+});
+
+// Airtel Money: poll collection status
+router.get('/airtel/status/:transactionId', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const { transactionId } = req.params;
+    if (!transactionId?.trim()) {
+      return res.status(400).json({ message: 'Invalid transaction id' });
+    }
+    await assertPaymentGatewayEnabled('airtel_money');
+    const result = await syncAirtelOrderPayment(transactionId.trim(), { buyerUserId: req.user.id });
+    return res.json(result);
+  } catch (err: any) {
+    if (err instanceof PaymentGatewayDisabledError) {
+      return res.status(403).json({
+        message: 'This payment method is currently disabled',
+        code: err.code,
+        gatewayKey: err.gatewayKey,
+      });
+    }
+    return res.status(500).json({ message: err?.message || 'Failed to sync Airtel payment' });
   }
 });
 

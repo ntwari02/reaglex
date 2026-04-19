@@ -157,6 +157,7 @@
       "productUnavailable": "Ikintu mu gitebo ntabwo gihari cyangwa ntigishoboka.",
       "gatewayDisabled": "Ubu buryo bwo kwishyura burahagaritswe. Hitamo ubundi cyangwa ongera ugerageze nyuma.",
       "momoPhoneRequired": "Injiza nimero ya MTN MoMo izemeza kwishyura.",
+      "airtelPhoneRequired": "Injiza nimero ya Airtel Money izemeza kwishyura.",
       "noGateway": "Nta buryo bwo kwishyura buzakira ubu. Hamagara ubufasha cyangwa ongera ugerageze."
     },
     "gatewayHint": "Hitamo uburyo bwo kwishyura. Amahitamo aboneka agenzurwa na komisiyo.",
@@ -169,6 +170,17 @@
     "momoPayerPhonePh": "Urugero: 078xxxxxxx cyangwa 25078xxxxxxx",
     "momoPayerHint": "Igomba kuba MTN MoMo Rwanda. Amafaranga avanwa mu RWF (ahagaze ku mubare wuzuye).",
     "flutterwaveHosted": "Nyuma yo gutanga itumiza uzoherezwa kuri Flutterwave kugira ngo urangize kwishyura.",
+    "payStripe": "Stripe (ikarita)",
+    "payStripeSub": "Ishyura ikarita kuri Stripe — USD iyo ibisaba.",
+    "payPaypal": "PayPal",
+    "payPaypalSub": "Injira kuri PayPal wemeze kwishyura.",
+    "payAirtel": "Airtel Money",
+    "payAirtelSub": "Uzabona ubutumwa kuri telefoni yawe ya Airtel wemeze umubare mu RWF.",
+    "airtelPayerPhone": "Nimero ya Airtel Money",
+    "airtelPayerPhonePh": "Urugero: 073xxxxxxx cyangwa 25073xxxxxxx",
+    "airtelPayerHint": "Igomba kuba Airtel Money Rwanda. Amafaranga avanwa mu RWF.",
+    "stripeHosted": "Nyuma yo gutanga itumiza uzoherezwa kuri Stripe kugira ngo urangize kwishyura.",
+    "paypalHosted": "Nyuma yo gutanga itumiza uzoherezwa kuri PayPal kugira ngo wemeze kwishyura.",
     "momoWait": {
       "title": "Rangiza kwishyura kuri MTN MoMo",
       "subtitle": "Emeza kwishyura kuri telefoni. Urupapuro ruzakoreshwa ubwawe iyo MTN yemeje.",
@@ -182,6 +194,12 @@
       "success": "Kwishyura byemejwe.",
       "failed": "MTN yemeje ko kwishyura byanze. Subira ku kwishyura ugerageze.",
       "backCheckout": "Subira ku kwishyura"
+    },
+    "airtelWait": {
+      "title": "Rangiza kwishyura kuri Airtel Money",
+      "subtitle": "Emeza kwishyura kuri telefoni. Urupapuro ruzakoreshwa iyo Airtel yemeje.",
+      "pending": "Biracyategerejwe — reba telefoni yawe.",
+      "failed": "Airtel yemeje ko kwishyura byanze. Subira ku kwishyura ugerageze."
     },
     "emptyCart": "Ikarita irimo ubusa",
     "shopNow": "Gura ubu",

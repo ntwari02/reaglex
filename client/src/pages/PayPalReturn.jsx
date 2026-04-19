@@ -1,0 +1,63 @@
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import BuyerLayout from '../components/buyer/BuyerLayout';
+import { paymentAPI } from '../services/api';
+
+/**
+ * PayPal return_url lands here with ?token=<paypal_order_id>&orderId=...&PayerID=...
+ * Server captures and finalizes via GET /api/payments/paypal/complete?token=
+ */
+export default function PayPalReturn() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [msg, setMsg] = useState('');
+
+  const token = searchParams.get('token') || '';
+
+  useEffect(() => {
+    if (!token) {
+      setMsg('Missing PayPal token. Return to checkout and try again.');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const out = await paymentAPI.paypalComplete(token);
+        if (cancelled) return;
+        if (out?.ok && out?.orderId) {
+          navigate(`/order-confirmation/${encodeURIComponent(out.orderId)}`, { replace: true });
+          return;
+        }
+        setMsg(out?.message || 'PayPal payment could not be completed. Check your orders or contact support.');
+      } catch (e) {
+        if (!cancelled) {
+          setMsg(e?.response?.data?.message || e?.message || 'Could not complete PayPal payment.');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, navigate]);
+
+  return (
+    <BuyerLayout>
+      <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center px-4 py-16 text-center">
+        {!msg && token ? (
+          <>
+            <Loader2 className="mb-4 h-10 w-10 animate-spin text-orange-500" />
+            <p className="text-sm text-gray-600 dark:text-gray-400">Completing PayPal payment…</p>
+          </>
+        ) : (
+          <>
+            <p className="mb-6 text-sm text-gray-700 dark:text-gray-300">{msg}</p>
+            <Link to="/checkout" className="text-sm font-semibold text-orange-500 hover:underline">
+              Back to checkout
+            </Link>
+          </>
+        )}
+      </div>
+    </BuyerLayout>
+  );
+}

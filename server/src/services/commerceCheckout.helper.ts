@@ -6,6 +6,9 @@ import { initializePayment } from './paymentService';
 
 export type ShippingSpeed = 'standard' | 'express' | 'international';
 
+/** Must match enabled gateways + `initializePayment` processors. */
+export type CommerceCheckoutProvider = 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
+
 export interface CommerceShippingInput {
   fullName: string;
   phone: string;
@@ -23,15 +26,26 @@ export interface PerformCheckoutInput {
   quantity: number;
   shipping: CommerceShippingInput;
   shippingSpeed: ShippingSpeed;
+  /** Defaults to flutterwave. Must be enabled & configured server-side. */
+  paymentProvider?: CommerceCheckoutProvider | string;
+  /** MTN MoMo payer wallet (required when paymentProvider is momo if not inferable from shipping.phone). */
+  momoPhone?: string;
+  /** Airtel Money wallet (required when paymentProvider is airtel if not inferable from shipping.phone). */
+  airtelPhone?: string;
 }
 
 export interface PerformCheckoutResult {
   ok: boolean;
   error?: string;
   orderNumber?: string;
+  /** Mongo order id — required for MoMo/Airtel status polling URLs */
+  orderId?: string;
   paymentLink?: string;
+  provider?: CommerceCheckoutProvider;
+  referenceId?: string;
   amount?: number;
   currency?: string;
+  message?: string;
 }
 
 function shippingCost(speed: ShippingSpeed): number {
@@ -40,9 +54,18 @@ function shippingCost(speed: ShippingSpeed): number {
   return 5;
 }
 
+export function normalizeCommerceProvider(raw?: string): CommerceCheckoutProvider {
+  const m = String(raw || 'flutterwave').toLowerCase();
+  if (m === 'momo' || m === 'mtn' || m === 'mtn_momo') return 'momo';
+  if (m === 'stripe') return 'stripe';
+  if (m === 'paypal') return 'paypal';
+  if (m === 'airtel' || m === 'airtel_money') return 'airtel';
+  return 'flutterwave';
+}
+
 /**
  * Single-seller checkout used by the AI agent and the assistant checkout form.
- * Creates a pending order and returns a Flutterwave payment link when configured.
+ * Creates a pending order and starts payment (Flutterwave link, Stripe/PayPal redirect, or MoMo/Airtel push).
  */
 export async function performCheckoutSingleProduct(
   input: PerformCheckoutInput
@@ -77,6 +100,7 @@ export async function performCheckoutSingleProduct(
       return { ok: false, error: 'Insufficient stock for the requested quantity' };
     }
 
+    const provider = normalizeCommerceProvider(input.paymentProvider);
     const sellerId = product.sellerId;
     const subtotal = product.price * qty;
     const discount = 0;
@@ -88,6 +112,8 @@ export async function performCheckoutSingleProduct(
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
 
     const sh = input.shipping;
+    const orderPaymentMethod = provider === 'momo' || provider === 'airtel' ? 'RWF' : 'card';
+
     const order = new Order({
       sellerId,
       buyerId: buyerOid,
@@ -117,7 +143,7 @@ export async function performCheckoutSingleProduct(
         zip: sh.postalCode || '',
         country: sh.country,
       },
-      paymentMethod: 'card',
+      paymentMethod: orderPaymentMethod,
       timeline: [
         {
           status: 'pending',
@@ -135,25 +161,88 @@ export async function performCheckoutSingleProduct(
         _id: user._id.toString(),
         email: user.email || '',
         phone: user.phone,
-        fullName: (user as any).fullName ?? user.email ?? 'Customer',
+        fullName: (user as { fullName?: string }).fullName ?? user.email ?? 'Customer',
       },
-      { paymentMethod: 'flutterwave' }
+      {
+        paymentMethod: provider,
+        momoPhone: provider === 'momo' ? input.momoPhone || sh.phone : undefined,
+        airtelPhone: provider === 'airtel' ? input.airtelPhone || sh.phone : undefined,
+      }
     );
 
-    const currency = order.paymentMethod === 'RWF' ? 'RWF' : 'USD';
+    const oid = order._id.toString();
+    const cur =
+      provider === 'momo' || provider === 'airtel'
+        ? 'RWF'
+        : orderPaymentMethod === 'RWF'
+          ? 'RWF'
+          : 'USD';
 
-    if (paymentInit.provider !== 'flutterwave' || !paymentInit.paymentLink) {
-      return { ok: false, error: 'Checkout requires Flutterwave for this flow' };
+    if (paymentInit.provider === 'flutterwave' && 'paymentLink' in paymentInit && paymentInit.paymentLink) {
+      return {
+        ok: true,
+        orderNumber: order.orderNumber,
+        orderId: oid,
+        paymentLink: paymentInit.paymentLink,
+        provider: 'flutterwave',
+        amount: paymentInit.amount,
+        currency: cur,
+      };
     }
 
-    return {
-      ok: true,
-      orderNumber: order.orderNumber,
-      paymentLink: paymentInit.paymentLink,
-      amount: paymentInit.amount,
-      currency,
-    };
-  } catch (err: any) {
-    return { ok: false, error: err?.message || 'Checkout failed' };
+    if (paymentInit.provider === 'stripe' && 'paymentLink' in paymentInit && paymentInit.paymentLink) {
+      return {
+        ok: true,
+        orderNumber: order.orderNumber,
+        orderId: oid,
+        paymentLink: paymentInit.paymentLink,
+        provider: 'stripe',
+        amount: paymentInit.amount,
+        currency: cur,
+      };
+    }
+
+    if (paymentInit.provider === 'paypal' && 'paymentLink' in paymentInit && paymentInit.paymentLink) {
+      return {
+        ok: true,
+        orderNumber: order.orderNumber,
+        orderId: oid,
+        paymentLink: paymentInit.paymentLink,
+        provider: 'paypal',
+        amount: paymentInit.amount,
+        currency: cur,
+      };
+    }
+
+    if (paymentInit.provider === 'momo' && 'referenceId' in paymentInit && paymentInit.referenceId) {
+      return {
+        ok: true,
+        orderNumber: order.orderNumber,
+        orderId: oid,
+        provider: 'momo',
+        referenceId: paymentInit.referenceId,
+        amount: paymentInit.amount,
+        currency: 'RWF',
+        message: paymentInit.message,
+      };
+    }
+
+    if (paymentInit.provider === 'airtel' && 'referenceId' in paymentInit && paymentInit.referenceId) {
+      return {
+        ok: true,
+        orderNumber: order.orderNumber,
+        orderId: oid,
+        provider: 'airtel',
+        referenceId: paymentInit.referenceId,
+        amount: paymentInit.amount,
+        currency: 'RWF',
+        message: paymentInit.message,
+      };
+    }
+
+    return { ok: false, error: 'Payment could not be started for the selected method' };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Checkout failed';
+    return { ok: false, error: msg };
   }
 }

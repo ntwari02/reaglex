@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { randomUUID } from 'crypto';
+import { getMomoResolvedConfig, type MomoResolvedConfig } from './paymentGatewayCredentials.service';
 import { getServerUrl, isProductionNodeEnv } from '../config/publicEnv';
 
 type MomoTokenResponse = {
@@ -31,32 +32,51 @@ export function clearMomoTokenCache(): void {
   cachedToken = null;
 }
 
-function momoConfig() {
-  const baseUrl = (process.env.MOMO_BASE_URL || '').trim().replace(/\/$/, '');
-  const subscriptionKey = (process.env.MOMO_SUBSCRIPTION_KEY || '').trim();
-  const apiUser = (process.env.MOMO_API_USER || '').trim();
-  const apiKey = (process.env.MOMO_API_KEY || '').trim();
-  const targetEnvironment = (process.env.MOMO_TARGET_ENVIRONMENT || 'sandbox').trim();
-  return { baseUrl, subscriptionKey, apiUser, apiKey, targetEnvironment };
-}
-
-export function isMomoConfigured(): boolean {
-  const c = momoConfig();
-  return Boolean(c.baseUrl && c.subscriptionKey && c.apiUser && c.apiKey);
-}
-
 function basicAuthHeader(apiUser: string, apiKey: string): string {
   const raw = `${apiUser}:${apiKey}`;
   return `Basic ${Buffer.from(raw, 'utf8').toString('base64')}`;
+}
+
+async function resolveConfig(): Promise<MomoResolvedConfig | null> {
+  return getMomoResolvedConfig();
+}
+
+export async function isMomoConfigured(): Promise<boolean> {
+  const c = await resolveConfig();
+  return Boolean(c);
+}
+
+/**
+ * Public HTTPS URL MTN will POST callbacks to. Uses stored callback, MOMO_CALLBACK_URL, or SERVER_URL + path.
+ */
+export async function buildDefaultMomoCallbackUrl(): Promise<string | undefined> {
+  const c = await resolveConfig();
+  const fromCfg = c?.callbackUrl?.trim().replace(/\/$/, '');
+  if (fromCfg) return fromCfg;
+  const explicit = (process.env.MOMO_CALLBACK_URL || '').trim().replace(/\/$/, '');
+  if (explicit) return explicit;
+  const base = getServerUrl();
+  if (!base) return undefined;
+  return `${base.replace(/\/$/, '')}/api/payments/momo/callback`;
+}
+
+export async function assertMomoCallbackUrlProductionSafe(): Promise<void> {
+  const url = await buildDefaultMomoCallbackUrl();
+  if (!isProductionNodeEnv()) return;
+  if (!url || /localhost|127\.0\.0\.1/i.test(url)) {
+    throw new Error(
+      'MoMo requires a public callback URL. Set callback in Admin → MTN MoMo, or MOMO_CALLBACK_URL / SERVER_URL on the host.'
+    );
+  }
 }
 
 /**
  * Collections OAuth token (Basic API_USER:API_KEY). Cached until shortly before `expires_in` (default 3600s).
  */
 export async function getMomoAccessToken(): Promise<string> {
-  const { baseUrl, subscriptionKey, apiUser, apiKey, targetEnvironment } = momoConfig();
-  if (!baseUrl || !subscriptionKey || !apiUser || !apiKey) {
-    throw new Error('MTN MoMo is not configured (missing MOMO_* environment variables)');
+  const cfg = await resolveConfig();
+  if (!cfg) {
+    throw new Error('MTN MoMo is not configured (Admin Finance or MOMO_* environment variables)');
   }
 
   const now = Date.now();
@@ -64,16 +84,16 @@ export async function getMomoAccessToken(): Promise<string> {
     return cachedToken.token;
   }
 
-  const url = `${baseUrl}/collection/token/`;
+  const url = `${cfg.baseUrl}/collection/token/`;
   try {
     const { data } = await axios.post<MomoTokenResponse>(
       url,
       {},
       {
         headers: {
-          Authorization: basicAuthHeader(apiUser, apiKey),
-          'Ocp-Apim-Subscription-Key': subscriptionKey,
-          'X-Target-Environment': targetEnvironment,
+          Authorization: basicAuthHeader(cfg.apiUser, cfg.apiKey),
+          'Ocp-Apim-Subscription-Key': cfg.subscriptionKey,
+          'X-Target-Environment': cfg.targetEnvironment,
         },
         timeout: 25_000,
       }
@@ -100,51 +120,26 @@ export async function getMomoAccessToken(): Promise<string> {
   }
 }
 
-/**
- * Public HTTPS URL MTN will POST callbacks to. Prefer MOMO_CALLBACK_URL in production
- * (full URL including /api/payments/momo/callback). Otherwise SERVER_URL (or RENDER_EXTERNAL_URL / APP_URL) + path.
- */
-export function buildDefaultMomoCallbackUrl(): string | undefined {
-  const explicit = (process.env.MOMO_CALLBACK_URL || '').trim().replace(/\/$/, '');
-  if (explicit) return explicit;
-  const base = getServerUrl();
-  if (!base) return undefined;
-  return `${base.replace(/\/$/, '')}/api/payments/momo/callback`;
-}
-
-export function assertMomoCallbackUrlProductionSafe(): void {
-  const url = buildDefaultMomoCallbackUrl();
-  if (!isProductionNodeEnv()) return;
-  if (!url || /localhost|127\.0\.0\.1/i.test(url)) {
-    throw new Error(
-      'MoMo requires a public callback URL. Set MOMO_CALLBACK_URL to https://your-api-host/.../momo/callback or set SERVER_URL to your hosted API base (not localhost).'
-    );
-  }
-}
-
-function collectionHeaders(token: string, extra?: Record<string, string>) {
-  const { subscriptionKey, targetEnvironment } = momoConfig();
+async function collectionHeaders(token: string, cfg: MomoResolvedConfig, extra?: Record<string, string>) {
   return {
     Authorization: `Bearer ${token}`,
-    'Ocp-Apim-Subscription-Key': subscriptionKey,
-    'X-Target-Environment': targetEnvironment,
+    'Ocp-Apim-Subscription-Key': cfg.subscriptionKey,
+    'X-Target-Environment': cfg.targetEnvironment,
     'Content-Type': 'application/json',
     ...extra,
   };
 }
 
-/**
- * Collections RequestToPay. `referenceId` must be a UUID (v4).
- * `amount` is minor units as string per MTN API (e.g. "1500" for 1500 RWF).
- */
 async function postRequestToPayOnce(
   url: string,
   body: Record<string, unknown>,
   referenceId: string,
-  token: string
+  token: string,
+  cfg: MomoResolvedConfig
 ) {
+  const h = await collectionHeaders(token, cfg, { 'X-Reference-Id': referenceId });
   return axios.post(url, body, {
-    headers: collectionHeaders(token, { 'X-Reference-Id': referenceId }),
+    headers: h,
     validateStatus: () => true,
     timeout: 35_000,
   });
@@ -159,11 +154,14 @@ export async function requestToPay(input: {
   payerMessage?: string;
   payeeNote?: string;
 }): Promise<MomoRequestToPayResult> {
-  const { baseUrl } = momoConfig();
+  const cfg = await resolveConfig();
+  if (!cfg) {
+    throw new Error('MTN MoMo is not configured');
+  }
   let token = await getMomoAccessToken();
-  const callbackUrl = buildDefaultMomoCallbackUrl();
+  const callbackUrl = await buildDefaultMomoCallbackUrl();
 
-  const url = `${baseUrl}/collection/v1_0/requesttopay`;
+  const url = `${cfg.baseUrl}/collection/v1_0/requesttopay`;
   const body: Record<string, unknown> = {
     amount: input.amount,
     currency: input.currency,
@@ -180,11 +178,11 @@ export async function requestToPay(input: {
   }
 
   try {
-    let res = await postRequestToPayOnce(url, body, input.referenceId, token);
+    let res = await postRequestToPayOnce(url, body, input.referenceId, token, cfg);
     if (res.status === 401) {
       clearMomoTokenCache();
       token = await getMomoAccessToken();
-      res = await postRequestToPayOnce(url, body, input.referenceId, token);
+      res = await postRequestToPayOnce(url, body, input.referenceId, token, cfg);
     }
 
     if (res.status === 202 || res.status === 201) {
@@ -202,20 +200,25 @@ export async function requestToPay(input: {
 }
 
 export async function getRequestToPayStatus(referenceId: string): Promise<MomoPaymentStatus> {
-  const { baseUrl } = momoConfig();
+  const cfg = await resolveConfig();
+  if (!cfg) {
+    throw new Error('MTN MoMo is not configured');
+  }
   let token = await getMomoAccessToken();
-  const url = `${baseUrl}/collection/v1_0/requesttopay/${encodeURIComponent(referenceId)}`;
+  const url = `${cfg.baseUrl}/collection/v1_0/requesttopay/${encodeURIComponent(referenceId)}`;
 
+  let h = await collectionHeaders(token, cfg, { 'X-Reference-Id': referenceId });
   let res = await axios.get(url, {
-    headers: collectionHeaders(token, { 'X-Reference-Id': referenceId }),
+    headers: h,
     validateStatus: () => true,
     timeout: 25_000,
   });
   if (res.status === 401) {
     clearMomoTokenCache();
     token = await getMomoAccessToken();
+    h = await collectionHeaders(token, cfg, { 'X-Reference-Id': referenceId });
     res = await axios.get(url, {
-      headers: collectionHeaders(token, { 'X-Reference-Id': referenceId }),
+      headers: h,
       validateStatus: () => true,
       timeout: 25_000,
     });

@@ -1,7 +1,12 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { handleAgentChat, AgentContext } from '../services/GeminiAgentService';
-import { performCheckoutSingleProduct, type ShippingSpeed } from '../services/commerceCheckout.helper';
+import {
+  normalizeCommerceProvider,
+  performCheckoutSingleProduct,
+  type CommerceCheckoutProvider,
+  type ShippingSpeed,
+} from '../services/commerceCheckout.helper';
 
 function roleFromUser(role?: string) {
   if (role === 'admin') return 'admin';
@@ -92,6 +97,11 @@ export async function postAiCheckout(req: AuthenticatedRequest, res: Response) {
       ? (speedRaw as ShippingSpeed)
       : 'standard';
 
+    const paymentProviderRaw = body.paymentProvider != null ? String(body.paymentProvider) : 'flutterwave';
+    const paymentProvider: CommerceCheckoutProvider = normalizeCommerceProvider(paymentProviderRaw);
+    const momoPhone = body.momoPhone != null ? String(body.momoPhone).trim() : undefined;
+    const airtelPhone = body.airtelPhone != null ? String(body.airtelPhone).trim() : undefined;
+
     const result = await performCheckoutSingleProduct({
       buyerId: req.user.id,
       productId,
@@ -107,6 +117,9 @@ export async function postAiCheckout(req: AuthenticatedRequest, res: Response) {
         country,
       },
       shippingSpeed,
+      paymentProvider,
+      momoPhone,
+      airtelPhone,
     });
 
     if (!result.ok) {
@@ -115,9 +128,13 @@ export async function postAiCheckout(req: AuthenticatedRequest, res: Response) {
 
     return res.json({
       orderNumber: result.orderNumber,
+      orderId: result.orderId,
       paymentLink: result.paymentLink,
+      provider: result.provider,
+      referenceId: result.referenceId,
       amount: result.amount,
       currency: result.currency,
+      message: result.message,
     });
   } catch (error: any) {
     return res.status(500).json({ message: error?.message || 'Checkout failed' });

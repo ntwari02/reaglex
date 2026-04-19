@@ -48,6 +48,7 @@ import publicContentRoutes from './src/routes/publicContentRoutes';
 import adminSiteContentRoutes from './src/routes/adminSiteContentRoutes';
 import { startScheduledNotificationWorker } from './src/jobs/scheduledNotificationWorker';
 import paymentRoutes from './src/routes/paymentRoutes';
+import stripeWebhookRoutes from './src/routes/stripeWebhookRoutes';
 import webhookRoutes from './src/routes/webhookRoutes';
 import seoRoutes from './src/routes/seoRoutes';
 import assistantRoutes from './src/routes/assistantRoutes';
@@ -110,6 +111,7 @@ app.use(
     credentials: true,
   }),
 );
+app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }), stripeWebhookRoutes);
 app.use(express.json());
 app.use(sanitizeInput);
 app.use(cookieParser());

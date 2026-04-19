@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import flw from '../config/flutterwave';
+import { getFlutterwaveClient } from '../config/flutterwave';
 import { getClientUrl } from '../config/publicEnv';
 import { Order, IOrder } from '../models/Order';
 import { EscrowWallet } from '../models/EscrowWallet';
@@ -16,8 +16,18 @@ import {
   normalizeMomoMsisdn,
   requestToPay,
 } from './momoService';
+import {
+  airtelRequestToPay,
+  getAirtelPaymentStatus,
+  newAirtelReferenceId,
+  normalizeAirtelMsisdn,
+} from './airtelMoney.service';
+import { createStripeCheckoutSession } from './stripeCheckout.service';
+import { createPayPalCheckoutOrder, capturePayPalOrder } from './paypalCheckout.service';
 
-export type CheckoutPaymentProcessor = 'flutterwave' | 'momo';
+export type CheckoutPaymentProcessor = 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
+
+export type CheckoutPaymentMethod = CheckoutPaymentProcessor;
 
 export interface InitializePaymentInput {
   orderId: string;
@@ -30,16 +40,19 @@ export interface InitializePaymentInput {
 }
 
 export interface InitializePaymentOptions {
-  paymentMethod?: CheckoutPaymentProcessor;
-  /** Required when paymentMethod is momo — MTN MSISDN (local or international format). */
+  paymentMethod?: CheckoutPaymentMethod;
+  /** MTN MoMo MSISDN */
   momoPhone?: string;
+  /** Airtel Money MSISDN */
+  airtelPhone?: string;
 }
 
 export function calculateFees(orderTotal: number, processor: CheckoutPaymentProcessor = 'flutterwave') {
   const platformFeePercent = Number(process.env.PLATFORM_FEE_PERCENT ?? 5);
   const flutterwaveFeeRate = 0.014;
   const momoFeeRate = Number(process.env.MOMO_FEE_RATE ?? 0.02);
-  const processingRate = processor === 'momo' ? momoFeeRate : flutterwaveFeeRate;
+  const mobileMoneyRate = Number(process.env.MOBILE_MONEY_FEE_RATE ?? process.env.MOMO_FEE_RATE ?? 0.02);
+  const processingRate = processor === 'momo' || processor === 'airtel' ? mobileMoneyRate : flutterwaveFeeRate;
 
   const platformFee = Math.round(orderTotal * (platformFeePercent / 100));
   const flutterwaveFee = Math.round(orderTotal * processingRate);
@@ -77,6 +90,11 @@ export async function finalizeSuccessfulEscrowPayment(
     flutterwaveTransactionId?: string | number;
     momoReferenceId?: string;
     momoFinancialTransactionId?: string;
+    stripeCheckoutSessionId?: string;
+    stripePaymentIntentId?: string;
+    paypalOrderId?: string;
+    paypalCaptureId?: string;
+    airtelTransactionId?: string;
   }
 ): Promise<{ success: true; status: 'ESCROW_HOLD' } | { success: true; status: 'ALREADY_COMPLETED' }> {
   const order = await Order.findById(orderId);
@@ -107,6 +125,11 @@ export async function finalizeSuccessfulEscrowPayment(
     ...(ctx.momoFinancialTransactionId
       ? { 'payment.momoFinancialTransactionId': ctx.momoFinancialTransactionId }
       : {}),
+    ...(ctx.stripeCheckoutSessionId ? { 'payment.stripeCheckoutSessionId': ctx.stripeCheckoutSessionId } : {}),
+    ...(ctx.stripePaymentIntentId ? { 'payment.stripePaymentIntentId': ctx.stripePaymentIntentId } : {}),
+    ...(ctx.paypalOrderId ? { 'payment.paypalOrderId': ctx.paypalOrderId } : {}),
+    ...(ctx.paypalCaptureId ? { 'payment.paypalCaptureId': ctx.paypalCaptureId } : {}),
+    ...(ctx.airtelTransactionId ? { 'payment.airtelTransactionId': ctx.airtelTransactionId } : {}),
     'escrow.status': 'ESCROW_HOLD',
     'escrow.heldAt': new Date(),
     'escrow.releaseEligibleAt': new Date(
@@ -131,7 +154,12 @@ export async function finalizeSuccessfulEscrowPayment(
     flutterwaveRef:
       ctx.provider === 'flutterwave' && ctx.flutterwaveTransactionId != null
         ? String(ctx.flutterwaveTransactionId)
-        : ctx.momoFinancialTransactionId || ctx.momoReferenceId || 'momo',
+        : ctx.stripePaymentIntentId ||
+          ctx.paypalCaptureId ||
+          ctx.airtelTransactionId ||
+          ctx.momoFinancialTransactionId ||
+          ctx.momoReferenceId ||
+          ctx.provider,
     status: 'ESCROW_HOLD',
     metadata: {
       provider: ctx.provider,
@@ -160,30 +188,36 @@ export async function initializePayment(
   buyer: InitializePaymentInput['buyer'],
   options: InitializePaymentOptions = {}
 ) {
-  const processor: CheckoutPaymentProcessor = options.paymentMethod === 'momo' ? 'momo' : 'flutterwave';
+  const method: CheckoutPaymentMethod = options.paymentMethod || 'flutterwave';
 
   const order = await Order.findById(orderId);
   if (!order) {
     throw new Error('Order not found');
   }
 
-  if (processor === 'flutterwave') {
+  if (method === 'flutterwave') {
     await assertPaymentGatewayEnabled('flutterwave');
-  } else {
+  } else if (method === 'momo') {
     await assertPaymentGatewayEnabled('mtn_momo');
-    if (!isMomoConfigured()) {
+    if (!(await isMomoConfigured())) {
       throw new Error('MTN MoMo is not configured on the server');
     }
+  } else if (method === 'stripe') {
+    await assertPaymentGatewayEnabled('stripe');
+  } else if (method === 'paypal') {
+    await assertPaymentGatewayEnabled('paypal');
+  } else if (method === 'airtel') {
+    await assertPaymentGatewayEnabled('airtel_money');
   }
 
-  if (processor === 'momo') {
+  if (method === 'momo') {
     /** Rwanda Collections settle in RWF; orders must be created with paymentMethod RWF for MoMo checkout. */
     const currency = orderPayCurrency(order);
     if (currency !== 'RWF') {
       throw new Error('MTN MoMo Rwanda is only available for orders in RWF (set paymentMethod to RWF at checkout)');
     }
 
-    assertMomoCallbackUrlProductionSafe();
+    await assertMomoCallbackUrlProductionSafe();
 
     const msisdn = normalizeMomoMsisdn(options.momoPhone || buyer.phone || '');
     if (!msisdn) {
@@ -220,6 +254,70 @@ export async function initializePayment(
     };
   }
 
+  if (method === 'stripe') {
+    const { url, sessionId } = await createStripeCheckoutSession(order, buyer.email);
+    await Order.findByIdAndUpdate(order._id, {
+      'payment.provider': 'stripe',
+      'payment.stripeCheckoutSessionId': sessionId,
+      'escrow.status': 'PENDING',
+    });
+    return {
+      provider: 'stripe' as const,
+      paymentLink: url,
+      sessionId,
+      amount: order.total,
+      currency: orderPayCurrency(order),
+    };
+  }
+
+  if (method === 'paypal') {
+    const { approvalUrl, orderId: paypalOrderId } = await createPayPalCheckoutOrder(order);
+    await Order.findByIdAndUpdate(order._id, {
+      'payment.provider': 'paypal',
+      'payment.paypalOrderId': paypalOrderId,
+      'escrow.status': 'PENDING',
+    });
+    return {
+      provider: 'paypal' as const,
+      paymentLink: approvalUrl,
+      paypalOrderId,
+      amount: order.total,
+      currency: orderPayCurrency(order),
+    };
+  }
+
+  if (method === 'airtel') {
+    const currency = orderPayCurrency(order);
+    if (currency !== 'RWF') {
+      throw new Error('Airtel Money is only available for orders in RWF (set paymentMethod to RWF at checkout)');
+    }
+    const msisdn = normalizeAirtelMsisdn(options.airtelPhone || buyer.phone || '');
+    if (!msisdn) {
+      throw new Error('A valid Airtel Money phone number is required');
+    }
+    const reference = newAirtelReferenceId();
+    const { transactionId } = await airtelRequestToPay({
+      amount: String(Math.round(order.total)),
+      msisdn,
+      reference,
+      externalId: order._id.toString(),
+    });
+    await Order.findByIdAndUpdate(order._id, {
+      'payment.provider': 'airtel',
+      'payment.airtelTransactionId': transactionId,
+      'payment.airtelStatus': 'PENDING',
+      'escrow.status': 'PENDING',
+    });
+    return {
+      provider: 'airtel' as const,
+      referenceId: transactionId,
+      orderId: order._id.toString(),
+      amount: order.total,
+      currency: 'RWF',
+      message: 'Payment request sent to Airtel Money. Approve on your phone when prompted.',
+    };
+  }
+
   const siteBase = getClientUrl();
   if (!siteBase) {
     throw new Error('CLIENT_URL is not set; cannot build payment redirect URL');
@@ -249,6 +347,7 @@ export async function initializePayment(
     },
   };
 
+  const flw = await getFlutterwaveClient();
   const response = await flw.Payment.initiate(payload as any);
 
   if (response.status === 'success') {
@@ -280,6 +379,7 @@ export async function verifyPayment(transactionId: number | string, orderId: str
     await assertPaymentGatewayEnabled('flutterwave');
   }
 
+  const flw = await getFlutterwaveClient();
   const response = await flw.Transaction.verify({ id: transactionId } as any);
 
   const expectedCurrency = order.payment?.currency || orderPayCurrency(order);
@@ -378,6 +478,82 @@ export async function syncMomoOrderPayment(referenceId: string, opts?: { buyerUs
   return {
     success: true as const,
     momoStatus: st.status,
+    orderId: order._id.toString(),
+    escrowStatus: fin.status === 'ALREADY_COMPLETED' ? ('ESCROW_HOLD' as const) : ('ESCROW_HOLD' as const),
+  };
+}
+
+function isAirtelTerminalFailure(status: string): boolean {
+  const u = String(status || '').toUpperCase();
+  return ['FAILED', 'FAILURE', 'TF', 'CANCELLED', 'DECLINED', 'EXPIRED'].includes(u);
+}
+
+function isAirtelSuccess(status: string): boolean {
+  const u = String(status || '').toUpperCase();
+  return ['SUCCESS', 'SUCCESSFUL', 'TS', 'COMPLETED', 'SUCCEEDED'].includes(u);
+}
+
+export async function syncAirtelOrderPayment(transactionId: string, opts?: { buyerUserId?: string }) {
+  const query: Record<string, unknown> = { 'payment.airtelTransactionId': transactionId };
+  if (opts?.buyerUserId && mongoose.Types.ObjectId.isValid(opts.buyerUserId)) {
+    query.buyerId = new mongoose.Types.ObjectId(opts.buyerUserId);
+  }
+  const order = await Order.findOne(query);
+  if (!order) {
+    throw new Error('Order not found for this Airtel reference');
+  }
+
+  if (order.escrow?.status === 'ESCROW_HOLD' && order.payment?.paidAt) {
+    return {
+      success: true as const,
+      airtelStatus: order.payment?.airtelStatus || 'SUCCESS',
+      orderId: order._id.toString(),
+      escrowStatus: 'ESCROW_HOLD' as const,
+      alreadyPaid: true as const,
+    };
+  }
+
+  const st = await getAirtelPaymentStatus(transactionId);
+
+  await Order.findByIdAndUpdate(order._id, {
+    'payment.airtelStatus': st.status,
+  });
+
+  if (!isAirtelSuccess(st.status)) {
+    if (isAirtelTerminalFailure(st.status)) {
+      return {
+        success: false as const,
+        airtelStatus: st.status,
+        orderId: order._id.toString(),
+        failed: true as const,
+      };
+    }
+    return {
+      success: false as const,
+      airtelStatus: st.status,
+      orderId: order._id.toString(),
+    };
+  }
+
+  const paidAmount = st.amount != null ? Number(st.amount) : order.total;
+  const currency = st.currency || 'RWF';
+
+  const expectedCur = orderPayCurrency(order);
+  if (currency !== expectedCur || Math.round(paidAmount) < Math.round(order.total)) {
+    throw new Error('Airtel payment amount or currency does not match the order');
+  }
+
+  const fin = await finalizeSuccessfulEscrowPayment(order._id.toString(), {
+    provider: 'airtel',
+    paidAmount,
+    currency,
+    paymentMethodLabel: 'airtel_money',
+    airtelTransactionId: transactionId,
+  });
+
+  return {
+    success: true as const,
+    airtelStatus: st.status,
     orderId: order._id.toString(),
     escrowStatus: fin.status === 'ALREADY_COMPLETED' ? ('ESCROW_HOLD' as const) : ('ESCROW_HOLD' as const),
   };

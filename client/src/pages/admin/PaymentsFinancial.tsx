@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   X,
   Eye,
-  Shield,
 } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
 import { adminFinanceAPI } from '@/lib/api';
@@ -54,7 +53,6 @@ export default function PaymentsFinancial() {
   const [showGenerateReportModal, setShowGenerateReportModal] = useState(false);
   const [showPendingPayoutsModal, setShowPendingPayoutsModal] = useState(false);
   const [showExportLogsModal, setShowExportLogsModal] = useState(false);
-  const [showConfigureGatewaysModal, setShowConfigureGatewaysModal] = useState(false);
   const [dashboardData, setDashboardData] = useState<{
     metrics: Record<string, number>;
     revenueData: { date: string; value: number }[];
@@ -105,7 +103,7 @@ export default function PaymentsFinancial() {
             onGenerateReport={() => setShowGenerateReportModal(true)}
             onPendingPayouts={() => setShowPendingPayoutsModal(true)}
             onExportLogs={() => setShowExportLogsModal(true)}
-            onConfigureGateways={() => setShowConfigureGatewaysModal(true)}
+            onConfigureGateways={() => setActiveTab('gateways')}
             onTimeRangeChange={setDashboardTimeRange}
           />
         );
@@ -183,9 +181,6 @@ export default function PaymentsFinancial() {
       )}
       {showExportLogsModal && (
         <ExportLogsModal onClose={() => setShowExportLogsModal(false)} />
-      )}
-      {showConfigureGatewaysModal && (
-        <ConfigureGatewaysModal onClose={() => setShowConfigureGatewaysModal(false)} />
       )}
     </>
   );
@@ -1009,216 +1004,5 @@ function ExportLogsModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </div>
-  );
-}
-
-// Configure Payment Gateways Modal
-function ConfigureGatewaysModal({ onClose }: { onClose: () => void }) {
-  const [gateways, setGateways] = useState([
-    { id: 'mobile_money', name: 'Mobile Money (MTN / Airtel)', enabled: true, apiKey: '', secretKey: '', webhookUrl: '', testMode: false },
-    { id: 'stripe', name: 'Stripe', enabled: true, apiKey: '', secretKey: '', webhookUrl: '', testMode: false },
-    { id: 'paypal', name: 'PayPal', enabled: false, apiKey: '', secretKey: '', webhookUrl: '', testMode: false },
-    { id: 'card', name: 'Visa/Mastercard', enabled: true, apiKey: '', secretKey: '', webhookUrl: '', testMode: false },
-  ]);
-  const [selectedGateway, setSelectedGateway] = useState<string | null>(null);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const confirmSave = () => {
-    console.log('Saving gateway configurations:', gateways);
-    setShowConfirm(false);
-    onClose();
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-        <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900" onClick={(e) => e.stopPropagation()}>
-          <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Configure Payment Gateways</h2>
-            <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="p-6 space-y-6">
-            {/* Gateway List */}
-            <div className="space-y-3">
-              {gateways.map((gateway) => (
-                <div
-                  key={gateway.id}
-                  className={`rounded-xl border p-4 transition-colors ${
-                    selectedGateway === gateway.id
-                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                      : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={gateway.enabled}
-                        onChange={(e) => {
-                          setGateways((prev) =>
-                            prev.map((g) => (g.id === gateway.id ? { ...g, enabled: e.target.checked } : g))
-                          );
-                        }}
-                        className="h-5 w-5 rounded border-gray-300 text-emerald-600"
-                      />
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">{gateway.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className={`h-2 w-2 rounded-full ${gateway.enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
-                            {gateway.enabled ? 'Online' : 'Offline'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedGateway(selectedGateway === gateway.id ? null : gateway.id)}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300"
-                    >
-                      {selectedGateway === gateway.id ? 'Hide Settings' : 'Configure'}
-                    </button>
-                  </div>
-
-                  {selectedGateway === gateway.id && (
-                    <div className="mt-4 space-y-3 border-t border-gray-200 pt-4 dark:border-gray-700">
-                      <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-900 dark:text-white">API Key</label>
-                        <input
-                          type="password"
-                          value={gateway.apiKey}
-                          onChange={(e) => {
-                            setGateways((prev) =>
-                              prev.map((g) => (g.id === gateway.id ? { ...g, apiKey: e.target.value } : g))
-                            );
-                          }}
-                          placeholder="Enter API Key"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-900 dark:text-white">Secret Key</label>
-                        <input
-                          type="password"
-                          value={gateway.secretKey}
-                          onChange={(e) => {
-                            setGateways((prev) =>
-                              prev.map((g) => (g.id === gateway.id ? { ...g, secretKey: e.target.value } : g))
-                            );
-                          }}
-                          placeholder="Enter Secret Key"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-900 dark:text-white">Webhook URL</label>
-                        <input
-                          type="text"
-                          value={gateway.webhookUrl}
-                          onChange={(e) => {
-                            setGateways((prev) =>
-                              prev.map((g) => (g.id === gateway.id ? { ...g, webhookUrl: e.target.value } : g))
-                            );
-                          }}
-                          placeholder="https://your-domain.com/webhook"
-                          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`testMode-${gateway.id}`}
-                          checked={gateway.testMode}
-                          onChange={(e) => {
-                            setGateways((prev) =>
-                              prev.map((g) => (g.id === gateway.id ? { ...g, testMode: e.target.checked } : g))
-                            );
-                          }}
-                          className="h-4 w-4 rounded border-gray-300 text-emerald-600"
-                        />
-                        <label htmlFor={`testMode-${gateway.id}`} className="text-sm text-gray-700 dark:text-gray-300">
-                          Test Mode
-                        </label>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">
-                          Test Connection
-                        </button>
-                        <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">
-                          View Health Logs
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Security Notice */}
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-              <div className="flex items-start gap-3">
-                <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                <div>
-                  <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">Security Notice</h3>
-                  <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
-                    Two-factor confirmation will be required before saving changes. Only senior admins can modify gateway settings.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-800">
-              <button
-                onClick={onClose}
-                className="rounded-xl border border-gray-200 px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowConfirm(true)}
-                className="rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:shadow-xl"
-              >
-                <Shield className="mr-2 inline h-4 w-4" />
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Two-Factor Confirmation Modal */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
-            <div className="p-6">
-              <div className="mb-4 flex items-center gap-3">
-                <Shield className="h-6 w-6 text-emerald-600" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Confirm Changes</h3>
-              </div>
-              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                You are about to save payment gateway configurations. Please confirm to proceed.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowConfirm(false)}
-                  className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmSave}
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                >
-                  Confirm & Save
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
   );
 }

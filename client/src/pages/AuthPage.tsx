@@ -328,6 +328,8 @@ function SignupFormContent({
 }: {
   onRegistered: (email: string) => void;
 }) {
+  const [searchParams] = useSearchParams();
+  const referralFromUrl = searchParams.get('ref')?.trim() || '';
   const { showToast } = useToastStore();
   const [role, setRoleState] = useState<'buyer' | 'seller'>('buyer');
   const [fd, setFd] = useState({ fullName: '', email: '', password: '', confirmPassword: '', storeName: '' });
@@ -337,11 +339,29 @@ function SignupFormContent({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [referralProgramEnabled, setReferralProgramEnabled] = useState(true);
+  const [referralOpen, setReferralOpen] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
   const strength = getPasswordStrength(fd.password);
   const reqs = checkPasswordReqs(fd.password);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email);
   const match = fd.confirmPassword.length ? fd.password === fd.confirmPassword : null;
   const canSubmit = fd.fullName.trim().length >= 2 && emailValid && fd.password.length >= 8 && reqs.upper && reqs.number && reqs.special && fd.password === fd.confirmPassword && agreed && (role !== 'seller' || fd.storeName.trim().length > 0);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/public/marketing/referral-status?t=${Date.now()}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d: { referralProgramEnabled?: boolean }) => {
+        if (typeof d.referralProgramEnabled === 'boolean') setReferralProgramEnabled(d.referralProgramEnabled);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!referralProgramEnabled || !referralFromUrl) return;
+    setReferralCode(referralFromUrl.toUpperCase());
+    setReferralOpen(true);
+  }, [referralProgramEnabled, referralFromUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
@@ -358,7 +378,14 @@ function SignupFormContent({
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName: fd.fullName, email: fd.email, password: fd.password, role, storeName: role === 'seller' ? fd.storeName : undefined }),
+        body: JSON.stringify({
+          fullName: fd.fullName,
+          email: fd.email,
+          password: fd.password,
+          role,
+          storeName: role === 'seller' ? fd.storeName : undefined,
+          ...(referralProgramEnabled && referralCode.trim() ? { referralCode: referralCode.trim() } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Registration failed.'); return; }
@@ -464,6 +491,36 @@ function SignupFormContent({
         </motion.div>
       )}
       </div>
+
+      {referralProgramEnabled ? (
+        <div className="space-y-1">
+          {!referralOpen ? (
+            <button
+              type="button"
+              onClick={() => setReferralOpen(true)}
+              className="text-[12px] font-semibold hover:underline"
+              style={{ color: PRIMARY }}
+            >
+              Have a referral code?
+            </button>
+          ) : (
+            <div className="space-y-1">
+              {referralFromUrl ? (
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  Referral from link applied — you can edit the code below.
+                </p>
+              ) : null}
+              <PremiumInput
+                label="Referral code (optional)"
+                value={referralCode}
+                onChange={(v) => setReferralCode(v)}
+                placeholder="e.g. RX-xxxxxxxx"
+                leftIcon={User}
+              />
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <label className="flex items-start gap-2 cursor-pointer">
         <button

@@ -14,12 +14,18 @@ function isTerminalMomoFailure(status) {
   return ['FAILED', 'REJECTED', 'CANCELLED', 'DECLINED', 'EXPIRED'].includes(u);
 }
 
+function isTerminalAirtelFailure(status) {
+  const u = String(status || '').toUpperCase();
+  return ['FAILED', 'FAILURE', 'TF', 'CANCELLED', 'DECLINED', 'EXPIRED'].includes(u);
+}
+
 export default function MomoPaymentWait() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const referenceId = searchParams.get('ref') || '';
   const orderId = searchParams.get('orderId') || '';
+  const provider = (searchParams.get('provider') || 'momo').toLowerCase();
   const [status, setStatus] = useState('pending');
   const [message, setMessage] = useState('');
   const started = useRef(0);
@@ -42,22 +48,38 @@ export default function MomoPaymentWait() {
         return;
       }
       try {
-        const res = await paymentAPI.getMomoStatus(referenceId);
+        const res =
+          provider === 'airtel'
+            ? await paymentAPI.getAirtelStatus(referenceId)
+            : await paymentAPI.getMomoStatus(referenceId);
         if (cancelled) return;
         if (res?.success) {
           navigate(`/order-confirmation/${encodeURIComponent(orderId)}`, { replace: true });
           return;
         }
-        if (res?.failed === true || isTerminalMomoFailure(res?.momoStatus)) {
-          setStatus('failed');
-          setMessage(t('checkout.momoWait.failed'));
-          return;
+        if (provider === 'airtel') {
+          if (res?.failed === true || isTerminalAirtelFailure(res?.airtelStatus)) {
+            setStatus('failed');
+            setMessage(t('checkout.airtelWait.failed'));
+            return;
+          }
+          setMessage(
+            String(res?.airtelStatus || '').toUpperCase() === 'PENDING'
+              ? t('checkout.airtelWait.pending')
+              : `${t('checkout.momoWait.status')}: ${res?.airtelStatus || '—'}`
+          );
+        } else {
+          if (res?.failed === true || isTerminalMomoFailure(res?.momoStatus)) {
+            setStatus('failed');
+            setMessage(t('checkout.momoWait.failed'));
+            return;
+          }
+          setMessage(
+            res?.momoStatus === 'PENDING'
+              ? t('checkout.momoWait.pending')
+              : `${t('checkout.momoWait.status')}: ${res?.momoStatus || '—'}`
+          );
         }
-        setMessage(
-          res?.momoStatus === 'PENDING'
-            ? t('checkout.momoWait.pending')
-            : `${t('checkout.momoWait.status')}: ${res?.momoStatus || '—'}`
-        );
       } catch (e) {
         if (!cancelled) setMessage(e?.response?.data?.message || e?.message || t('checkout.momoWait.pollError'));
       }
@@ -69,7 +91,7 @@ export default function MomoPaymentWait() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [referenceId, orderId, navigate, t]);
+  }, [referenceId, orderId, navigate, t, provider]);
 
   return (
     <BuyerLayout>
@@ -93,9 +115,11 @@ export default function MomoPaymentWait() {
             <Smartphone className="h-8 w-8 text-gray-900" />
           </div>
           <h1 className="mb-2 text-center text-xl font-black text-gray-900 dark:text-white">
-            {t('checkout.momoWait.title')}
+            {provider === 'airtel' ? t('checkout.airtelWait.title') : t('checkout.momoWait.title')}
           </h1>
-          <p className="mb-6 text-center text-sm text-gray-500 dark:text-gray-400">{t('checkout.momoWait.subtitle')}</p>
+          <p className="mb-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            {provider === 'airtel' ? t('checkout.airtelWait.subtitle') : t('checkout.momoWait.subtitle')}
+          </p>
           <div className="mb-6 rounded-2xl bg-gray-50 p-4 text-xs text-gray-600 dark:bg-gray-800/80 dark:text-gray-300">
             <p className="font-mono break-all">
               <span className="font-semibold text-gray-800 dark:text-gray-200">Ref</span> {referenceId}

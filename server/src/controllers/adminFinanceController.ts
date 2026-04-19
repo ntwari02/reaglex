@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { TransactionLog } from '../models/TransactionLog';
 import { Order } from '../models/Order';
@@ -9,10 +10,31 @@ import { Chargeback } from '../models/Chargeback';
 import { TaxRule } from '../models/TaxRule';
 import { PaymentGatewayConfig } from '../models/PaymentGatewayConfig';
 import { ensureCorePaymentGateways } from '../services/paymentGateway.service';
+import {
+  appendGatewayHealthLog,
+  buildMaskedSummary,
+  GATEWAY_REGISTRY,
+  getFieldMetaForProfile,
+  getMomoResolvedConfig,
+  invalidatePaymentRuntimeCaches,
+  isGatewayFullyConfigured,
+  resolveProfileForKey,
+  saveEncryptedCredentials,
+  suggestedFlutterwaveWebhookUrl,
+  suggestedMomoCallbackUrl,
+  testGatewayByKey,
+  type CredentialProfile,
+} from '../services/paymentGatewayCredentials.service';
+import { decryptCredentialsJson } from '../services/paymentSecretsCrypto.service';
 import { FinanceSettings } from '../models/FinanceSettings';
 import { EscrowWallet } from '../models/EscrowWallet';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
+
+/** Prevent ReDoS / accidental regex breakage when search is used in RegExp */
+function escapeRegexChars(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -20,6 +42,14 @@ function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
     return false;
   }
   return true;
+}
+
+async function verifyAdminPassword(req: AuthenticatedRequest, password: unknown): Promise<boolean> {
+  const pw = typeof password === 'string' ? password : '';
+  if (!pw || !req.user?.id) return false;
+  const user = await User.findById(req.user.id).select('+passwordHash');
+  if (!user?.passwordHash) return false;
+  return bcrypt.compare(pw, user.passwordHash);
 }
 
 /** GET /api/admin/finance/dashboard - metrics + revenue over time */
@@ -137,11 +167,14 @@ export async function getPayouts(req: AuthenticatedRequest, res: Response) {
     if (status && status !== 'all') filter.status = status;
 
     if (search && typeof search === 'string') {
-      const searchRegex = new RegExp(String(search), 'i');
-      (filter as any).$or = [
-        { referenceId: searchRegex },
-        ...(mongoose.Types.ObjectId.isValid(String(search)) ? [{ _id: new mongoose.Types.ObjectId(String(search)) }] : []),
-      ];
+      const raw = String(search).trim().slice(0, 120);
+      if (raw) {
+        const searchRegex = new RegExp(escapeRegexChars(raw), 'i');
+        (filter as any).$or = [
+          { referenceId: searchRegex },
+          ...(mongoose.Types.ObjectId.isValid(raw) ? [{ _id: new mongoose.Types.ObjectId(raw) }] : []),
+        ];
+      }
     }
 
     const total = await PayoutRequest.countDocuments(filter);
@@ -289,24 +322,45 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     await ensureCorePaymentGateways();
-    const gateways = await PaymentGatewayConfig.find().lean();
+    const rows = await PaymentGatewayConfig.find().lean();
+    const byKey = new Map(rows.map((r: any) => [r.key, r]));
+    const ordered = GATEWAY_REGISTRY.map((def) => byKey.get(def.key)).filter(Boolean) as any[];
+
+    const gateways = await Promise.all(
+      ordered.map(async (g: any) => {
+        const profile = (g.credentialProfile || resolveProfileForKey(g.key)) as CredentialProfile;
+        const configured = await isGatewayFullyConfigured(g.key);
+        return {
+          id: g._id.toString(),
+          key: g.key,
+          name: g.name,
+          type: g.type,
+          status: g.status,
+          isEnabled: g.isEnabled,
+          credentialProfile: profile,
+          fieldMeta: getFieldMetaForProfile(profile),
+          maskedSummary: g.maskedSummary && typeof g.maskedSummary === 'object' ? g.maskedSummary : {},
+          apiKeyMasked: g.apiKeyMasked,
+          webhookUrl: g.webhookUrl,
+          suggestedWebhookUrl:
+            g.key === 'flutterwave'
+              ? suggestedFlutterwaveWebhookUrl()
+              : g.key === 'mtn_momo'
+                ? suggestedMomoCallbackUrl()
+                : undefined,
+          isConfigured: configured,
+          lastChecked: g.lastChecked,
+          issues: g.issues || [],
+          testMode: g.testMode,
+          healthLogs: Array.isArray(g.healthLogs) ? g.healthLogs.slice(-20) : [],
+        };
+      })
+    );
+
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
-    res.json({
-      gateways: gateways.map((g: any) => ({
-        id: g._id.toString(),
-        key: g.key,
-        name: g.name,
-        type: g.type,
-        status: g.status,
-        isEnabled: g.isEnabled,
-        apiKey: g.apiKeyMasked,
-        webhookUrl: g.webhookUrl,
-        lastChecked: g.lastChecked,
-        issues: g.issues || [],
-      })),
-    });
+    res.json({ gateways });
   } catch (err: any) {
     res.status(500).json({ message: err?.message || 'Failed to load gateways' });
   }
@@ -318,12 +372,29 @@ export async function updateGateway(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
     const { isEnabled, apiKeyMasked, webhookUrl, testMode } = req.body;
+    const existing = await PaymentGatewayConfig.findById(id);
+    if (!existing) return res.status(404).json({ message: 'Gateway not found' });
+
+    if (isEnabled === true) {
+      const ok = await isGatewayFullyConfigured(existing.key);
+      if (!ok) {
+        return res.status(400).json({
+          message: 'Configure and save encrypted credentials before enabling this gateway.',
+          code: 'NOT_CONFIGURED',
+        });
+      }
+    }
+
     const g = await PaymentGatewayConfig.findByIdAndUpdate(
       id,
-      { ...(isEnabled !== undefined && { isEnabled }), ...(apiKeyMasked !== undefined && { apiKeyMasked }), ...(webhookUrl !== undefined && { webhookUrl }), ...(testMode !== undefined && { testMode }) },
+      {
+        ...(isEnabled !== undefined && { isEnabled }),
+        ...(apiKeyMasked !== undefined && { apiKeyMasked }),
+        ...(webhookUrl !== undefined && { webhookUrl }),
+        ...(testMode !== undefined && { testMode }),
+      },
       { new: true }
-    )
-      .lean();
+    ).lean();
     if (!g) return res.status(404).json({ message: 'Gateway not found' });
     const row = g as any;
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -343,10 +414,131 @@ export async function updateGateway(req: AuthenticatedRequest, res: Response) {
         lastChecked: row.lastChecked,
         issues: row.issues || [],
         testMode: row.testMode,
+        credentialProfile: row.credentialProfile,
+        maskedSummary: row.maskedSummary,
+        isConfigured: await isGatewayFullyConfigured(row.key),
+        healthLogs: row.healthLogs || [],
       },
     });
   } catch (err: any) {
     res.status(500).json({ message: err?.message || 'Failed to update gateway' });
+  }
+}
+
+/** POST /api/admin/finance/gateways/:id/reveal — body: { password } */
+export async function revealGatewayCredentials(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { password } = req.body as { password?: string };
+    if (!(await verifyAdminPassword(req, password))) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+    const g = await PaymentGatewayConfig.findById(req.params.id);
+    if (!g) return res.status(404).json({ message: 'Gateway not found' });
+    const profile = (g.credentialProfile || resolveProfileForKey(g.key)) as CredentialProfile;
+    if (profile === 'none') {
+      return res.json({ credentials: {}, profile });
+    }
+    if (!g.encryptedCredentials) {
+      return res.json({
+        credentials: null,
+        profile,
+        hint: 'No secrets stored in the database yet. The server may still use environment variables.',
+      });
+    }
+    const creds = decryptCredentialsJson(g.encryptedCredentials) as Record<string, unknown>;
+    await appendGatewayHealthLog(g._id.toString(), 'info', 'Credentials decrypted in admin UI');
+    res.json({ credentials: creds, profile });
+  } catch (err: any) {
+    res.status(500).json({ message: err?.message || 'Failed to reveal credentials' });
+  }
+}
+
+/** PUT /api/admin/finance/gateways/:id/credentials — body: { password, credentials: object } */
+export async function saveGatewayCredentials(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { password, credentials } = req.body as { password?: string; credentials?: Record<string, unknown> };
+    if (!(await verifyAdminPassword(req, password))) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+    if (!credentials || typeof credentials !== 'object') {
+      return res.status(400).json({ message: 'credentials object is required' });
+    }
+    const g = await PaymentGatewayConfig.findById(req.params.id);
+    if (!g) return res.status(404).json({ message: 'Gateway not found' });
+    const profile = (g.credentialProfile || resolveProfileForKey(g.key)) as CredentialProfile;
+    if (profile === 'none') {
+      return res.status(400).json({ message: 'This gateway does not use API credentials' });
+    }
+
+    await saveEncryptedCredentials(g._id.toString(), profile, credentials);
+    await appendGatewayHealthLog(g._id.toString(), 'info', 'Encrypted credentials saved');
+    invalidatePaymentRuntimeCaches();
+
+    const maskedSummary = buildMaskedSummary(profile, credentials);
+    res.json({
+      ok: true,
+      maskedSummary,
+      isConfigured: await isGatewayFullyConfigured(g.key),
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err?.message || 'Failed to save credentials' });
+  }
+}
+
+/** POST /api/admin/finance/gateways/:id/test — body: { password, credentials?: optional draft } */
+export async function testGatewayConnection(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { password, credentials } = req.body as { password?: string; credentials?: Record<string, unknown> };
+    if (!(await verifyAdminPassword(req, password))) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+    const g = await PaymentGatewayConfig.findById(req.params.id);
+    if (!g) return res.status(404).json({ message: 'Gateway not found' });
+
+    let flutterwaveOverride: { publicKey: string; secretKey: string } | undefined;
+    if (g.key === 'flutterwave' && credentials && typeof credentials === 'object') {
+      const c = credentials as Record<string, string>;
+      const publicKey = String(c.publicKey || '').trim();
+      const secretKey = String(c.secretKey || '').trim();
+      if (publicKey && secretKey) {
+        flutterwaveOverride = { publicKey, secretKey };
+      }
+    }
+
+    let momoOverride = null as Awaited<ReturnType<typeof getMomoResolvedConfig>>;
+    if (g.key === 'mtn_momo' && credentials && typeof credentials === 'object') {
+      const c = credentials as Record<string, string>;
+      const baseUrl = String(c.baseUrl || '').trim().replace(/\/$/, '');
+      const subscriptionKey = String(c.subscriptionKey || '').trim();
+      const apiUser = String(c.apiUser || '').trim();
+      const apiKey = String(c.apiKey || '').trim();
+      const targetEnvironment = String(c.targetEnvironment || 'sandbox').trim();
+      const callbackUrl = String(c.callbackUrl || '').trim();
+      if (baseUrl && subscriptionKey && apiUser && apiKey) {
+        momoOverride = {
+          baseUrl,
+          subscriptionKey,
+          apiUser,
+          apiKey,
+          targetEnvironment,
+          ...(callbackUrl ? { callbackUrl } : {}),
+        };
+      }
+    }
+
+    const result = await testGatewayByKey(g.key, { momoOverride, flutterwaveOverride });
+    await appendGatewayHealthLog(
+      g._id.toString(),
+      result.ok ? 'info' : 'warn',
+      `Test connection: ${result.message}`
+    );
+    await PaymentGatewayConfig.findByIdAndUpdate(g._id, { lastChecked: new Date() });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ message: err?.message || 'Test failed' });
   }
 }
 

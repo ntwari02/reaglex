@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, User, Briefcase, Mail, Phone, AlertCircle, Check, Fingerprint, Shield } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
@@ -13,6 +13,8 @@ function hasSQLInjectionRisk(value: string): boolean {
 
 export function Signup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralFromUrl = searchParams.get('ref')?.trim() || '';
   const { showToast } = useToastStore();
   const { loginWithBiometric } = useAuthStore();
 
@@ -43,6 +45,12 @@ export function Signup() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!referralProgramEnabled || !referralFromUrl) return;
+    setReferralCode(referralFromUrl.toUpperCase());
+    setReferralOpen(true);
+  }, [referralProgramEnabled, referralFromUrl]);
 
   const fullName = `${formData.firstName || ''} ${formData.lastName || ''}`.trim();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);

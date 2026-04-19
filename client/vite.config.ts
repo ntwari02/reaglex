@@ -14,7 +14,8 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   build: {
-    chunkSizeWarningLimit: 1500,
+    /** Main bundle includes admin + charts; ~2.5MB vendor is expected until more code-splitting */
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
       output: {
         manualChunks(id) {

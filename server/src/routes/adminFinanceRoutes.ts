@@ -9,6 +9,9 @@ import {
   getTransactions,
   getGateways,
   updateGateway,
+  revealGatewayCredentials,
+  saveGatewayCredentials,
+  testGatewayConnection,
   getRefunds,
   approveRefund,
   rejectRefund,
@@ -45,6 +48,9 @@ router.post('/transactions/export', exportTransactionLogs);
 // Payment gateways
 router.get('/gateways', getGateways);
 router.patch('/gateways/:id', updateGateway);
+router.post('/gateways/:id/reveal', revealGatewayCredentials);
+router.put('/gateways/:id/credentials', saveGatewayCredentials);
+router.post('/gateways/:id/test', testGatewayConnection);
 
 // Refunds
 router.get('/refunds', getRefunds);

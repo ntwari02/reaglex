@@ -47,7 +47,7 @@ export async function chargeDefaultPaymentMethodForSubscription(
       };
     }
 
-    if (!isMomoConfigured()) {
+    if (!(await isMomoConfigured())) {
       return {
         success: false,
         transactionId: '',
@@ -58,7 +58,7 @@ export async function chargeDefaultPaymentMethodForSubscription(
     }
 
     try {
-      assertMomoCallbackUrlProductionSafe();
+      await assertMomoCallbackUrlProductionSafe();
     } catch (e) {
       return {
         success: false,

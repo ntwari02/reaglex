@@ -103,6 +103,19 @@ export const paymentAPI = {
         headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
       })
       .then((r) => r.data),
+  getAirtelStatus: (transactionId) =>
+    api
+      .get(`/payments/airtel/status/${encodeURIComponent(transactionId)}`, {
+        params: { _: Date.now() },
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+      })
+      .then((r) => r.data),
+  /** After Stripe Checkout redirect (`session_id` in query). */
+  stripeComplete: (sessionId) =>
+    api.get('/payments/stripe/complete', { params: { session_id: sessionId } }).then((r) => r.data),
+  /** After PayPal approval redirect (`token` = PayPal order id). */
+  paypalComplete: (paypalOrderId) =>
+    api.get('/payments/paypal/complete', { params: { token: paypalOrderId } }).then((r) => r.data),
   verify: (transactionId, orderId) =>
     api
       .get('/payments/verify', {

@@ -1,4 +1,4 @@
-import flw from '../config/flutterwave';
+import { getFlutterwaveClient } from '../config/flutterwave';
 import { Order } from '../models/Order';
 import { SellerWallet } from '../models/SellerWallet';
 import { EscrowWallet } from '../models/EscrowWallet';
@@ -49,6 +49,7 @@ export async function releaseEscrow(orderId: string, confirmedBy: string) {
     },
   };
 
+  const flw = await getFlutterwaveClient();
   const response = await flw.Transfer.initiate(transferPayload);
 
   if (response.status === 'success') {
@@ -135,6 +136,7 @@ export async function refundBuyer(orderId: string, reason: string) {
     amount: order.total,
   };
 
+  const flw = await getFlutterwaveClient();
   const response = await flw.Transaction.refund(refundPayload);
 
   if (response.status === 'success') {

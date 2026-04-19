@@ -22,6 +22,7 @@ import { Product } from '../models/Product';
 import { Dispute } from '../models/Dispute';
 import {
   performCheckoutSingleProduct,
+  type CommerceCheckoutProvider,
   type ShippingSpeed,
 } from './commerceCheckout.helper';
 
@@ -52,12 +53,16 @@ export interface AgentChatResult {
   products?: ProductCard[];
   /** When the last search returned exactly one in-stock item, client may emphasize a single-product layout. */
   productLayout?: 'single' | 'grid';
-  /** Buyer checkout: order reference + payment link from server (never fabricate URLs). */
+  /** Buyer checkout: order reference + payment link or mobile-money reference from server (never fabricate URLs). */
   checkout?: {
     orderNumber: string;
+    orderId?: string;
     paymentLink?: string;
+    provider?: CommerceCheckoutProvider;
+    referenceId?: string;
     amount?: number;
     currency?: string;
+    message?: string;
   };
   // Optional structured action summary (for UI)
   actionResult?: {
@@ -254,7 +259,7 @@ const functionDeclarations = [
   {
     name: 'checkoutSingleProduct',
     description:
-      'Buyer only: after the user chose a product (from productInquiry) and provided shipping details, create a pending order and return a real payment link. Use productId from tool results only — never ask the user for database IDs.',
+      'Buyer only: after the user chose a product (from productInquiry) and provided shipping details, create a pending order and start payment (hosted link and/or mobile money prompt). Use productId from tool results only — never ask the user for database IDs. If the user asked for MTN MoMo or Airtel Money, set paymentProvider accordingly and pass their wallet number in momoPhone or airtelPhone.',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -272,6 +277,13 @@ const functionDeclarations = [
           type: SchemaType.STRING,
           description: 'standard | express | international',
         },
+        paymentProvider: {
+          type: SchemaType.STRING,
+          description:
+            'Optional. flutterwave | stripe | paypal | momo | airtel. Default flutterwave. Use momo/airtel only for Rwanda mobile money when the user requested it; include momoPhone/airtelPhone.',
+        },
+        momoPhone: { type: SchemaType.STRING, description: 'MTN MoMo number when paymentProvider is momo' },
+        airtelPhone: { type: SchemaType.STRING, description: 'Airtel Money number when paymentProvider is airtel' },
       },
       required: [
         'productId',
@@ -462,6 +474,10 @@ async function executeTool(
           ? (speedRaw as ShippingSpeed)
           : 'standard';
 
+        const paymentProviderRaw = args.paymentProvider != null ? String(args.paymentProvider) : undefined;
+        const momoPhoneArg = args.momoPhone != null ? String(args.momoPhone).trim() : undefined;
+        const airtelPhoneArg = args.airtelPhone != null ? String(args.airtelPhone).trim() : undefined;
+
         if (!productId || !fullName || !phone || !addressLine1 || !city || !postalCode || !country) {
           return { ok: false, error: 'Missing required shipping or product fields' };
         }
@@ -481,6 +497,9 @@ async function executeTool(
             country,
           },
           shippingSpeed,
+          paymentProvider: paymentProviderRaw,
+          momoPhone: momoPhoneArg,
+          airtelPhone: airtelPhoneArg,
         });
 
         if (!result.ok) {
@@ -489,19 +508,29 @@ async function executeTool(
 
         extras.checkout = {
           orderNumber: result.orderNumber || '',
+          orderId: result.orderId,
           paymentLink: result.paymentLink,
+          provider: result.provider,
+          referenceId: result.referenceId,
           amount: result.amount,
           currency: result.currency,
+          message: result.message,
         };
+
+        const hasHosted = !!result.paymentLink;
+        const hasMm = !!(result.referenceId && (result.provider === 'momo' || result.provider === 'airtel'));
 
         return {
           ok: true,
           orderNumber: result.orderNumber,
-          paymentAvailable: !!result.paymentLink,
+          paymentAvailable: hasHosted || hasMm,
           amount: result.amount,
           currency: result.currency,
-          message:
-            'Order created. Share the payment link from the app UI when available; confirm the order number with the customer in plain language (do not paste raw database identifiers).',
+          message: hasHosted
+            ? 'Order created. The app shows a Pay now button when a payment link is available; confirm the order number with the customer in plain language (do not paste raw database identifiers).'
+            : hasMm
+              ? 'Order created. Ask the customer to approve the mobile money prompt on their phone; the app may show a payment status page.'
+              : 'Order created. Confirm the order number with the customer in plain language.',
         };
       }
 
@@ -770,7 +799,8 @@ function buildSystemPrompt(ctx: AgentContext, docs: string): string {
     '- When productInquiry returns exactly one product, guide the user to confirm quantity and shipping, then call checkoutSingleProduct with those details.',
     '- When multiple products match, help the user choose using names and prices; still never ask for raw IDs.',
     '- For checkout, only call checkoutSingleProduct after the user provided a full shipping address and phone.',
-    '- Do not invent payment links; payment links come only from checkoutSingleProduct tool results (surfaced by the app UI).',
+    '- Do not invent payment links; payment links and mobile-money references come only from checkoutSingleProduct tool results (surfaced by the app UI).',
+    '- If the customer wants MTN MoMo or Airtel Money, set paymentProvider to momo or airtel and pass momoPhone or airtelPhone.',
     '- For sellers creating listings, use sellerCreateProduct with structured fields; do not claim success without a successful tool response.',
     '',
     'INTERNAL DOCUMENTATION (source of truth):',

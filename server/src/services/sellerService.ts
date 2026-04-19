@@ -1,4 +1,4 @@
-import flw from '../config/flutterwave';
+import { getFlutterwaveClient } from '../config/flutterwave';
 import { SellerWallet } from '../models/SellerWallet';
 import { IUser } from '../models/User';
 
@@ -32,6 +32,7 @@ export async function createSellerSubaccount(sellerData: SellerSubaccountInput) 
     split_value: 0, // Reaglex controls full amount first
   };
 
+  const flw = await getFlutterwaveClient();
   const response = await flw.Subaccount.create(payload);
 
   if (response.status === 'success') {
@@ -73,6 +74,7 @@ export async function createSellerMobileMoneySubaccount(sellerData: SellerSubacc
     split_value: 0,
   };
 
+  const flw = await getFlutterwaveClient();
   const response = await flw.Subaccount.create(payload);
 
   if (response.status === 'success') {

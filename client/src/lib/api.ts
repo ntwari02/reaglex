@@ -1011,6 +1011,27 @@ export const adminFinanceAPI = {
       cache: 'no-store',
       body: JSON.stringify(body),
     }).then(handleResponse<{ gateway: any }>),
+  revealGatewayCredentials: (id: string, password: string) =>
+    fetch(`${FINANCE_BASE}/gateways/${id}/reveal`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ password }),
+    }).then(handleResponse<{ credentials: Record<string, string> | null; profile?: string; hint?: string }>),
+  saveGatewayCredentials: (id: string, body: { password: string; credentials: Record<string, string> }) =>
+    fetch(`${FINANCE_BASE}/gateways/${id}/credentials`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ ok: boolean; maskedSummary?: Record<string, string>; isConfigured?: boolean }>),
+  testGatewayConnection: (id: string, body: { password: string; credentials?: Record<string, string> }) =>
+    fetch(`${FINANCE_BASE}/gateways/${id}/test`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ ok: boolean; message: string }>),
   getRefunds: (params?: { status?: string; search?: string; page?: number; limit?: number }) => {
     const sp = new URLSearchParams();
     if (params?.status) sp.append('status', params.status);

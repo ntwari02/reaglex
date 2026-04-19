@@ -33,12 +33,18 @@ export type EscrowStatus =
   | 'AUTO_RELEASED';
 
 export interface IOrderPayment {
-  provider?: 'flutterwave' | 'momo';
+  provider?: 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
   flutterwaveTransactionId?: string;
   flutterwaveReference?: string;
   momoReferenceId?: string;
   momoFinancialTransactionId?: string;
   momoStatus?: string;
+  stripeCheckoutSessionId?: string;
+  stripePaymentIntentId?: string;
+  paypalOrderId?: string;
+  paypalCaptureId?: string;
+  airtelTransactionId?: string;
+  airtelStatus?: string;
   amount?: number;
   currency?: string;
   method?: string; // card, mobilemoney, banktransfer
@@ -155,12 +161,18 @@ const orderSchema = new Schema<IOrder>(
     trackingNumber: { type: String },
     timeline: { type: [orderTimelineSchema], default: [] },
     payment: {
-      provider: { type: String, enum: ['flutterwave', 'momo'] },
+      provider: { type: String },
       flutterwaveTransactionId: { type: String },
       flutterwaveReference: { type: String },
       momoReferenceId: { type: String, index: true },
       momoFinancialTransactionId: { type: String },
       momoStatus: { type: String },
+      stripeCheckoutSessionId: { type: String, index: true },
+      stripePaymentIntentId: { type: String },
+      paypalOrderId: { type: String, index: true },
+      paypalCaptureId: { type: String },
+      airtelTransactionId: { type: String, index: true },
+      airtelStatus: { type: String },
       amount: { type: Number },
       currency: { type: String },
       method: { type: String },

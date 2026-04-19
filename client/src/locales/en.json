@@ -157,6 +157,7 @@
       "productUnavailable": "A product in your cart is no longer available.",
       "gatewayDisabled": "This payment method is currently turned off. Choose another option or try again later.",
       "momoPhoneRequired": "Enter the MTN MoMo number that will approve the payment.",
+      "airtelPhoneRequired": "Enter the Airtel Money number that will approve the payment.",
       "noGateway": "No payment provider is enabled yet. Please contact support or try again later."
     },
     "gatewayHint": "Choose how you want to pay. Options shown here follow your administrator settings.",
@@ -169,6 +170,17 @@
     "momoPayerPhonePh": "e.g. 078xxxxxxx or 25078xxxxxxx",
     "momoPayerHint": "Must be an active MTN Rwanda wallet. Amount is charged in RWF (rounded to the nearest franc).",
     "flutterwaveHosted": "After you place the order you will be redirected to Flutterwave to complete payment securely.",
+    "payStripe": "Stripe (cards)",
+    "payStripeSub": "Pay with card on Stripe Checkout — USD pricing where applicable.",
+    "payPaypal": "PayPal",
+    "payPaypalSub": "Log in to PayPal and approve the payment on PayPal’s site.",
+    "payAirtel": "Airtel Money",
+    "payAirtelSub": "You will receive a prompt on your Airtel line to approve the amount in RWF.",
+    "airtelPayerPhone": "Airtel Money number",
+    "airtelPayerPhonePh": "e.g. 073xxxxxxx or 25073xxxxxxx",
+    "airtelPayerHint": "Must be an active Airtel Rwanda wallet. Amount is charged in RWF.",
+    "stripeHosted": "After you place the order you will be redirected to Stripe to complete payment.",
+    "paypalHosted": "After you place the order you will be redirected to PayPal to approve payment.",
     "momoWait": {
       "title": "Complete MTN MoMo payment",
       "subtitle": "Approve the payment on your phone. This page updates automatically when MTN confirms success.",
@@ -182,6 +194,12 @@
       "success": "Payment confirmed.",
       "failed": "MTN reported this payment as failed or declined. You can return to checkout and try again.",
       "backCheckout": "Back to checkout"
+    },
+    "airtelWait": {
+      "title": "Complete Airtel Money payment",
+      "subtitle": "Approve the payment on your phone. This page updates when Airtel confirms success.",
+      "pending": "Still pending — check your phone for the approval prompt.",
+      "failed": "Airtel reported this payment as failed or declined. You can return to checkout and try again."
     },
     "emptyCart": "Your cart is empty",
     "shopNow": "Shop Now",

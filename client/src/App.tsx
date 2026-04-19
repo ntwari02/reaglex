@@ -21,6 +21,7 @@ import { SecurityTelemetryProbe } from './components/SecurityTelemetryProbe';
 // @ts-ignore JSX module without TS typings
 import CartDrawer from './components/CartDrawer';
 import AssistantChat from './components/AssistantChat';
+import { websocketService } from './services/websocketService';
 
 // ── Buyer pages (lazy) ────────────────────────────────────────────────────────
 // @ts-ignore JSX modules without TS typings
@@ -33,6 +34,8 @@ const SearchResults        = lazy(() => import('./pages/SearchResults'));
 const Checkout             = lazy(() => import('./pages/Checkout'));
 // @ts-ignore JSX module without TS typings
 const MomoPaymentWait      = lazy(() => import('./pages/MomoPaymentWait'));
+const StripeReturn         = lazy(() => import('./pages/StripeReturn'));
+const PayPalReturn         = lazy(() => import('./pages/PayPalReturn'));
 // @ts-ignore JSX modules without TS typings
 const OrderConfirmation    = lazy(() => import('./pages/OrderConfirmation'));
 // @ts-ignore JSX modules without TS typings
@@ -123,22 +126,16 @@ function GlobalRealtimeBridge() {
   const user = useAuthStore((s) => s.user);
   useEffect(() => {
     if (!user?.id || !localStorage.getItem('auth_token')) {
-      import('./services/websocketService').then(({ websocketService }) => {
-        websocketService.onSystemInboxNotification = undefined;
-        websocketService.disconnect();
-      });
+      websocketService.onSystemInboxNotification = undefined;
+      websocketService.disconnect();
       return;
     }
-    let cancelled = false;
-    import('./services/websocketService').then(({ websocketService }) => {
-      if (cancelled) return;
-      websocketService.connect();
-      websocketService.onSystemInboxNotification = () => {
-        window.dispatchEvent(new Event('systemInboxUnreadRefresh'));
-      };
-    });
+    websocketService.connect();
+    websocketService.onSystemInboxNotification = () => {
+      window.dispatchEvent(new Event('systemInboxUnreadRefresh'));
+    };
     return () => {
-      cancelled = true;
+      websocketService.onSystemInboxNotification = undefined;
     };
   }, [user?.id]);
   return null;
@@ -166,6 +163,8 @@ function App() {
             <Route path="/products/:id"                element={<BuyerProductDetail />} />
             <Route path="/checkout"                    element={<Checkout />} />
             <Route path="/checkout/momo-wait"          element={<MomoPaymentWait />} />
+            <Route path="/payment/stripe-return"       element={<StripeReturn />} />
+            <Route path="/payment/paypal-return"       element={<PayPalReturn />} />
             <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
             <Route path="/track/:orderId"              element={<OrderTracking />} />
             <Route path="/track"                       element={<OrderTracking />} />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/config';
 
@@ -16,6 +16,8 @@ interface ProductCard {
   statusLabel?: string;
 }
 
+type AssistantPaymentProvider = 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
+
 interface ChatMessage {
   id: string;
   from: Sender;
@@ -26,9 +28,12 @@ interface ChatMessage {
   /** From agent: one strong match vs many */
   productLayout?: 'single' | 'grid';
   orderNumber?: string;
+  orderIdForPayment?: string;
   paymentLink?: string;
   paymentAmount?: number;
   paymentCurrency?: string;
+  paymentProvider?: AssistantPaymentProvider;
+  paymentReferenceId?: string;
 }
 
 const STORAGE_KEY = 'reaglex_unified_assistant_chat';
@@ -80,7 +85,18 @@ export default function AssistantChat() {
     postalCode: '',
     country: '',
     shippingSpeed: 'standard' as 'standard' | 'express' | 'international',
+    momoWallet: '',
+    airtelWallet: '',
   });
+  const [checkoutGateways, setCheckoutGateways] = useState({
+    flutterwave: false,
+    mtn_momo: false,
+    stripe: false,
+    paypal: false,
+    airtel_money: false,
+  });
+  const [checkoutPaymentProvider, setCheckoutPaymentProvider] = useState<AssistantPaymentProvider>('flutterwave');
+  const [gwLoaded, setGwLoaded] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
@@ -141,6 +157,55 @@ export default function AssistantChat() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!checkoutTarget) {
+      setGwLoaded(false);
+      return;
+    }
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/public/payment-gateways?t=${Date.now()}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d: { gateways?: Array<{ key: string; isEnabled: boolean }> }) => {
+        if (cancelled) return;
+        const next = {
+          flutterwave: false,
+          mtn_momo: false,
+          stripe: false,
+          paypal: false,
+          airtel_money: false,
+        };
+        (d.gateways || []).forEach((x) => {
+          if (x?.key && x.isEnabled === true) (next as Record<string, boolean>)[x.key] = true;
+        });
+        setCheckoutGateways(next);
+        const order: AssistantPaymentProvider[] = ['flutterwave', 'stripe', 'paypal', 'momo', 'airtel'];
+        const enabled = (k: AssistantPaymentProvider) => {
+          if (k === 'momo') return next.mtn_momo;
+          if (k === 'airtel') return next.airtel_money;
+          return (next as Record<string, boolean>)[k];
+        };
+        const first = order.find(enabled);
+        if (first) setCheckoutPaymentProvider(first);
+        setGwLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCheckoutGateways({
+            flutterwave: true,
+            mtn_momo: false,
+            stripe: false,
+            paypal: false,
+            airtel_money: false,
+          });
+          setCheckoutPaymentProvider('flutterwave');
+          setGwLoaded(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [checkoutTarget]);
+
   const addMessage = (from: Sender, text: string, extras?: Partial<ChatMessage>) => {
     const msg: ChatMessage = {
       id: `${from}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -172,6 +237,39 @@ export default function AssistantChat() {
       addMessage('bot', 'Please fill in all required shipping fields before paying.');
       return;
     }
+    const anyGw =
+      checkoutGateways.flutterwave ||
+      checkoutGateways.mtn_momo ||
+      checkoutGateways.stripe ||
+      checkoutGateways.paypal ||
+      checkoutGateways.airtel_money;
+    if (!anyGw && gwLoaded) {
+      addMessage('bot', 'No payment method is enabled right now. Please try again later or use the main checkout.');
+      return;
+    }
+    const gwEnabled = (k: AssistantPaymentProvider) => {
+      if (k === 'momo') return checkoutGateways.mtn_momo;
+      if (k === 'airtel') return checkoutGateways.airtel_money;
+      return (checkoutGateways as Record<string, boolean>)[k];
+    };
+    if (!gwEnabled(checkoutPaymentProvider)) {
+      addMessage('bot', 'That payment method is not available. Choose another option in the payment row.');
+      return;
+    }
+    if (checkoutPaymentProvider === 'momo') {
+      const w = (f.momoWallet || f.phone || '').trim();
+      if (!w) {
+        addMessage('bot', 'Enter the MTN MoMo number that will approve the payment (or put it in the MoMo field).');
+        return;
+      }
+    }
+    if (checkoutPaymentProvider === 'airtel') {
+      const w = (f.airtelWallet || f.phone || '').trim();
+      if (!w) {
+        addMessage('bot', 'Enter the Airtel Money number that will approve the payment (or put it in the Airtel field).');
+        return;
+      }
+    }
     setCheckoutBusy(true);
     try {
       const r = await fetch(`${API_BASE_URL}/ai/checkout`, {
@@ -192,6 +290,9 @@ export default function AssistantChat() {
           postalCode: f.postalCode.trim(),
           country: f.country.trim(),
           shippingSpeed: f.shippingSpeed,
+          paymentProvider: checkoutPaymentProvider,
+          momoPhone: checkoutPaymentProvider === 'momo' ? (f.momoWallet || f.phone).trim() : undefined,
+          airtelPhone: checkoutPaymentProvider === 'airtel' ? (f.airtelWallet || f.phone).trim() : undefined,
         }),
       });
       const data = await r.json();
@@ -204,18 +305,46 @@ export default function AssistantChat() {
       const paymentLink = data?.paymentLink ? String(data.paymentLink) : undefined;
       const amount = data?.amount != null ? Number(data.amount) : undefined;
       const currency = data?.currency ? String(data.currency) : checkoutTarget.currency;
-      addMessage(
-        'bot',
-        orderNumber
-          ? `Your order ${orderNumber} is ready. Use Pay now to complete payment securely.`
-          : 'Your order is ready. Use Pay now to complete payment securely.',
-        {
+      const provider = data?.provider as AssistantPaymentProvider | undefined;
+      const referenceId = data?.referenceId != null ? String(data.referenceId) : undefined;
+      const orderIdPay = data?.orderId != null ? String(data.orderId) : undefined;
+
+      if (paymentLink) {
+        addMessage(
+          'bot',
+          orderNumber
+            ? `Your order ${orderNumber} is ready. Use Pay now to complete payment securely.`
+            : 'Your order is ready. Use Pay now to complete payment securely.',
+          {
+            orderNumber,
+            orderIdForPayment: orderIdPay,
+            paymentLink,
+            paymentAmount: amount,
+            paymentCurrency: currency,
+            paymentProvider: provider,
+          },
+        );
+      } else if (referenceId && orderIdPay && (provider === 'momo' || provider === 'airtel')) {
+        addMessage(
+          'bot',
+          orderNumber
+            ? `Your order ${orderNumber} is created. Approve the payment on your phone when prompted, or open the status page below.`
+            : 'Order created. Approve the payment on your phone when prompted, or open the status page below.',
+          {
+            orderNumber,
+            orderIdForPayment: orderIdPay,
+            paymentAmount: amount,
+            paymentCurrency: currency || 'RWF',
+            paymentProvider: provider,
+            paymentReferenceId: referenceId,
+          },
+        );
+      } else {
+        addMessage('bot', String(data?.message || 'Order created; payment could not be started automatically.'), {
           orderNumber,
-          paymentLink,
-          paymentAmount: amount,
-          paymentCurrency: currency,
-        },
-      );
+          orderIdForPayment: orderIdPay,
+        });
+      }
       setCheckoutTarget(null);
       scrollToBottom();
     } catch {
@@ -295,7 +424,15 @@ export default function AssistantChat() {
         : undefined;
 
       const checkout = data?.checkout as
-        | { orderNumber?: string; paymentLink?: string; amount?: number; currency?: string }
+        | {
+            orderNumber?: string;
+            orderId?: string;
+            paymentLink?: string;
+            amount?: number;
+            currency?: string;
+            provider?: AssistantPaymentProvider;
+            referenceId?: string;
+          }
         | undefined;
 
       const paymentLink: string | undefined =
@@ -316,6 +453,10 @@ export default function AssistantChat() {
             : undefined;
 
       const orderNumber = checkout?.orderNumber ? String(checkout.orderNumber) : undefined;
+      const orderIdForPayment = checkout?.orderId ? String(checkout.orderId) : undefined;
+      const paymentProvider = checkout?.provider;
+      const paymentReferenceId =
+        checkout?.referenceId != null ? String(checkout.referenceId) : undefined;
 
       const productLayout =
         data?.productLayout === 'single' && products?.length === 1 ? 'single' : products?.length ? 'grid' : undefined;
@@ -324,9 +465,12 @@ export default function AssistantChat() {
         productCards: products?.length ? products : undefined,
         productLayout,
         orderNumber,
+        orderIdForPayment,
         paymentLink,
         paymentAmount,
         paymentCurrency,
+        paymentProvider,
+        paymentReferenceId,
       });
       scrollToBottom();
     } catch {
@@ -687,11 +831,38 @@ export default function AssistantChat() {
                         >
                           Pay now
                           {m.paymentAmount != null
-                            ? ` (${m.paymentCurrency || ''} ${Number(m.paymentAmount).toFixed(2)})`
+                            ? ` (${m.paymentCurrency === 'RWF' ? `RWF ${Math.round(Number(m.paymentAmount)).toLocaleString()}` : `${m.paymentCurrency || ''} ${Number(m.paymentAmount).toFixed(2)}`})`
                             : ''}
                         </a>
                       </div>
                     )}
+                    {!isUser &&
+                      !m.paymentLink &&
+                      m.paymentReferenceId &&
+                      m.orderIdForPayment &&
+                      (m.paymentProvider === 'momo' || m.paymentProvider === 'airtel') && (
+                        <div style={{ width: '100%', marginTop: 10 }}>
+                          <Link
+                            to={`/checkout/momo-wait?ref=${encodeURIComponent(m.paymentReferenceId)}&orderId=${encodeURIComponent(m.orderIdForPayment)}&provider=${m.paymentProvider === 'airtel' ? 'airtel' : 'momo'}`}
+                            style={{
+                              display: 'inline-block',
+                              padding: '10px 14px',
+                              borderRadius: 14,
+                              background: PRIMARY,
+                              color: '#fff',
+                              fontWeight: 900,
+                              textDecoration: 'none',
+                              boxShadow: '0 10px 30px rgba(249,115,22,0.25)',
+                              fontSize: 12.5,
+                            }}
+                          >
+                            Open payment status
+                            {m.paymentAmount != null
+                              ? ` (${m.paymentCurrency === 'RWF' ? `RWF ${Math.round(Number(m.paymentAmount)).toLocaleString()}` : `${m.paymentCurrency || ''} ${Number(m.paymentAmount).toFixed(2)}`})`
+                              : ''}
+                          </Link>
+                        </div>
+                      )}
                   </div>
                 );
               })}
@@ -709,7 +880,7 @@ export default function AssistantChat() {
                   padding: '10px 12px',
                   borderTop: '1px solid var(--divider)',
                   background: 'var(--card-bg-subtle)',
-                  maxHeight: 220,
+                  maxHeight: 380,
                   overflowY: 'auto',
                 }}
               >
@@ -904,6 +1075,83 @@ export default function AssistantChat() {
                       <option value="international">International</option>
                     </select>
                   </label>
+                  <label style={{ gridColumn: '1 / -1', fontSize: 10, color: 'var(--text-muted)' }}>
+                    Payment (same as main checkout)
+                    <select
+                      value={checkoutPaymentProvider}
+                      onChange={(e) =>
+                        setCheckoutPaymentProvider(e.target.value as AssistantPaymentProvider)
+                      }
+                      disabled={!gwLoaded}
+                      style={{
+                        width: '100%',
+                        marginTop: 2,
+                        borderRadius: 8,
+                        border: '1px solid var(--border-subtle)',
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {!gwLoaded && <option value="flutterwave">Loading payment options…</option>}
+                      {gwLoaded &&
+                        !checkoutGateways.flutterwave &&
+                        !checkoutGateways.stripe &&
+                        !checkoutGateways.paypal &&
+                        !checkoutGateways.mtn_momo &&
+                        !checkoutGateways.airtel_money && (
+                          <option value="flutterwave">No payment gateway enabled</option>
+                        )}
+                      {checkoutGateways.flutterwave && (
+                        <option value="flutterwave">Card / bank (Flutterwave)</option>
+                      )}
+                      {checkoutGateways.stripe && <option value="stripe">Stripe</option>}
+                      {checkoutGateways.paypal && <option value="paypal">PayPal</option>}
+                      {checkoutGateways.mtn_momo && <option value="momo">MTN MoMo (RWF)</option>}
+                      {checkoutGateways.airtel_money && <option value="airtel">Airtel Money (RWF)</option>}
+                    </select>
+                  </label>
+                  {checkoutPaymentProvider === 'momo' && (
+                    <label style={{ gridColumn: '1 / -1', fontSize: 10, color: 'var(--text-muted)' }}>
+                      MTN MoMo wallet
+                      <input
+                        value={checkoutForm.momoWallet}
+                        onChange={(e) => setCheckoutForm((f) => ({ ...f, momoWallet: e.target.value }))}
+                        placeholder="Uses Phone if empty"
+                        style={{
+                          width: '100%',
+                          marginTop: 2,
+                          borderRadius: 8,
+                          border: '1px solid var(--border-subtle)',
+                          padding: '6px 8px',
+                          fontSize: 12,
+                          background: 'var(--input-bg)',
+                          color: 'var(--text-primary)',
+                        }}
+                      />
+                    </label>
+                  )}
+                  {checkoutPaymentProvider === 'airtel' && (
+                    <label style={{ gridColumn: '1 / -1', fontSize: 10, color: 'var(--text-muted)' }}>
+                      Airtel Money wallet
+                      <input
+                        value={checkoutForm.airtelWallet}
+                        onChange={(e) => setCheckoutForm((f) => ({ ...f, airtelWallet: e.target.value }))}
+                        placeholder="Uses Phone if empty"
+                        style={{
+                          width: '100%',
+                          marginTop: 2,
+                          borderRadius: 8,
+                          border: '1px solid var(--border-subtle)',
+                          padding: '6px 8px',
+                          fontSize: 12,
+                          background: 'var(--input-bg)',
+                          color: 'var(--text-primary)',
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -922,7 +1170,7 @@ export default function AssistantChat() {
                     fontSize: 12.5,
                   }}
                 >
-                  {checkoutBusy ? 'Creating order…' : 'Create order & payment link'}
+                  {checkoutBusy ? 'Creating order…' : 'Create order & start payment'}
                 </button>
               </div>
             )}
