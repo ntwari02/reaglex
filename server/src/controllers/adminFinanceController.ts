@@ -22,6 +22,8 @@ import {
   saveEncryptedCredentials,
   suggestedFlutterwaveWebhookUrl,
   suggestedMomoCallbackUrl,
+  suggestedPaypalWebhookUrl,
+  suggestedStripeWebhookUrl,
   testGatewayByKey,
   type CredentialProfile,
 } from '../services/paymentGatewayCredentials.service';
@@ -357,10 +359,6 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
         } catch {
           configured = false;
         }
-        const stripeWebhookSuggestion =
-          g.key === 'stripe' && suggestedFlutterwaveWebhookUrl()
-            ? `${suggestedFlutterwaveWebhookUrl().replace('/flutterwave/webhook', '/stripe/webhook')}`
-            : undefined;
         return {
           id: g._id ? g._id.toString() : g.key,
           key: g.key,
@@ -379,8 +377,10 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
               : g.key === 'mtn_momo'
                 ? suggestedMomoCallbackUrl()
                 : g.key === 'stripe'
-                  ? stripeWebhookSuggestion
-                : undefined,
+                  ? suggestedStripeWebhookUrl()
+                  : g.key === 'paypal'
+                    ? suggestedPaypalWebhookUrl()
+                    : undefined,
           isConfigured: configured,
           lastChecked: g.lastChecked,
           issues: g.issues || [],

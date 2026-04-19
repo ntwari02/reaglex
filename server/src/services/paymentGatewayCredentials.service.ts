@@ -63,31 +63,47 @@ export function getFieldMetaForProfile(profile: CredentialProfile): GatewayField
       return [
         { name: 'publicKey', label: 'Public Key', kind: 'secret' },
         { name: 'secretKey', label: 'Secret Key', kind: 'secret' },
-        { name: 'encryptionKey', label: 'Encryption Key', kind: 'secret', hint: 'Flutterwave Encryption Key (for advanced use-cases).' },
-        { name: 'webhookSecretHash', label: 'Webhook Secret Hash (verif-hash)', kind: 'secret', hint: 'Set in Flutterwave dashboard webhooks. Used to verify incoming webhooks.' },
+        { name: 'encryptionKey', label: 'Encryption Key', kind: 'secret', hint: 'Flutterwave Encryption Key (checksum / advanced flows).' },
+        {
+          name: 'webhookUrl',
+          label: 'Webhook URL',
+          kind: 'url',
+          hint: 'Register this exact URL in Flutterwave dashboard → Webhooks (same as suggested on the card).',
+        },
+        {
+          name: 'webhookSecretHash',
+          label: 'Webhook Secret Hash (verif-hash)',
+          kind: 'secret',
+          hint: 'Set the same “Secret Hash” in Flutterwave. Incoming webhooks must match this value in the verif-hash header.',
+        },
       ];
     case 'mtn_momo':
       return [
-        { name: 'baseUrl', label: 'MOMO_BASE_URL', kind: 'url' },
-        { name: 'subscriptionKey', label: 'Subscription Key', kind: 'secret' },
-        { name: 'apiUser', label: 'API User (UUID)', kind: 'text' },
+        { name: 'baseUrl', label: 'API base URL', kind: 'url', hint: 'Collections API host from MTN (sandbox vs production).' },
+        { name: 'subscriptionKey', label: 'Subscription Key (Ocp-Apim-Subscription-Key)', kind: 'secret' },
+        { name: 'apiUser', label: 'API User', kind: 'text', hint: 'UUID from MTN MoMo developer portal.' },
         { name: 'apiKey', label: 'API Key', kind: 'secret' },
         { name: 'targetEnvironment', label: 'Target environment', kind: 'text', hint: 'sandbox or mtnrwanda (production)' },
-        { name: 'callbackUrl', label: 'Callback URL', kind: 'url', hint: 'Must match MTN product callback; server default uses SERVER_URL' },
+        {
+          name: 'callbackUrl',
+          label: 'Callback / webhook URL',
+          kind: 'url',
+          hint: 'Must match the callback URL on your MTN product (use the suggested URL on the card when SERVER_URL is correct).',
+        },
       ];
     case 'stripe':
       return [
-        { name: 'secretKey', label: 'Secret key (sk_live_… / sk_test_…)', kind: 'secret' },
         { name: 'publishableKey', label: 'Publishable key (pk_…)', kind: 'secret' },
-        { name: 'webhookSecret', label: 'Webhook signing secret (whsec_…)', kind: 'secret', hint: 'For /api/webhooks/stripe/webhook' },
+        { name: 'secretKey', label: 'Secret key (sk_…)', kind: 'secret' },
+        { name: 'webhookSecret', label: 'Webhook signing secret (whsec_…)', kind: 'secret', hint: 'Stripe Dashboard → Webhooks → endpoint signing secret (/api/webhooks/stripe/webhook).' },
         { name: 'environment', label: 'Environment', kind: 'text', hint: 'sandbox or live (informational; keys determine mode)' },
       ];
     case 'paypal':
       return [
         { name: 'clientId', label: 'Client ID', kind: 'secret' },
-        { name: 'clientSecret', label: 'Secret', kind: 'secret' },
-        { name: 'environment', label: 'Environment', kind: 'text', hint: 'sandbox or live' },
-        { name: 'webhookId', label: 'Webhook ID', kind: 'text', hint: 'Required to verify PayPal webhooks securely.' },
+        { name: 'clientSecret', label: 'Client Secret', kind: 'secret' },
+        { name: 'environment', label: 'Mode (sandbox / live)', kind: 'text', hint: 'Type sandbox or live' },
+        { name: 'webhookId', label: 'Webhook ID', kind: 'text', hint: 'From PayPal dashboard for your listener URL (/api/webhooks/paypal/webhook).' },
       ];
     case 'airtel_api':
       return [
@@ -203,6 +219,7 @@ export async function getFlutterwaveResolvedConfig(): Promise<{
   secretKey: string;
   encryptionKey?: string;
   webhookSecretHash?: string;
+  webhookUrl?: string;
 }> {
   await ensureAllPaymentGateways();
   const row = await PaymentGatewayConfig.findOne({ key: 'flutterwave' }).lean();
@@ -213,6 +230,9 @@ export async function getFlutterwaveResolvedConfig(): Promise<{
   const secretKey = pickMergedStr(fromDb?.secretKey, envKeys?.secretKey);
   const encryptionKey = pickMergedStr(fromDb?.encryptionKey, envExtras?.encryptionKey) || undefined;
   const webhookSecretHash = pickMergedStr(fromDb?.webhookSecretHash, envExtras?.webhookSecretHash) || undefined;
+  const docWebhook = typeof (row as any)?.webhookUrl === 'string' ? String((row as any).webhookUrl).trim() : '';
+  const credWebhook = typeof fromDb?.webhookUrl === 'string' ? String(fromDb.webhookUrl).trim() : '';
+  const webhookUrl = (credWebhook || docWebhook || undefined) as string | undefined;
   if (!publicKey || !secretKey) {
     throw new Error('Flutterwave is not configured (publicKey/secretKey missing)');
   }
@@ -221,6 +241,7 @@ export async function getFlutterwaveResolvedConfig(): Promise<{
     secretKey,
     ...(encryptionKey ? { encryptionKey } : {}),
     ...(webhookSecretHash ? { webhookSecretHash } : {}),
+    ...(webhookUrl ? { webhookUrl } : {}),
   };
 }
 
@@ -368,7 +389,13 @@ export async function isGatewayFullyConfigured(key: string): Promise<boolean> {
   if (key === 'flutterwave') {
     try {
       const cfg = await getFlutterwaveResolvedConfig();
-      return Boolean(cfg.publicKey && cfg.secretKey && cfg.webhookSecretHash);
+      return Boolean(
+        cfg.publicKey &&
+          cfg.secretKey &&
+          cfg.encryptionKey?.trim() &&
+          cfg.webhookSecretHash?.trim() &&
+          cfg.webhookUrl?.trim()
+      );
     } catch {
       return false;
     }
@@ -380,7 +407,7 @@ export async function isGatewayFullyConfigured(key: string): Promise<boolean> {
   if (key === 'stripe') {
     try {
       const c = await getStripeCredentialsResolved();
-      return Boolean(c.secretKey && c.webhookSecret);
+      return Boolean(c.secretKey && c.publishableKey && c.webhookSecret);
     } catch {
       return false;
     }
@@ -581,6 +608,18 @@ export function suggestedFlutterwaveWebhookUrl(): string {
   return `${base.replace(/\/$/, '')}/api/webhooks/flutterwave/webhook`;
 }
 
+export function suggestedStripeWebhookUrl(): string {
+  const base = getServerUrl();
+  if (!base) return '';
+  return `${base.replace(/\/$/, '')}/api/webhooks/stripe/webhook`;
+}
+
+export function suggestedPaypalWebhookUrl(): string {
+  const base = getServerUrl();
+  if (!base) return '';
+  return `${base.replace(/\/$/, '')}/api/webhooks/paypal/webhook`;
+}
+
 export function suggestedMomoCallbackUrl(): string {
   const explicit = (process.env.MOMO_CALLBACK_URL || '').trim().replace(/\/$/, '');
   if (explicit) return explicit;
@@ -596,10 +635,14 @@ export async function saveEncryptedCredentials(
 ): Promise<void> {
   const enc = encryptCredentialsJson(plain);
   const masked = buildMaskedSummary(profile, plain);
-  await PaymentGatewayConfig.findByIdAndUpdate(gatewayMongoId, {
+  const update: Record<string, unknown> = {
     encryptedCredentials: enc,
     maskedSummary: masked,
-  });
+  };
+  if (profile === 'flutterwave' && typeof plain.webhookUrl === 'string' && plain.webhookUrl.trim()) {
+    update.webhookUrl = plain.webhookUrl.trim();
+  }
+  await PaymentGatewayConfig.findByIdAndUpdate(gatewayMongoId, update);
   invalidateFlutterwaveClientCache();
   bumpMomoAfterCredentialChange();
 }

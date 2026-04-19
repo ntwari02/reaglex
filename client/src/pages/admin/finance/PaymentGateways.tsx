@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Edit, TestTube, ScrollText } from 'lucide-react';
+import { AlertTriangle, Copy, Edit, TestTube, ScrollText } from 'lucide-react';
 import { adminFinanceAPI } from '@/lib/api';
 
 type GatewayStatus = 'online' | 'offline' | 'issues';
@@ -34,13 +34,18 @@ function emptyForm(meta: FieldMeta[] | undefined): Record<string, string> {
   return o;
 }
 
+function mergeDocWebhookIntoForm(g: Gateway, values: Record<string, string>): Record<string, string> {
+  if (g.key !== 'flutterwave') return values;
+  const w = (g.webhookUrl || '').trim();
+  if (w && !(values.webhookUrl || '').trim()) return { ...values, webhookUrl: w };
+  return values;
+}
+
 export default function PaymentGateways() {
   const [gateways, setGateways] = useState<Gateway[]>([]);
   const [selectedGateway, setSelectedGateway] = useState<Gateway | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [apiKeyMaskedInput, setApiKeyMaskedInput] = useState('');
-  const [webhookUrlInput, setWebhookUrlInput] = useState('');
   const [testModeInput, setTestModeInput] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -114,10 +119,9 @@ export default function PaymentGateways() {
 
   const openConfigure = (g: Gateway) => {
     setSelectedGateway(g);
-    setApiKeyMaskedInput(g.apiKeyMasked || '');
-    setWebhookUrlInput(g.webhookUrl || g.suggestedWebhookUrl || '');
     setTestModeInput(!!g.testMode);
-    setFormValues({ ...emptyForm(g.fieldMeta), ...(g.maskedSummary || {}) });
+    const seeded = mergeDocWebhookIntoForm(g, { ...emptyForm(g.fieldMeta), ...(g.maskedSummary || {}) });
+    setFormValues(seeded);
     setTestMessage(null);
     setShowLogs(false);
     setShowConfigModal(true);
@@ -130,11 +134,11 @@ export default function PaymentGateways() {
           Object.entries(res.credentials).forEach(([k, v]) => {
             if (typeof v === 'string') next[k] = v;
           });
-          setFormValues(next);
+          setFormValues(mergeDocWebhookIntoForm(g, next));
         }
       })
       .catch(() => {
-        // keep masked/empty values when secret reveal is unavailable
+        /* keep masked / seeded values */
       });
   };
 
@@ -186,12 +190,22 @@ export default function PaymentGateways() {
     );
   };
 
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* ignore */
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Payment gateways</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Admin can configure gateway credentials directly here. No .env edits are required once credentials are saved in this dashboard.
+          Configure each provider with the exact keys and webhook settings required for live checkout. Values are stored
+          encrypted; nothing here depends on <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">.env</code> once
+          saved.
         </p>
       </div>
       {loadError && (
@@ -230,12 +244,12 @@ export default function PaymentGateways() {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-300">Configured</span>
                 <span className={gateway.isConfigured ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium'}>
-                  {gateway.isConfigured ? 'Yes' : 'No — save credentials first'}
+                  {gateway.isConfigured ? 'Yes' : 'No — fill all required fields and save'}
                 </span>
               </div>
               {gateway.suggestedWebhookUrl && (
                 <div className="rounded-lg bg-gray-50 p-2 text-xs dark:bg-gray-800/80">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">Webhook / callback URL</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">Suggested webhook / callback URL</span>
                   <p className="mt-1 break-all font-mono text-gray-600 dark:text-gray-400">{gateway.suggestedWebhookUrl}</p>
                 </div>
               )}
@@ -340,30 +354,60 @@ export default function PaymentGateways() {
           >
             <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Configure {selectedGateway.name}</h3>
             <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
-              Update payment credentials and gateway options directly from admin dashboard.
+              Enter the credentials your payment provider issued. Use “Test connection” before enabling the gateway for
+              buyers.
             </p>
+
+            {selectedGateway.suggestedWebhookUrl && (
+              <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50/80 p-3 text-xs dark:border-emerald-900/40 dark:bg-emerald-950/30">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold text-emerald-900 dark:text-emerald-200">Suggested listener URL</span>
+                  <button
+                    type="button"
+                    onClick={() => void copyText(selectedGateway.suggestedWebhookUrl || '')}
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-gray-900 dark:text-emerald-200"
+                  >
+                    <Copy className="h-3 w-3" /> Copy
+                  </button>
+                </div>
+                <p className="mt-2 break-all font-mono text-emerald-900/90 dark:text-emerald-100/90">
+                  {selectedGateway.suggestedWebhookUrl}
+                </p>
+              </div>
+            )}
+
             {selectedGateway.credentialProfile !== 'none' && (
               <div className="space-y-4">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">API key (masked)</label>
-                  <input
-                    type="text"
-                    value={apiKeyMaskedInput}
-                    onChange={(e) => setApiKeyMaskedInput(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    autoComplete="off"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Webhook URL</label>
-                  <input
-                    type="url"
-                    value={webhookUrlInput}
-                    onChange={(e) => setWebhookUrlInput(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    autoComplete="off"
-                  />
-                </div>
+                {(selectedGateway.fieldMeta || []).length === 0 ? (
+                  <p className="text-sm text-amber-700 dark:text-amber-300">No field definitions for this profile.</p>
+                ) : (
+                  (selectedGateway.fieldMeta || []).map((field) => (
+                    <div key={field.name}>
+                      <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">{field.label}</label>
+                      {field.hint && <p className="mb-1 text-[11px] text-gray-500 dark:text-gray-400">{field.hint}</p>}
+                      {field.kind === 'url' ? (
+                        <textarea
+                          rows={2}
+                          value={formValues[field.name] ?? ''}
+                          onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                          className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                          autoComplete="off"
+                          spellCheck={false}
+                        />
+                      ) : (
+                        <input
+                          type={field.kind === 'secret' ? 'password' : 'text'}
+                          value={formValues[field.name] ?? ''}
+                          onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                          autoComplete="off"
+                          spellCheck={false}
+                        />
+                      )}
+                    </div>
+                  ))
+                )}
+
                 <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
@@ -371,25 +415,17 @@ export default function PaymentGateways() {
                     onChange={(e) => setTestModeInput(e.target.checked)}
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  Sandbox / Test mode
+                  Sandbox / test mode (gateway flag)
                 </label>
 
-                {(selectedGateway.fieldMeta || []).map((field) => (
-                  <div key={field.name}>
-                    <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">{field.label}</label>
-                    {field.hint && <p className="mb-1 text-[11px] text-gray-500">{field.hint}</p>}
-                    <input
-                      type={field.kind === 'secret' ? 'password' : 'text'}
-                      value={formValues[field.name] ?? ''}
-                      onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                      autoComplete="off"
-                    />
-                  </div>
-                ))}
-
                 {testMessage && (
-                  <p className={`text-sm ${testMessage.startsWith('OK') || testMessage.includes('Connected') ? 'text-emerald-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                  <p
+                    className={`text-sm ${
+                      testMessage.startsWith('OK') || testMessage.includes('Connected')
+                        ? 'text-emerald-600'
+                        : 'text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
                     {testMessage}
                   </p>
                 )}
@@ -436,8 +472,6 @@ export default function PaymentGateways() {
                       setSaving(true);
                       try {
                         await adminFinanceAPI.updateGateway(selectedGateway.id, {
-                          apiKeyMasked: apiKeyMaskedInput,
-                          webhookUrl: webhookUrlInput,
                           testMode: testModeInput,
                         });
                         await adminFinanceAPI.saveGatewayCredentials(selectedGateway.id, {
