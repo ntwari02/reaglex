@@ -66,6 +66,7 @@ export async function airtelRequestToPay(input: {
       currency: config.currency,
       id: input.externalId,
     },
+    ...(config.merchantId ? { merchant: { id: config.merchantId } } : {}),
   };
 
   const res = await axios.post(url, body, {
@@ -75,6 +76,7 @@ export async function airtelRequestToPay(input: {
       Accept: 'application/json',
       'X-Country': config.country,
       'X-Currency': config.currency,
+      ...(config.merchantId ? { 'X-Merchant-Id': config.merchantId } : {}),
     },
     validateStatus: () => true,
     timeout: 35_000,

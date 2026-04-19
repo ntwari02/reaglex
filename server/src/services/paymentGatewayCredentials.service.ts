@@ -63,7 +63,8 @@ export function getFieldMetaForProfile(profile: CredentialProfile): GatewayField
       return [
         { name: 'publicKey', label: 'Public Key', kind: 'secret' },
         { name: 'secretKey', label: 'Secret Key', kind: 'secret' },
-        { name: 'webhookUrl', label: 'Webhook URL (dashboard)', kind: 'url', hint: 'Register this in Flutterwave dashboard webhooks' },
+        { name: 'encryptionKey', label: 'Encryption Key', kind: 'secret', hint: 'Flutterwave Encryption Key (for advanced use-cases).' },
+        { name: 'webhookSecretHash', label: 'Webhook Secret Hash (verif-hash)', kind: 'secret', hint: 'Set in Flutterwave dashboard webhooks. Used to verify incoming webhooks.' },
       ];
     case 'mtn_momo':
       return [
@@ -86,15 +87,18 @@ export function getFieldMetaForProfile(profile: CredentialProfile): GatewayField
         { name: 'clientId', label: 'Client ID', kind: 'secret' },
         { name: 'clientSecret', label: 'Secret', kind: 'secret' },
         { name: 'environment', label: 'Environment', kind: 'text', hint: 'sandbox or live' },
+        { name: 'webhookId', label: 'Webhook ID', kind: 'text', hint: 'Required to verify PayPal webhooks securely.' },
       ];
     case 'airtel_api':
       return [
         { name: 'clientId', label: 'Client ID', kind: 'secret' },
         { name: 'clientSecret', label: 'Client Secret', kind: 'secret' },
+        { name: 'merchantId', label: 'Merchant ID', kind: 'text', hint: 'Airtel merchant identifier (when provided by Airtel).' },
         { name: 'baseUrl', label: 'API base URL', kind: 'url', hint: 'Sandbox: https://openapiuat.airtel.africa — Live: https://openapi.airtel.africa' },
         { name: 'country', label: 'Country code', kind: 'text', hint: 'RW for Rwanda' },
         { name: 'currency', label: 'Currency', kind: 'text', hint: 'RWF' },
         { name: 'environment', label: 'Environment', kind: 'text', hint: 'sandbox or live' },
+        { name: 'webhookUrl', label: 'Webhook URL (optional)', kind: 'url', hint: 'If Airtel supports callbacks for your account, store it here for reference.' },
       ];
     case 'generic_api_secret':
       return [
@@ -143,6 +147,17 @@ function flutterwaveFromEnv(): { publicKey: string; secretKey: string } | null {
   return { publicKey, secretKey };
 }
 
+function flutterwaveExtrasFromEnv(): { encryptionKey?: string; webhookSecretHash?: string } | null {
+  const encryptionKey = (process.env.FLW_ENCRYPTION_KEY || '').trim();
+  // Flutterwave docs commonly use FLW_SECRET_HASH for verif-hash
+  const webhookSecretHash = (process.env.FLW_SECRET_HASH || '').trim();
+  if (!encryptionKey && !webhookSecretHash) return null;
+  return {
+    ...(encryptionKey ? { encryptionKey } : {}),
+    ...(webhookSecretHash ? { webhookSecretHash } : {}),
+  };
+}
+
 function momoFromEnv(): Record<string, string> | null {
   const baseUrl = (process.env.MOMO_BASE_URL || '').trim().replace(/\/$/, '');
   const subscriptionKey = (process.env.MOMO_SUBSCRIPTION_KEY || '').trim();
@@ -181,6 +196,32 @@ export async function getFlutterwaveKeysResolved(): Promise<{ publicKey: string;
     throw new Error('Flutterwave is not configured (set keys in Admin → Finance or FLW_PUBLIC_KEY/FLW_SECRET_KEY)');
   }
   return { publicKey, secretKey };
+}
+
+export async function getFlutterwaveResolvedConfig(): Promise<{
+  publicKey: string;
+  secretKey: string;
+  encryptionKey?: string;
+  webhookSecretHash?: string;
+}> {
+  await ensureAllPaymentGateways();
+  const row = await PaymentGatewayConfig.findOne({ key: 'flutterwave' }).lean();
+  const fromDb = parseDecrypted(row as any);
+  const envKeys = flutterwaveFromEnv();
+  const envExtras = flutterwaveExtrasFromEnv();
+  const publicKey = pickMergedStr(fromDb?.publicKey, envKeys?.publicKey);
+  const secretKey = pickMergedStr(fromDb?.secretKey, envKeys?.secretKey);
+  const encryptionKey = pickMergedStr(fromDb?.encryptionKey, envExtras?.encryptionKey) || undefined;
+  const webhookSecretHash = pickMergedStr(fromDb?.webhookSecretHash, envExtras?.webhookSecretHash) || undefined;
+  if (!publicKey || !secretKey) {
+    throw new Error('Flutterwave is not configured (publicKey/secretKey missing)');
+  }
+  return {
+    publicKey,
+    secretKey,
+    ...(encryptionKey ? { encryptionKey } : {}),
+    ...(webhookSecretHash ? { webhookSecretHash } : {}),
+  };
 }
 
 export type MomoResolvedConfig = {
@@ -260,6 +301,7 @@ export async function getPaypalCredentialsResolved(): Promise<{
   clientId: string;
   clientSecret: string;
   environment: 'sandbox' | 'live';
+  webhookId?: string;
 }> {
   await ensureAllPaymentGateways();
   const row = await PaymentGatewayConfig.findOne({ key: 'paypal' }).lean();
@@ -272,12 +314,14 @@ export async function getPaypalCredentialsResolved(): Promise<{
   if (!clientId || !clientSecret) {
     throw new Error('PayPal is not configured (Admin Finance or PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET)');
   }
-  return { clientId, clientSecret, environment };
+  const webhookId = pickMergedStr(fromDb?.webhookId, process.env.PAYPAL_WEBHOOK_ID) || undefined;
+  return { clientId, clientSecret, environment, ...(webhookId ? { webhookId } : {}) };
 }
 
 export type AirtelResolvedConfig = {
   clientId: string;
   clientSecret: string;
+  merchantId?: string;
   baseUrl: string;
   country: string;
   currency: string;
@@ -290,6 +334,7 @@ function airtelFromEnv(): Partial<AirtelResolvedConfig> | null {
   return {
     clientId,
     clientSecret,
+    merchantId: process.env.AIRTEL_MERCHANT_ID?.trim(),
     baseUrl: (process.env.AIRTEL_BASE_URL || 'https://openapiuat.airtel.africa').trim().replace(/\/$/, ''),
     country: (process.env.AIRTEL_COUNTRY || 'RW').trim(),
     currency: (process.env.AIRTEL_CURRENCY || 'RWF').trim(),
@@ -303,6 +348,7 @@ export async function getAirtelCredentialsResolved(): Promise<AirtelResolvedConf
   const env = airtelFromEnv();
   const clientId = pickMergedStr(fromDb?.clientId, env?.clientId);
   const clientSecret = pickMergedStr(fromDb?.clientSecret, env?.clientSecret);
+  const merchantId = pickMergedStr(fromDb?.merchantId, env?.merchantId) || undefined;
   const baseUrl =
     pickMergedStr(fromDb?.baseUrl, env?.baseUrl).replace(/\/$/, '') || 'https://openapiuat.airtel.africa';
   const country = pickMergedStr(fromDb?.country, env?.country) || 'RW';
@@ -310,7 +356,7 @@ export async function getAirtelCredentialsResolved(): Promise<AirtelResolvedConf
   if (!clientId || !clientSecret) {
     throw new Error('Airtel Money is not configured (Admin Finance or AIRTEL_CLIENT_ID / AIRTEL_CLIENT_SECRET)');
   }
-  return { clientId, clientSecret, baseUrl, country, currency };
+  return { clientId, clientSecret, ...(merchantId ? { merchantId } : {}), baseUrl, country, currency };
 }
 
 export async function isGatewayFullyConfigured(key: string): Promise<boolean> {
@@ -321,36 +367,36 @@ export async function isGatewayFullyConfigured(key: string): Promise<boolean> {
   if (profile === 'none') return true;
   if (key === 'flutterwave') {
     try {
-      await getFlutterwaveKeysResolved();
-      return true;
+      const cfg = await getFlutterwaveResolvedConfig();
+      return Boolean(cfg.publicKey && cfg.secretKey && cfg.webhookSecretHash);
     } catch {
       return false;
     }
   }
   if (key === 'mtn_momo') {
     const c = await getMomoResolvedConfig();
-    return Boolean(c);
+    return Boolean(c?.baseUrl && c.subscriptionKey && c.apiUser && c.apiKey && c.callbackUrl);
   }
   if (key === 'stripe') {
     try {
-      await getStripeCredentialsResolved();
-      return true;
+      const c = await getStripeCredentialsResolved();
+      return Boolean(c.secretKey && c.webhookSecret);
     } catch {
       return false;
     }
   }
   if (key === 'paypal') {
     try {
-      await getPaypalCredentialsResolved();
-      return true;
+      const c = await getPaypalCredentialsResolved();
+      return Boolean(c.clientId && c.clientSecret && c.environment && c.webhookId);
     } catch {
       return false;
     }
   }
   if (key === 'airtel_money') {
     try {
-      await getAirtelCredentialsResolved();
-      return true;
+      const c = await getAirtelCredentialsResolved();
+      return Boolean(c.clientId && c.clientSecret && c.merchantId && c.baseUrl && c.country && c.currency);
     } catch {
       return false;
     }
