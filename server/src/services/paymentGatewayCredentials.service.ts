@@ -542,23 +542,20 @@ export function resolveProfileForKey(key: string): CredentialProfile {
 
 export async function ensureAllPaymentGateways(): Promise<void> {
   for (const g of GATEWAY_REGISTRY) {
+    // Do not put the same path in $set and $setOnInsert — MongoDB rejects it ("conflict at 'name'").
     await PaymentGatewayConfig.updateOne(
       { key: g.key },
       {
-        $setOnInsert: {
-          key: g.key,
-          name: g.name,
-          type: g.type,
-          status: g.defaultEnabled ? 'online' : 'offline',
-          isEnabled: g.defaultEnabled,
-          issues: [],
-          testMode: false,
-          credentialProfile: g.profile,
-        },
         $set: {
           name: g.name,
           type: g.type,
           credentialProfile: g.profile,
+        },
+        $setOnInsert: {
+          status: g.defaultEnabled ? 'online' : 'offline',
+          isEnabled: g.defaultEnabled,
+          issues: [],
+          testMode: false,
         },
       },
       { upsert: true }
