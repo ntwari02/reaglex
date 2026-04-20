@@ -152,7 +152,14 @@ export default function BuyerNotifications() {
 
   useEffect(() => {
     if (!clearAllOpen) return;
-    const onDocClick = (e) => { if (!e.target.closest('[data-clear-all]')) setClearAllOpen(false); };
+    const onDocClick = (e) => {
+      const t = e?.target;
+      if (!(t instanceof Element)) {
+        setClearAllOpen(false);
+        return;
+      }
+      if (!t.closest('[data-clear-all]')) setClearAllOpen(false);
+    };
     document.addEventListener('click', onDocClick);
     return () => document.removeEventListener('click', onDocClick);
   }, [clearAllOpen]);

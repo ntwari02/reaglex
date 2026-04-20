@@ -218,7 +218,11 @@ export async function initializePayment(
       throw new Error('MTN MoMo is not configured (missing currency)');
     }
     if (currency !== cfg.currency) {
-      throw new Error(`MTN MoMo is only available for orders in ${cfg.currency} (your order is ${currency}).`);
+      const env = String(cfg.targetEnvironment || '').trim() || 'sandbox';
+      throw new Error(
+        `MTN MoMo currency mismatch: gateway is configured for ${cfg.currency} (${env}) but the order is ${currency}. ` +
+          `Fix: in Admin → Finance → MTN MoMo set Currency to ${currency} and use the correct MTN environment/base URL for that currency (Rwanda production typically RWF; sandbox often EUR).`
+      );
     }
 
     await assertMomoCallbackUrlProductionSafe();
