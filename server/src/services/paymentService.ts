@@ -24,6 +24,7 @@ import {
 } from './airtelMoney.service';
 import { createStripeCheckoutSession } from './stripeCheckout.service';
 import { createPayPalCheckoutOrder, capturePayPalOrder } from './paypalCheckout.service';
+import { getMomoResolvedConfig } from './paymentGatewayCredentials.service';
 
 export type CheckoutPaymentProcessor = 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
 
@@ -211,10 +212,13 @@ export async function initializePayment(
   }
 
   if (method === 'momo') {
-    /** Rwanda Collections settle in RWF; orders must be created with paymentMethod RWF for MoMo checkout. */
     const currency = orderPayCurrency(order);
-    if (currency !== 'RWF') {
-      throw new Error('MTN MoMo Rwanda is only available for orders in RWF (set paymentMethod to RWF at checkout)');
+    const cfg = await getMomoResolvedConfig();
+    if (!cfg?.currency) {
+      throw new Error('MTN MoMo is not configured (missing currency)');
+    }
+    if (currency !== cfg.currency) {
+      throw new Error(`MTN MoMo is only available for orders in ${cfg.currency} (your order is ${currency}).`);
     }
 
     await assertMomoCallbackUrlProductionSafe();
@@ -230,7 +234,7 @@ export async function initializePayment(
     await requestToPay({
       referenceId,
       amount: amountStr,
-      currency: 'RWF',
+      currency: cfg.currency,
       externalId: order._id.toString(),
       payerMsisdn: msisdn,
       payerMessage: `Reaglex ${order.orderNumber}`,
@@ -249,7 +253,7 @@ export async function initializePayment(
       referenceId,
       orderId: order._id.toString(),
       amount: order.total,
-      currency: 'RWF',
+      currency: cfg.currency,
       message: 'Payment request sent. Approve the prompt on your phone or dial *182# to pay.',
     };
   }

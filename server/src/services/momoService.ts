@@ -43,7 +43,7 @@ async function resolveConfig(): Promise<MomoResolvedConfig | null> {
 
 export async function isMomoConfigured(): Promise<boolean> {
   const c = await resolveConfig();
-  return Boolean(c);
+  return Boolean(c?.baseUrl && c.subscriptionKey && c.apiUser && c.apiKey && c.currency);
 }
 
 /**

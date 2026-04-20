@@ -86,6 +86,7 @@ export function getFieldMetaForProfile(profile: CredentialProfile): GatewayField
         { name: 'apiUser', label: 'API User ID', kind: 'text', group: 'Required', hint: 'UUID from MTN MoMo developer portal (Collections product).' },
         { name: 'apiKey', label: 'API Key', kind: 'secret', group: 'Required' },
         { name: 'subscriptionKey', label: 'Subscription Key', kind: 'secret', group: 'Required', hint: 'Sent as Ocp-Apim-Subscription-Key.' },
+        { name: 'currency', label: 'Currency', kind: 'text', group: 'Required', hint: 'Sandbox often supports EUR; production Rwanda typically uses RWF. Must match order currency.' },
         {
           name: 'callbackUrl',
           label: 'Webhook URL',
@@ -223,6 +224,10 @@ export function mergeCredentialsForSave(
   }
   if (profile === 'mtn_momo') {
     if (!trimStr(merged.targetEnvironment)) merged.targetEnvironment = 'sandbox';
+    if (!trimStr(merged.currency)) {
+      const te = trimStr(merged.targetEnvironment).toLowerCase();
+      merged.currency = te === 'sandbox' ? 'EUR' : 'RWF';
+    }
   }
   return merged;
 }
@@ -257,6 +262,7 @@ function momoFromEnv(): Record<string, string> | null {
   const apiUser = (process.env.MOMO_API_USER || '').trim();
   const apiKey = (process.env.MOMO_API_KEY || '').trim();
   const targetEnvironment = (process.env.MOMO_TARGET_ENVIRONMENT || 'sandbox').trim();
+  const currency = (process.env.MOMO_CURRENCY || '').trim();
   const callbackUrl = (process.env.MOMO_CALLBACK_URL || '').trim();
   if (!baseUrl || !subscriptionKey || !apiUser || !apiKey) return null;
   return {
@@ -265,6 +271,7 @@ function momoFromEnv(): Record<string, string> | null {
     apiUser,
     apiKey,
     targetEnvironment,
+    ...(currency ? { currency } : {}),
     ...(callbackUrl ? { callbackUrl } : {}),
   };
 }
@@ -328,6 +335,7 @@ export type MomoResolvedConfig = {
   apiUser: string;
   apiKey: string;
   targetEnvironment: string;
+  currency: string;
   callbackUrl?: string;
 };
 
@@ -341,15 +349,19 @@ export async function getMomoResolvedConfig(): Promise<MomoResolvedConfig | null
   const apiUser = pickMergedStr(fromDb?.apiUser, env?.apiUser);
   const apiKey = pickMergedStr(fromDb?.apiKey, env?.apiKey);
   const targetEnvironment = pickMergedStr(fromDb?.targetEnvironment, env?.targetEnvironment) || 'sandbox';
+  const envCurrency = (process.env.MOMO_CURRENCY || '').trim();
+  const currencyRaw = pickMergedStr(fromDb?.currency, envCurrency);
+  const currency = (currencyRaw || (targetEnvironment === 'sandbox' ? 'EUR' : 'RWF')).trim();
   const callbackRaw = pickMergedStr(fromDb?.callbackUrl, env?.callbackUrl);
   const callbackUrl = callbackRaw || undefined;
-  if (!baseUrl || !subscriptionKey || !apiUser || !apiKey) return null;
+  if (!baseUrl || !subscriptionKey || !apiUser || !apiKey || !currency) return null;
   return {
     baseUrl,
     subscriptionKey,
     apiUser,
     apiKey,
     targetEnvironment,
+    currency,
     ...(callbackUrl ? { callbackUrl } : {}),
   };
 }
@@ -491,7 +503,7 @@ export async function isGatewayFullyConfigured(key: string): Promise<boolean> {
   }
   if (key === 'mtn_momo') {
     const c = await getMomoResolvedConfig();
-    return Boolean(c?.baseUrl && c.subscriptionKey && c.apiUser && c.apiKey && c.callbackUrl);
+    return Boolean(c?.baseUrl && c.subscriptionKey && c.apiUser && c.apiKey && c.currency && c.callbackUrl);
   }
   if (key === 'stripe') {
     try {
