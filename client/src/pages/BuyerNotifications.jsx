@@ -219,7 +219,14 @@ export default function BuyerNotifications() {
 
   return (
     <BuyerLayout>
-      <div className="min-h-screen" style={{ background: 'var(--bg-page)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div
+        className="min-h-screen"
+        style={{
+          background: 'var(--bg-page, #f8fafc)',
+          color: 'var(--text-primary, #0f172a)',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }}
+      >
         {/* Tier 1 — Banner */}
         <motion.div
           initial={{ opacity: 0, y: -24 }}
