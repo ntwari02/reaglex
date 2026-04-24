@@ -587,6 +587,7 @@ export async function testGatewayConnection(req: AuthenticatedRequest, res: Resp
       const apiKey = String(merged.apiKey || '').trim();
       const targetEnvironment = String(merged.targetEnvironment || 'sandbox').trim();
       const currency = String(merged.currency || '').trim();
+      const orderCurrency = String(merged.orderCurrency || currency).trim();
       const callbackUrl = String(merged.callbackUrl || '').trim();
       if (baseUrl && subscriptionKey && apiUser && apiKey && currency) {
         momoOverride = {
@@ -596,6 +597,7 @@ export async function testGatewayConnection(req: AuthenticatedRequest, res: Resp
           apiKey,
           targetEnvironment,
           currency,
+          orderCurrency,
           ...(callbackUrl ? { callbackUrl } : {}),
         };
       }
