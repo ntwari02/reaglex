@@ -149,7 +149,7 @@ export function Signup() {
 
   return (
     <AuthLayout tab="signup">
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="auth-form-modern space-y-5">
         <div className="space-y-1 mb-1">
           <h2
             className="text-[24px] sm:text-[28px] font-bold"

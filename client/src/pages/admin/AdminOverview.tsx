@@ -1808,63 +1808,65 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       {/* Top 5 Lists moved to command column */}
 
       {/* Geo Analytics */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-wrap items-start gap-4 justify-between mb-6">
-          <div>
+      <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-6 lg:p-7 shadow-[0_10px_30px_rgba(15,23,42,0.08)] border border-gray-200/80 dark:border-gray-700/80 overflow-hidden">
+        <div className="flex flex-col gap-4 lg:gap-5 mb-6">
+          <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+            <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm uppercase tracking-[0.3rem] text-emerald-500">
               <MapPin className="w-4 h-4" />
               Geo Performance
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Sales by Region</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">Sales by Region</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {activeRegions} active regions • {liveDataMode ? 'Live data' : 'Snapshot'} • Timeframe: {timeRange.toUpperCase()}
             </p>
-          </div>
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-2 justify-end">
+            </div>
+            <div className="flex flex-col gap-3 w-full xl:w-auto xl:min-w-[420px]">
+              <div className="flex flex-wrap gap-2 xl:justify-end">
               {timeRangeOptions.map(option => (
                 <button
                   key={option.value}
                   onClick={() => setTimeRange(option.value)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                    className={`px-3 py-2 rounded-full text-xs font-semibold border transition-all ${
                     timeRange === option.value
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'bg-white border-gray-200 dark:bg-gray-900 dark:border-gray-700 text-gray-600 dark:text-gray-300'
+                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                        : 'bg-white border-gray-200 dark:bg-gray-900 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-600'
                   }`}
                 >
                   {option.label}
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2 justify-end">
+              <div className="flex flex-wrap gap-2 xl:justify-end">
               <button
                 onClick={() => handleExport('csv')}
-                className="px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300"
+                  className="px-3 py-2 text-xs font-semibold rounded-full border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors"
               >
                 Export CSV
               </button>
               <button
                 onClick={() => handleExport('pdf')}
-                className="px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300"
+                  className="px-3 py-2 text-xs font-semibold rounded-full border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors"
               >
                 Export PDF
               </button>
               <button
                 onClick={() => handleExport('png')}
-                className="px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300"
+                  className="px-3 py-2 text-xs font-semibold rounded-full border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors"
               >
                 Export PNG
               </button>
               <button
                 onClick={() => setLiveDataMode(prev => !prev)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
-                  liveDataMode ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 text-gray-600'
+                  className={`px-3 py-2 text-xs font-semibold rounded-full border transition-all ${
+                  liveDataMode ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm' : 'border-gray-300 text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-600'
                 }`}
               >
                 {liveDataMode ? 'Live data: ON' : 'Live data: OFF'}
               </button>
             </div>
           </div>
+        </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
@@ -1918,28 +1920,28 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                       </div>
 
         <div className="space-y-5">
-          <div className="bg-slate-900/90 text-white rounded-2xl p-5 border border-slate-800">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                      <div>
-                <h4 className="text-lg font-semibold">Filters</h4>
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-4 sm:p-5 border border-slate-700/70 shadow-[0_12px_28px_rgba(15,23,42,0.35)]">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <h4 className="text-base sm:text-lg font-semibold">Filters</h4>
                 <p className="text-xs text-white/70">Slice performance by dimension</p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
                 <button
-                  className="px-3 py-1.5 rounded-full border border-white/30 hover:border-emerald-400 transition-colors"
+                  className="px-3 py-2 rounded-full border border-white/30 hover:border-emerald-400 transition-colors"
                   onClick={() => setFilters({ continent: 'all', country: 'all', category: 'all', sellerType: 'all', shipping: 'all' })}
                 >
                   Reset filters
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mt-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-4 mt-4 text-xs">
               <label className="flex flex-col gap-1">
                 <span className="text-white/70">Region</span>
                 <select
                   value={filters.continent}
                   onChange={(e) => handleFilterChange('continent', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2"
+                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {filterOptions.continents.map(option => (
                     <option key={option} value={option}>
@@ -1953,7 +1955,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 <select
                   value={filters.country}
                   onChange={(e) => handleFilterChange('country', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2"
+                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {countryOptions.map(option => (
                     <option key={option} value={option}>
@@ -1967,7 +1969,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 <select
                   value={filters.category}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2"
+                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {filterOptions.categories.map(option => (
                     <option key={option} value={option}>
@@ -1981,7 +1983,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 <select
                   value={filters.sellerType}
                   onChange={(e) => handleFilterChange('sellerType', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2"
+                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {filterOptions.sellerTypes.map(option => (
                     <option key={option} value={option}>
@@ -1995,7 +1997,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 <select
                   value={filters.shipping}
                   onChange={(e) => handleFilterChange('shipping', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2"
+                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {filterOptions.shipping.map(option => (
                     <option key={option} value={option}>
@@ -2006,7 +2008,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
               </label>
             </div>
             <div className="border-t border-white/10 pt-4 mt-4">
-              <h4 className="text-lg font-semibold mb-3">Top Regions</h4>
+              <h4 className="text-base sm:text-lg font-semibold mb-3">Top Regions</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
                 {topRegions.map((region, index) => (
                   <div key={region.name} className="rounded-xl border border-white/10 p-3">
@@ -2025,52 +2027,54 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
             </div>
           </div>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.9fr)] items-start">
-          <div className="relative overflow-hidden">
-            <div className="absolute top-5 left-5 z-10 flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 text-white shadow-lg backdrop-blur">
+        <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.9fr)] items-start">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 p-3 sm:p-4">
+            <div className="absolute top-4 right-4 z-10 flex flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/80 text-white shadow-lg backdrop-blur">
               <button
-                className="p-3 border-b border-white/10 hover:bg-white/10 transition-colors flex items-center justify-center"
+                className="p-2.5 border-b border-white/10 hover:bg-white/10 transition-colors flex items-center justify-center"
                 onClick={() => handleGlobeZoom('in')}
                 aria-label="Zoom in"
               >
                 <Plus className="w-4 h-4" />
               </button>
               <button
-                className="p-3 hover:bg-white/10 transition-colors flex items-center justify-center"
+                className="p-2.5 hover:bg-white/10 transition-colors flex items-center justify-center"
                 onClick={() => handleGlobeZoom('out')}
                 aria-label="Zoom out"
               >
                 <Minus className="w-4 h-4" />
               </button>
             </div>
-            <Globe
-              ref={globeRef}
-              className="w-full h-[260px] sm:h-[320px] lg:h-[380px]"
-              backgroundColor="rgba(0,0,0,0)"
-              globeImageUrl={globeTexture}
-              bumpImageUrl={bumpTexture}
-              showAtmosphere
-              atmosphereColor="#60a5fa"
-              atmosphereAltitude={0.28}
-              autoRotate
-              autoRotateSpeed={0.5}
-              pointAltitude={(d: GlobeMarker) => d.altitude}
-              pointColor={(d: GlobeMarker) => d.color}
-              pointLat={(d: GlobeMarker) => d.lat}
-              pointLng={(d: GlobeMarker) => d.lon}
-              pointRadius={(d: GlobeMarker) => d.radius}
-              pointLabel={(d: GlobeMarker) => d.label}
-              pointsData={globeMarkers}
-              labelsData={globeMarkers}
-              labelLat={(d: GlobeMarker) => d.lat}
-              labelLng={(d: GlobeMarker) => d.lon}
-              labelText={(d: GlobeMarker) => d.name}
-              labelSize={(d: GlobeMarker) => 0.9 + (d.radius - 0.04) * 6}
-              labelDotRadius={(d: GlobeMarker) => d.radius * 0.65}
-              labelColor={(d: GlobeMarker) => getMarkerLabelTint(d.growth)}
-            />
+            <div className="mx-auto w-full max-w-[760px] h-[260px] sm:h-[320px] lg:h-[390px] flex items-center justify-center overflow-hidden">
+              <Globe
+                ref={globeRef}
+                className="w-full h-full"
+                backgroundColor="rgba(0,0,0,0)"
+                globeImageUrl={globeTexture}
+                bumpImageUrl={bumpTexture}
+                showAtmosphere
+                atmosphereColor="#60a5fa"
+                atmosphereAltitude={0.28}
+                autoRotate
+                autoRotateSpeed={0.5}
+                pointAltitude={(d: GlobeMarker) => d.altitude}
+                pointColor={(d: GlobeMarker) => d.color}
+                pointLat={(d: GlobeMarker) => d.lat}
+                pointLng={(d: GlobeMarker) => d.lon}
+                pointRadius={(d: GlobeMarker) => d.radius}
+                pointLabel={(d: GlobeMarker) => d.label}
+                pointsData={globeMarkers}
+                labelsData={globeMarkers}
+                labelLat={(d: GlobeMarker) => d.lat}
+                labelLng={(d: GlobeMarker) => d.lon}
+                labelText={(d: GlobeMarker) => d.name}
+                labelSize={(d: GlobeMarker) => 0.9 + (d.radius - 0.04) * 6}
+                labelDotRadius={(d: GlobeMarker) => d.radius * 0.65}
+                labelColor={(d: GlobeMarker) => getMarkerLabelTint(d.growth)}
+              />
+            </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             <div className="bg-slate-900/80 text-white rounded-2xl px-4 py-4 backdrop-blur shadow-lg border border-white/10">
             <p className="text-xs uppercase tracking-wide text-white/70">Regional GMV</p>
               <p className="text-2xl font-semibold mt-1">${(totalRegionalSales / 1000).toFixed(1)}k</p>

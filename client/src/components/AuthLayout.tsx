@@ -102,7 +102,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
 
   return (
     <div
-      className="min-h-screen login-signup-wrapper"
+      className="min-h-screen login-signup-wrapper auth-main-shell"
       style={wrapperStyle}
     >
       <div
@@ -110,9 +110,9 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
         style={{ background: 'transparent' }}
       >
         <Navbar />
-        <main className="flex-1 flex items-stretch justify-center px-3 sm:px-6 lg:px-10 pb-6 pt-[116px] sm:pt-[132px] lg:pt-[150px]">
+        <main className="auth-main-stage flex-1 flex items-stretch justify-center px-3 sm:px-6 lg:px-10 pb-6 pt-[116px] sm:pt-[132px] lg:pt-[150px]">
           <div
-            className="w-full max-w-6xl xl:max-w-7xl flex rounded-2xl overflow-hidden shadow-2xl"
+            className="auth-shell-surface w-full max-w-6xl xl:max-w-7xl flex rounded-2xl overflow-hidden shadow-2xl"
             style={{ background: isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.7)' }}
           >
             {/* LEFT PANEL */}
@@ -369,13 +369,13 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
 
             {/* RIGHT PANEL */}
             <section
-              className="auth-animate-right w-full lg:w-[55%] flex items-center justify-center px-4 sm:px-6 lg:px-10 py-8 sm:py-10"
+              className="auth-animate-right auth-form-panel w-full lg:w-[55%] flex items-center justify-center px-4 sm:px-6 lg:px-10 py-8 sm:py-10"
               style={{
                 background: isDark ? '#111420' : '#ffffff',
               }}
             >
               <div
-                className="auth-mobile-app-card w-full max-w-[460px] sm:max-w-md mx-auto rounded-[24px] lg:rounded-[16px_0_0_16px] px-6 sm:px-7 py-6 sm:py-7 shadow-xl overflow-hidden"
+                className="auth-mobile-app-card auth-form-shell w-full max-w-[460px] sm:max-w-md mx-auto rounded-[24px] lg:rounded-[16px_0_0_16px] px-6 sm:px-7 py-6 sm:py-7 shadow-xl overflow-hidden"
                 style={{
                   background: isDark ? '#111420' : '#ffffff',
                   boxShadow: isDark

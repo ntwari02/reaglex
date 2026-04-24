@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, Phone, Fingerprint, AlertCircle, Check, KeyRound, Shield, X } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Phone, Fingerprint, AlertCircle, Check, KeyRound, Shield, X, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
@@ -899,7 +899,7 @@ export function Login() {
       )}
 
       {step === 'password' && (
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="auth-form-modern space-y-5">
           {/* Heading */}
           <div className="space-y-1 mb-1">
             <h2
@@ -1072,7 +1072,7 @@ export function Login() {
           {renderErrorBanner()}
 
           {step === '2fa' && (
-            <form onSubmit={handle2FAVerify} className="space-y-4">
+            <form onSubmit={handle2FAVerify} className="auth-form-modern space-y-4">
               <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
                 Open your authenticator app (Google Authenticator, Microsoft Authenticator, or Authy) and enter the 6-digit code.
               </p>
@@ -1145,7 +1145,7 @@ export function Login() {
                   </button>
                 </>
               ) : (
-                <form onSubmit={handle2FASetupConfirm} className="space-y-4">
+                <form onSubmit={handle2FASetupConfirm} className="auth-form-modern space-y-4">
                   <div className="flex justify-center">
                     <img src={twoFAQRCode} alt="2FA QR" className="w-40 h-40 rounded-xl border-2 border-orange-200 dark:border-orange-500/30" />
                   </div>

@@ -42,6 +42,21 @@ const STORAGE_KEY = 'reaglex_help_chat';
 const MAX_MESSAGES = 50;
 const PRIMARY = '#f97316';
 
+function GeminiIcon({ size = 22, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 1.5L14.9 9.1L22.5 12L14.9 14.9L12 22.5L9.1 14.9L1.5 12L9.1 9.1L12 1.5Z" fill="url(#gemini-gradient-help)" />
+      <defs>
+        <linearGradient id="gemini-gradient-help" x1="1.5" y1="1.5" x2="22.5" y2="22.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#4F46E5" />
+          <stop offset="0.55" stopColor="#9333EA" />
+          <stop offset="1" stopColor="#06B6D4" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 const QUICK_CHIPS = [
   { label: 'Track order', payload: 'Track order' },
   { label: 'Escrow?', payload: 'Escrow' },
@@ -389,6 +404,28 @@ export default function HelpChatWidget() {
     };
   }, []);
 
+  useEffect(() => {
+    const styleId = 'helpchat-gemini-icon-styles';
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .gemini-trigger-btn { background: transparent !important; color: #111827 !important; }
+      .gemini-chat-header-icon { display:flex; align-items:center; justify-content:center; }
+      .gemini-msg-avatar { width: 28px; height: 28px; display:flex; align-items:center; justify-content:center; margin-right:8px; flex-shrink:0; }
+      .gemini-animated-icon { animation: geminiFloatSpin 3.2s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.35)); transform-origin: 50% 50%; }
+      @keyframes geminiFloatSpin {
+        0% { transform: translateY(0) rotate(0deg) scale(1); }
+        50% { transform: translateY(-2px) rotate(8deg) scale(1.04); }
+        100% { transform: translateY(0) rotate(0deg) scale(1); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      style.remove();
+    };
+  }, []);
+
   if (isHidden) {
     return null;
   }
@@ -453,20 +490,21 @@ export default function HelpChatWidget() {
         <button
           type="button"
           onClick={handleToggleOpen}
+          className="gemini-trigger-btn"
           style={{
             width: 60,
             height: 60,
             borderRadius: '50%',
             border: 'none',
             cursor: 'pointer',
-            background: 'linear-gradient(135deg,#f97316,#ea580c)',
+            background: 'transparent',
             boxShadow:
-              '0 8px 28px rgba(249,115,22,0.50),0 4px 12px rgba(249,115,22,0.30)',
+              '0 8px 28px rgba(15,23,42,0.22),0 4px 12px rgba(15,23,42,0.16)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#ffffff',
-            fontSize: open ? 24 : 28,
+            color: '#111827',
+            fontSize: 28,
             transition:
               'transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease',
           }}
@@ -482,7 +520,7 @@ export default function HelpChatWidget() {
               '0 8px 28px rgba(249,115,22,0.50),0 4px 12px rgba(249,115,22,0.30)';
           }}
         >
-          {open ? '✕' : '💬'}
+          <GeminiIcon size={28} className="gemini-animated-icon" />
 
           {/* Notification dot */}
           {hasUnread && !open && (
@@ -547,22 +585,8 @@ export default function HelpChatWidget() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
-                  style={{
-                    position: 'relative',
-                    width: 38,
-                    height: 38,
-                    borderRadius: '50%',
-                    background:
-                      'linear-gradient(135deg,#f97316,#ea580c)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#ffffff',
-                    fontSize: 20,
-                  }}
-                >
-                  🤖
+                <div className="gemini-chat-header-icon" style={{ position: 'relative' }}>
+                  <GeminiIcon size={22} className="gemini-animated-icon" />
                   <span
                     style={{
                       position: 'absolute',
@@ -875,23 +899,8 @@ export default function HelpChatWidget() {
                     }}
                   >
                     {!isUser && (
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: '50%',
-                          background:
-                            'linear-gradient(135deg,#f97316,#ea580c)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: 8,
-                          fontSize: 16,
-                          color: '#ffffff',
-                          flexShrink: 0,
-                        }}
-                      >
-                        🤖
+                      <div className="gemini-msg-avatar">
+                        <GeminiIcon size={16} className="gemini-animated-icon" />
                       </div>
                     )}
                     <div

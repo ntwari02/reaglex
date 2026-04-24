@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ShoppingBag, Heart, Bell, Menu, X, ChevronDown, ChevronRight,
   Package, MapPin, CreditCard, Star, RotateCcw, Settings, LogOut, Clock, Flame,
-  Globe, DollarSign, HelpCircle, Sun, Moon, Shield, Bot,
+  Globe, DollarSign, HelpCircle, Sun, Moon, Shield,
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -704,17 +704,6 @@ function MainHeader({
             <Moon className="w-5 h-5 text-gray-600" />
           )}
         </button>
-        {/* Notifications */}
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new Event('reaglex:assistant:open'))}
-          className="hidden md:flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition group"
-          title={t('nav.help')}
-          aria-label={t('nav.help')}
-        >
-          <Bot className="w-[22px] h-[22px] text-gray-500 group-hover:text-orange-500 transition-colors" />
-        </button>
-
         <div className="relative hidden md:block" ref={notifRef}>
           <button
             type="button"
