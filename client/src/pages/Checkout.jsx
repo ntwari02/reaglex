@@ -78,6 +78,9 @@ export default function Checkout() {
     paypal: false,
     airtel_money: false,
   });
+  const [gatewayOrderCurrency, setGatewayOrderCurrency] = useState({
+    mtn_momo: 'RWF',
+  });
   const [gwLoaded, setGwLoaded] = useState(false);
 
   const loadGateways = useCallback(() => {
@@ -96,15 +99,23 @@ export default function Checkout() {
           if (x?.key && x.isEnabled === true) next[x.key] = true;
         });
         setGateways(next);
+        const momoOrderCurrencyRaw = list.find((x) => x?.key === 'mtn_momo')?.orderCurrency;
+        const momoOrderCurrency = String(momoOrderCurrencyRaw || '').trim().toUpperCase();
+        setGatewayOrderCurrency({
+          mtn_momo: momoOrderCurrency === 'RWF' ? 'RWF' : 'USD',
+        });
       })
       .catch(() =>
-        setGateways({
-          flutterwave: true,
-          mtn_momo: false,
-          stripe: false,
-          paypal: false,
-          airtel_money: false,
-        })
+        {
+          setGateways({
+            flutterwave: true,
+            mtn_momo: false,
+            stripe: false,
+            paypal: false,
+            airtel_money: false,
+          });
+          setGatewayOrderCurrency({ mtn_momo: 'RWF' });
+        }
       )
       .finally(() => setGwLoaded(true));
   }, []);
@@ -213,6 +224,7 @@ export default function Checkout() {
     }
 
     setPlacing(true);
+    let createdOrders = null;
     try {
       const productById = new Map();
       const sellerIds = new Set();
@@ -265,7 +277,12 @@ export default function Checkout() {
           postal_code: address.zip,
           country: address.country,
         },
-        paymentMethod: checkoutProvider === 'momo' || checkoutProvider === 'airtel' ? 'RWF' : 'card',
+        paymentMethod:
+          checkoutProvider === 'momo'
+            ? gatewayOrderCurrency.mtn_momo
+            : checkoutProvider === 'airtel'
+              ? 'RWF'
+              : 'card',
         shippingMethods: { [sellerId]: shipKey },
         notes: {},
       });
@@ -276,6 +293,7 @@ export default function Checkout() {
         return alert(t('checkout.errors.paymentInitFailed'));
       }
 
+      createdOrders = orders;
       const first = orders[0];
       const orderId = first.id || first._id;
       const init = await paymentAPI.initialize({
@@ -307,10 +325,18 @@ export default function Checkout() {
         return;
       }
 
+      await Promise.allSettled(
+        createdOrders.map((o) => orderAPI.cancel(String(o.id || o._id)).catch(() => null))
+      );
       setPlacing(false);
       alert(t('checkout.errors.paymentInitFailed'));
     } catch (err) {
       console.error(err);
+      if (createdOrders?.length) {
+        await Promise.allSettled(
+          createdOrders.map((o) => orderAPI.cancel(String(o.id || o._id)).catch(() => null))
+        );
+      }
       setPlacing(false);
       const msg = err?.response?.data?.message || err?.message || t('checkout.errors.paymentInitFailed');
       alert(msg);

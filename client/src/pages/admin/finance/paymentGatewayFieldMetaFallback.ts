@@ -53,6 +53,20 @@ const FALLBACK: Record<string, AdminGatewayFieldMeta[]> = {
       hint: 'Sent as Ocp-Apim-Subscription-Key.',
     },
     {
+      name: 'currency',
+      label: 'Currency',
+      kind: 'text',
+      group: 'Required',
+      hint: 'Sandbox often supports EUR; production Rwanda typically uses RWF.',
+    },
+    {
+      name: 'orderCurrency',
+      label: 'Order currency',
+      kind: 'text',
+      group: 'Required',
+      hint: 'Currency used when creating checkout orders for MTN MoMo.',
+    },
+    {
       name: 'callbackUrl',
       label: 'Webhook URL',
       kind: 'url',

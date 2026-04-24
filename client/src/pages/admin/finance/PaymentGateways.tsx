@@ -53,6 +53,10 @@ function mergeDocWebhookIntoForm(g: Gateway, values: Record<string, string>): Re
   return values;
 }
 
+function isMtnCurrencyField(gatewayKey: string | undefined, fieldName: string): boolean {
+  return gatewayKey === 'mtn_momo' && (fieldName === 'currency' || fieldName === 'orderCurrency');
+}
+
 export default function PaymentGateways() {
   const [gateways, setGateways] = useState<Gateway[]>([]);
   const [selectedGateway, setSelectedGateway] = useState<Gateway | null>(null);
@@ -409,7 +413,18 @@ export default function PaymentGateways() {
                         )}
                         <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">{field.label}</label>
                         {field.hint && <p className="mb-1 text-[11px] text-gray-500 dark:text-gray-400">{field.hint}</p>}
-                        {field.kind === 'url' ? (
+                        {isMtnCurrencyField(selectedGateway.key, field.name) ? (
+                          <select
+                            value={formValues[field.name] ?? ''}
+                            onChange={(e) => setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                          >
+                            <option value="">Select currency</option>
+                            <option value="RWF">RWF</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                          </select>
+                        ) : field.kind === 'url' ? (
                           <textarea
                             rows={2}
                             value={formValues[field.name] ?? ''}

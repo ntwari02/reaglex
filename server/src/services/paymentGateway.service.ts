@@ -4,6 +4,7 @@ import {
   GATEWAY_REGISTRY,
   isGatewayFullyConfigured,
 } from './paymentGatewayCredentials.service';
+import { decryptCredentialsJson } from './paymentSecretsCrypto.service';
 
 export class PaymentGatewayDisabledError extends Error {
   readonly code = 'PAYMENT_GATEWAY_DISABLED' as const;
@@ -70,15 +71,29 @@ export async function getPublicGatewayFlags(): Promise<{
 }
 
 /** Structured list for `/public/payment-gateways` (enabled ∧ configured only). */
-export async function getPublicCheckoutGatewayList(): Promise<Array<{ key: string; name: string; isEnabled: boolean }>> {
+export async function getPublicCheckoutGatewayList(): Promise<
+  Array<{ key: string; name: string; isEnabled: boolean; orderCurrency?: string }>
+> {
   await ensureCorePaymentGateways();
-  const rows: Array<{ key: string; name: string; isEnabled: boolean }> = [];
+  const rows: Array<{ key: string; name: string; isEnabled: boolean; orderCurrency?: string }> = [];
   for (const g of GATEWAY_REGISTRY) {
     if (g.key === 'offline') continue;
+    const row = await PaymentGatewayConfig.findOne({ key: g.key }).select('encryptedCredentials').lean();
+    let orderCurrency: string | undefined;
+    if (g.key === 'mtn_momo' && row?.encryptedCredentials) {
+      try {
+        const creds = decryptCredentialsJson(row.encryptedCredentials) as Record<string, unknown>;
+        const value = String(creds.orderCurrency || '').trim().toUpperCase();
+        if (value) orderCurrency = value;
+      } catch {
+        orderCurrency = undefined;
+      }
+    }
     rows.push({
       key: g.key,
       name: g.name,
       isEnabled: await flagFor(g.key as PaymentGatewayKey),
+      ...(orderCurrency ? { orderCurrency } : {}),
     });
   }
   return rows;

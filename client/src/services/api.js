@@ -40,7 +40,15 @@ api.interceptors.response.use(
     if (!config) return Promise.reject(error);
 
     const status = error?.response?.status;
-    const shouldRetry = !error.response || status >= 500;
+    const url = String(config.url || '');
+    const method = String(config.method || 'get').toLowerCase();
+    const noRetryCheckout =
+      method === 'post' &&
+      (url === '/orders' ||
+        url.startsWith('/orders?') ||
+        url === '/payments/initialize' ||
+        url.startsWith('/payments/initialize?'));
+    const shouldRetry = !noRetryCheckout && (!error.response || status >= 500);
 
     if (shouldRetry) {
       config._retryCount = config._retryCount || 0;
@@ -85,6 +93,7 @@ export const authAPI = {
 
 export const orderAPI = {
   create: (body) => api.post('/orders', body).then((r) => r.data),
+  cancel: (orderId) => api.patch(`/orders/${orderId}/cancel`).then((r) => r.data),
 };
 
 // ─── Payments & Escrow ────────────────────────────────────────────────────────

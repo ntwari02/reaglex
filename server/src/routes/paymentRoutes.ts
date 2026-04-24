@@ -88,7 +88,11 @@ router.post('/initialize', authenticate, async (req: AuthenticatedRequest, res: 
       msg.includes('CLIENT_URL') ||
       msg.includes('public callback URL') ||
       msg.includes('MOMO_CALLBACK_URL') ||
-      msg.includes('SERVER_URL');
+      msg.includes('SERVER_URL') ||
+      msg.includes('INVALID_CURRENCY') ||
+      msg.includes('Currency not supported') ||
+      msg.includes('currency mismatch') ||
+      msg.includes('MTN MoMo sandbox collection');
     return res.status(clientError ? 400 : 500).json({ message: msg });
   }
 });

@@ -75,7 +75,8 @@ export function calculateFees(orderTotal: number, processor: CheckoutPaymentProc
 }
 
 function orderPayCurrency(order: IOrder): 'RWF' | 'USD' {
-  return order.paymentMethod === 'RWF' ? 'RWF' : 'USD';
+  const m = String(order.paymentMethod || '').trim().toUpperCase();
+  return m === 'RWF' ? 'RWF' : 'USD';
 }
 
 /**
@@ -217,11 +218,19 @@ export async function initializePayment(
     if (!cfg?.currency) {
       throw new Error('MTN MoMo is not configured (missing currency)');
     }
-    if (currency !== cfg.currency) {
+    const cfgCur = String(cfg.currency || '').trim().toUpperCase();
+    if (currency !== cfgCur) {
       const env = String(cfg.targetEnvironment || '').trim() || 'sandbox';
       throw new Error(
-        `MTN MoMo currency mismatch: gateway is configured for ${cfg.currency} (${env}) but the order is ${currency}. ` +
+        `MTN MoMo currency mismatch: gateway is configured for ${cfgCur} (${env}) but the order is ${currency}. ` +
           `Fix: in Admin → Finance → MTN MoMo set Currency to ${currency} and use the correct MTN environment/base URL for that currency (Rwanda production typically RWF; sandbox often EUR).`
+      );
+    }
+
+    const teLower = String(cfg.targetEnvironment || '').trim().toLowerCase();
+    if (teLower === 'sandbox' && cfgCur === 'RWF') {
+      throw new Error(
+        'MTN MoMo sandbox collection API does not support RWF. Use Currency EUR for sandbox tests, or set Target environment to your live MTN value (e.g. Rwanda production) with Currency RWF and the production collection base URL from MTN.'
       );
     }
 
@@ -238,7 +247,7 @@ export async function initializePayment(
     await requestToPay({
       referenceId,
       amount: amountStr,
-      currency: cfg.currency,
+      currency: cfgCur,
       externalId: order._id.toString(),
       payerMsisdn: msisdn,
       payerMessage: `Reaglex ${order.orderNumber}`,
@@ -257,7 +266,7 @@ export async function initializePayment(
       referenceId,
       orderId: order._id.toString(),
       amount: order.total,
-      currency: cfg.currency,
+      currency: cfgCur,
       message: 'Payment request sent. Approve the prompt on your phone or dial *182# to pay.',
     };
   }

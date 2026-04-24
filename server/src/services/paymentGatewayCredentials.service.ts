@@ -88,6 +88,13 @@ export function getFieldMetaForProfile(profile: CredentialProfile): GatewayField
         { name: 'subscriptionKey', label: 'Subscription Key', kind: 'secret', group: 'Required', hint: 'Sent as Ocp-Apim-Subscription-Key.' },
         { name: 'currency', label: 'Currency', kind: 'text', group: 'Required', hint: 'Sandbox often supports EUR; production Rwanda typically uses RWF. Must match order currency.' },
         {
+          name: 'orderCurrency',
+          label: 'Order currency',
+          kind: 'text',
+          group: 'Required',
+          hint: 'Currency used when creating checkout orders for MTN MoMo. Must match MTN Currency.',
+        },
+        {
           name: 'callbackUrl',
           label: 'Webhook URL',
           kind: 'url',
@@ -228,6 +235,7 @@ export function mergeCredentialsForSave(
       const te = trimStr(merged.targetEnvironment).toLowerCase();
       merged.currency = te === 'sandbox' ? 'EUR' : 'RWF';
     }
+    if (!trimStr(merged.orderCurrency)) merged.orderCurrency = trimStr(merged.currency) || 'RWF';
   }
   return merged;
 }
@@ -336,6 +344,7 @@ export type MomoResolvedConfig = {
   apiKey: string;
   targetEnvironment: string;
   currency: string;
+  orderCurrency: string;
   callbackUrl?: string;
 };
 
@@ -351,7 +360,10 @@ export async function getMomoResolvedConfig(): Promise<MomoResolvedConfig | null
   const targetEnvironment = pickMergedStr(fromDb?.targetEnvironment, env?.targetEnvironment) || 'sandbox';
   const envCurrency = (process.env.MOMO_CURRENCY || '').trim();
   const currencyRaw = pickMergedStr(fromDb?.currency, envCurrency);
-  const currency = (currencyRaw || (targetEnvironment === 'sandbox' ? 'EUR' : 'RWF')).trim();
+  const teLower = String(targetEnvironment || '').trim().toLowerCase();
+  const currency = (currencyRaw || (teLower === 'sandbox' ? 'EUR' : 'RWF')).trim().toUpperCase();
+  const envOrderCurrency = (process.env.MOMO_ORDER_CURRENCY || '').trim();
+  const orderCurrency = (pickMergedStr(fromDb?.orderCurrency, envOrderCurrency) || currency).trim().toUpperCase();
   const callbackRaw = pickMergedStr(fromDb?.callbackUrl, env?.callbackUrl);
   const callbackUrl = callbackRaw || undefined;
   if (!baseUrl || !subscriptionKey || !apiUser || !apiKey || !currency) return null;
@@ -362,6 +374,7 @@ export async function getMomoResolvedConfig(): Promise<MomoResolvedConfig | null
     apiKey,
     targetEnvironment,
     currency,
+    orderCurrency,
     ...(callbackUrl ? { callbackUrl } : {}),
   };
 }
