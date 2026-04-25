@@ -3,6 +3,7 @@ import { Order } from '../models/Order';
 import { Product } from '../models/Product';
 import { User } from '../models/User';
 import { initializePayment } from './paymentService';
+import { getMomoResolvedConfig } from './paymentGatewayCredentials.service';
 
 export type ShippingSpeed = 'standard' | 'express' | 'international';
 
@@ -112,7 +113,15 @@ export async function performCheckoutSingleProduct(
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
 
     const sh = input.shipping;
-    const orderPaymentMethod = provider === 'momo' || provider === 'airtel' ? 'RWF' : 'card';
+    let orderPaymentMethod = provider === 'airtel' ? 'RWF' : 'card';
+    if (provider === 'momo') {
+      const momoCfg = await getMomoResolvedConfig();
+      const configuredOrderCurrency = String(momoCfg?.orderCurrency || momoCfg?.currency || '').trim().toUpperCase();
+      orderPaymentMethod =
+        configuredOrderCurrency === 'EUR' || configuredOrderCurrency === 'USD' || configuredOrderCurrency === 'RWF'
+          ? configuredOrderCurrency
+          : 'RWF';
+    }
 
     const order = new Order({
       sellerId,
@@ -171,12 +180,7 @@ export async function performCheckoutSingleProduct(
     );
 
     const oid = order._id.toString();
-    const cur =
-      provider === 'momo' || provider === 'airtel'
-        ? 'RWF'
-        : orderPaymentMethod === 'RWF'
-          ? 'RWF'
-          : 'USD';
+    const cur = orderPaymentMethod === 'RWF' || orderPaymentMethod === 'EUR' ? orderPaymentMethod : 'USD';
 
     if (paymentInit.provider === 'flutterwave' && 'paymentLink' in paymentInit && paymentInit.paymentLink) {
       return {
@@ -222,7 +226,7 @@ export async function performCheckoutSingleProduct(
         provider: 'momo',
         referenceId: paymentInit.referenceId,
         amount: paymentInit.amount,
-        currency: 'RWF',
+        currency: cur,
         message: paymentInit.message,
       };
     }
@@ -235,7 +239,7 @@ export async function performCheckoutSingleProduct(
         provider: 'airtel',
         referenceId: paymentInit.referenceId,
         amount: paymentInit.amount,
-        currency: 'RWF',
+        currency: cur,
         message: paymentInit.message,
       };
     }

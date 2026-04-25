@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingCart, ShoppingBag } from 'lucide-react';
 import CartItem from './cart/CartItem';
@@ -7,6 +8,7 @@ import RecommendedProducts from './cart/RecommendedProducts';
 import { useBuyerCart } from '../stores/buyerCartStore';
 
 export default function CartDrawer() {
+  const navigate = useNavigate();
   const cartOpen   = useBuyerCart((s) => s.cartOpen);
   const closeCart  = useBuyerCart((s) => s.closeCart);
   const items      = useBuyerCart((s) => s.items);
@@ -207,7 +209,10 @@ export default function CartDrawer() {
                     >
                       <CartSummary
                         subtotal={subtotal}
-                        onCheckout={() => alert('Checkout coming soon!')}
+                        onCheckout={() => {
+                          closeDrawer();
+                          navigate('/checkout');
+                        }}
                       />
                     </motion.div>
 

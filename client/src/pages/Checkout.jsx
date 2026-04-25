@@ -102,7 +102,7 @@ export default function Checkout() {
         const momoOrderCurrencyRaw = list.find((x) => x?.key === 'mtn_momo')?.orderCurrency;
         const momoOrderCurrency = String(momoOrderCurrencyRaw || '').trim().toUpperCase();
         setGatewayOrderCurrency({
-          mtn_momo: momoOrderCurrency === 'RWF' ? 'RWF' : 'USD',
+          mtn_momo: ['RWF', 'USD', 'EUR'].includes(momoOrderCurrency) ? momoOrderCurrency : 'RWF',
         });
       })
       .catch(() =>

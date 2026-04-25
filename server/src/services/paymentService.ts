@@ -74,9 +74,11 @@ export function calculateFees(orderTotal: number, processor: CheckoutPaymentProc
   };
 }
 
-function orderPayCurrency(order: IOrder): 'RWF' | 'USD' {
+function orderPayCurrency(order: IOrder): 'RWF' | 'USD' | 'EUR' {
   const m = String(order.paymentMethod || '').trim().toUpperCase();
-  return m === 'RWF' ? 'RWF' : 'USD';
+  if (m === 'RWF') return 'RWF';
+  if (m === 'EUR') return 'EUR';
+  return 'USD';
 }
 
 /**
