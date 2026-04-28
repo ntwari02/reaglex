@@ -112,7 +112,7 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
-  const tabIndex = TABS.findIndex((t) => t.id === activeTab);
+  const tabIndex = TABS.findIndex((tab) => tab.id === activeTab);
 
   useEffect(() => {
     onUnreadChange?.(unreadCount);
@@ -175,18 +175,18 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
               </div>
               {/* Tabs */}
               <div className="relative flex border-b border-transparent">
-                {TABS.map((t) => (
+                {TABS.map((tab) => (
                   <button
-                    key={t.id}
+                    key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab(t.id)}
+                    onClick={() => setActiveTab(tab.id)}
                     className="flex-1 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                    style={{ color: activeTab === t.id ? PRIMARY : '#6b7280' }}
+                    style={{ color: activeTab === tab.id ? PRIMARY : '#6b7280' }}
                   >
-                    {t(t.labelKey)}
-                    {tabCounts[t.id] > 0 && (
+                    {t(tab.labelKey)}
+                    {tabCounts[tab.id] > 0 && (
                       <span className="min-w-[18px] h-[18px] rounded-full bg-gray-200 text-[10px] font-bold flex items-center justify-center" style={{ color: '#374151' }}>
-                        {tabCounts[t.id]}
+                        {tabCounts[tab.id]}
                       </span>
                     )}
                   </button>

@@ -1,63 +1,137 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   REAGLEX — Centralized Theme System
+   All semantic CSS variables for light and dark modes.
+   Every buyer-facing UI element should draw from these tokens.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* Header and navbar backgrounds (light mode) */
-  --header-bg: #ffffff; /* solid light header */
-  --navbar-bg: #ffffff;
-  --topbar-bg: #f9fafb;
+  /* ── Page & surface backgrounds ───────────────────────────────────────────── */
+  --bg-page:        #f3f4f6;  /* outermost page */
+  --bg-secondary:   #ffffff;  /* card / panel layer */
+  --bg-tertiary:    #f9fafb;  /* nested surface, image placeholders */
+  --bg-elevated:    #ffffff;  /* modals, dropdowns, tooltips */
+  --card-bg:        #ffffff;
+  --dropdown-bg:    #ffffff;
+  --bg-hover:       #f1f5f9;  /* hover on list rows / menu items */
+  --bg-active:      #fef3ea;  /* selected / active state */
+  --bg-input:       #ffffff;  /* input / textarea / select */
+  --bg-skeleton:    #e5e7eb;  /* skeleton loading shimmer base */
+  --bg-badge:       #f3f4f6;  /* neutral badge fill */
+  --bg-tag:         #eff6ff;  /* light tag / pill fill */
+  --bg-overlay:     rgba(0,0,0,0.45); /* modal backdrop */
 
-  /* Surface backgrounds (light mode) */
-  --bg-page: #f3f4f6;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f9fafb;
-  --card-bg: #ffffff;
-  --dropdown-bg: #ffffff;
+  /* ── Header / Navbar ───────────────────────────────────────────────────────── */
+  --header-bg:      #ffffff;
+  --navbar-bg:      #ffffff;
+  --topbar-bg:      #f9fafb;
+  --search-bg:      #f3f4f6;
+  --search-border:  transparent;
+  --shadow-header:  0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
 
-  /* Text colors (light mode) */
-  --text-primary: #0f172a;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
-  --text-faint: #9ca3af;
-  --dropdown-text: #111827;
+  /* ── Text ──────────────────────────────────────────────────────────────────── */
+  --text-primary:     #0f172a;  /* headings, primary body */
+  --text-secondary:   #374151;  /* secondary body, labels */
+  --text-muted:       #6b7280;  /* helper text, captions */
+  --text-faint:       #9ca3af;  /* placeholders, very subtle */
+  --text-on-accent:   #ffffff;  /* text sitting on colored background */
+  --dropdown-text:    #111827;
+  --input-text:       #0f172a;
+  --input-placeholder: #9ca3af;
+  --link-color:       #f97316;
+  --link-hover:       #ea580c;
 
-  /* Dividers (light mode) */
-  --divider: #e5e7eb;
-  --divider-strong: #d1d5db;
+  /* ── Borders & Dividers ────────────────────────────────────────────────────── */
+  --divider:          #e5e7eb;
+  --divider-strong:   #d1d5db;
+  --border-card:      #e5e7eb;
+  --border-input:     #d1d5db;
+  --border-focus:     #f97316;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-lg: 0 10px 40px rgba(0,0,0,0.08);
-  --shadow-xl: 0 20px 50px rgba(0,0,0,0.12);
-  /* Inbox / brand tint (orange) */
-  --brand-tint: rgba(249,115,22,0.08);
-  --bg-hover: #f8fafc;
+  /* ── Shadows ───────────────────────────────────────────────────────────────── */
+  --shadow-xs:        0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm:        0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md:        0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:        0 10px 40px rgba(0,0,0,0.10);
+  --shadow-xl:        0 20px 50px rgba(0,0,0,0.12);
+  --shadow-hover:     0 8px 24px rgba(0,0,0,0.12);
+  --shadow-card:      0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-navbar:    0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+
+  /* ── Brand / accent tints ──────────────────────────────────────────────────── */
+  --brand-tint:       rgba(249,115,22,0.08);
+  --brand-tint-strong: rgba(249,115,22,0.15);
+
+  /* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+  --scrollbar-thumb:  #d1d5db;
+  --scrollbar-track:  #f3f4f6;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   DARK MODE
+   Palette philosophy: deep midnight base with layered surfaces.
+   • No flat single-color dark (avoid all surfaces being identical)
+   • Text is warm off-white, not pure #ffffff — reduces eye strain
+   • Cards sit visibly above the page floor
+   • Borders are very subtle — depth from shadow, not heavy lines
+   ══════════════════════════════════════════════════════════════════════════════ */
 .dark {
-  --header-bg: #020617; /* solid dark header */
-  --navbar-bg: #020617;
-  --topbar-bg: #020617;
+  /* ── Page & surface backgrounds ───────────────────────────────────────────── */
+  --bg-page:        #0d0f17;  /* deep midnight — the floor */
+  --bg-secondary:   #141722;  /* card surface — one step up */
+  --bg-tertiary:    #1a1d2e;  /* nested panel, image area */
+  --bg-elevated:    #1e2235;  /* dropdown / tooltip / modal */
+  --card-bg:        #141722;
+  --dropdown-bg:    #1e2235;
+  --bg-hover:       #1e2235;  /* row / item hover */
+  --bg-active:      #251d13;  /* selected / active (warm orange tint) */
+  --bg-input:       #1a1d2e;  /* input fields */
+  --bg-skeleton:    #1e2235;  /* skeleton shimmer base */
+  --bg-badge:       #1e2235;  /* neutral badge */
+  --bg-tag:         rgba(108,99,255,0.12); /* tag pill */
+  --bg-overlay:     rgba(0,0,0,0.7);
 
-  --bg-page: #020617;
-  --bg-secondary: #020617;
-  --bg-tertiary: #020617;
-  --card-bg: #020617;
-  --dropdown-bg: #020617;
+  /* ── Header / Navbar ───────────────────────────────────────────────────────── */
+  --header-bg:      #0d0f17;
+  --navbar-bg:      #0d0f17;
+  --topbar-bg:      #0d0f17;
+  --search-bg:      #1a1d2e;
+  --search-border:  rgba(255,255,255,0.07);
+  --shadow-header:  0 1px 0 rgba(255,255,255,0.04), 0 2px 16px rgba(0,0,0,0.35);
 
-  /* Make buyer text bright in dark mode for visibility */
-  --text-primary: #f9fafb;
-  --text-secondary: #f9fafb;
-  --text-muted: #e5e7eb;
-  --text-faint: #d1d5db;
-  --dropdown-text: #f9fafb;
+  /* ── Text ──────────────────────────────────────────────────────────────────── */
+  --text-primary:     #e2e4ed;  /* warm off-white — comfortable for extended reading */
+  --text-secondary:   #9da3be;  /* secondary labels, descriptions */
+  --text-muted:       #616680;  /* helper, meta, captions */
+  --text-faint:       #3d4159;  /* timestamps, very subtle copy */
+  --text-on-accent:   #ffffff;
+  --dropdown-text:    #e2e4ed;
+  --input-text:       #e2e4ed;
+  --input-placeholder: #4a4f69;
+  --link-color:       #fb923c;
+  --link-hover:       #f97316;
 
-  --divider: #1f2937;
-  --divider-strong: #374151;
+  /* ── Borders & Dividers ────────────────────────────────────────────────────── */
+  --divider:          #1e2235;   /* very subtle row dividers */
+  --divider-strong:   #252a3f;   /* stronger separators */
+  --border-card:      #1e2235;   /* card outlines */
+  --border-input:     #252a3f;   /* input borders */
+  --border-focus:     #f97316;
 
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
-  --shadow-lg: 0 10px 40px rgba(0,0,0,0.3);
-  --shadow-xl: 0 20px 50px rgba(0,0,0,0.4);
-  --brand-tint: #1c1408;
-  --bg-hover: #1e293b;
+  /* ── Shadows — elevated darkness for better depth ──────────────────────────── */
+  --shadow-xs:        0 1px 2px rgba(0,0,0,0.3);
+  --shadow-sm:        0 2px 8px rgba(0,0,0,0.4);
+  --shadow-md:        0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg:        0 10px 40px rgba(0,0,0,0.55);
+  --shadow-xl:        0 20px 50px rgba(0,0,0,0.65);
+  --shadow-hover:     0 8px 24px rgba(0,0,0,0.55);
+  --shadow-card:      0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-navbar:    0 1px 0 rgba(255,255,255,0.04), 0 2px 16px rgba(0,0,0,0.35);
+
+  /* ── Brand / accent tints ──────────────────────────────────────────────────── */
+  --brand-tint:       rgba(249,115,22,0.10);
+  --brand-tint-strong: rgba(249,115,22,0.18);
+
+  /* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+  --scrollbar-thumb:  #252a3f;
+  --scrollbar-track:  #0d0f17;
 }
-

@@ -143,11 +143,10 @@ export default function BuyerNotifications() {
   }, []);
 
   useEffect(() => {
-    const el = mainRef.current;
-    if (!el) return;
-    const onScroll = () => setShowBackToTop(el.scrollTop > 300);
-    el.addEventListener('scroll', onScroll);
-    return () => el.removeEventListener('scroll', onScroll);
+    const onScroll = () => setShowBackToTop(window.scrollY > 300);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
@@ -404,7 +403,7 @@ export default function BuyerNotifications() {
             )}
 
             {/* Tier 6 & 7 — Date groups + notification cards */}
-            <div ref={mainRef} className="space-y-6 overflow-y-auto max-h-[60vh] lg:max-h-none">
+            <div ref={mainRef} className="space-y-6">
               {loading ? (
                 <div className="space-y-3">
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -593,7 +592,7 @@ export default function BuyerNotifications() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg"
               style={{ background: PRIMARY }}
             >

@@ -1,170 +1,186 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
-import { Shield } from 'lucide-react';
+
+/* ─── View type ──────────────────────────────────────────────────────────── */
+export type AuthView =
+  | 'login'
+  | 'signup'
+  | 'forgot'
+  | 'otp'
+  | 'reset'
+  | 'success'
+  | 'verify'
+  | 'pending'
+  | 'role';
 
 interface AuthPremiumLayoutProps {
   children: ReactNode;
+  currentView?: AuthView;
 }
 
-const BRAND_GRADIENT = 'linear-gradient(135deg, #0f0c24 0%, #1a0f3a 40%, #0d1f3a 70%, #0a1628 100%)';
-
-export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) {
+/* ═══════════════════════════════════════════════════════════════════════════
+   Layout
+═══════════════════════════════════════════════════════════════════════════ */
+export default function AuthPremiumLayout({
+  children,
+  currentView = 'login',
+}: AuthPremiumLayoutProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const rightBg = isDark ? '#090b12' : '#ffffff';
+
+  const currentImage = '/auth-3d.png';
+
+  const rightBg = isDark
+    ? 'linear-gradient(160deg, #0a0c15 0%, #0d0f1c 60%, #090b13 100%)'
+    : 'linear-gradient(160deg, #f8f9fc 0%, #f2f4f8 60%, #eef0f5 100%)';
 
   return (
     <div
-      className="auth-premium-root flex min-h-screen overflow-y-auto"
-      style={{ width: '100%' }}
-      data-auth-layout="premium"
+      className="auth-root flex min-h-screen w-full"
+      style={{ overflowX: 'hidden' }}
+      data-auth-layout="premium-v5"
     >
-      {/* LEFT PANEL — Brand story */}
+
+      {/* ═══ LEFT PANEL — pure 3D illustration, no text ═══ */}
       <aside
-        className="hidden lg:flex lg:w-1/2 flex-col relative overflow-hidden"
-        style={{ background: BRAND_GRADIENT }}
+        className="flex flex-col relative overflow-hidden flex-shrink-0 min-w-0"
+        style={{
+          flexBasis: '50%',
+          width: '50%',
+          minHeight: '100vh',
+          background: 'linear-gradient(160deg, #060813 0%, #0d0621 40%, #0b1330 70%, #080e1e 100%)',
+        }}
       >
-        {/* Floating blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div
-            className="auth-blob auth-blob--orange"
-            style={{
-              width: 280,
-              height: 280,
-              top: '10%',
-              left: '-10%',
-              animation: 'auth-float-12 14s ease-in-out infinite',
-              opacity: 0.5,
-            }}
-          />
-          <div
-            className="auth-blob auth-blob--purple"
-            style={{
-              width: 240,
-              height: 240,
-              top: '50%',
-              right: '-5%',
-              animation: 'auth-float-10 12s ease-in-out infinite',
-              opacity: 0.45,
-            }}
-          />
-          <div
-            className="auth-blob auth-blob--blue"
-            style={{
-              width: 200,
-              height: 200,
-              bottom: '15%',
-              left: '20%',
-              animation: 'auth-float-8 10s ease-in-out infinite',
-              opacity: 0.4,
-            }}
-          />
-        </div>
+        {/* Grid mesh */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          aria-hidden
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <pattern id="ag-grid" width="44" height="44" patternUnits="userSpaceOnUse">
+              <path d="M 44 0 L 0 0 0 44" fill="none" stroke="rgba(249,115,22,0.09)" strokeWidth="1" />
+            </pattern>
+            <radialGradient id="ag-fade" cx="50%" cy="50%" r="65%">
+              <stop offset="0%"   stopColor="#060813" stopOpacity="0"    />
+              <stop offset="100%" stopColor="#060813" stopOpacity="0.65" />
+            </radialGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#ag-grid)" />
+          <rect width="100%" height="100%" fill="url(#ag-fade)" />
+        </svg>
 
-        <div className="relative z-10 flex flex-col flex-1 px-8 xl:px-12 py-8 xl:py-10">
-          {/* Logo */}
-          <Link
-            to="/"
-            className="text-3xl font-bold tracking-tight text-white hover:opacity-90 transition-opacity flex-shrink-0"
-            style={{ fontFamily: "'Mea Culpa', serif" }}
-          >
-            Reaglex
-          </Link>
+        {/* Glow orbs */}
+        <div className="absolute pointer-events-none" style={{
+          top: '5%', left: '-10%',
+          width: '60%', paddingBottom: '60%', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%)',
+          animation: 'ag-float-a 13s ease-in-out infinite',
+        }} />
+        <div className="absolute pointer-events-none" style={{
+          bottom: '10%', right: '-6%',
+          width: '50%', paddingBottom: '50%', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)',
+          animation: 'ag-float-b 10s ease-in-out infinite',
+        }} />
+        <div className="absolute pointer-events-none" style={{
+          top: '45%', left: '20%',
+          width: '40%', paddingBottom: '40%', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 70%)',
+          animation: 'ag-float-c 8s ease-in-out infinite',
+        }} />
 
-          {/* Center content */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center">
-            {/* Shield icon with glow + pulse */}
-            <div
-              className="flex items-center justify-center mb-6"
-              style={{
-                width: 100,
-                height: 100,
-                filter: 'drop-shadow(0 0 28px rgba(249,115,22,0.5))',
-                animation: 'auth-shield-pulse 3s ease-in-out infinite',
+        {/* Scan line */}
+        <div className="absolute left-0 right-0 pointer-events-none" style={{
+          height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.55), transparent)',
+          animation: 'ag-scan 8s linear infinite',
+        }} />
+
+        {/* ── 3D illustration — full-bleed (fills the whole side) ── */}
+        <div className="absolute inset-0 z-10">
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={currentView}
+              src={currentImage}
+              alt=""
+              draggable={false}
+              className="w-full h-full select-none"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/auth-3d.png';
               }}
-            >
-              <Shield
-                className="w-full h-full"
-                style={{
-                  color: '#f97316',
-                  filter: 'drop-shadow(0 0 12px rgba(249,115,22,0.6))',
-                }}
-                strokeWidth={1.5}
-              />
-            </div>
-
-            <h1 className="text-3xl xl:text-4xl font-black text-white tracking-tight mb-1">
-              Smart Shopping.
-            </h1>
-            <p
-              className="text-3xl xl:text-4xl font-black mb-4"
               style={{
-                background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                objectFit: 'cover',
+                objectPosition: 'center',
+                filter:
+                  'drop-shadow(0 12px 32px rgba(249,115,22,0.22)) drop-shadow(0 4px 14px rgba(0,0,0,0.35))',
               }}
-            >
-              Trusted Sellers.
-            </p>
-            <p className="text-sm xl:text-base max-w-sm mb-6" style={{ color: 'rgba(255,255,255,0.75)' }}>
-              Rwanda&apos;s #1 marketplace for buyers and verified sellers.
-            </p>
-
-            {/* Frosted glass pills */}
-            <div className="flex flex-wrap justify-center gap-2 mb-10">
-              {[
-                { icon: '🔒', label: 'Escrow Protected' },
-                { icon: '✓', label: 'Verified Sellers' },
-                { icon: '⚡', label: 'Fast Delivery' },
-              ].map((b) => (
-                <span
-                  key={b.label}
-                  className="auth-glass-pill inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-[12px] font-medium"
-                  style={{ color: 'rgba(255,255,255,0.9)' }}
-                >
-                  {b.icon} {b.label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Bottom stats */}
-          <div className="flex items-center justify-center gap-8 flex-shrink-0 pt-4 border-t border-white/10">
-            <div className="text-center">
-              <p className="text-lg font-bold text-white">50K+</p>
-              <p className="text-[11px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Buyers
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-white">10K+</p>
-              <p className="text-[11px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Sellers
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-white">4.9★</p>
-              <p className="text-[11px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Rating
-              </p>
-            </div>
-          </div>
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+            />
+          </AnimatePresence>
         </div>
       </aside>
 
-      {/* RIGHT PANEL — Form */}
+      {/* ═══ RIGHT PANEL — Form ═══ */}
       <main
-        className="flex-1 flex flex-col min-h-0 min-w-0 lg:min-w-[50%] overflow-y-auto"
+        className="flex flex-col min-w-0 overflow-y-auto"
         style={{
+          flexBasis: '50%',
+          width: '50%',
           background: rightBg,
+          minHeight: '100vh',
           padding:
-            'max(env(safe-area-inset-top), 12px) clamp(16px, 4vw, 32px) max(env(safe-area-inset-bottom), 16px)',
+            'max(env(safe-area-inset-top), 14px) clamp(12px, 4vw, 48px) max(env(safe-area-inset-bottom), 14px)',
         }}
       >
         {children}
       </main>
+
+      {/* Keyframes */}
+      <style>{`
+        @keyframes ag-float-a {
+          0%,100% { transform: translate(0,0) scale(1); }
+          33%      { transform: translate(12%,-10%) scale(1.06); }
+          66%      { transform: translate(-8%,8%) scale(0.96); }
+        }
+        @keyframes ag-float-b {
+          0%,100% { transform: translate(0,0) scale(1); }
+          40%      { transform: translate(-10%,8%) scale(1.04); }
+          70%      { transform: translate(8%,-6%) scale(0.97); }
+        }
+        @keyframes ag-float-c {
+          0%,100% { transform: translate(0,0); }
+          50%      { transform: translate(0,-15%); }
+        }
+        @keyframes ag-scan {
+          0%   { top: -1px; opacity: 0; }
+          4%   { opacity: 1; }
+          96%  { opacity: 0.4; }
+          100% { top: 100%; opacity: 0; }
+        }
+        @keyframes auth-check {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes auth-shake {
+          0%,100% { transform: translateX(0); }
+          15%      { transform: translateX(-6px); }
+          30%      { transform: translateX(6px); }
+          45%      { transform: translateX(-4px); }
+          60%      { transform: translateX(4px); }
+          75%      { transform: translateX(-2px); }
+        }
+        .auth-shake-anim { animation: auth-shake 0.45s ease; }
+        @keyframes btn-shimmer {
+          0%   { transform: translateX(-100%); }
+          60%  { transform: translateX(100%);  }
+          100% { transform: translateX(100%);  }
+        }
+      `}</style>
     </div>
   );
 }

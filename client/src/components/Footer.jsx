@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useTranslation } from '../i18n/useTranslation';
+import { useTheme } from '../contexts/ThemeContext';
 
 const PRIMARY = '#f97316';
 const FOOTER_BG = 'linear-gradient(180deg, #020617, #0f172a)';
@@ -218,6 +219,8 @@ const BOTTOM_LINKS = [
 
 export default function Footer() {
   const { t } = useTranslation();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [email, setEmail] = useState('');
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
@@ -245,7 +248,9 @@ export default function Footer() {
       <div
         className="relative w-full flex flex-col md:flex-row md:items-center md:justify-between gap-6 px-4 sm:px-6 lg:px-20 py-10"
         style={{
-          background: 'linear-gradient(135deg, #f97316, #ea580c)',
+          background: isDark ? '#0f111a' : '#f4f4f6',
+          borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+          borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
           paddingLeft: 'clamp(1rem, 5vw, 80px)',
           paddingRight: 'clamp(1rem, 5vw, 80px)',
           paddingTop: 40,
@@ -265,37 +270,47 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="font-bold text-2xl text-white mb-1">
+          <h3 className="font-bold text-2xl mb-1" style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}>
             {t('footer.newsletterTitle')} 🔥
           </h3>
-          <p className="text-white text-sm opacity-90">
+          <p className="text-sm" style={{ color: isDark ? '#9da3be' : '#6b7280' }}>
             {t('footer.newsletterSubtitle')}
           </p>
         </div>
         <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-2 flex-shrink-0">
-          <div className="flex flex-col sm:flex-row gap-0 rounded-full overflow-hidden bg-white/95 shadow-lg">
+          <div
+            className="flex flex-col sm:flex-row gap-0 rounded-full overflow-hidden"
+            style={{
+              background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)'}`,
+              boxShadow: isDark ? '0 8px 26px rgba(0,0,0,0.35)' : '0 8px 26px rgba(0,0,0,0.08)',
+            }}
+          >
             <div className="flex items-center gap-2 px-5 py-3 sm:py-0 sm:min-w-[200px] lg:min-w-[320px]">
-              <Mail className="w-4 h-4 flex-shrink-0" style={{ color: '#9ca3af' }} />
+              <Mail className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#616680' : '#9ca3af' }} />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('footer.emailPlaceholder')}
                 className="flex-1 min-w-0 py-2.5 sm:py-3 text-sm outline-none bg-transparent"
-                style={{ color: '#1a1a1a' }}
+                style={{ color: isDark ? '#e2e4ed' : '#1a1a1a' }}
               />
             </div>
             <motion.button
               type="submit"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center justify-center gap-2 px-6 py-3 font-bold text-white text-sm rounded-r-full transition-colors"
-              style={{ background: BOTTOM_BG }}
+              className="flex items-center justify-center gap-2 px-6 py-3 font-bold text-sm rounded-r-full transition-colors"
+              style={{
+                background: isDark ? '#e2e4ed' : '#0f172a',
+                color: isDark ? '#0f111a' : '#ffffff',
+              }}
             >
               {t('footer.subscribe')} <Send className="w-4 h-4" />
             </motion.button>
           </div>
-          <p className="text-white text-xs opacity-70">{t('footer.noSpam')}</p>
+          <p className="text-xs" style={{ color: isDark ? '#616680' : '#9ca3af' }}>{t('footer.noSpam')}</p>
         </form>
       </div>
 

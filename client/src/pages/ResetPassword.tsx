@@ -89,7 +89,7 @@ export function ResetPassword() {
   };
 
   return (
-    <AuthPremiumLayout>
+    <AuthPremiumLayout currentView="reset">
       <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
         <div className="flex-shrink-0 flex justify-end items-center mb-2">
           <ThemeToggle />

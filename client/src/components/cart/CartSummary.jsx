@@ -16,17 +16,23 @@ export default function CartSummary({ subtotal, onCheckout }) {
       {/* Free-shipping progress */}
       <div
         className="p-4 rounded-2xl"
-        style={{ background: '#f9fafb', border: '1px solid #f3f4f6' }}
+        style={{
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--border-card)',
+        }}
       >
         <div className="flex items-center gap-2 mb-2.5">
-          <Truck className="w-4 h-4" style={{ color: shippingFree ? '#22c55e' : '#6b7280' }} />
-          <span className="text-xs font-medium" style={{ color: '#374151' }}>
+          <Truck className="w-4 h-4" style={{ color: shippingFree ? '#22c55e' : 'var(--text-muted)' }} />
+          <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
             {shippingFree
               ? '🎉 Congrats! You get free standard shipping.'
               : `Add $${remaining.toFixed(2)} more for free shipping.`}
           </span>
         </div>
-        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#e5e7eb' }}>
+        <div
+          className="w-full h-1.5 rounded-full overflow-hidden"
+          style={{ background: 'var(--divider-strong)' }}
+        >
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
@@ -43,29 +49,21 @@ export default function CartSummary({ subtotal, onCheckout }) {
 
       {/* Line items */}
       <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span style={{ color: '#6b7280' }}>Subtotal</span>
-          <span className="font-semibold" style={{ color: '#111827' }}>
-            ${subtotal.toFixed(2)}
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span style={{ color: '#6b7280' }}>Shipping</span>
-          <span
-            className="font-semibold"
-            style={{ color: shippingFree ? '#22c55e' : '#111827' }}
-          >
-            {shippingFree ? 'FREE' : `$${shipping.toFixed(2)}`}
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span style={{ color: '#6b7280' }}>
-            Subtotal&nbsp;<span style={{ fontSize: '11px', color: '#9ca3af' }}>INCL. VAT (10%)</span>
-          </span>
-          <span className="font-semibold" style={{ color: '#111827' }}>
-            ${total.toFixed(2)}
-          </span>
-        </div>
+        {[
+          { label: 'Subtotal', value: `$${subtotal.toFixed(2)}`, accent: false },
+          { label: 'Shipping', value: shippingFree ? 'FREE' : `$${shipping.toFixed(2)}`, accent: shippingFree },
+          { label: 'Total (incl. VAT 10%)', value: `$${total.toFixed(2)}`, accent: false },
+        ].map(({ label, value, accent }) => (
+          <div key={label} className="flex justify-between text-sm">
+            <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+            <span
+              className="font-semibold"
+              style={{ color: accent ? '#22c55e' : 'var(--text-primary)' }}
+            >
+              {value}
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Checkout */}
@@ -83,7 +81,7 @@ export default function CartSummary({ subtotal, onCheckout }) {
         Checkout
       </motion.button>
 
-      <p className="text-center text-xs" style={{ color: '#9ca3af' }}>
+      <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
         🔒 Secure checkout · SSL encrypted
       </p>
     </div>

@@ -20,8 +20,38 @@ import { ToastNotification } from './components/ToastNotification';
 import { SecurityTelemetryProbe } from './components/SecurityTelemetryProbe';
 // @ts-ignore JSX module without TS typings
 import CartDrawer from './components/CartDrawer';
+// @ts-ignore JSX module without TS typings
+import Navbar from './components/Navbar';
 import AssistantChat from './components/AssistantChat';
 import { websocketService } from './services/websocketService';
+// @ts-ignore Zustand JS store without TS types
+import { useBuyerCart } from './stores/buyerCartStore';
+
+/*
+ * Paths where the buyer Navbar should NOT be rendered.
+ * Auth pages, seller, and admin dashboards use their own chrome.
+ */
+const NO_NAV_PREFIXES = [
+  '/auth', '/login', '/signup', '/forgot-password', '/reset-password',
+  '/verify-email', '/verify-otp', '/select-role', '/auth/google',
+  '/approve-device-success', '/seller', '/admin', '/dashboard',
+];
+
+/**
+ * Renders the buyer Navbar OUTSIDE the cart-push motion.div so that
+ * `position: fixed` is always relative to the real viewport, never to a
+ * CSS-transformed ancestor.  Without this, the nav would disappear as soon
+ * as the user starts scrolling (the transformed parent scrolls up with the
+ * page, dragging the "fixed" nav along).
+ */
+function GlobalNavbar() {
+  const { pathname } = useLocation();
+  const hidden = NO_NAV_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p),
+  );
+  if (hidden) return null;
+  return <Navbar />;
+}
 
 // ── Buyer pages (lazy) ────────────────────────────────────────────────────────
 // @ts-ignore JSX modules without TS typings
@@ -143,6 +173,7 @@ function GlobalRealtimeBridge() {
 
 function App() {
   const { initialize } = useAuthStore();
+  const cartOpen = useBuyerCart((s: any) => s.cartOpen);
   useEffect(() => { initialize(); }, [initialize]);
 
   return (
@@ -152,10 +183,29 @@ function App() {
         <GlobalRealtimeBridge />
         <SecurityTelemetryProbe />
         <ToastNotification />
+        {/* CartDrawer and GlobalNavbar stay fixed to the real viewport. */}
         <CartDrawer />
-        <AssistantChat />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+        <GlobalNavbar />
+
+        {/*
+          The cart drawer used to push the page with transform: translateX(...).
+          That created a transformed ancestor around the GSAP-pinned hero and made
+          ScrollTrigger vibrate while scrolling.  This keeps the same right-docked
+          cart behavior by reserving drawer space with layout width instead of a
+          transform, so pinned sections remain anchored to the viewport cleanly.
+        */}
+        <div style={{ overflowX: 'clip', minHeight: '100vh' }}>
+          <div
+            style={{
+              minHeight: '100vh',
+              width: cartOpen ? 'calc(100% - min(100vw, 480px))' : '100%',
+              minWidth: 0,
+              transition: 'width 420ms cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+          <AssistantChat />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             {/* ── Buyer / Storefront ── */}
             <Route path="/"                            element={<HomeRouteGuard />} />
             <Route path="/search"                      element={<SearchResults />} />
@@ -220,8 +270,10 @@ function App() {
             <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+            </Routes>
+          </Suspense>
+          </div>
+        </div>
       </BrowserRouter>
     </ThemeProvider>
   );

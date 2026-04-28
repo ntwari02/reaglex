@@ -1,19 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, AlertCircle } from 'lucide-react';
+import {
+  Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, AlertCircle, Sun, Moon,
+} from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { useTheme } from '../contexts/ThemeContext';
-import AuthPremiumLayout from '../components/AuthPremiumLayout';
+import AuthPremiumLayout, { type AuthView } from '../components/AuthPremiumLayout';
 import { authAPI } from '../lib/api';
-
-const PRIMARY = '#f97316';
-const SUCCESS = '#10b981';
-const ERROR = '#ef4444';
 import { API_BASE_URL } from '../lib/config';
-const API_BASE = API_BASE_URL;
 
+const PRIMARY     = '#f97316';
+const SUCCESS     = '#10b981';
+const ERROR       = '#ef4444';
+const API_BASE    = API_BASE_URL;
+const RESEND_CD   = 120;
+
+/* ─── helpers ────────────────────────────────────────────────────────────── */
 function hasSQLRisk(v: string) {
   return /(;|--|\/\*|\*\/|\b(OR|AND)\b\s+\d+=\d+|\bxp_)/i.test(v);
 }
@@ -21,81 +25,66 @@ function hasSQLRisk(v: string) {
 function getPasswordStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string } {
   if (!pw.length) return { level: 0, label: '' };
   let score = 0;
-  if (pw.length >= 8) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/\d/.test(pw)) score++;
+  if (pw.length >= 8)           score++;
+  if (/[A-Z]/.test(pw))        score++;
+  if (/\d/.test(pw))           score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  const labels = ['Weak', 'Fair', 'Good', 'Strong ✓'];
-  return { level: Math.min(3, score) as 0 | 1 | 2 | 3, label: labels[Math.min(3, score)] };
+  return { level: Math.min(3, score) as 0|1|2|3, label: ['Weak','Fair','Good','Strong ✓'][Math.min(3, score)] };
 }
 
 function checkPasswordReqs(pw: string) {
   return {
-    length: pw.length >= 8,
-    upper: /[A-Z]/.test(pw),
-    number: /\d/.test(pw),
+    length:  pw.length >= 8,
+    upper:   /[A-Z]/.test(pw),
+    number:  /\d/.test(pw),
     special: /[^A-Za-z0-9]/.test(pw),
   };
 }
 
-// ── Premium input (shared) ───────────────────────────────────────────────────
-function PremiumInput({
-  label,
-  type = 'text',
-  value,
-  onChange,
-  placeholder,
-  error,
-  valid,
-  focused,
-  leftIcon: LeftIcon,
-  rightEl,
-  onFocus,
-  onBlur,
-  required,
-  autoFocus,
-  size = 'default',
+function formatCountdown(s: number) {
+  const t = Math.max(0, s);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+}
+
+/* ─── Shared input ───────────────────────────────────────────────────────── */
+function AuthInput({
+  label, type = 'text', value, onChange, placeholder, error, valid, focused,
+  leftIcon: LeftIcon, rightEl, onFocus, onBlur, required, autoFocus,
 }: {
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  error?: string;
-  valid?: boolean;
-  focused?: boolean;
-  leftIcon?: React.ComponentType<{ className?: string; size?: number | string }>;
-  rightEl?: React.ReactNode;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  required?: boolean;
-  autoFocus?: boolean;
-  size?: 'default' | 'large';
+  label: string; type?: string; value: string;
+  onChange: (v: string) => void; placeholder?: string;
+  error?: string; valid?: boolean; focused?: boolean;
+  leftIcon?: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  rightEl?: React.ReactNode; onFocus?: () => void; onBlur?: () => void;
+  required?: boolean; autoFocus?: boolean;
 }) {
-  const isError = !!error;
-  const ring = isError
-    ? '0 0 0 2px rgba(239,68,68,0.40)'
-    : valid
-      ? '0 0 0 2px rgba(16,185,129,0.40)'
-      : focused
-        ? '0 0 0 2.5px rgba(249,115,22,0.5), 0 0 20px rgba(249,115,22,0.2)'
-        : '0 0 0 1.5px rgba(0,0,0,0.08)';
   const { theme } = useTheme();
-  const inputBgDefault = theme === 'dark' ? '#1a1e2c' : '#f9fafb';
-  const bg = isError ? 'rgba(239,68,68,0.03)' : valid ? 'rgba(16,185,129,0.03)' : focused ? 'var(--card-bg)' : inputBgDefault;
-  const isLarge = size === 'large';
+  const isDark = theme === 'dark';
+
+  const ring = error
+    ? '0 0 0 2px rgba(239,68,68,0.45)'
+    : valid
+      ? '0 0 0 2px rgba(16,185,129,0.45)'
+      : focused
+        ? `0 0 0 2.5px rgba(249,115,22,0.55), 0 0 18px rgba(249,115,22,0.15)`
+        : `0 0 0 1.5px ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`;
+
+  const inputBg = error
+    ? 'rgba(239,68,68,0.04)'
+    : focused
+      ? isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'
+      : isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fc';
+
   return (
-    <div className={isLarge ? 'mb-0' : 'mb-2'}>
-      <label className={`block font-bold uppercase tracking-wider ${isLarge ? 'text-[12px] mb-2' : 'text-[11px] mb-1.5'}`} style={{ color: 'var(--text-primary)', letterSpacing: '0.6px' }}>
-        {label}{required ? ' *' : ''}
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)', letterSpacing: '0.07em' }}>
+        {label}{required ? <span style={{ color: PRIMARY }}> *</span> : ''}
       </label>
       <div className="relative">
         {LeftIcon && (
-          <span
-            className={`absolute top-1/2 -translate-y-1/2 flex items-center justify-center transition-colors duration-200 ${isLarge ? 'left-4' : 'left-3'}`}
-            style={{ color: focused && !isError ? PRIMARY : 'var(--text-muted)' }}
-          >
-            <LeftIcon className={isLarge ? 'w-5 h-5' : 'w-4 h-4'} />
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200"
+            style={{ color: focused && !error ? PRIMARY : 'var(--text-faint)' }}>
+            <LeftIcon size={16} />
           </span>
         )}
         <input
@@ -107,30 +96,147 @@ function PremiumInput({
           placeholder={placeholder}
           required={required}
           autoFocus={autoFocus}
-          className={`w-full rounded-[12px] outline-none transition-all duration-200 ${isLarge ? 'h-[52px] text-[15px] pl-12 pr-12' : 'h-[42px] text-[14px] pl-10 pr-10'}`}
+          className="w-full h-[50px] rounded-2xl outline-none text-[14px] transition-all duration-200"
           style={{
-            background: bg,
+            background: inputBg,
             boxShadow: ring,
             color: 'var(--text-primary)',
+            paddingLeft: LeftIcon ? '44px' : '16px',
+            paddingRight: rightEl || valid ? '44px' : '16px',
           }}
         />
-        {rightEl && <div className={`absolute top-1/2 -translate-y-1/2 ${isLarge ? 'right-4' : 'right-3'}`}>{rightEl}</div>}
+        {rightEl && (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">{rightEl}</div>
+        )}
         {valid && !rightEl && (
-          <span className={`absolute top-1/2 -translate-y-1/2 ${isLarge ? 'right-4' : 'right-3'}`}>
-            <Check className={isLarge ? 'w-5 h-5' : 'w-4 h-4'} style={{ color: SUCCESS }} />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2">
+            <Check size={14} style={{ color: SUCCESS }} />
           </span>
         )}
       </div>
       {error && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[11px] mt-0.5" style={{ color: '#f87171' }}>
-          {error}
+        <motion.p
+          initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+          className="text-[11px] flex items-center gap-1"
+          style={{ color: '#f87171' }}
+        >
+          <AlertCircle size={10} /> {error}
         </motion.p>
       )}
     </div>
   );
 }
 
-// ── Login form (premium) ─────────────────────────────────────────────────────
+/* ─── Error banner ───────────────────────────────────────────────────────── */
+function ErrorBanner({ message }: { message: string }) {
+  if (!message) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+      className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-[13px] font-medium"
+      style={{
+        background: 'rgba(239,68,68,0.08)',
+        border: '1px solid rgba(239,68,68,0.25)',
+        color: '#f87171',
+      }}
+    >
+      <AlertCircle size={15} className="flex-shrink-0" />
+      {message}
+    </motion.div>
+  );
+}
+
+/* ─── Primary button ─────────────────────────────────────────────────────── */
+function PrimaryBtn({
+  children, onClick, type = 'submit', disabled, loading, success,
+}: {
+  children: React.ReactNode; onClick?: () => void; type?: 'submit'|'button';
+  disabled?: boolean; loading?: boolean; success?: boolean;
+}) {
+  const bg = success
+    ? 'linear-gradient(135deg, #059669, #047857)'
+    : 'linear-gradient(135deg, #ff8c2a 0%, #f97316 50%, #ea580c 100%)';
+
+  return (
+    <motion.button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+      whileHover={!disabled && !loading ? { y: -2 } : {}}
+      whileTap={!disabled ? { scale: 0.98 } : {}}
+      className="relative w-full h-[52px] rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2.5 overflow-hidden border-none cursor-pointer select-none"
+      style={{
+        background: bg,
+        color: '#ffffff',
+        boxShadow: (disabled && !success)
+          ? 'none'
+          : success
+            ? '0 8px 24px rgba(5,150,105,0.4)'
+            : '0 8px 28px rgba(249,115,22,0.4), 0 2px 8px rgba(249,115,22,0.25)',
+        opacity: disabled && !success ? 0.55 : 1,
+        transition: 'box-shadow 250ms ease, transform 250ms ease',
+      }}
+    >
+      {/* Shimmer */}
+      <span className="absolute inset-0 pointer-events-none" style={{
+        background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.25) 50%, transparent 60%)',
+        animation: !disabled ? 'btn-shimmer 2.8s ease infinite' : undefined,
+      }} />
+      <span className="relative flex items-center gap-2">
+        {loading && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+        {children}
+      </span>
+      <style>{`
+        @keyframes btn-shimmer {
+          0%   { transform: translateX(-100%); }
+          60%  { transform: translateX(100%);  }
+          100% { transform: translateX(100%);  }
+        }
+      `}</style>
+    </motion.button>
+  );
+}
+
+/* ─── OR divider ─────────────────────────────────────────────────────────── */
+function OrDivider() {
+  return (
+    <div className="flex items-center gap-3 my-1">
+      <div className="flex-1 h-px" style={{ background: 'var(--divider)' }} />
+      <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: 'var(--text-faint)' }}>or</span>
+      <div className="flex-1 h-px" style={{ background: 'var(--divider)' }} />
+    </div>
+  );
+}
+
+/* ─── Google button ──────────────────────────────────────────────────────── */
+function GoogleBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileHover={{ y: -1 }}
+      whileTap={{ scale: 0.98 }}
+      className="w-full h-[50px] rounded-2xl flex items-center justify-center gap-3 text-[14px] font-semibold border-none cursor-pointer transition-all"
+      style={{
+        background: 'var(--bg-secondary)',
+        color: 'var(--text-primary)',
+        boxShadow: '0 0 0 1.5px var(--border-card)',
+      }}
+    >
+      <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 48 48">
+        <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.77-6.77C35.41 2.38 30.21 0 24 0 14.67 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.5 17.79 9.5 24 9.5z"/>
+        <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.16 7.09-10.29 7.09-17.55z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.67 48 24 48z"/>
+      </svg>
+      Continue with Google
+    </motion.button>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOGIN FORM
+═══════════════════════════════════════════════════════════════════════════ */
 function LoginFormContent({
   role = 'buyer',
   onRequireEmailVerification,
@@ -138,238 +244,200 @@ function LoginFormContent({
   role?: 'buyer' | 'seller';
   onRequireEmailVerification: (email: string) => void;
 }) {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirectParam = searchParams.get('redirect');
-  const { login } = useAuthStore();
-  const { showToast } = useToastStore();
-  const [email, setEmail] = useState('');
+  const navigate        = useNavigate();
+  const [searchParams]  = useSearchParams();
+  const redirectParam   = searchParams.get('redirect');
+  const { login }       = useAuthStore();
+  const { showToast }   = useToastStore();
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
-  const [focused, setFocused] = useState<string | null>(null);
-  const [shake, setShake] = useState(false);
+  const [showPw,   setShowPw]   = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [success,  setSuccess]  = useState(false);
+  const [error,    setError]    = useState('');
+  const [focused,  setFocused]  = useState<string | null>(null);
+  const [shake,    setShake]    = useState(false);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || /^\d+$/.test(email);
 
+  const doShake = () => { setShake(true); setTimeout(() => setShake(false), 500); };
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!email || !password) { setError('Please fill in both fields.'); setShake(true); setTimeout(() => setShake(false), 400); return; }
-    if (!emailValid) { setError('Enter a valid email or phone.'); setShake(true); setTimeout(() => setShake(false), 400); return; }
-    if (password.length < 6) { setError('Password must be ≥ 6 characters.'); setShake(true); setTimeout(() => setShake(false), 400); return; }
+    e.preventDefault(); setError('');
+    if (!email || !password)     { setError('Please fill in both fields.');             doShake(); return; }
+    if (!emailValid)             { setError('Enter a valid email or phone.');            doShake(); return; }
+    if (password.length < 6)     { setError('Password must be ≥ 6 characters.');        doShake(); return; }
     if (hasSQLRisk(email) || hasSQLRisk(password)) { setError('Invalid characters detected.'); return; }
     setLoading(true);
     try {
       const result = await login(email, password);
-      if (!result.success && 'code' in (result as any) && (result as any).code === 'EMAIL_NOT_VERIFIED' && (result as any).email) {
+      if (!result.success && 'code' in (result as any) && (result as any).code === 'EMAIL_NOT_VERIFIED') {
         onRequireEmailVerification(String((result as any).email));
-        setLoading(false);
-        return;
+        setLoading(false); return;
       }
-      if (!result.success) { setError(result.error || 'Wrong email or password. Please try again.'); setShake(true); setTimeout(() => setShake(false), 400); setLoading(false); return; }
+      if (!result.success) {
+        setError(result.error || 'Wrong email or password.'); doShake(); setLoading(false); return;
+      }
       setSuccess(true);
       const { user } = useAuthStore.getState();
-      const name = user?.full_name?.split(' ')[0] || 'there';
-      showToast(`Welcome back, ${name}! 👋`, 'success');
+      showToast(`Welcome back, ${user?.full_name?.split(' ')[0] || 'there'}! 👋`, 'success');
       setTimeout(() => {
-        if (redirectParam && redirectParam.startsWith('/')) navigate(redirectParam);
+        if (redirectParam?.startsWith('/')) navigate(redirectParam);
         else if (user?.role === 'seller') navigate('/seller');
-        else if (user?.role === 'admin') navigate('/admin');
+        else if (user?.role === 'admin')  navigate('/admin');
         else navigate('/');
       }, 600);
-    } catch (err: unknown) { setError((err as Error)?.message || 'Unexpected error.'); setShake(true); setTimeout(() => setShake(false), 400); }
-    finally { if (!success) setLoading(false); }
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'Unexpected error.'); doShake();
+    } finally {
+      if (!success) setLoading(false);
+    }
   };
-
-  const googleAuth = () => { window.location.href = `${API_BASE}/auth/google?role=${role}`; };
-
-  const buttonBg = success
-    ? 'linear-gradient(135deg, #059669, #047857)'
-    : error && shake
-      ? 'linear-gradient(135deg, #dc2626, #ef4444)'
-      : 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)';
 
   return (
     <motion.form
       onSubmit={handleSubmit}
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.3 }}
-      className={`flex-1 flex flex-col min-h-0 ${shake ? 'auth-shake' : ''}`}
+      initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
+      className={`flex flex-col gap-5 ${shake ? 'auth-shake-anim' : ''}`}
     >
-      <h2 className="text-[24px] font-extrabold mb-1" style={{ color: 'var(--text-primary)' }}>Welcome back 👋</h2>
-      <p className="text-[14px] mb-5" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
-
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg mb-4 text-[13px]"
-          style={{
-            background: 'rgba(239,68,68,0.10)',
-            boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.30)',
-            color: '#f87171',
-          }}
-        >
-          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
-        </motion.div>
-      )}
-
-      <div className="mb-5">
-        <PremiumInput
-          size="large"
-          label="Email or Phone"
-          type="text"
-          value={email}
-          onChange={setEmail}
-          placeholder="Enter email or phone"
-          leftIcon={Mail}
-          valid={email.length > 0 && emailValid}
-          focused={focused === 'email'}
-          onFocus={() => setFocused('email')}
-          onBlur={() => setFocused(null)}
-          required
-          autoFocus
-        />
+      {/* Heading */}
+      <div>
+        <h2 className="text-[26px] font-black mb-1" style={{ color: 'var(--text-primary)' }}>Welcome back</h2>
+        <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
       </div>
-      <div className="mb-6">
-        <PremiumInput
-          size="large"
+
+      <ErrorBanner message={error} />
+
+      <AuthInput
+        label="Email or Phone"
+        type="text"
+        value={email}
+        onChange={setEmail}
+        placeholder="you@example.com"
+        leftIcon={Mail}
+        valid={email.length > 0 && emailValid}
+        focused={focused === 'email'}
+        onFocus={() => setFocused('email')}
+        onBlur={() => setFocused(null)}
+        required
+        autoFocus
+      />
+
+      <div className="flex flex-col gap-1.5">
+        <AuthInput
           label="Password"
           type={showPw ? 'text' : 'password'}
           value={password}
           onChange={setPassword}
-          placeholder="Password"
+          placeholder="Your password"
           leftIcon={Lock}
           focused={focused === 'pw'}
           onFocus={() => setFocused('pw')}
           onBlur={() => setFocused(null)}
           rightEl={
-            <button type="button" onClick={() => setShowPw(!showPw)} className="p-0.5 rounded transition hover:opacity-80" style={{ color: 'var(--text-muted)' }} aria-label={showPw ? 'Hide password' : 'Show password'}>
-              {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            <button type="button" onClick={() => setShowPw(!showPw)}
+              className="p-1 rounded-lg transition-colors hover:opacity-70"
+              style={{ color: 'var(--text-muted)' }} aria-label={showPw ? 'Hide' : 'Show'}>
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           }
           required
         />
+        <div className="flex items-center justify-end">
+          <Link to="/auth?tab=forgot" className="text-[12px] font-semibold hover:underline" style={{ color: PRIMARY }}>
+            Forgot password?
+          </Link>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={rememberMe}
-            onClick={() => setRememberMe(!rememberMe)}
-            className="w-9 h-5 rounded-full transition-colors flex-shrink-0"
-            style={{
-              background: rememberMe ? PRIMARY : 'var(--bg-secondary)',
-              boxShadow: '0 0 0 1.5px var(--divider)',
-            }}
-          >
-            <span
-              className="block w-4 h-4 rounded-full bg-white shadow mt-0.5 ml-0.5 transition-transform"
-              style={{ transform: rememberMe ? 'translateX(18px)' : 'translateX(2px)' }}
-            />
-          </button>
-          <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Remember me</span>
-        </label>
-        <Link to="/auth?tab=forgot" className="text-[13px] font-medium hover:underline transition" style={{ color: PRIMARY }}>Forgot Password?</Link>
-      </div>
+      {/* Remember me */}
+      <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
+        <button
+          type="button" role="checkbox" aria-checked={remember}
+          onClick={() => setRemember(!remember)}
+          className="w-10 h-5 rounded-full transition-all flex-shrink-0 relative"
+          style={{ background: remember ? PRIMARY : 'var(--bg-tertiary)', boxShadow: '0 0 0 1.5px var(--divider)' }}
+        >
+          <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
+            style={{ transform: remember ? 'translateX(20px)' : 'translateX(0)' }} />
+        </button>
+        <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Remember me</span>
+      </label>
 
-      <motion.button
-        type="submit"
-        disabled={loading}
-        className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all duration-250 relative overflow-hidden"
-        style={{
-          background: buttonBg,
-          color: '#ffffff',
-          letterSpacing: '0.3px',
-          boxShadow: success ? 'none' : '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
-        }}
-        whileHover={!loading && !success ? { y: -2, boxShadow: '0 12px 36px rgba(249,115,22,0.5)' } : {}}
-        whileTap={!loading ? { y: 0 } : {}}
-      >
-        {loading && !success && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-        {success && <Check className="w-5 h-5" />}
-        {!loading && !success && <>Sign In <ArrowRight className="w-4 h-4" /></>}
-        {loading && !success && 'Signing in...'}
-      </motion.button>
+      <PrimaryBtn loading={loading} success={success}>
+        {success ? <><Check size={17} /> Signed In</> : <>Sign In <ArrowRight size={16} /></>}
+      </PrimaryBtn>
 
-      <div className="flex items-center gap-3 my-6">
-        <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, var(--divider))' }} />
-        <span className="text-[12px]" style={{ color: 'var(--text-faint)' }}>Or continue with</span>
-        <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, var(--divider))' }} />
-      </div>
+      <OrDivider />
 
-      <button
-        type="button"
-        onClick={googleAuth}
-        className="w-full h-[52px] rounded-[12px] flex items-center justify-center gap-2 text-[14px] font-semibold transition-all border-none cursor-pointer shadow-sm"
-        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)' }}
-      >
-        <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.77-6.77C35.41 2.38 30.21 0 24 0 14.67 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.5 17.79 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.16 7.09-10.29 7.09-17.55z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.67 48 24 48z"/></svg>
-        Google
-      </button>
+      <GoogleBtn onClick={() => { window.location.href = `${API_BASE}/auth/google?role=${role}`; }} />
 
-      <p className="text-center text-[13px] mt-6" style={{ color: 'var(--text-muted)' }}>
-        Don&apos;t have an account? <Link to="/auth?tab=signup" className="font-bold hover:underline" style={{ color: PRIMARY }}>Create one free →</Link>
+      <p className="text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
+        No account?{' '}
+        <Link to="/auth?tab=signup" className="font-bold hover:underline" style={{ color: PRIMARY }}>
+          Create one free →
+        </Link>
       </p>
+
+      {/* Security note */}
+      <div className="flex items-center justify-center gap-2 pt-1">
+        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: '#10b981' }} />
+        <span className="text-[11px]" style={{ color: 'var(--text-faint)' }}>256-bit SSL encrypted • Secure login</span>
+      </div>
     </motion.form>
   );
 }
 
-// ── Signup form (premium) ────────────────────────────────────────────────────
-function SignupFormContent({
-  onRegistered,
-}: {
-  onRegistered: (email: string) => void;
-}) {
-  const [searchParams] = useSearchParams();
-  const referralFromUrl = searchParams.get('ref')?.trim() || '';
-  const { showToast } = useToastStore();
-  const [role, setRoleState] = useState<'buyer' | 'seller'>('buyer');
-  const [fd, setFd] = useState({ fullName: '', email: '', password: '', confirmPassword: '', storeName: '' });
-  const [showPw, setShowPw] = useState(false);
-  const [showCPw, setShowCPw] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIGNUP FORM
+═══════════════════════════════════════════════════════════════════════════ */
+function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => void }) {
+  const [searchParams]       = useSearchParams();
+  const referralFromUrl      = searchParams.get('ref')?.trim() || '';
+  const { showToast }        = useToastStore();
+  const [role, setRole]      = useState<'buyer' | 'seller'>('buyer');
+  const [fd, setFd]          = useState({ fullName: '', email: '', password: '', confirmPassword: '', storeName: '' });
+  const [showPw,  setShowPw] = useState(false);
+  const [showCPw, setShowCPw]= useState(false);
+  const [agreed,  setAgreed] = useState(false);
+  const [loading, setLoading]= useState(false);
+  const [error,   setError]  = useState('');
+  const [success, setSuccess]= useState(false);
+  const [focused, setFocused]= useState<string | null>(null);
   const [referralProgramEnabled, setReferralProgramEnabled] = useState(true);
   const [referralCode, setReferralCode] = useState('');
-  const strength = getPasswordStrength(fd.password);
-  const reqs = checkPasswordReqs(fd.password);
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email);
-  const match = fd.confirmPassword.length ? fd.password === fd.confirmPassword : null;
-  const canSubmit = fd.fullName.trim().length >= 2 && emailValid && fd.password.length >= 8 && reqs.upper && reqs.number && reqs.special && fd.password === fd.confirmPassword && agreed && (role !== 'seller' || fd.storeName.trim().length > 0);
+
+  const strength  = getPasswordStrength(fd.password);
+  const reqs      = checkPasswordReqs(fd.password);
+  const emailValid= /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email);
+  const pwMatch   = fd.confirmPassword.length ? fd.password === fd.confirmPassword : null;
+  const canSubmit = fd.fullName.trim().length >= 2 && emailValid && fd.password.length >= 8
+    && reqs.upper && reqs.number && reqs.special
+    && fd.password === fd.confirmPassword && agreed
+    && (role !== 'seller' || fd.storeName.trim().length > 0);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/public/marketing/referral-status?t=${Date.now()}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((d: { referralProgramEnabled?: boolean }) => {
         if (typeof d.referralProgramEnabled === 'boolean') setReferralProgramEnabled(d.referralProgramEnabled);
-      })
-      .catch(() => {});
+      }).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!referralProgramEnabled || !referralFromUrl) return;
-    setReferralCode(referralFromUrl.toUpperCase());
+    if (referralProgramEnabled && referralFromUrl) setReferralCode(referralFromUrl.toUpperCase());
   }, [referralProgramEnabled, referralFromUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
-    if (!fd.fullName.trim() || fd.fullName.trim().length < 2) { setError('Full name must be at least 2 characters.'); return; }
-    if (!emailValid) { setError('Please enter a valid email.'); return; }
-    if (fd.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-    if (!reqs.upper || !reqs.number || !reqs.special) { setError('Password must include uppercase, number, and special character.'); return; }
-    if (fd.password !== fd.confirmPassword) { setError('Passwords do not match.'); return; }
-    if (!agreed) { setError('Please agree to the Terms.'); return; }
-    if (role === 'seller' && !fd.storeName.trim()) { setError('Store name is required for sellers.'); return; }
+    if (fd.fullName.trim().length < 2)        { setError('Full name must be ≥ 2 characters.');            return; }
+    if (!emailValid)                          { setError('Enter a valid email address.');                  return; }
+    if (fd.password.length < 8)               { setError('Password must be ≥ 8 characters.');             return; }
+    if (!reqs.upper || !reqs.number || !reqs.special) { setError('Password needs uppercase, number & special char.'); return; }
+    if (fd.password !== fd.confirmPassword)   { setError('Passwords do not match.');                      return; }
+    if (!agreed)                              { setError('Please agree to the Terms of Service.');        return; }
+    if (role === 'seller' && !fd.storeName.trim()) { setError('Store name is required for sellers.');    return; }
     if (hasSQLRisk(fd.fullName) || hasSQLRisk(fd.email) || hasSQLRisk(fd.password)) { setError('Invalid characters detected.'); return; }
     setLoading(true);
     try {
@@ -377,10 +445,7 @@ function SignupFormContent({
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: fd.fullName,
-          email: fd.email,
-          password: fd.password,
-          role,
+          fullName: fd.fullName, email: fd.email, password: fd.password, role,
           storeName: role === 'seller' ? fd.storeName : undefined,
           ...(referralProgramEnabled && referralCode.trim() ? { referralCode: referralCode.trim() } : {}),
         }),
@@ -395,174 +460,197 @@ function SignupFormContent({
   };
 
   if (success) return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-2">
-      <div className="text-2xl mb-1">🎉</div>
-      <h3 className="font-bold text-lg mb-0.5" style={{ color: SUCCESS }}>Account Created!</h3>
-      <p className="font-semibold text-sm mb-0.5" style={{ color: PRIMARY }}>Welcome, {fd.fullName.trim().split(/\s+/)[0] || 'there'}!</p>
-      <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Check your email to verify</p>
-      <Link to="/auth?tab=login" className="inline-flex justify-center px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: PRIMARY }}>Sign In →</Link>
+    <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-4">
+      <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+        style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
+        <span className="text-3xl">🎉</span>
+      </div>
+      <h3 className="font-black text-xl mb-1" style={{ color: SUCCESS }}>Account Created!</h3>
+      <p className="font-semibold text-sm mb-1" style={{ color: PRIMARY }}>
+        Welcome, {fd.fullName.trim().split(/\s+/)[0] || 'there'}!
+      </p>
+      <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Check your email to verify your account</p>
+      <Link to="/auth?tab=login"
+        className="inline-flex justify-center px-6 py-2.5 rounded-2xl text-sm font-bold text-white"
+        style={{ background: `linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)`, boxShadow: '0 6px 20px rgba(249,115,22,0.4)' }}>
+        Sign In →
+      </Link>
     </motion.div>
   );
+
+  const f = (k: keyof typeof fd) => (v: string) => setFd({ ...fd, [k]: v });
 
   return (
     <motion.form
       onSubmit={handleSubmit}
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col gap-6"
+      initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
+      className="flex flex-col gap-4"
     >
-      <h2 className="text-[20px] font-extrabold" style={{ color: 'var(--text-primary)' }}>Create account 🚀</h2>
-      <p className="text-[13px] -mt-4 mb-1" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers</p>
+      {/* Heading */}
+      <div>
+        <h2 className="text-[24px] font-black mb-1" style={{ color: 'var(--text-primary)' }}>Create account</h2>
+        <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers on Reaglex</p>
+      </div>
 
-      {error && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px]" style={{ background: 'rgba(239,68,68,0.10)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.30)', color: '#f87171' }}>
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
-        </motion.div>
-      )}
+      <ErrorBanner message={error} />
 
+      {/* Name + Email */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <PremiumInput label="Full Name" value={fd.fullName} onChange={(v) => setFd({ ...fd, fullName: v })} placeholder="Your full name" leftIcon={User} valid={fd.fullName.trim().length >= 2} required autoFocus />
-        <PremiumInput label="Email Address" type="email" value={fd.email} onChange={(v) => setFd({ ...fd, email: v })} placeholder="you@example.com" leftIcon={Mail} error={fd.email.length > 0 && !emailValid ? 'Please enter a valid email' : undefined} valid={emailValid} required />
+        <AuthInput label="Full Name" value={fd.fullName} onChange={f('fullName')} placeholder="Your full name"
+          leftIcon={User} valid={fd.fullName.trim().length >= 2}
+          focused={focused === 'name'} onFocus={() => setFocused('name')} onBlur={() => setFocused(null)} required autoFocus />
+        <AuthInput label="Email Address" type="email" value={fd.email} onChange={f('email')} placeholder="you@example.com"
+          leftIcon={Mail}
+          error={fd.email.length > 0 && !emailValid ? 'Enter a valid email' : undefined}
+          valid={emailValid}
+          focused={focused === 'email'} onFocus={() => setFocused('email')} onBlur={() => setFocused(null)} required />
       </div>
 
-      <div>
-        <PremiumInput
-          label="Password"
-          type={showPw ? 'text' : 'password'}
-          value={fd.password}
-          onChange={(v) => setFd({ ...fd, password: v })}
-          placeholder="At least 8 characters"
-          leftIcon={Lock}
-          rightEl={<button type="button" onClick={() => setShowPw(!showPw)} className="p-0.5 rounded transition" style={{ color: 'var(--text-muted)' }} aria-label={showPw ? 'Hide password' : 'Show password'}>{showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>}
-          required
-        />
-        <div className="flex gap-0.5 h-1 rounded-full overflow-hidden mt-1" style={{ background: 'var(--bg-secondary)' }}>
-          {[0, 1, 2, 3].map((i) => (
-            <motion.div key={i} className="flex-1 rounded-full transition-colors" style={{ background: i === 0 ? ERROR : i === 1 ? '#f97316' : i === 2 ? '#eab308' : SUCCESS, opacity: strength.level > i ? 1 : 0.25 }} />
-          ))}
-        </div>
-        <p className="text-[10px] mt-0.5" style={{ color: strength.level === 0 ? 'var(--text-faint)' : strength.level <= 2 ? '#f97316' : SUCCESS }}>{strength.label || 'Weak'}</p>
+      {/* Password */}
+      <div className="flex flex-col gap-2">
+        <AuthInput label="Password" type={showPw ? 'text' : 'password'} value={fd.password} onChange={f('password')}
+          placeholder="At least 8 characters" leftIcon={Lock}
+          focused={focused === 'pw'} onFocus={() => setFocused('pw')} onBlur={() => setFocused(null)}
+          rightEl={
+            <button type="button" onClick={() => setShowPw(!showPw)}
+              className="p-1 rounded-lg hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}
+              aria-label={showPw ? 'Hide' : 'Show'}>
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
+          required />
+        {/* Strength bar */}
+        {fd.password.length > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5 flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+              {[0,1,2,3].map((i) => (
+                <div key={i} className="flex-1 transition-all duration-300" style={{
+                  background: [ERROR, '#f97316', '#eab308', SUCCESS][i],
+                  opacity: strength.level > i ? 1 : 0.2,
+                }} />
+              ))}
+            </div>
+            <span className="text-[11px] font-semibold w-14 text-right"
+              style={{ color: strength.level <= 1 ? ERROR : strength.level === 2 ? '#eab308' : SUCCESS }}>
+              {strength.label}
+            </span>
+          </div>
+        )}
+        {/* Password requirements */}
+        {fd.password.length > 0 && (
+          <div className="grid grid-cols-2 gap-1">
+            {[
+              { ok: reqs.length,  label: '8+ chars'    },
+              { ok: reqs.upper,   label: 'Uppercase'   },
+              { ok: reqs.number,  label: 'Number'      },
+              { ok: reqs.special, label: 'Special char'},
+            ].map((r) => (
+              <div key={r.label} className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: r.ok ? 'rgba(16,185,129,0.15)' : 'var(--bg-secondary)' }}>
+                  {r.ok && <Check size={9} style={{ color: SUCCESS }} />}
+                </span>
+                <span className="text-[11px]" style={{ color: r.ok ? SUCCESS : 'var(--text-faint)' }}>{r.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div>
-      <PremiumInput
-        label="Confirm Password"
-        type={showCPw ? 'text' : 'password'}
-        value={fd.confirmPassword}
-        onChange={(v) => setFd({ ...fd, confirmPassword: v })}
-        placeholder="Confirm password"
-        leftIcon={Lock}
-        rightEl={match === true ? <Check className="w-4 h-4" style={{ color: SUCCESS }} /> : <button type="button" onClick={() => setShowCPw(!showCPw)} className="p-0.5 rounded" style={{ color: 'var(--text-muted)' }}><Eye className="w-4 h-4" /></button>}
-        valid={match === true}
-        error={match === false ? "Passwords don't match" : undefined}
-        required
-      />
-      </div>
+      {/* Confirm password */}
+      <AuthInput label="Confirm Password" type={showCPw ? 'text' : 'password'} value={fd.confirmPassword} onChange={f('confirmPassword')}
+        placeholder="Repeat your password" leftIcon={Lock}
+        focused={focused === 'cpw'} onFocus={() => setFocused('cpw')} onBlur={() => setFocused(null)}
+        valid={pwMatch === true}
+        error={pwMatch === false ? "Passwords don't match" : undefined}
+        rightEl={
+          pwMatch !== true
+            ? <button type="button" onClick={() => setShowCPw(!showCPw)}
+                className="p-1 rounded-lg hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                {showCPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            : undefined
+        }
+        required />
 
+      {/* Role selector */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>I want to:</p>
-        <div className="flex gap-1.5">
+        <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Account type</p>
+        <div className="flex gap-2">
           {(['buyer', 'seller'] as const).map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setRoleState(r)}
-              className="flex-1 flex items-center justify-center gap-1 h-8 rounded-full text-[12px] font-bold transition-all"
+            <motion.button key={r} type="button" onClick={() => setRole(r)}
+              whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
+              className="flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl text-[13px] font-bold transition-all"
               style={{
                 background: role === r ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'var(--bg-secondary)',
                 color: role === r ? '#ffffff' : 'var(--text-muted)',
-                boxShadow: role === r ? '0 4px 12px rgba(249,115,22,0.35)' : '0 0 0 1.5px var(--divider)',
-              }}
-            >
-              {r === 'buyer' ? '🛒' : '🏪'} {r === 'buyer' ? 'Buy' : 'Sell'}
-            </button>
+                boxShadow: role === r ? '0 4px 14px rgba(249,115,22,0.35)' : '0 0 0 1.5px var(--border-card)',
+              }}>
+              {r === 'buyer' ? '🛒' : '🏪'}
+              {r === 'buyer' ? 'Buyer' : 'Seller'}
+            </motion.button>
           ))}
         </div>
       </div>
 
-      <div>
-      {role === 'seller' && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-          <PremiumInput label="Store Name" value={fd.storeName} onChange={(v) => setFd({ ...fd, storeName: v })} placeholder="Your store name" leftIcon={User} required />
-        </motion.div>
+      {/* Seller store name */}
+      <AnimatePresence>
+        {role === 'seller' && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+            <AuthInput label="Store Name" value={fd.storeName} onChange={f('storeName')} placeholder="Your store name"
+              leftIcon={User}
+              focused={focused === 'store'} onFocus={() => setFocused('store')} onBlur={() => setFocused(null)} required />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Referral code */}
+      {referralProgramEnabled && (
+        <AuthInput label="Referral Code (optional)" value={referralCode} onChange={setReferralCode}
+          placeholder="e.g. RX-xxxxxxxx" leftIcon={User}
+          focused={focused === 'ref'} onFocus={() => setFocused('ref')} onBlur={() => setFocused(null)} />
       )}
-      </div>
 
-      {referralProgramEnabled ? (
-        <div className="space-y-1">
-          {referralFromUrl ? (
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              Referral from link applied — you can edit the code below.
-            </p>
-          ) : null}
-          <PremiumInput
-            label="Referral code (optional)"
-            value={referralCode}
-            onChange={(v) => setReferralCode(v)}
-            placeholder="e.g. RX-xxxxxxxx"
-            leftIcon={User}
-          />
-        </div>
-      ) : null}
-
-      <label className="flex items-start gap-2 cursor-pointer">
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={agreed}
-          onClick={() => setAgreed(!agreed)}
-          className="w-4 h-4 rounded flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors"
-          style={{ background: agreed ? PRIMARY : 'var(--bg-secondary)', boxShadow: '0 0 0 1.5px var(--divider)' }}
-        >
-          {agreed && <Check className="w-2.5 h-2.5 text-white" />}
+      {/* Terms */}
+      <label className="flex items-start gap-3 cursor-pointer select-none">
+        <button type="button" role="checkbox" aria-checked={agreed} onClick={() => setAgreed(!agreed)}
+          className="w-5 h-5 rounded-lg flex-shrink-0 mt-0.5 flex items-center justify-center transition-all"
+          style={{ background: agreed ? PRIMARY : 'var(--bg-secondary)', boxShadow: `0 0 0 1.5px ${agreed ? PRIMARY : 'var(--border-card)'}` }}>
+          {agreed && <Check size={12} className="text-white" />}
         </button>
-        <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>I agree to <a href="/terms" className="font-medium hover:underline" style={{ color: PRIMARY }}>Terms</a> & <a href="/privacy" className="font-medium hover:underline" style={{ color: PRIMARY }}>Privacy</a></span>
+        <span className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          I agree to the{' '}
+          <a href="/terms" className="font-semibold hover:underline" style={{ color: PRIMARY }}>Terms of Service</a>
+          {' '}&amp;{' '}
+          <a href="/privacy" className="font-semibold hover:underline" style={{ color: PRIMARY }}>Privacy Policy</a>
+        </span>
       </label>
 
-      <motion.button
-        type="submit"
-        disabled={!canSubmit || loading}
-        className="w-full h-[44px] rounded-[12px] font-bold text-[14px] flex items-center justify-center gap-1.5 border-none cursor-pointer transition-all duration-250"
-        style={{
-          background: canSubmit && !loading ? 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)' : 'var(--bg-secondary)',
-          color: canSubmit && !loading ? '#ffffff' : 'var(--text-muted)',
-          boxShadow: canSubmit && !loading ? '0 6px 24px rgba(249,115,22,0.45)' : 'none',
-        }}
-        whileHover={canSubmit && !loading ? { y: -2 } : {}}
-        whileTap={!loading ? { y: 0 } : {}}
-      >
-        {loading && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-        {!loading && 'Create Account →'}
-      </motion.button>
+      <PrimaryBtn disabled={!canSubmit} loading={loading}>
+        {loading ? 'Creating account…' : 'Create Account →'}
+      </PrimaryBtn>
 
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, var(--divider))' }} />
-        <span className="text-[11px]" style={{ color: 'var(--text-faint)' }}>Or continue with</span>
-        <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, var(--divider))' }} />
-      </div>
-      <button
-        type="button"
-        onClick={() => window.location.href = `${API_BASE}/auth/google?role=${role}`}
-        className="w-full h-[52px] rounded-[12px] flex items-center justify-center gap-2 text-[14px] font-semibold transition-all border-none cursor-pointer shadow-sm"
-        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)' }}
-      >
-        <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.77-6.77C35.41 2.38 30.21 0 24 0 14.67 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.5 17.79 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.16 7.09-10.29 7.09-17.55z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.67 48 24 48z"/></svg>
-        Google
-      </button>
+      <OrDivider />
+      <GoogleBtn onClick={() => { window.location.href = `${API_BASE}/auth/google?role=${role}`; }} />
 
-      <p className="text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>Already have an account? <Link to="/auth?tab=login" className="font-bold hover:underline" style={{ color: PRIMARY }}>Sign In</Link></p>
+      <p className="text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
+        Already have an account?{' '}
+        <Link to="/auth?tab=login" className="font-bold hover:underline" style={{ color: PRIMARY }}>Sign In</Link>
+      </p>
     </motion.form>
   );
 }
 
-// ── Forgot password form (premium) ───────────────────────────────────────────
-function ForgotFormContent(props: { onSent: (email: string) => void }) {
-  const { showToast } = useToastStore();
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORGOT PASSWORD FORM
+═══════════════════════════════════════════════════════════════════════════ */
+function ForgotFormContent({ onSent }: { onSent: (email: string) => void }) {
+  const { showToast }        = useToastStore();
+  const [email,   setEmail]  = useState('');
+  const [loading, setLoading]= useState(false);
+  const [error,   setError]  = useState('');
+  const [focused, setFocused]= useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
@@ -577,7 +665,7 @@ function ForgotFormContent(props: { onSent: (email: string) => void }) {
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Failed to send reset email.'); return; }
       showToast('Reset code sent! Check your email.', 'success');
-      props.onSent(email.trim());
+      onSent(email.trim());
     } catch { setError('Network error. Try again.'); }
     finally { setLoading(false); }
   };
@@ -585,866 +673,614 @@ function ForgotFormContent(props: { onSent: (email: string) => void }) {
   return (
     <motion.form
       onSubmit={handleSubmit}
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
+      className="flex flex-col gap-5"
     >
-      <Link to="/auth?tab=login" className="text-[12px] font-medium hover:underline mb-2 block" style={{ color: PRIMARY }}>← Back to Sign In</Link>
-      <h2 className="text-[20px] font-extrabold mb-0.5" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
-      <p className="text-[13px] mb-2" style={{ color: 'var(--text-muted)' }}>Enter your email to receive a 6-digit reset code.</p>
-      {error && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg mb-2 text-[12px]" style={{ background: 'rgba(239,68,68,0.10)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.30)', color: '#f87171' }}>
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
-        </motion.div>
-      )}
-      <PremiumInput label="Email" type="email" value={email} onChange={setEmail} placeholder="Enter your email" leftIcon={Mail} required autoFocus />
-      <motion.button
-        type="submit"
-        disabled={loading}
-        className="w-full h-[42px] rounded-[12px] font-bold text-[14px] flex items-center justify-center gap-1.5 border-none cursor-pointer transition-all"
-        style={{ background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)', color: '#ffffff', boxShadow: '0 6px 24px rgba(249,115,22,0.45)' }}
-        whileHover={!loading ? { y: -2 } : {}}
-      >
-        {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-        {!loading && <>Send Reset Code <ArrowRight className="w-3.5 h-3.5" /></>}
-      </motion.button>
+      <div>
+        <Link to="/auth?tab=login" className="text-[12px] font-semibold hover:underline flex items-center gap-1 mb-4 w-fit" style={{ color: PRIMARY }}>
+          ← Back to Sign In
+        </Link>
+        <h2 className="text-[24px] font-black mb-1" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
+        <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Enter your email and we'll send a 6-digit reset code.</p>
+      </div>
+      <ErrorBanner message={error} />
+      <AuthInput label="Email Address" type="email" value={email} onChange={setEmail}
+        placeholder="you@example.com" leftIcon={Mail}
+        focused={focused} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        required autoFocus />
+      <PrimaryBtn loading={loading}>
+        {loading ? 'Sending…' : <>Send Reset Code <ArrowRight size={15} /></>}
+      </PrimaryBtn>
     </motion.form>
   );
 }
 
-// ── Auth page: single form card with header, role pills, tab switcher ─────────
-const CARD_SHADOW_LIGHT = '0 25px 50px -12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)';
-const CARD_SHADOW_DARK = '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)';
-const RESEND_COOLDOWN_S = 120;
-
-function formatCountdown(totalSeconds: number) {
-  const s = Math.max(0, totalSeconds);
-  const m = Math.floor(s / 60);
-  const ss = s % 60;
-  return `${m}:${String(ss).padStart(2, '0')}`;
+/* ═══════════════════════════════════════════════════════════════════════════
+   OTP inputs (shared)
+═══════════════════════════════════════════════════════════════════════════ */
+function OtpInputs({
+  digits, inputRefs, locked, error, onChange, onKeyDown, onPaste,
+}: {
+  digits: string[]; inputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
+  locked: boolean; error: boolean;
+  onChange: (i: number, v: string) => void;
+  onKeyDown: (i: number, e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+}) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  return (
+    <div className="flex items-center justify-center gap-2.5">
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={(el) => { inputRefs.current[i] = el; }}
+          inputMode="numeric" autoComplete="one-time-code"
+          value={d} disabled={locked}
+          onChange={(e) => onChange(i, e.target.value)}
+          onKeyDown={(e) => onKeyDown(i, e)}
+          onPaste={onPaste}
+          className="w-12 h-[56px] rounded-2xl text-center text-[20px] font-black outline-none transition-all duration-200"
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.06)' : '#f8f9fc',
+            boxShadow: error
+              ? '0 0 0 2px rgba(239,68,68,0.45)'
+              : d ? `0 0 0 2px rgba(249,115,22,0.5), 0 0 12px rgba(249,115,22,0.15)`
+              : `0 0 0 1.5px ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+            color: 'var(--text-primary)',
+          }}
+          aria-label={`Digit ${i + 1}`}
+        />
+      ))}
+    </div>
+  );
 }
 
-function AuthHeaderThemeToggle() {
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN AUTH PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+const CARD_SHADOW_LIGHT = '0 32px 64px -12px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)';
+const CARD_SHADOW_DARK  = '0 32px 64px -12px rgba(0,0,0,0.55), 0 8px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)';
+
+function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
   return (
-    <button
-      type="button"
-      onClick={() => toggleTheme()}
-      className="w-9 h-9 rounded-xl flex items-center justify-center border-none cursor-pointer transition-all hover:opacity-90 text-base"
-      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: '0 0 0 1px var(--divider)' }}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={isDark ? 'Light mode' : 'Dark mode'}
+    <motion.button
+      type="button" onClick={toggleTheme}
+      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+      className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200"
+      style={{
+        background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
+        color: 'var(--text-primary)',
+        boxShadow: isDark
+          ? '0 0 0 1.5px rgba(255,255,255,0.14), 0 8px 20px rgba(0,0,0,0.28)'
+          : '0 0 0 1.5px rgba(15,23,42,0.1), 0 8px 20px rgba(15,23,42,0.08)',
+        backdropFilter: 'blur(8px)',
+      }}
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {isDark ? '☀️' : '🌙'}
-    </button>
+      {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+    </motion.button>
   );
 }
 
 export default function AuthPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const navigate            = useNavigate();
+  const [searchParams]      = useSearchParams();
   const { setUserAndToken } = useAuthStore();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const tab = (searchParams.get('tab') as 'login' | 'signup' | 'forgot') || 'login';
-  const validTab = ['login', 'signup', 'forgot'].includes(tab) ? tab : 'login';
-  const [rightPanelState, setRightPanelState] = useState<'auth' | 'otp' | 'success' | 'reset'>('auth');
-  const [otpEmail, setOtpEmail] = useState('');
-  const [otpError, setOtpError] = useState('');
-  const [otpLocked, setOtpLocked] = useState(false);
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const { theme }           = useTheme();
+  const isDark              = theme === 'dark';
+
+  const tab      = (searchParams.get('tab') as 'login'|'signup'|'forgot') || 'login';
+  const validTab = (['login','signup','forgot'] as const).includes(tab as any) ? tab : 'login';
+
+  const [panel,    setPanel]   = useState<'auth'|'otp'|'success'|'reset'>('auth');
+  const [otpEmail, setOtpEmail]= useState('');
+  const [otpError, setOtpError]= useState('');
+  const [otpLocked,setOtpLocked]=useState(false);
+  const [otpDigits,setOtpDigits]=useState(['','','','','','']);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [resendCooldownS, setResendCooldownS] = useState(60);
-  const [resendAttempts, setResendAttempts] = useState(0);
-  const [resendLockedUntil, setResendLockedUntil] = useState<number | null>(null);
-  const [expiresAtMs, setExpiresAtMs] = useState<number | null>(null);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [verifying, setVerifying] = useState(false);
+  const [resendCd, setResendCd]= useState(60);
+  const [resendN,  setResendN] = useState(0);
+  const [resendLock,setResendLock]=useState<number|null>(null);
+  const [expiresAt,setExpiresAt]=useState<number|null>(null);
+  const [failN,   setFailN]   = useState(0);
+  const [verifying,setVerifying]=useState(false);
   const [sending, setSending] = useState(false);
-  const [cardTilt, setCardTilt] = useState({ x: 0, y: 0 });
 
-  // Password reset OTP state (separate from email-verification OTP)
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetError, setResetError] = useState('');
-  const [resetLocked, setResetLocked] = useState(false);
-  const [resetDigits, setResetDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [resetEmail,   setResetEmail]   = useState('');
+  const [resetError,   setResetError]   = useState('');
+  const [resetLocked,  setResetLocked]  = useState(false);
+  const [resetDigits,  setResetDigits]  = useState(['','','','','','']);
   const resetRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [resetResendCooldownS, setResetResendCooldownS] = useState(60);
-  const [resetResendAttempts, setResetResendAttempts] = useState(0);
-  const [resetResendLockedUntil, setResetResendLockedUntil] = useState<number | null>(null);
-  const [resetPassword, setResetPassword] = useState('');
-  const [resetConfirm, setResetConfirm] = useState('');
-  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetResendCd,setResetResendCd]= useState(60);
+  const [resetResendN, setResetResendN] = useState(0);
+  const [resetResendLock,setResetResendLock]=useState<number|null>(null);
+  const [newPassword,  setNewPassword]  = useState('');
+  const [newConfirm,   setNewConfirm]   = useState('');
+  const [resetting,    setResetting]    = useState(false);
+  const [resetFocused, setResetFocused] = useState<string|null>(null);
 
-  // Allow deep-link into OTP flow: /auth?tab=login&verifyEmail=1&email=...&sent=1
+  /* Deep-link: ?verifyEmail=1&email=... */
   useEffect(() => {
-    const verifyEmail = searchParams.get('verifyEmail');
+    const ve    = searchParams.get('verifyEmail');
     const email = searchParams.get('email');
-    const sent = searchParams.get('sent') === '1';
-    if (verifyEmail === '1' && email && rightPanelState === 'auth') {
-      // Fire-and-forget; panel swap is local state
+    const sent  = searchParams.get('sent') === '1';
+    if (ve === '1' && email && panel === 'auth') {
       goToOtp(email, !sent).catch(() => undefined);
-      // remove verifyEmail/email from URL to avoid looping on refresh
       const next = new URLSearchParams(searchParams);
-      next.delete('verifyEmail');
-      next.delete('email');
-      next.delete('sent');
+      ['verifyEmail','email','sent'].forEach((k) => next.delete(k));
       navigate(`/auth?${next.toString()}`, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const canResend = useMemo(() => {
-    if (resendLockedUntil && Date.now() < resendLockedUntil) return false;
-    return resendCooldownS <= 0 && resendAttempts < 3;
-  }, [resendAttempts, resendCooldownS, resendLockedUntil]);
+  /* Countdown timers */
+  useEffect(() => {
+    if (panel !== 'otp' || resendCd <= 0) return;
+    const t = window.setInterval(() => setResendCd((v) => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(t);
+  }, [panel, resendCd]);
 
-  const canResendReset = useMemo(() => {
-    if (resetResendLockedUntil && Date.now() < resetResendLockedUntil) return false;
-    return resetResendCooldownS <= 0 && resetResendAttempts < 3;
-  }, [resetResendAttempts, resetResendCooldownS, resetResendLockedUntil]);
+  useEffect(() => {
+    if (panel !== 'reset' || resetResendCd <= 0) return;
+    const t = window.setInterval(() => setResetResendCd((v) => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(t);
+  }, [panel, resetResendCd]);
+
+  /* Expiry countdown (force re-render) */
+  useEffect(() => {
+    if (panel !== 'otp' || !expiresAt) return;
+    const t = window.setInterval(() => setExpiresAt((v) => v), 1000);
+    return () => clearInterval(t);
+  }, [panel, expiresAt]);
 
   const expiryText = useMemo(() => {
-    if (!expiresAtMs) return 'Code expires in 10 minutes.';
-    const ms = Math.max(0, expiresAtMs - Date.now());
-    const totalS = Math.ceil(ms / 1000);
-    const m = Math.floor(totalS / 60);
-    const s = totalS % 60;
-    return `Code expires in ${m}:${String(s).padStart(2, '0')}.`;
-  }, [expiresAtMs]);
+    if (!expiresAt) return 'Code expires in 10 minutes.';
+    const ms = Math.max(0, expiresAt - Date.now());
+    const s  = Math.ceil(ms / 1000);
+    return `Code expires in ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}.`;
+  }, [expiresAt]);
 
-  useEffect(() => {
-    if (rightPanelState !== 'otp') return;
-    if (resendCooldownS <= 0) return;
-    const t = window.setInterval(() => setResendCooldownS((v) => (v > 0 ? v - 1 : 0)), 1000);
-    return () => window.clearInterval(t);
-  }, [rightPanelState, resendCooldownS]);
+  const canResend      = !resendLock || Date.now() >= resendLock
+    ? resendCd <= 0 && resendN < 3 : false;
+  const canResendReset = !resetResendLock || Date.now() >= resetResendLock
+    ? resetResendCd <= 0 && resetResendN < 3 : false;
 
-  useEffect(() => {
-    if (rightPanelState !== 'reset') return;
-    if (resetResendCooldownS <= 0) return;
-    const t = window.setInterval(() => setResetResendCooldownS((v) => (v > 0 ? v - 1 : 0)), 1000);
-    return () => window.clearInterval(t);
-  }, [rightPanelState, resetResendCooldownS]);
+  /* OTP helpers */
+  const clearOtp  = () => { setOtpDigits(['','','','','','']); setOtpError(''); setFailN(0); setOtpLocked(false); setVerifying(false); };
+  const clearReset= () => { setResetDigits(['','','','','','']); setResetError(''); setResetLocked(false); setResetResendN(0); setResetResendLock(null); setResetResendCd(RESEND_CD); setNewPassword(''); setNewConfirm(''); setResetting(false); };
 
-  useEffect(() => {
-    if (rightPanelState !== 'otp') return;
-    if (!expiresAtMs) return;
-    const t = window.setInterval(() => {
-      // force re-render for expiryText countdown
-      setExpiresAtMs((v) => v);
-    }, 1000);
-    return () => window.clearInterval(t);
-  }, [rightPanelState, expiresAtMs]);
-
-  const clearOtpState = () => {
-    setOtpDigits(['', '', '', '', '', '']);
-    setOtpError('');
-    setFailedAttempts(0);
-    setOtpLocked(false);
-    setVerifying(false);
-  };
-
-  const clearResetState = () => {
-    setResetDigits(['', '', '', '', '', '']);
-    setResetError('');
-    setResetLocked(false);
-    setResetResendAttempts(0);
-    setResetResendLockedUntil(null);
-    setResetResendCooldownS(RESEND_COOLDOWN_S);
-    setResetPassword('');
-    setResetConfirm('');
-    setResettingPassword(false);
-  };
-
-  const sendOtp = async (email: string, reason: 'initial' | 'resend' | 'autoAfterLock') => {
-    const e = email.trim().toLowerCase();
-    if (!e) return;
-    setSending(true);
-    setOtpError('');
+  const sendOtp = async (email: string, reason: 'initial'|'resend'|'autoAfterLock') => {
+    const e = email.trim().toLowerCase(); if (!e) return;
+    setSending(true); setOtpError('');
     try {
       await authAPI.requestVerificationOtp(e);
-      setOtpEmail(e);
-      setExpiresAtMs(Date.now() + 10 * 60 * 1000);
-      setResendCooldownS(RESEND_COOLDOWN_S);
-      if (reason === 'resend') setResendAttempts((n) => n + 1);
-      if (reason === 'autoAfterLock') setResendAttempts((n) => n + 1);
+      setOtpEmail(e); setExpiresAt(Date.now() + 10*60*1000); setResendCd(RESEND_CD);
+      if (reason === 'resend' || reason === 'autoAfterLock') setResendN((n) => n+1);
       window.setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err: any) {
-      setOtpError(err?.message || 'Failed to send code. Please try again.');
-    } finally {
-      setSending(false);
-    }
+      setOtpError(err?.message || 'Failed to send code.');
+    } finally { setSending(false); }
   };
 
-  const sendResetOtp = async (email: string, reason: 'request' | 'resend') => {
-    const e = email.trim().toLowerCase();
-    if (!e) return;
+  const sendResetOtp = async (email: string, reason: 'request'|'resend') => {
+    const e = email.trim().toLowerCase(); if (!e) return;
     setResetError('');
     try {
       await fetch(`${API_BASE}/auth/forgot-password`, {
-        method: 'POST',
-        credentials: 'include',
+        method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: e }),
       });
-      setResetEmail(e);
-      setResetResendCooldownS(RESEND_COOLDOWN_S);
-      if (reason === 'resend') setResetResendAttempts((n) => n + 1);
+      setResetEmail(e); setResetResendCd(RESEND_CD);
+      if (reason === 'resend') setResetResendN((n) => n+1);
       window.setTimeout(() => resetRefs.current[0]?.focus(), 100);
-    } catch (err: any) {
-      setResetError(err?.message || 'Failed to send code. Please try again.');
-    }
+    } catch (err: any) { setResetError(err?.message || 'Failed to send code.'); }
   };
 
   const goToOtp = async (email: string, autoSend: boolean) => {
-    setRightPanelState('otp');
-    setOtpEmail(email.trim().toLowerCase());
-    clearOtpState();
-    setResendAttempts(0);
-    setResendLockedUntil(null);
-    setResendCooldownS(RESEND_COOLDOWN_S);
-    setExpiresAtMs(Date.now() + 10 * 60 * 1000);
-    if (autoSend) {
-      await sendOtp(email, 'initial');
-    } else {
-      window.setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    }
+    setPanel('otp'); setOtpEmail(email.trim().toLowerCase());
+    clearOtp(); setResendN(0); setResendLock(null); setResendCd(RESEND_CD);
+    setExpiresAt(Date.now() + 10*60*1000);
+    if (autoSend) await sendOtp(email, 'initial');
+    else window.setTimeout(() => otpRefs.current[0]?.focus(), 100);
   };
 
   const goToReset = async (email: string) => {
-    setRightPanelState('reset');
-    setResetEmail(email.trim().toLowerCase());
-    clearResetState();
-    setResetResendAttempts(0);
-    setResetResendLockedUntil(null);
-    setResetResendCooldownS(RESEND_COOLDOWN_S);
+    setPanel('reset'); setResetEmail(email.trim().toLowerCase());
+    clearReset(); setResetResendN(0); setResetResendLock(null); setResetResendCd(RESEND_CD);
     window.setTimeout(() => resetRefs.current[0]?.focus(), 100);
   };
 
   const verifyOtp = async () => {
     const code = otpDigits.join('');
     if (otpLocked || verifying || sending) return;
-    if (!/^\d{6}$/.test(code)) {
-      setOtpError('Enter the 6-digit code.');
-      return;
-    }
-    if (expiresAtMs && Date.now() > expiresAtMs) {
-      setOtpError('Verification code expired. Request a new code.');
-      return;
-    }
-    setVerifying(true);
-    setOtpError('');
+    if (!/^\d{6}$/.test(code))              { setOtpError('Enter the 6-digit code.'); return; }
+    if (expiresAt && Date.now() > expiresAt) { setOtpError('Code expired. Request a new one.'); return; }
+    setVerifying(true); setOtpError('');
     try {
       const result = await authAPI.verifyEmailWithOtp(otpEmail, code);
       if (result?.token && result?.user) {
-        const userProfile = {
-          id: result.user.id?.toString() || result.user._id?.toString() || '',
-          email: result.user.email,
-          full_name: result.user.fullName,
-          role: result.user.role,
-          seller_status: result.user.sellerVerificationStatus,
-          seller_verified: result.user.isSellerVerified,
-          phone: result.user.phone,
-          avatar_url: result.user.avatarUrl,
-          created_at: result.user.createdAt || new Date().toISOString(),
-          updated_at: result.user.updatedAt || new Date().toISOString(),
-        };
-        setUserAndToken(userProfile as any, result.token);
+        const u = result.user;
+        setUserAndToken({
+          id: u.id?.toString() || u._id?.toString() || '',
+          email: u.email, full_name: u.fullName, role: u.role,
+          seller_status: u.sellerVerificationStatus, seller_verified: u.isSellerVerified,
+          phone: u.phone, avatar_url: u.avatarUrl,
+          created_at: u.createdAt || new Date().toISOString(),
+          updated_at: u.updatedAt || new Date().toISOString(),
+        } as any, result.token);
       }
-      // Clear OTP from UI state immediately after success
-      clearOtpState();
-      setExpiresAtMs(null);
-      setRightPanelState('success');
+      clearOtp(); setExpiresAt(null); setPanel('success');
     } catch (err: any) {
-      const nextFails = failedAttempts + 1;
-      setFailedAttempts(nextFails);
-      setOtpError(err?.message || 'Wrong code. Please try again.');
-      if (nextFails >= 5) {
-        setOtpLocked(true);
-        setOtpError('Too many failed attempts. A new code has been sent.');
-        setOtpDigits(['', '', '', '', '', '']);
-        // auto-resend fresh code
+      const n = failN + 1; setFailN(n);
+      setOtpError(err?.message || 'Wrong code. Try again.');
+      if (n >= 5) {
+        setOtpLocked(true); setOtpError('Too many attempts. A new code has been sent.');
+        setOtpDigits(['','','','','','']);
         await sendOtp(otpEmail, 'autoAfterLock');
-        setFailedAttempts(0);
-        setOtpLocked(false);
+        setFailN(0); setOtpLocked(false);
       }
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const handleOtpDigitChange = (index: number, raw: string) => {
-    if (otpLocked) return;
-    const v = raw.replace(/\D/g, '').slice(0, 1);
-    const next = [...otpDigits];
-    next[index] = v;
-    setOtpDigits(next);
-    setOtpError('');
-    if (v && index < 5) otpRefs.current[index + 1]?.focus();
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (otpLocked) return;
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-    if (e.key === 'ArrowLeft' && index > 0) otpRefs.current[index - 1]?.focus();
-    if (e.key === 'ArrowRight' && index < 5) otpRefs.current[index + 1]?.focus();
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    if (otpLocked) return;
-    const text = e.clipboardData.getData('text') || '';
-    const digits = text.replace(/\D/g, '').slice(0, 6).split('');
-    if (digits.length === 0) return;
-    e.preventDefault();
-    const next = Array.from({ length: 6 }, (_, i) => digits[i] || '');
-    setOtpDigits(next);
-    setOtpError('');
-    const last = Math.min(5, digits.length - 1);
-    window.setTimeout(() => otpRefs.current[last]?.focus(), 0);
-  };
-
-  const handleResetDigitChange = (index: number, raw: string) => {
-    if (resetLocked || resettingPassword) return;
-    const v = raw.replace(/\D/g, '').slice(0, 1);
-    const next = [...resetDigits];
-    next[index] = v;
-    setResetDigits(next);
-    setResetError('');
-    if (v && index < 5) resetRefs.current[index + 1]?.focus();
-  };
-
-  const handleResetKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (resetLocked || resettingPassword) return;
-    if (e.key === 'Backspace' && !resetDigits[index] && index > 0) {
-      resetRefs.current[index - 1]?.focus();
-    }
-    if (e.key === 'ArrowLeft' && index > 0) resetRefs.current[index - 1]?.focus();
-    if (e.key === 'ArrowRight' && index < 5) resetRefs.current[index + 1]?.focus();
-  };
-
-  const handleResetPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    if (resetLocked || resettingPassword) return;
-    const text = e.clipboardData.getData('text') || '';
-    const digits = text.replace(/\D/g, '').slice(0, 6).split('');
-    if (digits.length === 0) return;
-    e.preventDefault();
-    const next = Array.from({ length: 6 }, (_, i) => digits[i] || '');
-    setResetDigits(next);
-    setResetError('');
-    const last = Math.min(5, digits.length - 1);
-    resetRefs.current[last]?.focus();
+    } finally { setVerifying(false); }
   };
 
   const submitReset = async () => {
     setResetError('');
     const code = resetDigits.join('');
-    if (!/^\d{6}$/.test(code)) {
-      setResetError('Enter the 6-digit code.');
-      return;
-    }
-    if (resetPassword.length < 6) {
-      setResetError('Password must be at least 6 characters.');
-      return;
-    }
-    if (resetPassword !== resetConfirm) {
-      setResetError('Passwords do not match.');
-      return;
-    }
-
-    setResettingPassword(true);
+    if (!/^\d{6}$/.test(code))         { setResetError('Enter the 6-digit code.'); return; }
+    if (newPassword.length < 6)        { setResetError('Password must be ≥ 6 characters.'); return; }
+    if (newPassword !== newConfirm)    { setResetError('Passwords do not match.'); return; }
+    setResetting(true);
     try {
       const res = await fetch(`${API_BASE}/auth/reset-password-otp`, {
-        method: 'POST',
-        credentials: 'include',
+        method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: resetEmail,
-          code,
-          password: resetPassword,
-        }),
+        body: JSON.stringify({ email: resetEmail, code, password: newPassword }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setResetError(data.message || 'Failed to reset password.');
-        return;
-      }
-      clearResetState();
-      setRightPanelState('auth');
-      navigate('/auth?tab=login');
-    } catch {
-      setResetError('Network error. Try again.');
-    } finally {
-      setResettingPassword(false);
-    }
+      if (!res.ok) { setResetError(data.message || 'Failed to reset password.'); return; }
+      clearReset(); setPanel('auth'); navigate('/auth?tab=login');
+    } catch { setResetError('Network error. Try again.'); }
+    finally { setResetting(false); }
   };
 
+  /* OTP key handlers */
+  const handleOtpChange = (i: number, raw: string) => {
+    if (otpLocked) return;
+    const v = raw.replace(/\D/g,'').slice(0,1);
+    const next = [...otpDigits]; next[i] = v; setOtpDigits(next); setOtpError('');
+    if (v && i < 5) otpRefs.current[i+1]?.focus();
+  };
+  const handleOtpKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (otpLocked) return;
+    if (e.key === 'Backspace' && !otpDigits[i] && i > 0) otpRefs.current[i-1]?.focus();
+    if (e.key === 'ArrowLeft'  && i > 0) otpRefs.current[i-1]?.focus();
+    if (e.key === 'ArrowRight' && i < 5) otpRefs.current[i+1]?.focus();
+  };
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (otpLocked) return;
+    const digits = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6).split('');
+    if (!digits.length) return;
+    e.preventDefault();
+    setOtpDigits(Array.from({length:6}, (_,i) => digits[i] || ''));
+    setOtpError('');
+    window.setTimeout(() => otpRefs.current[Math.min(5, digits.length-1)]?.focus(), 0);
+  };
+
+  const handleResetChange = (i: number, raw: string) => {
+    if (resetLocked || resetting) return;
+    const v = raw.replace(/\D/g,'').slice(0,1);
+    const next = [...resetDigits]; next[i] = v; setResetDigits(next); setResetError('');
+    if (v && i < 5) resetRefs.current[i+1]?.focus();
+  };
+  const handleResetKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (resetLocked || resetting) return;
+    if (e.key === 'Backspace' && !resetDigits[i] && i > 0) resetRefs.current[i-1]?.focus();
+    if (e.key === 'ArrowLeft'  && i > 0) resetRefs.current[i-1]?.focus();
+    if (e.key === 'ArrowRight' && i < 5) resetRefs.current[i+1]?.focus();
+  };
+  const handleResetPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (resetLocked || resetting) return;
+    const digits = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6).split('');
+    if (!digits.length) return;
+    e.preventDefault();
+    setResetDigits(Array.from({length:6}, (_,i) => digits[i] || ''));
+    setResetError('');
+    resetRefs.current[Math.min(5, digits.length-1)]?.focus();
+  };
+
+  const cardBg     = isDark ? '#0e1019' : '#ffffff';
   const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
-  const cardBg = isDark ? '#111420' : '#ffffff';
-  const cardTiltTransform = `perspective(1100px) rotateX(${cardTilt.x}deg) rotateY(${cardTilt.y}deg) translateZ(0)`;
 
+  /* Derive the contextual image view for the left panel */
+  const currentView: AuthView = (() => {
+    if (panel === 'otp')     return 'otp';
+    if (panel === 'reset')   return 'reset';
+    if (panel === 'success') return 'success';
+    if (validTab === 'signup') return 'signup';
+    if (validTab === 'forgot') return 'forgot';
+    return 'login';
+  })();
+
+  /* ── RENDER ── */
   return (
-    <AuthPremiumLayout>
+    <AuthPremiumLayout currentView={currentView}>
       <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
-        {/* Right panel header: theme toggle only */}
-        <div className="flex-shrink-0 flex justify-end items-center mb-2">
-          <AuthHeaderThemeToggle />
-        </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-auto">
+        {/* Card area */}
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0 py-4">
           <motion.div
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            onMouseMove={(e) => {
-              if (window.innerWidth <= 640) return;
-              if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-              const r = e.currentTarget.getBoundingClientRect();
-              const rx = ((e.clientY - r.top) / r.height - 0.5) * -7;
-              const ry = ((e.clientX - r.left) / r.width - 0.5) * 7;
-              setCardTilt({ x: Number(rx.toFixed(2)), y: Number(ry.toFixed(2)) });
-            }}
-            onMouseLeave={() => setCardTilt({ x: 0, y: 0 })}
-            className="auth-mobile-app-card w-full max-w-[460px] sm:max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
-            style={{ background: cardBg, boxShadow: cardShadow, transform: cardTiltTransform }}
+            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="w-full max-w-[480px] sm:max-w-[520px] p-6 sm:p-8 relative overflow-hidden"
+            style={{ background: cardBg, boxShadow: cardShadow }}
           >
-            <div className="auth-mobile-app-glow auth-mobile-app-glow--orange" />
-            <div className="auth-mobile-app-glow auth-mobile-app-glow--violet" />
-            <div className="relative z-10 flex items-center justify-between mb-3 px-1 sm:px-2">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="w-2 h-2 rounded-full bg-rose-400" />
+            {/* Corner glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 pointer-events-none" style={{
+              background: 'radial-gradient(circle at top right, rgba(249,115,22,0.08) 0%, transparent 60%)',
+            }} />
+            {/* Dot grid */}
+            <div className="absolute inset-0 pointer-events-none" style={{
+              backgroundImage: `radial-gradient(circle, ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'} 1px, transparent 1px)`,
+              backgroundSize: '20px 20px',
+            }} />
+
+            <div className="relative z-10">
+              {/* Window dots + theme toggle */}
+              <div className="flex items-center gap-1.5 mb-5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <span className="text-[10px] font-semibold tracking-wider uppercase ml-2"
+                  style={{ color: 'var(--text-faint)' }}>Reaglex Secure</span>
+                <div className="ml-auto"><ThemeToggle /></div>
               </div>
-              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-faint)' }}>
-                Reaglex Secure
-              </p>
-            </div>
-            <AnimatePresence mode="wait">
-              {rightPanelState === 'auth' && (
-                <motion.div
-                  key="auth-panel"
-                  initial={{ opacity: 0, x: 14 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -14 }}
-                  transition={{ duration: 0.25 }}
-                  className="px-1 sm:px-2"
-                >
-                  {/* Tab switcher: Sign In | Register with sliding pill */}
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="inline-flex w-full sm:w-auto items-center p-1 rounded-[14px] relative" style={{ background: 'var(--bg-tertiary)' }}>
+
+              <AnimatePresence mode="wait">
+
+                {/* ── AUTH (login/signup/forgot) panel ── */}
+                {panel === 'auth' && (
+                  <motion.div key="auth"
+                    initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
+                  >
+                    {/* Tab switcher */}
+                    <div className="flex items-center p-1 rounded-2xl mb-6 relative"
+                      style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#f0f2f5' }}>
                       <Link
                         to="/auth?tab=login"
-                        className="relative z-10 flex-1 text-center px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
-                        style={{ color: validTab === 'login' || validTab === 'forgot' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        className="relative z-10 flex-1 text-center py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+                        style={{ color: (validTab === 'login' || validTab === 'forgot') ? 'var(--text-primary)' : 'var(--text-faint)' }}
                       >
                         Sign In
                       </Link>
                       <Link
                         to="/auth?tab=signup"
-                        className="relative z-10 flex-1 text-center px-4 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
-                        style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        className="relative z-10 flex-1 text-center py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+                        style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-faint)' }}
                       >
                         Register
                       </Link>
                       <motion.span
-                        layoutId="auth-tab-pill"
-                        className="absolute z-0 top-1 rounded-[10px]"
+                        layoutId="auth-v2-pill"
+                        className="absolute top-1 rounded-xl"
                         style={{
-                          background: isDark ? '#1a1e2c' : '#ffffff',
-                          boxShadow: isDark ? '0 0 0 1px rgba(15,23,42,0.9)' : '0 2px 8px rgba(0,0,0,0.08)',
+                          background: isDark ? '#1a1d2e' : '#ffffff',
+                          boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
                           height: 'calc(100% - 8px)',
                         }}
                         animate={{
-                          left: validTab === 'signup' ? 'calc(50% + 2px)' : '4px',
-                          width: 'calc(50% - 10px)',
+                          left:  validTab === 'signup' ? 'calc(50% + 4px)' : '4px',
+                          width: 'calc(50% - 8px)',
                         }}
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                       />
                     </div>
-                  </div>
 
-                  <AnimatePresence mode="wait">
-                    {validTab === 'forgot' && (
-                      <motion.div key="forgot" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="pt-1">
-                        <ForgotFormContent onSent={(email) => { goToReset(email).catch(() => undefined); }} />
-                      </motion.div>
-                    )}
-                    {validTab === 'login' && (
-                      <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="pt-1">
-                        <LoginFormContent
-                          role="buyer"
-                          onRequireEmailVerification={async (email) => {
-                            await goToOtp(email, true);
-                          }}
-                        />
-                      </motion.div>
-                    )}
-                    {validTab === 'signup' && (
-                      <motion.div key="signup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="pt-1">
-                        <SignupFormContent
-                          onRegistered={async (email) => {
-                            // After successful register, immediately send OTP and swap panel
-                            // Backend already sent OTP on register
-                            await goToOtp(email, false);
-                          }}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
+                    <AnimatePresence mode="wait">
+                      {validTab === 'forgot' && (
+                        <motion.div key="forgot"
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          transition={{ duration: 0.18 }}>
+                          <ForgotFormContent onSent={(email) => goToReset(email).catch(() => undefined)} />
+                        </motion.div>
+                      )}
+                      {validTab === 'login' && (
+                        <motion.div key="login"
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          transition={{ duration: 0.18 }}>
+                          <LoginFormContent role="buyer" onRequireEmailVerification={(email) => goToOtp(email, true)} />
+                        </motion.div>
+                      )}
+                      {validTab === 'signup' && (
+                        <motion.div key="signup"
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          transition={{ duration: 0.18 }}>
+                          <SignupFormContent onRegistered={(email) => goToOtp(email, false)} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
 
-              {rightPanelState === 'otp' && (
-                <motion.div
-                  key="otp-panel"
-                  initial={{ opacity: 0, x: 14 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -14 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
-                      style={{
-                        background: 'rgba(249,115,22,0.12)',
-                        boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.25)',
-                      }}
-                    >
-                      <Mail className="w-6 h-6" style={{ color: PRIMARY }} />
+                {/* ── OTP PANEL ── */}
+                {panel === 'otp' && (
+                  <motion.div key="otp"
+                    initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
+                    className="flex flex-col items-center text-center"
+                  >
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                      style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.22)' }}>
+                      <Mail size={26} style={{ color: PRIMARY }} />
                     </div>
-                    <h2 className="text-[22px] font-extrabold mb-1" style={{ color: 'var(--text-primary)' }}>Verify your email</h2>
-                    <p className="text-[13px] mb-5 max-w-[420px]" style={{ color: 'var(--text-muted)' }}>
-                      We sent a 6-digit code to <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{otpEmail}</span>. Check your inbox and spam.
+                    <h2 className="text-[22px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Verify your email</h2>
+                    <p className="text-[13px] mb-6 max-w-[340px]" style={{ color: 'var(--text-muted)' }}>
+                      We sent a 6-digit code to{' '}
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{otpEmail}</span>.{' '}
+                      Check your inbox and spam folder.
                     </p>
 
-                    <div className="w-full max-w-[360px]">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        {otpDigits.map((d, i) => (
-                          <input
-                            key={i}
-                            ref={(el) => { otpRefs.current[i] = el; }}
-                            inputMode="numeric"
-                            autoComplete="one-time-code"
-                            value={d}
-                            disabled={otpLocked || verifying}
-                            onChange={(e) => handleOtpDigitChange(i, e.target.value)}
-                            onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                            onPaste={handleOtpPaste}
-                            className="w-11 h-12 rounded-[12px] text-center text-[18px] font-extrabold outline-none transition-all"
-                            style={{
-                              background: isDark ? '#1a1e2c' : '#f9fafb',
-                              boxShadow: otpError
-                                ? '0 0 0 2px rgba(239,68,68,0.35)'
-                                : '0 0 0 1.5px rgba(0,0,0,0.08)',
-                              color: 'var(--text-primary)',
-                            }}
-                            aria-label={`Digit ${i + 1}`}
-                          />
-                        ))}
-                      </div>
+                    <div className="w-full max-w-[340px]">
+                      <OtpInputs
+                        digits={otpDigits} inputRefs={otpRefs} locked={otpLocked || verifying}
+                        error={!!otpError} onChange={handleOtpChange} onKeyDown={handleOtpKey} onPaste={handleOtpPaste}
+                      />
 
-                      {otpError && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] text-center mb-3" style={{ color: '#f87171' }}>
+                      {otpError ? (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                          className="text-[12px] text-center mt-3" style={{ color: '#f87171' }}>
                           {otpError}
                         </motion.p>
-                      )}
-
-                      {!otpError && (
-                        <p className="text-[11px] text-center mb-3" style={{ color: 'var(--text-faint)' }}>
-                          {expiryText}
-                        </p>
-                      )}
-
-                      {resendAttempts >= 3 ? (
-                        <p className="text-[12px] text-center mb-3" style={{ color: '#f87171' }}>
-                          Too many attempts. Try again in 30 minutes.
-                        </p>
                       ) : (
-                        <div className="text-center mb-4">
-                          {resendCooldownS > 0 ? (
-                            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                              Resend code in {formatCountdown(resendCooldownS)}
-                            </p>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={!canResend || sending}
-                              onClick={async () => {
-                                if (resendAttempts >= 2) {
-                                  setResendAttempts(3);
-                                  setResendLockedUntil(Date.now() + 30 * 60 * 1000);
-                                  return;
-                                }
-                                await sendOtp(otpEmail, 'resend');
-                              }}
-                              className="text-[13px] font-bold hover:underline"
-                              style={{ color: PRIMARY, opacity: !canResend || sending ? 0.6 : 1 }}
-                            >
-                              {sending ? 'Sending…' : 'Resend Code'}
-                            </button>
-                          )}
-                        </div>
+                        <p className="text-[11px] text-center mt-2" style={{ color: 'var(--text-faint)' }}>{expiryText}</p>
                       )}
 
-                      <motion.button
-                        type="button"
-                        disabled={verifying || sending || otpLocked}
-                        onClick={verifyOtp}
-                        className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all duration-250"
-                        style={{
-                          background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)',
-                          color: '#ffffff',
-                          boxShadow: '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
-                          opacity: verifying || sending || otpLocked ? 0.8 : 1,
-                        }}
-                        whileHover={!(verifying || sending || otpLocked) ? { y: -2 } : {}}
-                        whileTap={!(verifying || sending || otpLocked) ? { y: 0 } : {}}
-                      >
-                        {(verifying || sending) && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                        {verifying ? 'Verifying…' : 'Verify Email →'}
-                      </motion.button>
-
-                      <div className="mt-4">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            clearOtpState();
-                            setRightPanelState('auth');
-                            navigate('/auth?tab=login');
-                          }}
-                          className="text-xs font-semibold hover:underline block mx-auto"
-                          style={{ color: PRIMARY }}
-                        >
-                          ← Back to Sign In
-                        </button>
+                      <div className="text-center my-4">
+                        {resendN >= 3 ? (
+                          <p className="text-[12px]" style={{ color: '#f87171' }}>Too many attempts. Try again in 30 min.</p>
+                        ) : resendCd > 0 ? (
+                          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resendCd)}</p>
+                        ) : (
+                          <button type="button" disabled={!canResend || sending}
+                            onClick={async () => {
+                              if (resendN >= 2) { setResendN(3); setResendLock(Date.now() + 30*60*1000); return; }
+                              await sendOtp(otpEmail, 'resend');
+                            }}
+                            className="text-[13px] font-bold hover:underline"
+                            style={{ color: PRIMARY, opacity: !canResend || sending ? 0.55 : 1 }}>
+                            {sending ? 'Sending…' : 'Resend Code'}
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
 
-              {rightPanelState === 'reset' && (
-                <motion.div
-                  key="reset-panel"
-                  initial={{ opacity: 0, x: 14 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -14 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
-                      style={{
-                        background: 'rgba(249,115,22,0.12)',
-                        boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.25)',
-                      }}
-                    >
-                      <Lock className="w-6 h-6" style={{ color: PRIMARY }} />
+                      <PrimaryBtn type="button" onClick={verifyOtp} loading={verifying || sending} disabled={otpLocked}>
+                        {verifying ? 'Verifying…' : 'Verify Email →'}
+                      </PrimaryBtn>
+
+                      <button type="button" onClick={() => { clearOtp(); setPanel('auth'); navigate('/auth?tab=login'); }}
+                        className="mt-4 text-[12px] font-semibold hover:underline block mx-auto" style={{ color: PRIMARY }}>
+                        ← Back to Sign In
+                      </button>
                     </div>
-                    <h2 className="text-[22px] font-extrabold mb-1" style={{ color: 'var(--text-primary)' }}>Reset your password</h2>
-                    <p className="text-[13px] mb-5 max-w-[420px]" style={{ color: 'var(--text-muted)' }}>
-                      We sent a 6-digit code to <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{resetEmail}</span>. It expires in 15 minutes.
+                  </motion.div>
+                )}
+
+                {/* ── RESET PANEL ── */}
+                {panel === 'reset' && (
+                  <motion.div key="reset"
+                    initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
+                    className="flex flex-col items-center text-center"
+                  >
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                      style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.22)' }}>
+                      <Lock size={26} style={{ color: PRIMARY }} />
+                    </div>
+                    <h2 className="text-[22px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Reset password</h2>
+                    <p className="text-[13px] mb-6 max-w-[340px]" style={{ color: 'var(--text-muted)' }}>
+                      Enter the 6-digit code sent to{' '}
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{resetEmail}</span>, then set a new password.
                     </p>
 
                     <div className="w-full max-w-[380px]">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        {resetDigits.map((d, i) => (
-                          <input
-                            key={i}
-                            ref={(el) => { resetRefs.current[i] = el; }}
-                            inputMode="numeric"
-                            autoComplete="one-time-code"
-                            value={d}
-                            disabled={resetLocked || resettingPassword}
-                            onChange={(e) => handleResetDigitChange(i, e.target.value)}
-                            onKeyDown={(e) => handleResetKeyDown(i, e)}
-                            onPaste={handleResetPaste}
-                            className="w-11 h-12 rounded-[12px] text-center text-[18px] font-extrabold outline-none transition-all"
-                            style={{
-                              background: isDark ? '#1a1e2c' : '#f9fafb',
-                              boxShadow: resetError
-                                ? '0 0 0 2px rgba(239,68,68,0.35)'
-                                : '0 0 0 1.5px rgba(0,0,0,0.08)',
-                              color: 'var(--text-primary)',
-                            }}
-                            aria-label={`Digit ${i + 1}`}
-                          />
-                        ))}
-                      </div>
+                      <OtpInputs
+                        digits={resetDigits} inputRefs={resetRefs} locked={resetLocked || resetting}
+                        error={!!resetError} onChange={handleResetChange} onKeyDown={handleResetKey} onPaste={handleResetPaste}
+                      />
 
                       {resetError && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] text-center mb-3" style={{ color: '#f87171' }}>
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                          className="text-[12px] text-center mt-3 mb-2" style={{ color: '#f87171' }}>
                           {resetError}
                         </motion.p>
                       )}
 
-                      {resetResendAttempts >= 3 ? (
-                        <p className="text-[12px] text-center mb-3" style={{ color: '#f87171' }}>
-                          Too many attempts. Try again in 30 minutes.
-                        </p>
-                      ) : (
-                        <div className="text-center mb-4">
-                          {resetResendCooldownS > 0 ? (
-                            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                              Resend code in {formatCountdown(resetResendCooldownS)}
-                            </p>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={!canResendReset}
-                              onClick={async () => {
-                                if (resetResendAttempts >= 2) {
-                                  setResetResendAttempts(3);
-                                  setResetResendLockedUntil(Date.now() + 30 * 60 * 1000);
-                                  return;
-                                }
-                                await sendResetOtp(resetEmail, 'resend');
-                              }}
-                              className="text-[13px] font-bold hover:underline"
-                              style={{ color: PRIMARY, opacity: !canResendReset ? 0.6 : 1 }}
-                            >
-                              Resend Code
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="grid gap-3 mb-4">
-                        <PremiumInput
-                          label="New Password"
-                          type="password"
-                          value={resetPassword}
-                          onChange={setResetPassword}
-                          placeholder="Enter new password"
-                          leftIcon={Lock}
-                          required
-                        />
-                        <PremiumInput
-                          label="Confirm Password"
-                          type="password"
-                          value={resetConfirm}
-                          onChange={setResetConfirm}
-                          placeholder="Confirm new password"
-                          leftIcon={Lock}
-                          required
-                        />
+                      <div className="text-center mt-2 mb-5">
+                        {resetResendN >= 3 ? (
+                          <p className="text-[12px]" style={{ color: '#f87171' }}>Too many attempts.</p>
+                        ) : resetResendCd > 0 ? (
+                          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resetResendCd)}</p>
+                        ) : (
+                          <button type="button" disabled={!canResendReset}
+                            onClick={async () => {
+                              if (resetResendN >= 2) { setResetResendN(3); setResetResendLock(Date.now() + 30*60*1000); return; }
+                              await sendResetOtp(resetEmail, 'resend');
+                            }}
+                            className="text-[13px] font-bold hover:underline"
+                            style={{ color: PRIMARY, opacity: !canResendReset ? 0.55 : 1 }}>
+                            Resend Code
+                          </button>
+                        )}
                       </div>
 
-                      <motion.button
-                        type="button"
-                        disabled={resettingPassword || resetLocked}
-                        onClick={submitReset}
-                        className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all duration-250"
-                        style={{
-                          background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)',
-                          color: '#ffffff',
-                          boxShadow: '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
-                          opacity: resettingPassword || resetLocked ? 0.8 : 1,
-                        }}
-                        whileHover={!(resettingPassword || resetLocked) ? { y: -2 } : {}}
-                        whileTap={!(resettingPassword || resetLocked) ? { y: 0 } : {}}
-                      >
-                        {resettingPassword && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                        {resettingPassword ? 'Updating…' : 'Set New Password →'}
-                      </motion.button>
-
-                      <div className="mt-4">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            clearResetState();
-                            setRightPanelState('auth');
-                            navigate('/auth?tab=login');
-                          }}
-                          className="text-xs font-semibold hover:underline block mx-auto"
-                          style={{ color: PRIMARY }}
-                        >
-                          ← Back to Sign In
-                        </button>
+                      <div className="flex flex-col gap-4 mb-5 text-left">
+                        <AuthInput label="New Password" type="password" value={newPassword} onChange={setNewPassword}
+                          placeholder="New password" leftIcon={Lock}
+                          focused={resetFocused === 'np'} onFocus={() => setResetFocused('np')} onBlur={() => setResetFocused(null)} required />
+                        <AuthInput label="Confirm Password" type="password" value={newConfirm} onChange={setNewConfirm}
+                          placeholder="Confirm new password" leftIcon={Lock}
+                          focused={resetFocused === 'nc'} onFocus={() => setResetFocused('nc')} onBlur={() => setResetFocused(null)} required />
                       </div>
+
+                      <PrimaryBtn type="button" onClick={submitReset} loading={resetting} disabled={resetLocked}>
+                        {resetting ? 'Updating…' : 'Set New Password →'}
+                      </PrimaryBtn>
+
+                      <button type="button" onClick={() => { clearReset(); setPanel('auth'); navigate('/auth?tab=login'); }}
+                        className="mt-4 text-[12px] font-semibold hover:underline block mx-auto" style={{ color: PRIMARY }}>
+                        ← Back to Sign In
+                      </button>
                     </div>
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
 
-              {rightPanelState === 'success' && (
-                <motion.div
-                  key="success-panel"
-                  initial={{ opacity: 0, x: 14 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -14 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <div className="flex flex-col items-center text-center py-2">
-                    <div
-                      className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                      style={{
-                        background: 'rgba(16,185,129,0.14)',
-                        boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.25)',
-                      }}
-                    >
-                      <svg width="34" height="26" viewBox="0 0 52 38" fill="none" aria-hidden="true">
-                        <path
-                          d="M6 20.5L20 34L46 6"
-                          stroke={SUCCESS}
-                          strokeWidth="6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          style={{
-                            strokeDasharray: 80,
-                            strokeDashoffset: 80,
-                            animation: 'auth-check 650ms ease-out forwards',
-                          }}
-                        />
+                {/* ── SUCCESS PANEL ── */}
+                {panel === 'success' && (
+                  <motion.div key="success"
+                    initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
+                    className="flex flex-col items-center text-center py-4"
+                  >
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5"
+                      style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.22)' }}>
+                      <svg width="40" height="30" viewBox="0 0 52 38" fill="none" aria-hidden>
+                        <path d="M6 20.5L20 34L46 6" stroke={SUCCESS} strokeWidth="6"
+                          strokeLinecap="round" strokeLinejoin="round"
+                          style={{ strokeDasharray: 80, strokeDashoffset: 80, animation: 'auth-check 650ms ease-out forwards' }} />
                       </svg>
                     </div>
-                    <style>{`
-                      @keyframes auth-check {
-                        to { stroke-dashoffset: 0; }
-                      }
-                    `}</style>
-                    <h2 className="text-[22px] font-extrabold mb-1" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
-                    <p className="text-[13px] mb-5" style={{ color: 'var(--text-muted)' }}>
+                    <h2 className="text-[24px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
+                    <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)' }}>
                       Your account is ready. Welcome to Reaglex.
                     </p>
-
-                    <motion.button
-                      type="button"
-                      onClick={() => {
-                        const { user } = useAuthStore.getState();
-                        if (user?.role === 'seller') navigate('/seller');
-                        else if (user?.role === 'admin') navigate('/admin');
-                        else navigate('/');
-                      }}
-                      className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all duration-250"
-                      style={{
-                        background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)',
-                        color: '#ffffff',
-                        boxShadow: '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
-                      }}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ y: 0 }}
-                    >
+                    <PrimaryBtn type="button" onClick={() => {
+                      const { user } = useAuthStore.getState();
+                      if (user?.role === 'seller') navigate('/seller');
+                      else if (user?.role === 'admin') navigate('/admin');
+                      else navigate('/');
+                    }}>
                       Go to Dashboard →
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    </PrimaryBtn>
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+
+              {/* Footer inside card */}
+              <p className="mt-5 text-[11px] text-center leading-relaxed"
+                style={{ color: 'var(--text-faint)' }}>
+                By continuing you agree to our{' '}
+                <a href="/terms" className="hover:underline" style={{ color: PRIMARY }}>Terms of Service</a>
+                {' '}and{' '}
+                <a href="/privacy" className="hover:underline" style={{ color: PRIMARY }}>Privacy Policy</a>.
+              </p>
+            </div>
           </motion.div>
         </div>
-
-        <p className="flex-shrink-0 mt-4 text-[10px] sm:text-[11px] text-center leading-relaxed px-2" style={{ color: 'var(--text-faint)' }}>
-          By continuing you agree to our{' '}
-          <a href="/terms" className="hover:underline" style={{ color: '#f97316' }}>Terms of Service</a>
-          {' '}and{' '}
-          <a href="/privacy" className="hover:underline" style={{ color: '#f97316' }}>Privacy Policy</a>.
-        </p>
       </div>
     </AuthPremiumLayout>
   );

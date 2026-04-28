@@ -35,35 +35,24 @@ export default function ProductGrid({ searchQuery = '' }) {
 
       const data = await productAPI.getProducts(params);
 
-      // Flexible response shape
       const items = Array.isArray(data)
         ? data
         : data.products || data.data || data.items || [];
-
       const total = data.pagination?.totalPages || data.totalPages || 1;
 
       setProducts(items);
       setTotalPages(total);
     } catch (err) {
       const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
-      setError(
-        isTimeout
-          ? 'messages.serverSlowOrOffline'
-          : 'messages.productsLoadError'
-      );
+      setError(isTimeout ? 'messages.serverSlowOrOffline' : 'messages.productsLoadError');
       setProducts([]);
     } finally {
       setLoading(false);
     }
   }, [page, sort, searchQuery]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, sort]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  useEffect(() => { setPage(1); }, [searchQuery, sort]);
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const currentSort = t(SORT_OPTIONS.find((o) => o.value === sort)?.labelKey || 'buttons.sort');
 
@@ -78,11 +67,14 @@ export default function ProductGrid({ searchQuery = '' }) {
         className="flex items-center justify-between mb-6 flex-wrap gap-4"
       >
         <div>
-          <h2 className="text-2xl font-black" style={{ color: '#1a1a1a', letterSpacing: '-0.5px' }}>
+          <h2
+            className="text-2xl font-black"
+            style={{ color: 'var(--text-primary)', letterSpacing: '-0.5px' }}
+          >
             {searchQuery ? `${t('search.resultsFor')} "${searchQuery}"` : t('home.exploreAllProducts')}
           </h2>
           {!loading && (
-            <p className="text-sm mt-0.5" style={{ color: '#9ca3af' }}>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
               {products.length} {t('product.itemsFound')}
             </p>
           )}
@@ -96,14 +88,15 @@ export default function ProductGrid({ searchQuery = '' }) {
             onClick={() => setShowSortMenu(!showSortMenu)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
             style={{
-              background: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.07)',
-              color: '#1a1a1a',
+              background: 'var(--card-bg)',
+              boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--border-card)',
+              color: 'var(--text-primary)',
             }}
           >
             <SlidersHorizontal className="w-4 h-4" style={{ color: '#ff8c42' }} />
             {currentSort}
-            <ChevronDown className="w-3.5 h-3.5" style={{ color: '#9ca3af' }} />
+            <ChevronDown className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
           </motion.button>
 
           <AnimatePresence>
@@ -114,16 +107,27 @@ export default function ProductGrid({ searchQuery = '' }) {
                 exit={{ opacity: 0, y: 8, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
                 className="absolute right-0 top-full mt-2 w-48 rounded-2xl overflow-hidden z-20"
-                style={{ background: 'white', boxShadow: '0 12px 36px rgba(0,0,0,0.12)' }}
+                style={{
+                  background: 'var(--dropdown-bg)',
+                  boxShadow: 'var(--shadow-lg)',
+                  border: '1px solid var(--divider)',
+                }}
               >
                 {SORT_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => { setSort(opt.value); setShowSortMenu(false); }}
-                    className="block w-full px-4 py-2.5 text-left text-sm hover:bg-orange-50 transition"
+                    className="block w-full px-4 py-2.5 text-left text-sm transition"
                     style={{
-                      color: sort === opt.value ? '#ff8c42' : '#374151',
+                      color: sort === opt.value ? '#ff8c42' : 'var(--text-secondary)',
                       fontWeight: sort === opt.value ? 600 : 400,
+                      background: sort === opt.value ? 'var(--bg-active)' : 'transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (sort !== opt.value) e.currentTarget.style.background = 'var(--bg-hover)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = sort === opt.value ? 'var(--bg-active)' : 'transparent';
                     }}
                   >
                     {t(opt.labelKey)}
@@ -138,7 +142,9 @@ export default function ProductGrid({ searchQuery = '' }) {
       {/* Error */}
       {error && (
         <div className="text-center py-16">
-          <p className="text-sm mb-4" style={{ color: '#9ca3af' }}>{t(error || 'messages.errorGeneric')}</p>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+            {t(error || 'messages.errorGeneric')}
+          </p>
           <button
             onClick={fetchProducts}
             className="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold"
@@ -153,12 +159,19 @@ export default function ProductGrid({ searchQuery = '' }) {
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="rounded-3xl overflow-hidden animate-pulse" style={{ background: 'white' }}>
-              <div style={{ paddingTop: '72%', background: '#f3f4f6' }} />
+            <div
+              key={i}
+              className="rounded-3xl overflow-hidden animate-pulse"
+              style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border-card)',
+              }}
+            >
+              <div style={{ paddingTop: '72%', background: 'var(--bg-skeleton)' }} />
               <div className="p-4 space-y-2">
-                <div className="h-4 rounded-lg" style={{ background: '#f3f4f6', width: '70%' }} />
-                <div className="h-3 rounded-lg" style={{ background: '#f3f4f6', width: '50%' }} />
-                <div className="h-5 rounded-lg" style={{ background: '#f3f4f6', width: '40%' }} />
+                <div className="h-4 rounded-lg" style={{ background: 'var(--bg-skeleton)', width: '70%' }} />
+                <div className="h-3 rounded-lg" style={{ background: 'var(--bg-skeleton)', width: '50%' }} />
+                <div className="h-5 rounded-lg" style={{ background: 'var(--bg-skeleton)', width: '40%' }} />
               </div>
             </div>
           ))}
@@ -173,8 +186,10 @@ export default function ProductGrid({ searchQuery = '' }) {
           className="text-center py-20"
         >
           <div className="text-6xl mb-4">🛍️</div>
-          <h3 className="text-lg font-bold mb-2" style={{ color: '#1a1a1a' }}>{t('messages.noResults')}</h3>
-          <p className="text-sm" style={{ color: '#9ca3af' }}>
+          <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+            {t('messages.noResults')}
+          </h3>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             {searchQuery ? `${t('search.noMatches')} "${searchQuery}"` : t('home.noProductsYet')}
           </p>
         </motion.div>
@@ -203,7 +218,12 @@ export default function ProductGrid({ searchQuery = '' }) {
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
             className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
-            style={{ background: 'white', color: '#374151', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}
+            style={{
+              background: 'var(--card-bg)',
+              color: 'var(--text-secondary)',
+              boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--border-card)',
+            }}
           >
             ← {t('buttons.back')}
           </motion.button>
@@ -218,9 +238,10 @@ export default function ProductGrid({ searchQuery = '' }) {
                 onClick={() => setPage(p)}
                 className="w-9 h-9 rounded-xl text-sm font-semibold"
                 style={{
-                  background: page === p ? 'linear-gradient(135deg, #ff8c42, #ff5f00)' : 'white',
-                  color: page === p ? 'white' : '#374151',
-                  boxShadow: page === p ? '0 4px 14px rgba(255,140,66,0.35)' : '0 2px 8px rgba(0,0,0,0.07)',
+                  background: page === p ? 'linear-gradient(135deg, #ff8c42, #ff5f00)' : 'var(--card-bg)',
+                  color: page === p ? 'white' : 'var(--text-secondary)',
+                  boxShadow: page === p ? '0 4px 14px rgba(255,140,66,0.35)' : 'var(--shadow-sm)',
+                  border: page === p ? 'none' : '1px solid var(--border-card)',
                 }}
               >
                 {p}
@@ -234,7 +255,12 @@ export default function ProductGrid({ searchQuery = '' }) {
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
             className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
-            style={{ background: 'white', color: '#374151', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}
+            style={{
+              background: 'var(--card-bg)',
+              color: 'var(--text-secondary)',
+              boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--border-card)',
+            }}
           >
             {t('buttons.next')} →
           </motion.button>

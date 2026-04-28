@@ -45,12 +45,28 @@ const PRIMARY = '#f97316';
 function GeminiIcon({ size = 22, className = '' }: { size?: number; className?: string }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 1.5L14.9 9.1L22.5 12L14.9 14.9L12 22.5L9.1 14.9L1.5 12L9.1 9.1L12 1.5Z" fill="url(#gemini-gradient-help)" />
+      <circle cx="12" cy="12" r="10.5" stroke="url(#gemini-ring-help)" strokeWidth="1.1" opacity="0.6" />
+      <path d="M12 2.4L14.4 8.9L21 11.4L14.4 13.9L12 20.4L9.6 13.9L3 11.4L9.6 8.9L12 2.4Z" fill="url(#gemini-gradient-help)" />
+      <circle cx="12" cy="12" r="2.2" fill="url(#gemini-core-help)" />
+      <path d="M12 5.3V7.1M12 16.9V18.7M5.3 12H7.1M16.9 12H18.7" stroke="url(#gemini-lines-help)" strokeWidth="1.05" strokeLinecap="round" opacity="0.9" />
       <defs>
+        <radialGradient id="gemini-core-help" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(12 12) rotate(90) scale(2.2)">
+          <stop stopColor="#ffffff" />
+          <stop offset="1" stopColor="#67e8f9" />
+        </radialGradient>
+        <linearGradient id="gemini-ring-help" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#22d3ee" />
+          <stop offset="0.5" stopColor="#a78bfa" />
+          <stop offset="1" stopColor="#6366f1" />
+        </linearGradient>
         <linearGradient id="gemini-gradient-help" x1="1.5" y1="1.5" x2="22.5" y2="22.5" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#4F46E5" />
-          <stop offset="0.55" stopColor="#9333EA" />
-          <stop offset="1" stopColor="#06B6D4" />
+          <stop stopColor="#22d3ee" />
+          <stop offset="0.55" stopColor="#8b5cf6" />
+          <stop offset="1" stopColor="#6366f1" />
+        </linearGradient>
+        <linearGradient id="gemini-lines-help" x1="5.3" y1="5.3" x2="18.7" y2="18.7" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#67e8f9" />
+          <stop offset="1" stopColor="#c4b5fd" />
         </linearGradient>
       </defs>
     </svg>
@@ -413,11 +429,19 @@ export default function HelpChatWidget() {
       .gemini-trigger-btn { background: transparent !important; color: #111827 !important; }
       .gemini-chat-header-icon { display:flex; align-items:center; justify-content:center; }
       .gemini-msg-avatar { width: 28px; height: 28px; display:flex; align-items:center; justify-content:center; margin-right:8px; flex-shrink:0; }
-      .gemini-animated-icon { animation: geminiFloatSpin 3.2s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.35)); transform-origin: 50% 50%; }
+      .gemini-animated-icon {
+        animation: geminiFloatSpin 3.2s ease-in-out infinite, geminiPulseGlow 2.4s ease-in-out infinite;
+        filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.35)) drop-shadow(0 0 16px rgba(99, 102, 241, 0.28));
+        transform-origin: 50% 50%;
+      }
       @keyframes geminiFloatSpin {
         0% { transform: translateY(0) rotate(0deg) scale(1); }
         50% { transform: translateY(-2px) rotate(8deg) scale(1.04); }
         100% { transform: translateY(0) rotate(0deg) scale(1); }
+      }
+      @keyframes geminiPulseGlow {
+        0%,100% { opacity: 0.9; }
+        50% { opacity: 1; }
       }
     `;
     document.head.appendChild(style);
@@ -495,15 +519,17 @@ export default function HelpChatWidget() {
             width: 60,
             height: 60,
             borderRadius: '50%',
-            border: 'none',
+            border: '1px solid rgba(99,102,241,0.45)',
             cursor: 'pointer',
-            background: 'transparent',
+            background:
+              'radial-gradient(circle at 30% 20%, rgba(34,211,238,0.22), rgba(15,23,42,0.9) 58%), linear-gradient(145deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
+            backdropFilter: 'blur(8px)',
             boxShadow:
-              '0 8px 28px rgba(15,23,42,0.22),0 4px 12px rgba(15,23,42,0.16)',
+              '0 10px 26px rgba(2,6,23,0.55), inset 0 0 0 1px rgba(34,211,238,0.14)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#111827',
+            color: '#cbd5e1',
             fontSize: 28,
             transition:
               'transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease',
@@ -512,12 +538,12 @@ export default function HelpChatWidget() {
             (e.currentTarget as HTMLButtonElement).style.transform =
               'scale(1.12) translateY(-3px)';
             (e.currentTarget as HTMLButtonElement).style.boxShadow =
-              '0 12px 36px rgba(249,115,22,0.65)';
+              '0 14px 34px rgba(6,182,212,0.3), 0 10px 24px rgba(99,102,241,0.4), inset 0 0 0 1px rgba(103,232,249,0.28)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
             (e.currentTarget as HTMLButtonElement).style.boxShadow =
-              '0 8px 28px rgba(249,115,22,0.50),0 4px 12px rgba(249,115,22,0.30)';
+              '0 10px 26px rgba(2,6,23,0.55), inset 0 0 0 1px rgba(34,211,238,0.14)';
           }}
         >
           <GeminiIcon size={28} className="gemini-animated-icon" />

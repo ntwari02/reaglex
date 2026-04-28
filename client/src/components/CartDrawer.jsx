@@ -46,51 +46,62 @@ export default function CartDrawer() {
     <AnimatePresence>
       {cartOpen && (
         <>
-          {/* ── Backdrop (left side): dims the page behind the drawer ── */}
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.35 }}
-            onClick={closeDrawer}
-            className="fixed inset-0 z-40"
-            style={{ background: 'rgba(0,0,0,0.35)' }}
-          />
-
-          {/* ── Drawer panel — slides in from the right ── */}
+          {/* ── Drawer panel — futuristic right dock ── */}
           <motion.div
             key="drawer"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', stiffness: 320, damping: 34, mass: 0.9 }}
-            className="fixed top-0 right-0 bottom-0 z-50 flex flex-col overflow-hidden"
+            transition={{ type: 'spring', stiffness: 300, damping: 35, mass: 0.85 }}
+            className="fixed top-0 right-0 bottom-0 z-[220] flex flex-col overflow-hidden"
             style={{
               width: 'min(100vw, 480px)',
-              boxShadow: '-8px 0 60px rgba(0,0,0,0.18)',
-              background: 'var(--card-bg)',
+              background: 'var(--bg-secondary)',
               color: 'var(--text-primary)',
+              /* Futuristic glowing left edge */
+              borderLeft: '2px solid rgba(249,115,22,0.55)',
+              boxShadow: '-4px 0 0 0 rgba(249,115,22,0.08), -16px 0 48px rgba(249,115,22,0.06), -2px 0 24px rgba(0,0,0,0.18)',
             }}
           >
+            {/* Futuristic top accent bar */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              exit={{ scaleX: 0 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                position: 'absolute',
+                top: 0, left: 0, right: 0,
+                height: 3,
+                background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.9), rgba(249,115,22,0.4), transparent)',
+                transformOrigin: 'left',
+                zIndex: 30,
+              }}
+            />
             {/* ── Cart panel (full width, no image) ── */}
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Header */}
               <div
-                className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-                style={{ borderBottom: '1px solid #f3f4f6' }}
+                className="flex items-center justify-between px-6 py-4 flex-shrink-0 sticky top-0 z-10"
+                style={{
+                  borderBottom: '1px solid var(--divider)',
+                  background: 'var(--bg-secondary)',
+                }}
               >
                 <div className="flex items-center gap-3">
                   <motion.button
                     whileTap={{ scale: 0.92 }}
                     onClick={closeDrawer}
-                    className="md:hidden w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+                    className="md:hidden w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                    style={{ '--tw-bg-opacity': 1 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                     title="Back to shopping"
                   >
-                    <ShoppingBag className="w-4 h-4" style={{ color: '#374151' }} />
+                    <ShoppingBag className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                   </motion.button>
                   <div className="relative">
-                    <ShoppingCart className="w-5 h-5" style={{ color: '#111827' }} />
+                    <ShoppingCart className="w-5 h-5" style={{ color: 'var(--text-primary)' }} />
                     {cartCount > 0 && (
                       <motion.span
                         key={cartCount}
@@ -103,7 +114,7 @@ export default function CartDrawer() {
                       </motion.span>
                     )}
                   </div>
-                  <span className="font-bold text-sm" style={{ color: '#111827' }}>
+                  <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
                     My Cart
                   </span>
                 </div>
@@ -114,16 +125,18 @@ export default function CartDrawer() {
                   whileTap={{ scale: 0.9 }}
                   transition={{ duration: 0.18 }}
                   onClick={closeDrawer}
-                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <X className="w-4 h-4" style={{ color: '#374151' }} />
+                  <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                 </motion.button>
               </div>
 
               {/* Scrollable body */}
               <div
-                className="flex-1 overflow-y-auto px-6 pb-8"
-                style={{ scrollbarWidth: 'none' }}
+                className="flex-1 overflow-y-auto px-6 pb-8 pt-3"
+                style={{ scrollbarWidth: 'none', paddingTop: 'max(env(safe-area-inset-top), 12px)' }}
               >
                 {/* ── Empty state ── */}
                 <AnimatePresence>
@@ -138,15 +151,15 @@ export default function CartDrawer() {
                         animate={{ y: [0, -10, 0] }}
                         transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
                         className="w-16 h-16 rounded-3xl flex items-center justify-center"
-                        style={{ background: '#fff7ed' }}
+                        style={{ background: 'var(--brand-tint)' }}
                       >
                         <ShoppingCart className="w-8 h-8" style={{ color: '#ff8c42' }} />
                       </motion.div>
                       <div className="text-center">
-                        <h3 className="font-bold text-lg" style={{ color: '#111827' }}>
+                        <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
                           Your cart is empty
                         </h3>
-                        <p className="text-sm mt-1" style={{ color: '#9ca3af' }}>
+                        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
                           Add something amazing to get started
                         </p>
                       </div>
@@ -170,9 +183,9 @@ export default function CartDrawer() {
                   <>
                     {/* Cart items header */}
                     <div className="flex items-center justify-between mt-4 mb-1">
-                      <h2 className="font-bold text-sm" style={{ color: '#111827' }}>
+                      <h2 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
                         Items
-                        <span className="ml-2 text-xs font-normal" style={{ color: '#9ca3af' }}>
+                        <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
                           ({cartCount})
                         </span>
                       </h2>
@@ -219,7 +232,7 @@ export default function CartDrawer() {
                     {/* Recommended */}
                     <div
                       className="my-7"
-                      style={{ borderTop: '1px dashed #f3f4f6' }}
+                      style={{ borderTop: '1px dashed var(--divider-strong)' }}
                     />
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}

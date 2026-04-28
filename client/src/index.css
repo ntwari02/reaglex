@@ -38,24 +38,238 @@
     overflow-x: hidden;
   }
 
-  /* Dark mode overrides for legacy hard-coded text colors on buyer pages */
-  .dark [style*="#111827"],
-  .dark [style*="#1a1a1a"],
-  .dark [style*="#0f172a"] {
+  /* ══════════════════════════════════════════════════════════════════════════
+     GLOBAL DARK MODE OVERRIDES
+     Catches hardcoded light-mode colors throughout buyer pages.
+     These rules apply centrally so individual components don't need patching.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* ── Scrollbar styling ──────────────────────────────────────────────────── */
+  .dark ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  .dark ::-webkit-scrollbar-track  { background: var(--scrollbar-track); }
+  .dark ::-webkit-scrollbar-thumb  { background: var(--scrollbar-thumb); border-radius: 999px; }
+  .dark * { scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+
+  /* ── Tailwind utility overrides ─────────────────────────────────────────── */
+  /* Backgrounds */
+  .dark .bg-white              { background-color: var(--card-bg) !important; }
+  .dark .bg-gray-50            { background-color: var(--bg-tertiary) !important; }
+  .dark .bg-gray-100           { background-color: var(--bg-hover) !important; }
+  .dark .bg-gray-200           { background-color: var(--bg-elevated) !important; }
+  .dark .bg-slate-50           { background-color: var(--bg-tertiary) !important; }
+  .dark .bg-slate-100          { background-color: var(--bg-hover) !important; }
+
+  /* Text */
+  .dark .text-gray-900         { color: var(--text-primary) !important; }
+  .dark .text-gray-800         { color: var(--text-primary) !important; }
+  .dark .text-gray-700         { color: var(--text-secondary) !important; }
+  .dark .text-gray-600         { color: var(--text-secondary) !important; }
+  .dark .text-gray-500         { color: var(--text-muted) !important; }
+  .dark .text-gray-400         { color: var(--text-muted) !important; }
+  .dark .text-gray-300         { color: var(--text-faint) !important; }
+  .dark .text-slate-900        { color: var(--text-primary) !important; }
+  .dark .text-slate-800        { color: var(--text-primary) !important; }
+  .dark .text-slate-700        { color: var(--text-secondary) !important; }
+  .dark .text-slate-600        { color: var(--text-secondary) !important; }
+  .dark .text-slate-500        { color: var(--text-muted) !important; }
+  .dark .text-slate-400        { color: var(--text-muted) !important; }
+  .dark .text-slate-300        { color: var(--text-faint) !important; }
+
+  /* Borders */
+  .dark .border-gray-100       { border-color: var(--divider) !important; }
+  .dark .border-gray-200       { border-color: var(--divider) !important; }
+  .dark .border-gray-300       { border-color: var(--divider-strong) !important; }
+  .dark .border-slate-100      { border-color: var(--divider) !important; }
+  .dark .border-slate-200      { border-color: var(--divider) !important; }
+  .dark .divide-gray-100 > * + * { border-color: var(--divider) !important; }
+  .dark .divide-gray-200 > * + * { border-color: var(--divider) !important; }
+
+  /* Hover states */
+  .dark .hover\:bg-gray-50:hover    { background-color: var(--bg-hover) !important; }
+  .dark .hover\:bg-gray-100:hover   { background-color: var(--bg-hover) !important; }
+  .dark .hover\:bg-slate-50:hover   { background-color: var(--bg-hover) !important; }
+  .dark .hover\:bg-slate-100:hover  { background-color: var(--bg-hover) !important; }
+  .dark .hover\:bg-orange-50:hover  { background-color: var(--brand-tint) !important; }
+  .dark .hover\:bg-orange-100:hover { background-color: var(--brand-tint-strong) !important; }
+
+  /* ── Dark mode overrides for legacy hard-coded text colors ─────────────── */
+  /* Primary text */
+  .dark [style*="color: #111827"],
+  .dark [style*="color:#111827"],
+  .dark [style*='color: "#111827"'],
+  .dark [style*="color: #1a1a1a"],
+  .dark [style*="color:#1a1a1a"],
+  .dark [style*="color: #0f172a"],
+  .dark [style*="color:#0f172a"],
+  .dark [style*="color: #1f2937"],
+  .dark [style*="color:#1f2937"] {
     color: var(--text-primary) !important;
   }
 
-  .dark [style*="#374151"],
-  .dark [style*="#4b5563"] {
+  /* Secondary text */
+  .dark [style*="color: #374151"],
+  .dark [style*="color:#374151"],
+  .dark [style*="color: #4b5563"],
+  .dark [style*="color:#4b5563"],
+  .dark [style*="color: #334155"],
+  .dark [style*="color:#334155"],
+  .dark [style*="color: #475569"],
+  .dark [style*="color:#475569"] {
     color: var(--text-secondary) !important;
   }
 
-  .dark [style*="#6b7280"] {
+  /* Muted text */
+  .dark [style*="color: #6b7280"],
+  .dark [style*="color:#6b7280"],
+  .dark [style*="color: #6B7280"],
+  .dark [style*="color:#6B7280"],
+  .dark [style*="color: #64748b"],
+  .dark [style*="color:#64748b"] {
     color: var(--text-muted) !important;
   }
 
-  .dark [style*="#9ca3af"] {
-    color: var(--text-faint) !important;
+  /* Faint text */
+  .dark [style*="color: #9ca3af"],
+  .dark [style*="color:#9ca3af"],
+  .dark [style*="color: #9CA3AF"],
+  .dark [style*="color:#9CA3AF"] {
+    color: var(--text-secondary) !important;
+  }
+
+  /* ── White / near-white background overrides ────────────────────────────── */
+  /* Inline style="background: white" / "background:#fff" etc */
+  .dark [style*="background: white"],
+  .dark [style*="background:white"],
+  .dark [style*="background-color: white"],
+  .dark [style*="background-color:white"] {
+    background-color: var(--card-bg) !important;
+  }
+  .dark [style*="background: #ffffff"],
+  .dark [style*="background:#ffffff"],
+  .dark [style*="background: #FFFFFF"],
+  .dark [style*="background-color: #ffffff"],
+  .dark [style*="background-color:#ffffff"] {
+    background-color: var(--card-bg) !important;
+  }
+  .dark [style*="background: #f9fafb"],
+  .dark [style*="background:#f9fafb"],
+  .dark [style*="background-color: #f9fafb"],
+  .dark [style*="background-color:#f9fafb"] {
+    background-color: var(--bg-tertiary) !important;
+  }
+  .dark [style*="background: #f3f4f6"],
+  .dark [style*="background:#f3f4f6"],
+  .dark [style*="background-color: #f3f4f6"],
+  .dark [style*="background-color:#f3f4f6"] {
+    background-color: var(--bg-hover) !important;
+  }
+  .dark [style*="background: #f8fafc"],
+  .dark [style*="background:#f8fafc"],
+  .dark [style*="background-color: #f8fafc"],
+  .dark [style*="background-color:#f8fafc"] {
+    background-color: var(--bg-tertiary) !important;
+  }
+
+  /* ── Soft white/rgba overlay backgrounds ────────────────────────────────── */
+  .dark [style*="background: rgba(255,255,255,0.7)"],
+  .dark [style*="background: rgba(255,255,255,0.75)"],
+  .dark [style*="background: rgba(255,255,255,0.8)"],
+  .dark [style*="background: rgba(255,255,255,0.9)"],
+  .dark [style*="background: rgba(255, 255, 255, 0.7)"],
+  .dark [style*="background: rgba(255, 255, 255, 0.75)"],
+  .dark [style*="background: rgba(255, 255, 255, 0.8)"],
+  .dark [style*="background: rgba(255, 255, 255, 0.9)"] {
+    background-color: var(--card-bg) !important;
+  }
+  .dark [style*="background: rgba(255,255,255,0.2)"],
+  .dark [style*="background: rgba(255,255,255,0.1)"],
+  .dark [style*="background: rgba(255,255,255,0.05)"] {
+    background-color: rgba(255,255,255,0.05) !important;
+  }
+
+  /* ── Light border colors ────────────────────────────────────────────────── */
+  .dark [style*="border: 1px solid #f3f4f6"],
+  .dark [style*="border: 1px solid #e5e7eb"],
+  .dark [style*="border: 1px solid #e2e8f0"],
+  .dark [style*="border: 2px solid #e5e7eb"],
+  .dark [style*="border-top: 1px solid #e5e7eb"],
+  .dark [style*="border-bottom: 1px solid #e5e7eb"] {
+    border-color: var(--divider) !important;
+  }
+  .dark [style*="border: 1px dashed #e5e7eb"],
+  .dark [style*="border: 1px dashed #f3f4f6"] {
+    border-color: var(--divider-strong) !important;
+  }
+  .dark [style*="borderColor: #e5e7eb"],
+  .dark [style*="borderColor: #f3f4f6"] {
+    border-color: var(--divider) !important;
+  }
+  /* Quantity / input borders */
+  .dark [style*="border: 1.5px solid #e5e7eb"],
+  .dark [style*="border: 1px solid #d1d5db"] {
+    border-color: var(--border-input) !important;
+  }
+
+  /* ── Shadow overrides: strengthen on dark backgrounds ──────────────────── */
+  .dark [style*="boxShadow: '0 4px 14px rgba(0,0,0,0.06)"],
+  .dark [style*="box-shadow: 0 4px 14px rgba(0,0,0,0.06"] {
+    box-shadow: var(--shadow-md) !important;
+  }
+
+  /* ── Input / select / textarea global dark treatment ───────────────────── */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([class*="auth"]):not([class*="otp"]) {
+    background-color: var(--bg-input) !important;
+    color: var(--input-text) !important;
+    border-color: var(--border-input) !important;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: var(--input-placeholder) !important;
+    opacity: 1 !important;
+  }
+  .dark select {
+    background-color: var(--bg-input) !important;
+    color: var(--input-text) !important;
+    border-color: var(--border-input) !important;
+  }
+  .dark textarea {
+    background-color: var(--bg-input) !important;
+    color: var(--input-text) !important;
+    border-color: var(--border-input) !important;
+  }
+
+  /* ── Buyer page section / card structural fixes ─────────────────────────── */
+
+  /* Flash sale countdown timer number boxes (currently hard-coded #1a1a1a bg) */
+  .dark [style*="background: #1a1a1a"],
+  .dark [style*="background:#1a1a1a"] {
+    background-color: #1e2235 !important;
+  }
+
+  /* Product detail / listing page hard-coded white cards */
+  .dark [style*="background: 'white'"],
+  .dark [style*='background: "white"'] {
+    background-color: var(--card-bg) !important;
+  }
+
+  /* hr / horizontal rule */
+  .dark hr {
+    border-color: var(--divider) !important;
+  }
+
+  /* ── Skeleton shimmer override for dark backgrounds ─────────────────────── */
+  .dark .skeleton,
+  .dark [class*="skeleton"] {
+    background: var(--bg-skeleton) !important;
+  }
+
+  /* ── Category / tag pills (light bg hardcoded) ──────────────────────────── */
+  /* Generic pill selector — buyer search / filter pills */
+  .dark [style*="background: 'var(--bg-tertiary)'"],
+  .dark .category-pill {
+    background-color: var(--bg-tertiary) !important;
+    border-color: var(--divider) !important;
+    color: var(--text-secondary) !important;
   }
 
   /* Unsaved dot pulse for settings tabs / save bar */
@@ -111,6 +325,74 @@
     60% { transform: translateX(-5px); }
     80% { transform: translateX(5px); }
   }
+}
+
+/* ── Reaglex Cinematic Animations ─────────────────────────────────────────── */
+@keyframes reaglex-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes reaglex-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes reaglex-pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255,140,66,0.2); }
+  50%       { box-shadow: 0 0 40px rgba(255,140,66,0.45), 0 0 80px rgba(255,140,66,0.15); }
+}
+
+@keyframes reaglex-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes reaglex-scan-line {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes reaglex-particle-drift {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  33%  { transform: translate(8px, -12px) scale(1.1); opacity: 1; }
+  66%  { transform: translate(-6px, 5px) scale(0.95); opacity: 0.7; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+}
+
+@keyframes reaglex-gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Utility classes */
+.reaglex-float        { animation: reaglex-float 4s ease-in-out infinite; }
+.reaglex-pulse-glow   { animation: reaglex-pulse-glow 3s ease-in-out infinite; }
+.reaglex-gradient-bg  {
+  background-size: 200% 200%;
+  animation: reaglex-gradient-shift 6s ease infinite;
+}
+
+/* Glassmorphism card */
+.glass-card {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Cinematic text gradient */
+.text-cinematic {
+  background: linear-gradient(135deg, #ff8c42 0%, #f97316 40%, #6c63ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Prevent layout shift during GSAP pinning */
+.gsap-pin-spacer {
+  pointer-events: none !important;
 }
 
 @layer utilities {
@@ -1161,6 +1443,21 @@ body {
 .notif-list-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
 .notif-list-scroll::-webkit-scrollbar-thumb { background: #f97316; border-radius: 3px; }
 .notif-list-scroll::-webkit-scrollbar-thumb:hover { background: #ea580c; }
+
+/* ── Buyer Dashboard futuristic animations ──────────────────────────────── */
+@keyframes db-orb-float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-12px) scale(1.04); opacity: 0.9; }
+}
+@keyframes db-scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes db-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(249,115,22,0); }
+}
+.db-badge-pulse { animation: db-badge-pulse 2.5s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *,

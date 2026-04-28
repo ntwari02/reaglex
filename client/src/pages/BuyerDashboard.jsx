@@ -1165,32 +1165,53 @@ function PaymentsTabContent() {
   );
 }
 
-// ── Circuit/dot pattern SVG for banner ──────────────────────────────────────
+// ── Futuristic grid + orb pattern for banner ────────────────────────────────
 function PatternOverlay() {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.08]">
-      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Fine grid */}
+      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.07 }}>
         <defs>
-          <pattern id="dots" width="12" height="12" patternUnits="userSpaceOnUse">
-            <circle cx="1.5" cy="1.5" r="0.8" fill="white" />
+          <pattern id="db-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+            <path d="M 28 0 L 0 0 0 28" fill="none" stroke="white" strokeWidth="0.5" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#dots)" />
+        <rect width="100%" height="100%" fill="url(#db-grid)" />
       </svg>
+      {/* Glow orb left */}
+      <div style={{
+        position: 'absolute', top: '-40%', left: '-8%',
+        width: 360, height: 360, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%)',
+        filter: 'blur(32px)',
+      }} />
+      {/* Glow orb right */}
+      <div style={{
+        position: 'absolute', bottom: '-60%', right: '-4%',
+        width: 280, height: 280, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)',
+        filter: 'blur(28px)',
+      }} />
+      {/* Scan line */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.015) 50%, transparent 100%)',
+      }} />
     </div>
   );
 }
 
 // ── Reusable card wrapper ───────────────────────────────────────────────────
-function Card({ children, className = '', style = {} }) {
+function Card({ children, className = '', style = {}, glow = false }) {
   return (
     <div
       className={`rounded-2xl overflow-hidden ${className}`}
       style={{
         background: 'var(--card-bg)',
-        borderColor: 'var(--card-border)',
         border: '1px solid var(--card-border)',
-        boxShadow: 'var(--card-shadow)',
+        boxShadow: glow
+          ? '0 0 0 1px rgba(249,115,22,0.12), 0 8px 32px rgba(0,0,0,0.12), 0 0 24px rgba(249,115,22,0.05)'
+          : 'var(--card-shadow)',
         ...style,
       }}
     >
@@ -1206,8 +1227,8 @@ function CardHeader({ title, action }) {
       style={{ borderColor: 'var(--divider)' }}
     >
       <h3
-        className="font-semibold text-sm"
-        style={{ color: 'var(--text-primary)' }}
+        className="font-semibold text-sm tracking-wide"
+        style={{ color: 'var(--text-primary)', letterSpacing: '0.02em' }}
       >
         {title}
       </h3>
@@ -1220,27 +1241,21 @@ function EmptyState({ icon: Icon, title, sub, cta }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4">
       <div
-        className="w-20 h-20 rounded-2xl flex items-center justify-center"
-        style={{ background: 'var(--bg-tertiary)' }}
+        className="w-20 h-20 rounded-2xl flex items-center justify-center relative"
+        style={{
+          background: 'linear-gradient(135deg, rgba(249,115,22,0.08), rgba(139,92,246,0.08))',
+          border: '1px solid rgba(249,115,22,0.12)',
+        }}
       >
-        <Icon
-          className="w-10 h-10"
-          style={{ color: 'var(--text-faint)' }}
-        />
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 'inherit',
+          background: 'radial-gradient(circle at 50% 50%, rgba(249,115,22,0.07), transparent 70%)',
+        }} />
+        <Icon className="w-9 h-9 relative z-10" style={{ color: 'rgba(249,115,22,0.5)' }} />
       </div>
-      <p
-        className="font-bold text-lg"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        {title}
-      </p>
+      <p className="font-bold text-lg" style={{ color: 'var(--text-muted)' }}>{title}</p>
       {sub && (
-        <p
-          className="text-sm text-center max-w-sm"
-          style={{ color: 'var(--text-faint)' }}
-        >
-          {sub}
-        </p>
+        <p className="text-sm text-center max-w-sm" style={{ color: 'var(--text-faint)' }}>{sub}</p>
       )}
       {cta}
     </div>
@@ -1417,23 +1432,54 @@ export default function BuyerDashboard() {
   if (!user) {
     return (
       <BuyerLayout>
-        <div className="flex flex-col items-center justify-center min-h-[70vh] gap-5" style={{ background: 'var(--bg-page)' }}>
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'var(--card-bg)' }}>
-            <User className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+        <div
+          className="flex flex-col items-center justify-center min-h-[70vh] gap-6 relative overflow-hidden"
+          style={{ background: 'var(--bg-page)' }}
+        >
+          {/* Background grid */}
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            backgroundImage: 'radial-gradient(circle, rgba(249,115,22,0.05) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }} />
+          <div style={{
+            position: 'absolute', top: '20%', left: '50%', transform: 'translate(-50%,-50%)',
+            width: 400, height: 400, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 65%)',
+            filter: 'blur(40px)',
+          }} />
+          <div className="relative z-10 flex flex-col items-center gap-5">
+            <div style={{
+              width: 72, height: 72, borderRadius: 20,
+              background: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(139,92,246,0.08))',
+              border: '1px solid rgba(249,115,22,0.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 24px rgba(249,115,22,0.12)',
+            }}>
+              <User style={{ width: 32, height: 32, color: 'rgba(249,115,22,0.7)' }} />
+            </div>
+            <div className="text-center">
+              <h2 style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em', color: 'var(--text-primary)', marginBottom: 8 }}>
+                Sign in to view your account
+              </h2>
+              <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Manage orders, wishlist, addresses and more</p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.03, y: -1 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/auth?tab=login')}
+              style={{
+                padding: '11px 32px', borderRadius: 12,
+                background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                color: 'white', fontWeight: 700, fontSize: 14,
+                border: 'none', cursor: 'pointer',
+                boxShadow: '0 6px 24px rgba(249,115,22,0.4)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              Sign In →
+            </motion.button>
           </div>
-          <div className="text-center">
-            <h2 className="font-semibold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Sign in to view your account</h2>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Manage orders, wishlist, and more</p>
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate('/login')}
-            className="px-6 py-3 rounded-xl text-white text-sm font-semibold"
-            style={{ background: PRIMARY, boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
-          >
-            Sign In
-          </motion.button>
         </div>
       </BuyerLayout>
     );
@@ -1472,46 +1518,82 @@ export default function BuyerDashboard() {
     <BuyerLayout>
       <div
         className="min-h-screen"
-        style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)', color: 'var(--text-primary)' }}
+        style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)', color: 'var(--text-primary)', position: 'relative' }}
       >
+        {/* Subtle full-page dot grid */}
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
+          backgroundImage: 'radial-gradient(circle, rgba(249,115,22,0.06) 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+          opacity: 0.5,
+        }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
         {/* ═══ TIER 1: Page header banner ═══ */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="relative w-full flex items-center justify-between px-6 sm:px-8 lg:px-[32px] py-6"
+          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="relative w-full flex items-center justify-between px-6 sm:px-8 lg:px-[32px] py-7"
           style={{
-            minHeight: 140,
-            background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 60%, #f97316 100%)',
+            minHeight: 156,
+            background: 'linear-gradient(135deg, #080812 0%, #0f0f1e 40%, #130d1f 70%, #1a0a0a 100%)',
+            borderBottom: '1px solid rgba(249,115,22,0.14)',
           }}
         >
           <PatternOverlay />
+          {/* Accent line at top */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+            background: 'linear-gradient(90deg, transparent, #f97316 30%, #a855f7 70%, transparent)',
+          }} />
           <div className="relative z-10 flex items-center justify-between w-full gap-4">
             {!isPaymentsTab && (
               <>
                 <div>
-                  <h1 className="font-bold text-white text-[28px]">{isAddressesTab ? 'Addresses' : 'My Account'}</h1>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
+                      color: PRIMARY, padding: '2px 8px', borderRadius: 4,
+                      background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)',
+                    }}>
+                      {isAddressesTab ? 'Addresses' : 'Dashboard'}
+                    </span>
+                  </div>
+                  <h1 className="font-black text-white" style={{ fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                    {isAddressesTab ? 'My Addresses' : 'My Account'}
+                  </h1>
                   {isAddressesTab && (
-                    <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.75)' }}>Manage your delivery addresses</p>
+                    <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Manage your delivery addresses</p>
                   )}
-                  <p className="text-xs mt-1.5 flex items-center gap-1 flex-wrap" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                    <Link to="/" className="hover:underline transition">Home</Link>
-                    <span> › </span>
-                    <Link to="/account" className="hover:underline transition">My Account</Link>
-                    <span> › </span>
-                    <span style={{ color: 'rgba(255,255,255,0.9)' }}>{tabLabel}</span>
+                  <p className="text-xs mt-2 flex items-center gap-1.5 flex-wrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <Link to="/" className="hover:text-white transition-colors">Home</Link>
+                    <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
+                    <Link to="/account" className="hover:text-white transition-colors">Account</Link>
+                    <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
+                    <span style={{ color: 'rgba(255,255,255,0.7)' }}>{tabLabel}</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right hidden sm:block">
-                    <p className="font-bold text-white text-base">{displayName}</p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>{user.email}</p>
+                    <p className="font-bold text-white text-sm tracking-wide">{displayName}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{user.email}</p>
+                    <span style={{
+                      display: 'inline-block', marginTop: 5, fontSize: 10, fontWeight: 600,
+                      letterSpacing: '0.12em', textTransform: 'uppercase',
+                      color: '#4ade80', padding: '1px 7px', borderRadius: 4,
+                      background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)',
+                    }}>● Active</span>
                   </div>
                   <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    className="w-14 h-14 sm:w-[60px] sm:h-[60px] rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 border-2"
-                    style={{ background: PRIMARY, fontSize: 22, borderColor: PRIMARY }}
+                    whileHover={{ scale: 1.06 }}
+                    className="w-14 h-14 sm:w-[62px] sm:h-[62px] rounded-full flex items-center justify-center text-white font-black flex-shrink-0 relative"
+                    style={{ background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`, fontSize: 22 }}
                   >
+                    <div style={{
+                      position: 'absolute', inset: -3, borderRadius: '50%',
+                      background: 'transparent',
+                      border: '1.5px solid rgba(249,115,22,0.45)',
+                    }} />
                     {initials}
                   </motion.div>
                 </div>
@@ -1520,28 +1602,43 @@ export default function BuyerDashboard() {
             {isPaymentsTab && (
               <>
                 <div>
-                  <h1 className="font-bold text-white text-[28px] flex items-center gap-2">💳 Payment Methods</h1>
-                  <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.75)' }}>Manage payments, escrow & payouts</p>
-                  <p className="text-xs mt-1.5 flex items-center gap-1 flex-wrap" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                    <Link to="/" className="hover:underline transition">Home</Link>
-                    <span> › </span>
-                    <Link to="/account" className="hover:underline transition">My Account</Link>
-                    <span> › </span>
-                    <span style={{ color: 'rgba(255,255,255,0.9)' }}>Payment Methods</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
+                      color: '#60a5fa', padding: '2px 8px', borderRadius: 4,
+                      background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.22)',
+                    }}>Payments</span>
+                  </div>
+                  <h1 className="font-black text-white flex items-center gap-3" style={{ fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                    <span style={{ fontSize: 28 }}>💳</span> Payment Methods
+                  </h1>
+                  <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Manage payments, escrow & payouts</p>
+                  <p className="text-xs mt-2 flex items-center gap-1.5 flex-wrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <Link to="/" className="hover:text-white transition-colors">Home</Link>
+                    <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
+                    <Link to="/account" className="hover:text-white transition-colors">Account</Link>
+                    <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
+                    <span style={{ color: 'rgba(255,255,255,0.7)' }}>Payment Methods</span>
                   </p>
                 </div>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 text-[11px] sm:text-xs font-medium">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 text-[11px] sm:text-xs font-semibold">
                   {[
-                    { icon: '🔒', label: '256-bit SSL' },
-                    { icon: '✅', label: 'PCI Compliant' },
-                    { icon: '🛡️', label: 'Escrow Protected' },
+                    { icon: '🔒', label: '256-bit SSL', color: '#86efac' },
+                    { icon: '✅', label: 'PCI Compliant', color: '#93c5fd' },
+                    { icon: '🛡️', label: 'Escrow Protected', color: PRIMARY },
                   ].map((b) => (
                     <div
                       key={b.label}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                      style={{
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        backdropFilter: 'blur(8px)',
+                        color: b.color,
+                      }}
                     >
                       <span>{b.icon}</span>
-                      <span className="text-white whitespace-nowrap">{b.label}</span>
+                      <span className="whitespace-nowrap">{b.label}</span>
                     </div>
                   ))}
                 </div>
@@ -1551,61 +1648,114 @@ export default function BuyerDashboard() {
         </motion.div>
 
         {/* ═══ TIER 2: Main layout — sidebar + content ═══ */}
-        <div className="w-full px-4 sm:px-6 lg:px-8" style={{ paddingLeft: 32, paddingRight: 32, paddingTop: 24, paddingBottom: 32 }}>
+        <div className="w-full" style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 22, paddingBottom: 40 }}>
           {/* Mobile: horizontal tab bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 lg:hidden scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+          <div
+            className="flex items-center gap-2 overflow-x-auto pb-3 mb-5 lg:hidden"
+            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+          >
             {TAB_CONFIG.map((t) => {
               const isActive = tab === t.id;
               const Icon = t.icon;
               return (
-                <button
+                <motion.button
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap flex-shrink-0"
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 relative"
                   style={{
-                    background: isActive ? PRIMARY : 'var(--card-bg)',
+                    background: isActive
+                      ? `linear-gradient(135deg, ${PRIMARY}, #c2410c)`
+                      : 'var(--card-bg)',
                     color: isActive ? 'white' : 'var(--text-secondary)',
-                    boxShadow: isActive ? '0 2px 8px rgba(249,115,22,0.3)' : 'var(--card-shadow)',
+                    border: isActive ? 'none' : '1px solid var(--card-border)',
+                    boxShadow: isActive ? `0 4px 16px rgba(249,115,22,0.35)` : 'none',
+                    letterSpacing: '0.02em',
                   }}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                   {t.label}
-                </button>
+                </motion.button>
               );
             })}
-            <button
+            <motion.button
               type="button"
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium flex-shrink-0 text-red-600 dark:text-red-400"
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-semibold flex-shrink-0"
+              style={{
+                background: 'rgba(239,68,68,0.08)',
+                color: '#ef4444',
+                border: '1px solid rgba(239,68,68,0.18)',
+              }}
             >
-              <LogOut className="w-4 h-4" /> Logout
-            </button>
+              <LogOut className="w-3.5 h-3.5" /> Logout
+            </motion.button>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-6" style={{ gap: 24 }}>
+          <div className="flex flex-col lg:flex-row" style={{ gap: 22 }}>
             {/* ═══ TIER 3: Sidebar (desktop) ═══ */}
             <aside
-              className="hidden lg:block w-full lg:w-[280px] lg:flex-shrink-0 lg:sticky self-start"
-              style={{ top: 24 }}
+              className="hidden lg:block lg:flex-shrink-0 lg:sticky self-start"
+              style={{ top: 24, width: 272 }}
             >
-              <Card className="overflow-hidden">
+              <div style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--card-border)',
+                borderRadius: 20,
+                overflow: 'hidden',
+                boxShadow: '0 0 0 1px rgba(255,255,255,0.03) inset, 0 8px 32px rgba(0,0,0,0.14)',
+              }}>
                 {/* Top profile section */}
-                <div
-                  className="p-6"
-                  style={{ background: 'linear-gradient(135deg, #1a1a2e, #2d2d4e)' }}
-                >
-                  <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:text-left sm:gap-4">
-                    <div
-                      className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 mb-3 sm:mb-0 ring-2 ring-orange-400 ring-offset-2 ring-offset-transparent"
-                      style={{ background: PRIMARY, fontSize: 22 }}
-                    >
-                      {initials}
+                <div style={{
+                  padding: '24px 22px 20px',
+                  background: 'linear-gradient(160deg, #0c0c1a 0%, #12122a 50%, #1c0f0f 100%)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  {/* Grid bg */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundImage: 'linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px)',
+                    backgroundSize: '20px 20px',
+                  }} />
+                  {/* Orb */}
+                  <div style={{
+                    position: 'absolute', top: -30, right: -20,
+                    width: 120, height: 120, borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(249,115,22,0.2) 0%, transparent 70%)',
+                    filter: 'blur(20px)',
+                  }} />
+                  <div className="relative z-10 flex flex-col items-center text-center gap-3">
+                    <div className="relative">
+                      <div style={{
+                        width: 64, height: 64, borderRadius: '50%',
+                        background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontWeight: 900, fontSize: 24,
+                        boxShadow: `0 0 0 3px rgba(249,115,22,0.2), 0 0 20px rgba(249,115,22,0.3)`,
+                      }}>
+                        {initials}
+                      </div>
+                      <div style={{
+                        position: 'absolute', bottom: 1, right: 1,
+                        width: 12, height: 12, borderRadius: '50%',
+                        background: '#22c55e', border: '2px solid #0c0c1a',
+                      }} />
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-white text-base">{displayName}</p>
-                      <p className="text-xs mt-0.5 text-gray-400">{user.email}</p>
-                      <Link to="/account?tab=settings" className="text-xs font-medium mt-1 inline-block hover:underline transition-all" style={{ color: PRIMARY }}>
+                    <div>
+                      <p style={{ fontWeight: 800, color: 'white', fontSize: 15, letterSpacing: '-0.01em' }}>{displayName}</p>
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{user.email}</p>
+                      <Link
+                        to="/account?tab=settings"
+                        style={{
+                          display: 'inline-block', marginTop: 8, fontSize: 11, fontWeight: 600,
+                          color: PRIMARY, padding: '3px 10px', borderRadius: 6,
+                          background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.22)',
+                          letterSpacing: '0.06em', textTransform: 'uppercase', textDecoration: 'none',
+                        }}
+                      >
                         Edit Profile
                       </Link>
                     </div>
@@ -1613,30 +1763,31 @@ export default function BuyerDashboard() {
                 </div>
 
                 {/* Stats row */}
-                <div
-                  className="grid grid-cols-3 px-4 py-4 border-b"
-                  style={{
-                    divideColor: 'var(--divider)',
-                    borderColor: 'var(--divider)',
-                    background: 'var(--card-bg)',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                  }}
-                >
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  borderBottom: '1px solid var(--divider)',
+                  background: 'var(--card-bg)',
+                }}>
                   {[
-                    { value: orderCount, label: 'Orders' },
-                    { value: reviewCount, label: 'Reviews' },
-                    { value: savedCount, label: 'Saved' },
-                  ].map(({ value, label }, i) => (
-                    <motion.div key={label} className="text-center py-2 cursor-default" whileHover={{ scale: 1.05 }} style={{ color: PRIMARY }}>
-                      <p className="font-bold text-xl leading-none"><CountUp value={value} delay={0.2 + i * 0.1} /></p>
-                      <p className="text-[11px] mt-1" style={{ color: 'var(--text-faint)' }}>{label}</p>
+                    { value: orderCount, label: 'Orders', color: PRIMARY },
+                    { value: reviewCount, label: 'Reviews', color: '#a855f7' },
+                    { value: savedCount, label: 'Saved', color: '#ec4899' },
+                  ].map(({ value, label, color }, i) => (
+                    <motion.div
+                      key={label}
+                      className="text-center cursor-default relative"
+                      style={{ padding: '14px 6px', borderRight: i < 2 ? '1px solid var(--divider)' : 'none' }}
+                      whileHover={{ scale: 1.04 }}
+                    >
+                      <p style={{ fontWeight: 800, fontSize: 22, lineHeight: 1, color }}><CountUp value={value} delay={0.2 + i * 0.1} /></p>
+                      <p style={{ fontSize: 10, marginTop: 4, color: 'var(--text-faint)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</p>
                     </motion.div>
                   ))}
                 </div>
 
                 {/* Navigation */}
-                <nav className="py-2">
+                <nav style={{ paddingTop: 6, paddingBottom: 6 }}>
                   {TAB_CONFIG.map((t) => {
                     const isActive = tab === t.id;
                     const Icon = t.icon;
@@ -1646,17 +1797,20 @@ export default function BuyerDashboard() {
                       <Link
                         key={t.id}
                         to={`/account?tab=${t.id}`}
-                        className="flex items-center gap-3 px-5 py-3.5 text-sm"
+                        className="flex items-center gap-3 text-sm relative overflow-hidden"
                         style={{
-                          borderLeft: isActive ? `4px solid ${PRIMARY}` : '4px solid transparent',
-                          background: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
+                          padding: '11px 18px',
+                          borderLeft: isActive ? `3px solid ${PRIMARY}` : '3px solid transparent',
+                          background: isActive ? 'rgba(249,115,22,0.07)' : 'transparent',
                           color: isActive ? PRIMARY : 'var(--text-secondary)',
                           fontWeight: isActive ? 700 : 400,
+                          textDecoration: 'none',
+                          transition: 'all 0.15s ease',
                         }}
                         aria-current={isActive ? 'page' : undefined}
                         onMouseEnter={(e) => {
                           if (!isActive) {
-                            e.currentTarget.style.background = 'var(--sidebar-active-bg)';
+                            e.currentTarget.style.background = 'rgba(249,115,22,0.05)';
                             e.currentTarget.style.color = PRIMARY;
                           }
                         }}
@@ -1667,49 +1821,96 @@ export default function BuyerDashboard() {
                           }
                         }}
                       >
-                        <Icon className="w-[22px] h-[22px] flex-shrink-0" style={{ color: isActive ? PRIMARY : 'var(--text-muted)' }} />
-                        <span className="flex-1">{t.label}</span>
+                        {isActive && (
+                          <div style={{
+                            position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)',
+                            width: 4, height: '60%', borderRadius: 2,
+                            background: `linear-gradient(180deg, ${PRIMARY}, #c2410c)`,
+                            boxShadow: `0 0 10px rgba(249,115,22,0.6)`,
+                          }} />
+                        )}
+                        <Icon
+                          className="flex-shrink-0"
+                          style={{
+                            width: 18, height: 18,
+                            color: isActive ? PRIMARY : 'var(--text-muted)',
+                          }}
+                        />
+                        <span className="flex-1 text-[13px]">{t.label}</span>
                         {badge != null && badge > 0 && (
-                          <span className="min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold flex items-center justify-center text-white" style={{ background: PRIMARY }}>
+                          <span style={{
+                            minWidth: 20, height: 20, padding: '0 5px', borderRadius: 10,
+                            fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: isActive ? PRIMARY : 'rgba(249,115,22,0.15)',
+                            color: isActive ? 'white' : PRIMARY,
+                          }}>
                             {badge > 99 ? '99+' : badge}
                           </span>
                         )}
                       </Link>
                     );
                   })}
-                  <div className="my-2 h-px mx-5" style={{ background: 'var(--divider)' }} />
+
+                  <div style={{ margin: '6px 18px', height: 1, background: 'var(--divider)' }} />
+
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-red-500"
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--error-light)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    className="w-full flex items-center gap-3 text-[13px] font-medium"
+                    style={{
+                      padding: '11px 18px',
+                      color: '#f87171',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      borderLeft: '3px solid transparent',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.borderLeftColor = '#ef4444'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}
                   >
-                    <LogOut className="w-[22px] h-[22px] flex-shrink-0" />
+                    <LogOut style={{ width: 18, height: 18, flexShrink: 0 }} />
                     Logout
                   </button>
                 </nav>
 
                 {/* Need Help card */}
-                <div
-                  className="p-4 mx-4 mb-4 rounded-xl border"
-                  style={{ background: 'var(--brand-light)', borderColor: 'var(--brand-border)' }}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: PRIMARY }}>
-                      <Headphones className="w-4 h-4 text-white" />
+                <div style={{
+                  margin: '4px 14px 14px',
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, rgba(249,115,22,0.07), rgba(139,92,246,0.05))',
+                  border: '1px solid rgba(249,115,22,0.15)',
+                }}>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div style={{
+                      width: 34, height: 34, borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(249,115,22,0.3)',
+                    }}>
+                      <Headphones style={{ width: 16, height: 16, color: 'white' }} />
                     </div>
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Contact Support</span>
+                    <div>
+                      <p style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}>Need Help?</p>
+                      <p style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 1 }}>24/7 support available</p>
+                    </div>
                   </div>
                   <Link
                     to="/help"
-                    className="block w-full py-2 rounded-lg text-center text-sm font-semibold text-white transition opacity-90 hover:opacity-100"
-                    style={{ background: PRIMARY }}
+                    style={{
+                      display: 'block', width: '100%', padding: '9px',
+                      borderRadius: 10, textAlign: 'center', fontSize: 12, fontWeight: 700,
+                      color: 'white', textDecoration: 'none',
+                      background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                      boxShadow: '0 4px 14px rgba(249,115,22,0.3)',
+                      letterSpacing: '0.04em',
+                    }}
                   >
-                    Chat with us
+                    Chat with us →
                   </Link>
                 </div>
-              </Card>
+              </div>
             </aside>
 
             {/* ═══ Main content area ═══ */}
@@ -1724,72 +1925,134 @@ export default function BuyerDashboard() {
                 >
                   {/* ── OVERVIEW ── */}
                   {tab === 'overview' && (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="space-y-5">
+                      {/* Stat cards */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
-                          { icon: Package, label: 'Total Orders', value: uiOrders.length, color: PRIMARY, bg: '#fff7ed' },
-                          { icon: Truck, label: 'In Transit', value: 1, color: '#2563eb', bg: '#eff6ff' },
-                          { icon: Star, label: 'Reviews', value: 8, color: '#d97706', bg: '#fffbeb' },
-                          { icon: ShoppingBag, label: 'Total Spent', value: '$227.49', color: '#16a34a', bg: '#f0fdf4' },
-                        ].map(({ icon: Icon, label, value, color, bg }) => (
-                          <Card key={label} className="p-6 text-center">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ background: bg }}>
-                              <Icon className="w-5 h-5" style={{ color }} />
+                          { icon: Package, label: 'Total Orders', value: uiOrders.length, color: PRIMARY, glowColor: 'rgba(249,115,22,0.25)', grad: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(249,115,22,0.03))' },
+                          { icon: Truck, label: 'In Transit', value: 1, color: '#60a5fa', glowColor: 'rgba(96,165,250,0.2)', grad: 'linear-gradient(135deg, rgba(96,165,250,0.1), rgba(96,165,250,0.03))' },
+                          { icon: Star, label: 'Reviews Left', value: 8, color: '#fbbf24', glowColor: 'rgba(251,191,36,0.2)', grad: 'linear-gradient(135deg, rgba(251,191,36,0.1), rgba(251,191,36,0.03))' },
+                          { icon: ShoppingBag, label: 'Total Spent', value: '$227.49', color: '#4ade80', glowColor: 'rgba(74,222,128,0.2)', grad: 'linear-gradient(135deg, rgba(74,222,128,0.1), rgba(74,222,128,0.03))' },
+                        ].map(({ icon: Icon, label, value, color, glowColor, grad }, idx) => (
+                          <motion.div
+                            key={label}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: idx * 0.07 }}
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            style={{
+                              background: 'var(--card-bg)',
+                              border: '1px solid var(--card-border)',
+                              borderRadius: 18,
+                              padding: '20px 18px',
+                              textAlign: 'center',
+                              position: 'relative',
+                              overflow: 'hidden',
+                              boxShadow: `0 0 0 1px ${glowColor} inset, 0 4px 20px rgba(0,0,0,0.06)`,
+                              cursor: 'default',
+                            }}
+                          >
+                            <div style={{
+                              position: 'absolute', inset: 0,
+                              background: grad,
+                            }} />
+                            <div style={{
+                              position: 'relative', zIndex: 1,
+                              width: 42, height: 42, borderRadius: 12, margin: '0 auto 14px',
+                              background: `${glowColor}`,
+                              border: `1px solid ${color}22`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              boxShadow: `0 0 16px ${glowColor}`,
+                            }}>
+                              <Icon style={{ width: 20, height: 20, color }} />
                             </div>
-                            <p className="font-bold text-2xl leading-none mb-1" style={{ color }}>{value}</p>
-                            <p className="text-xs font-medium" style={{ color: 'var(--text-faint)' }}>{label}</p>
-                          </Card>
+                            <p style={{ position: 'relative', zIndex: 1, fontWeight: 800, fontSize: 26, lineHeight: 1, color, marginBottom: 6 }}>{value}</p>
+                            <p style={{ position: 'relative', zIndex: 1, fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</p>
+                          </motion.div>
                         ))}
                       </div>
+
+                      {/* Recent Orders */}
                       <Card>
                         <CardHeader
                           title="Recent Orders"
                           action={
-                            <button onClick={() => setTab('orders')} className="flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: PRIMARY }}>
+                            <button
+                              onClick={() => setTab('orders')}
+                              className="flex items-center gap-1.5 text-xs font-semibold"
+                              style={{ color: PRIMARY }}
+                            >
                               View all <ArrowUpRight className="w-3.5 h-3.5" />
                             </button>
                           }
                         />
                         <div>
-                          {uiOrders.slice(0, 4).map((o, i, arr) => {
-                            const s = STATUS[o.status];
-                            const Icon = s.icon;
-                            return (
-                              <div key={o.id}>
-                                <div
-                                  className="flex items-center justify-between px-6 py-4 cursor-pointer"
-                                  style={{ transition: 'background 0.15s' }}
-                                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
-                                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: s.bg }}>
-                                      <Icon className="w-4 h-4" style={{ color: s.color }} />
+                          {uiOrders.length === 0 ? (
+                            <EmptyState icon={Package} title="No orders yet" sub="Start shopping to see your orders here" cta={<Link to="/search" style={{ padding: '9px 20px', borderRadius: 10, background: PRIMARY, color: 'white', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Browse Products</Link>} />
+                          ) : (
+                            uiOrders.slice(0, 4).map((o, i, arr) => {
+                              const s = STATUS[o.status] || STATUS.processing;
+                              const Icon = s.icon;
+                              return (
+                                <div key={o.id}>
+                                  <div
+                                    className="flex items-center justify-between px-5 py-3.5 cursor-pointer"
+                                    style={{ transition: 'background 0.15s' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(249,115,22,0.03)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div style={{
+                                        width: 34, height: 34, borderRadius: 10,
+                                        background: `${s.bg}22`,
+                                        border: `1px solid ${s.color}30`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        flexShrink: 0,
+                                      }}>
+                                        <Icon style={{ width: 16, height: 16, color: s.color }} />
+                                      </div>
+                                      <div>
+                                        <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{o.id}</p>
+                                        <p style={{ fontSize: 11, marginTop: 2, color: 'var(--text-faint)' }}>{o.date} · {o.seller} · {o.items} item{o.items !== 1 ? 's' : ''}</p>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{o.id}</p>
-                                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{o.date} · {o.seller} · {o.items} item{o.items > 1 ? 's' : ''}</p>
+                                    <div className="flex items-center gap-2.5">
+                                      <span style={{
+                                        padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                        background: `${s.bg}33`, color: s.color,
+                                        border: `1px solid ${s.color}30`,
+                                      }}>{s.label}</span>
+                                      <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>${o.total.toFixed(2)}</span>
+                                      <Link to={`/track/${o.id}`}><ChevronRight style={{ width: 14, height: 14, color: 'var(--text-faint)' }} /></Link>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-3">
-                                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: s.bg, color: s.color }}>{s.label}</span>
-                                    <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>${o.total.toFixed(2)}</span>
-                                    <Link to={`/track/${o.id}`}><ChevronRight className="w-4 h-4" style={{ color: 'var(--text-faint)' }} /></Link>
-                                  </div>
+                                  {i < arr.length - 1 && <div style={{ height: 1, margin: '0 20px', background: 'var(--divider)' }} />}
                                 </div>
-                                {i < arr.length - 1 && <div className="h-px mx-6" style={{ background: 'var(--divider)' }} />}
-                              </div>
-                            );
-                          })}
+                              );
+                            })
+                          )}
                         </div>
                       </Card>
-                      <div className="rounded-2xl p-6 flex items-start gap-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30" style={{ borderLeft: '4px solid #3b82f6' }}>
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
-                          <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+
+                      {/* Buyer Protection Banner */}
+                      <div style={{
+                        borderRadius: 16, padding: '16px 20px',
+                        display: 'flex', alignItems: 'flex-start', gap: 14,
+                        background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.06))',
+                        border: '1px solid rgba(96,165,250,0.2)',
+                        borderLeft: '3px solid #3b82f6',
+                      }}>
+                        <div style={{
+                          width: 40, height: 40, borderRadius: 11, flexShrink: 0,
+                          background: 'rgba(59,130,246,0.12)',
+                          border: '1px solid rgba(96,165,250,0.2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Shield style={{ width: 20, height: 20, color: '#60a5fa' }} />
                         </div>
                         <div>
-                          <p className="font-semibold text-sm mb-1.5 text-blue-700 dark:text-blue-400">Buyer Protection Plan</p>
-                          <p className="text-sm leading-relaxed text-blue-600 dark:text-blue-400">Every purchase on Reaglex is covered by escrow protection.</p>
+                          <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 5, color: '#60a5fa' }}>Buyer Protection Active</p>
+                          <p style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' }}>Every purchase on Reaglex is protected by escrow. Funds are only released when you confirm delivery.</p>
                         </div>
                       </div>
                     </div>
@@ -1809,20 +2072,64 @@ export default function BuyerDashboard() {
                     return (
                     <div className="space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>My Orders</h2>
-                        <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}>{filteredOrders.length} orders</span>
+                        <div className="flex items-center gap-3">
+                          <h2 style={{ fontWeight: 800, fontSize: 20, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>My Orders</h2>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                            background: 'rgba(249,115,22,0.1)', color: PRIMARY,
+                            border: '1px solid rgba(249,115,22,0.2)',
+                          }}>{filteredOrders.length}</span>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <input type="text" value={ordersSearch} onChange={(e) => setOrdersSearch(e.target.value)} placeholder="Search orders..." className="px-3 py-2 rounded-lg border text-sm w-48" style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--input-text)' }} />
-                        <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: 'var(--divider-strong)' }}>
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '7px 12px', borderRadius: 10,
+                          background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                        }}>
+                          <Search style={{ width: 14, height: 14, color: 'var(--text-faint)' }} />
+                          <input
+                            type="text" value={ordersSearch}
+                            onChange={(e) => setOrdersSearch(e.target.value)}
+                            placeholder="Search orders..."
+                            style={{
+                              background: 'transparent', border: 'none', outline: 'none',
+                              fontSize: 13, color: 'var(--text-primary)', width: 160,
+                            }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--card-border)' }}>
                           {orderStatusTabs.map((s) => (
-                            <button key={s.id} type="button" onClick={() => setOrdersStatus(s.id)} className="px-3 py-2 text-xs font-medium" style={{ background: ordersStatus === s.id ? PRIMARY : 'var(--card-bg)', color: ordersStatus === s.id ? 'white' : 'var(--text-muted)' }}>{s.label}</button>
+                            <button
+                              key={s.id} type="button" onClick={() => setOrdersStatus(s.id)}
+                              style={{
+                                padding: '7px 12px', fontSize: 12, fontWeight: ordersStatus === s.id ? 700 : 500,
+                                background: ordersStatus === s.id ? PRIMARY : 'var(--card-bg)',
+                                color: ordersStatus === s.id ? 'white' : 'var(--text-muted)',
+                                border: 'none', cursor: 'pointer',
+                                borderRight: '1px solid var(--card-border)',
+                              }}
+                            >{s.label}</button>
                           ))}
                         </div>
-                        <select value={ordersDateRange} onChange={(e) => setOrdersDateRange(e.target.value)} className="px-3 py-2 rounded-lg border text-sm" style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--input-text)' }}>
+                        <select
+                          value={ordersDateRange} onChange={(e) => setOrdersDateRange(e.target.value)}
+                          style={{
+                            padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500,
+                            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                            color: 'var(--text-secondary)', outline: 'none', cursor: 'pointer',
+                          }}
+                        >
                           {dateRangeOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                         </select>
-                        <select value={ordersSort} onChange={(e) => setOrdersSort(e.target.value)} className="px-3 py-2 rounded-lg border text-sm" style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--input-text)' }}>
+                        <select
+                          value={ordersSort} onChange={(e) => setOrdersSort(e.target.value)}
+                          style={{
+                            padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500,
+                            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                            color: 'var(--text-secondary)', outline: 'none', cursor: 'pointer',
+                          }}
+                        >
                           <option value="newest">Newest first</option>
                           <option value="oldest">Oldest first</option>
                         </select>
@@ -1837,44 +2144,82 @@ export default function BuyerDashboard() {
                           {ordersError}
                         </p>
                       )}
-                      {!ordersLoading && !ordersError && filteredOrders.map((o) => {
-                        const s = STATUS[o.status];
+                      {!ordersLoading && !ordersError && filteredOrders.map((o, oi) => {
+                        const s = STATUS[o.status] || STATUS.processing;
                         const Icon = s.icon;
                         return (
-                          <Card key={o.id}>
-                            <div className="p-6">
-                              <div className="flex items-start justify-between mb-4">
+                          <motion.div
+                            key={o.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: oi * 0.05, duration: 0.25 }}
+                            style={{
+                              background: 'var(--card-bg)',
+                              border: '1px solid var(--card-border)',
+                              borderRadius: 18,
+                              overflow: 'hidden',
+                              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                            }}
+                          >
+                            <div style={{ padding: '18px 20px' }}>
+                              <div className="flex items-start justify-between" style={{ marginBottom: 14 }}>
                                 <div className="flex items-start gap-3">
-                                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: s.bg }}>
-                                    <Icon className="w-4 h-4" style={{ color: s.color }} />
+                                  <div style={{
+                                    width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                                    background: `${s.bg}22`, border: `1px solid ${s.color}30`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}>
+                                    <Icon style={{ width: 16, height: 16, color: s.color }} />
                                   </div>
                                   <div>
-                                    <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{o.id}</p>
-                                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{o.date} · {o.seller} · {o.items} item{o.items > 1 ? 's' : ''}</p>
+                                    <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{o.id}</p>
+                                    <p style={{ fontSize: 11, marginTop: 3, color: 'var(--text-faint)' }}>{o.date} · {o.seller} · {o.items} item{o.items !== 1 ? 's' : ''}</p>
                                   </div>
                                 </div>
-                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: s.bg, color: s.color }}><Icon className="w-3 h-3" />{s.label}</span>
+                                <span style={{
+                                  display: 'flex', alignItems: 'center', gap: 5,
+                                  padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                  background: `${s.bg}22`, color: s.color,
+                                  border: `1px solid ${s.color}28`,
+                                }}><Icon style={{ width: 11, height: 11 }} />{s.label}</span>
                               </div>
-                              <div className="h-px mb-4" style={{ background: 'var(--divider)' }} />
+                              <div style={{ height: 1, background: 'var(--divider)', marginBottom: 14 }} />
                               <div className="flex items-center justify-between">
-                                <p className="font-bold text-base" style={{ color: PRIMARY }}>${o.total.toFixed(2)}</p>
+                                <p style={{ fontWeight: 800, fontSize: 16, color: PRIMARY }}>${o.total.toFixed(2)}</p>
                                 <div className="flex gap-2">
                                   {o.status !== 'cancelled' && (
                                     <Link to={`/track/${o.id}`}>
-                                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
-                                        <Truck className="w-3.5 h-3.5" /> Track
+                                      <motion.button
+                                        whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                        style={{
+                                          display: 'flex', alignItems: 'center', gap: 6,
+                                          padding: '7px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
+                                          background: 'rgba(249,115,22,0.09)',
+                                          color: PRIMARY, border: '1px solid rgba(249,115,22,0.2)',
+                                          cursor: 'pointer',
+                                        }}
+                                      >
+                                        <Truck style={{ width: 13, height: 13 }} /> Track
                                       </motion.button>
                                     </Link>
                                   )}
                                   <Link to={`/returns?order=${o.id}`}>
-                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'var(--btn-secondary-bg)', borderColor: 'var(--btn-secondary-border)', color: 'var(--btn-secondary-text)', border: '1px solid var(--btn-secondary-border)' }}>
-                                      <RotateCcw className="w-3.5 h-3.5" /> Return
+                                    <motion.button
+                                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        padding: '7px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
+                                        background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                                        color: 'var(--text-secondary)', cursor: 'pointer',
+                                      }}
+                                    >
+                                      <RotateCcw style={{ width: 13, height: 13 }} /> Return
                                     </motion.button>
                                   </Link>
                                 </div>
                               </div>
                             </div>
-                          </Card>
+                          </motion.div>
                         );
                       })}
                     </div>
@@ -4811,6 +5156,7 @@ export default function BuyerDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>{/* close position:relative z-1 wrapper */}
     </BuyerLayout>
   );
 }

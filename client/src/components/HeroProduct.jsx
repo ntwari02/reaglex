@@ -82,8 +82,9 @@ export default function HeroProduct({ product }) {
               style={{
                 width: 'clamp(280px, 40vw, 420px)',
                 height: 'clamp(300px, 42vw, 440px)',
-                background: 'white',
-                boxShadow: '0 24px 60px rgba(0,0,0,0.14)',
+                background: 'var(--bg-tertiary)',
+                boxShadow: 'var(--shadow-lg)',
+                border: '1px solid var(--border-card)',
               }}
             >
               <img
@@ -130,12 +131,17 @@ export default function HeroProduct({ product }) {
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setWishlisted(!wishlisted)}
                 className="absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
+                style={{
+                  background: 'var(--card-bg)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid var(--border-card)',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
               >
                 <Heart
                   className="w-4.5 h-4.5"
                   fill={wishlisted ? '#ff8c42' : 'none'}
-                  stroke={wishlisted ? '#ff8c42' : '#374151'}
+                  stroke={wishlisted ? '#ff8c42' : 'var(--text-muted)'}
                   style={{ width: '18px', height: '18px' }}
                 />
               </motion.button>
@@ -213,7 +219,7 @@ export default function HeroProduct({ product }) {
           {oldPrice && (
             <span
               className="text-base line-through"
-              style={{ color: '#9ca3af' }}
+              style={{ color: 'var(--text-muted)' }}
             >
               ${oldPrice.toFixed(2)}
             </span>
@@ -225,27 +231,34 @@ export default function HeroProduct({ product }) {
           {/* Quantity selector */}
           <div
             className="flex items-center gap-0 rounded-2xl overflow-hidden"
-            style={{ border: '1.5px solid #e5e7eb' }}
+            style={{
+              border: '1.5px solid var(--border-input)',
+              background: 'var(--bg-input)',
+            }}
           >
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="px-3 py-2.5 hover:bg-gray-50 transition"
-              style={{ color: '#6b7280' }}
+              className="px-3 py-2.5 transition"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             >
               <Minus className="w-4 h-4" />
             </motion.button>
             <span
               className="px-4 font-semibold text-sm"
-              style={{ color: '#1a1a1a', minWidth: '32px', textAlign: 'center' }}
+              style={{ color: 'var(--text-primary)', minWidth: '32px', textAlign: 'center' }}
             >
               {quantity}
             </span>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setQuantity(quantity + 1)}
-              className="px-3 py-2.5 hover:bg-gray-50 transition"
-              style={{ color: '#6b7280' }}
+              className="px-3 py-2.5 transition"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             >
               <Plus className="w-4 h-4" />
             </motion.button>

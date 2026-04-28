@@ -497,57 +497,117 @@ function MainHeader({
         </motion.div>
       </Link>
 
-      {/* Search bar — center, 560px on large screens */}
+      {/* ── Enhanced futuristic search bar ── */}
       <form
         onSubmit={handleSearchSubmit}
-        className="flex-1 max-w-[560px] hidden md:block relative"
+        className="flex-1 max-w-[600px] hidden md:block relative"
         ref={suggestRef}
       >
+        {/* Outer glow ring — only visible on focus */}
         <div
-          className="flex items-center overflow-hidden rounded-full h-11"
           style={{
+            position: 'absolute', inset: -2, borderRadius: 999, pointerEvents: 'none',
+            background: searchFocus
+              ? 'linear-gradient(90deg, rgba(249,115,22,0.55) 0%, rgba(139,92,246,0.38) 50%, rgba(249,115,22,0.55) 100%)'
+              : 'transparent',
+            opacity: searchFocus ? 1 : 0,
+            filter: 'blur(4px)',
+            transition: 'opacity 0.3s ease',
+            zIndex: 0,
+          }}
+        />
+
+        <div
+          className="flex items-center overflow-hidden h-11 relative"
+          style={{
+            borderRadius: 999,
             background: 'var(--search-bg)',
-            border: searchFocus ? `1.5px solid var(--input-border-focus)` : '1px solid var(--search-border)',
-            boxShadow: searchFocus ? 'var(--input-shadow-focus)' : 'none',
-            transition: 'all 0.2s ease',
+            border: searchFocus
+              ? '1.5px solid rgba(249,115,22,0.7)'
+              : '1px solid var(--search-border)',
+            boxShadow: searchFocus
+              ? '0 0 0 3px rgba(249,115,22,0.12), 0 4px 20px rgba(0,0,0,0.08)'
+              : '0 1px 4px rgba(0,0,0,0.06)',
+            transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
+            zIndex: 1,
           }}
         >
-          {/* Category dropdown */}
-          <div className="relative flex-shrink-0" ref={categoryRef}>
+          {/* Animated scan line on focus */}
+          {searchFocus && (
+            <motion.div
+              style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                pointerEvents: 'none', borderRadius: 999, overflow: 'hidden', zIndex: 0,
+              }}
+            >
+              <motion.div
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'linear', repeatDelay: 1.2 }}
+                style={{
+                  position: 'absolute', top: 0, bottom: 0, width: '40%',
+                  background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.06), transparent)',
+                }}
+              />
+            </motion.div>
+          )}
+
+          {/* Category selector */}
+          <div className="relative flex-shrink-0" ref={categoryRef} style={{ zIndex: 2 }}>
             <button
               type="button"
               onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-              className="flex items-center gap-1 pl-4 pr-2 py-2 text-xs font-medium h-full"
-              style={{ color: 'var(--text-secondary)', background: 'transparent' }}
+              className="flex items-center gap-1 pl-4 pr-3 h-11 text-[11px] font-semibold transition-colors duration-150"
+              style={{
+                color: category !== ALL_CATEGORIES ? PRIMARY : 'var(--text-secondary)',
+                background: 'transparent',
+                letterSpacing: '0.03em',
+                maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}
             >
-              {category}
-              <ChevronDown className="w-4 h-4" />
+              <span className="truncate">{category === ALL_CATEGORIES ? 'All' : category}</span>
+              <motion.span animate={{ rotate: categoryDropdownOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+              </motion.span>
             </button>
+
+            {/* Separator */}
             <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-6"
-              style={{ right: -2, borderRight: '1px solid var(--search-border)' }}
+              style={{
+                position: 'absolute', right: 0, top: '20%', height: '60%',
+                width: 1, background: 'var(--search-border)',
+              }}
             />
+
             <AnimatePresence>
               {categoryDropdownOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  className="absolute left-0 top-full mt-1 py-1 rounded-xl min-w-[180px] max-h-60 overflow-y-auto z-[200]"
+                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                  transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute left-0 top-full mt-2 py-1.5 rounded-2xl min-w-[190px] max-h-64 overflow-y-auto z-[200]"
                   style={{
                     background: 'var(--dropdown-bg)',
                     border: '1px solid var(--dropdown-border)',
-                    boxShadow: 'var(--dropdown-shadow)',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
                   }}
                 >
+                  <p className="px-3 pb-1 pt-0.5 text-[9px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>Category</p>
                   {SEARCH_CATEGORIES.map((cat) => (
                     <button
                       key={cat}
                       type="button"
                       onClick={() => { setCategory(cat); setCategoryDropdownOpen(false); }}
-                      className="w-full text-left px-4 py-2 text-xs hover:bg-orange-50 transition"
-                      style={{ color: category === cat ? PRIMARY : 'var(--dropdown-text)' }}
+                      className="w-full text-left px-3 py-2 text-xs transition-colors duration-100 flex items-center gap-2"
+                      style={{
+                        color: category === cat ? PRIMARY : 'var(--dropdown-text)',
+                        background: category === cat ? 'rgba(249,115,22,0.07)' : 'transparent',
+                        fontWeight: category === cat ? 600 : 400,
+                      }}
                     >
+                      {category === cat && (
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: PRIMARY, flexShrink: 0, display: 'inline-block' }} />
+                      )}
                       {cat}
                     </button>
                   ))}
@@ -556,7 +616,8 @@ function MainHeader({
             </AnimatePresence>
           </div>
 
-          <div className="flex-1 flex items-center min-w-0 relative">
+          {/* Text input */}
+          <div className="flex-1 flex items-center min-w-0 relative" style={{ zIndex: 2 }}>
             <input
               type="text"
               value={searchQuery}
@@ -564,124 +625,215 @@ function MainHeader({
               onFocus={() => { setSearchFocus(true); setSuggestionsOpen(true); }}
               onBlur={() => setTimeout(() => setSearchFocus(false), 180)}
               placeholder={t('search.placeholder')}
-              className="w-full px-3 py-2 pr-8 text-sm outline-none min-w-0 search-input bg-transparent"
+              className="w-full px-3 py-2 text-sm outline-none min-w-0 search-input bg-transparent"
+              style={{ color: 'var(--text-primary)', letterSpacing: '0.01em' }}
             />
-            {searchQuery.length > 0 && (
-              <button
-                type="button"
-                onClick={() => { setSearchQuery(''); setSuggestionsOpen(false); setSuggestionIndex(-1); }}
-                className="absolute right-2 p-1 rounded-full hover:bg-gray-200 transition"
-                aria-label={t('buttons.clear')}
-              >
-                <X className="w-4 h-4" style={{ color: '#6b7280' }} />
-              </button>
-            )}
+            <AnimatePresence>
+              {searchQuery.length > 0 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7 }}
+                  type="button"
+                  onClick={() => { setSearchQuery(''); setSuggestionsOpen(false); setSuggestionIndex(-1); }}
+                  className="flex-shrink-0 mr-1 w-5 h-5 rounded-full flex items-center justify-center transition-colors"
+                  style={{ background: 'rgba(107,114,128,0.15)' }}
+                  aria-label={t('buttons.clear')}
+                >
+                  <X className="w-3 h-3" style={{ color: '#6b7280' }} />
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
-          <button
+
+          {/* Submit button */}
+          <motion.button
             type="submit"
-            className="flex-shrink-0 w-12 h-full flex items-center justify-center rounded-r-full transition"
-            style={{ background: PRIMARY }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="flex-shrink-0 w-12 h-full flex items-center justify-center rounded-r-full relative overflow-hidden"
+            style={{ background: `linear-gradient(135deg, ${PRIMARY}, #ea580c)` }}
           >
-            <Search className="w-5 h-5 text-white" />
-          </button>
+            {/* Shimmer */}
+            <motion.div
+              animate={{ x: ['-120%', '200%'] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: 'linear', repeatDelay: 1.5 }}
+              style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)',
+                pointerEvents: 'none',
+              }}
+            />
+            <Search className="w-4.5 h-4.5 text-white relative z-10" style={{ width: 18, height: 18 }} />
+          </motion.button>
         </div>
 
-        {/* Search suggestions dropdown — sections: Recent, Trending, Products; keyboard nav; max 8 */}
+        {/* ── Futuristic suggestions panel ── */}
         <AnimatePresence>
           {showSuggestions && (
             <motion.div
               ref={suggestionListRef}
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="absolute left-0 right-0 top-full mt-1 rounded-xl bg-white overflow-hidden z-[200] max-h-[360px] overflow-y-auto"
-              style={{ boxShadow: DROPDOWN_SHADOW }}
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute left-0 right-0 top-full mt-2 rounded-2xl overflow-hidden z-[200]"
+              style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--card-border)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(249,115,22,0.06)',
+                maxHeight: 420,
+                overflowY: 'auto',
+              }}
             >
+              {/* Accent top bar */}
+              <div style={{ height: 2, background: `linear-gradient(90deg, ${PRIMARY}, rgba(139,92,246,0.7), ${PRIMARY})`, opacity: 0.8 }} />
+
+              {/* No results */}
               {searchQuery.trim() && suggestions.products?.length === 0 && (
-                <div className="py-4 px-4">
-                  <p className="text-sm" style={{ color: '#6b7280' }}>{t('search.noMatches')} &apos;{searchQuery.trim()}&apos;</p>
+                <div className="py-5 px-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Search className="w-4 h-4" style={{ color: '#9ca3af' }} />
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                      No matches for <span style={{ color: PRIMARY }}>&ldquo;{searchQuery.trim()}&rdquo;</span>
+                    </p>
+                  </div>
                   <Link
-                    to="/search"
+                    to={`/search?q=${encodeURIComponent(searchQuery.trim())}`}
                     onClick={() => setSuggestionsOpen(false)}
                     data-suggestion-index={0}
-                    className={`inline-block mt-2 text-sm font-semibold ${suggestionIndex === 0 ? 'opacity-90' : ''}`}
-                    style={{ color: PRIMARY }}
+                    className="inline-flex items-center gap-1.5 mt-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+                    style={{ color: PRIMARY, background: 'rgba(249,115,22,0.09)' }}
                   >
-                    {t('nav.shop')} →
+                    Search anyway →
                   </Link>
                 </div>
               )}
+
+              {/* Product results */}
               {searchQuery.trim() && suggestions.products?.length > 0 && (
                 <div className="py-2">
-                  <p className="px-4 py-1 text-xs font-semibold flex items-center gap-1" style={{ color: '#94a3b8' }}>📦 Products</p>
+                  <div className="flex items-center justify-between px-4 py-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--text-faint)' }}>Products</span>
+                    <Link to={`/search?q=${encodeURIComponent(searchQuery.trim())}`} onClick={() => setSuggestionsOpen(false)} className="text-[10px] font-semibold" style={{ color: PRIMARY }}>
+                      See all →
+                    </Link>
+                  </div>
                   {suggestions.products.slice(0, 5).map((p, idx) => {
                     const rowIndex = actions.findIndex((a) => a.type === 'product' && (a.data?._id || a.data?.id) === (p._id || p.id));
                     const name = p.title || p.name || '';
                     const parts = highlightMatch(name, searchQuery).split('\u0000');
+                    const isActive = suggestionIndex === (rowIndex >= 0 ? rowIndex : idx);
                     return (
                       <Link
                         key={p._id || p.id}
                         to={`/products/${p._id || p.id}`}
                         onClick={() => setSuggestionsOpen(false)}
                         data-suggestion-index={rowIndex >= 0 ? rowIndex : idx}
-                        className={`flex items-center gap-3 px-4 py-2 transition ${suggestionIndex === (rowIndex >= 0 ? rowIndex : idx) ? 'bg-orange-50' : 'hover:bg-orange-50'}`}
+                        className="flex items-center gap-3 px-4 py-2.5 transition-colors duration-100"
+                        style={{ background: isActive ? 'rgba(249,115,22,0.07)' : 'transparent' }}
                       >
-                        <img src={resolveImg(p.images?.[0] || p.image)} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <span className="text-sm truncate block" style={{ color: '#1a1a1a' }}>
-                            {parts.map((seg, i) => (i % 2 === 1 ? <span key={i} style={{ color: PRIMARY, fontWeight: 600 }}>{seg}</span> : seg))}
-                          </span>
-                          <span className="text-xs" style={{ color: '#94a3b8' }}>{(p.category || '') && ` • ${p.category}`} {(p.price != null) && ` • $${Number(p.price).toFixed(2)}`}</span>
+                        <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ background: 'var(--bg-secondary)' }}>
+                          <img src={resolveImg(p.images?.[0] || p.image)} alt="" className="w-full h-full object-cover" />
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm truncate font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {parts.map((seg, i) => (i % 2 === 1 ? <span key={i} style={{ color: PRIMARY, fontWeight: 700 }}>{seg}</span> : seg))}
+                          </p>
+                          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-faint)' }}>
+                            {p.category && <span>{p.category}</span>}
+                            {p.price != null && <span style={{ color: PRIMARY, fontWeight: 600, marginLeft: 6 }}>${Number(p.price).toFixed(2)}</span>}
+                          </p>
+                        </div>
+                        {isActive && <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: PRIMARY }} />}
                       </Link>
                     );
                   })}
                 </div>
               )}
+
+              {/* Recent searches */}
               {recentSearches.length > 0 && (
-                <div className="py-2 border-t border-gray-100">
-                  <div className="flex items-center justify-between px-4 py-1">
-                    <p className="text-xs font-semibold flex items-center gap-1" style={{ color: '#94a3b8' }}>🕐 Recent</p>
-                    <button type="button" onClick={() => clearRecentSearches()} className="text-xs" style={{ color: PRIMARY }}>Clear history</button>
+                <div className="py-2" style={{ borderTop: suggestions.products?.length > 0 ? '1px solid var(--divider)' : 'none' }}>
+                  <div className="flex items-center justify-between px-4 py-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.16em] flex items-center gap-1" style={{ color: 'var(--text-faint)' }}>
+                      <Clock className="w-3 h-3" /> Recent
+                    </span>
+                    <button type="button" onClick={() => clearRecentSearches()} className="text-[10px] font-medium transition-colors" style={{ color: 'var(--text-faint)' }}>
+                      Clear
+                    </button>
                   </div>
-                  {recentSearches.slice(0, 8).map((r, idx) => {
+                  {recentSearches.slice(0, 5).map((r) => {
                     const rowIndex = actions.findIndex((a) => a.type === 'recent' && a.label === r);
+                    const isActive = suggestionIndex === rowIndex;
                     return (
                       <div key={r} className="flex items-center group">
                         <button
                           type="button"
                           onClick={() => { setSearchQuery(r); addRecentSearch(r); navigate(`/search?q=${encodeURIComponent(r)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); }}
                           data-suggestion-index={rowIndex}
-                          className={`flex-1 text-left px-4 py-2 text-sm transition flex items-center gap-2 min-w-0 ${suggestionIndex === rowIndex ? 'bg-orange-50' : 'hover:bg-orange-50'}`}
-                          style={{ color: '#374151' }}
+                          className="flex-1 text-left px-4 py-2 text-sm transition-colors duration-100 flex items-center gap-2.5 min-w-0"
+                          style={{ background: isActive ? 'rgba(249,115,22,0.07)' : 'transparent', color: 'var(--text-secondary)' }}
                         >
-                          {r}
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+                          <span className="truncate">{r}</span>
                         </button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); removeRecentSearch(r); }} className="p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition" aria-label={t('buttons.remove')}>
-                          <X className="w-3.5 h-3.5" style={{ color: '#6b7280' }} />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeRecentSearch(r); }}
+                          className="p-1.5 mr-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ background: 'var(--bg-hover)' }}
+                          aria-label={t('buttons.remove')}
+                        >
+                          <X className="w-3 h-3" style={{ color: 'var(--text-faint)' }} />
                         </button>
                       </div>
                     );
                   })}
                 </div>
               )}
-              <div className="py-2 border-t border-gray-100">
-                <p className="px-4 py-1 text-xs font-semibold flex items-center gap-1" style={{ color: '#94a3b8' }}>🔥 Trending</p>
-                {TRENDING.slice(0, 5).map((t, idx) => {
-                  const rowIndex = actions.findIndex((a) => a.type === 'trending' && a.label === t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => { setSearchQuery(t); addRecentSearch(t); navigate(`/search?q=${encodeURIComponent(t)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); }}
-                      data-suggestion-index={rowIndex}
-                      className={`w-full text-left px-4 py-2 text-sm transition ${suggestionIndex === rowIndex ? 'bg-orange-50' : 'hover:bg-orange-50'}`}
-                      style={{ color: '#374151' }}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
+
+              {/* Trending */}
+              <div className="py-2" style={{ borderTop: '1px solid var(--divider)' }}>
+                <div className="px-4 py-1.5">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.16em] flex items-center gap-1" style={{ color: 'var(--text-faint)' }}>
+                    <Flame className="w-3 h-3" style={{ color: PRIMARY }} /> Trending now
+                  </span>
+                </div>
+                <div className="px-3 pb-2 flex flex-wrap gap-2">
+                  {TRENDING.slice(0, 5).map((item, idx) => {
+                    const rowIndex = actions.findIndex((a) => a.type === 'trending' && a.label === item);
+                    const isActive = suggestionIndex === rowIndex;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => { setSearchQuery(item); addRecentSearch(item); navigate(`/search?q=${encodeURIComponent(item)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); }}
+                        data-suggestion-index={rowIndex}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150"
+                        style={{
+                          background: isActive ? PRIMARY : 'rgba(249,115,22,0.09)',
+                          color: isActive ? '#fff' : PRIMARY,
+                          border: `1px solid ${isActive ? PRIMARY : 'rgba(249,115,22,0.2)'}`,
+                        }}
+                      >
+                        <Flame className="w-3 h-3" />
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Footer hint */}
+              <div
+                className="flex items-center justify-between px-4 py-2"
+                style={{ borderTop: '1px solid var(--divider)', background: 'var(--bg-secondary)' }}
+              >
+                <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>
+                  ↑↓ navigate &nbsp;·&nbsp; ↵ select &nbsp;·&nbsp; Esc close
+                </span>
+                <span className="text-[10px] font-semibold" style={{ color: PRIMARY }}>AI-Powered Search</span>
               </div>
             </motion.div>
           )}
@@ -754,7 +906,6 @@ function MainHeader({
           <button
             type="button"
             onClick={openCart}
-            onMouseEnter={() => cartItems?.length > 0 && setCartHoverOpen(true)}
             className="relative p-2 rounded-lg hover:bg-gray-100 transition"
           >
             <ShoppingBag className="w-[22px] h-[22px]" style={{ color: '#6b7280' }} />
@@ -767,56 +918,6 @@ function MainHeader({
               </span>
             )}
           </button>
-          <AnimatePresence>
-            {cartHoverOpen && cartItems?.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                onMouseLeave={() => setCartHoverOpen(false)}
-                className="absolute right-0 top-full mt-1 w-80 rounded-xl bg-white overflow-hidden z-[200]"
-                style={{ boxShadow: DROPDOWN_SHADOW }}
-              >
-                <div className="max-h-64 overflow-y-auto py-2">
-                  {cartItems.slice(0, 4).map((item) => (
-                    <Link
-                      key={item.id}
-                      to="/account?tab=orders"
-                      onClick={() => setCartHoverOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition"
-                    >
-                      <img src={resolveImg(item.image)} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: '#1a1a1a' }}>{item.title}</p>
-                        <p className="text-xs font-semibold" style={{ color: PRIMARY }}>${(item.price * item.quantity).toFixed(2)}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>{t('cart.subtotal')}: ${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex gap-2 px-4 pb-3">
-                  <button
-                    type="button"
-                    onClick={() => { setCartHoverOpen(false); openCart(); }}
-                    className="flex-1 py-2 rounded-lg text-sm font-semibold border transition"
-                    style={{ borderColor: PRIMARY, color: PRIMARY }}
-                  >
-                    {t('buttons.viewCart')}
-                  </button>
-                  <Link
-                    to="/checkout"
-                    onClick={() => setCartHoverOpen(false)}
-                    className="flex-1 py-2 rounded-lg text-sm font-semibold text-white text-center transition"
-                    style={{ background: PRIMARY }}
-                  >
-                    {t('buttons.checkout')}
-                  </Link>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         <div className="hidden md:block w-px h-6" style={{ background: '#e5e7eb' }} />
@@ -933,77 +1034,23 @@ function MainHeader({
 }
 
 // ── Tier 3: Category nav bar ──────────────────────────────────────────────────
-function CategoryNav({ megaOpen, setMegaOpen, t }) {
+function CategoryNav({ t }) {
   const location = useLocation();
-  const [megaHover, setMegaHover] = useState(false);
-  const megaRef = useRef(null);
   const { isSeller, isLoggedIn, isSellerPending } = useSellerAccess();
   const handleSellerLink = useHandleSellerLink();
-  useClickOutside(megaRef, () => { setMegaOpen(false); setMegaHover(false); });
 
   return (
     <div
       className="hidden md:flex items-center w-full px-4 sm:px-6 lg:px-8 xl:px-12"
       style={{ height: 44, background: 'var(--navbar-bg)', boxShadow: 'var(--shadow-navbar)', position: 'relative', zIndex: 101 }}
     >
-      <div className="relative flex-shrink-0" ref={megaRef}>
-        <button
-          type="button"
-          onClick={() => setMegaOpen(!megaOpen)}
-          onMouseEnter={() => setMegaHover(true)}
-          className="flex items-center gap-2 h-full px-4 rounded-lg text-sm font-semibold transition"
-          style={{ color: 'white', background: PRIMARY }}
-        >
-          <Menu className="w-4 h-4" /> {t('nav.categories')}
-        </button>
-
-        <AnimatePresence>
-          {(megaOpen || megaHover) && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              onMouseLeave={() => { setMegaHover(false); setMegaOpen(false); }}
-              className="absolute left-0 top-full mt-0 w-full min-w-[600px] max-w-[900px] rounded-b-xl overflow-hidden z-[200] border"
-              style={{
-                background: 'var(--dropdown-bg)',
-                borderColor: 'var(--dropdown-border)',
-                boxShadow: 'var(--dropdown-shadow)',
-              }}
-            >
-              <div className="flex">
-                <div className="w-56 flex-shrink-0 py-3 border-r border-gray-100 dark:border-gray-700">
-                  {MEGA_CATEGORIES.map((cat) => (
-                    <Link
-                      key={cat.name}
-                      to={`/search?category=${encodeURIComponent(cat.name)}`}
-                      onClick={() => setMegaOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 transition"
-                      style={{ color: 'var(--dropdown-text)' }}
-                    >
-                      <span>{cat.icon}</span> {cat.name}
-                    </Link>
-                  ))}
-                </div>
-                <div className="flex-1 p-4 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-                  <div className="text-center">
-                    <p className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>{t('nav.deals')}</p>
-                    <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Up to 70% off — limited time</p>
-                    <Link
-                      to="/search?sort=discount"
-                      onClick={() => setMegaOpen(false)}
-                      className="inline-block px-4 py-2 rounded-lg text-sm font-semibold text-white"
-                      style={{ background: PRIMARY }}
-                    >
-                      {t('buttons.buy')}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <Link
+        to="/search"
+        className="flex items-center gap-2 h-full px-4 rounded-lg text-sm font-semibold transition flex-shrink-0"
+        style={{ color: 'white', background: PRIMARY }}
+      >
+        <Menu className="w-4 h-4" /> {t('nav.categories')}
+      </Link>
 
       <nav className="flex-1 flex items-center gap-6 overflow-x-auto scrollbar-hide px-4">
         {NAV_LINKS.map(({ to, labelKey, badge }) => {
@@ -1242,7 +1289,6 @@ export default function Navbar() {
   const [searchFocus, setSearchFocus] = useState(false);
   const [category, setCategory] = useState(ALL_CATEGORIES);
   const [currency, setCurrency] = useState(CURRENCIES[0]);
-  const [megaOpen, setMegaOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const user = useAuthStore((s) => s.user);
@@ -1341,7 +1387,7 @@ export default function Navbar() {
 
       {/* Tier 3 */}
       <div style={{ position: 'relative', zIndex: 101 }}>
-        <CategoryNav megaOpen={megaOpen} setMegaOpen={setMegaOpen} t={t} />
+        <CategoryNav t={t} />
       </div>
 
       {/* Mobile drawer */}

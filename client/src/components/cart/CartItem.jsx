@@ -19,7 +19,7 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
       exit={{ opacity: 0, x: 40, height: 0, marginBottom: 0 }}
       transition={{ duration: 0.32, delay: index * 0.06, ease: 'easeOut' }}
       className="flex items-start gap-4 py-5"
-      style={{ borderBottom: '1px solid #f3f4f6' }}
+      style={{ borderBottom: '1px solid var(--divider)' }}
     >
       {/* Thumbnail */}
       <motion.div
@@ -29,8 +29,9 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
         style={{
           width: 72,
           height: 72,
-          background: '#f9fafb',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          background: 'var(--bg-tertiary)',
+          boxShadow: 'var(--shadow-sm)',
+          border: '1px solid var(--border-card)',
         }}
       >
         <img
@@ -49,15 +50,15 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
           <div className="min-w-0">
             <h4
               className="font-semibold text-sm truncate"
-              style={{ color: '#111827' }}
+              style={{ color: 'var(--text-primary)' }}
             >
               {item.title}
             </h4>
-            <p className="text-xs mt-0.5 truncate" style={{ color: '#9ca3af' }}>
+            <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
               {item.seller}
             </p>
             {item.variant && (
-              <p className="text-xs mt-0.5" style={{ color: '#6b7280' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 {item.variant}
               </p>
             )}
@@ -69,9 +70,11 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
             whileTap={{ scale: 0.9 }}
             transition={{ duration: 0.18 }}
             onClick={() => onRemove(item.id)}
-            className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+            className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
           >
-            <X className="w-3.5 h-3.5" style={{ color: '#9ca3af' }} />
+            <X className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
           </motion.button>
         </div>
 
@@ -82,7 +85,7 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
             onDecrease={() => onUpdateQty(item.id, item.quantity - 1)}
             onIncrease={() => onUpdateQty(item.id, item.quantity + 1)}
           />
-          <span className="font-bold text-sm" style={{ color: '#111827' }}>
+          <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
             ${(item.price * item.quantity).toFixed(2)}
           </span>
         </div>
@@ -90,4 +93,3 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
     </motion.div>
   );
 }
-
