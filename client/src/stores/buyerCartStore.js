@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { trackRecommendationActivity } from '../services/recommendationEmailApi';
 
 export const useBuyerCart = create(
   persist(
@@ -33,10 +34,22 @@ export const useBuyerCart = create(
             ],
           });
         }
+        void trackRecommendationActivity({
+          eventType: 'cart_add',
+          productId: String(product?._id || product?.id || ''),
+          category: product?.category || '',
+          tags: Array.isArray(product?.tags) ? product.tags : [],
+          meta: { quantity },
+        });
       },
 
-      removeItem: (id) =>
-        set({ items: get().items.filter((i) => i.id !== id) }),
+      removeItem: (id) => {
+        set({ items: get().items.filter((i) => i.id !== id) });
+        void trackRecommendationActivity({
+          eventType: 'cart_remove',
+          productId: String(id),
+        });
+      },
 
       updateQuantity: (id, quantity) => {
         if (quantity < 1) return get().removeItem(id);

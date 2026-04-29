@@ -65,6 +65,8 @@ import rateLimit from 'express-rate-limit';
 import { recordApiTiming, seedMonitorLogsOnce } from './src/services/systemMonitor.service';
 import systemMonitorRoutes from './src/routes/systemMonitor.routes';
 import securityAnalysisRoutes from './src/routes/securityAnalysis.routes';
+import recommendationEmailRoutes from './src/routes/recommendationEmailRoutes';
+import { startRecommendationEmailWorker } from './src/services/recommendationEmail.service';
 
 const app = express();
 const httpServer = createServer(app);
@@ -266,6 +268,7 @@ app.use('/api/ai', aiChatRoutes);
 app.use('/api/ai', aiAgentRoutes);
 app.use('/api/system', systemMonitorRoutes);
 app.use('/api/security-analysis', securityAnalysisRoutes);
+app.use('/api/recommendation-emails', recommendationEmailRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);
@@ -353,6 +356,7 @@ const connectDB = async () => {
     console.log('✅ Connected to MongoDB');
 
     startScheduledNotificationWorker();
+    startRecommendationEmailWorker();
 
     // Initialize WebSocket server
     websocketService.initialize(httpServer);

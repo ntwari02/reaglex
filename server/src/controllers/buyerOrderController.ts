@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Order, OrderStatus } from '../models/Order';
 import { Product } from '../models/Product';
+import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 
 /**
  * Create order(s) from cart checkout
@@ -116,6 +117,18 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
 
       await order.save();
       orders.push(order);
+
+      for (const item of orderItems) {
+        void recordRecommendationActivity({
+          userId: req.user.id,
+          eventType: 'purchase',
+          productId: String(item.productId),
+          meta: {
+            quantity: item.quantity,
+            orderNumber,
+          },
+        });
+      }
     }
 
     return res.status(201).json({ 

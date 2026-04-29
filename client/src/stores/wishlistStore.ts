@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useToastStore } from './toastStore';
 import type { WishlistItem, Product } from '../types';
+import { trackRecommendationActivity } from '../services/recommendationEmailApi';
 
 interface WishlistState {
   items: WishlistItem[];
@@ -66,6 +67,12 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
     // Show toast notification
     const toastStore = useToastStore.getState();
     toastStore.showToast(`${product.title} added to wishlist!`, 'success');
+    void trackRecommendationActivity({
+      eventType: 'wishlist_add',
+      productId: String(product.id),
+      category: (product as any).category || '',
+      tags: Array.isArray((product as any).tags) ? (product as any).tags : [],
+    });
 
     // Wishlist is saved to localStorage only
   },
@@ -89,6 +96,12 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
     // Show toast notification
     const toastStore = useToastStore.getState();
     toastStore.showToast(`${productTitle} removed from wishlist`, 'success');
+    if (item?.product_id) {
+      void trackRecommendationActivity({
+        eventType: 'wishlist_remove',
+        productId: String(item.product_id),
+      });
+    }
 
     // Wishlist is managed via localStorage only
   },

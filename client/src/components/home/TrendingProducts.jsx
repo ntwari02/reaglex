@@ -109,8 +109,9 @@ function TrendCard({ product, index, isDark, onAdd }) {
               onClick={handleAdd}
               className="w-full py-2.5 md:py-2.5 flex items-center justify-center gap-2 text-xs font-bold tracking-wide"
               style={{
-                background: isDark ? '#6366f1' : '#0f172a',
-                color: '#fff',
+                background: isDark ? '#ffffff' : '#0f172a',
+                color: isDark ? '#0f172a' : '#ffffff',
+                borderTop: isDark ? '1px solid rgba(15,23,42,0.12)' : 'none',
               }}
             >
               <ShoppingCart size={13} />

@@ -28,6 +28,24 @@
   align-items: start;
 }
 
+.pd2-fluid-wrap {
+  width: 100%;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+@media (min-width: 640px) {
+  .pd2-fluid-wrap {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+@media (min-width: 1024px) {
+  .pd2-fluid-wrap {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
 @media (min-width: 1024px) {
   .pd2-hero-grid {
     grid-template-columns: 1.15fr 1fr;
@@ -65,13 +83,15 @@
   flex: 1;           /* grows to fill the gallery col height */
   min-height: 300px;
   position: relative;
+  border-radius: 20px;
 }
 
 /* On mobile / tablet the grid is single-column; use explicit heights */
 @media (max-width: 639px) {
   .pd2-main-img {
     flex: none;
-    height: 320px;
+    height: min(72vw, 420px);
+    border-radius: 16px;
   }
 }
 
@@ -155,52 +175,33 @@
   flex-direction: column;
 }
 
-.pd2-purchase-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-card);
-  border-radius: 28px;
-  padding: 28px 28px 24px;
+.pd2-purchase-flow {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
   position: relative;
+  box-shadow: none;
+}
+
+.pd2-divider {
+  height: 1px;
+  background: var(--divider);
+}
+.pd2-divider-top {
+  border-top: 1px solid var(--divider);
+}
+
+.pd2-homeish-block {
+  --pd2-strip-bg: var(--bg-page);
+}
+
+.pd2-homeish-card {
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(249, 115, 22, 0.06);
-  transition: box-shadow 300ms ease;
-}
-
-.pd2-purchase-card:hover {
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(249, 115, 22, 0.12);
-}
-
-/* Corner glow */
-.pd2-purchase-card::before {
-  content: '';
-  position: absolute;
-  top: -60px;
-  right: -60px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-/* Dot grid overlay */
-.pd2-purchase-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
-  border-radius: 28px;
-  pointer-events: none;
-}
-
-.dark .pd2-purchase-card::after {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  border: 1px solid var(--border-card);
+  background: var(--card-bg);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.07);
 }
 
 /* ─── Title ──────────────────────────────────────────────────────────────── */
@@ -208,17 +209,8 @@
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 800;
   line-height: 1.2;
-  background: linear-gradient(135deg, #1a1a2e 0%, #374151 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
   animation: pd2-title-in 400ms ease 200ms both;
-}
-
-.dark .pd2-title {
-  background: linear-gradient(135deg, #f9fafb 0%, #d1d5db 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
 }
 
 @keyframes pd2-title-in {

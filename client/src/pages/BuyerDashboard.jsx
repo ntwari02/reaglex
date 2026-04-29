@@ -1573,12 +1573,11 @@ export default function BuyerDashboard() {
             borderBottom: '1px solid var(--card-border)',
           }}
         >
-          <PatternOverlay />
           {/* Accent line at top */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: 2,
             background: PRIMARY,
-            opacity: 0.9,
+            opacity: 0.75,
           }} />
           <div className="relative z-10 flex items-center justify-between w-full gap-4">
             {!isPaymentsTab && (
@@ -1593,24 +1592,24 @@ export default function BuyerDashboard() {
                       {isAddressesTab ? 'Addresses' : 'Dashboard'}
                     </span>
                   </div>
-                  <h1 className="font-black text-white" style={{ fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                  <h1 className="font-black" style={{ fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--text-primary)' }}>
                     {isAddressesTab ? 'My Addresses' : 'My Account'}
                   </h1>
                   {isAddressesTab && (
-                    <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Manage your delivery addresses</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Manage your delivery addresses</p>
                   )}
-                  <p className="text-xs mt-2 flex items-center gap-1.5 flex-wrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                    <Link to="/" className="hover:text-white transition-colors">Home</Link>
+                  <p className="text-xs mt-2 flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-faint)' }}>
+                    <Link to="/" className="hover:opacity-90 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Home</Link>
                     <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
-                    <Link to="/account" className="hover:text-white transition-colors">Account</Link>
+                    <Link to="/account" className="hover:opacity-90 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Account</Link>
                     <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
-                    <span style={{ color: 'rgba(255,255,255,0.7)' }}>{tabLabel}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{tabLabel}</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right hidden sm:block">
-                    <p className="font-bold text-white text-sm tracking-wide">{displayName}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{user.email}</p>
+                    <p className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-primary)' }}>{displayName}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
                     <span style={{
                       display: 'inline-block', marginTop: 5, fontSize: 10, fontWeight: 600,
                       letterSpacing: '0.12em', textTransform: 'uppercase',
@@ -1622,7 +1621,7 @@ export default function BuyerDashboard() {
                     whileHover={{ scale: 1.06 }}
                     className="w-14 h-14 sm:w-[62px] sm:h-[62px] rounded-full flex items-center justify-center text-white font-black flex-shrink-0 relative overflow-hidden"
                     style={{
-                      background: hasAvatar ? 'rgba(15,23,42,0.55)' : `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                      background: hasAvatar ? 'var(--bg-tertiary)' : PRIMARY,
                       fontSize: 22,
                     }}
                   >
@@ -1655,16 +1654,16 @@ export default function BuyerDashboard() {
                       background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.22)',
                     }}>Payments</span>
                   </div>
-                  <h1 className="font-black text-white flex items-center gap-3" style={{ fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                  <h1 className="font-black flex items-center gap-3" style={{ fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--text-primary)' }}>
                     <span style={{ fontSize: 28 }}>💳</span> Payment Methods
                   </h1>
-                  <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Manage payments, escrow & payouts</p>
-                  <p className="text-xs mt-2 flex items-center gap-1.5 flex-wrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                    <Link to="/" className="hover:text-white transition-colors">Home</Link>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Manage payments, escrow & payouts</p>
+                  <p className="text-xs mt-2 flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-faint)' }}>
+                    <Link to="/" className="hover:opacity-90 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Home</Link>
                     <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
-                    <Link to="/account" className="hover:text-white transition-colors">Account</Link>
+                    <Link to="/account" className="hover:opacity-90 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Account</Link>
                     <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
-                    <span style={{ color: 'rgba(255,255,255,0.7)' }}>Payment Methods</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Payment Methods</span>
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 text-[11px] sm:text-xs font-semibold">
@@ -1677,8 +1676,8 @@ export default function BuyerDashboard() {
                       key={b.label}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--card-border)',
                         backdropFilter: 'blur(8px)',
                         color: b.color,
                       }}

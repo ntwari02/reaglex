@@ -146,6 +146,8 @@ export default function ProductDetail() {
   const [reviewPage,   setReviewPage]   = useState(0);
   const [voteUp,       setVoteUp]       = useState(187);
   const [relatedPaused, setRelatedPaused] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [touchStartX, setTouchStartX] = useState(null);
 
   /* ── refs ── */
   const ctaRef = useRef(null);
@@ -337,7 +339,7 @@ export default function ProductDetail() {
             style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.05) 0%, transparent 65%)' }} />
         </div>
 
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 pb-28">
+        <div className="relative z-10 w-full pd2-fluid-wrap pt-4 pb-28 md:pb-12">
 
           {/* ── Breadcrumb ── */}
           <motion.div
@@ -362,7 +364,7 @@ export default function ProductDetail() {
           {/* ════════════════════════════════════════════════
               HERO: Gallery + Purchase Panel
           ════════════════════════════════════════════════ */}
-          <div className="pd2-hero-grid gap-8 xl:gap-10 mb-14">
+          <div className="pd2-hero-grid gap-6 lg:gap-8 mb-10">
 
             {/* ── Gallery ── */}
             <motion.div
@@ -374,11 +376,18 @@ export default function ProductDetail() {
               <div
                 className="pd2-main-img group relative overflow-hidden rounded-3xl cursor-zoom-in mb-4"
                 style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--border-card)',
-                  boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
+                  background: 'var(--bg-secondary)',
                 }}
                 onClick={() => setLightbox(true)}
+                onTouchStart={(e) => setTouchStartX(e.changedTouches?.[0]?.clientX ?? null)}
+                onTouchEnd={(e) => {
+                  const endX = e.changedTouches?.[0]?.clientX;
+                  if (touchStartX == null || typeof endX !== 'number' || images.length < 2) return;
+                  const delta = endX - touchStartX;
+                  if (Math.abs(delta) < 40) return;
+                  if (delta < 0) setActiveImage((i) => (i + 1) % images.length);
+                  else setActiveImage((i) => (i - 1 + images.length) % images.length);
+                }}
               >
                 <AnimatePresence mode="wait">
                   <motion.img
@@ -481,7 +490,7 @@ export default function ProductDetail() {
 
               {/* Thumbnails */}
               {images.length > 1 && (
-                <div className="flex gap-2.5 overflow-x-auto pb-1">
+                <div className="flex gap-2.5 overflow-x-auto pb-1 scroll-touch" style={{ scrollSnapType: 'x mandatory' }}>
                   {images.slice(0, 6).map((img, i) => (
                     <motion.button
                       key={i} type="button"
@@ -490,9 +499,10 @@ export default function ProductDetail() {
                       style={{
                         width: 72, height: 72,
                         border: `2px solid ${i === activeImage ? PRIMARY : 'transparent'}`,
-                        boxShadow: i === activeImage ? `0 0 0 2px rgba(249,115,22,0.2)` : '0 2px 8px rgba(0,0,0,0.08)',
+                        boxShadow: 'none',
                         background: 'var(--card-bg)',
                         opacity: i === activeImage ? 1 : 0.65,
+                        scrollSnapAlign: 'start',
                       }}
                       whileHover={{ scale: 1.07, opacity: 1 }}
                     >
@@ -509,7 +519,7 @@ export default function ProductDetail() {
               initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease }}
             >
-              <div className="pd2-purchase-card">
+              <div className="pd2-purchase-flow">
 
                 {/* Category + badge */}
                 <div className="flex items-center gap-3 mb-4">
@@ -530,13 +540,24 @@ export default function ProductDetail() {
                 <h1 className="pd2-title mb-3">{title}</h1>
 
                 {/* Short desc */}
-                <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-                  {shortDesc}
-                </p>
+                <div className="mb-4">
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    {descExpanded ? (product.description || shortDesc) : shortDesc}
+                  </p>
+                  {(product.description || '').length > 180 && (
+                    <button
+                      type="button"
+                      onClick={() => setDescExpanded((v) => !v)}
+                      className="mt-2 text-xs font-semibold hover:underline"
+                      style={{ color: PRIMARY }}
+                    >
+                      {descExpanded ? 'Read less' : 'Read more'}
+                    </button>
+                  )}
+                </div>
 
                 {/* Rating row */}
-                <div className="flex flex-wrap items-center gap-3 mb-5 pb-5"
-                  style={{ borderBottom: '1px solid var(--divider)' }}>
+                <div className="flex flex-wrap items-center gap-3 mb-5 pb-4 pd2-divider">
                   <Stars rating={rating} />
                   <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating.toFixed(1)}</span>
                   <button
@@ -563,7 +584,7 @@ export default function ProductDetail() {
                     )}
                   </div>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    or 3 interest-free payments of ${installment}
+                    In stock: {stock > 0 ? `${stock} units available` : 'Unavailable'} · 3 payments of ${installment}
                   </p>
                 </div>
 
@@ -582,7 +603,7 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Divider */}
-                <div style={{ height: 1, background: 'var(--divider)', marginBottom: '1.25rem' }} />
+                <div className="pd2-divider mb-5" />
 
                 {/* Size */}
                 <div className="mb-5">
@@ -594,12 +615,12 @@ export default function ProductDetail() {
                       Size Guide
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {SIZES.map((s) => (
                       <motion.button key={s} type="button"
                         onClick={() => setSelectedSize(s)}
                         whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }}
-                        className="w-12 h-10 rounded-xl text-sm font-bold transition-all duration-200"
+                        className="w-10 h-8 rounded-lg text-xs font-bold transition-all duration-200"
                         style={{
                           background: selectedSize === s ? PRIMARY : 'var(--bg-secondary)',
                           color: selectedSize === s ? '#fff' : 'var(--text-secondary)',
@@ -617,12 +638,12 @@ export default function ProductDetail() {
                   <p className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
                     Color: <span style={{ color: PRIMARY }}>{selectedColor.name}</span>
                   </p>
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     {COLORS.map((c) => (
                       <motion.button key={c.name} type="button"
                         onClick={() => setSelectedColor(c)}
                         whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }}
-                        className="w-9 h-9 rounded-full transition-all"
+                        className="w-7 h-7 rounded-full transition-all"
                         style={{
                           background: c.hex,
                           border: `2px solid ${selectedColor.name === c.name ? PRIMARY : 'transparent'}`,
@@ -637,7 +658,7 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Divider */}
-                <div style={{ height: 1, background: 'var(--divider)', marginBottom: '1.25rem' }} />
+                <div className="pd2-divider mb-5" />
 
                 {/* Quantity */}
                 <div className="flex items-center gap-4 mb-6">
@@ -667,7 +688,7 @@ export default function ProductDetail() {
                 </div>
 
                 {/* CTAs */}
-                <div ref={ctaRef} className="flex flex-col gap-3 mb-6">
+                <div ref={ctaRef} className="hidden md:grid md:grid-cols-2 gap-3 mb-6">
                   {/* Add to Cart */}
                   <motion.button
                     type="button"
@@ -697,10 +718,7 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Compact trust icon bar */}
-                <div
-                  className="flex items-center justify-between gap-1 pt-4 mt-1 flex-wrap"
-                  style={{ borderTop: '1px solid var(--divider)' }}
-                >
+                <div className="flex items-center justify-between gap-1 pt-4 mt-1 flex-wrap pd2-divider-top">
                   {[
                     { icon: Shield,     label: 'Protected',   color: PRIMARY      },
                     { icon: Truck,      label: 'Free Ship',   color: '#6366f1'    },
@@ -717,7 +735,7 @@ export default function ProductDetail() {
                   ))}
                 </div>
 
-              </div>{/* end pd2-purchase-card */}
+              </div>{/* end pd2-purchase-flow */}
             </motion.div>
           </div>{/* end hero grid */}
 
@@ -1011,23 +1029,30 @@ export default function ProductDetail() {
               RELATED PRODUCTS
           ════════════════════════════════════════════════ */}
           {related.length > 0 && (
-            <section className="mb-14">
-              <div className="flex items-center justify-between mb-6">
-                <div className="pd2-section-label mb-0">
-                  <h2 className="text-xl font-black tracking-wide" style={{ color: 'var(--text-primary)', fontFamily: "'Times New Roman', Georgia, serif", letterSpacing: '-0.01em' }}>YOU MIGHT ALSO LIKE</h2>
+            <section className="mb-14 pd2-homeish-block">
+              <div className="flex items-end justify-between mb-6">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: 'var(--text-faint)' }}>
+                    Recommended For You
+                  </p>
+                  <h2 className="text-2xl sm:text-[2rem] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                    YOU MIGHT ALSO LIKE
+                  </h2>
                 </div>
-                <Link to="/search" className="text-sm font-bold hover:underline" style={{ color: PRIMARY }}>View All →</Link>
+                <Link to="/search" className="text-xs font-semibold tracking-wide hidden sm:inline-flex" style={{ color: PRIMARY }}>
+                  View all →
+                </Link>
               </div>
               <div className="relative">
                 <div
                   aria-hidden
                   className="absolute left-0 top-0 bottom-4 w-8 z-[2] pointer-events-none"
-                  style={{ background: 'linear-gradient(90deg, var(--bg-page), transparent)' }}
+                  style={{ background: 'linear-gradient(90deg, var(--pd2-strip-bg), transparent)' }}
                 />
                 <div
                   aria-hidden
                   className="absolute right-0 top-0 bottom-4 w-8 z-[2] pointer-events-none"
-                  style={{ background: 'linear-gradient(270deg, var(--bg-page), transparent)' }}
+                  style={{ background: 'linear-gradient(270deg, var(--pd2-strip-bg), transparent)' }}
                 />
                 <div
                   ref={relatedScrollRef}
@@ -1036,15 +1061,21 @@ export default function ProductDetail() {
                   onMouseLeave={() => setRelatedPaused(false)}
                   onTouchStart={() => setRelatedPaused(true)}
                   onTouchEnd={() => setTimeout(() => setRelatedPaused(false), 1100)}
-                  style={{ scrollbarWidth: 'none' }}
+                  style={{
+                    scrollbarWidth: 'none',
+                    paddingLeft: 'max(0.2rem, calc((100vw - 1280px) / 2 + 0.2rem))',
+                    paddingRight: 'max(0.2rem, calc((100vw - 1280px) / 2 + 0.2rem))',
+                  }}
                 >
                   {[...related.slice(0, 6), ...related.slice(0, 6)].map((p, idx) => (
                     <motion.div key={`${p._id || p.id}-${idx}`}
-                      className="flex-shrink-0 w-[260px]"
+                      className="flex-shrink-0 w-[240px] sm:w-[255px]"
                       initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }} transition={{ delay: (idx % 6) * 0.07, duration: 0.4 }}
                     >
-                      <ProductCard product={p} index={idx % 6} compact={false} />
+                      <div className="pd2-homeish-card">
+                        <ProductCard product={p} index={idx % 6} compact={false} ctaStyle="home" />
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -1056,18 +1087,31 @@ export default function ProductDetail() {
               RECENTLY VIEWED
           ════════════════════════════════════════════════ */}
           {recentFiltered.length > 0 && (
-            <section className="mb-8">
-              <div className="pd2-section-label">
-                <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)', fontFamily: "'Times New Roman', Georgia, serif" }}>RECENTLY VIEWED</h2>
+            <section className="mb-8 pd2-homeish-block">
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: 'var(--text-faint)' }}>
+                    Continue Shopping
+                  </p>
+                  <h2 className="text-2xl sm:text-[2rem] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                    RECENTLY VIEWED
+                  </h2>
+                </div>
               </div>
-              <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex gap-4 overflow-x-auto pb-4 scroll-touch" style={{
+                scrollbarWidth: 'none',
+                paddingLeft: 'max(0.2rem, calc((100vw - 1280px) / 2 + 0.2rem))',
+                paddingRight: 'max(0.2rem, calc((100vw - 1280px) / 2 + 0.2rem))',
+              }}>
                 {recentFiltered.map((p, idx) => (
                   <motion.div key={p._id || p.id}
-                    className="flex-shrink-0 w-[200px]"
+                    className="flex-shrink-0 w-[200px] sm:w-[220px]"
                     initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }} transition={{ delay: idx * 0.06 }}
                   >
-                    <ProductCard product={p} index={idx} compact />
+                    <div className="pd2-homeish-card">
+                      <ProductCard product={p} index={idx} compact ctaStyle="home" />
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -1075,6 +1119,37 @@ export default function ProductDetail() {
           )}
         </div>
 
+      </div>
+
+      {/* Mobile sticky actions */}
+      <div className="md:hidden fixed left-0 right-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-[95] px-3 pb-2">
+        <div
+          className="grid grid-cols-2 gap-2 p-2 rounded-2xl"
+          style={{
+            background: 'color-mix(in srgb, var(--card-bg) 94%, transparent)',
+            border: '1px solid var(--divider)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={stock === 0 || addState === 'adding'}
+            className="h-12 rounded-xl text-sm font-bold"
+            style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--divider)' }}
+          >
+            {addState === 'added' ? 'Added' : 'Add to Cart'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
+            className="h-12 rounded-xl text-sm font-bold text-white"
+            style={{ background: PRIMARY }}
+          >
+            Buy Now
+          </button>
+        </div>
       </div>
 
       {/* ════════════════════════════════════════════════

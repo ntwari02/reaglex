@@ -7,6 +7,10 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
+import {
+  getRecommendationEmailPreference,
+  updateRecommendationEmailPreference,
+} from '../services/recommendationEmailApi';
 
 const PRIMARY = '#f97316';
 const SUCCESS = '#10b981';
@@ -145,6 +149,14 @@ export default function AccountSettingsDashboard() {
   const [quietFrom, setQuietFrom] = useState('22:00');
   const [quietTo, setQuietTo] = useState('08:00');
   const [notifDigest, setNotifDigest] = useState('weekly');
+  const [recEmailPrefs, setRecEmailPrefs] = useState({
+    enabled: true,
+    frequency: 'weekly',
+    mode: 'mixed',
+    unsubscribed: false,
+    lastSentAt: null,
+  });
+  const [recPrefLoading, setRecPrefLoading] = useState(false);
 
   // Preferences state
   const [prefs, setPrefs] = useState({
@@ -204,6 +216,34 @@ export default function AccountSettingsDashboard() {
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [hasUnsaved]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadRecPrefs = async () => {
+      if (!user) return;
+      setRecPrefLoading(true);
+      try {
+        const pref = await getRecommendationEmailPreference();
+        if (!mounted || !pref) return;
+        setRecEmailPrefs((p) => ({
+          ...p,
+          enabled: !!pref.enabled,
+          frequency: pref.frequency || 'weekly',
+          mode: pref.mode || 'mixed',
+          unsubscribed: !!pref.unsubscribed,
+          lastSentAt: pref.lastSentAt || null,
+        }));
+      } catch {
+        // ignore load errors for this optional settings panel
+      } finally {
+        if (mounted) setRecPrefLoading(false);
+      }
+    };
+    void loadRecPrefs();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
 
   const handleProfileChange = (key, value) => {
     setProfileForm((p) => ({ ...p, [key]: value }));
@@ -1109,6 +1149,93 @@ export default function AccountSettingsDashboard() {
               </motion.div>
 
               {/* Additional groups (Deals, Security, Messages) would follow similar pattern... */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.08 }}
+                className="rounded-[20px] p-6"
+                style={{
+                  background: 'var(--card-bg)',
+                  boxShadow: '0 14px 40px rgba(15,23,42,0.35)',
+                }}
+              >
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <h3 className="text-[18px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      Personalized Deal Emails
+                    </h3>
+                    <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                      Smart picks based on your wishlist, viewed products, cart, and purchases.
+                    </p>
+                    {recEmailPrefs.lastSentAt && (
+                      <p className="text-[12px] mt-2" style={{ color: 'var(--text-faint)' }}>
+                        Last sent: {new Date(recEmailPrefs.lastSentAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={recPrefLoading}
+                    onClick={() => {
+                      const nextEnabled = !recEmailPrefs.enabled;
+                      setRecEmailPrefs((p) => ({ ...p, enabled: nextEnabled, unsubscribed: false }));
+                      setNotifDirty(true);
+                    }}
+                    className="relative w-12 h-7 rounded-full"
+                    style={{ background: recEmailPrefs.enabled ? PRIMARY : 'rgba(148,163,184,0.45)' }}
+                  >
+                    <motion.div
+                      className="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white"
+                      animate={{ x: recEmailPrefs.enabled ? 20 : 0 }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                    />
+                  </button>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                  <label className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    Frequency
+                    <select
+                      value={recEmailPrefs.frequency}
+                      onChange={(e) => {
+                        setRecEmailPrefs((p) => ({ ...p, frequency: e.target.value }));
+                        setNotifDirty(true);
+                      }}
+                      className="mt-2 w-full h-11 rounded-xl px-3"
+                      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--card-border)', color: 'var(--text-primary)' }}
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </label>
+                  <label className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    Recommendation mix
+                    <select
+                      value={recEmailPrefs.mode}
+                      onChange={(e) => {
+                        setRecEmailPrefs((p) => ({ ...p, mode: e.target.value }));
+                        setNotifDirty(true);
+                      }}
+                      className="mt-2 w-full h-11 rounded-xl px-3"
+                      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--card-border)', color: 'var(--text-primary)' }}
+                    >
+                      <option value="mixed">Mixed recommendations</option>
+                      <option value="deals_only">Deals only</option>
+                    </select>
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecEmailPrefs((p) => ({ ...p, unsubscribed: true, enabled: false }));
+                    setNotifDirty(true);
+                  }}
+                  className="mt-3 text-xs font-semibold"
+                  style={{ color: ERROR }}
+                >
+                  Unsubscribe from recommendation emails
+                </button>
+              </motion.div>
             </div>
           </motion.div>
         )}
@@ -1284,6 +1411,17 @@ export default function AccountSettingsDashboard() {
                 onClick={async () => {
                   if (section === 'profile') await saveProfile();
                   else if (section === 'notifications') {
+                    try {
+                      await updateRecommendationEmailPreference({
+                        enabled: recEmailPrefs.enabled,
+                        frequency: recEmailPrefs.frequency,
+                        mode: recEmailPrefs.mode,
+                        unsubscribed: recEmailPrefs.unsubscribed,
+                      });
+                    } catch {
+                      showToast('Failed to save recommendation email settings', 'error');
+                      return;
+                    }
                     setNotifDirty(false);
                     showToast('Notification preferences saved ✓', 'success');
                   } else if (section === 'preferences') {

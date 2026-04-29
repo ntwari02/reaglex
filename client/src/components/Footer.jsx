@@ -201,16 +201,30 @@ const SOCIAL_LINKS = [
   { icon: Music2, labelKey: 'footer.social.tiktok', href: 'https://tiktok.com' },
 ];
 
+const toDataUri = (svg) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+
 const PAYMENT_ICONS = [
   {
     id: 'visa',
     label: 'Visa',
-    src: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg',
+    src: toDataUri(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="36" viewBox="0 0 120 36">
+        <rect width="120" height="36" rx="8" fill="#ffffff"/>
+        <text x="60" y="24" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#1A1F71">VISA</text>
+      </svg>
+    `),
   },
   {
     id: 'mtn-momo',
     label: 'MTN MoMo',
-    src: 'https://seeklogo.com/images/M/mtn-momo-icon-logo-6A4B0E0B3A-seeklogo.com.png',
+    src: toDataUri(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="160" height="36" viewBox="0 0 160 36">
+        <rect width="160" height="36" rx="8" fill="#ffffff"/>
+        <ellipse cx="28" cy="18" rx="19" ry="13" fill="#FFCC00" stroke="#222222" stroke-width="1.4"/>
+        <text x="28" y="22" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#111111">MTN</text>
+        <text x="102" y="23" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#111111">MoMo</text>
+      </svg>
+    `),
   },
 ];
 

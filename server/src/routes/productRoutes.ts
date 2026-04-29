@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { listProducts, trackProductView, getProductById } from '../controllers/productController';
 import { cacheMiddleware } from '../middleware/cache';
+import { optionalAuthenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -9,10 +10,10 @@ const router = Router();
 router.get('/', cacheMiddleware(60), listProducts);
 
 // Track product view
-router.post('/:productId/view', trackProductView);
+router.post('/:productId/view', optionalAuthenticate, trackProductView);
 
 // Get product by ID (also tracks view)
-router.get('/:productId', getProductById);
+router.get('/:productId', optionalAuthenticate, getProductById);
 
 export default router;
 

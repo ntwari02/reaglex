@@ -10,6 +10,7 @@ import {
   getNotificationEmailHtml,
   getDeviceApprovalEmailHtml,
   getLoginNotificationEmailHtml,
+  getRecommendationDealsEmailHtml,
 } from '../email/templates';
 import { getClientUrl } from '../config/publicEnv';
 
@@ -341,6 +342,41 @@ export async function sendDeviceApprovalEmail(options: {
   return sendEmail({
     to: options.to,
     subject: `Approve new device sign-in – ${APP_NAME}`,
+    html,
+  });
+}
+
+export async function sendRecommendationDealsEmail(options: {
+  to: string;
+  name: string;
+  subject: string;
+  intro?: string;
+  products: Array<{
+    id: string;
+    name: string;
+    imageUrl?: string;
+    price: number;
+    discount?: number;
+    description?: string;
+    viewUrl: string;
+  }>;
+  unsubscribeUrl: string;
+  preferencesUrl: string;
+  openPixelUrl?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const html = getRecommendationDealsEmailHtml({
+    appName: APP_NAME,
+    name: options.name,
+    title: options.subject,
+    intro: options.intro,
+    products: options.products,
+    unsubscribeUrl: options.unsubscribeUrl,
+    preferencesUrl: options.preferencesUrl,
+    openPixelUrl: options.openPixelUrl,
+  });
+  return sendEmail({
+    to: options.to,
+    subject: options.subject,
     html,
   });
 }

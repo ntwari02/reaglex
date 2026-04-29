@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Heart, Star } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
+import { useTheme } from '../contexts/ThemeContext';
 
 import { SERVER_URL } from '../lib/config';
 
@@ -22,10 +23,12 @@ function resolveImage(src) {
   return value.startsWith('http') ? value : `${SERVER_URL}${value}`;
 }
 
-export function ProductCard({ product, index = 0, onViewProduct, compact = false }) {
+export function ProductCard({ product, index = 0, onViewProduct, compact = false, ctaStyle = 'default' }) {
   const [wishlisted, setWishlisted] = useState(false);
   const [added, setAdded] = useState(false);
   const addItem = useBuyerCart((s) => s.addItem);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const id = product._id || product.id;
   const name = product.title || product.name || 'Product';
@@ -118,6 +121,26 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
               </span>
             </div>
           )}
+
+          {ctaStyle === 'home' && (
+            <div className="absolute bottom-0 left-0 right-0 translate-y-0 md:translate-y-full md:group-hover:translate-y-0 transition-transform duration-300">
+              <button
+                onClick={handleAdd}
+                disabled={stock === 0}
+                className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold tracking-wide disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: added
+                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                    : (isDark ? '#ffffff' : '#0f172a'),
+                  color: added ? '#ffffff' : (isDark ? '#0f172a' : '#ffffff'),
+                  borderTop: isDark && !added ? '1px solid rgba(15,23,42,0.12)' : 'none',
+                }}
+              >
+                <ShoppingBag size={13} />
+                {added ? 'ADDED ✓' : 'QUICK ADD'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Wishlist button */}
@@ -186,6 +209,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
               )}
             </div>
 
+            {ctaStyle !== 'home' && (
             <motion.button
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.95 }}
@@ -193,20 +217,29 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
               disabled={stock === 0}
               className="flex-shrink-0 flex items-center justify-center text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
-                background: added
-                  ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                  : 'linear-gradient(135deg, #ff8c42, #ff5f00)',
+                background: ctaStyle === 'home'
+                  ? (added
+                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                    : (isDark ? '#ffffff' : '#0f172a'))
+                  : (added
+                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                    : 'linear-gradient(135deg, #ff8c42, #ff5f00)'),
+                color: ctaStyle === 'home'
+                  ? (added ? '#ffffff' : (isDark ? '#0f172a' : '#ffffff'))
+                  : '#ffffff',
                 transition: 'background 0.3s',
-                boxShadow: '0 3px 8px rgba(255,140,66,0.25)',
+                boxShadow: ctaStyle === 'home' ? 'none' : '0 3px 8px rgba(255,140,66,0.25)',
                 borderRadius: compact ? '8px' : '12px',
                 padding: compact ? '4px 8px' : '6px 12px',
                 fontSize: compact ? '10px' : '12px',
                 gap: '4px',
+                border: ctaStyle === 'home' && isDark && !added ? '1px solid rgba(15,23,42,0.12)' : 'none',
               }}
             >
               <ShoppingBag style={{ width: compact ? '10px' : '12px', height: compact ? '10px' : '12px' }} />
-              {added ? '✓' : 'Add'}
+              {added ? 'ADDED ✓' : (ctaStyle === 'home' ? 'QUICK ADD' : 'Add')}
             </motion.button>
+            )}
           </div>
         </div>
       </Link>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { trackRecommendationActivity } from '../services/recommendationEmailApi';
 
 export const useRecentlyViewed = create(
   persist(
@@ -23,6 +24,12 @@ export const useRecentlyViewed = create(
             },
             ...existing,
           ].slice(0, 8),
+        });
+        void trackRecommendationActivity({
+          eventType: 'product_view',
+          productId: String(id),
+          category: product?.category || '',
+          tags: Array.isArray(product?.tags) ? product.tags : [],
         });
       },
 

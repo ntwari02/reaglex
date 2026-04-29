@@ -48,3 +48,6 @@ MOMO_API_KEY=34154413fc5f452dbc15cc35ff6758a1
 MOMO_TARGET_ENVIRONMENT=sandbox
 
 MOMO_CALLBACK_URL=https://reaglex.onrender.com/api/payments/momo/callback
+
+Access Key: ak_5ab4b6685a5b4aec944ce7067bf1b821
+Secret Key: sk_c727c6fb15074cb1b56ca331a7ccb142

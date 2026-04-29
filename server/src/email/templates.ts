@@ -252,3 +252,66 @@ export function getDeviceApprovalEmailHtml(options: {
   <div style="${footerStyle}">This email was sent by ${appName}. One sign-in per device is allowed for admin and seller accounts.</div>`;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Approve new device sign-in')}</body></html>`;
 }
+
+export function getRecommendationDealsEmailHtml(options: {
+  appName?: string;
+  name: string;
+  title: string;
+  intro?: string;
+  products: Array<{
+    id: string;
+    name: string;
+    imageUrl?: string;
+    price: number;
+    discount?: number;
+    description?: string;
+    viewUrl: string;
+  }>;
+  unsubscribeUrl: string;
+  preferencesUrl: string;
+  openPixelUrl?: string;
+}) {
+  const appName = options.appName || 'Reaglex';
+  const cards = options.products
+    .map((p) => {
+      const price = Number.isFinite(p.price) ? `$${p.price.toFixed(2)}` : '$0.00';
+      const hasDiscount = Number(p.discount || 0) > 0;
+      const discountBadge = hasDiscount
+        ? `<span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#fee2e2;color:#b91c1c;">-${Math.round(Number(p.discount || 0))}%</span>`
+        : '';
+      return `
+        <tr>
+          <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="width:88px;vertical-align:top;padding-right:12px;">
+                  <img src="${p.imageUrl || ''}" alt="${p.name}" width="84" height="84" style="display:block;width:84px;height:84px;object-fit:cover;border-radius:10px;background:#f3f4f6;border:1px solid #e5e7eb;" />
+                </td>
+                <td style="vertical-align:top;">
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#111827;">${p.name}</p>
+                  <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">${p.description || 'Limited-time personalized deal selected for you.'}</p>
+                  <p style="margin:0 0 10px;font-size:16px;font-weight:800;color:#111827;">${price} ${discountBadge}</p>
+                  <a href="${p.viewUrl}" style="display:inline-block;padding:9px 14px;border-radius:9px;background:#f97316;color:#fff;font-weight:700;font-size:12px;text-decoration:none;">View Deal</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  const content = `
+    <p style="margin:0 0 12px;font-size:16px;">Hi ${options.name},</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#4b5563;">${options.intro || 'We found deal picks that match your interests and recent shopping activity.'}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      ${cards}
+    </table>
+    <p style="margin:22px 0 0;font-size:12px;color:#6b7280;">
+      Manage your recommendations any time: <a href="${options.preferencesUrl}" style="color:#f97316;">preferences</a> ·
+      <a href="${options.unsubscribeUrl}" style="color:#f97316;">unsubscribe</a>
+    </p>
+    ${options.openPixelUrl ? `<img src="${options.openPixelUrl}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;" />` : ''}
+  `;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, options.title)}</body></html>`;
+}

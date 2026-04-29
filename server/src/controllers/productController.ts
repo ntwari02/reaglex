@@ -2,6 +2,7 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Product } from '../models/Product';
+import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 
 function normalizeMediaUrl(maybeUrl: unknown): unknown {
   if (typeof maybeUrl !== 'string') return maybeUrl;
@@ -153,7 +154,15 @@ export async function trackProductView(req: AuthenticatedRequest, res: Response)
       return res.status(404).json({ message: 'Product not found' });
     }
     
-    return res.json({ 
+    if (req.user?.id) {
+      void recordRecommendationActivity({
+        userId: req.user.id,
+        eventType: 'product_view',
+        productId,
+      });
+    }
+
+    return res.json({
       success: true, 
       views: product.views || 0 
     });
@@ -187,7 +196,17 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    return res.json({ 
+    if (req.user?.id) {
+      void recordRecommendationActivity({
+        userId: req.user.id,
+        eventType: 'product_view',
+        productId,
+        category: String((product as any)?.category || ''),
+        tags: Array.isArray((product as any)?.tags) ? (product as any).tags : [],
+      });
+    }
+
+    return res.json({
       product: {
         ...product
       }
