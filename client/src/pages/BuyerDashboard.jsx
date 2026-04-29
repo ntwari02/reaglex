@@ -1569,15 +1569,16 @@ export default function BuyerDashboard() {
           className="relative w-full flex items-center justify-between px-6 sm:px-8 lg:px-[32px] py-7"
           style={{
             minHeight: 156,
-            background: 'linear-gradient(135deg, #080812 0%, #0f0f1e 40%, #130d1f 70%, #1a0a0a 100%)',
-            borderBottom: '1px solid rgba(249,115,22,0.14)',
+            background: 'var(--card-bg)',
+            borderBottom: '1px solid var(--card-border)',
           }}
         >
           <PatternOverlay />
           {/* Accent line at top */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-            background: 'linear-gradient(90deg, transparent, #f97316 30%, #a855f7 70%, transparent)',
+            background: PRIMARY,
+            opacity: 0.9,
           }} />
           <div className="relative z-10 flex items-center justify-between w-full gap-4">
             {!isPaymentsTab && (
