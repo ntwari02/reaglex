@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { Dispute } from '../models/Dispute';
 import { Order } from '../models/Order';
 import mongoose from 'mongoose';
+import { recalculateSellerTrust } from '../services/productVerification.service';
 
 const getBuyerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null => {
   if (!req.user?.id) return null;
@@ -94,6 +95,7 @@ export async function createDispute(req: AuthenticatedRequest, res: Response) {
     });
 
     await dispute.save();
+    void recalculateSellerTrust(String(order.sellerId)).catch(() => null);
 
     // Populate order and seller info
     await dispute.populate('orderId', 'orderNumber total items');

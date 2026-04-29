@@ -6,6 +6,7 @@ const { deleteImage } = require('../../config/cloudinary');
 import { Product } from '../models/Product';
 import { Warehouse } from '../models/Warehouse';
 import { StockHistory } from '../models/StockHistory';
+import { runProductVerification } from '../services/productVerification.service';
 
 // Helper to get sellerId from JWT payload
 function getSellerId(req: AuthenticatedRequest): mongoose.Types.ObjectId | null {
@@ -133,6 +134,13 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       });
     }
 
+    // Create baseline verification identity so trust can build over time.
+    void runProductVerification({
+      productId: String(product._id),
+      sellerId: String(sellerId),
+      actorId: req.user?.id,
+    }).catch(() => null);
+
     return res.status(201).json({ product });
   } catch (err: any) {
     console.error('Create product error:', err);
@@ -183,6 +191,16 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
     }
 
     await existing.save();
+
+    void runProductVerification({
+      productId: String(existing._id),
+      sellerId: String(sellerId),
+      actorId: req.user?.id,
+      aiInput: {
+        videoProofUploaded: false,
+        labelProofUploaded: false,
+      },
+    }).catch(() => null);
 
     // Record stock history if stock changed
     if (typeof req.body.stock === 'number' && req.body.stock !== prevStock) {

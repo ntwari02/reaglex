@@ -67,6 +67,7 @@ import systemMonitorRoutes from './src/routes/systemMonitor.routes';
 import securityAnalysisRoutes from './src/routes/securityAnalysis.routes';
 import recommendationEmailRoutes from './src/routes/recommendationEmailRoutes';
 import { startRecommendationEmailWorker } from './src/services/recommendationEmail.service';
+import productVerificationRoutes from './src/routes/productVerificationRoutes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -269,6 +270,7 @@ app.use('/api/ai', aiAgentRoutes);
 app.use('/api/system', systemMonitorRoutes);
 app.use('/api/security-analysis', securityAnalysisRoutes);
 app.use('/api/recommendation-emails', recommendationEmailRoutes);
+app.use('/api/verification', productVerificationRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);

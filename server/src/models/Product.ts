@@ -36,6 +36,14 @@ export interface IProduct extends Document {
   variants?: ProductVariant[];
   tiers?: TieredPrice[];
   views?: number;
+  reaglexProductId?: string;
+  verificationSummary?: {
+    status: 'unverified' | 'pending' | 'verified' | 'flagged' | 'rejected';
+    score: number;
+    riskLevel: 'low' | 'medium' | 'high';
+    hasIdentifier: boolean;
+    lastCheckedAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,6 +88,19 @@ const productSchema = new Schema<IProduct>(
       },
     ],
     views: { type: Number, default: 0, index: true },
+    reaglexProductId: { type: String, trim: true, unique: true, sparse: true, index: true },
+    verificationSummary: {
+      status: {
+        type: String,
+        enum: ['unverified', 'pending', 'verified', 'flagged', 'rejected'],
+        default: 'unverified',
+        index: true,
+      },
+      score: { type: Number, default: 0 },
+      riskLevel: { type: String, enum: ['low', 'medium', 'high'], default: 'medium', index: true },
+      hasIdentifier: { type: Boolean, default: false },
+      lastCheckedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );
@@ -88,7 +109,17 @@ const productSchema = new Schema<IProduct>(
 productSchema.index({ createdAt: -1 });
 productSchema.index({ category: 1, createdAt: -1 });
 productSchema.index({ status: 1, createdAt: -1 });
+productSchema.index({ 'verificationSummary.status': 1, createdAt: -1 });
 productSchema.index({ name: 'text', description: 'text' });
+
+function generateReaglexProductId() {
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `RX-PROD-${Date.now().toString(36).toUpperCase()}${rand}`;
+}
+
+productSchema.pre('validate', function assignReaglexProductId() {
+  if (!this.reaglexProductId) this.reaglexProductId = generateReaglexProductId();
+});
 
 export const Product = mongoose.model<IProduct>('Product', productSchema);
 

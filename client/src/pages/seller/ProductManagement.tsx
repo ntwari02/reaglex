@@ -39,6 +39,14 @@ interface Product {
    seoTitle?: string;
    seoDescription?: string;
    seoKeywords?: string;
+  reaglexProductId?: string;
+  verificationSummary?: {
+    status: 'unverified' | 'pending' | 'verified' | 'flagged' | 'rejected';
+    score: number;
+    riskLevel: 'low' | 'medium' | 'high';
+    hasIdentifier: boolean;
+    lastCheckedAt?: string;
+  };
 }
 
 const ProductManagement: React.FC = () => {
@@ -83,6 +91,14 @@ const ProductManagement: React.FC = () => {
     seoTitle: '',
     seoDescription: '',
     seoKeywords: '',
+  });
+  const [verificationInput, setVerificationInput] = useState({
+    barcode: '',
+    serialNumber: '',
+    imei: '',
+    qrCode: '',
+    videoProofUploaded: false,
+    labelProofUploaded: false,
   });
 
   const [variantDraft, setVariantDraft] = useState({
@@ -130,6 +146,8 @@ const ProductManagement: React.FC = () => {
   seoTitle: p.seoTitle,
   seoDescription: p.seoDescription,
   seoKeywords: p.seoKeywords,
+  reaglexProductId: p.reaglexProductId,
+  verificationSummary: p.verificationSummary,
   });
 
   const loadProducts = async () => {
@@ -215,6 +233,14 @@ const ProductManagement: React.FC = () => {
       case 'hidden': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
+  };
+
+  const getVerificationPill = (product: Product) => {
+    const status = product.verificationSummary?.status || 'unverified';
+    if (status === 'verified') return 'bg-green-500/15 text-green-500 border-green-500/30';
+    if (status === 'flagged' || status === 'rejected') return 'bg-red-500/15 text-red-500 border-red-500/30';
+    if (status === 'pending') return 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30';
+    return 'bg-gray-500/15 text-gray-500 border-gray-500/30';
   };
 
   const handleSelectProduct = (id: string) => {
@@ -389,11 +415,32 @@ const ProductManagement: React.FC = () => {
           credentials: 'include',
           body: JSON.stringify(body),
         });
+        const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
           setFormError(data.message || 'Failed to update product.');
           showToast(data.message || 'Failed to update product.', 'error');
           return;
+        }
+        const updatedProductId = data?.product?._id || editingProduct.id;
+        if (verificationInput.barcode || verificationInput.serialNumber || verificationInput.imei || verificationInput.qrCode || verificationInput.videoProofUploaded || verificationInput.labelProofUploaded) {
+          await fetch(`${API_BASE_URL}/verification/records`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({
+              productId: updatedProductId,
+              identifiers: {
+                barcode: verificationInput.barcode || undefined,
+                serialNumber: verificationInput.serialNumber || undefined,
+                imei: verificationInput.imei || undefined,
+                qrCode: verificationInput.qrCode || undefined,
+              },
+              aiInput: {
+                videoProofUploaded: verificationInput.videoProofUploaded,
+                labelProofUploaded: verificationInput.labelProofUploaded,
+              },
+            }),
+          });
         }
         showToast('Product updated successfully.', 'success');
       } else {
@@ -430,6 +477,27 @@ const ProductManagement: React.FC = () => {
           showToast(data.message || 'Failed to create product.', 'error');
           return;
         }
+        const createdProductId = data?.product?._id;
+        if (createdProductId && (verificationInput.barcode || verificationInput.serialNumber || verificationInput.imei || verificationInput.qrCode || verificationInput.videoProofUploaded || verificationInput.labelProofUploaded)) {
+          await fetch(`${API_BASE_URL}/verification/records`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({
+              productId: createdProductId,
+              identifiers: {
+                barcode: verificationInput.barcode || undefined,
+                serialNumber: verificationInput.serialNumber || undefined,
+                imei: verificationInput.imei || undefined,
+                qrCode: verificationInput.qrCode || undefined,
+              },
+              aiInput: {
+                videoProofUploaded: verificationInput.videoProofUploaded,
+                labelProofUploaded: verificationInput.labelProofUploaded,
+              },
+            }),
+          });
+        }
         showToast('Product created successfully.', 'success');
       }
 
@@ -456,6 +524,14 @@ const ProductManagement: React.FC = () => {
         size: '',
         sku: '',
         stock: '',
+      });
+      setVerificationInput({
+        barcode: '',
+        serialNumber: '',
+        imei: '',
+        qrCode: '',
+        videoProofUploaded: false,
+        labelProofUploaded: false,
       });
     } catch (e: any) {
       console.error('Save product failed:', e);
@@ -1194,6 +1270,14 @@ const ProductManagement: React.FC = () => {
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 transition-colors duration-300">
                         {product.name}
                       </h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${getVerificationPill(product)}`}>
+                          {(product.verificationSummary?.status || 'unverified').replace('_', ' ').toUpperCase()}
+                        </span>
+                        {product.reaglexProductId && (
+                          <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400">{product.reaglexProductId}</span>
+                        )}
+                      </div>
                       <p className="text-gray-600 dark:text-gray-400 text-sm transition-colors duration-300">
                         {product.category}
                       </p>
@@ -1889,6 +1973,60 @@ const ProductManagement: React.FC = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Verification & Trust */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-red-400" />
+                Reaglex Verification & Trust
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Barcode / UPC / EAN</label>
+                  <input
+                    type="text"
+                    value={verificationInput.barcode}
+                    onChange={(e) => setVerificationInput((p) => ({ ...p, barcode: e.target.value }))}
+                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Scan or enter code"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Serial / IMEI</label>
+                  <input
+                    type="text"
+                    value={verificationInput.serialNumber}
+                    onChange={(e) => setVerificationInput((p) => ({ ...p, serialNumber: e.target.value }))}
+                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Optional serial for electronics"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">QR / Reaglex tag code</label>
+                  <input
+                    type="text"
+                    value={verificationInput.qrCode}
+                    onChange={(e) => setVerificationInput((p) => ({ ...p, qrCode: e.target.value }))}
+                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Optional printable trust tag code"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Proof uploads</label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input type="checkbox" checked={verificationInput.videoProofUploaded} onChange={(e) => setVerificationInput((p) => ({ ...p, videoProofUploaded: e.target.checked }))} />
+                    Product video proof uploaded
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input type="checkbox" checked={verificationInput.labelProofUploaded} onChange={(e) => setVerificationInput((p) => ({ ...p, labelProofUploaded: e.target.checked }))} />
+                    Label/tag close-up uploaded
+                  </label>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Products with stronger verification data receive higher trust and are less likely to be flagged for manual review.
+              </p>
             </div>
 
             {/* Actions */}

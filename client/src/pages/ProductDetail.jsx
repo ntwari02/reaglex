@@ -294,6 +294,8 @@ export default function ProductDetail() {
   const rating       = Number(product.averageRating || product.rating || 4.8);
   const reviewsCount = product.totalReviews || product.reviewCount || 124;
   const stock        = product.stockQuantity ?? product.stock ?? 10;
+  const verificationStatus = product.verificationSummary?.status || 'unverified';
+  const verificationScore = Number(product.verificationSummary?.score || 0);
   const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
   const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
   const installment  = (price / 3).toFixed(2);
@@ -570,6 +572,25 @@ export default function ProductDetail() {
                   <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded"
                     style={{ background: '#f0fdf4', color: '#15803d' }}>
                     <BadgeCheck size={12} /> Verified
+                  </span>
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded border"
+                    style={{
+                      color:
+                        verificationStatus === 'verified' ? '#15803d' :
+                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#dc2626' :
+                        '#b45309',
+                      background:
+                        verificationStatus === 'verified' ? '#f0fdf4' :
+                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#fef2f2' :
+                        '#fffbeb',
+                      borderColor:
+                        verificationStatus === 'verified' ? '#bbf7d0' :
+                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#fecaca' :
+                        '#fde68a',
+                    }}
+                  >
+                    {verificationStatus === 'verified' ? 'Verified by Reaglex' : verificationStatus === 'pending' ? 'Verification Pending' : verificationStatus === 'flagged' ? 'Verification Flagged' : 'Unverified Listing'} · {verificationScore}%
                   </span>
                 </div>
 

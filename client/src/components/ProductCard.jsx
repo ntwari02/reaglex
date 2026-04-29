@@ -42,6 +42,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
     : product.images?.[0];
   const imgSrc = resolveImage(primary || product.image || product.imageUrl || product.thumbnail || product.thumbnailUrl);
   const stock = product.stockQuantity ?? product.stock ?? 10;
+  const verificationStatus = product.verificationSummary?.status || 'unverified';
 
   const handleViewProduct = () => onViewProduct?.(product);
 
@@ -164,6 +165,18 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
 
         {/* Card body */}
         <div className={compact ? 'p-2.5' : 'p-4'}>
+          {!compact && verificationStatus && verificationStatus !== 'unverified' && (
+            <div
+              className="inline-flex mb-2 px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+              style={{
+                color: verificationStatus === 'verified' ? '#15803d' : '#b45309',
+                background: verificationStatus === 'verified' ? '#f0fdf4' : '#fffbeb',
+                borderColor: verificationStatus === 'verified' ? '#bbf7d0' : '#fde68a',
+              }}
+            >
+              {verificationStatus === 'verified' ? 'Verified by Reaglex' : 'Verification Pending'}
+            </div>
+          )}
           <h3
             className="font-semibold truncate product-title"
             style={{
