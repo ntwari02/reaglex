@@ -147,6 +147,7 @@ export default function BestSellers() {
   const isDark = theme === 'dark';
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isInteracting, setIsInteracting] = useState(false);
   const scrollRef = useRef(null);
   const headerRef = useRef(null);
   const inView = useInView(headerRef, { once: true, margin: '-80px' });
@@ -178,6 +179,26 @@ export default function BestSellers() {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({ left: dir * 280, behavior: 'smooth' });
   };
+
+  // Auto-slide with seamless loop (duplicated list)
+  useEffect(() => {
+    if (loading || products.length < 2) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const id = window.setInterval(() => {
+      if (!scrollRef.current || isInteracting) return;
+      const node = scrollRef.current;
+      node.scrollLeft += 0.65;
+      const half = node.scrollWidth / 2;
+      if (node.scrollLeft >= half) {
+        node.scrollLeft -= half;
+      }
+    }, 16);
+    return () => window.clearInterval(id);
+  }, [loading, products.length, isInteracting]);
+
+  const displayProducts = !loading && products.length > 1 ? [...products, ...products] : products;
 
   return (
     <section
@@ -245,16 +266,49 @@ export default function BestSellers() {
       </div>
 
       {/* Horizontal scroll strip */}
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-4"
-        style={{
-          paddingLeft: 'max(1rem, calc((100vw - 1280px) / 2 + 1rem))',
-          paddingRight: 'max(1rem, calc((100vw - 1280px) / 2 + 1rem))',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
-      >
+      <div style={{ position: 'relative' }}>
+        {/* Futuristic side fades for slider depth */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 36,
+            zIndex: 3,
+            pointerEvents: 'none',
+            background: `linear-gradient(90deg, ${isDark ? '#0d0f1c' : '#f8f8f8'} 0%, transparent 100%)`,
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 36,
+            zIndex: 3,
+            pointerEvents: 'none',
+            background: `linear-gradient(270deg, ${isDark ? '#0d0f1c' : '#f8f8f8'} 0%, transparent 100%)`,
+          }}
+        />
+
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto pb-4 scroll-touch"
+          onMouseEnter={() => setIsInteracting(true)}
+          onMouseLeave={() => setIsInteracting(false)}
+          onTouchStart={() => setIsInteracting(true)}
+          onTouchEnd={() => setTimeout(() => setIsInteracting(false), 1200)}
+          style={{
+            paddingLeft: 'max(1rem, calc((100vw - 1280px) / 2 + 1rem))',
+            paddingRight: 'max(1rem, calc((100vw - 1280px) / 2 + 1rem))',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
         {loading
           ? Array.from({ length: 6 }).map((_, i) => (
               <div
@@ -269,8 +323,8 @@ export default function BestSellers() {
               />
             ))
           : products.length > 0
-          ? products.map((p, i) => (
-              <BestCard key={p._id} product={p} rank={i} isDark={isDark} />
+          ? displayProducts.map((p, i) => (
+              <BestCard key={`${p._id}-${i}`} product={p} rank={i % products.length} isDark={isDark} />
             ))
           : (
             <div
@@ -283,6 +337,7 @@ export default function BestSellers() {
               Best seller products will appear here once available.
             </div>
           )}
+        </div>
       </div>
     </section>
   );

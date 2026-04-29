@@ -846,7 +846,7 @@ function MainHeader({
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full border border-gray-200 dark:border-gray-700 p-0 leading-none hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
           title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
         >
@@ -929,14 +929,14 @@ function MainHeader({
               <button
                 type="button"
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center justify-center w-9 h-9 rounded-full overflow-hidden flex-shrink-0 transition"
+                className="flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full overflow-hidden flex-shrink-0 p-0 leading-none transition"
                 style={{ background: PRIMARY }}
               >
                 {resolveAvatar(user.avatar_url) ? (
                   <img
                     src={resolveAvatar(user.avatar_url)}
                     alt={user.full_name || 'Profile'}
-                    className="w-full h-full object-cover"
+                    className="block w-full h-full object-cover rounded-full"
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 ) : (
@@ -1139,7 +1139,7 @@ function MobileDrawer({
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+                  className="flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full border border-gray-200 dark:border-gray-700 p-0 leading-none hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
                   aria-label={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
                   title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
                 >

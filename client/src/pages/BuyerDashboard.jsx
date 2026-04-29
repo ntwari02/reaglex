@@ -1320,6 +1320,10 @@ export default function BuyerDashboard() {
   const [copiedAddressId, setCopiedAddressId] = useState(null);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [addressesError, setAddressesError] = useState(null);
+  const mobileTabsRef = useRef(null);
+  const [showMobileLeftFade, setShowMobileLeftFade] = useState(false);
+  const [showMobileRightFade, setShowMobileRightFade] = useState(false);
+  const [mobileNavHintDismissed, setMobileNavHintDismissed] = useState(false);
 
   const mapApiOrderToUi = (order) => {
     if (!order) return null;
@@ -1429,6 +1433,30 @@ export default function BuyerDashboard() {
     return () => window.removeEventListener('click', close);
   }, [deleteConfirmId]);
 
+  useEffect(() => {
+    const el = mobileTabsRef.current;
+    if (!el) return;
+    const update = () => {
+      const maxLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+      setShowMobileLeftFade(el.scrollLeft > 4);
+      setShowMobileRightFade(el.scrollLeft < maxLeft - 4);
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [tab]);
+
+  useEffect(() => {
+    const el = mobileTabsRef.current;
+    if (!el) return;
+    const activeBtn = el.querySelector('[data-mobile-tab-active="true"]');
+    if (activeBtn) activeBtn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, [tab]);
+
   if (!user) {
     return (
       <BuyerLayout>
@@ -1487,6 +1515,11 @@ export default function BuyerDashboard() {
 
   const initials = (user.full_name || user.email || 'U').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   const displayName = user.full_name || 'User';
+  const rawAvatar = (user?.avatar_url || user?.avatarUrl || '').trim();
+  const avatarSrc = rawAvatar
+    ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:') ? rawAvatar : `${SERVER_URL}${rawAvatar.startsWith('/') ? rawAvatar : `/${rawAvatar}`}`)
+    : '';
+  const hasAvatar = !!avatarSrc;
   const tabLabel = TAB_CONFIG.find((t) => t.id === tab)?.label || 'Overview';
   const isAddressesTab = tab === 'addresses';
   const isPaymentsTab = tab === 'payments';
@@ -1586,15 +1619,27 @@ export default function BuyerDashboard() {
                   </div>
                   <motion.div
                     whileHover={{ scale: 1.06 }}
-                    className="w-14 h-14 sm:w-[62px] sm:h-[62px] rounded-full flex items-center justify-center text-white font-black flex-shrink-0 relative"
-                    style={{ background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`, fontSize: 22 }}
+                    className="w-14 h-14 sm:w-[62px] sm:h-[62px] rounded-full flex items-center justify-center text-white font-black flex-shrink-0 relative overflow-hidden"
+                    style={{
+                      background: hasAvatar ? 'rgba(15,23,42,0.55)' : `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                      fontSize: 22,
+                    }}
                   >
                     <div style={{
                       position: 'absolute', inset: -3, borderRadius: '50%',
                       background: 'transparent',
                       border: '1.5px solid rgba(249,115,22,0.45)',
                     }} />
-                    {initials}
+                    {hasAvatar ? (
+                      <img
+                        key={`${avatarSrc}-${user?.updated_at || ''}`}
+                        src={avatarSrc}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      initials
+                    )}
                   </motion.div>
                 </div>
               </>
@@ -1650,48 +1695,116 @@ export default function BuyerDashboard() {
         {/* ═══ TIER 2: Main layout — sidebar + content ═══ */}
         <div className="w-full" style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 22, paddingBottom: 40 }}>
           {/* Mobile: horizontal tab bar */}
-          <div
-            className="flex items-center gap-2 overflow-x-auto pb-3 mb-5 lg:hidden"
-            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-          >
-            {TAB_CONFIG.map((t) => {
-              const isActive = tab === t.id;
-              const Icon = t.icon;
-              return (
-                <motion.button
-                  key={t.id}
+          <div className="mb-5 lg:hidden">
+            <div className="flex items-center justify-between mb-2 px-0.5">
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-faint)',
+                }}
+              >
+                Account Navigation
+              </p>
+              {!mobileNavHintDismissed && showMobileRightFade && (
+                <button
                   type="button"
-                  onClick={() => setTab(t.id)}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 relative"
+                  onClick={() => setMobileNavHintDismissed(true)}
+                  className="flex items-center gap-1"
                   style={{
-                    background: isActive
-                      ? `linear-gradient(135deg, ${PRIMARY}, #c2410c)`
-                      : 'var(--card-bg)',
-                    color: isActive ? 'white' : 'var(--text-secondary)',
-                    border: isActive ? 'none' : '1px solid var(--card-border)',
-                    boxShadow: isActive ? `0 4px 16px rgba(249,115,22,0.35)` : 'none',
-                    letterSpacing: '0.02em',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: PRIMARY,
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
                   }}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  {t.label}
+                  Swipe for more <ChevronRight className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            <div className="relative">
+              {showMobileLeftFade && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 12,
+                    width: 24,
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                    background: 'linear-gradient(90deg, var(--bg-page), transparent)',
+                  }}
+                />
+              )}
+              {showMobileRightFade && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    bottom: 12,
+                    width: 24,
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                    background: 'linear-gradient(270deg, var(--bg-page), transparent)',
+                  }}
+                />
+              )}
+
+              <div
+                ref={mobileTabsRef}
+                className="flex items-center gap-2 overflow-x-auto pb-3"
+                style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+              >
+                {TAB_CONFIG.map((t) => {
+                  const isActive = tab === t.id;
+                  const Icon = t.icon;
+                  return (
+                    <motion.button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTab(t.id)}
+                      data-mobile-tab-active={isActive ? 'true' : 'false'}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 relative"
+                      style={{
+                        background: isActive
+                          ? `linear-gradient(135deg, ${PRIMARY}, #c2410c)`
+                          : 'var(--card-bg)',
+                        color: isActive ? 'white' : 'var(--text-secondary)',
+                        border: isActive ? 'none' : '1px solid var(--card-border)',
+                        boxShadow: isActive ? `0 4px 16px rgba(249,115,22,0.35)` : 'none',
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {t.label}
+                    </motion.button>
+                  );
+                })}
+                <motion.button
+                  type="button"
+                  onClick={handleLogout}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-semibold flex-shrink-0"
+                  style={{
+                    background: 'rgba(239,68,68,0.08)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239,68,68,0.18)',
+                  }}
+                >
+                  <LogOut className="w-3.5 h-3.5" /> Logout
                 </motion.button>
-              );
-            })}
-            <motion.button
-              type="button"
-              onClick={handleLogout}
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-semibold flex-shrink-0"
-              style={{
-                background: 'rgba(239,68,68,0.08)',
-                color: '#ef4444',
-                border: '1px solid rgba(239,68,68,0.18)',
-              }}
-            >
-              <LogOut className="w-3.5 h-3.5" /> Logout
-            </motion.button>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col lg:flex-row" style={{ gap: 22 }}>

@@ -315,6 +315,9 @@ export default function ReimaginedHero() {
   const containerRef = useRef(null);
   const stickyRef    = useRef(null);
   const progressRef  = useRef(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  );
 
   /*
    * Use window.innerHeight (not 100vh) for the pinned section height.
@@ -332,6 +335,7 @@ export default function ReimaginedHero() {
       clearTimeout(tid);
       tid = setTimeout(() => {
         setVpH(window.innerHeight);
+        setIsMobileViewport(window.innerWidth < 768);
         ScrollTrigger.refresh();
       }, 200);
     };
@@ -345,6 +349,7 @@ export default function ReimaginedHero() {
    * which is the key to eliminating jitter.
    */
   const sceneWrappers = useRef([]);
+  const triggerRef = useRef(null);
 
   /*
    * activeScene React state is used ONLY for the dot indicators and nav labels.
@@ -371,6 +376,8 @@ export default function ReimaginedHero() {
     if (prefersReducedMotion) return;
 
     const total = SCENES.length;
+    const mobileDistanceFactor = isMobileViewport ? 0.58 : 1;
+    const scrollDistance = total * vpH * mobileDistanceFactor;
 
     /* Set correct initial opacity on each wrapper div so there is never
        a flash-of-all-scenes before GSAP initialises. */
@@ -379,11 +386,11 @@ export default function ReimaginedHero() {
     });
 
     const ctx = gsap.context(() => {
-      ScrollTrigger.create({
+      triggerRef.current = ScrollTrigger.create({
         trigger: containerRef.current,
         start:   'top top',
         /* Use pixel-based end so it matches the section height we computed from vpH */
-        end:     () => `+=${total * vpH}`,
+        end:     () => `+=${scrollDistance}`,
         pin:     stickyRef.current,
         pinSpacing:     true,
         anticipatePin:  0.5,
@@ -433,7 +440,13 @@ export default function ReimaginedHero() {
     }, containerRef);
 
     return () => ctx.revert();
-  }, [prefersReducedMotion, vpH]);
+  }, [prefersReducedMotion, vpH, isMobileViewport]);
+
+  const handleSkipIntro = () => {
+    const t = triggerRef.current;
+    if (!t) return;
+    window.scrollTo({ top: t.end + 6, behavior: 'smooth' });
+  };
 
   /* ─── Reduced-motion fallback ── */
   if (prefersReducedMotion) {
@@ -461,7 +474,7 @@ export default function ReimaginedHero() {
       ref={containerRef}
       className="relative"
       /* Use pixel height derived from window.innerHeight to avoid iOS 100vh jitter */
-      style={{ height: `${SCENES.length * vpH + vpH}px` }}
+      style={{ height: `${vpH + SCENES.length * vpH * (isMobileViewport ? 0.58 : 1)}px` }}
     >
       {/*
        * Pinned viewport.
@@ -550,6 +563,50 @@ export default function ReimaginedHero() {
               : 'linear-gradient(to bottom, rgba(0,0,0,0.22), transparent)',
           }} />
         </motion.div>
+
+        {/* Mobile helper: explicit continuation guidance + fast exit */}
+        {isMobileViewport && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.5 }}
+            className="absolute top-4 right-4 z-30 flex items-center gap-2"
+          >
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                color: isDark ? '#cbd5e1' : '#334155',
+                background: isDark ? 'rgba(15,23,42,0.62)' : 'rgba(255,255,255,0.72)',
+                border: `1px solid ${isDark ? 'rgba(148,163,184,0.28)' : 'rgba(15,23,42,0.14)'}`,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                borderRadius: 999,
+                padding: '6px 10px',
+              }}
+            >
+              Keep scrolling
+            </span>
+            <button
+              type="button"
+              onClick={handleSkipIntro}
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                borderRadius: 999,
+                padding: '6px 10px',
+                border: 'none',
+                background: 'rgba(249,115,22,0.92)',
+                color: '#fff',
+              }}
+            >
+              Skip intro
+            </button>
+          </motion.div>
+        )}
       </div>
     </section>
   );

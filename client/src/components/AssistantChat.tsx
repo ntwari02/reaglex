@@ -116,6 +116,9 @@ export default function AssistantChat() {
   const [fallbackNotice,    setFallbackNotice]    = useState(false);
   const [sendCooldownUntil, setSendCooldownUntil] = useState(0);
   const [cooldownTick,      setCooldownTick]      = useState(0);
+  const [isMobileViewport,  setIsMobileViewport]  = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  );
 
   const [checkoutTarget,         setCheckoutTarget]         = useState<ProductCard | null>(null);
   const [checkoutBusy,           setCheckoutBusy]           = useState(false);
@@ -196,6 +199,14 @@ export default function AssistantChat() {
       window.removeEventListener('touchstart', handleOutside);
     };
   }, [open]);
+
+  /* ── Viewport breakpoint for floating position ── */
+  useEffect(() => {
+    const onResize = () => setIsMobileViewport(window.innerWidth < 768);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   /* ── Inject styles & animations ── */
   useEffect(() => {
@@ -497,7 +508,18 @@ export default function AssistantChat() {
      RENDER
   ───────────────────────────────────────────────────────────────────────── */
   return (
-    <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+    <div
+      style={{
+        position: 'fixed',
+        bottom: isMobileViewport ? 'calc(82px + env(safe-area-inset-bottom))' : 20,
+        right: isMobileViewport ? 12 : 20,
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: 12,
+      }}
+    >
 
       {/* ── Trigger orb ── */}
       {!open && (

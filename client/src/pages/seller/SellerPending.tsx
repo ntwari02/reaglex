@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
+import Header from '../../components/dashboard/Header';
 import {
   CheckCircle2, Clock, ShieldCheck, Rocket,
   BookOpen, DollarSign, Package, Mail, ExternalLink,
@@ -221,16 +222,75 @@ function ElapsedTimer({ color = PRIMARY }: { color?: string }) {
 
 /* ── Stat pill ────────────────────────────────────────────────────────────── */
 function StatPill({ label, children, color, accentBg }: { label: string; children: React.ReactNode; color: string; accentBg: string }) {
+  const [hovered, setHovered] = useState(false);
   return (
-    <div style={{
-      flex: 1, minWidth: 140,
-      padding: '16px 22px', borderRadius: 16,
-      background: accentBg, border: `1px solid ${color}28`,
-      boxShadow: `0 0 20px ${color}10`,
-    }}>
-      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6 }}>{label}</p>
-      {children}
-    </div>
+    <motion.div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
+      style={{
+        flex: 1,
+        minWidth: 150,
+        padding: '18px 20px',
+        borderRadius: 18,
+        background: `linear-gradient(145deg, ${accentBg} 0%, color-mix(in srgb, ${accentBg} 72%, transparent) 100%)`,
+        border: `1px solid ${hovered ? color + '55' : color + '2f'}`,
+        boxShadow: hovered
+          ? `0 0 0 1px ${color}2f, 0 10px 28px ${color}1f`
+          : `0 0 0 1px ${color}18, 0 6px 18px ${color}12`,
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'border-color 180ms ease, box-shadow 180ms ease',
+      }}
+    >
+      {/* top accent beam */}
+      <motion.div
+        animate={{ x: ['-140%', '160%'] }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: 'linear', repeatDelay: 1.4 }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '40%',
+          height: 2,
+          background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
+          opacity: 0.9,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* corner glow */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -24,
+          right: -20,
+          width: 84,
+          height: 84,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${color}26 0%, transparent 68%)`,
+          pointerEvents: 'none',
+        }}
+      />
+
+      <p
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: 'var(--text-faint)',
+          marginBottom: 8,
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {label}
+      </p>
+
+      <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
+    </motion.div>
   );
 }
 
@@ -240,6 +300,7 @@ function StatPill({ label, children, color, accentBg }: { label: string; childre
 export default function SellerPending() {
   const user      = useAuthStore((s) => s.user);
   const firstName = user?.full_name?.split(' ')[0] || 'there';
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const steps = [
     { icon: CheckCircle2, label: 'Application Submitted',  sub: 'Feb 28, 2026 · Received & logged',          status: 'done'    as const },
@@ -259,101 +320,153 @@ export default function SellerPending() {
       <FuturisticBg />
 
       <div className="relative z-10 w-full">
+        <Header
+          setSidebarOpen={() => {}}
+          notificationsOpen={notificationsOpen}
+          setNotificationsOpen={setNotificationsOpen}
+          userName={user?.full_name || user?.email || 'Seller'}
+          userRole="Seller (Pending Government & Admin Approval)"
+          accentVariant="orange"
+        />
 
         {/* ══════════════════════════════════════════════════════════════════
-            HERO HEADER — full-width dark banner
+            HERO HEADER — clean dark panel, minimal gradients
         ══════════════════════════════════════════════════════════════════ */}
         <div style={{
           width: '100%',
-          background: 'linear-gradient(135deg, rgba(249,115,22,0.06) 0%, rgba(139,92,246,0.06) 50%, rgba(59,130,246,0.04) 100%)',
+          background: 'var(--card-bg)',
           borderBottom: '1px solid var(--card-border)',
-          position: 'relative', overflow: 'hidden',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
-          {/* Accent top bar */}
+          {/* Single 2px orange top rule — replaces the heavy rainbow gradient bar */}
           <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-            background: `linear-gradient(90deg, transparent 0%, ${PRIMARY} 25%, ${PURPLE} 60%, ${BLUE} 85%, transparent 100%)`,
-          }} />
-          {/* Inner dot grid */}
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            backgroundImage: 'radial-gradient(circle, rgba(249,115,22,0.035) 1px, transparent 1px)',
-            backgroundSize: '28px 28px',
+            position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+            background: PRIMARY,
           }} />
 
+          {/* Subtle engineering grid — replaces radial dot blob */}
+          <svg
+            aria-hidden
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.035 }}
+          >
+            <defs>
+              <pattern id="sp-hero-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                <path d="M 32 0 L 0 0 0 32" fill="none" stroke={PRIMARY} strokeWidth="0.7" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#sp-hero-grid)" />
+          </svg>
+
           <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-8 sm:py-10" style={{ position: 'relative' }}>
+
             {/* Breadcrumb / back */}
             <motion.div
               initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35 }}
-              style={{ marginBottom: 24 }}
+              style={{ marginBottom: 28 }}
             >
               <Link to="/" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: 12, fontWeight: 600, color: 'var(--text-faint)',
-                textDecoration: 'none', padding: '5px 12px', borderRadius: 8,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--card-border)',
-                transition: 'color 0.18s',
+                fontSize: 12, fontWeight: 700, color: 'var(--text-faint)',
+                textDecoration: 'none', padding: '5px 12px 5px 8px', borderRadius: 7,
+                background: 'var(--bg-secondary)', border: '1px solid var(--card-border)',
+                letterSpacing: '0.03em',
               }}>
                 <ArrowLeft style={{ width: 13, height: 13 }} />
-                Back to Home
+                Home
               </Link>
             </motion.div>
 
             {/* Main hero row */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 28, flexWrap: 'wrap' }}>
-              {/* Left: Orb + text */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, minWidth: 260 }}>
-                <StatusOrb size={88} />
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                  {/* Status badge */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, flexWrap: 'wrap' }}>
+
+              {/* Left — orb + copy */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flex: 1, minWidth: 260 }}>
+                <StatusOrb size={80} />
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18, duration: 0.4 }}
+                >
+                  {/* Status chip — only accent element on this side */}
                   <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                    padding: '4px 12px', borderRadius: 99, marginBottom: 12,
-                    background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.28)',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '3px 10px', borderRadius: 6, marginBottom: 10,
+                    background: 'transparent',
+                    border: `1px solid ${PRIMARY}`,
                   }}>
-                    <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
-                      style={{ width: 6, height: 6, borderRadius: '50%', background: PRIMARY, display: 'inline-block' }} />
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: PRIMARY }}>
-                      Seller Application Under Review
+                    <motion.span
+                      animate={{ opacity: [1, 0.2, 1] }}
+                      transition={{ duration: 1.6, repeat: Infinity }}
+                      style={{ width: 5, height: 5, borderRadius: '50%', background: PRIMARY, display: 'inline-block' }}
+                    />
+                    <span style={{
+                      fontSize: 9, fontWeight: 900, letterSpacing: '0.18em',
+                      textTransform: 'uppercase', color: PRIMARY,
+                    }}>
+                      Under Review
                     </span>
                   </div>
 
                   <h1 style={{
-                    fontSize: 'clamp(22px, 3.5vw, 34px)', fontWeight: 900,
-                    color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.15, marginBottom: 8,
+                    fontSize: 'clamp(20px, 3.2vw, 32px)', fontWeight: 900,
+                    color: 'var(--text-primary)', letterSpacing: '-0.025em',
+                    lineHeight: 1.12, marginBottom: 10,
                   }}>
                     Hi {firstName},{' '}
-                    <span style={{
-                      background: `linear-gradient(135deg, ${PRIMARY} 0%, ${PURPLE} 100%)`,
-                      WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                    }}>
-                      you're almost there!
-                    </span>
+                    <span style={{ color: PRIMARY }}>you're almost there.</span>
                   </h1>
-                  <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 520, lineHeight: 1.65 }}>
+
+                  <p style={{
+                    fontSize: 13.5, color: 'var(--text-muted)',
+                    maxWidth: 480, lineHeight: 1.7,
+                  }}>
                     Your seller application is being reviewed by our compliance team.
-                    We're verifying your details to ensure a secure marketplace for everyone.
+                    We'll verify your details and notify you within 24–48 hours.
                   </p>
+
+                  {/* Inline meta row — replaces floating pills on desktop */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 16, marginTop: 18,
+                    flexWrap: 'wrap',
+                  }}>
+                    {[
+                      { label: 'Step', value: '2 / 4', color: PRIMARY },
+                      { label: 'Est. review', value: '24–48 hrs', color: BLUE },
+                      { label: 'Status', value: 'Received ✓', color: GREEN },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{
+                          fontSize: 9, fontWeight: 800, letterSpacing: '0.16em',
+                          textTransform: 'uppercase', color: 'var(--text-faint)',
+                        }}>{label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color, letterSpacing: '0.02em' }}>
+                          {value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </motion.div>
               </div>
 
-              {/* Right: Stat pills */}
+              {/* Right — stat cards */}
               <motion.div
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-                style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flexShrink: 0 }}
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.32, duration: 0.4 }}
+                style={{ display: 'flex', gap: 10, flexWrap: 'wrap', flexShrink: 0, alignSelf: 'center' }}
               >
-                <StatPill label="Time Elapsed" color={PRIMARY} accentBg="rgba(249,115,22,0.07)">
+                <StatPill label="Time Elapsed" color={PRIMARY} accentBg="rgba(249,115,22,0.06)">
                   <ElapsedTimer color={PRIMARY} />
                 </StatPill>
-                <StatPill label="Estimated Review" color={BLUE} accentBg="rgba(59,130,246,0.07)">
+                <StatPill label="Estimated Review" color={BLUE} accentBg="rgba(59,130,246,0.06)">
                   <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 20, color: BLUE, letterSpacing: '0.06em' }}>
                     24–48 HRS
                   </span>
                 </StatPill>
-                <StatPill label="Application" color={GREEN} accentBg="rgba(34,197,94,0.07)">
+                <StatPill label="Application" color={GREEN} accentBg="rgba(34,197,94,0.06)">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <CheckCircle2 style={{ width: 18, height: 18, color: GREEN }} />
-                    <span style={{ fontWeight: 800, fontSize: 16, color: GREEN }}>Received</span>
+                    <CheckCircle2 style={{ width: 17, height: 17, color: GREEN }} />
+                    <span style={{ fontWeight: 800, fontSize: 15, color: GREEN }}>Received</span>
                   </div>
                 </StatPill>
               </motion.div>

@@ -201,13 +201,17 @@ const SOCIAL_LINKS = [
   { icon: Music2, labelKey: 'footer.social.tiktok', href: 'https://tiktok.com' },
 ];
 
-const PAYMENT_LABELS = [
-  'footer.payments.visa',
-  'footer.payments.mastercard',
-  'footer.payments.paypal',
-  'footer.payments.mtnMomo',
-  'footer.payments.airtelMoney',
-  'footer.payments.stripe',
+const PAYMENT_ICONS = [
+  {
+    id: 'visa',
+    label: 'Visa',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg',
+  },
+  {
+    id: 'mtn-momo',
+    label: 'MTN MoMo',
+    src: 'https://seeklogo.com/images/M/mtn-momo-icon-logo-6A4B0E0B3A-seeklogo.com.png',
+  },
 ];
 
 const BOTTOM_LINKS = [
@@ -515,13 +519,30 @@ export default function Footer() {
           © {currentYear} <span style={{ fontFamily: "'Mea Culpa', serif", fontWeight: 700, fontSize: '1.05em' }}>Reaglex</span>. {t('footer.rightsReservedPrefix')} <span className="footer-heart">❤️</span> {t('footer.rightsReservedSuffix')}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
-          {PAYMENT_LABELS.map((labelKey) => (
+          {PAYMENT_ICONS.map((payment) => (
             <span
-              key={labelKey}
-              className="footer-payment-badge px-2.5 py-1 rounded-full text-[11px] font-medium"
-              style={{ background: 'rgba(255,255,255,0.08)', color: BODY_COLOR }}
+              key={payment.id}
+              className="footer-payment-badge px-2.5 py-1 rounded-full inline-flex items-center justify-center"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                minHeight: 28,
+                minWidth: payment.id === 'visa' ? 76 : 98,
+              }}
             >
-              {t(labelKey)}
+              <img
+                src={payment.src}
+                alt={payment.label}
+                loading="lazy"
+                decoding="async"
+                style={{
+                  height: payment.id === 'visa' ? 14 : 16,
+                  width: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
+                  filter: payment.id === 'mtn-momo' ? 'grayscale(0.05) contrast(1.02)' : 'none',
+                }}
+              />
             </span>
           ))}
         </div>

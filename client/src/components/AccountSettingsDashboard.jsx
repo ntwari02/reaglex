@@ -36,6 +36,10 @@ export default function AccountSettingsDashboard() {
   const showToast = useToastStore((s) => s.showToast);
 
   const section = sp.get('section') || 'profile';
+  const settingsTabsScrollRef = useRef(null);
+  const [showTabsLeftFade, setShowTabsLeftFade] = useState(false);
+  const [showTabsRightFade, setShowTabsRightFade] = useState(false);
+  const [tabsHintDismissed, setTabsHintDismissed] = useState(false);
   useEffect(() => {
     if (sp.get('tab') === 'settings' && !sp.get('section')) setSp((prev) => { const n = new URLSearchParams(prev); n.set('section', 'profile'); return n; });
   }, []);
@@ -47,6 +51,30 @@ export default function AccountSettingsDashboard() {
       return n;
     });
   }, [setSp]);
+
+  useEffect(() => {
+    const el = settingsTabsScrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const maxLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+      setShowTabsLeftFade(el.scrollLeft > 4);
+      setShowTabsRightFade(el.scrollLeft < maxLeft - 4);
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [section]);
+
+  useEffect(() => {
+    const el = settingsTabsScrollRef.current;
+    if (!el) return;
+    const activeBtn = el.querySelector('[data-settings-tab-active="true"]');
+    if (activeBtn) activeBtn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, [section]);
 
   // Profile form state
   const [profileEdit, setProfileEdit] = useState(false);
@@ -248,56 +276,111 @@ export default function AccountSettingsDashboard() {
           transition={{ duration: 0.25, delay: 0.1, ease: EASE }}
           className="flex items-center justify-between gap-4 flex-wrap"
         >
-          <div
-            className="flex-1 min-w-0 flex overflow-x-auto gap-2 scrollbar-hide"
-            style={{ scrollbarWidth: 'none' }}
-          >
-            <div
-              className="inline-flex items-center gap-1 rounded-2xl px-1.5 py-1.5 bg-[var(--card-bg)] shadow-sm"
-              style={{
-                borderRadius: 16,
-                boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
-              }}
-            >
-              {SETTINGS_TABS.map((t) => {
-                const isActive = section === t.id;
-                const hasUnsavedSection = unsavedBySection[t.id];
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      if (unsavedBySection[section] && section !== t.id) {
-                        if (window.confirm('Save changes before leaving?')) {
-                          if (section === 'profile') saveProfile();
-                          setSection(t.id);
-                        }
-                      } else setSection(t.id);
-                    }}
-                    className="relative flex items-center gap-2 h-10 px-4 rounded-[10px] text-[14px] font-medium whitespace-nowrap transition-all"
-                    style={{
-                      background: isActive ? PRIMARY : 'transparent',
-                      color: isActive ? '#ffffff' : 'var(--text-muted)',
-                      boxShadow: isActive
-                        ? '0 4px 12px rgba(249,115,22,0.35)'
-                        : 'none',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 16,
-                        color: isActive ? '#ffffff' : 'var(--text-faint)',
-                      }}
-                    >
-                      {t.icon}
-                    </span>
-                    <span>{t.label}</span>
-                    {hasUnsavedSection && (
-                      <span className="settings-unsaved-dot" />
-                    )}
-                  </button>
-                );
-              })}
+          <div className="w-full flex items-center justify-between sm:justify-end gap-3">
+            {!tabsHintDismissed && showTabsRightFade && (
+              <button
+                type="button"
+                onClick={() => setTabsHintDismissed(true)}
+                className="sm:hidden flex items-center gap-1"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: PRIMARY,
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                }}
+              >
+                Swipe for more <ChevronRight className="w-3 h-3" />
+              </button>
+            )}
+            <div className="relative flex-1 min-w-0">
+              {showTabsLeftFade && (
+                <div
+                  aria-hidden
+                  className="sm:hidden"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 20,
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                    background: 'linear-gradient(90deg, var(--bg-page), transparent)',
+                  }}
+                />
+              )}
+              {showTabsRightFade && (
+                <div
+                  aria-hidden
+                  className="sm:hidden"
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 20,
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                    background: 'linear-gradient(270deg, var(--bg-page), transparent)',
+                  }}
+                />
+              )}
+              <div
+                ref={settingsTabsScrollRef}
+                className="flex overflow-x-auto gap-2 scrollbar-hide"
+                style={{ scrollbarWidth: 'none' }}
+              >
+                <div
+                  className="inline-flex items-center gap-1 rounded-2xl px-1.5 py-1.5 bg-[var(--card-bg)] shadow-sm"
+                  style={{
+                    borderRadius: 16,
+                    boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
+                  }}
+                >
+                  {SETTINGS_TABS.map((t) => {
+                    const isActive = section === t.id;
+                    const hasUnsavedSection = unsavedBySection[t.id];
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        data-settings-tab-active={isActive ? 'true' : 'false'}
+                        onClick={() => {
+                          if (unsavedBySection[section] && section !== t.id) {
+                            if (window.confirm('Save changes before leaving?')) {
+                              if (section === 'profile') saveProfile();
+                              setSection(t.id);
+                            }
+                          } else setSection(t.id);
+                        }}
+                        className="relative flex items-center gap-2 h-10 px-4 rounded-[10px] text-[14px] font-medium whitespace-nowrap transition-all"
+                        style={{
+                          background: isActive ? PRIMARY : 'transparent',
+                          color: isActive ? '#ffffff' : 'var(--text-muted)',
+                          boxShadow: isActive
+                            ? '0 4px 12px rgba(249,115,22,0.35)'
+                            : 'none',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 16,
+                            color: isActive ? '#ffffff' : 'var(--text-faint)',
+                          }}
+                        >
+                          {t.icon}
+                        </span>
+                        <span>{t.label}</span>
+                        {hasUnsavedSection && (
+                          <span className="settings-unsaved-dot" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>

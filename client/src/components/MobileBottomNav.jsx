@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Search, ShoppingBag, User } from 'lucide-react';
+import { Home, Package, ShoppingBag, User } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useAuthStore } from '../stores/authStore';
 
@@ -14,14 +14,14 @@ const NO_NAV_PREFIXES = [
 
 const TABS = [
   { id: 'home',    icon: Home,       label: 'Home',    to: '/' },
-  { id: 'search',  icon: Search,     label: 'Search',  to: '/search' },
+  { id: 'products', icon: Package,   label: 'Products', to: '/products' },
   { id: 'cart',    icon: ShoppingBag, label: 'Cart',   to: null },
   { id: 'account', icon: User,       label: 'Account', to: '/account' },
 ];
 
 function activeId(pathname) {
   if (pathname === '/') return 'home';
-  if (pathname.startsWith('/search') || pathname.startsWith('/products')) return 'search';
+  if (pathname.startsWith('/search') || pathname.startsWith('/products')) return 'products';
   if (pathname.startsWith('/account') || pathname.startsWith('/notifications') || pathname.startsWith('/returns')) return 'account';
   return null;
 }

@@ -104,10 +104,10 @@ function TrendCard({ product, index, isDark, onAdd }) {
           </button>
 
           {/* Quick add overlay */}
-          <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+          <div className="absolute bottom-0 left-0 right-0 translate-y-0 md:translate-y-full md:group-hover:translate-y-0 transition-transform duration-300">
             <button
               onClick={handleAdd}
-              className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold tracking-wide"
+              className="w-full py-2.5 md:py-2.5 flex items-center justify-center gap-2 text-xs font-bold tracking-wide"
               style={{
                 background: isDark ? '#6366f1' : '#0f172a',
                 color: '#fff',

@@ -145,9 +145,11 @@ export default function ProductDetail() {
   const [expandedQa,   setExpandedQa]   = useState(null);
   const [reviewPage,   setReviewPage]   = useState(0);
   const [voteUp,       setVoteUp]       = useState(187);
+  const [relatedPaused, setRelatedPaused] = useState(false);
 
   /* ── refs ── */
   const ctaRef = useRef(null);
+  const relatedScrollRef = useRef(null);
 
   /* ── SEO ── */
   const productId   = product?._id || product?.id || id;
@@ -240,6 +242,20 @@ export default function ProductDetail() {
     if (quantity <= 1) { setQtyShake(true); setTimeout(() => setQtyShake(false), 400); return; }
     setQuantity((q) => q - 1);
   };
+
+  /* ── related products auto-slide strip ── */
+  useEffect(() => {
+    if (related.length < 2) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const id = window.setInterval(() => {
+      const el = relatedScrollRef.current;
+      if (!el || relatedPaused) return;
+      el.scrollLeft += 0.7;
+      const half = el.scrollWidth / 2;
+      if (el.scrollLeft >= half) el.scrollLeft -= half;
+    }, 16);
+    return () => window.clearInterval(id);
+  }, [related.length, relatedPaused]);
 
   /* ── loading / error ── */
   if (loading) return (
@@ -1002,16 +1018,36 @@ export default function ProductDetail() {
                 </div>
                 <Link to="/search" className="text-sm font-bold hover:underline" style={{ color: PRIMARY }}>View All →</Link>
               </div>
-              <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'none' }}>
-                {related.slice(0, 6).map((p, idx) => (
-                  <motion.div key={p._id || p.id}
-                    className="flex-shrink-0 w-[260px]"
-                    initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }} transition={{ delay: idx * 0.07, duration: 0.4 }}
-                  >
-                    <ProductCard product={p} index={idx} compact={false} />
-                  </motion.div>
-                ))}
+              <div className="relative">
+                <div
+                  aria-hidden
+                  className="absolute left-0 top-0 bottom-4 w-8 z-[2] pointer-events-none"
+                  style={{ background: 'linear-gradient(90deg, var(--bg-page), transparent)' }}
+                />
+                <div
+                  aria-hidden
+                  className="absolute right-0 top-0 bottom-4 w-8 z-[2] pointer-events-none"
+                  style={{ background: 'linear-gradient(270deg, var(--bg-page), transparent)' }}
+                />
+                <div
+                  ref={relatedScrollRef}
+                  className="flex gap-4 overflow-x-auto pb-4 scroll-touch"
+                  onMouseEnter={() => setRelatedPaused(true)}
+                  onMouseLeave={() => setRelatedPaused(false)}
+                  onTouchStart={() => setRelatedPaused(true)}
+                  onTouchEnd={() => setTimeout(() => setRelatedPaused(false), 1100)}
+                  style={{ scrollbarWidth: 'none' }}
+                >
+                  {[...related.slice(0, 6), ...related.slice(0, 6)].map((p, idx) => (
+                    <motion.div key={`${p._id || p.id}-${idx}`}
+                      className="flex-shrink-0 w-[260px]"
+                      initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }} transition={{ delay: (idx % 6) * 0.07, duration: 0.4 }}
+                    >
+                      <ProductCard product={p} index={idx % 6} compact={false} />
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             </section>
           )}
