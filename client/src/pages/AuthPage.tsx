@@ -7,7 +7,7 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { useTheme } from '../contexts/ThemeContext';
-import AuthPremiumLayout, { type AuthView } from '../components/AuthPremiumLayout';
+import AuthPremiumLayout from '../components/AuthPremiumLayout';
 import { authAPI } from '../lib/api';
 import { API_BASE_URL } from '../lib/config';
 
@@ -77,14 +77,14 @@ function AuthInput({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)', letterSpacing: '0.07em' }}>
+      <label className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
         {label}{required ? <span style={{ color: PRIMARY }}> *</span> : ''}
       </label>
       <div className="relative">
         {LeftIcon && (
           <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200"
             style={{ color: focused && !error ? PRIMARY : 'var(--text-faint)' }}>
-            <LeftIcon size={16} />
+            <LeftIcon size={17} />
           </span>
         )}
         <input
@@ -96,13 +96,13 @@ function AuthInput({
           placeholder={placeholder}
           required={required}
           autoFocus={autoFocus}
-          className="w-full h-[50px] rounded-2xl outline-none text-[14px] transition-all duration-200"
+          className="w-full h-[54px] rounded-2xl outline-none text-[15px] transition-all duration-200"
           style={{
             background: inputBg,
             boxShadow: ring,
             color: 'var(--text-primary)',
-            paddingLeft: LeftIcon ? '44px' : '16px',
-            paddingRight: rightEl || valid ? '44px' : '16px',
+            paddingLeft: LeftIcon ? '46px' : '18px',
+            paddingRight: rightEl || valid ? '46px' : '18px',
           }}
         />
         {rightEl && (
@@ -164,7 +164,7 @@ function PrimaryBtn({
       disabled={disabled || loading}
       whileHover={!disabled && !loading ? { y: -2 } : {}}
       whileTap={!disabled ? { scale: 0.98 } : {}}
-      className="relative w-full h-[52px] rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2.5 overflow-hidden border-none cursor-pointer select-none"
+      className="relative w-full h-[56px] rounded-2xl font-bold text-[16px] flex items-center justify-center gap-2.5 overflow-hidden border-none cursor-pointer select-none"
       style={{
         background: bg,
         color: '#ffffff',
@@ -216,7 +216,7 @@ function GoogleBtn({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
-      className="w-full h-[50px] rounded-2xl flex items-center justify-center gap-3 text-[14px] font-semibold border-none cursor-pointer transition-all"
+      className="w-full h-[54px] rounded-2xl flex items-center justify-center gap-3 text-[15px] font-semibold border-none cursor-pointer transition-all"
       style={{
         background: 'var(--bg-secondary)',
         color: 'var(--text-primary)',
@@ -295,16 +295,16 @@ function LoginFormContent({
   };
 
   return (
-    <motion.form
+      <motion.form
       onSubmit={handleSubmit}
       initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
       className={`flex flex-col gap-5 ${shake ? 'auth-shake-anim' : ''}`}
     >
       {/* Heading */}
-      <div>
-        <h2 className="text-[26px] font-black mb-1" style={{ color: 'var(--text-primary)' }}>Welcome back</h2>
-        <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
+      <div className="mb-1">
+        <h2 className="text-[26px] font-black mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.1 }}>Welcome back</h2>
+        <p className="text-[15px]" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -352,17 +352,17 @@ function LoginFormContent({
       </div>
 
       {/* Remember me */}
-      <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
+      <label className="flex items-center gap-3 cursor-pointer select-none">
         <button
           type="button" role="checkbox" aria-checked={remember}
           onClick={() => setRemember(!remember)}
-          className="w-10 h-5 rounded-full transition-all flex-shrink-0 relative"
-          style={{ background: remember ? PRIMARY : 'var(--bg-tertiary)', boxShadow: '0 0 0 1.5px var(--divider)' }}
+          className="w-11 h-6 rounded-full transition-all flex-shrink-0 relative"
+          style={{ background: remember ? PRIMARY : 'var(--bg-tertiary)', boxShadow: `0 0 0 1.5px ${remember ? 'rgba(249,115,22,0.5)' : 'var(--divider)'}` }}
         >
-          <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
+          <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform"
             style={{ transform: remember ? 'translateX(20px)' : 'translateX(0)' }} />
         </button>
-        <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Remember me</span>
+        <span className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Remember me</span>
       </label>
 
       <PrimaryBtn loading={loading} success={success}>
@@ -381,10 +381,6 @@ function LoginFormContent({
       </p>
 
       {/* Security note */}
-      <div className="flex items-center justify-center gap-2 pt-1">
-        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: '#10b981' }} />
-        <span className="text-[11px]" style={{ color: 'var(--text-faint)' }}>256-bit SSL encrypted • Secure login</span>
-      </div>
     </motion.form>
   );
 }
@@ -488,15 +484,15 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       className="flex flex-col gap-4"
     >
       {/* Heading */}
-      <div>
-        <h2 className="text-[24px] font-black mb-1" style={{ color: 'var(--text-primary)' }}>Create account</h2>
-        <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers on Reaglex</p>
+      <div className="mb-1">
+        <h2 className="text-[26px] font-black mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.1 }}>Create account</h2>
+        <p className="text-[15px]" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers on Reaglex</p>
       </div>
 
       <ErrorBanner message={error} />
 
       {/* Name + Email */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <AuthInput label="Full Name" value={fd.fullName} onChange={f('fullName')} placeholder="Your full name"
           leftIcon={User} valid={fd.fullName.trim().length >= 2}
           focused={focused === 'name'} onFocus={() => setFocused('name')} onBlur={() => setFocused(null)} required autoFocus />
@@ -508,7 +504,7 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       </div>
 
       {/* Password */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5 sm:gap-2">
         <AuthInput label="Password" type={showPw ? 'text' : 'password'} value={fd.password} onChange={f('password')}
           placeholder="At least 8 characters" leftIcon={Lock}
           focused={focused === 'pw'} onFocus={() => setFocused('pw')} onBlur={() => setFocused(null)}
@@ -613,13 +609,13 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       )}
 
       {/* Terms */}
-      <label className="flex items-start gap-3 cursor-pointer select-none">
+      <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer select-none">
         <button type="button" role="checkbox" aria-checked={agreed} onClick={() => setAgreed(!agreed)}
           className="w-5 h-5 rounded-lg flex-shrink-0 mt-0.5 flex items-center justify-center transition-all"
           style={{ background: agreed ? PRIMARY : 'var(--bg-secondary)', boxShadow: `0 0 0 1.5px ${agreed ? PRIMARY : 'var(--border-card)'}` }}>
           {agreed && <Check size={12} className="text-white" />}
         </button>
-        <span className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-[13px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
           I agree to the{' '}
           <a href="/terms" className="font-semibold hover:underline" style={{ color: PRIMARY }}>Terms of Service</a>
           {' '}&amp;{' '}
@@ -681,8 +677,8 @@ function ForgotFormContent({ onSent }: { onSent: (email: string) => void }) {
         <Link to="/auth?tab=login" className="text-[12px] font-semibold hover:underline flex items-center gap-1 mb-4 w-fit" style={{ color: PRIMARY }}>
           ← Back to Sign In
         </Link>
-        <h2 className="text-[24px] font-black mb-1" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
-        <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Enter your email and we'll send a 6-digit reset code.</p>
+        <h2 className="text-[26px] font-black mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.1 }}>Reset Password</h2>
+        <p className="text-[15px]" style={{ color: 'var(--text-muted)' }}>Enter your email and we'll send a 6-digit reset code.</p>
       </div>
       <ErrorBanner message={error} />
       <AuthInput label="Email Address" type="email" value={email} onChange={setEmail}
@@ -711,7 +707,7 @@ function OtpInputs({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   return (
-    <div className="flex items-center justify-center gap-2.5">
+    <div className="flex items-center justify-center gap-2 sm:gap-3">
       {digits.map((d, i) => (
         <input
           key={i}
@@ -721,7 +717,7 @@ function OtpInputs({
           onChange={(e) => onChange(i, e.target.value)}
           onKeyDown={(e) => onKeyDown(i, e)}
           onPaste={onPaste}
-          className="w-12 h-[56px] rounded-2xl text-center text-[20px] font-black outline-none transition-all duration-200"
+          className="w-[13vw] max-w-[58px] min-w-[42px] h-[58px] sm:h-[64px] rounded-2xl text-center text-[22px] font-black outline-none transition-all duration-200"
           style={{
             background: isDark ? 'rgba(255,255,255,0.06)' : '#f8f9fc',
             boxShadow: error
@@ -750,7 +746,7 @@ function ThemeToggle() {
     <motion.button
       type="button" onClick={toggleTheme}
       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-      className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200"
+      className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200"
       style={{
         background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
         color: 'var(--text-primary)',
@@ -995,47 +991,59 @@ export default function AuthPage() {
   const cardBg     = isDark ? '#0e1019' : '#ffffff';
   const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
 
-  /* Derive the contextual image view for the left panel */
-  const currentView: AuthView = (() => {
-    if (panel === 'otp')     return 'otp';
-    if (panel === 'reset')   return 'reset';
-    if (panel === 'success') return 'success';
-    if (validTab === 'signup') return 'signup';
-    if (validTab === 'forgot') return 'forgot';
-    return 'login';
-  })();
-
   /* ── RENDER ── */
   return (
-    <AuthPremiumLayout currentView={currentView}>
-      <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
+    <AuthPremiumLayout>
+      {/*
+        Mobile: card fills the right panel edge-to-edge with small margins.
+        Desktop (sm+): card is centred with max-width, floated in the panel.
+      */}
+      <div className="flex flex-col flex-1 min-h-0 w-full">
 
         {/* Card area */}
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0 py-4">
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0
+                        px-3 py-5 sm:px-6 sm:py-8 md:px-8 md:py-10">
           <motion.div
-            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="w-full max-w-[480px] sm:max-w-[520px] p-6 sm:p-8 relative overflow-hidden"
-            style={{ background: cardBg, boxShadow: cardShadow }}
+            className="w-full sm:max-w-[520px] relative overflow-hidden rounded-2xl"
+            style={{
+              background: cardBg,
+              boxShadow: cardShadow,
+              /* Futuristic accent border — top gradient line */
+              borderTop: `2px solid transparent`,
+              backgroundClip: 'padding-box',
+            }}
           >
-            {/* Corner glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 pointer-events-none" style={{
-              background: 'radial-gradient(circle at top right, rgba(249,115,22,0.08) 0%, transparent 60%)',
+            {/* Top accent line (gradient overlay) */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-20" style={{
+              background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.8) 40%, rgba(139,92,246,0.6) 70%, transparent)',
+            }} />
+
+            {/* Corner glow top-right */}
+            <div className="absolute top-0 right-0 w-72 h-72 pointer-events-none" style={{
+              background: 'radial-gradient(circle at top right, rgba(249,115,22,0.09) 0%, transparent 60%)',
+            }} />
+            {/* Corner glow bottom-left */}
+            <div className="absolute bottom-0 left-0 w-56 h-56 pointer-events-none" style={{
+              background: 'radial-gradient(circle at bottom left, rgba(139,92,246,0.07) 0%, transparent 60%)',
             }} />
             {/* Dot grid */}
             <div className="absolute inset-0 pointer-events-none" style={{
-              backgroundImage: `radial-gradient(circle, ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'} 1px, transparent 1px)`,
-              backgroundSize: '20px 20px',
+              backgroundImage: `radial-gradient(circle, ${isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.018)'} 1px, transparent 1px)`,
+              backgroundSize: '22px 22px',
             }} />
 
-            <div className="relative z-10">
+            {/* Padding wrapper */}
+            <div className="relative z-10 p-5 sm:p-8">
+
               {/* Window dots + theme toggle */}
-              <div className="flex items-center gap-1.5 mb-5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-semibold tracking-wider uppercase ml-2"
-                  style={{ color: 'var(--text-faint)' }}>Reaglex Secure</span>
+              <div className="flex items-center gap-1.5 mb-5 sm:mb-6">
+                <span className="w-3 h-3 rounded-full" style={{ background: '#ff5f57' }} />
+                <span className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
+                <span className="w-3 h-3 rounded-full" style={{ background: '#28c840' }} />
+                <span className="text-[10px] font-bold tracking-[0.12em] uppercase ml-3"
+                  style={{ color: 'var(--text-faint)' }}>REAGLEX · SECURE</span>
                 <div className="ml-auto"><ThemeToggle /></div>
               </div>
 
@@ -1048,33 +1056,37 @@ export default function AuthPage() {
                     exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
                   >
                     {/* Tab switcher */}
-                    <div className="flex items-center p-1 rounded-2xl mb-6 relative"
-                      style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#f0f2f5' }}>
+                    <div className="flex items-center p-1.5 rounded-2xl mb-5 sm:mb-7 relative"
+                      style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
                       <Link
                         to="/auth?tab=login"
-                        className="relative z-10 flex-1 text-center py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+                        className="relative z-10 flex-1 text-center py-2.5 rounded-xl text-[14px] font-bold transition-colors"
                         style={{ color: (validTab === 'login' || validTab === 'forgot') ? 'var(--text-primary)' : 'var(--text-faint)' }}
                       >
                         Sign In
                       </Link>
                       <Link
                         to="/auth?tab=signup"
-                        className="relative z-10 flex-1 text-center py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+                        className="relative z-10 flex-1 text-center py-2.5 rounded-xl text-[14px] font-bold transition-colors"
                         style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-faint)' }}
                       >
                         Register
                       </Link>
                       <motion.span
                         layoutId="auth-v2-pill"
-                        className="absolute top-1 rounded-xl"
+                        className="absolute top-1.5 rounded-xl"
                         style={{
-                          background: isDark ? '#1a1d2e' : '#ffffff',
-                          boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
-                          height: 'calc(100% - 8px)',
+                          background: validTab === 'signup'
+                            ? isDark ? '#1a1d2e' : '#ffffff'
+                            : isDark ? '#1a1d2e' : '#ffffff',
+                          boxShadow: (validTab === 'login' || validTab === 'forgot')
+                            ? `0 2px 12px rgba(249,115,22,0.25), 0 0 0 1px rgba(249,115,22,0.18)`
+                            : `0 2px 12px rgba(139,92,246,0.25), 0 0 0 1px rgba(139,92,246,0.18)`,
+                          height: 'calc(100% - 12px)',
                         }}
                         animate={{
-                          left:  validTab === 'signup' ? 'calc(50% + 4px)' : '4px',
-                          width: 'calc(50% - 8px)',
+                          left:  validTab === 'signup' ? 'calc(50% + 6px)' : '6px',
+                          width: 'calc(50% - 12px)',
                         }}
                         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                       />
@@ -1113,18 +1125,25 @@ export default function AuthPage() {
                     exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
                     className="flex flex-col items-center text-center"
                   >
-                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                      style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.22)' }}>
-                      <Mail size={26} style={{ color: PRIMARY }} />
+                    {/* Icon orb */}
+                    <div className="relative mb-5">
+                      <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                        style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', boxShadow: '0 0 32px rgba(249,115,22,0.15)' }}>
+                        <Mail size={32} style={{ color: PRIMARY }} />
+                      </div>
+                      <motion.div className="absolute inset-0 rounded-2xl pointer-events-none"
+                        animate={{ boxShadow: ['0 0 0 0 rgba(249,115,22,0.3)', '0 0 0 10px rgba(249,115,22,0)', '0 0 0 0 rgba(249,115,22,0)'] }}
+                        transition={{ duration: 2, repeat: Infinity }} />
                     </div>
-                    <h2 className="text-[22px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Verify your email</h2>
-                    <p className="text-[13px] mb-6 max-w-[340px]" style={{ color: 'var(--text-muted)' }}>
+
+                    <h2 className="text-[26px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Verify Email</h2>
+                    <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)', maxWidth: 320, margin: '0 auto 24px' }}>
                       We sent a 6-digit code to{' '}
-                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{otpEmail}</span>.{' '}
+                      <span className="font-bold" style={{ color: PRIMARY }}>{otpEmail}</span>.
                       Check your inbox and spam folder.
                     </p>
 
-                    <div className="w-full max-w-[340px]">
+                    <div className="w-full max-w-[380px] mx-auto">
                       <OtpInputs
                         digits={otpDigits} inputRefs={otpRefs} locked={otpLocked || verifying}
                         error={!!otpError} onChange={handleOtpChange} onKeyDown={handleOtpKey} onPaste={handleOtpPaste}
@@ -1132,25 +1151,25 @@ export default function AuthPage() {
 
                       {otpError ? (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                          className="text-[12px] text-center mt-3" style={{ color: '#f87171' }}>
+                          className="text-[13px] text-center mt-3" style={{ color: '#f87171' }}>
                           {otpError}
                         </motion.p>
                       ) : (
-                        <p className="text-[11px] text-center mt-2" style={{ color: 'var(--text-faint)' }}>{expiryText}</p>
+                        <p className="text-[12px] text-center mt-2" style={{ color: 'var(--text-faint)' }}>{expiryText}</p>
                       )}
 
-                      <div className="text-center my-4">
+                      <div className="text-center my-5">
                         {resendN >= 3 ? (
-                          <p className="text-[12px]" style={{ color: '#f87171' }}>Too many attempts. Try again in 30 min.</p>
+                          <p className="text-[13px]" style={{ color: '#f87171' }}>Too many attempts. Try again in 30 min.</p>
                         ) : resendCd > 0 ? (
-                          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resendCd)}</p>
+                          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resendCd)}</p>
                         ) : (
                           <button type="button" disabled={!canResend || sending}
                             onClick={async () => {
                               if (resendN >= 2) { setResendN(3); setResendLock(Date.now() + 30*60*1000); return; }
                               await sendOtp(otpEmail, 'resend');
                             }}
-                            className="text-[13px] font-bold hover:underline"
+                            className="text-[14px] font-bold hover:underline"
                             style={{ color: PRIMARY, opacity: !canResend || sending ? 0.55 : 1 }}>
                             {sending ? 'Sending…' : 'Resend Code'}
                           </button>
@@ -1162,7 +1181,7 @@ export default function AuthPage() {
                       </PrimaryBtn>
 
                       <button type="button" onClick={() => { clearOtp(); setPanel('auth'); navigate('/auth?tab=login'); }}
-                        className="mt-4 text-[12px] font-semibold hover:underline block mx-auto" style={{ color: PRIMARY }}>
+                        className="mt-5 text-[13px] font-bold hover:underline block mx-auto" style={{ color: PRIMARY }}>
                         ← Back to Sign In
                       </button>
                     </div>
@@ -1176,17 +1195,19 @@ export default function AuthPage() {
                     exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
                     className="flex flex-col items-center text-center"
                   >
-                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                      style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.22)' }}>
-                      <Lock size={26} style={{ color: PRIMARY }} />
+                    <div className="relative mb-5">
+                      <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                        style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', boxShadow: '0 0 32px rgba(249,115,22,0.15)' }}>
+                        <Lock size={32} style={{ color: PRIMARY }} />
+                      </div>
                     </div>
-                    <h2 className="text-[22px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Reset password</h2>
-                    <p className="text-[13px] mb-6 max-w-[340px]" style={{ color: 'var(--text-muted)' }}>
+                    <h2 className="text-[26px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
+                    <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)', maxWidth: 320, margin: '0 auto 24px' }}>
                       Enter the 6-digit code sent to{' '}
-                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{resetEmail}</span>, then set a new password.
+                      <span className="font-bold" style={{ color: PRIMARY }}>{resetEmail}</span>, then set a new password.
                     </p>
 
-                    <div className="w-full max-w-[380px]">
+                    <div className="w-full max-w-[400px] mx-auto">
                       <OtpInputs
                         digits={resetDigits} inputRefs={resetRefs} locked={resetLocked || resetting}
                         error={!!resetError} onChange={handleResetChange} onKeyDown={handleResetKey} onPaste={handleResetPaste}
@@ -1194,30 +1215,30 @@ export default function AuthPage() {
 
                       {resetError && (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                          className="text-[12px] text-center mt-3 mb-2" style={{ color: '#f87171' }}>
+                          className="text-[13px] text-center mt-3 mb-2" style={{ color: '#f87171' }}>
                           {resetError}
                         </motion.p>
                       )}
 
-                      <div className="text-center mt-2 mb-5">
+                      <div className="text-center mt-3 mb-6">
                         {resetResendN >= 3 ? (
-                          <p className="text-[12px]" style={{ color: '#f87171' }}>Too many attempts.</p>
+                          <p className="text-[13px]" style={{ color: '#f87171' }}>Too many attempts.</p>
                         ) : resetResendCd > 0 ? (
-                          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resetResendCd)}</p>
+                          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resetResendCd)}</p>
                         ) : (
                           <button type="button" disabled={!canResendReset}
                             onClick={async () => {
                               if (resetResendN >= 2) { setResetResendN(3); setResetResendLock(Date.now() + 30*60*1000); return; }
                               await sendResetOtp(resetEmail, 'resend');
                             }}
-                            className="text-[13px] font-bold hover:underline"
+                            className="text-[14px] font-bold hover:underline"
                             style={{ color: PRIMARY, opacity: !canResendReset ? 0.55 : 1 }}>
                             Resend Code
                           </button>
                         )}
                       </div>
 
-                      <div className="flex flex-col gap-4 mb-5 text-left">
+                      <div className="flex flex-col gap-4 mb-6 text-left">
                         <AuthInput label="New Password" type="password" value={newPassword} onChange={setNewPassword}
                           placeholder="New password" leftIcon={Lock}
                           focused={resetFocused === 'np'} onFocus={() => setResetFocused('np')} onBlur={() => setResetFocused(null)} required />
@@ -1231,7 +1252,7 @@ export default function AuthPage() {
                       </PrimaryBtn>
 
                       <button type="button" onClick={() => { clearReset(); setPanel('auth'); navigate('/auth?tab=login'); }}
-                        className="mt-4 text-[12px] font-semibold hover:underline block mx-auto" style={{ color: PRIMARY }}>
+                        className="mt-5 text-[13px] font-bold hover:underline block mx-auto" style={{ color: PRIMARY }}>
                         ← Back to Sign In
                       </button>
                     </div>
@@ -1245,16 +1266,21 @@ export default function AuthPage() {
                     exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
                     className="flex flex-col items-center text-center py-4"
                   >
-                    <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5"
-                      style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.22)' }}>
-                      <svg width="40" height="30" viewBox="0 0 52 38" fill="none" aria-hidden>
-                        <path d="M6 20.5L20 34L46 6" stroke={SUCCESS} strokeWidth="6"
-                          strokeLinecap="round" strokeLinejoin="round"
-                          style={{ strokeDasharray: 80, strokeDashoffset: 80, animation: 'auth-check 650ms ease-out forwards' }} />
-                      </svg>
+                    <div className="relative mb-6">
+                      <div className="w-24 h-24 rounded-full flex items-center justify-center"
+                        style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', boxShadow: '0 0 40px rgba(16,185,129,0.2)' }}>
+                        <svg width="44" height="34" viewBox="0 0 52 38" fill="none" aria-hidden>
+                          <path d="M6 20.5L20 34L46 6" stroke={SUCCESS} strokeWidth="6"
+                            strokeLinecap="round" strokeLinejoin="round"
+                            style={{ strokeDasharray: 80, strokeDashoffset: 80, animation: 'auth-check 650ms ease-out forwards' }} />
+                        </svg>
+                      </div>
+                      <motion.div className="absolute inset-0 rounded-full pointer-events-none"
+                        animate={{ boxShadow: ['0 0 0 0 rgba(16,185,129,0.3)', '0 0 0 14px rgba(16,185,129,0)', '0 0 0 0 rgba(16,185,129,0)'] }}
+                        transition={{ duration: 2, repeat: Infinity }} />
                     </div>
-                    <h2 className="text-[24px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
-                    <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)' }}>
+                    <h2 className="text-[28px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
+                    <p className="text-[15px] mb-7" style={{ color: 'var(--text-muted)' }}>
                       Your account is ready. Welcome to Reaglex.
                     </p>
                     <PrimaryBtn type="button" onClick={() => {
@@ -1271,12 +1297,12 @@ export default function AuthPage() {
               </AnimatePresence>
 
               {/* Footer inside card */}
-              <p className="mt-5 text-[11px] text-center leading-relaxed"
+              <p className="mt-6 text-[12px] text-center leading-relaxed"
                 style={{ color: 'var(--text-faint)' }}>
                 By continuing you agree to our{' '}
-                <a href="/terms" className="hover:underline" style={{ color: PRIMARY }}>Terms of Service</a>
+                <a href="/terms" className="hover:underline font-semibold" style={{ color: PRIMARY }}>Terms of Service</a>
                 {' '}and{' '}
-                <a href="/privacy" className="hover:underline" style={{ color: PRIMARY }}>Privacy Policy</a>.
+                <a href="/privacy" className="hover:underline font-semibold" style={{ color: PRIMARY }}>Privacy Policy</a>.
               </p>
             </div>
           </motion.div>

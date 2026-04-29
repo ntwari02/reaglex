@@ -24,6 +24,9 @@ const FALLBACK_PRODUCTS = [
   { _id: 'f8', name: 'Laptop Stand Aluminum', price: 42, originalPrice: 60, rating: 4.6, reviewCount: 389, thumbnail: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&q=80', discount: 30 },
 ];
 
+const TRENDING_CACHE_TTL = 5 * 60 * 1000;
+let trendingCache = { data: null, ts: 0 };
+
 /* ─── Product card ───────────────────────────────────────────────────────── */
 function TrendCard({ product, index, isDark, onAdd }) {
   const [wished, setWished] = useState(false);
@@ -63,6 +66,9 @@ function TrendCard({ product, index, isDark, onAdd }) {
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-600 group-hover:scale-108"
             loading="lazy"
+            decoding="async"
+            width="480"
+            height="480"
           />
 
           {/* Discount badge */}
@@ -167,13 +173,25 @@ export default function TrendingProducts() {
   const inView = useInView(headerRef, { once: true, margin: '-80px' });
 
   useEffect(() => {
+    const now = Date.now();
+    if (trendingCache.data && now - trendingCache.ts < TRENDING_CACHE_TTL) {
+      setProducts(trendingCache.data);
+      setLoading(false);
+      return;
+    }
+
     productAPI
       .getProducts({ limit: 8, sort: '-rating' })
       .then(res => {
         const list = Array.isArray(res) ? res : (res?.products || res?.data || []);
-        setProducts(list.slice(0, 8));
+        const next = list.slice(0, 8);
+        setProducts(next);
+        trendingCache = { data: next, ts: Date.now() };
       })
-      .catch(() => setProducts(FALLBACK_PRODUCTS))
+      .catch(() => {
+        setProducts(FALLBACK_PRODUCTS);
+        trendingCache = { data: FALLBACK_PRODUCTS, ts: Date.now() };
+      })
       .finally(() => setLoading(false));
   }, []);
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 
 /* ─── View type ──────────────────────────────────────────────────────────── */
@@ -16,15 +16,14 @@ export type AuthView =
 
 interface AuthPremiumLayoutProps {
   children: ReactNode;
-  currentView?: AuthView;
 }
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Layout
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function AuthPremiumLayout({
   children,
-  currentView = 'login',
 }: AuthPremiumLayoutProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -32,19 +31,18 @@ export default function AuthPremiumLayout({
   const currentImage = '/auth-3d.png';
 
   const rightBg = isDark
-    ? 'linear-gradient(160deg, #0a0c15 0%, #0d0f1c 60%, #090b13 100%)'
-    : 'linear-gradient(160deg, #f8f9fc 0%, #f2f4f8 60%, #eef0f5 100%)';
+    ? 'linear-gradient(160deg, #08090f 0%, #0c0e1a 60%, #080b10 100%)'
+    : 'linear-gradient(160deg, #f4f6fb 0%, #eef0f7 60%, #e8ebf4 100%)';
 
   return (
     <div
-      className="auth-root flex min-h-screen w-full"
+      className="auth-root min-h-screen w-full flex flex-col md:flex-row"
       style={{ overflowX: 'hidden' }}
-      data-auth-layout="premium-v5"
+      data-auth-layout="premium-v6"
     >
-
-      {/* ═══ LEFT PANEL — pure 3D illustration, no text ═══ */}
+      {/* ═══ LEFT PANEL — 3D illustration (desktop only) ═══ */}
       <aside
-        className="flex flex-col relative overflow-hidden flex-shrink-0 min-w-0"
+        className="hidden md:flex flex-col relative overflow-hidden flex-shrink-0"
         style={{
           flexBasis: '50%',
           width: '50%',
@@ -98,47 +96,56 @@ export default function AuthPremiumLayout({
           animation: 'ag-scan 8s linear infinite',
         }} />
 
-        {/* ── 3D illustration — full-bleed (fills the whole side) ── */}
+        {/* 3D illustration — static, animates in once on mount only.
+            No key changes, no AnimatePresence, so tab navigation never
+            causes this image to unmount/reload. */}
         <div className="absolute inset-0 z-10">
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={currentView}
-              src={currentImage}
-              alt=""
-              draggable={false}
-              className="w-full h-full select-none"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = '/auth-3d.png';
-              }}
-              style={{
-                objectFit: 'cover',
-                objectPosition: 'center',
-                filter:
-                  'drop-shadow(0 12px 32px rgba(249,115,22,0.22)) drop-shadow(0 4px 14px rgba(0,0,0,0.35))',
-              }}
-              initial={{ opacity: 0, scale: 1.04 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
-            />
-          </AnimatePresence>
+          <motion.img
+            src={currentImage}
+            alt=""
+            draggable={false}
+            className="w-full h-full select-none"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/auth-3d.png';
+            }}
+            style={{
+              objectFit: 'cover',
+              objectPosition: 'center',
+              filter: 'drop-shadow(0 12px 32px rgba(249,115,22,0.22)) drop-shadow(0 4px 14px rgba(0,0,0,0.35))',
+            }}
+            initial={{ opacity: 0, scale: 1.04 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.55, ease: 'easeOut' }}
+          />
         </div>
       </aside>
 
       {/* ═══ RIGHT PANEL — Form ═══ */}
       <main
-        className="flex flex-col min-w-0 overflow-y-auto"
+        className="flex flex-col flex-1 min-w-0 overflow-y-auto"
         style={{
           flexBasis: '50%',
-          width: '50%',
           background: rightBg,
           minHeight: '100vh',
-          padding:
-            'max(env(safe-area-inset-top), 14px) clamp(12px, 4vw, 48px) max(env(safe-area-inset-bottom), 14px)',
+          /* On mobile: no horizontal padding, the card itself handles it.
+             On desktop: generous side padding so card centres nicely. */
+          padding: '0',
         }}
       >
-        {children}
+        {/* Mobile: neutral bg with subtle dots */}
+        <div
+          className="md:hidden absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: isDark
+              ? 'radial-gradient(circle, rgba(249,115,22,0.04) 1px, transparent 1px)'
+              : 'radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+        <div className="relative flex flex-col flex-1">
+          {children}
+        </div>
       </main>
 
       {/* Keyframes */}
@@ -179,6 +186,10 @@ export default function AuthPremiumLayout({
           0%   { transform: translateX(-100%); }
           60%  { transform: translateX(100%);  }
           100% { transform: translateX(100%);  }
+        }
+        @keyframes auth-ring-pulse {
+          0%   { transform: scale(1); opacity: 0.5; }
+          100% { transform: scale(1.8); opacity: 0; }
         }
       `}</style>
     </div>

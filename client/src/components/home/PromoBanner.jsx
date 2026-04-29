@@ -77,6 +77,10 @@ export default function PromoBanner() {
             alt="Fashion collection"
             className="absolute right-0 top-0 h-full w-1/2 object-cover object-center"
             style={{ opacity: isDark ? 0.08 : 0.12 }}
+            loading="lazy"
+            decoding="async"
+            width="1400"
+            height="900"
           />
           {/* Fade from left so text stays readable */}
           <div

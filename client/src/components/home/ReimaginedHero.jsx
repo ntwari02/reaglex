@@ -88,147 +88,220 @@ function ScenePanel({ scene, active, isDark }) {
   const labelColor = scene.labelColor === 'muted'
     ? (isDark ? '#7a6840' : '#8b7040') : scene.labelColor;
 
+  const btnStyle = scene.btnStyle === 'light'
+    ? {
+        background: isDark ? '#e2e4ed' : '#0f172a',
+        color:      isDark ? '#0d0f1c' : '#ffffff',
+        border:     `1px solid ${isDark ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.2)'}`,
+        boxShadow:  isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(15,23,42,0.18)',
+      }
+    : {
+        background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.85)',
+        color:      isDark ? '#e2e4ed' : '#ffffff',
+        border:     isDark ? '1px solid rgba(255,255,255,0.15)' : 'none',
+        boxShadow:  '0 4px 20px rgba(0,0,0,0.18)',
+      };
+
   return (
     /*
      * No opacity or transition here — the parent wrapper div (in ReimaginedHero)
-     * has its opacity driven by GSAP directly via a ref.  Adding CSS transitions
-     * on this element would cause CSS and GSAP to fight each other every frame.
+     * has its opacity driven by GSAP directly via a ref.
      */
-    <div
-      className="absolute inset-0"
-      style={{
-        background: bg,
-        pointerEvents: active ? 'auto' : 'none',
-      }}
-    >
-      {/* Guide rings */}
-      <div
-        className={`absolute pointer-events-none ${isCenter ? 'left-1/2 w-4/5 -translate-x-1/2' : isRight ? 'right-0 w-3/5' : 'left-0 w-3/5'}`}
-        style={{ top: '50%', transform: isCenter ? 'translate(-50%,-50%)' : 'translateY(-50%)', aspectRatio: '1' }}
-      >
-        <GuideRings color={scene.guideColor} />
-      </div>
+    <div className="absolute inset-0" style={{ background: bg, pointerEvents: active ? 'auto' : 'none' }}>
 
-      <Crosshair className="top-8 left-8"     color={scene.crossColor} />
-      <Crosshair className="top-8 right-8"    color={scene.crossColor} />
-      <Crosshair className="bottom-8 left-8"  color={scene.crossColor} />
-      <Crosshair className="bottom-8 right-8" color={scene.crossColor} />
+      {/* ══════════════════════════════════════════════════════
+          MOBILE layout  (<md)  — stacked: text top, image bottom
+          No absolute positioning, no overlapping, no overflow.
+      ══════════════════════════════════════════════════════ */}
+      <div className="md:hidden flex flex-col h-full overflow-hidden">
 
-      {/* Product image block */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          ...(isCenter ? {
-            left: '50%', top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 'clamp(340px, 68vmin, 860px)',
-          } : isBtm ? {
-            left: '50%', transform: 'translateX(-50%)',
-            bottom: 0, width: 'clamp(320px, 62vmin, 780px)',
-          } : isRight ? {
-            right: '-16px', top: '50%', transform: 'translateY(-50%)',
-            width: isShoe ? 'clamp(340px, 58vw, 720px)' : 'clamp(300px, 52vmin, 680px)',
-          } : {
-            left: '-16px', top: '50%', transform: 'translateY(-50%)',
-            width: 'clamp(300px, 52vmin, 680px)',
-          }),
-          perspective: '900px',
-        }}
-      >
-        {/* Glow halo — no inline opacity/transition; parent wrapper handles fade */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(ellipse 70% 60% at 50% 55%, ${scene.glowColor} 0%, ${scene.glowColor2} 40%, transparent 72%)`,
-            filter: 'blur(28px)',
-          }}
-        />
+        {/* Text block — upper ~46% */}
+        <div className="flex flex-col justify-center px-6 pt-14 pb-2 z-10 relative" style={{ flex: '0 0 46%' }}>
+          <motion.p
+            className="text-[9px] font-bold tracking-[0.22em] uppercase mb-2"
+            style={{ color: labelColor }}
+            animate={{ opacity: active ? 1 : 0, y: active ? 0 : 8 }}
+            transition={{ duration: 0.45, delay: active ? 0.08 : 0 }}>
+            {scene.label}
+          </motion.p>
 
-        {/*
-         * Product image — only 3-D entrance animation (scale / rotateY / y).
-         * Opacity is intentionally omitted: the wrapping GSAP div controls
-         * visibility, so adding FM opacity here would double-fade the image.
-         */}
-        <motion.img
-          src={scene.imgUrl}
-          alt={scene.imgAlt}
-          draggable={false}
-          className="w-full select-none relative z-10"
-          style={{
-            objectFit: 'contain',
-            objectPosition: isBtm ? 'bottom center' : isShoe ? 'center right' : 'center',
-            maxHeight: isCenter ? '88vh' : isBtm ? '84vh' : isShoe ? '42vh' : '78vh',
-            filter: `drop-shadow(0 24px 52px rgba(0,0,0,${isDark ? '0.52' : '0.22'})) drop-shadow(0 4px 16px rgba(0,0,0,0.14))`,
-          }}
-          initial={{ scale: isCenter ? 0.78 : 0.86, rotateY: isCenter ? 0 : isRight ? 18 : -18, y: isCenter ? 60 : 30 }}
-          animate={active
-            ? { scale: 1,    rotateY: 0, y: 0  }
-            : { scale: isCenter ? 0.80 : 0.88, rotateY: isCenter ? 0 : isRight ? 14 : -14, y: isCenter ? 50 : 24 }
-          }
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-        />
+          <motion.h2
+            className="font-black whitespace-pre-line leading-[0.93] mb-3"
+            style={{
+              color: titleColor,
+              fontFamily: "'Times New Roman', Georgia, serif",
+              fontSize: 'clamp(1.85rem, 8vw, 2.6rem)',
+              letterSpacing: '-0.02em',
+            }}
+            animate={{ opacity: active ? 1 : 0, y: active ? 0 : 14 }}
+            transition={{ duration: 0.5, delay: active ? 0.14 : 0 }}>
+            {scene.title}
+          </motion.h2>
 
-        {active && (
+          <motion.p
+            className="text-[12px] leading-relaxed mb-4"
+            style={{ color: subColor, maxWidth: '32ch' }}
+            animate={{ opacity: active ? 1 : 0, y: active ? 0 : 10 }}
+            transition={{ duration: 0.45, delay: active ? 0.22 : 0 }}>
+            {scene.sub}
+          </motion.p>
+
           <motion.div
-            className="absolute inset-0 pointer-events-none z-20"
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+            animate={{ opacity: active ? 1 : 0, y: active ? 0 : 8 }}
+            transition={{ duration: 0.45, delay: active ? 0.28 : 0 }}>
+            <Link
+              to={scene.ctaHref}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-bold tracking-[0.13em] uppercase"
+              style={btnStyle}>
+              {scene.cta}
+              <ArrowRight size={11} />
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* Image block — lower ~54% */}
+        <div className="relative flex items-end justify-center overflow-hidden" style={{ flex: '0 0 54%' }}>
+          {/* Glow */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: `radial-gradient(ellipse 85% 70% at 50% 65%, ${scene.glowColor} 0%, ${scene.glowColor2} 45%, transparent 72%)`,
+            filter: 'blur(22px)',
+          }} />
+          <motion.img
+            src={scene.imgUrl}
+            alt={scene.imgAlt}
+            draggable={false}
+            className="relative z-10 select-none"
+            style={{
+              /* On mobile use viewport-aware widths so nothing overflows */
+              width: isBtm ? '78vw' : isShoe ? '88vw' : '70vw',
+              maxWidth: 320,
+              maxHeight: '48vw',
+              objectFit: 'contain',
+              objectPosition: isBtm ? 'bottom center' : isShoe ? 'center right' : 'center',
+              filter: `drop-shadow(0 14px 32px rgba(0,0,0,${isDark ? '0.50' : '0.20'}))`,
+            }}
+            initial={{ scale: 0.84, y: 20 }}
+            animate={active ? { scale: 1, y: 0 } : { scale: 0.86, y: 16 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           />
-        )}
+        </div>
       </div>
 
-      {/* Text content */}
-      <div
-        className={`absolute z-20 max-w-sm ${
-          isCenter ? 'left-[6%] bottom-[12%] text-left'
-          : isBtm  ? 'top-[20%] left-1/2 -translate-x-1/2 text-center'
-          : isRight ? 'left-[6%] top-1/2 -translate-y-1/2'
-          : 'right-[6%] top-1/2 -translate-y-1/2 text-left'
-        }`}
-      >
-        <motion.p className="text-xs font-semibold tracking-[0.22em] uppercase mb-4"
-          style={{ color: labelColor }}
-          animate={{ opacity: active ? 1 : 0, y: active ? 0 : 14 }}
-          transition={{ duration: 0.55, delay: active ? 0.1 : 0 }}>
-          {scene.label}
-        </motion.p>
+      {/* ══════════════════════════════════════════════════════
+          DESKTOP layout  (≥md)  — original absolute positioning
+      ══════════════════════════════════════════════════════ */}
+      <div className="hidden md:block absolute inset-0">
+        {/* Guide rings */}
+        <div
+          className={`absolute pointer-events-none ${isCenter ? 'left-1/2 w-4/5 -translate-x-1/2' : isRight ? 'right-0 w-3/5' : 'left-0 w-3/5'}`}
+          style={{ top: '50%', transform: isCenter ? 'translate(-50%,-50%)' : 'translateY(-50%)', aspectRatio: '1' }}
+        >
+          <GuideRings color={scene.guideColor} />
+        </div>
 
-        <motion.h2
-          className="font-black whitespace-pre-line leading-[0.95] mb-6"
-          style={{ color: titleColor, fontFamily: "'Times New Roman', Georgia, serif", fontSize: 'clamp(2.4rem, 5vw, 4.5rem)', letterSpacing: '-0.02em' }}
-          animate={{ opacity: active ? 1 : 0, y: active ? 0 : 24 }}
-          transition={{ duration: 0.6, delay: active ? 0.17 : 0 }}>
-          {scene.title}
-        </motion.h2>
+        <Crosshair className="top-8 left-8"     color={scene.crossColor} />
+        <Crosshair className="top-8 right-8"    color={scene.crossColor} />
+        <Crosshair className="bottom-8 left-8"  color={scene.crossColor} />
+        <Crosshair className="bottom-8 right-8" color={scene.crossColor} />
 
-        <motion.p className="text-sm leading-relaxed mb-8 max-w-[28ch]"
-          style={{ color: subColor }}
-          animate={{ opacity: active ? 1 : 0, y: active ? 0 : 16 }}
-          transition={{ duration: 0.55, delay: active ? 0.25 : 0 }}>
-          {scene.sub}
-        </motion.p>
-
-        <motion.div
-          animate={{ opacity: active ? 1 : 0, y: active ? 0 : 12 }}
-          transition={{ duration: 0.55, delay: active ? 0.32 : 0 }}>
-          <Link
-            to={scene.ctaHref}
-            className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full text-xs font-bold tracking-[0.15em] uppercase transition-all duration-300 hover:gap-5"
-            style={scene.btnStyle === 'light' ? {
-              background: isDark ? '#e2e4ed' : '#0f172a',
-              color:      isDark ? '#0d0f1c' : '#ffffff',
-              border:     `1px solid ${isDark ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.2)'}`,
-              boxShadow:  isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(15,23,42,0.18)',
+        {/* Product image block */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            ...(isCenter ? {
+              left: '50%', top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 'clamp(340px, 68vmin, 860px)',
+            } : isBtm ? {
+              left: '50%', transform: 'translateX(-50%)',
+              bottom: 0, width: 'clamp(320px, 62vmin, 780px)',
+            } : isRight ? {
+              right: '-16px', top: '50%', transform: 'translateY(-50%)',
+              width: isShoe ? 'clamp(340px, 58vw, 720px)' : 'clamp(300px, 52vmin, 680px)',
             } : {
-              background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.85)',
-              color:      isDark ? '#e2e4ed' : '#ffffff',
-              border:     isDark ? '1px solid rgba(255,255,255,0.15)' : 'none',
-              boxShadow:  '0 4px 20px rgba(0,0,0,0.18)',
-            }}>
-            {scene.cta}
-            <ArrowRight size={13} />
-          </Link>
-        </motion.div>
+              left: '-16px', top: '50%', transform: 'translateY(-50%)',
+              width: 'clamp(300px, 52vmin, 680px)',
+            }),
+            perspective: '900px',
+          }}
+        >
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse 70% 60% at 50% 55%, ${scene.glowColor} 0%, ${scene.glowColor2} 40%, transparent 72%)`,
+              filter: 'blur(28px)',
+            }}
+          />
+          <motion.img
+            src={scene.imgUrl}
+            alt={scene.imgAlt}
+            draggable={false}
+            className="w-full select-none relative z-10"
+            style={{
+              objectFit: 'contain',
+              objectPosition: isBtm ? 'bottom center' : isShoe ? 'center right' : 'center',
+              maxHeight: isCenter ? '88vh' : isBtm ? '84vh' : isShoe ? '42vh' : '78vh',
+              filter: `drop-shadow(0 24px 52px rgba(0,0,0,${isDark ? '0.52' : '0.22'})) drop-shadow(0 4px 16px rgba(0,0,0,0.14))`,
+            }}
+            initial={{ scale: isCenter ? 0.78 : 0.86, rotateY: isCenter ? 0 : isRight ? 18 : -18, y: isCenter ? 60 : 30 }}
+            animate={active
+              ? { scale: 1, rotateY: 0, y: 0 }
+              : { scale: isCenter ? 0.80 : 0.88, rotateY: isCenter ? 0 : isRight ? 14 : -14, y: isCenter ? 50 : 24 }
+            }
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          />
+          {active && (
+            <motion.div
+              className="absolute inset-0 pointer-events-none z-20"
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          )}
+        </div>
+
+        {/* Text content */}
+        <div
+          className={`absolute z-20 max-w-sm ${
+            isCenter ? 'left-[6%] bottom-[12%] text-left'
+            : isBtm  ? 'top-[20%] left-1/2 -translate-x-1/2 text-center'
+            : isRight ? 'left-[6%] top-1/2 -translate-y-1/2'
+            : 'right-[6%] top-1/2 -translate-y-1/2 text-left'
+          }`}
+        >
+          <motion.p className="text-xs font-semibold tracking-[0.22em] uppercase mb-4"
+            style={{ color: labelColor }}
+            animate={{ opacity: active ? 1 : 0, y: active ? 0 : 14 }}
+            transition={{ duration: 0.55, delay: active ? 0.1 : 0 }}>
+            {scene.label}
+          </motion.p>
+
+          <motion.h2
+            className="font-black whitespace-pre-line leading-[0.95] mb-6"
+            style={{ color: titleColor, fontFamily: "'Times New Roman', Georgia, serif", fontSize: 'clamp(2.4rem, 5vw, 4.5rem)', letterSpacing: '-0.02em' }}
+            animate={{ opacity: active ? 1 : 0, y: active ? 0 : 24 }}
+            transition={{ duration: 0.6, delay: active ? 0.17 : 0 }}>
+            {scene.title}
+          </motion.h2>
+
+          <motion.p className="text-sm leading-relaxed mb-8 max-w-[28ch]"
+            style={{ color: subColor }}
+            animate={{ opacity: active ? 1 : 0, y: active ? 0 : 16 }}
+            transition={{ duration: 0.55, delay: active ? 0.25 : 0 }}>
+            {scene.sub}
+          </motion.p>
+
+          <motion.div
+            animate={{ opacity: active ? 1 : 0, y: active ? 0 : 12 }}
+            transition={{ duration: 0.55, delay: active ? 0.32 : 0 }}>
+            <Link
+              to={scene.ctaHref}
+              className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full text-xs font-bold tracking-[0.15em] uppercase transition-all duration-300 hover:gap-5"
+              style={btnStyle}>
+              {scene.cta}
+              <ArrowRight size={13} />
+            </Link>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -242,6 +315,29 @@ export default function ReimaginedHero() {
   const containerRef = useRef(null);
   const stickyRef    = useRef(null);
   const progressRef  = useRef(null);
+
+  /*
+   * Use window.innerHeight (not 100vh) for the pinned section height.
+   * On iOS Safari the address bar resizes the viewport during scroll,
+   * which causes 100vh-based pinned elements to jitter.
+   * We snapshot innerHeight on mount (after layout) and only update it
+   * on resize so GSAP never sees mid-scroll height changes.
+   */
+  const [vpH, setVpH] = useState(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 800
+  );
+  useEffect(() => {
+    let tid;
+    const onResize = () => {
+      clearTimeout(tid);
+      tid = setTimeout(() => {
+        setVpH(window.innerHeight);
+        ScrollTrigger.refresh();
+      }, 200);
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+    return () => { window.removeEventListener('resize', onResize); clearTimeout(tid); };
+  }, []);
 
   /*
    * sceneWrappers: refs to each scene's wrapper div.
@@ -286,18 +382,13 @@ export default function ReimaginedHero() {
       ScrollTrigger.create({
         trigger: containerRef.current,
         start:   'top top',
-        end:     `+=${total * 100}%`,
+        /* Use pixel-based end so it matches the section height we computed from vpH */
+        end:     () => `+=${total * vpH}`,
         pin:     stickyRef.current,
         pinSpacing:     true,
         anticipatePin:  0.5,
-        /*
-         * The app shell no longer wraps routes in transform: translateX(...)
-         * for the cart drawer. That lets ScrollTrigger use fixed viewport
-         * pinning again, which is smoother and avoids transform-on-transform
-         * vibration in the 3D hero scene.
-         */
         pinType:        'fixed',
-        scrub:          1.6,         // higher = smoother, less twitchy
+        scrub:          1.6,
         invalidateOnRefresh: true,
         fastScrollEnd:  true,
 
@@ -342,7 +433,7 @@ export default function ReimaginedHero() {
     }, containerRef);
 
     return () => ctx.revert();
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, vpH]);
 
   /* ─── Reduced-motion fallback ── */
   if (prefersReducedMotion) {
@@ -369,19 +460,20 @@ export default function ReimaginedHero() {
     <section
       ref={containerRef}
       className="relative"
-      style={{ height: `${SCENES.length * 100 + 100}vh` }}
+      /* Use pixel height derived from window.innerHeight to avoid iOS 100vh jitter */
+      style={{ height: `${SCENES.length * vpH + vpH}px` }}
     >
       {/*
        * Pinned viewport.
        * – No CSS `sticky`: conflicts with pinType:"transform".
-       * – Background is set to the first scene and stays static;
-       *   scenes stack on top with GSAP-controlled opacity so the
-       *   container colour is never visible during transitions.
+       * – Height is set explicitly in pixels (vpH) so iOS Safari's
+       *   shrinking address bar cannot cause mid-scroll size changes.
        */}
       <div
         ref={stickyRef}
-        className="h-screen overflow-hidden"
+        className="overflow-hidden"
         style={{
+          height: vpH,
           background: isDark ? SCENES[0].bgDark : SCENES[0].bgLight,
           width: '100%',
         }}
@@ -440,19 +532,22 @@ export default function ReimaginedHero() {
           />
         </div>
 
-        {/* Scroll hint */}
+        {/* Scroll hint — nudge on mobile too, but smaller */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1, y: [0, 8, 0] }}
+          animate={{ opacity: 1, y: [0, 6, 0] }}
           transition={{ duration: 2.5, repeat: Infinity, delay: 1.5 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none"
-          style={{ color: SCENES[activeScene].id === 'welcome' ? 'rgba(255,255,255,0.3)' : (isDark ? '#3d4159' : 'rgba(0,0,0,0.25)') }}
+          className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none"
+          style={{
+            bottom: '6%',
+            color: SCENES[activeScene].id === 'welcome' ? 'rgba(255,255,255,0.32)' : (isDark ? '#3d4159' : 'rgba(0,0,0,0.25)'),
+          }}
         >
-          <span style={{ fontSize: '9px', letterSpacing: '0.2em', fontWeight: 600 }}>SCROLL</span>
-          <div className="w-px h-6" style={{
+          <span style={{ fontSize: '8px', letterSpacing: '0.2em', fontWeight: 700 }}>SCROLL</span>
+          <div className="w-px h-5" style={{
             background: SCENES[activeScene].id === 'welcome'
-              ? 'linear-gradient(to bottom, rgba(255,255,255,0.4), transparent)'
-              : 'linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)',
+              ? 'linear-gradient(to bottom, rgba(255,255,255,0.38), transparent)'
+              : 'linear-gradient(to bottom, rgba(0,0,0,0.22), transparent)',
           }} />
         </motion.div>
       </div>

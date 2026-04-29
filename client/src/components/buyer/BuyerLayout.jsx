@@ -17,8 +17,13 @@ export default function BuyerLayout({ children, className = '' }) {
         color: 'var(--text-primary, #0f172a)',
       }}
     >
+      {/*
+       * pt-[74px] on mobile  = only the MainHeader is visible (height:70 + 4px buffer).
+       * pt-[150px] on ≥md    = UtilityBar(36) + MainHeader(70) + CategoryNav(44) = 150px.
+       * pb-[calc(60px+env(safe-area-inset-bottom))] on mobile clears the bottom nav bar.
+       */}
       <div
-        className="pt-[150px]"
+        className="pt-[74px] md:pt-[150px] pb-[calc(60px+env(safe-area-inset-bottom))] md:pb-0"
         style={{ color: 'var(--text-primary, #0f172a)' }}
       >
         {children}

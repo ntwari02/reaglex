@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSellerAccess } from '../hooks/useSellerAccess';
 import { useAuthStore } from '../stores/authStore';
@@ -73,15 +73,15 @@ function SellerAccessDenied() {
           ))}
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <a
-            href="/become-seller"
+          <Link
+            to="/become-seller"
             className="w-full sm:w-auto rounded-[12px] px-6 py-2.5 text-sm font-semibold text-white"
             style={{
               background: 'linear-gradient(135deg,#f97316,#ea580c)',
             }}
           >
             🚀 Become a Seller
-          </a>
+          </Link>
           <button
             type="button"
             onClick={() => window.history.back()}
@@ -100,9 +100,9 @@ function SellerAccessDenied() {
           style={{ color: 'var(--text-faint)' }}
         >
           Already applied?{' '}
-          <a href="/seller/pending" style={{ color: '#f97316' }}>
+          <Link to="/seller/pending" style={{ color: '#f97316' }}>
             Check status →
-          </a>
+          </Link>
         </p>
       </div>
     </div>

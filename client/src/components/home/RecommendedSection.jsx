@@ -24,6 +24,9 @@ const FALLBACK = [
   { _id: 'r8', name: 'Leather Journal', price: 29, rating: 4.9, reviewCount: 430, thumbnail: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=85' },
 ];
 
+const RECOMMENDED_CACHE_TTL = 5 * 60 * 1000;
+const recommendedCache = new Map();
+
 /* ─── Rec card ───────────────────────────────────────────────────────────── */
 function RecCard({ product, index, isDark, onAdd }) {
   const [wished, setWished] = useState(false);
@@ -64,6 +67,9 @@ function RecCard({ product, index, isDark, onAdd }) {
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
             loading="lazy"
+            decoding="async"
+            width="500"
+            height="500"
           />
 
           {/* For You badge */}
@@ -150,14 +156,27 @@ export default function RecommendedSection() {
     setLoading(true);
     const params = { limit: 8 };
     if (sortParam) params.sort = sortParam;
+    const key = sortParam || 'default';
+    const now = Date.now();
+    const cached = recommendedCache.get(key);
+    if (cached && now - cached.ts < RECOMMENDED_CACHE_TTL) {
+      setProducts(cached.data);
+      setLoading(false);
+      return;
+    }
 
     productAPI
       .getProducts(params)
       .then(res => {
         const list = Array.isArray(res) ? res : (res?.products || res?.data || []);
-        setProducts(list.slice(0, 8));
+        const next = list.slice(0, 8);
+        setProducts(next);
+        recommendedCache.set(key, { data: next, ts: Date.now() });
       })
-      .catch(() => setProducts(FALLBACK))
+      .catch(() => {
+        setProducts(FALLBACK);
+        recommendedCache.set(key, { data: FALLBACK, ts: Date.now() });
+      })
       .finally(() => setLoading(false));
   }, [activeTab, sortParam]);
 

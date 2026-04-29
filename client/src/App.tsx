@@ -22,6 +22,8 @@ import { SecurityTelemetryProbe } from './components/SecurityTelemetryProbe';
 import CartDrawer from './components/CartDrawer';
 // @ts-ignore JSX module without TS typings
 import Navbar from './components/Navbar';
+// @ts-ignore JSX module without TS typings
+import MobileBottomNav from './components/MobileBottomNav';
 import AssistantChat from './components/AssistantChat';
 import { websocketService } from './services/websocketService';
 // @ts-ignore Zustand JS store without TS types
@@ -183,9 +185,10 @@ function App() {
         <GlobalRealtimeBridge />
         <SecurityTelemetryProbe />
         <ToastNotification />
-        {/* CartDrawer and GlobalNavbar stay fixed to the real viewport. */}
+        {/* CartDrawer, GlobalNavbar and MobileBottomNav stay fixed to the real viewport. */}
         <CartDrawer />
         <GlobalNavbar />
+        <MobileBottomNav />
 
         {/*
           The cart drawer used to push the page with transform: translateX(...).

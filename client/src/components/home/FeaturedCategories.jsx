@@ -120,6 +120,9 @@ function CategoryCard({ cat, index, isLarge, isDark }) {
             alt={cat.label}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
+            decoding="async"
+            width="800"
+            height="600"
           />
           {/* Gradient overlay */}
           <div
@@ -241,6 +244,9 @@ export default function FeaturedCategories() {
                 alt={cat.label}
                 className="w-full h-full object-cover"
                 loading="lazy"
+                decoding="async"
+                width="600"
+                height="400"
               />
               <div
                 className="absolute inset-0"

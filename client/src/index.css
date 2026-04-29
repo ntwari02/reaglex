@@ -1468,3 +1468,73 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Mobile app-feel globals ───────────────────────────────────────────────── */
+
+/* Momentum scrolling for scroll containers on iOS */
+.scroll-touch { -webkit-overflow-scrolling: touch; }
+
+/* Prevent tap delay on interactive elements */
+button, a, [role="button"], input, select, textarea, label {
+  touch-action: manipulation;
+}
+
+/* Remove iOS input / button default appearance */
+input, button, select, textarea {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Prevent text selection flicker on tap */
+button, a {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Smooth scroll globally */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Mobile card press feedback */
+@keyframes mob-press {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.975); }
+  100% { transform: scale(1); }
+}
+.mob-card-press:active { animation: mob-press 0.15s ease; }
+
+/* Skeleton shimmer */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated, #e2e8f0) 25%,
+    var(--bg-hover, #f1f5f9) 50%,
+    var(--bg-elevated, #e2e8f0) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: 8px;
+}
+
+/* Bottom-nav glass border glow for dark mode */
+.dark nav[class*="MobileBottomNav"],
+nav[data-mobile-nav] {
+  border-top-color: rgba(249, 115, 22, 0.12);
+}
+
+/* Ensure minimum 44px touch targets on mobile */
+@media (max-width: 767px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+  /* Cards get subtle press active state */
+  .card-interactive:active {
+    transform: scale(0.985);
+    transition: transform 0.1s ease;
+  }
+}
