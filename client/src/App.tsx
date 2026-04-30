@@ -168,8 +168,12 @@ function GlobalRealtimeBridge() {
     websocketService.onSystemInboxNotification = () => {
       window.dispatchEvent(new Event('systemInboxUnreadRefresh'));
     };
+    websocketService.onInventoryUpdated = (payload) => {
+      window.dispatchEvent(new CustomEvent('inventoryUpdated', { detail: payload }));
+    };
     return () => {
       websocketService.onSystemInboxNotification = undefined;
+      websocketService.onInventoryUpdated = undefined;
     };
   }, [user?.id]);
   return null;

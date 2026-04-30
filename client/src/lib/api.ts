@@ -1597,6 +1597,36 @@ export const adminNotificationsAPI = {
       credentials: 'include',
       body: JSON.stringify(body),
     }).then(handleResponse<{ message: string; logs: any[] }>),
+  generateNotificationCopy: (body: {
+    prompt: string;
+    tone: 'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative';
+    contextType: string;
+  }) =>
+    fetch(`${NOTIFICATIONS_BASE}/ai/generate-copy`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ subject: string[]; messages: string[] }>),
+  improveNotificationCopy: (body: { subject?: string; message: string }) =>
+    fetch(`${NOTIFICATIONS_BASE}/ai/improve-copy`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ subject: string[]; messages: string[] }>),
+  runNotificationABTest: (body: {
+    targetGroup: string;
+    type: 'email' | 'inapp' | 'sms' | 'push';
+    variantA: { subject?: string; message: string };
+    variantB: { subject?: string; message: string };
+  }) =>
+    fetch(`${NOTIFICATIONS_BASE}/ai/ab-test`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; experimentId: string; totals: Record<string, number> }>),
 
   getTemplates: (params?: { search?: string; category?: string }) => {
     const sp = new URLSearchParams();

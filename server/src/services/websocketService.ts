@@ -338,6 +338,19 @@ class WebSocketService {
   }
 
   /**
+   * Broadcast inventory updates to all connected clients so product stock stays live.
+   */
+  emitInventoryUpdated(payload: {
+    productId: string;
+    stock: number;
+    status: string;
+    variants?: Array<{ id: string; sku: string; stock: number }>;
+  }) {
+    if (!this.io) return;
+    this.io.emit('inventory_updated', payload);
+  }
+
+  /**
    * Get connected users count
    */
   getConnectedUsersCount(): number {

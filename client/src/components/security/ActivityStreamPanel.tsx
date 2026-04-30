@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IntelActivityEvent } from './securityIntelTypes';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const severityStyle: Record<
   IntelActivityEvent['severity'],
@@ -30,15 +31,17 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 export function ActivityStreamPanel({ events, live }: { events: IntelActivityEvent[]; live: boolean }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const list = events.slice(0, 80);
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/60 backdrop-blur-xl overflow-hidden flex flex-col min-h-[420px] max-h-[520px]">
-      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2 bg-black/30">
+    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-950/60 backdrop-blur-xl overflow-hidden flex flex-col min-h-[420px] max-h-[520px]">
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-2 bg-slate-100/70 dark:bg-black/30">
         <div className="flex items-center gap-2">
           <Radio className={cn('w-4 h-4', live ? 'text-emerald-400 animate-pulse' : 'text-slate-500')} />
-          <h3 className="text-sm font-semibold text-white tracking-tight">Live activity stream</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">Live activity stream</h3>
         </div>
-        <span className="text-[10px] font-mono text-slate-500">{list.length} events</span>
+        <span className="text-[10px] font-mono text-slate-600 dark:text-slate-500">{list.length} events</span>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5 font-mono text-[11px]">
         <AnimatePresence initial={false}>
@@ -53,25 +56,26 @@ export function ActivityStreamPanel({ events, live }: { events: IntelActivityEve
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22 }}
                 className={cn(
-                  'rounded-lg border-l-2 bg-black/25 border border-white/5 pl-3 pr-2 py-2',
+                  'rounded-lg border-l-2 border pl-3 pr-2 py-2',
+                  isDark ? 'bg-black/25 border-white/5' : 'bg-white border-slate-200',
                   st.bar,
                 )}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <RoleBadge role={e.role} />
                   <span className={cn('text-[9px] px-1.5 py-0.5 rounded', st.badge)}>{e.severity}</span>
-                  <span className="text-[9px] text-slate-500 ml-auto tabular-nums">
+                  <span className="text-[9px] text-slate-600 dark:text-slate-500 ml-auto tabular-nums">
                     {new Date(e.at).toLocaleTimeString()}
                   </span>
                 </div>
-                <p className="text-slate-100 mt-1 font-sans text-[12px] leading-snug">{e.title}</p>
-                <p className="text-slate-500 text-[10px] mt-0.5 line-clamp-2">{e.detail}</p>
+                <p className="text-slate-900 dark:text-slate-100 mt-1 font-sans text-[12px] leading-snug">{e.title}</p>
+                <p className="text-slate-600 dark:text-slate-500 text-[10px] mt-0.5 line-clamp-2">{e.detail}</p>
               </motion.div>
             );
           })}
         </AnimatePresence>
         {list.length === 0 && (
-          <p className="text-slate-500 text-center py-12 text-sm">No events yet — connect telemetry & traffic.</p>
+          <p className="text-slate-500 dark:text-slate-500 text-center py-12 text-sm">No events yet — connect telemetry & traffic.</p>
         )}
       </div>
     </div>

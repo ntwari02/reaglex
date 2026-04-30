@@ -19,6 +19,7 @@ import { paymentAPI, orderAPI, productAPI } from '../services/api';
 import { useTranslation } from '../i18n/useTranslation';
 import { useAuthStore } from '../stores/authStore';
 import { API_BASE_URL, SERVER_URL } from '../lib/config';
+import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80';
@@ -53,6 +54,7 @@ export default function Checkout() {
   const user = useAuthStore((s) => s.user);
   const items = useBuyerCart((s) => s.items);
   const clearCart = useBuyerCart((s) => s.clearCart);
+  const currencyPricing = useCurrencyPricing();
 
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState({
@@ -188,7 +190,11 @@ export default function Checkout() {
 
   const rwfLike = checkoutProvider === 'momo' || checkoutProvider === 'airtel';
   const fmtMoney = (n) =>
-    rwfLike ? `RWF ${Math.round(n).toLocaleString()}` : `$${Number(n).toFixed(2)}`;
+    rwfLike
+      ? currencyPricing.formatLocalWithUsd(n)
+      : currencyPricing.selectedCurrency === 'USD'
+        ? currencyPricing.formatUsd(n)
+        : currencyPricing.formatLocalWithUsd(n);
 
   const anyGatewayEnabled =
     gateways.flutterwave ||
@@ -283,6 +289,7 @@ export default function Checkout() {
             : checkoutProvider === 'airtel'
               ? 'RWF'
               : 'card',
+        displayCurrency: currencyPricing.selectedCurrency,
         shippingMethods: { [sellerId]: shipKey },
         notes: {},
       });
@@ -787,6 +794,9 @@ export default function Checkout() {
                         {t('checkout.escrowNote')}
                       </span>
                     </div>
+                    <p className="text-xs" style={{ color: '#6b7280' }}>
+                      Exchange rate locked at checkout.
+                    </p>
                     <div className="flex gap-3">
                       <button
                         onClick={prevStep}

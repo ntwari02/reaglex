@@ -20,12 +20,6 @@ const ChatIndicator: React.FC<ChatIndicatorProps> = ({
 }) => {
   if (!status) return null;
 
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div 
       className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-200 ${position === 'above' ? 'mb-2' : 'mt-2'} ${className}`}

@@ -39,7 +39,17 @@ const SECTIONS = [
   { id: 'contact', label: 'Contact', icon: Mail },
 ];
 
-function Section({ id, title, icon: Icon, children }: { id: string; title: string; icon: React.ComponentType<{ className?: string; size?: number }>; children: React.ReactNode }) {
+function Section({
+  id,
+  title,
+  icon: Icon,
+  children,
+}: {
+  id: string;
+  title: string;
+  icon: React.ComponentType<{ className?: string; size?: string | number }>;
+  children: React.ReactNode;
+}) {
   return (
     <section id={id} className="scroll-mt-32">
       <motion.div
@@ -73,8 +83,8 @@ function Section({ id, title, icon: Icon, children }: { id: string; title: strin
   );
 }
 
-function P({ children }: { children: React.ReactNode }) {
-  return <p className="mb-3 text-[15px] leading-relaxed">{children}</p>;
+function P({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <p className={`mb-3 text-[15px] leading-relaxed ${className}`}>{children}</p>;
 }
 
 function Ul({ children }: { children: React.ReactNode }) {

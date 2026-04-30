@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Send,
   Users,
@@ -13,6 +13,10 @@ import {
   Eye,
   X,
   CalendarClock,
+  Sparkles,
+  Wand2,
+  Save,
+  Copy,
 } from 'lucide-react';
 import { adminNotificationsAPI } from '@/lib/api';
 
@@ -29,11 +33,40 @@ function scheduledChannelType(types: string[]): string {
 }
 
 export default function CreateSendNotification() {
+  const VARIABLE_CHIPS = ['{{username}}', '{{order_id}}', '{{product_name}}', '{{delivery_date}}', '{{amount}}'];
+  const TONES: Array<'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative'> = [
+    'professional',
+    'friendly',
+    'urgent',
+    'promotional',
+    'informative',
+  ];
+  const CONTEXTS = [
+    'order_placed',
+    'order_shipped',
+    'payment_confirmed',
+    'verification_approved',
+    'product_boosted',
+    'subscription_reminder',
+    'account_alert',
+    'delivery_confirmed',
+    'dispute_opened',
+  ];
   const [targetGroup, setTargetGroup] = useState('all_customers');
   const [specificUserId, setSpecificUserId] = useState('');
   const [notificationType, setNotificationType] = useState<string[]>(['inapp']);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [prompt, setPrompt] = useState('');
+  const [tone, setTone] = useState<'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative'>('professional');
+  const [contextType, setContextType] = useState('order_placed');
+  const [aiSubjects, setAiSubjects] = useState<string[]>([]);
+  const [aiMessages, setAiMessages] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [runningABTest, setRunningABTest] = useState(false);
+  const [abVariantA, setAbVariantA] = useState('');
+  const [abVariantB, setAbVariantB] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleAt, setScheduleAt] = useState('');
@@ -43,6 +76,7 @@ export default function CreateSendNotification() {
   const [testEmail, setTestEmail] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState(false);
+  const messageRef = useRef<HTMLTextAreaElement | null>(null);
 
   const handleTypeToggle = (type: string) => {
     setNotificationType((prev) =>
@@ -69,6 +103,123 @@ export default function CreateSendNotification() {
       setSendError(e instanceof Error ? e.message : 'Failed to send');
     } finally {
       setSending(false);
+    }
+  };
+
+  const insertTextAtCursor = (text: string) => {
+    const el = messageRef.current;
+    if (!el) {
+      setMessage((m) => (m ? `${m} ${text}` : text));
+      return;
+    }
+    const start = el.selectionStart ?? message.length;
+    const end = el.selectionEnd ?? message.length;
+    const next = `${message.slice(0, start)}${text}${message.slice(end)}`;
+    setMessage(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + text.length;
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
+  const handleGenerateWithAI = async () => {
+    setSendError(null);
+    if (!prompt.trim()) {
+      setSendError('Describe what the notification should say.');
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const out = await adminNotificationsAPI.generateNotificationCopy({
+        prompt: prompt.trim(),
+        tone,
+        contextType,
+      });
+      setAiSubjects(out.subject || []);
+      setAiMessages(out.messages || []);
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'AI generation failed');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleImproveWithAI = async () => {
+    setSendError(null);
+    if (!message.trim()) {
+      setSendError('Enter existing notification text first.');
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const out = await adminNotificationsAPI.improveNotificationCopy({
+        subject,
+        message,
+      });
+      setAiSubjects(out.subject || []);
+      setAiMessages(out.messages || []);
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'AI improve failed');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const usedVariables = useMemo(() => {
+    const source = `${subject}\n${message}`;
+    return VARIABLE_CHIPS.filter((v) => source.includes(v));
+  }, [message, subject]);
+
+  const handleSaveAsTemplate = async () => {
+    setSendError(null);
+    if (!message.trim()) {
+      setSendError('Message is required to save a template.');
+      return;
+    }
+    setSavingTemplate(true);
+    try {
+      await adminNotificationsAPI.createTemplate({
+        name: subject?.trim() || `AI ${contextType} template`,
+        category: contextType,
+        type: notificationType.includes('email') ? 'email' : 'inapp',
+        subject: subject?.trim() || '',
+        content: message.trim(),
+        variables: usedVariables,
+        tone,
+        contextType,
+        eventType: contextType,
+        source: 'ai_generated',
+      });
+      setSendSuccess(true);
+      setTimeout(() => setSendSuccess(false), 4000);
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'Failed to save template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleRunABTest = async () => {
+    setSendError(null);
+    if (!abVariantA.trim() || !abVariantB.trim()) {
+      setSendError('Provide both A and B message variants.');
+      return;
+    }
+    setRunningABTest(true);
+    try {
+      await adminNotificationsAPI.runNotificationABTest({
+        targetGroup,
+        type: notificationType.includes('email') ? 'email' : 'inapp',
+        variantA: { subject: `${subject || 'Reaglex update'} (A)`, message: abVariantA.trim() },
+        variantB: { subject: `${subject || 'Reaglex update'} (B)`, message: abVariantB.trim() },
+      });
+      setSendSuccess(true);
+      setTimeout(() => setSendSuccess(false), 5000);
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'A/B test failed');
+    } finally {
+      setRunningABTest(false);
     }
   };
 
@@ -240,8 +391,81 @@ export default function CreateSendNotification() {
 
           {/* Message Content */}
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Message Content</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Message Content</h3>
+              <button
+                type="button"
+                onClick={handleSaveAsTemplate}
+                disabled={savingTemplate}
+                className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300 disabled:opacity-60"
+              >
+                <Save className="mr-1 inline h-3.5 w-3.5" />
+                {savingTemplate ? 'Saving…' : 'Save as template'}
+              </button>
+            </div>
             <div className="space-y-4">
+              <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 dark:border-gray-700 dark:bg-gray-800/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-emerald-500" />
+                    AI Message Generator
+                  </h4>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400">Generate or improve copy</span>
+                </div>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe what this notification should say..."
+                  rows={3}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {TONES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTone(t)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium border ${
+                        tone === t
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                          : 'border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <select
+                  value={contextType}
+                  onChange={(e) => setContextType(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                >
+                  {CONTEXTS.map((ctx) => (
+                    <option key={ctx} value={ctx}>
+                      {ctx.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGenerateWithAI}
+                    disabled={aiLoading}
+                    className="rounded-xl border border-emerald-400 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 disabled:opacity-60"
+                  >
+                    <Wand2 className="mr-2 inline h-4 w-4" />
+                    {aiLoading ? 'Generating…' : 'Generate with AI'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleImproveWithAI}
+                    disabled={aiLoading}
+                    className="rounded-xl border border-cyan-400 px-4 py-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300 disabled:opacity-60"
+                  >
+                    {aiLoading ? 'Improving…' : 'Improve current text'}
+                  </button>
+                </div>
+              </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">
                   Subject
@@ -259,6 +483,7 @@ export default function CreateSendNotification() {
                   Message
                 </label>
                 <textarea
+                  ref={messageRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Enter notification message..."
@@ -266,6 +491,77 @@ export default function CreateSendNotification() {
                   className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
               </div>
+              <div className="flex flex-wrap gap-2">
+                {VARIABLE_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => insertTextAtCursor(chip)}
+                    className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+              {(aiSubjects.length > 0 || aiMessages.length > 0) && (
+                <div className="space-y-3 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">AI Suggestions</p>
+                  {aiSubjects.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Subject options</p>
+                      {aiSubjects.map((s, i) => (
+                        <div key={`${s}-${i}`} className="rounded-lg border border-gray-200 p-2 dark:border-gray-700">
+                          <p className="text-sm text-gray-900 dark:text-white">{s}</p>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSubject(s)}
+                              className="rounded-md border border-emerald-400 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                            >
+                              Use subject
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => navigator.clipboard?.writeText(s)}
+                              className="rounded-md border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 dark:border-gray-600 dark:text-gray-300"
+                            >
+                              <Copy className="mr-1 inline h-3 w-3" />
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {aiMessages.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Message options</p>
+                      {aiMessages.map((m, i) => (
+                        <div key={`${i}-${m.slice(0, 20)}`} className="rounded-lg border border-gray-200 p-2 dark:border-gray-700">
+                          <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{m}</p>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setMessage(m)}
+                              className="rounded-md border border-emerald-400 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                            >
+                              Use message
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => navigator.clipboard?.writeText(m)}
+                              className="rounded-md border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 dark:border-gray-600 dark:text-gray-300"
+                            >
+                              <Copy className="mr-1 inline h-3 w-3" />
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
                   <Paperclip className="mr-2 inline h-4 w-4" />
@@ -351,6 +647,32 @@ export default function CreateSendNotification() {
                 </code>
               </p>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">A/B Testing</h3>
+            <textarea
+              value={abVariantA}
+              onChange={(e) => setAbVariantA(e.target.value)}
+              placeholder="Variant A message..."
+              rows={3}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+            <textarea
+              value={abVariantB}
+              onChange={(e) => setAbVariantB(e.target.value)}
+              placeholder="Variant B message..."
+              rows={3}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+            <button
+              type="button"
+              onClick={handleRunABTest}
+              disabled={runningABTest}
+              className="w-full rounded-xl border border-cyan-400 px-4 py-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300 disabled:opacity-60"
+            >
+              {runningABTest ? 'Launching A/B test…' : 'Launch 50/50 A/B test'}
+            </button>
           </div>
         </div>
       </div>

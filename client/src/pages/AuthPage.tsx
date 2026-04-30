@@ -54,7 +54,7 @@ function AuthInput({
   label: string; type?: string; value: string;
   onChange: (v: string) => void; placeholder?: string;
   error?: string; valid?: boolean; focused?: boolean;
-  leftIcon?: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  leftIcon?: React.ComponentType<{ size?: string | number; style?: React.CSSProperties; className?: string }>;
   rightEl?: React.ReactNode; onFocus?: () => void; onBlur?: () => void;
   required?: boolean; autoFocus?: boolean;
 }) {
@@ -276,7 +276,8 @@ function LoginFormContent({
         setLoading(false); return;
       }
       if (!result.success) {
-        setError(result.error || 'Wrong email or password.'); doShake(); setLoading(false); return;
+        const loginError = 'error' in result ? result.error : undefined;
+        setError(loginError || 'Wrong email or password.'); doShake(); setLoading(false); return;
       }
       setSuccess(true);
       const { user } = useAuthStore.getState();

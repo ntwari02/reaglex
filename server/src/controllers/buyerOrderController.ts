@@ -4,6 +4,8 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { Order, OrderStatus } from '../models/Order';
 import { Product } from '../models/Product';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
+import { restoreInventoryForOrder } from '../services/inventory.service';
+import { convertUsdToCurrency, detectCurrencyFromRequest } from '../services/exchangeRate.service';
 
 /**
  * Create order(s) from cart checkout
@@ -46,10 +48,14 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       paymentMethod: string;
       shippingMethods: Record<string, string>;
       notes?: Record<string, string>;
+      displayCurrency?: string;
     };
 
     const buyerId = new mongoose.Types.ObjectId(req.user.id);
     const orders = [];
+
+    const requestedCurrency = String(req.body?.displayCurrency || '').trim().toUpperCase();
+    const checkoutCurrency = requestedCurrency || detectCurrencyFromRequest(req);
 
     // Create one order per seller group
     for (const group of sellerGroups) {
@@ -65,6 +71,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       const shippingCost = shippingMethods[group.sellerId] === 'express' ? 15 :
                           shippingMethods[group.sellerId] === 'international' ? 25 : 5;
       const total = subtotalAfterDiscount + tax + shippingCost;
+      const converted = await convertUsdToCurrency(total, checkoutCurrency, { roundMode: 'round' });
 
       // Fetch product details for order items
       const orderItems = [];
@@ -108,6 +115,14 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
           country: shippingAddress.country,
         },
         paymentMethod: paymentMethod,
+        currencySnapshot: {
+          totalUsd: total,
+          totalLocal: converted.local,
+          currency: converted.currency,
+          exchangeRate: converted.rate,
+          timestamp: new Date(),
+          lockedAt: new Date(),
+        },
         timeline: [{
           status: 'pending',
           date: new Date(),
@@ -138,10 +153,18 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
         orderNumber: o.orderNumber,
         status: o.status,
         total: o.total,
+        total_usd: o.currencySnapshot?.totalUsd ?? o.total,
+        total_local: o.currencySnapshot?.totalLocal ?? o.total,
+        currency: o.currencySnapshot?.currency ?? 'USD',
+        exchange_rate: o.currencySnapshot?.exchangeRate ?? 1,
+        locked_at: o.currencySnapshot?.lockedAt ?? o.createdAt,
       })),
     });
   } catch (err: any) {
     console.error('Error creating order:', err);
+    if (typeof err?.message === 'string' && err.message.toLowerCase().includes('insufficient stock')) {
+      return res.status(409).json({ message: err.message });
+    }
     return res.status(500).json({ message: 'Failed to create order', error: err.message });
   }
 }
@@ -444,6 +467,10 @@ export async function cancelOrder(req: AuthenticatedRequest, res: Response) {
       time: new Date().toLocaleTimeString(),
     });
     await order.save();
+
+    void restoreInventoryForOrder(orderId, 'order_cancelled').catch((e) => {
+      console.error('Failed to restore inventory on buyer cancellation:', e);
+    });
 
     return res.json({ 
       success: true,

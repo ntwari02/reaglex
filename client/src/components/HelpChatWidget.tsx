@@ -98,7 +98,7 @@ export default function HelpChatWidget() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [typing, setTyping] = useState(false);
+  const [, setTyping] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [showHistory, setShowHistory] = useState(false);

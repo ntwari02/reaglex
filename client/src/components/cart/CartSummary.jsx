@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import { Truck } from 'lucide-react';
+import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 
 const FREE_SHIPPING_THRESHOLD = 50;
 
 export default function CartSummary({ subtotal, onCheckout }) {
+  const currencyPricing = useCurrencyPricing();
   const remaining   = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress    = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
   const shipping    = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 4.99;
@@ -26,7 +28,7 @@ export default function CartSummary({ subtotal, onCheckout }) {
           <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
             {shippingFree
               ? '🎉 Congrats! You get free standard shipping.'
-              : `Add $${remaining.toFixed(2)} more for free shipping.`}
+              : `Add ${currencyPricing.formatLocalWithUsd(remaining)} more for free shipping.`}
           </span>
         </div>
         <div
@@ -50,9 +52,9 @@ export default function CartSummary({ subtotal, onCheckout }) {
       {/* Line items */}
       <div className="space-y-2">
         {[
-          { label: 'Subtotal', value: `$${subtotal.toFixed(2)}`, accent: false },
-          { label: 'Shipping', value: shippingFree ? 'FREE' : `$${shipping.toFixed(2)}`, accent: shippingFree },
-          { label: 'Total (incl. VAT 10%)', value: `$${total.toFixed(2)}`, accent: false },
+          { label: 'Subtotal', value: currencyPricing.formatLocalWithUsd(subtotal), accent: false },
+          { label: 'Shipping', value: shippingFree ? 'FREE' : currencyPricing.formatLocalWithUsd(shipping), accent: shippingFree },
+          { label: 'Total (incl. VAT 10%)', value: currencyPricing.formatLocalWithUsd(total), accent: false },
         ].map(({ label, value, accent }) => (
           <div key={label} className="flex justify-between text-sm">
             <span style={{ color: 'var(--text-muted)' }}>{label}</span>

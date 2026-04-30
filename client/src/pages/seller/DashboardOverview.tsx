@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, ShoppingCart, AlertTriangle, Package, TrendingUp, MessageCircle, Star, ShieldCheck, Calendar, Clock, CheckCircle, XCircle, Truck } from 'lucide-react';
+import { DollarSign, ShoppingCart, AlertTriangle, Package, TrendingUp, MessageCircle, Star, ShieldCheck, Clock, CheckCircle, XCircle, Truck } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import StatCard from '@/components/dashboard/StatCard';
 import RecentOrders from '@/components/dashboard/RecentOrders';
 import SalesChart from '@/components/dashboard/SalesChart';
@@ -15,7 +16,7 @@ interface Stat {
   value: string;
   change: string;
   trend: 'up' | 'down';
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   color: string;
 }
 
@@ -88,7 +89,7 @@ const DashboardOverview: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null);
-  const { user } = useAuthStore();
+  useAuthStore();
   const { showToast } = useToastStore();
 
   // Fetch dashboard stats from backend
@@ -284,7 +285,15 @@ const DashboardOverview: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Chart */}
         <div className="lg:col-span-2">
-          <SalesChart data={dashboardData?.dailySales || []} />
+          <SalesChart
+            data={
+              dashboardData?.revenueTrend.map((item) => ({
+                date: item.date,
+                revenue: item.value,
+                orders: 0,
+              })) || []
+            }
+          />
         </div>
 
         {/* Recent Orders */}

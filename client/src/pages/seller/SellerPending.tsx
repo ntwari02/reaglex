@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
-import Header from '../../components/dashboard/Header';
 import {
   CheckCircle2, Clock, ShieldCheck, Rocket,
   BookOpen, DollarSign, Package, Mail, ExternalLink,
@@ -300,7 +299,6 @@ function StatPill({ label, children, color, accentBg }: { label: string; childre
 export default function SellerPending() {
   const user      = useAuthStore((s) => s.user);
   const firstName = user?.full_name?.split(' ')[0] || 'there';
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const steps = [
     { icon: CheckCircle2, label: 'Application Submitted',  sub: 'Feb 28, 2026 · Received & logged',          status: 'done'    as const },
@@ -320,15 +318,6 @@ export default function SellerPending() {
       <FuturisticBg />
 
       <div className="relative z-10 w-full">
-        <Header
-          setSidebarOpen={() => {}}
-          notificationsOpen={notificationsOpen}
-          setNotificationsOpen={setNotificationsOpen}
-          userName={user?.full_name || user?.email || 'Seller'}
-          userRole="Seller (Pending Government & Admin Approval)"
-          accentVariant="orange"
-        />
-
         {/* ══════════════════════════════════════════════════════════════════
             HERO HEADER — clean dark panel, minimal gradients
         ══════════════════════════════════════════════════════════════════ */}

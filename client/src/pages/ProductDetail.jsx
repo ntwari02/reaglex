@@ -13,6 +13,7 @@ import ProductCard from '../components/ProductCard';
 import { productAPI } from '../services/api';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
+import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 import { useSeo } from '../utils/useSeo';
 import { SERVER_URL } from '../lib/config';
 
@@ -59,29 +60,6 @@ const HIGHLIGHTS = [
 
 /* ─── sub-components ─────────────────────────────────────────────────────── */
 
-/** Animated number count-up */
-function PriceCountUp({ value, duration = 0.7, delay = 0 }) {
-  const [disp, setDisp] = useState(0);
-  useEffect(() => {
-    if (value == null) return;
-    setDisp(0);
-    const end    = Number(value);
-    const start  = Date.now() + delay * 1000;
-    const tick   = () => {
-      const now = Date.now();
-      if (now < start) { requestAnimationFrame(tick); return; }
-      const t = Math.min((now - start) / (duration * 1000), 1);
-      const e = 1 - Math.pow(1 - t, 3);
-      setDisp(e * end);
-      if (t < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [value, duration, delay]);
-  return (
-    <span className="pd2-price-num tabular-nums">${disp.toFixed(2)}</span>
-  );
-}
-
 /** SVG grid mesh */
 function GridMesh() {
   return (
@@ -123,6 +101,7 @@ export default function ProductDetail() {
   const { id }       = useParams();
   const navigate     = useNavigate();
   const addItem      = useBuyerCart((s) => s.addItem);
+  const currencyPricing = useCurrencyPricing();
   const addRecent    = useRecentlyViewed((s) => s.addProduct);
   const recentItems  = useRecentlyViewed((s) => s.items);
 
@@ -148,6 +127,7 @@ export default function ProductDetail() {
   const [relatedPaused, setRelatedPaused] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
+  const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
 
   /* ── refs ── */
   const ctaRef = useRef(null);
@@ -216,6 +196,17 @@ export default function ProductDetail() {
         setRelated(items.filter((p) => (p._id || p.id) !== id).slice(0, 8));
       })
       .catch(() => {});
+  }, [id, inventoryRefreshTick]);
+
+  useEffect(() => {
+    const onInventoryUpdated = (e) => {
+      const updatedId = e?.detail?.productId;
+      if (updatedId && String(updatedId) === String(id)) {
+        setInventoryRefreshTick((v) => v + 1);
+      }
+    };
+    window.addEventListener('inventoryUpdated', onInventoryUpdated);
+    return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
   }, [id]);
 
   /* ── actions ── */
@@ -298,7 +289,7 @@ export default function ProductDetail() {
   const verificationScore = Number(product.verificationSummary?.score || 0);
   const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
   const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
-  const installment  = (price / 3).toFixed(2);
+  const installment  = currencyPricing.formatLocalWithUsd(price / 3);
   const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
 
   const specs = [
@@ -597,15 +588,15 @@ export default function ProductDetail() {
                 {/* Price */}
                 <div className="mb-5">
                   <div className="flex flex-wrap items-baseline gap-3 mb-1">
-                    <PriceCountUp value={price} delay={0.3} />
-                    {oldPrice && <span className="text-base line-through" style={{ color: 'var(--text-faint)' }}>${oldPrice.toFixed(2)}</span>}
+                    <span className="pd2-price-num tabular-nums">{currencyPricing.formatLocalWithUsd(price)}</span>
+                    {oldPrice && <span className="text-base line-through" style={{ color: 'var(--text-faint)' }}>{currencyPricing.formatLocalWithUsd(oldPrice)}</span>}
                     {discount > 0 && (
                       <span className="px-2 py-0.5 rounded-full text-xs font-black text-white"
                         style={{ background: '#ef4444' }}>SAVE {discount}%</span>
                     )}
                   </div>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    In stock: {stock > 0 ? `${stock} units available` : 'Unavailable'} · 3 payments of ${installment}
+                    In stock: {stock > 0 ? `${stock} units available` : 'Unavailable'} · 3 payments of {installment}
                   </p>
                 </div>
 

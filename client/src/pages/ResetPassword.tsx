@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
@@ -89,7 +89,7 @@ export function ResetPassword() {
   };
 
   return (
-    <AuthPremiumLayout currentView="reset">
+    <AuthPremiumLayout>
       <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
         <div className="flex-shrink-0 flex justify-end items-center mb-2">
           <ThemeToggle />

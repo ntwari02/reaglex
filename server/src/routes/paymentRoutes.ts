@@ -25,6 +25,12 @@ const router = Router();
 const MOMO_REFERENCE_UUID =
   /^[\da-f]{8}-[\da-f]{4}-[1-5][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 
+function isInventoryOutOfStockError(err: unknown): boolean {
+  const name = (err as any)?.name;
+  const msg = String((err as any)?.message || '').toLowerCase();
+  return name === 'InventoryOutOfStockError' || msg.includes('insufficient stock') || msg.includes('out of stock');
+}
+
 function mapCheckoutPaymentMethod(raw?: string): 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel' {
   const m = String(raw || 'flutterwave').toLowerCase();
   if (m === 'momo' || m === 'mtn' || m === 'mtn_momo') return 'momo';
@@ -120,6 +126,9 @@ router.get('/momo/status/:referenceId', authenticate, async (req: AuthenticatedR
         gatewayKey: err.gatewayKey,
       });
     }
+    if (isInventoryOutOfStockError(err)) {
+      return res.status(409).json({ message: 'Out of stock. Another buyer may have just purchased the last item.' });
+    }
     // eslint-disable-next-line no-console
     console.error('MoMo status error:', err);
     return res.status(500).json({ message: err?.message || 'Failed to sync payment status' });
@@ -164,6 +173,9 @@ router.get('/stripe/complete', async (req, res) => {
     if (err instanceof PaymentGatewayDisabledError) {
       return res.status(403).json({ message: 'Stripe is disabled', code: err.code });
     }
+    if (isInventoryOutOfStockError(err)) {
+      return res.status(409).json({ message: 'Out of stock. Another buyer may have just purchased the last item.' });
+    }
     return res.status(500).json({ message: e?.message || 'Stripe completion failed' });
   }
 });
@@ -182,6 +194,9 @@ router.get('/paypal/complete', async (req, res) => {
     const e = err as { message?: string };
     if (err instanceof PaymentGatewayDisabledError) {
       return res.status(403).json({ message: 'PayPal is disabled', code: err.code });
+    }
+    if (isInventoryOutOfStockError(err)) {
+      return res.status(409).json({ message: 'Out of stock. Another buyer may have just purchased the last item.' });
     }
     return res.status(500).json({ message: e?.message || 'PayPal capture failed' });
   }
@@ -208,6 +223,9 @@ router.get('/airtel/status/:transactionId', authenticate, async (req: Authentica
         gatewayKey: err.gatewayKey,
       });
     }
+    if (isInventoryOutOfStockError(err)) {
+      return res.status(409).json({ message: 'Out of stock. Another buyer may have just purchased the last item.' });
+    }
     return res.status(500).json({ message: err?.message || 'Failed to sync Airtel payment' });
   }
 });
@@ -229,6 +247,9 @@ router.get('/verify', async (req, res) => {
         code: err.code,
         gatewayKey: err.gatewayKey,
       });
+    }
+    if (isInventoryOutOfStockError(err)) {
+      return res.status(409).json({ message: 'Out of stock. Another buyer may have just purchased the last item.' });
     }
     // eslint-disable-next-line no-console
     console.error('Verify payment error:', err);

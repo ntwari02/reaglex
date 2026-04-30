@@ -482,6 +482,13 @@ export default function SearchResults() {
 
   useEffect(() => { setPage(1); }, [q, activeSort, priceRange, minRating, category, categories, freeShipping, sellers]);
   useEffect(() => { loadProducts(); }, [loadProducts]);
+  useEffect(() => {
+    const onInventoryUpdated = () => {
+      loadProducts();
+    };
+    window.addEventListener('inventoryUpdated', onInventoryUpdated);
+    return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
+  }, [loadProducts]);
 
   // Page title
   useEffect(() => {

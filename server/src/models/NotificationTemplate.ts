@@ -9,6 +9,10 @@ export interface INotificationTemplate extends Document {
   subject?: string;
   content: string;
   variables: string[];
+  tone?: string;
+  contextType?: string;
+  eventType?: string;
+  source?: 'manual' | 'ai_generated';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +30,10 @@ const notificationTemplateSchema = new Schema<INotificationTemplate>(
     subject: { type: String, trim: true },
     content: { type: String, required: true },
     variables: [{ type: String, trim: true }],
+    tone: { type: String, trim: true },
+    contextType: { type: String, trim: true },
+    eventType: { type: String, trim: true, index: true },
+    source: { type: String, enum: ['manual', 'ai_generated'], default: 'manual' },
   },
   { timestamps: true }
 );

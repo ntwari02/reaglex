@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, User, Briefcase, Mail, Phone, AlertCircle, Check, Fingerprint, Shield } from 'lucide-react';
+import { Eye, EyeOff, User, Briefcase, Mail, AlertCircle, Check, Fingerprint, Shield } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';

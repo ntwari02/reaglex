@@ -4,6 +4,7 @@ import { SellerWallet } from '../models/SellerWallet';
 import { EscrowWallet } from '../models/EscrowWallet';
 import { TransactionLog } from '../models/TransactionLog';
 import { sendNotification } from './notificationService';
+import { restoreInventoryForOrder } from './inventory.service';
 
 export async function scheduleAutoRelease(orderId: string) {
   await Order.findByIdAndUpdate(orderId, {
@@ -171,6 +172,8 @@ export async function refundBuyer(orderId: string, reason: string) {
       reason,
     });
     await sendNotification(order.sellerId.toString(), 'ORDER_REFUNDED', { reason });
+
+    await restoreInventoryForOrder(orderId, 'order_refunded');
   } else {
     throw new Error(response.message || 'Failed to refund buyer');
   }

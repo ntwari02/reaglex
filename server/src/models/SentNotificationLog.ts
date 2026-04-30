@@ -12,6 +12,11 @@ export interface ISentNotificationLog extends Document {
   templateName?: string;
   status: SentNotificationStatus;
   failureReason?: string;
+  experimentId?: string;
+  variant?: 'A' | 'B';
+  opened?: number;
+  clicked?: number;
+  converted?: number;
   sentAt: Date;
   createdAt: Date;
 }
@@ -36,6 +41,11 @@ const sentNotificationLogSchema = new Schema<ISentNotificationLog>(
       index: true,
     },
     failureReason: { type: String, trim: true },
+    experimentId: { type: String, trim: true, index: true },
+    variant: { type: String, enum: ['A', 'B'] },
+    opened: { type: Number, default: 0 },
+    clicked: { type: Number, default: 0 },
+    converted: { type: Number, default: 0 },
     sentAt: { type: Date, required: true, default: Date.now, index: true },
   },
   { timestamps: true }

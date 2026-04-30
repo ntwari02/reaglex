@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import QuantitySelector from './QuantitySelector';
+import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../../lib/config';
 
@@ -11,6 +12,7 @@ function resolveImage(src) {
 }
 
 export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
+  const currencyPricing = useCurrencyPricing();
   return (
     <motion.div
       layout
@@ -86,7 +88,7 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
             onIncrease={() => onUpdateQty(item.id, item.quantity + 1)}
           />
           <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-            ${(item.price * item.quantity).toFixed(2)}
+            {currencyPricing.formatLocalWithUsd(item.price * item.quantity)}
           </span>
         </div>
       </div>

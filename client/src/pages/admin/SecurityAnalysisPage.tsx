@@ -21,6 +21,7 @@ import {
 } from '@/stores/securityAnalysisUiStore';
 import { cn } from '@/lib/utils';
 import { useToastStore } from '@/stores/toastStore';
+import { useTheme } from '@/contexts/ThemeContext';
 import { LiveRoleCards } from '@/components/security/LiveRoleCards';
 import { ActivityStreamPanel } from '@/components/security/ActivityStreamPanel';
 import { SessionViewerPanel } from '@/components/security/SessionViewerPanel';
@@ -92,6 +93,8 @@ const emptyIntel = (): IntelligenceBundle => ({
 });
 
 export default function SecurityAnalysisPage() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const showToast = useToastStore((s) => s.showToast);
   const {
     overview,
@@ -284,13 +287,25 @@ export default function SecurityAnalysisPage() {
 
   const pageShell = useMemo(
     () =>
-      'relative min-h-full rounded-3xl border border-cyan-500/15 bg-[#050814] text-slate-200 shadow-[0_0_80px_-20px_rgba(34,211,238,0.15)] overflow-hidden',
-    [],
+      cn(
+        'relative min-h-full rounded-3xl overflow-hidden',
+        isDark
+          ? 'border border-cyan-500/15 bg-[#050814] text-slate-200 shadow-[0_0_80px_-20px_rgba(34,211,238,0.15)]'
+          : 'border border-slate-200 bg-gradient-to-b from-slate-50 to-white text-slate-900 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.35)]',
+      ),
+    [isDark],
   );
 
   return (
     <div className={cn('min-w-0 max-w-[1800px] mx-auto pb-12', pageShell)}>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(56,189,248,0.12),transparent)] pointer-events-none" />
+      <div
+        className={cn(
+          'absolute inset-0 pointer-events-none',
+          isDark
+            ? 'bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(56,189,248,0.12),transparent)]'
+            : 'bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(56,189,248,0.16),transparent)]',
+        )}
+      />
       <div className="relative px-4 sm:px-6 lg:px-8 pt-8 pb-6 space-y-8">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -302,11 +317,18 @@ export default function SecurityAnalysisPage() {
               <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/30 to-violet-600/30 border border-white/10 shadow-[0_0_30px_-5px_rgba(34,211,238,0.5)]">
                 <ShieldCheck className="w-6 h-6 text-cyan-300" />
               </span>
-              <span className="bg-gradient-to-r from-white via-cyan-100 to-violet-200 bg-clip-text text-transparent">
+              <span
+                className={cn(
+                  'bg-clip-text text-transparent',
+                  isDark
+                    ? 'bg-gradient-to-r from-white via-cyan-100 to-violet-200'
+                    : 'bg-gradient-to-r from-slate-900 via-cyan-700 to-violet-700',
+                )}
+              >
                 Security Intelligence Control Room
               </span>
             </h1>
-            <p className="text-sm text-slate-400 mt-2 max-w-2xl leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 max-w-2xl leading-relaxed">
               Live SOC-style monitoring, virtual session reconstruction, risk scoring, and automated alert routing — without exposing credentials or payment data.
             </p>
           </div>
@@ -335,7 +357,7 @@ export default function SecurityAnalysisPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-white/10 bg-white/5 text-sm text-slate-100 hover:bg-white/10 transition-colors"
+              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-slate-300/80 dark:border-white/10 bg-white/80 dark:bg-white/5 text-sm text-slate-800 dark:text-slate-100 hover:bg-white dark:hover:bg-white/10 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh
@@ -344,7 +366,7 @@ export default function SecurityAnalysisPage() {
               type="button"
               disabled={scanning}
               onClick={() => void runScan()}
-              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-100 text-sm hover:bg-cyan-500/20 disabled:opacity-50 transition-colors shadow-[0_0_20px_-5px_rgba(34,211,238,0.4)]"
+              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-800 dark:text-cyan-100 text-sm hover:bg-cyan-500/20 disabled:opacity-50 transition-colors shadow-[0_0_20px_-5px_rgba(34,211,238,0.4)]"
             >
               <ScanSearch className="w-4 h-4" />
               {scanning ? 'Scanning…' : 'Run scan'}
@@ -366,12 +388,12 @@ export default function SecurityAnalysisPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="xl:col-span-4 rounded-2xl border border-white/10 bg-slate-950/50 backdrop-blur-xl p-6 flex flex-col items-center justify-center min-h-[260px] relative overflow-hidden"
+            className="xl:col-span-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-950/50 backdrop-blur-xl p-6 flex flex-col items-center justify-center min-h-[260px] relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,211,238,0.08),transparent_55%)] opacity-80" />
             <div className="relative w-48 h-48">
               <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
-                <circle cx="100" cy="100" r="78" fill="none" className="stroke-slate-800" strokeWidth="14" />
+                <circle cx="100" cy="100" r="78" fill="none" className="stroke-slate-300 dark:stroke-slate-800" strokeWidth="14" />
                 <circle
                   cx="100"
                   cy="100"
@@ -389,13 +411,13 @@ export default function SecurityAnalysisPage() {
                 <span className={cn('text-4xl font-mono font-bold', scoreColor(displayScore))}>
                   {Math.round(displayScore)}
                 </span>
-                <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-slate-500 mt-1">
+                <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-slate-500 dark:text-slate-500 mt-1">
                   {overview?.grade ?? '—'}
                 </span>
               </div>
             </div>
             {overview && (
-              <p className="relative text-xs text-slate-500 mt-4 text-center font-mono">
+              <p className="relative text-xs text-slate-600 dark:text-slate-500 mt-4 text-center font-mono">
                 Last scan: {overview.lastScanAt ? new Date(overview.lastScanAt).toLocaleString() : '—'} · MTTD{' '}
                 {overview.mttdHours}h · MTTR {overview.mttrHours}h
               </p>
@@ -408,19 +430,19 @@ export default function SecurityAnalysisPage() {
               {overview && (
                 <>
                   <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-500">Open risk</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Open risk</p>
                     <p className="text-2xl font-mono text-red-400 mt-1">
                       {overview.findingsSummary.critical + overview.findingsSummary.high}
                     </p>
                   </div>
                   <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-500">Medium / low</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Medium / low</p>
                     <p className="text-2xl font-mono text-amber-300 mt-1">
                       {overview.findingsSummary.medium + overview.findingsSummary.low}
                     </p>
                   </div>
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-500">Passing</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Passing</p>
                     <p className="text-2xl font-mono text-emerald-400 mt-1">{overview.findingsSummary.pass}</p>
                   </div>
                 </>
@@ -443,25 +465,25 @@ export default function SecurityAnalysisPage() {
         <AuditTimeline weekly={intel.weekly} />
 
         {/* Identity & sign-in (existing) */}
-        <div className="rounded-2xl border border-violet-500/25 bg-slate-950/40 backdrop-blur-md overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+        <div className="rounded-2xl border border-violet-500/25 bg-white/85 dark:bg-slate-950/40 backdrop-blur-md overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-violet-400" />
               Identity &amp; sign-in intelligence
             </h2>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-600 dark:text-slate-500">
               Buyer · Seller · Admin telemetry
             </span>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x divide-white/10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x divide-slate-200 dark:divide-white/10">
             <div className="p-4 min-w-0">
-              <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+              <p className="text-xs text-slate-600 dark:text-slate-500 mb-2 flex items-center gap-1">
                 <Shield className="w-3.5 h-3.5 text-emerald-400" />
                 Auth stream
               </p>
               <div className="space-y-2 max-h-[240px] overflow-y-auto font-mono text-[11px] pr-1">
                 {authEvents.length === 0 && (
-                  <p className="text-slate-500 italic">No sign-in events yet.</p>
+                  <p className="text-slate-500 dark:text-slate-500 italic">No sign-in events yet.</p>
                 )}
                 {authEvents.map((a) => (
                   <motion.div
@@ -477,24 +499,24 @@ export default function SecurityAnalysisPage() {
                     )}
                   >
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span className="text-slate-300">{a.type}</span>
-                      {a.role && <span className="text-slate-500">· {a.role}</span>}
-                      <span className="text-slate-500 ml-auto tabular-nums">{new Date(a.at).toLocaleString()}</span>
+                      <span className="text-slate-800 dark:text-slate-300">{a.type}</span>
+                      {a.role && <span className="text-slate-600 dark:text-slate-500">· {a.role}</span>}
+                      <span className="text-slate-600 dark:text-slate-500 ml-auto tabular-nums">{new Date(a.at).toLocaleString()}</span>
                     </div>
-                    <p className="text-slate-300 mt-1 break-words">{a.detail}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">IP {a.ip}</p>
+                    <p className="text-slate-800 dark:text-slate-300 mt-1 break-words">{a.detail}</p>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">IP {a.ip}</p>
                   </motion.div>
                 ))}
               </div>
             </div>
             <div className="p-4 min-w-0">
-              <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+              <p className="text-xs text-slate-600 dark:text-slate-500 mb-2 flex items-center gap-1">
                 <Users className="w-3.5 h-3.5 text-cyan-400" />
                 Behavior signals
               </p>
               <div className="overflow-x-auto max-h-[240px] overflow-y-auto">
                 <table className="w-full text-left text-xs min-w-[400px]">
-                  <thead className="text-slate-500 uppercase sticky top-0 bg-slate-950/95">
+                  <thead className="text-slate-600 dark:text-slate-500 uppercase sticky top-0 bg-white/95 dark:bg-slate-950/95">
                     <tr>
                       <th className="py-1.5 pr-2">Role</th>
                       <th className="py-1.5 pr-2">Action</th>
@@ -505,17 +527,17 @@ export default function SecurityAnalysisPage() {
                   <tbody>
                     {behaviorRows.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="py-3 text-slate-500 italic">
+                        <td colSpan={4} className="py-3 text-slate-500 dark:text-slate-500 italic">
                           No behavior rows yet.
                         </td>
                       </tr>
                     )}
                     {behaviorRows.map((b) => (
-                      <tr key={`${b.userId}-${b.at}-${b.action}`} className="border-t border-white/5">
+                      <tr key={`${b.userId}-${b.at}-${b.action}`} className="border-t border-slate-200 dark:border-white/5">
                         <td className="py-2 pr-2 font-mono text-cyan-300">{b.role}</td>
                         <td className="py-2 pr-2 max-w-[140px] truncate">{b.action}</td>
-                        <td className="py-2 pr-2 text-slate-300">{b.risk}</td>
-                        <td className="py-2 whitespace-nowrap text-slate-500">{new Date(b.at).toLocaleString()}</td>
+                        <td className="py-2 pr-2 text-slate-700 dark:text-slate-300">{b.risk}</td>
+                        <td className="py-2 whitespace-nowrap text-slate-500 dark:text-slate-500">{new Date(b.at).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>

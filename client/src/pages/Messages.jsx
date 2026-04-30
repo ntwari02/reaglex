@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useAuthStore } from '../stores/authStore';
+import { buyerInboxAPI } from '../services/buyerInboxApi';
 
 const PRIMARY = '#f97316';
 const ONLINE = '#10b981';
@@ -23,65 +24,6 @@ const REACTIONS = ['😊', '👍', '❤️', '😂', '😮'];
 const EMOJI_GRID = ['😀','😃','😄','😁','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','👍','👎','👏','🙌','🤝','🙏'];
 const MAX_INPUT_LENGTH = 500;
 
-const MOCK_CONVERSATIONS = [
-  {
-    id: 1,
-    seller: 'Premium Store',
-    avatar: null,
-    initial: 'P',
-    lastMsg: 'Yes, we can ship to your location.',
-    time: '2m ago',
-    unread: 2,
-    orderId: 'ORD-1001',
-    online: true,
-    muted: false,
-    orderContext: { orderId: 'ORD-1001', product: 'Watch', price: 4, status: 'Delivered ✓' },
-    messages: [
-      { id: 'm1', from: 'seller', text: 'Hello! How can I help you today?', time: '10:00 AM', date: 'Today', status: 'read' },
-      { id: 'm2', from: 'buyer', text: 'Hi, I wanted to ask about delivery time for my order #ORD-1001.', time: '10:02 AM', date: 'Today', status: 'read' },
-      { id: 'm3', from: 'seller', text: 'Your order will be dispatched today and should arrive within 3–5 business days.', time: '10:05 AM', date: 'Today', status: 'read' },
-      { id: 'm4', from: 'buyer', text: 'Can you ship express?', time: '10:08 AM', date: 'Today', status: 'read' },
-      { id: 'm5', from: 'seller', text: 'Yes, we can ship to your location.', time: '10:10 AM', date: 'Today', status: 'delivered' },
-    ],
-  },
-  {
-    id: 2,
-    seller: 'TechHub',
-    avatar: null,
-    initial: 'T',
-    lastMsg: 'The item is in stock and ready.',
-    time: '1h ago',
-    unread: 0,
-    orderId: 'ORD-1002',
-    online: false,
-    lastSeen: '2h ago',
-    muted: false,
-    orderContext: { orderId: 'ORD-1002', product: 'Wireless Earbuds', price: 49.99, status: 'Shipped' },
-    messages: [
-      { id: 'n1', from: 'seller', text: 'Thank you for your order!', time: 'Yesterday', date: 'Yesterday', status: 'read' },
-      { id: 'n2', from: 'buyer', text: 'Is the item in stock?', time: 'Yesterday', date: 'Yesterday', status: 'read' },
-      { id: 'n3', from: 'seller', text: 'The item is in stock and ready.', time: 'Yesterday', date: 'Yesterday', status: 'read' },
-    ],
-  },
-  {
-    id: 3,
-    seller: 'Fashion Co.',
-    avatar: null,
-    initial: 'F',
-    lastMsg: 'We accept returns within 30 days.',
-    time: '2d ago',
-    unread: 0,
-    orderId: 'ORD-1003',
-    online: true,
-    muted: true,
-    orderContext: { orderId: 'ORD-1003', product: 'Summer Dress', price: 39, status: 'Delivered ✓' },
-    messages: [
-      { id: 'f1', from: 'buyer', text: 'What is your return policy?', time: '2 days ago', date: 'Feb 28, 2026', status: 'read' },
-      { id: 'f2', from: 'seller', text: 'We accept returns within 30 days.', time: '2 days ago', date: 'Feb 28, 2026', status: 'read' },
-    ],
-  },
-];
-
 function formatDateKey(dateStr) {
   const d = new Date();
   const today = d.toDateString();
@@ -97,7 +39,7 @@ export default function Messages() {
   const navigate = useNavigate();
   const [active, setActive] = useState(null);
   const [input, setInput] = useState('');
-  const [convs, setConvs] = useState(MOCK_CONVERSATIONS);
+  const [convs, setConvs] = useState([]);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('all');
   const [mobileView, setMobileView] = useState('list');
@@ -117,6 +59,59 @@ export default function Messages() {
   const inputRef = useRef(null);
 
   const conv = convs.find((c) => c.id === active);
+  const mapMessage = (m) => {
+    const createdAt = m?.createdAt ? new Date(m.createdAt) : new Date();
+    return {
+      id: m?._id,
+      from: m?.senderType === 'buyer' ? 'buyer' : 'seller',
+      text: m?.content || '',
+      time: createdAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      date: createdAt.toLocaleDateString(),
+      status: m?.status || 'sent',
+    };
+  };
+
+  const mapThread = (t) => {
+    const sellerName = t?.sellerId?.storeName || t?.sellerId?.fullName || 'Seller';
+    const lastAt = t?.lastMessageAt ? new Date(t.lastMessageAt) : null;
+    return {
+      id: t?._id,
+      seller: sellerName,
+      avatar: t?.sellerId?.avatarUrl || null,
+      initial: sellerName?.[0]?.toUpperCase() || 'S',
+      lastMsg: t?.lastMessagePreview || '',
+      time: lastAt ? lastAt.toLocaleString() : '',
+      unread: t?.buyerUnreadCount || t?.unreadCount || 0,
+      orderId: t?.relatedOrderId || undefined,
+      online: false,
+      muted: false,
+      messages: [],
+    };
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let mounted = true;
+    const loadThreads = async () => {
+      try {
+        setListLoading(true);
+        const data = await buyerInboxAPI.getThreads({ limit: 50 });
+        if (!mounted) return;
+        const mapped = (data?.threads || []).map(mapThread);
+        setConvs(mapped);
+      } catch (err) {
+        console.error('Failed to load buyer inbox threads', err);
+        if (mounted) setConvs([]);
+      } finally {
+        if (mounted) setListLoading(false);
+      }
+    };
+    loadThreads();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
+
   const unreadTotal = convs.reduce((n, c) => n + (c.unread || 0), 0);
 
   const filteredByTab = convs.filter((c) => {
@@ -144,11 +139,6 @@ export default function Messages() {
         : part
     );
   }
-
-  useEffect(() => {
-    const t = setTimeout(() => setListLoading(false), 600);
-    return () => clearTimeout(t);
-  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -189,7 +179,7 @@ export default function Messages() {
     return () => window.removeEventListener('click', close);
   }, [showAttach, showEmoji, showMore]);
 
-  const sendMsg = (e) => {
+  const sendMsg = async (e) => {
     e.preventDefault();
     if (!input.trim() || !active) return;
     const text = input.trim();
@@ -211,43 +201,54 @@ export default function Messages() {
           : c
       )
     );
-    setTimeout(() => {
+    try {
+      const res = await buyerInboxAPI.sendMessage(active, { content: text });
+      const sent = mapMessage(res?.message);
       setConvs((cs) =>
         cs.map((c) =>
           c.id === active
             ? {
                 ...c,
-                messages: c.messages.map((m) =>
-                  m.id === newMsg.id ? { ...m, status: 'read' } : m
-                ),
+                messages: c.messages.map((m) => (m.id === newMsg.id ? sent : m)),
+                lastMsg: sent.text,
               }
             : c
         )
       );
+    } catch (err) {
+      console.error('Failed to send message', err);
+      setConvs((cs) =>
+        cs.map((c) =>
+          c.id === active
+            ? {
+                ...c,
+                messages: c.messages.filter((m) => m.id !== newMsg.id),
+              }
+            : c
+        )
+      );
+    } finally {
       setSending(false);
-      const reply = {
-        id: 'r-' + Date.now(),
-        from: 'seller',
-        text: "Thanks for your message! We'll get back to you shortly.",
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        date: 'Today',
-        status: 'delivered',
-      };
-      setTimeout(() => {
-        setConvs((cs) =>
-          cs.map((c) => (c.id === active ? { ...c, messages: [...c.messages, reply] } : c))
-        );
-      }, 1500);
-    }, 800);
+    }
   };
 
-  const openConv = (id) => {
+  const openConv = async (id) => {
     setActive(id);
     setMobileView('chat');
     setConvs((cs) => cs.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
     setShowAttach(false);
     setShowEmoji(false);
     setShowMore(false);
+    try {
+      const res = await buyerInboxAPI.getThread(id, 1, 100);
+      const mappedMessages = (res?.messages || []).map(mapMessage);
+      setConvs((cs) =>
+        cs.map((c) => (c.id === id ? { ...c, messages: mappedMessages } : c))
+      );
+      await buyerInboxAPI.markThreadAsRead(id);
+    } catch (err) {
+      console.error('Failed to load conversation messages', err);
+    }
   };
 
   const scrollToBottom = () => {

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   ArrowLeft, User, Mail, Phone, MapPin, CreditCard, Package, Truck,
-  CheckCircle, XCircle, Clock, Printer, Download, Edit, Save, X,
-  Calendar, DollarSign, AlertCircle, FileText, Box, ShoppingBag
+  CheckCircle, XCircle, Clock, Printer, Edit, Save, X,
+  AlertCircle, FileText, Box, ShoppingBag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';

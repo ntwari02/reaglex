@@ -277,11 +277,11 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const handlePrintInvoice = (order: Order) => {
+  const handlePrintInvoice = (_order: Order) => {
     window.print();
   };
 
-  const handlePrintPackingSlip = (order: Order) => {
+  const handlePrintPackingSlip = (_order: Order) => {
     window.print();
   };
 

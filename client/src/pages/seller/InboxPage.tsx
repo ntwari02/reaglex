@@ -2,10 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   MessageCircle,
   Search,
-  Filter,
-  Mail,
   User,
-  AlertCircle,
   Paperclip,
   Mic,
   Send,
@@ -25,7 +22,6 @@ import {
   DollarSign,
   CheckCircle2,
   Archive,
-  Tag,
   Phone,
   Video,
   Pin,
@@ -34,14 +30,13 @@ import {
   Clock,
   RefreshCw,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { inboxAPI, Message, MessageThread, MessageAttachment } from '@/services/inboxApi';
 import { websocketService } from '@/services/websocketService';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AudioWave } from '@/components/AudioWave';
 import { VoiceWaveform } from '@/components/VoiceWaveform';
 import { ImageLightbox } from '@/components/ImageLightbox';
 import { UploadProgress } from '@/components/UploadProgress';
@@ -93,20 +88,17 @@ const InboxPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
-  const [filterType, setFilterType] = useState<string>('');
+  const [filterStatus] = useState<string>('');
+  const [filterType] = useState<string>('');
   const [mailboxFilter, setMailboxFilter] = useState<'all' | 'unread' | 'rfq' | 'negotiations' | 'resolved' | 'archived'>('all');
   const [listFilterPill, setListFilterPill] = useState<'all' | 'buyers' | 'unread' | 'rfq'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [quickFilter, setQuickFilter] = useState<string | null>(null);
   const [notificationBannerDismissed, setNotificationBannerDismissed] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'chats' | 'messages'>('chats');
-  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [stats, setStats] = useState<{ totalThreads: number; unreadThreads: number; activeThreads: number; archivedThreads: number } | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [newMessageAlert, setNewMessageAlert] = useState(false);
   const [newMessageFromName, setNewMessageFromName] = useState<string | null>(null);
-  const [highlightThreadId, setHighlightThreadId] = useState<string | null>(null);
   const [failedMessageIds, setFailedMessageIds] = useState<Set<string>>(new Set());
   
   // Message composer state
@@ -136,7 +128,7 @@ const InboxPage: React.FC = () => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
   // Voice note autoplay hook
-  const { playVoiceNote, pausePlayback, stopPlayback, seekTo, isPlaying, isInSequence, playingState, isPaused } = useVoiceNoteAutoplay({
+  const { playVoiceNote, pausePlayback, stopPlayback, seekTo, isPlaying, isInSequence, playingState } = useVoiceNoteAutoplay({
     messages,
     getFileUrl,
     onScrollToMessage: (messageId: string) => {
@@ -152,9 +144,6 @@ const InboxPage: React.FC = () => {
     },
   });
   
-  // Legacy audio playing state (for backward compatibility)
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  
   // Real-time indicators state
   const [isTyping, setIsTyping] = useState(false);
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
@@ -163,9 +152,9 @@ const InboxPage: React.FC = () => {
   const [recordingUserId, setRecordingUserId] = useState<string | null>(null);
   const [recordingUserName, setRecordingUserName] = useState<string | null>(null);
   const [recordingDurationIndicator, setRecordingDurationIndicator] = useState(0);
-  const [isSelectingFile, setIsSelectingFile] = useState(false);
-  const [selectingFileUserId, setSelectingFileUserId] = useState<string | null>(null);
-  const [selectingFileName, setSelectingFileName] = useState<string | null>(null);
+  const [isSelectingFile] = useState(false);
+  const [selectingFileUserId] = useState<string | null>(null);
+  const [selectingFileName] = useState<string | null>(null);
   
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -185,7 +174,7 @@ const InboxPage: React.FC = () => {
 
   // Global chat indicators hook - manages indicators for ALL chats (open chat + chat list)
   // getUserName function to resolve user names for indicators
-  const getUserNameForGlobal = useCallback((threadId: string, userId: string): string | null => {
+  const getUserNameForGlobal = useCallback((threadId: string, _userId: string): string | null => {
     const thread = threads.find(t => t._id === threadId);
     if (!thread) return null;
     
@@ -1152,21 +1141,6 @@ const InboxPage: React.FC = () => {
     }
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m`;
-    if (hours < 24) return `${hours}h`;
-    if (days < 7) return `${days}d`;
-    return date.toLocaleDateString();
-  };
-
-
   // Request notification permission
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -2076,7 +2050,6 @@ const InboxPage: React.FC = () => {
                                           <VoiceWaveform
                                             duration={att.duration || (playingState?.messageId === message._id && playingState?.attachmentIndex === idx ? playingState.duration : 0)}
                                             currentTime={playingState?.messageId === message._id && playingState?.attachmentIndex === idx ? playingState.currentTime : 0}
-                                            isPlaying={isPlaying(message._id, idx)}
                                             onSeek={(time) => {
                                               if (playingState?.messageId === message._id && playingState?.attachmentIndex === idx) {
                                                 seekTo(time);

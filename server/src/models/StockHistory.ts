@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export type StockChangeType = 'added' | 'removed' | 'sold';
 
-export interface IStockHistory extends Document {
+export interface StockHistoryCreateInput {
   sellerId: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
   productName: string;
@@ -11,6 +11,17 @@ export interface IStockHistory extends Document {
   reason: string;
   type: StockChangeType;
   date: Date;
+}
+
+export interface IStockHistory extends Document {
+  sellerId: StockHistoryCreateInput['sellerId'];
+  productId: StockHistoryCreateInput['productId'];
+  productName: StockHistoryCreateInput['productName'];
+  sku: StockHistoryCreateInput['sku'];
+  change: StockHistoryCreateInput['change'];
+  reason: StockHistoryCreateInput['reason'];
+  type: StockHistoryCreateInput['type'];
+  date: StockHistoryCreateInput['date'];
   createdAt: Date;
   updatedAt: Date;
 }

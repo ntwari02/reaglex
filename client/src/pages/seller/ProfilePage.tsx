@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Save, Edit, Lock, Shield, Bell, FileText, Building2, Clock, CreditCard, Landmark, Smartphone, Upload, X, Package, CheckCircle, Users, Eye, EyeOff, File, Download, ExternalLink, Trash2, History, TrendingUp, Camera } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Save, Edit, Lock, Shield, Bell, FileText, Building2, Clock, CreditCard, Landmark, Smartphone, Upload, X, Package, CheckCircle, Users, Eye, EyeOff, File as FileIcon, Download, ExternalLink, Trash2, History, TrendingUp, Camera } from 'lucide-react';
 import { PasswordStrengthIndicator } from '@/components/ui/PasswordStrengthIndicator';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { Button } from '@/components/ui/button';
@@ -804,7 +804,7 @@ const ProfilePage: React.FC = () => {
         
         // Create a new File with the correct name and type
         // File constructor is supported in all modern browsers
-        fileToUpload = new File(
+        fileToUpload = new window.File(
           [arrayBuffer],
           avatarFile.name,
           {
@@ -1963,7 +1963,7 @@ const ProfilePage: React.FC = () => {
                       {doc.type === 'pdf' && (
                         <div className="flex items-center justify-center h-32 bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                           <div className="text-center">
-                            <File className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                            <FileIcon className="w-12 h-12 text-red-500 mx-auto mb-2" />
                             <p className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[120px]">
                               {doc.name || 'PDF Document'}
                             </p>
@@ -5093,7 +5093,7 @@ const ProfilePage: React.FC = () => {
             )}
             {previewModal?.type === 'pdf' && previewModal && (
               <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <File className="w-24 h-24 text-red-500 mb-4" />
+                <FileIcon className="w-24 h-24 text-red-500 mb-4" />
                 <p className="text-gray-600 dark:text-gray-400 mb-4">{previewModal.name}</p>
                 <div className="flex gap-2">
                   <Button

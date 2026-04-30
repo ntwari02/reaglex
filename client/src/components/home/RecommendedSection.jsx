@@ -32,6 +32,7 @@ function RecCard({ product, index, isDark, onAdd }) {
   const [wished, setWished] = useState(false);
   const [adding, setAdding] = useState(false);
   const img = resolveImg(product.thumbnail || product.images?.[0]);
+  const stock = Number(product.stockQuantity ?? product.stock ?? 0);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -98,14 +99,16 @@ function RecCard({ product, index, isDark, onAdd }) {
           <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
             <button
               onClick={handleAdd}
+              disabled={stock <= 0}
               className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold"
               style={{
                 background: isDark ? '#ec4899' : '#0f172a',
                 color: '#fff',
+                opacity: stock <= 0 ? 0.45 : 1,
               }}
             >
               <ShoppingCart size={12} />
-              {adding ? 'ADDED ✓' : 'ADD TO CART'}
+              {stock <= 0 ? 'OUT OF STOCK' : adding ? 'ADDED ✓' : 'ADD TO CART'}
             </button>
           </div>
         </div>
@@ -179,6 +182,35 @@ export default function RecommendedSection() {
       })
       .finally(() => setLoading(false));
   }, [activeTab, sortParam]);
+
+  useEffect(() => {
+    const onInventoryUpdated = (event) => {
+      const payload = event?.detail;
+      if (!payload?.productId) return;
+      setProducts((prev) => {
+        if (!Array.isArray(prev) || prev.length === 0) return prev;
+        let changed = false;
+        const next = prev.map((p) => {
+          const pid = String(p?._id || p?.id || '');
+          if (pid !== String(payload.productId)) return p;
+          changed = true;
+          return {
+            ...p,
+            stock: Number(payload.stock ?? p.stock ?? 0),
+            stockQuantity: Number(payload.stock ?? p.stockQuantity ?? 0),
+            status: payload.status || p.status,
+          };
+        });
+        if (changed) {
+          const key = sortParam || 'default';
+          recommendedCache.set(key, { data: next, ts: Date.now() });
+        }
+        return changed ? next : prev;
+      });
+    };
+    window.addEventListener('inventoryUpdated', onInventoryUpdated);
+    return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
+  }, [sortParam]);
 
   const handleAdd = (product) => {
     addItem({

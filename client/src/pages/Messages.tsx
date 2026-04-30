@@ -2311,7 +2311,6 @@ export function Messages() {
                                                 <VoiceWaveform
                                                   duration={attachment.duration || (playingState?.messageId === message._id && playingState?.attachmentIndex === idx ? playingState.duration : 0)}
                                                   currentTime={playingState?.messageId === message._id && playingState?.attachmentIndex === idx ? playingState.currentTime : 0}
-                                                  isPlaying={isPlaying(message._id, idx)}
                                                   onSeek={(time) => {
                                                     if (playingState?.messageId === message._id && playingState?.attachmentIndex === idx) {
                                                       seekTo(time);

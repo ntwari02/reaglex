@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ShoppingBag, Heart, Star } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
 
@@ -28,6 +29,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
   const [added, setAdded] = useState(false);
   const addItem = useBuyerCart((s) => s.addItem);
   const { theme } = useTheme();
+  const currencyPricing = useCurrencyPricing();
   const isDark = theme === 'dark';
 
   const id = product._id || product.id;
@@ -210,14 +212,14 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
                 className="font-black product-price"
                 style={{ color: 'var(--text-primary)', fontSize: compact ? '12px' : '16px' }}
               >
-                ${price.toFixed(2)}
+                {currencyPricing.formatLocalWithUsd(price)}
               </span>
               {oldPrice && !compact && (
                 <span
                   className="ml-1.5 text-xs line-through"
                   style={{ color: 'var(--text-muted)' }}
                 >
-                  ${oldPrice.toFixed(2)}
+                  {currencyPricing.formatLocalWithUsd(oldPrice)}
                 </span>
               )}
             </div>

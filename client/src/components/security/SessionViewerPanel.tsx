@@ -4,6 +4,7 @@ import { Eye, Ghost, MonitorSmartphone, MapPin, User, Globe, Shield, Loader2 } f
 import { cn } from '@/lib/utils';
 import type { VirtualSessionGhost, SessionSubjectDetail } from './securityIntelTypes';
 import { API_BASE_URL } from '@/lib/config';
+import { useTheme } from '@/contexts/ThemeContext';
 
 function bandStyle(band: VirtualSessionGhost['riskBand']) {
   if (band === 'dangerous') return 'border-red-500/40 bg-red-500/10 text-red-200';
@@ -18,6 +19,8 @@ export function SessionViewerPanel({
   sessions: VirtualSessionGhost[];
   onAudit?: (targetUserId: string) => void;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [selected, setSelected] = useState<string | null>(sessions[0]?.userId ?? null);
   const [detail, setDetail] = useState<SessionSubjectDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -100,18 +103,18 @@ export function SessionViewerPanel({
   const sess = detail?.session;
 
   return (
-    <div className="rounded-2xl border border-violet-500/20 bg-slate-950/70 backdrop-blur-xl overflow-hidden flex flex-col min-h-[420px] max-h-[640px]">
-      <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2 bg-gradient-to-r from-violet-950/50 to-transparent">
+    <div className="rounded-2xl border border-violet-500/20 bg-white/85 dark:bg-slate-950/70 backdrop-blur-xl overflow-hidden flex flex-col min-h-[420px] max-h-[640px]">
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center gap-2 bg-gradient-to-r from-violet-200/40 dark:from-violet-950/50 to-transparent">
         <Ghost className="w-4 h-4 text-violet-400" />
         <div>
-          <h3 className="text-sm font-semibold text-white">Virtual session viewer</h3>
-          <p className="text-[10px] text-slate-500">Event-based UI reconstruction — not screen share</p>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Virtual session viewer</h3>
+          <p className="text-[10px] text-slate-600 dark:text-slate-500">Event-based UI reconstruction — not screen share</p>
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col lg:flex-row">
-        <div className="lg:w-[140px] border-b lg:border-b-0 lg:border-r border-white/10 overflow-y-auto max-h-40 lg:max-h-none p-2 space-y-1">
+        <div className="lg:w-[140px] border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-white/10 overflow-y-auto max-h-40 lg:max-h-none p-2 space-y-1">
           {sessions.length === 0 ? (
-            <p className="text-[11px] text-slate-500 p-2">No sessions</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-500 p-2">No sessions</p>
           ) : (
             sessions.slice(0, 24).map((s) => (
               <button
@@ -122,18 +125,18 @@ export function SessionViewerPanel({
                   'w-full text-left rounded-lg px-2 py-2 text-[10px] font-mono transition-colors',
                   selected === s.userId
                     ? 'bg-violet-500/25 text-white border border-violet-500/40'
-                    : 'text-slate-400 hover:bg-white/5 border border-transparent',
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent',
                 )}
               >
                 <span className="block truncate text-cyan-300/90">{s.maskedIdentifier}</span>
-                <span className="text-[9px] text-slate-500">{s.role}</span>
+                <span className="text-[9px] text-slate-600 dark:text-slate-500">{s.role}</span>
               </button>
             ))
           )}
         </div>
         <div className="flex-1 p-4 overflow-y-auto">
           {!sel ? (
-            <p className="text-slate-500 text-sm">Select a user to preview reconstructed state.</p>
+            <p className="text-slate-500 dark:text-slate-500 text-sm">Select a user to preview reconstructed state.</p>
           ) : (
             <motion.div
               key={sel.userId}
@@ -159,41 +162,41 @@ export function SessionViewerPanel({
                     Account
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
-                    <p className="text-slate-300">
-                      <span className="text-slate-500">Name · </span>
+                    <p className="text-slate-800 dark:text-slate-300">
+                      <span className="text-slate-600 dark:text-slate-500">Name · </span>
                       {acc.fullName || '—'}
                     </p>
-                    <p className="text-slate-300 break-all">
-                      <span className="text-slate-500">Email · </span>
+                    <p className="text-slate-800 dark:text-slate-300 break-all">
+                      <span className="text-slate-600 dark:text-slate-500">Email · </span>
                       {acc.email}
                     </p>
-                    <p className="text-slate-300">
-                      <span className="text-slate-500">Phone · </span>
+                    <p className="text-slate-800 dark:text-slate-300">
+                      <span className="text-slate-600 dark:text-slate-500">Phone · </span>
                       {acc.phoneMasked || '—'}
                     </p>
-                    <p className="text-slate-300">
-                      <span className="text-slate-500">Role · </span>
+                    <p className="text-slate-800 dark:text-slate-300">
+                      <span className="text-slate-600 dark:text-slate-500">Role · </span>
                       {acc.role}
                     </p>
-                    <p className="text-slate-300">
-                      <span className="text-slate-500">Status · </span>
+                    <p className="text-slate-800 dark:text-slate-300">
+                      <span className="text-slate-600 dark:text-slate-500">Status · </span>
                       {acc.accountStatus || 'active'}
                     </p>
-                    <p className="text-slate-300">
-                      <span className="text-slate-500">Email verified · </span>
+                    <p className="text-slate-800 dark:text-slate-300">
+                      <span className="text-slate-600 dark:text-slate-500">Email verified · </span>
                       {acc.emailVerified ? 'Yes' : 'No'}
                     </p>
                     {acc.profileLocation && (
-                      <p className="text-slate-300 sm:col-span-2">
-                        <span className="text-slate-500">Profile location · </span>
+                      <p className="text-slate-800 dark:text-slate-300 sm:col-span-2">
+                        <span className="text-slate-600 dark:text-slate-500">Profile location · </span>
                         {acc.profileLocation}
                       </p>
                     )}
-                    <p className="text-slate-400 text-[10px] sm:col-span-2">
+                    <p className="text-slate-600 dark:text-slate-400 text-[10px] sm:col-span-2">
                       Member since {acc.memberSince ? new Date(acc.memberSince).toLocaleString() : '—'}
                     </p>
                     {(acc.lastLoginAt || acc.lastLoginIp) && (
-                      <p className="text-slate-400 text-[10px] sm:col-span-2">
+                      <p className="text-slate-600 dark:text-slate-400 text-[10px] sm:col-span-2">
                         Last sign-in ·{' '}
                         {acc.lastLoginAt ? new Date(acc.lastLoginAt).toLocaleString() : '—'}
                         {acc.lastLoginIp ? ` · IP ${acc.lastLoginIp}` : ''}
@@ -211,23 +214,23 @@ export function SessionViewerPanel({
                     <Globe className="w-3.5 h-3.5" />
                     Live telemetry
                   </div>
-                  <div className="grid grid-cols-1 gap-1.5 text-[11px] text-slate-300">
+                  <div className="grid grid-cols-1 gap-1.5 text-[11px] text-slate-800 dark:text-slate-300">
                     <p className="flex items-start gap-1.5">
                       <MapPin className="w-3.5 h-3.5 shrink-0 text-violet-400 mt-0.5" />
                       <span>
-                        <span className="text-slate-500">Coarse location · </span>
+                        <span className="text-slate-600 dark:text-slate-500">Coarse location · </span>
                         {sess.geoLabel}
                       </span>
                     </p>
                     <p>
-                      <span className="text-slate-500">IP · </span>
+                      <span className="text-slate-600 dark:text-slate-500">IP · </span>
                       <span className="font-mono">{sess.ipAddress || '—'}</span>
                     </p>
                     <p>
-                      <span className="text-slate-500">Device / browser · </span>
+                      <span className="text-slate-600 dark:text-slate-500">Device / browser · </span>
                       {sess.deviceSummary}
                     </p>
-                    <p className="text-[10px] text-slate-500 break-all font-mono leading-snug">
+                    <p className="text-[10px] text-slate-600 dark:text-slate-500 break-all font-mono leading-snug">
                       UA · {sess.userAgentFull || sel.userAgentFull || sel.deviceHint}
                     </p>
                   </div>
@@ -239,47 +242,47 @@ export function SessionViewerPanel({
                   Risk {sel.riskScore} · {sel.riskBand}
                 </span>
                 {sess && (
-                  <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                  <span className="text-[10px] text-slate-600 dark:text-slate-500 font-mono flex items-center gap-1">
                     <Shield className="w-3 h-3" />
                     Telemetry risk aligned
                   </span>
                 )}
-                <span className="text-[10px] text-slate-500 font-mono">
+                <span className="text-[10px] text-slate-600 dark:text-slate-500 font-mono">
                   Session {new Date(sel.sessionStartedAt).toLocaleTimeString()} → now
                 </span>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-black/40 p-4 relative overflow-hidden">
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 dark:bg-black/40 p-4 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(105deg,transparent_40%,rgba(139,92,246,0.07)_50%,transparent_60%)] animate-[shimmer_4s_linear_infinite] pointer-events-none" />
-                <div className="relative flex items-center gap-2 text-xs text-slate-300 mb-3">
+                <div className="relative flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 mb-3">
                   <MonitorSmartphone className="w-4 h-4 text-violet-400" />
                   <span className="font-mono truncate">{sel.currentRoute || '/'}</span>
                 </div>
-                <p className="relative text-lg font-semibold text-white">{sel.reconstructedUi.title || sel.routeLabel}</p>
+                <p className="relative text-lg font-semibold text-slate-900 dark:text-white">{sel.reconstructedUi.title || sel.routeLabel}</p>
                 <ul className="relative mt-3 space-y-1.5">
                   {sel.reconstructedUi.sections.map((line, i) => (
-                    <li key={i} className="text-xs text-slate-400 flex gap-2">
+                    <li key={i} className="text-xs text-slate-700 dark:text-slate-400 flex gap-2">
                       <span className="text-violet-500">▪</span> {line}
                     </li>
                   ))}
                 </ul>
-                <div className="relative mt-4 rounded-lg border border-dashed border-white/10 p-3 bg-slate-900/50">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Recent actions</p>
+                <div className="relative mt-4 rounded-lg border border-dashed border-slate-300 dark:border-white/10 p-3 bg-white/70 dark:bg-slate-900/50">
+                  <p className="text-[10px] text-slate-600 dark:text-slate-500 uppercase tracking-wider mb-2">Recent actions</p>
                   <div className="space-y-1 max-h-28 overflow-y-auto">
                     {sel.lastActions.slice(0, 8).map((a, i) => (
-                      <p key={i} className="text-[10px] text-slate-400 font-mono">
+                      <p key={i} className="text-[10px] text-slate-700 dark:text-slate-400 font-mono">
                         {new Date(a.at).toLocaleTimeString()} · {a.type}: {a.detail}
                       </p>
                     ))}
                   </div>
                 </div>
-                <p className="relative text-[10px] text-slate-600 mt-3 flex items-start gap-1">
+                <p className="relative text-[10px] text-slate-600 dark:text-slate-600 mt-3 flex items-start gap-1">
                   <Eye className="w-3 h-3 shrink-0 mt-0.5" />
                   {sel.reconstructedUi.hints.join(' ')}
                 </p>
               </div>
 
-              <p className="text-[10px] text-slate-600 font-mono break-all">
+              <p className="text-[10px] text-slate-600 dark:text-slate-600 font-mono break-all">
                 Device (short): {sel.deviceHint}
               </p>
             </motion.div>

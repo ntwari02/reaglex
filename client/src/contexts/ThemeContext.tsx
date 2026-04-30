@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { profileAPI } from '../lib/api';
+import { currencyApi } from '../services/currencyApi';
 
 type Theme = 'dark' | 'light';
 type Language = 'en' | 'fr' | 'rw' | 'sw';
@@ -127,6 +128,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Mark initial load done after first render
   useEffect(() => {
     setIsInitialLoad(false);
+  }, []);
+
+  useEffect(() => {
+    const hasLocalCurrency = Boolean(localStorage.getItem('currency'));
+    if (hasLocalCurrency) return;
+    currencyApi
+      .getContext()
+      .then((data) => {
+        const next = String(data?.selectedCurrency || data?.detectedCurrency || 'USD').toUpperCase() as Currency;
+        setCurrency(next);
+        localStorage.setItem('currency', next);
+      })
+      .catch(() => null);
   }, []);
 
   // Load user preferences from DB when logged in

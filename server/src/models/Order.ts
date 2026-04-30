@@ -102,9 +102,22 @@ export interface IOrder extends Document {
   trackingNumber?: string;
   timeline: IOrderTimelineEntry[];
   payment?: IOrderPayment;
+  currencySnapshot?: {
+    totalUsd: number;
+    totalLocal: number;
+    currency: string;
+    exchangeRate: number;
+    timestamp: Date;
+    lockedAt: Date;
+  };
   escrow?: IOrderEscrow;
   fees?: IOrderFees;
   payout?: IOrderPayout;
+  inventory?: {
+    stockDeductedAt?: Date;
+    stockRestoredAt?: Date;
+    lastChangeReason?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -178,6 +191,14 @@ const orderSchema = new Schema<IOrder>(
       method: { type: String },
       paidAt: { type: Date },
     },
+    currencySnapshot: {
+      totalUsd: { type: Number },
+      totalLocal: { type: Number },
+      currency: { type: String },
+      exchangeRate: { type: Number },
+      timestamp: { type: Date },
+      lockedAt: { type: Date },
+    },
     escrow: {
       status: {
         type: String,
@@ -213,6 +234,11 @@ const orderSchema = new Schema<IOrder>(
       transferStatus: { type: String },
       paidToSellerAt: { type: Date },
       sellerSubaccountId: { type: String },
+    },
+    inventory: {
+      stockDeductedAt: { type: Date },
+      stockRestoredAt: { type: Date },
+      lastChangeReason: { type: String },
     },
   },
   { timestamps: true }

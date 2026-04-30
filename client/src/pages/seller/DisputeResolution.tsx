@@ -9,19 +9,14 @@ import {
   Search, 
   Filter, 
   Upload, 
-  Send, 
   Image as ImageIcon, 
   FileText, 
-  TrendingUp, 
-  TrendingDown,
   Calendar,
   User,
   DollarSign,
   AlertCircle,
   FileCheck,
-  Ban,
-  ChevronDown,
-  ChevronUp
+  Ban
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -95,7 +90,7 @@ interface Dispute {
 }
 
 const DisputeResolution: React.FC = () => {
-  const { user } = useAuthStore();
+  useAuthStore();
   const { showToast } = useToastStore();
   
   const [disputes, setDisputes] = useState<Dispute[]>([]);

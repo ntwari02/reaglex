@@ -11,6 +11,10 @@ import { User } from '../models/User';
 import { sendNotificationEmail, isEmailConfigured } from '../services/emailService';
 import mongoose from 'mongoose';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
+import {
+  generateNotificationCopy as generateNotificationCopyWithAi,
+  improveNotificationCopy as improveNotificationCopyWithAi,
+} from '../services/notificationCopyAi.service';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -239,11 +243,125 @@ export async function createTemplate(req: AuthenticatedRequest, res: Response) {
       subject: body.subject,
       content: body.content || '',
       variables: body.variables || [],
+      tone: body.tone || '',
+      contextType: body.contextType || '',
+      eventType: body.eventType || '',
+      source: body.source || 'manual',
     } as any) as any;
     const t = template.toObject();
     res.status(201).json({ template: { ...t, id: toId(template), lastModified: template.updatedAt?.toISOString?.()?.slice(0, 10) } });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to create template' });
+  }
+}
+
+// ---------- AI Notification Copy ----------
+export async function generateNotificationCopy(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const body = req.body as Record<string, unknown>;
+    const prompt = String(body.prompt || '').trim();
+    const tone = String(body.tone || 'professional').toLowerCase() as
+      | 'professional'
+      | 'friendly'
+      | 'urgent'
+      | 'promotional'
+      | 'informative';
+    const contextType = String(body.contextType || 'general_update').trim();
+    if (!prompt) {
+      return res.status(400).json({ message: 'prompt is required' });
+    }
+    const out = await generateNotificationCopyWithAi({ prompt, tone, contextType });
+    return res.json(out);
+  } catch (e: any) {
+    return res.status(500).json({ message: e?.message || 'Failed to generate notification copy' });
+  }
+}
+
+export async function improveNotificationCopy(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const body = req.body as Record<string, unknown>;
+    const message = String(body.message || '').trim();
+    const subject = String(body.subject || '').trim();
+    if (!message) {
+      return res.status(400).json({ message: 'message is required' });
+    }
+    const out = await improveNotificationCopyWithAi({ subject, message });
+    return res.json(out);
+  } catch (e: any) {
+    return res.status(500).json({ message: e?.message || 'Failed to improve notification copy' });
+  }
+}
+
+export async function runNotificationABTest(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const body = req.body as Record<string, unknown>;
+    const targetGroup = String(body.targetGroup || 'all_customers');
+    const type = String(body.type || 'email') as 'email' | 'inapp' | 'sms' | 'push';
+    const variantA = body.variantA as { subject?: string; message: string };
+    const variantB = body.variantB as { subject?: string; message: string };
+    if (!variantA?.message || !variantB?.message) {
+      return res.status(400).json({ message: 'variantA.message and variantB.message are required' });
+    }
+
+    const users = await User.find({ role: targetGroup === 'all_sellers' ? 'seller' : 'buyer' })
+      .select('email _id')
+      .limit(200)
+      .lean();
+    const experimentId = `exp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const logs: any[] = [];
+
+    for (let i = 0; i < users.length; i += 1) {
+      const recipient = users[i];
+      const variant: 'A' | 'B' = i % 2 === 0 ? 'A' : 'B';
+      const chosen = variant === 'A' ? variantA : variantB;
+      const recipientValue = type === 'email' ? String((recipient as any).email || '') : String((recipient as any)._id || '');
+      if (!recipientValue) continue;
+
+      if (type === 'email' && isEmailConfigured()) {
+        await sendNotificationEmail({
+          to: recipientValue,
+          subject: chosen.subject || 'Reaglex update',
+          body: chosen.message,
+        });
+      } else if (type === 'inapp' && req.user?.id) {
+        await createSystemInboxAndFanout({
+          title: (chosen.subject || 'Reaglex update').slice(0, 220),
+          message: chosen.message,
+          type: 'system_announcement',
+          priority: 'medium',
+          targetAudience: 'specific_user',
+          targetUserId: String((recipient as any)._id),
+          createdBy: req.user.id,
+        });
+      }
+
+      const log = await SentNotificationLog.create({
+        recipient: recipientValue,
+        type,
+        subject: chosen.subject || 'Reaglex update',
+        body: chosen.message,
+        status: 'sent',
+        sentAt: new Date(),
+        experimentId,
+        variant,
+      });
+      logs.push({ id: toId(log), variant, recipient: recipientValue });
+    }
+
+    return res.status(201).json({
+      message: 'A/B notification test launched',
+      experimentId,
+      totals: {
+        sent: logs.length,
+        variantA: logs.filter((x) => x.variant === 'A').length,
+        variantB: logs.filter((x) => x.variant === 'B').length,
+      },
+    });
+  } catch (e: any) {
+    return res.status(500).json({ message: e?.message || 'Failed to launch A/B test' });
   }
 }
 

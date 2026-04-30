@@ -171,7 +171,13 @@ function LoginForm({ onShake }: { onShake: () => void }) {
     setLoading(true);
     try {
       const result = await login(email, password);
-      if (!result.success) { setError(result.error || 'Login failed.'); onShake(); setLoading(false); return; }
+      if (!result.success) {
+        const loginError = 'error' in result ? result.error : undefined;
+        setError(loginError || 'Login failed.');
+        onShake();
+        setLoading(false);
+        return;
+      }
       setSuccess(true);
       const { user } = useAuthStore.getState();
       const name = user?.full_name?.split(' ')[0] || 'there';

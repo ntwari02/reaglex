@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, TrendingUp, Users, DollarSign, ShoppingCart, Eye, Star, TrendingDown, Filter, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, ShoppingCart, Eye, TrendingDown, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
 import StatCard from '@/components/dashboard/StatCard';
 import SalesChart from '@/components/dashboard/SalesChart';
 import { FunnelChart } from '@/components/charts/FunnelChart';
-import { ParetoChart } from '@/components/charts/ParetoChart';
 import { useToastStore } from '@/stores/toastStore';
 import { API_BASE_URL } from '@/lib/config';
 

@@ -16,9 +16,7 @@ const P  = '#f97316';   // primary orange
 const PD = '#ea580c';   // dark orange
 const PL = '#fb923c';   // light orange
 const A1 = '#f59e0b';   // amber  (secondary accent)
-const A2 = '#ef4444';   // red    (danger / contrast)
 const A3 = '#10b981';   // green  (success)
-const A4 = '#64748b';   // slate  (neutral fourth)
 
 type ReasonState = { reason?: 'not_seller' | 'login_required' | 'pending_approval' };
 

@@ -68,6 +68,8 @@ import securityAnalysisRoutes from './src/routes/securityAnalysis.routes';
 import recommendationEmailRoutes from './src/routes/recommendationEmailRoutes';
 import { startRecommendationEmailWorker } from './src/services/recommendationEmail.service';
 import productVerificationRoutes from './src/routes/productVerificationRoutes';
+import currencyRoutes from './src/routes/currencyRoutes';
+import { startExchangeRateWorker } from './src/services/exchangeRate.service';
 
 const app = express();
 const httpServer = createServer(app);
@@ -271,6 +273,7 @@ app.use('/api/system', systemMonitorRoutes);
 app.use('/api/security-analysis', securityAnalysisRoutes);
 app.use('/api/recommendation-emails', recommendationEmailRoutes);
 app.use('/api/verification', productVerificationRoutes);
+app.use('/api/currency', currencyRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);
@@ -359,6 +362,7 @@ const connectDB = async () => {
 
     startScheduledNotificationWorker();
     startRecommendationEmailWorker();
+    startExchangeRateWorker();
 
     // Initialize WebSocket server
     websocketService.initialize(httpServer);

@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Order, OrderStatus } from '../models/Order';
 import { notifyBuyerOrderStatusChange } from '../services/orderInboxNotifications';
+import { restoreInventoryForOrder } from '../services/inventory.service';
 
 // GET /api/seller/orders
 export async function getSellerOrders(req: AuthenticatedRequest, res: Response) {
@@ -82,6 +83,11 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
     }
 
     if (prior.status !== updated.status) {
+      if (updated.status === 'cancelled') {
+        void restoreInventoryForOrder(String(updated._id), 'order_cancelled').catch((e) => {
+          console.error('Failed to restore inventory on seller cancellation:', e);
+        });
+      }
       void notifyBuyerOrderStatusChange({
         buyerId: updated.buyerId,
         orderNumber: updated.orderNumber,

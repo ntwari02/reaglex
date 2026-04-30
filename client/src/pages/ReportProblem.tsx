@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useAuthStore } from '../stores/authStore';
+import api from '../services/api';
 
 type ReportCategory =
   | 'order'
@@ -77,36 +78,6 @@ const CATEGORY_META: Record<ReportCategory, { label: string; desc: string; icon:
     },
   };
 
-const MOCK_REPORTS: ReportSummary[] = [
-  {
-    id: 'RPT-00847',
-    category: 'seller',
-    title: 'Seller sent a different used phone instead of new one',
-    related: 'ORD-1002',
-    status: 'under_review',
-    date: 'Feb 28, 2026',
-    preview: 'Received a used device with scratches while listing said new.',
-  },
-  {
-    id: 'RPT-00810',
-    category: 'payment',
-    title: 'Charged twice for the same order',
-    related: 'TXN-9921',
-    status: 'open',
-    date: 'Feb 25, 2026',
-    preview: 'My card was billed two times when checkout failed the first time.',
-  },
-  {
-    id: 'RPT-00796',
-    category: 'bug',
-    title: 'Unable to apply discount code on mobile',
-    related: undefined,
-    status: 'resolved',
-    date: 'Feb 18, 2026',
-    preview: 'Promo code field shows error even for valid codes on Android app.',
-  },
-];
-
 const statusLabel: Record<Status, string> = {
   open: 'Open',
   under_review: 'Under Review',
@@ -130,6 +101,61 @@ const ReportProblem = () => {
   const [dragOver, setDragOver] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
+  const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [orderIds, setOrderIds] = useState<string[]>([]);
+  const mapDisputeToReport = (d: any): ReportSummary => {
+    const statusMap: Record<string, Status> = {
+      new: 'open',
+      under_review: 'under_review',
+      seller_response: 'under_review',
+      buyer_response: 'under_review',
+      approved: 'resolved',
+      rejected: 'closed',
+      resolved: 'resolved',
+    };
+    return {
+      id: d?.disputeNumber || d?._id || '',
+      category: (d?.type === 'delivery'
+        ? 'shipping'
+        : d?.type === 'quality'
+        ? 'seller'
+        : d?.type === 'return'
+        ? 'order'
+        : d?.type === 'refund'
+        ? 'payment'
+        : 'order') as ReportCategory,
+      title: d?.reason || 'Buyer report',
+      related: d?.orderId?.orderNumber || d?.orderId?._id || undefined,
+      status: statusMap[d?.status] || 'open',
+      date: d?.createdAt ? new Date(d.createdAt).toLocaleDateString() : '',
+      preview: d?.description || '',
+    };
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadReports = async () => {
+      try {
+        const [disputesRes, ordersRes] = await Promise.all([
+          api.get('/buyer/disputes', { params: { limit: 100 } }),
+          api.get('/orders', { params: { limit: 50 } }),
+        ]);
+        const disputeRows = disputesRes.data?.disputes || [];
+        const mapped = disputeRows.map(mapDisputeToReport);
+        const rawOrders = ordersRes.data?.orders || ordersRes.data?.data?.orders || [];
+        const ids = rawOrders
+          .map((o: any) => String(o?._id || o?.id || ''))
+          .filter(Boolean);
+        setReports(mapped);
+        setOrderIds(ids);
+      } catch (err) {
+        console.error('Failed to load buyer reports', err);
+        setReports([]);
+      }
+    };
+    loadReports();
+  }, [user?.id]);
+
 
   const [filter, setFilter] = useState<'all' | Status>('all');
   const [activeReport, setActiveReport] = useState<ReportSummary | null>(null);
@@ -148,12 +174,12 @@ const ReportProblem = () => {
   // open side panel from route
   useEffect(() => {
     if (!params.ticketId) return;
-    const found = MOCK_REPORTS.find((r) => r.id === params.ticketId);
+    const found = reports.find((r) => r.id === params.ticketId);
     if (found) {
       setActiveReport(found);
       setPanelOpen(true);
     }
-  }, [params.ticketId]);
+  }, [params.ticketId, reports]);
 
   const descriptionLength = description.length;
   const descriptionColor =
@@ -171,9 +197,9 @@ const ReportProblem = () => {
   const canSubmit = !!category && !!severity && description.trim() && contactEmail.trim();
 
   const filteredReports = useMemo(() => {
-    if (filter === 'all') return MOCK_REPORTS;
-    return MOCK_REPORTS.filter((r) => r.status === filter);
-  }, [filter]);
+    if (filter === 'all') return reports;
+    return reports.filter((r) => r.status === filter);
+  }, [filter, reports]);
 
   const handleFiles = (list: FileList | null) => {
     if (!list) return;
@@ -191,10 +217,45 @@ const ReportProblem = () => {
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    const id = `RPT-${Math.floor(10000 + Math.random() * 89999)}`;
-    setTicketId(id);
-    setSubmitting(false);
+    try {
+      const orderId = orderIds[0];
+      if (!orderId) {
+        throw new Error('No recent order found to attach this report to.');
+      }
+      const typeMap: Record<ReportCategory, string> = {
+        order: 'return',
+        payment: 'refund',
+        seller: 'quality',
+        counterfeit: 'quality',
+        harassment: 'other',
+        security: 'other',
+        shipping: 'delivery',
+        reviews: 'other',
+        bug: 'other',
+      };
+      const severityToPriority: Record<Severity, string> = {
+        low: 'low',
+        medium: 'medium',
+        high: 'high',
+      };
+      const payload = {
+        orderId,
+        type: typeMap[category as ReportCategory],
+        reason: description.slice(0, 120),
+        description,
+        priority: severityToPriority[severity as Severity],
+      };
+      const res = await api.post('/buyer/disputes', payload);
+      const created = res.data?.dispute;
+      const createdId = created?.disputeNumber || created?._id;
+      if (createdId) setTicketId(String(createdId));
+      const listRes = await api.get('/buyer/disputes', { params: { limit: 100 } });
+      setReports((listRes.data?.disputes || []).map(mapDisputeToReport));
+    } catch (err) {
+      console.error('Failed to submit report', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const openPanel = (report: ReportSummary) => {

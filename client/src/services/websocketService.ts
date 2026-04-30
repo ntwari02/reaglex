@@ -115,6 +115,18 @@ class WebSocketService {
       },
     );
 
+    this.socket.on(
+      'inventory_updated',
+      (data: {
+        productId: string;
+        stock: number;
+        status: string;
+        variants?: Array<{ id: string; sku: string; stock: number }>;
+      }) => {
+        this.onInventoryUpdated?.(data);
+      },
+    );
+
     this.socket.on('joined_thread', (data: { threadId: string }) => {
       console.log('Joined thread:', data.threadId);
     });
@@ -203,6 +215,12 @@ class WebSocketService {
     type: string;
     priority: string;
     createdAt: string;
+  }) => void;
+  onInventoryUpdated?: (data: {
+    productId: string;
+    stock: number;
+    status: string;
+    variants?: Array<{ id: string; sku: string; stock: number }>;
   }) => void;
 }
 

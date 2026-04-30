@@ -15,7 +15,6 @@ export function SelectRole() {
   const [selectedRole, setSelectedRole] = useState<'buyer' | 'seller' | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleName, setGoogleName] = useState<string>('');
-  const [googleEmail, setGoogleEmail] = useState<string>('');
   const [referralProgramEnabled, setReferralProgramEnabled] = useState(true);
 
   const temp = searchParams.get('temp');
@@ -38,7 +37,6 @@ export function SelectRole() {
         const decoded = atob(temp);
         const googleInfo = JSON.parse(decoded);
         setGoogleName(googleInfo.name || googleInfo.email?.split('@')[0] || '');
-        setGoogleEmail(googleInfo.email || '');
       } catch (e) {
         console.error('Failed to decode temp token:', e);
       }
@@ -144,7 +142,7 @@ export function SelectRole() {
   const cardBg = isDark ? '#111420' : '#ffffff';
 
   return (
-    <AuthPremiumLayout currentView="role">
+    <AuthPremiumLayout>
       <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
         <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-auto">
           <div

@@ -22,6 +22,7 @@ interface Notification {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   actionLink?: string;
   actionLabel?: string | null;
+  category?: string;
 }
 
 const NotificationsPage: React.FC = () => {
@@ -158,9 +159,9 @@ const NotificationsPage: React.FC = () => {
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {filters.map((filter) => {
           const Icon = filter.icon;
-          const count = filter.id === 'all' 
-            ? unreadCount 
-            : notifications.filter(n => n.category === filter.id && n.unread).length;
+          const count = filter.id === 'all'
+            ? unreadCount
+            : notifications.filter((n) => n.type === filter.id && n.unread).length;
           const isActive = activeFilter === filter.id;
           
           return (
@@ -247,7 +248,9 @@ const NotificationsPage: React.FC = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(notification.actionLink);
+                              if (notification.actionLink) {
+                                navigate(notification.actionLink);
+                              }
                             }}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
                           >

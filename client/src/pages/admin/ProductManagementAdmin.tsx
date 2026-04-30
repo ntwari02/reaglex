@@ -191,6 +191,14 @@ export default function ProductManagementAdmin() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+  useEffect(() => {
+    const onInventoryUpdated = () => {
+      loadProducts();
+      loadDashboard();
+    };
+    window.addEventListener('inventoryUpdated', onInventoryUpdated);
+    return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
+  }, [loadProducts, loadDashboard]);
 
   const filteredAndSortedProducts = products;
   const categories = facets.categories;
@@ -930,11 +938,83 @@ export default function ProductManagementAdmin() {
         </div>
       )}
 
-      {/* Products Table */}
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
-        <div className="overflow-x-auto overflow-y-hidden scroll-smooth [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600">
+      {/* Products Workspace */}
+      <div className="relative rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+        <div className="absolute -top-20 -right-12 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-12 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl pointer-events-none" />
+
+        {/* Mobile Cards */}
+        <div className="relative z-10 lg:hidden divide-y divide-gray-100 dark:divide-gray-800">
+          {loading ? (
+            <div className="px-4 py-8 text-center text-gray-500">Loading products...</div>
+          ) : (
+            filteredAndSortedProducts.map((product) => (
+              <div key={product.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.has(product.id)}
+                      onChange={() => toggleSelectProduct(product.id)}
+                      className="mt-1 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div className="h-11 w-11 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
+                      <Package className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-white truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{product.sku || 'No SKU'}</p>
+                    </div>
+                  </div>
+                  <button
+                    ref={(el) => (buttonRefs.current[product.id] = el)}
+                    onClick={() => setOpenDropdownId(openDropdownId === product.id ? null : product.id)}
+                    className="rounded-full border border-gray-200 p-2 text-xs text-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-emerald-900/20 transition-colors"
+                    title="More actions"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2">
+                    <p className="text-gray-500 dark:text-gray-400">Price</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">${product.price.toFixed(2)}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2">
+                    <p className="text-gray-500 dark:text-gray-400">Stock</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{product.stock}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2">
+                    <p className="text-gray-500 dark:text-gray-400">Category</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{product.category}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2">
+                    <p className="text-gray-500 dark:text-gray-400">Seller</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{product.sellerName || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getStatusBadge(product.status)}
+                  {getVisibilityBadge(product.visibility)}
+                  {product.hasDiscount && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                      {product.discountPercent}% OFF
+                    </span>
+                  )}
+                </div>
+
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="relative z-10 hidden lg:block overflow-x-auto overflow-y-hidden scroll-smooth [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:bg-gray-800">
+            <thead className="bg-gray-50/90 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:bg-gray-800/90">
               <tr>
                 <th className="px-4 py-3">
                   <input
@@ -961,200 +1041,199 @@ export default function ProductManagementAdmin() {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={13} className="px-4 py-8 text-center text-gray-500">
                     Loading products...
                   </td>
                 </tr>
               ) : (
-              filteredAndSortedProducts.map((product) => (
-                <tr
-                  key={product.id}
-                  className="bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800/60"
-                >
-                  <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedProducts.has(product.id)}
-                      onChange={() => toggleSelectProduct(product.id)}
-                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                        <Package className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900 dark:text-white">{product.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                          <span className="text-xs text-gray-500">{product.rating}</span>
-                          <span className="text-xs text-gray-500">•</span>
-                          <span className="text-xs text-gray-500">{product.sales} sales</span>
+                filteredAndSortedProducts.map((product) => (
+                  <tr key={product.id} className="bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800/60">
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.has(product.id)}
+                        onChange={() => toggleSelectProduct(product.id)}
+                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <Package className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-white">{product.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                            <span className="text-xs text-gray-500">{product.rating}</span>
+                            <span className="text-xs text-gray-500">•</span>
+                            <span className="text-xs text-gray-500">{product.sales} sales</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{product.sku}</td>
-                  <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{product.category}</td>
-                  <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{product.brand || '-'}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-1">
-                      <Store className="h-3 w-3 text-gray-400" />
-                      <span className="text-gray-600 dark:text-gray-300">{product.sellerName}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{product.stock}</td>
-                  <td className="px-4 py-4">
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">${product.price.toFixed(2)}</p>
-                      {product.discountPrice && (
-                        <p className="text-xs text-gray-500 line-through">${product.discountPrice.toFixed(2)}</p>
+                    </td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{product.sku}</td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{product.category}</td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{product.brand || '-'}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1">
+                        <Store className="h-3 w-3 text-gray-400" />
+                        <span className="text-gray-600 dark:text-gray-300">{product.sellerName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{product.stock}</td>
+                    <td className="px-4 py-4">
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">${product.price.toFixed(2)}</p>
+                        {product.discountPrice && (
+                          <p className="text-xs text-gray-500 line-through">${product.discountPrice.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      {product.hasDiscount ? (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                          {product.discountPercent}% OFF
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    {product.hasDiscount ? (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-200">
-                        {product.discountPercent}% OFF
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-4">{getStatusBadge(product.status)}</td>
-                  <td className="px-4 py-4">{getVisibilityBadge(product.visibility)}</td>
-                  <td className="px-4 py-4 text-gray-600 dark:text-gray-300">
-                    {new Date(product.dateAdded).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="relative flex items-center justify-end">
-                      <button
-                        ref={(el) => (buttonRefs.current[product.id] = el)}
-                        onClick={() => setOpenDropdownId(openDropdownId === product.id ? null : product.id)}
-                        className="rounded-full border border-gray-200 p-2 text-xs text-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-emerald-900/20 transition-colors"
-                        title="More actions"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                      {openDropdownId === product.id && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => setOpenDropdownId(null)}
-                          />
-                          <div
-                            ref={(el) => (dropdownRefs.current[product.id] = el)}
-                            style={dropdownStyle[product.id]}
-                            className="w-56 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900"
-                          >
-                            <div className="py-1">
-                              <button
-                                onClick={() => {
-                                  setSelectedProduct(product);
-                                  setActiveView('analytics');
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <BarChart3 className="h-4 w-4 text-emerald-600" />
-                                  <span>View Analytics</span>
-                                </div>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  adminProductsAPI
-                                    .getProduct(product.id)
-                                    .then(({ product: full }) => {
-                                      setSelectedProduct(full || product);
-                                      setShowAddProduct(true);
-                                    })
-                                    .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to load product', 'error'));
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Edit className="h-4 w-4 text-emerald-600" />
-                                  <span>Edit Product</span>
-                                </div>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleViewProduct(product);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Eye className="h-4 w-4 text-blue-600" />
-                                  <span>View Product</span>
-                                </div>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleDuplicateProduct(product);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Copy className="h-4 w-4 text-purple-600" />
-                                  <span>Duplicate Product</span>
-                                </div>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handlePreviewProduct(product);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <ExternalLink className="h-4 w-4 text-cyan-600" />
-                                  <span>Preview on Customer Side</span>
-                                </div>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedProduct(product);
-                                  setActiveView('logs');
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4 text-indigo-600" />
-                                  <span>View Logs</span>
-                                </div>
-                              </button>
-                              <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
-                              <button
-                                onClick={() => {
-                                  handleDeleteProduct(product);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Trash2 className="h-4 w-4" />
-                                  <span>Delete Product</span>
-                                </div>
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td className="px-4 py-4">{getStatusBadge(product.status)}</td>
+                    <td className="px-4 py-4">{getVisibilityBadge(product.visibility)}</td>
+                    <td className="px-4 py-4 text-gray-600 dark:text-gray-300">
+                      {new Date(product.dateAdded).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <div className="relative flex items-center justify-end">
+                        <button
+                          ref={(el) => (buttonRefs.current[product.id] = el)}
+                          onClick={() => setOpenDropdownId(openDropdownId === product.id ? null : product.id)}
+                          className="rounded-full border border-gray-200 p-2 text-xs text-gray-600 hover:border-emerald-400 hover:bg-emerald-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-emerald-900/20 transition-colors"
+                          title="More actions"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {openDropdownId && (() => {
+        const product = filteredAndSortedProducts.find((p) => p.id === openDropdownId);
+        if (!product) return null;
+        return (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setOpenDropdownId(null)} />
+            <div
+              ref={(el) => (dropdownRefs.current[product.id] = el)}
+              style={dropdownStyle[product.id]}
+              className="z-20 w-56 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900"
+            >
+              <div className="py-1">
+                <button
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setActiveView('analytics');
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-emerald-600" />
+                    <span>View Analytics</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    adminProductsAPI
+                      .getProduct(product.id)
+                      .then(({ product: full }) => {
+                        setSelectedProduct(full || product);
+                        setShowAddProduct(true);
+                      })
+                      .catch((e) => showToast(e instanceof Error ? e.message : 'Failed to load product', 'error'));
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <Edit className="h-4 w-4 text-emerald-600" />
+                    <span>Edit Product</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleViewProduct(product);
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-blue-600" />
+                    <span>View Product</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleDuplicateProduct(product);
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <Copy className="h-4 w-4 text-purple-600" />
+                    <span>Duplicate Product</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handlePreviewProduct(product);
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-cyan-600" />
+                    <span>Preview on Customer Side</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setActiveView('logs');
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-indigo-600" />
+                    <span>View Logs</span>
+                  </div>
+                </button>
+                <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
+                <button
+                  onClick={() => {
+                    handleDeleteProduct(product);
+                    setOpenDropdownId(null);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    <span>Delete Product</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {filteredAndSortedProducts.length === 0 && (
         <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center dark:border-gray-800 dark:bg-gray-900">

@@ -23,13 +23,6 @@ const resolveImg = (src) => {
   return src.startsWith('http') ? src : `${SERVER_URL}${src}`;
 };
 
-const MOCK_ORDERS = [
-  { id: 'ORD-1001', date: 'Feb 28, 2026', status: 'delivered', items: 2, total: 58.0, seller: 'Premium Store' },
-  { id: 'ORD-1002', date: 'Feb 25, 2026', status: 'shipped', items: 1, total: 29.0, seller: 'TechHub' },
-  { id: 'ORD-1003', date: 'Feb 20, 2026', status: 'processing', items: 3, total: 124.5, seller: 'Fashion Co.' },
-  { id: 'ORD-1004', date: 'Feb 15, 2026', status: 'delivered', items: 1, total: 15.99, seller: 'Book World' },
-];
-
 const STATUS = {
   delivered: { bg: '#dcfce7', color: '#16a34a', label: 'Delivered', icon: CheckCircle },
   shipped: { bg: '#dbeafe', color: '#2563eb', label: 'Shipped', icon: Truck },
@@ -54,33 +47,6 @@ const RETURN_STATUS_META = {
   COMPLETED: { label: 'Completed', bg: '#e5e7eb', color: '#4b5563' },
   REFUNDED: { label: 'Refunded', bg: '#dcfce7', color: '#16a34a' },
 };
-
-const MOCK_RETURNS = [
-  {
-    id: 'RET-0001',
-    orderId: 'ORD-1002',
-    date: 'Feb 25, 2026',
-    status: 'PENDING',
-    productName: 'Adidas Nova 3 Running Shoes',
-    variant: 'Size 42 · Black',
-    quantity: 1,
-    price: 29.0,
-    image: 'https://images.unsplash.com/photo-1528701800489-20be3c30c1d5?w=320&q=80',
-    reason: 'Wrong size / does not fit',
-    reasonTag: 'Wrong Size',
-    condition: 'Opened',
-    resolution: 'Full Refund',
-    refundAmount: 29.0,
-    timeline: [
-      { key: 'submitted', label: 'Return Submitted', at: 'Feb 25, 2026 · 10:32' },
-      { key: 'review', label: 'Under Review', at: 'Seller has 48 hours to respond' },
-      { key: 'response', label: 'Seller Response', at: null },
-      { key: 'decision', label: 'Return Approved / Rejected', at: null },
-      { key: 'shipped_back', label: 'Item Shipped Back', at: null },
-      { key: 'refunded', label: 'Refund Processed', at: null },
-    ],
-  },
-];
 
 const TAB_CONFIG = [
   { id: 'overview', label: 'Overview', icon: User },
@@ -1294,10 +1260,10 @@ export default function BuyerDashboard() {
   const recentScrollRef = useRef(null);
   const showToast = useToastStore((s) => s.showToast);
 
-  // Returns & refunds state (UI-only for now)
+  // Returns & refunds state
   const [returnsFilter, setReturnsFilter] = useState('all');
   const [returnsSearch, setReturnsSearch] = useState('');
-  const [returns] = useState(MOCK_RETURNS);
+  const [returns, setReturns] = useState([]);
   const [activeReturn, setActiveReturn] = useState(null);
   const [returnDetailsOpen, setReturnDetailsOpen] = useState(false);
   const [newReturnOpen, setNewReturnOpen] = useState(false);
@@ -1350,6 +1316,55 @@ export default function BuyerDashboard() {
   };
 
   const uiOrders = Array.isArray(orders) ? orders : [];
+
+  const mapApiDisputeToReturn = (dispute) => {
+    const order = dispute?.orderId || {};
+    const createdAt = dispute?.createdAt || dispute?.updatedAt;
+    const sellerResponseAt = dispute?.sellerResponseAt;
+    const resolvedAt = dispute?.resolvedAt;
+    const date = createdAt
+      ? new Date(createdAt).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+      : '';
+    const statusMap = {
+      new: 'PENDING',
+      under_review: 'UNDER_REVIEW',
+      seller_response: 'UNDER_REVIEW',
+      buyer_response: 'UNDER_REVIEW',
+      approved: 'APPROVED',
+      rejected: 'REJECTED',
+      resolved: 'COMPLETED',
+    };
+    const status = statusMap[dispute?.status] || 'PENDING';
+    return {
+      id: dispute?.disputeNumber || dispute?._id || '',
+      orderId: order?.orderNumber || String(order?._id || ''),
+      date,
+      status,
+      productName: 'Order return request',
+      variant: dispute?.type ? `Type: ${dispute.type}` : 'General return',
+      quantity: 1,
+      price: Number(order?.total || 0),
+      image: 'https://images.unsplash.com/photo-1528701800489-20be3c30c1d5?w=320&q=80',
+      reason: dispute?.reason || dispute?.description || 'No reason provided',
+      reasonTag: dispute?.type || 'Return',
+      condition: 'Opened',
+      resolution: dispute?.resolution || (status === 'APPROVED' ? 'Approved' : 'Pending Review'),
+      refundAmount: Number(order?.total || 0),
+      timeline: [
+        { key: 'submitted', label: 'Return Submitted', at: createdAt ? new Date(createdAt).toLocaleString() : null },
+        { key: 'review', label: 'Under Review', at: dispute?.status !== 'new' ? 'In progress' : null },
+        { key: 'response', label: 'Seller Response', at: sellerResponseAt ? new Date(sellerResponseAt).toLocaleString() : null },
+        { key: 'decision', label: 'Return Approved / Rejected', at: ['approved', 'rejected', 'resolved'].includes(dispute?.status) ? (resolvedAt ? new Date(resolvedAt).toLocaleString() : 'Decision recorded') : null },
+        { key: 'shipped_back', label: 'Item Shipped Back', at: null },
+        { key: 'refunded', label: 'Refund Processed', at: status === 'COMPLETED' ? (resolvedAt ? new Date(resolvedAt).toLocaleString() : 'Processed') : null },
+      ],
+      sourceOrderMongoId: order?._id || null,
+    };
+  };
 
   const mapApiAddressToUi = (addr, index, user) => {
     if (!addr) return null;
@@ -1426,6 +1441,55 @@ export default function BuyerDashboard() {
 
     fetchOrders();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchReturns = async () => {
+      try {
+        const res = await api.get('/buyer/disputes', { params: { limit: 50 } });
+        const raw = res.data?.disputes || [];
+        const mapped = raw.map(mapApiDisputeToReturn).filter(Boolean);
+        setReturns(mapped);
+      } catch (err) {
+        console.error('Failed to load returns/disputes', err);
+        setReturns([]);
+      } finally {
+        // no-op
+      }
+    };
+    fetchReturns();
+  }, [user?.id]);
+
+  const handleSubmitReturnRequest = async () => {
+    const selectedOrder = orders.find((o) => o.id === newReturnSelectedOrderId);
+    const payload = {
+      orderId: selectedOrder?.id,
+      type: 'return',
+      reason: newReturnReason,
+      description: newReturnDescription || newReturnReason,
+      priority: 'medium',
+    };
+    if (!payload.orderId) {
+      showToast('Please select a valid order before submitting.', 'error');
+      return;
+    }
+    try {
+      await api.post('/buyer/disputes', payload);
+      showToast('Return request submitted successfully.', 'success');
+      setNewReturnOpen(false);
+      setNewReturnStep(1);
+      setNewReturnSelectedOrderId(null);
+      setNewReturnReason('');
+      setNewReturnDescription('');
+      setNewReturnPhotos([]);
+      const res = await api.get('/buyer/disputes', { params: { limit: 50 } });
+      const raw = res.data?.disputes || [];
+      setReturns(raw.map(mapApiDisputeToReturn).filter(Boolean));
+    } catch (err) {
+      console.error('Failed to submit return request', err);
+      showToast('Failed to submit return request. Please try again.', 'error');
+    }
+  };
 
   useEffect(() => {
     const close = (e) => { if (deleteConfirmId && !e.target.closest('[data-delete-popover]')) setDeleteConfirmId(null); };
@@ -5024,9 +5088,7 @@ export default function BuyerDashboard() {
                       if (newReturnStep < 3) {
                         setNewReturnStep((s) => s + 1);
                       } else {
-                        showToast('Return request submitted (demo only).', 'success');
-                        setNewReturnOpen(false);
-                        setNewReturnStep(1);
+                        void handleSubmitReturnRequest();
                       }
                     }}
                     disabled={

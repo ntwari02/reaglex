@@ -96,6 +96,7 @@ const CURRENCIES = [
   { code: 'USD', symbol: '$', label: 'USD' },
   { code: 'EUR', symbol: '€', label: 'EUR' },
   { code: 'RWF', symbol: 'FRw', label: 'RWF' },
+  { code: 'KES', symbol: 'KSh', label: 'KES' },
 ];
 
 // ── Tier 1: Utility bar ───────────────────────────────────────────────────────
@@ -1283,13 +1284,13 @@ function MobileDrawer({
 // ── Main Navbar export ───────────────────────────────────────────────────────
 export default function Navbar() {
   const navigate = useNavigate();
-  const { language, setLanguage } = useTheme();
+  const { language, setLanguage, currency, setCurrency } = useTheme();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
   const [category, setCategory] = useState(ALL_CATEGORIES);
-  const [currency, setCurrency] = useState(CURRENCIES[0]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const selectedCurrency = CURRENCIES.find((c) => c.code === currency) || CURRENCIES[0];
 
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
@@ -1327,8 +1328,8 @@ export default function Navbar() {
         <UtilityBar
           language={language}
           setLanguage={setLanguage}
-          currencyDisplay={currency.symbol + ' ' + currency.code}
-          setCurrency={setCurrency}
+          currencyDisplay={selectedCurrency.symbol + ' ' + selectedCurrency.code}
+          setCurrency={(c) => setCurrency(c.code)}
           t={t}
         />
       </div>
@@ -1352,7 +1353,7 @@ export default function Navbar() {
           category={category}
           setCategory={setCategory}
           language={language}
-          currency={currency.symbol + ' ' + currency.code}
+          currency={selectedCurrency.symbol + ' ' + selectedCurrency.code}
           openAuth={openAuth}
           user={user}
           signOut={signOut}
@@ -1403,7 +1404,7 @@ export default function Navbar() {
         wishlistCount={wishlistCount}
         language={language}
         setLanguage={setLanguage}
-        currency={currency.symbol + ' ' + currency.code}
+        currency={selectedCurrency.symbol + ' ' + selectedCurrency.code}
         setCurrency={() => {}}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}

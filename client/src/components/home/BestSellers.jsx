@@ -175,6 +175,32 @@ export default function BestSellers() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const onInventoryUpdated = (event) => {
+      const payload = event?.detail;
+      if (!payload?.productId) return;
+      setProducts((prev) => {
+        if (!Array.isArray(prev) || prev.length === 0) return prev;
+        let changed = false;
+        const next = prev.map((p) => {
+          const pid = String(p?._id || p?.id || '');
+          if (pid !== String(payload.productId)) return p;
+          changed = true;
+          return {
+            ...p,
+            stock: Number(payload.stock ?? p.stock ?? 0),
+            stockQuantity: Number(payload.stock ?? p.stockQuantity ?? 0),
+            status: payload.status || p.status,
+          };
+        });
+        if (changed) bestCache = { data: next, ts: Date.now() };
+        return changed ? next : prev;
+      });
+    };
+    window.addEventListener('inventoryUpdated', onInventoryUpdated);
+    return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
+  }, []);
+
   const scroll = (dir) => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({ left: dir * 280, behavior: 'smooth' });
