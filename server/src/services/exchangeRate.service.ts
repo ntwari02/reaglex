@@ -39,8 +39,15 @@ const COUNTRY_TO_CURRENCY: Record<string, string> = {
 };
 
 const REFRESH_MS = Number(process.env.EXCHANGE_RATE_REFRESH_MS || 5 * 60 * 1000);
-const EXCHANGE_API_KEY = process.env.EXCHANGE_RATE_API_KEY || '';
-const EXCHANGE_BASE_URL = process.env.EXCHANGE_RATE_API_URL || 'https://v6.exchangerate-api.com/v6';
+const EXCHANGE_API_KEY =
+  process.env.EXCHANGE_RATE_API_KEY ||
+  process.env.EXCHANGERATE_API_KEY ||
+  process.env.EXCHANGE_API_KEY ||
+  '';
+const EXCHANGE_BASE_URL =
+  process.env.EXCHANGE_RATE_API_URL ||
+  process.env.EXCHANGE_RATE_API_BASE_URL ||
+  'https://v6.exchangerate-api.com/v6';
 
 let currentSnapshot: ExchangeSnapshot = {
   base: 'USD',

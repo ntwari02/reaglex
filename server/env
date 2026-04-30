@@ -51,3 +51,7 @@ MOMO_CALLBACK_URL=https://reaglex.onrender.com/api/payments/momo/callback
 
 Access Key: ak_5ab4b6685a5b4aec944ce7067bf1b821
 Secret Key: sk_c727c6fb15074cb1b56ca331a7ccb142
+
+EXCHANGE_RATE_API_KEY=accba48b71e271111073effe
+EXCHANGE_RATE_API_URL=https://v6.exchangerate-api.com/v6
+EXCHANGE_RATE_REFRESH_MS=300000
