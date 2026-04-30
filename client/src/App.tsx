@@ -48,9 +48,11 @@ const NO_NAV_PREFIXES = [
  */
 function GlobalNavbar() {
   const { pathname } = useLocation();
+  const isSellerPending = pathname === '/seller/pending';
   const hidden = NO_NAV_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p),
   );
+  if (isSellerPending) return <Navbar />;
   if (hidden) return null;
   return <Navbar />;
 }
