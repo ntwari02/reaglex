@@ -1601,6 +1601,8 @@ export const adminNotificationsAPI = {
     prompt: string;
     tone: 'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative';
     contextType: string;
+    customEventKey?: string;
+    variables?: string[];
   }) =>
     fetch(`${NOTIFICATIONS_BASE}/ai/generate-copy`, {
       method: 'POST',
@@ -1608,6 +1610,25 @@ export const adminNotificationsAPI = {
       credentials: 'include',
       body: JSON.stringify(body),
     }).then(handleResponse<{ subject: string[]; messages: string[] }>),
+  getNotificationEventLibrary: () =>
+    fetch(`${NOTIFICATIONS_BASE}/ai/events`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(
+      handleResponse<{
+        groups: { key: string; label: string }[];
+        events: {
+          key: string;
+          label: string;
+          group: string;
+          class: 'transactional' | 'alert' | 'promotional';
+          defaultTone: 'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative';
+          variables: string[];
+        }[];
+        supportsCustomEvent: boolean;
+      }>,
+    ),
   improveNotificationCopy: (body: { subject?: string; message: string }) =>
     fetch(`${NOTIFICATIONS_BASE}/ai/improve-copy`, {
       method: 'POST',

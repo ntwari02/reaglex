@@ -31,6 +31,7 @@ import {
   generateNotificationCopy,
   improveNotificationCopy,
   runNotificationABTest,
+  getNotificationEventLibrary,
 } from '../controllers/adminNotificationsController';
 
 const router = Router();
@@ -46,6 +47,7 @@ router.post('/send', sendNotification);
 router.post('/ai/generate-copy', generateNotificationCopy);
 router.post('/ai/improve-copy', improveNotificationCopy);
 router.post('/ai/ab-test', runNotificationABTest);
+router.get('/ai/events', getNotificationEventLibrary);
 
 /** In-app system inbox row (visible to buyers/sellers/admins per audience) */
 router.post('/in-app', adminCreateSystemInboxBroadcast);

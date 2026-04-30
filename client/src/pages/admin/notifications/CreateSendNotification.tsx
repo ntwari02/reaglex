@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Send,
   Users,
@@ -32,25 +32,78 @@ function scheduledChannelType(types: string[]): string {
   return 'inapp';
 }
 
+type NotificationEventClass = 'transactional' | 'alert' | 'promotional';
+type NotificationTone = 'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative';
+
+type EventGroup = { key: string; label: string };
+type EventDefinition = {
+  key: string;
+  label: string;
+  group: string;
+  class: NotificationEventClass;
+  defaultTone: NotificationTone;
+  variables: string[];
+};
+
+const DEFAULT_EVENT_GROUPS: EventGroup[] = [
+  { key: 'orders', label: 'Orders' },
+  { key: 'payments', label: 'Payments' },
+  { key: 'products', label: 'Products' },
+  { key: 'account', label: 'Account' },
+  { key: 'support', label: 'Support' },
+];
+
+const DEFAULT_EVENTS: EventDefinition[] = [
+  { key: 'order_placed', label: 'Order placed', group: 'orders', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{order_id}}', '{{amount}}'] },
+  { key: 'order_confirmed', label: 'Order confirmed', group: 'orders', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{order_id}}'] },
+  { key: 'order_packed', label: 'Order packed', group: 'orders', class: 'transactional', defaultTone: 'informative', variables: ['{{username}}', '{{order_id}}'] },
+  { key: 'order_shipped', label: 'Order shipped', group: 'orders', class: 'transactional', defaultTone: 'informative', variables: ['{{username}}', '{{order_id}}', '{{delivery_date}}'] },
+  { key: 'out_for_delivery', label: 'Out for delivery', group: 'orders', class: 'transactional', defaultTone: 'informative', variables: ['{{username}}', '{{order_id}}', '{{delivery_date}}'] },
+  { key: 'delivery_confirmed', label: 'Delivery confirmed', group: 'orders', class: 'transactional', defaultTone: 'friendly', variables: ['{{username}}', '{{order_id}}', '{{delivery_date}}'] },
+  { key: 'order_canceled', label: 'Order canceled', group: 'orders', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}', '{{order_id}}'] },
+  { key: 'order_refunded', label: 'Order refunded', group: 'orders', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{order_id}}', '{{amount}}'] },
+  { key: 'payment_pending', label: 'Payment pending', group: 'payments', class: 'alert', defaultTone: 'informative', variables: ['{{username}}', '{{order_id}}', '{{amount}}'] },
+  { key: 'payment_confirmed', label: 'Payment confirmed', group: 'payments', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{order_id}}', '{{amount}}'] },
+  { key: 'payment_failed', label: 'Payment failed', group: 'payments', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}', '{{order_id}}', '{{amount}}'] },
+  { key: 'subscription_reminder', label: 'Subscription reminder', group: 'payments', class: 'transactional', defaultTone: 'informative', variables: ['{{username}}', '{{delivery_date}}'] },
+  { key: 'subscription_renewed', label: 'Subscription renewed', group: 'payments', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{amount}}'] },
+  { key: 'subscription_failed', label: 'Subscription failed', group: 'payments', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}', '{{amount}}'] },
+  { key: 'invoice_generated', label: 'Invoice generated', group: 'payments', class: 'transactional', defaultTone: 'informative', variables: ['{{username}}', '{{amount}}'] },
+  { key: 'refund_processed', label: 'Refund processed', group: 'payments', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{amount}}', '{{order_id}}'] },
+  { key: 'product_approved', label: 'Product approved', group: 'products', class: 'transactional', defaultTone: 'friendly', variables: ['{{username}}', '{{product_name}}'] },
+  { key: 'product_rejected', label: 'Product rejected', group: 'products', class: 'alert', defaultTone: 'professional', variables: ['{{username}}', '{{product_name}}'] },
+  { key: 'product_boosted', label: 'Product boosted', group: 'products', class: 'promotional', defaultTone: 'promotional', variables: ['{{username}}', '{{product_name}}'] },
+  { key: 'boost_expiring_soon', label: 'Boost expiring soon', group: 'products', class: 'alert', defaultTone: 'informative', variables: ['{{username}}', '{{product_name}}', '{{delivery_date}}'] },
+  { key: 'product_out_of_stock', label: 'Product out of stock', group: 'products', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}', '{{product_name}}'] },
+  { key: 'low_stock_alert', label: 'Low stock alert', group: 'products', class: 'alert', defaultTone: 'informative', variables: ['{{username}}', '{{product_name}}'] },
+  { key: 'product_verified', label: 'Product verified', group: 'products', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{product_name}}'] },
+  { key: 'verification_approved', label: 'Verification approved', group: 'products', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{product_name}}'] },
+  { key: 'verification_rejected', label: 'Verification rejected', group: 'products', class: 'alert', defaultTone: 'professional', variables: ['{{username}}', '{{product_name}}'] },
+  { key: 'account_created', label: 'Account created', group: 'account', class: 'transactional', defaultTone: 'friendly', variables: ['{{username}}'] },
+  { key: 'account_verified', label: 'Account verified', group: 'account', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}'] },
+  { key: 'account_alert', label: 'Account alert', group: 'account', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}'] },
+  { key: 'password_reset', label: 'Password reset', group: 'account', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}'] },
+  { key: 'login_alert', label: 'Login alert', group: 'account', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}'] },
+  { key: 'profile_updated', label: 'Profile updated', group: 'account', class: 'transactional', defaultTone: 'informative', variables: ['{{username}}'] },
+  { key: 'suspicious_activity_detected', label: 'Suspicious activity detected', group: 'account', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}'] },
+  { key: 'dispute_opened', label: 'Dispute opened', group: 'support', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}', '{{order_id}}'] },
+  { key: 'dispute_updated', label: 'Dispute updated', group: 'support', class: 'alert', defaultTone: 'informative', variables: ['{{username}}', '{{order_id}}'] },
+  { key: 'dispute_resolved', label: 'Dispute resolved', group: 'support', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{order_id}}'] },
+  { key: 'support_ticket_received', label: 'Support ticket received', group: 'support', class: 'transactional', defaultTone: 'informative', variables: ['{{username}}'] },
+  { key: 'support_ticket_replied', label: 'Support ticket replied', group: 'support', class: 'transactional', defaultTone: 'informative', variables: ['{{username}}'] },
+  { key: 'seller_approved', label: 'Seller approved', group: 'support', class: 'transactional', defaultTone: 'friendly', variables: ['{{username}}'] },
+  { key: 'seller_suspended', label: 'Seller suspended', group: 'support', class: 'alert', defaultTone: 'urgent', variables: ['{{username}}'] },
+  { key: 'payout_initiated', label: 'Payout initiated', group: 'support', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{amount}}'] },
+  { key: 'payout_completed', label: 'Payout completed', group: 'support', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{amount}}'] },
+];
+
 export default function CreateSendNotification() {
-  const VARIABLE_CHIPS = ['{{username}}', '{{order_id}}', '{{product_name}}', '{{delivery_date}}', '{{amount}}'];
-  const TONES: Array<'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative'> = [
+  const TONES: NotificationTone[] = [
     'professional',
     'friendly',
     'urgent',
     'promotional',
     'informative',
-  ];
-  const CONTEXTS = [
-    'order_placed',
-    'order_shipped',
-    'payment_confirmed',
-    'verification_approved',
-    'product_boosted',
-    'subscription_reminder',
-    'account_alert',
-    'delivery_confirmed',
-    'dispute_opened',
   ];
   const [targetGroup, setTargetGroup] = useState('all_customers');
   const [specificUserId, setSpecificUserId] = useState('');
@@ -58,8 +111,13 @@ export default function CreateSendNotification() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [prompt, setPrompt] = useState('');
-  const [tone, setTone] = useState<'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative'>('professional');
+  const [tone, setTone] = useState<NotificationTone>('professional');
   const [contextType, setContextType] = useState('order_placed');
+  const [customEventEnabled, setCustomEventEnabled] = useState(false);
+  const [customEventKey, setCustomEventKey] = useState('');
+  const [eventSearch, setEventSearch] = useState('');
+  const [eventGroups, setEventGroups] = useState<EventGroup[]>(DEFAULT_EVENT_GROUPS);
+  const [eventLibrary, setEventLibrary] = useState<EventDefinition[]>(DEFAULT_EVENTS);
   const [aiSubjects, setAiSubjects] = useState<string[]>([]);
   const [aiMessages, setAiMessages] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -77,6 +135,54 @@ export default function CreateSendNotification() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState(false);
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const selectedEvent = useMemo(
+    () => eventLibrary.find((evt) => evt.key === contextType) || null,
+    [contextType, eventLibrary],
+  );
+  const variableChips = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          '{{username}}',
+          '{{order_id}}',
+          '{{product_name}}',
+          '{{delivery_date}}',
+          '{{amount}}',
+          ...(selectedEvent?.variables || []),
+        ]),
+      ),
+    [selectedEvent],
+  );
+
+  const filteredEvents = useMemo(() => {
+    const q = eventSearch.trim().toLowerCase();
+    if (!q) return eventLibrary;
+    return eventLibrary.filter(
+      (evt) => evt.label.toLowerCase().includes(q) || evt.key.toLowerCase().includes(q),
+    );
+  }, [eventLibrary, eventSearch]);
+
+  useEffect(() => {
+    let mounted = true;
+    void adminNotificationsAPI
+      .getNotificationEventLibrary()
+      .then((res) => {
+        if (!mounted) return;
+        if (Array.isArray(res.groups) && res.groups.length) setEventGroups(res.groups);
+        if (Array.isArray(res.events) && res.events.length) setEventLibrary(res.events);
+      })
+      .catch(() => null);
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!customEventEnabled && selectedEvent?.defaultTone) {
+      setTone(selectedEvent.defaultTone);
+    }
+  }, [customEventEnabled, selectedEvent]);
 
   const handleTypeToggle = (type: string) => {
     setNotificationType((prev) =>
@@ -129,12 +235,18 @@ export default function CreateSendNotification() {
       setSendError('Describe what the notification should say.');
       return;
     }
+    if (customEventEnabled && !customEventKey.trim()) {
+      setSendError('Enter a custom event key.');
+      return;
+    }
     setAiLoading(true);
     try {
       const out = await adminNotificationsAPI.generateNotificationCopy({
         prompt: prompt.trim(),
         tone,
         contextType,
+        customEventKey: customEventEnabled ? customEventKey.trim() : undefined,
+        variables: selectedEvent?.variables || [],
       });
       setAiSubjects(out.subject || []);
       setAiMessages(out.messages || []);
@@ -168,8 +280,8 @@ export default function CreateSendNotification() {
 
   const usedVariables = useMemo(() => {
     const source = `${subject}\n${message}`;
-    return VARIABLE_CHIPS.filter((v) => source.includes(v));
-  }, [message, subject]);
+    return variableChips.filter((v: string) => source.includes(v));
+  }, [message, subject, variableChips]);
 
   const handleSaveAsTemplate = async () => {
     setSendError(null);
@@ -177,18 +289,22 @@ export default function CreateSendNotification() {
       setSendError('Message is required to save a template.');
       return;
     }
+    if (customEventEnabled && !customEventKey.trim()) {
+      setSendError('Enter a custom event key before saving.');
+      return;
+    }
     setSavingTemplate(true);
     try {
       await adminNotificationsAPI.createTemplate({
-        name: subject?.trim() || `AI ${contextType} template`,
-        category: contextType,
+        name: subject?.trim() || `AI ${(customEventEnabled ? customEventKey : contextType) || 'notification'} template`,
+        category: selectedEvent?.group || 'custom',
         type: notificationType.includes('email') ? 'email' : 'inapp',
         subject: subject?.trim() || '',
         content: message.trim(),
         variables: usedVariables,
         tone,
         contextType,
-        eventType: contextType,
+        eventType: customEventEnabled ? customEventKey.trim() : contextType,
         source: 'ai_generated',
       });
       setSendSuccess(true);
@@ -435,17 +551,55 @@ export default function CreateSendNotification() {
                     </button>
                   ))}
                 </div>
+                <input
+                  value={eventSearch}
+                  onChange={(e) => setEventSearch(e.target.value)}
+                  placeholder="Search events..."
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
                 <select
                   value={contextType}
-                  onChange={(e) => setContextType(e.target.value)}
+                  onChange={(e) => {
+                    setCustomEventEnabled(false);
+                    setContextType(e.target.value);
+                  }}
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
-                  {CONTEXTS.map((ctx) => (
-                    <option key={ctx} value={ctx}>
-                      {ctx.replace(/_/g, ' ')}
-                    </option>
-                  ))}
+                  {eventGroups.map((group) => {
+                    const options = filteredEvents.filter((evt) => evt.group === group.key);
+                    if (!options.length) return null;
+                    return (
+                      <optgroup key={group.key} label={group.label}>
+                        {options.map((evt) => (
+                          <option key={evt.key} value={evt.key}>
+                            {evt.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
                 </select>
+                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={customEventEnabled}
+                    onChange={(e) => setCustomEventEnabled(e.target.checked)}
+                  />
+                  Use custom event trigger
+                </label>
+                {customEventEnabled && (
+                  <input
+                    value={customEventKey}
+                    onChange={(e) => setCustomEventKey(e.target.value)}
+                    placeholder="e.g. seller_profile_recheck_due"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                )}
+                {selectedEvent && !customEventEnabled && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Event class: {selectedEvent.class}. Suggested tone set to {selectedEvent.defaultTone}.
+                  </p>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -492,7 +646,7 @@ export default function CreateSendNotification() {
                 />
               </div>
               <div className="flex flex-wrap gap-2">
-                {VARIABLE_CHIPS.map((chip) => (
+                {variableChips.map((chip) => (
                   <button
                     key={chip}
                     type="button"

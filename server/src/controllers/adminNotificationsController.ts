@@ -15,6 +15,12 @@ import {
   generateNotificationCopy as generateNotificationCopyWithAi,
   improveNotificationCopy as improveNotificationCopyWithAi,
 } from '../services/notificationCopyAi.service';
+import {
+  getNotificationEventDefinition,
+  NOTIFICATION_EVENT_GROUPS,
+  NOTIFICATION_EVENT_LIBRARY,
+  sanitizeCustomEventKey,
+} from '../constants/notificationEvents';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -268,14 +274,37 @@ export async function generateNotificationCopy(req: AuthenticatedRequest, res: R
       | 'promotional'
       | 'informative';
     const contextType = String(body.contextType || 'general_update').trim();
+    const customEventKey = sanitizeCustomEventKey(String(body.customEventKey || '').trim());
+    const requestedVariables = Array.isArray(body.variables)
+      ? body.variables.map((v) => String(v || '').trim()).filter(Boolean)
+      : [];
     if (!prompt) {
       return res.status(400).json({ message: 'prompt is required' });
     }
-    const out = await generateNotificationCopyWithAi({ prompt, tone, contextType });
+    const eventDef = getNotificationEventDefinition(contextType);
+    const variables = Array.from(
+      new Set([...(eventDef?.variables || []), ...requestedVariables]),
+    );
+    const out = await generateNotificationCopyWithAi({
+      prompt,
+      tone,
+      contextType,
+      customEventKey: eventDef ? undefined : customEventKey || contextType,
+      variables,
+    });
     return res.json(out);
   } catch (e: any) {
     return res.status(500).json({ message: e?.message || 'Failed to generate notification copy' });
   }
+}
+
+export async function getNotificationEventLibrary(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  return res.json({
+    groups: NOTIFICATION_EVENT_GROUPS,
+    events: NOTIFICATION_EVENT_LIBRARY,
+    supportsCustomEvent: true,
+  });
 }
 
 export async function improveNotificationCopy(req: AuthenticatedRequest, res: Response) {

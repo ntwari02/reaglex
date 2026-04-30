@@ -1,7 +1,14 @@
+import {
+  getNotificationEventDefinition,
+  sanitizeCustomEventKey,
+} from '../constants/notificationEvents';
+
 interface NotificationCopyGenerateInput {
   prompt: string;
   tone: 'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative';
   contextType: string;
+  customEventKey?: string;
+  variables?: string[];
 }
 
 interface NotificationCopyImproveInput {
@@ -15,7 +22,15 @@ export interface NotificationCopyOutput {
 }
 
 const GEMINI_API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
-const GEMINI_MODEL = process.env.NOTIFICATION_COPY_MODEL || 'gemini-1.5-flash';
+const GEMINI_MODEL = String(
+  process.env.NOTIFICATION_COPY_MODEL || process.env.GEMINI_MODEL || 'gemini-1.5-flash-latest',
+).trim();
+const GEMINI_FALLBACK_MODELS = [
+  GEMINI_MODEL,
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-pro-latest',
+  'gemini-1.5-flash',
+];
 
 function safeList(input: unknown, fallback: string[]): string[] {
   if (!Array.isArray(input)) return fallback;
@@ -48,12 +63,27 @@ function sanitizeOutput(json: any, mode: 'generate' | 'improve'): NotificationCo
   };
 }
 
-async function callGemini(systemInstruction: string, userPrompt: string): Promise<NotificationCopyOutput> {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not set');
-  }
+function candidateModels(): string[] {
+  return [...new Set(GEMINI_FALLBACK_MODELS.map((m) => String(m || '').trim()).filter(Boolean))];
+}
+
+function isModelResolutionError(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes('not found for api version') ||
+    m.includes('is not supported for generatecontent') ||
+    m.includes('models/') ||
+    m.includes('model') && m.includes('not found')
+  );
+}
+
+async function callGeminiWithModel(
+  model: string,
+  systemInstruction: string,
+  userPrompt: string,
+): Promise<NotificationCopyOutput> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    GEMINI_MODEL,
+    model,
   )}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
   const response = await fetch(url, {
     method: 'POST',
@@ -77,7 +107,7 @@ async function callGemini(systemInstruction: string, userPrompt: string): Promis
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload?.error?.message || 'Failed to generate AI copy');
+    throw new Error(payload?.error?.message || `Failed to generate AI copy with model ${model}`);
   }
   const text =
     payload?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text || '').join('') ||
@@ -93,18 +123,56 @@ async function callGemini(systemInstruction: string, userPrompt: string): Promis
   return sanitizeOutput(parsed, mode);
 }
 
+async function callGemini(systemInstruction: string, userPrompt: string): Promise<NotificationCopyOutput> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not set');
+  }
+  let lastError: Error | null = null;
+  for (const model of candidateModels()) {
+    try {
+      return await callGeminiWithModel(model, systemInstruction, userPrompt);
+    } catch (err: any) {
+      const message = String(err?.message || 'Failed to generate AI copy');
+      lastError = new Error(message);
+      if (!isModelResolutionError(message)) {
+        throw lastError;
+      }
+    }
+  }
+  throw lastError || new Error('Failed to generate AI copy');
+}
+
 export async function generateNotificationCopy(input: NotificationCopyGenerateInput): Promise<NotificationCopyOutput> {
+  const knownEvent = getNotificationEventDefinition(input.contextType);
+  const customEventKey = !knownEvent ? sanitizeCustomEventKey(input.customEventKey || input.contextType) : '';
+  const eventLabel = knownEvent?.label || customEventKey.replace(/_/g, ' ') || input.contextType;
+  const eventClass = knownEvent?.class || 'transactional';
+  const eventVariables = Array.from(
+    new Set([...(knownEvent?.variables || []), ...(input.variables || [])]),
+  ).filter(Boolean);
+
   const system = [
     'You are Reaglex notification copywriter AI.',
     'Write concise, trustworthy marketplace notifications.',
     'Avoid spammy language and hype.',
     'Respect selected tone and context.',
+    'Treat transactional events as clear and factual.',
+    'Treat alert events as urgent but calm and direct.',
+    'Treat promotional events as benefit-led and engaging without spam.',
     'Prefer actionable copy with clear next step.',
     'Use placeholders safely: {{username}}, {{order_id}}, {{product_name}}, {{delivery_date}} when relevant.',
     'Output JSON shape exactly: {"subject": ["..."], "messages": ["...", "...", "..."]}',
     'Return exactly 3 subject lines and 3 messages.',
   ].join('\n');
-  const prompt = `Tone: ${input.tone}\nNotification context: ${input.contextType}\nPrompt: ${input.prompt}`;
+  const prompt = [
+    `Tone: ${input.tone}`,
+    `Notification context key: ${input.contextType}`,
+    `Notification context label: ${eventLabel}`,
+    `Message class: ${eventClass}`,
+    `Custom event key: ${customEventKey || '(none)'}`,
+    `Event variables to use when relevant: ${eventVariables.join(', ') || '(none)'}`,
+    `Prompt: ${input.prompt}`,
+  ].join('\n');
   const out = await callGemini(system, prompt);
   return sanitizeOutput(out, 'generate');
 }
