@@ -50,7 +50,7 @@ export function FunnelChart({ data, title, height = 400 }: FunnelChartProps) {
                       animate={{ width: `${widthPercentage}%` }}
                       transition={{ duration: 0.8, delay: index * 0.1 }}
                       className={`h-full rounded-lg ${
-                        stage.color || 'bg-gradient-to-r from-red-500 to-orange-500'
+                        stage.color || 'bg-gradient-to-r from-red-500 to-[var(--brand-primary)]'
                       } shadow-lg relative overflow-hidden max-w-full`}
                       style={{ maxWidth: '100%' }}
                     >

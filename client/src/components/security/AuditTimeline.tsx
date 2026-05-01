@@ -20,8 +20,8 @@ export function AuditTimeline({ weekly }: { weekly: WeeklySecurityStats }) {
           </span>
           {weekly.peakSuspiciousHourUtc != null && (
             <span className="text-slate-400 flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5 text-orange-400" />
-              Peak UTC hour: <span className="text-orange-300">{weekly.peakSuspiciousHourUtc}:00</span>
+              <TrendingUp className="w-3.5 h-3.5 text-[var(--brand-orange-text)]" />
+              Peak UTC hour: <span className="text-[var(--brand-orange-text)]">{weekly.peakSuspiciousHourUtc}:00</span>
             </span>
           )}
         </div>

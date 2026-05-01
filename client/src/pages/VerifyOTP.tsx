@@ -4,7 +4,7 @@ import { Mail, Loader2, KeyRound, ArrowLeft, CheckCircle2, Sparkles } from 'luci
 import { useToastStore } from '../stores/toastStore';
 import { authAPI } from '../lib/api';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 
 export function VerifyOTP() {
   const [searchParams] = useSearchParams();
@@ -132,21 +132,39 @@ export function VerifyOTP() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-50/90 via-orange-50/70 to-rose-50/60 dark:from-gray-950 dark:via-orange-950/30 dark:to-amber-950/20" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_80%_at_50%_-30%,rgba(249,115,22,0.15),transparent)_] dark:bg-[radial-gradient(ellipse_90%_80%_at_50%_-30%,rgba(249,115,22,0.08),transparent)]" />
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[480px] h-[320px] rounded-full bg-orange-300/20 dark:bg-orange-500/10 blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-amber-200/25 dark:bg-amber-500/10 blur-3xl" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to bottom right, color-mix(in srgb, var(--brand-primary) 8%, var(--bg-page)), var(--bg-page), color-mix(in srgb, var(--brand-primary) 5%, var(--bg-page)))',
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 90% 80% at 50% -30%, color-mix(in srgb, var(--brand-primary) 15%, transparent), transparent)',
+        }}
+      />
+      <div
+        className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[480px] h-[320px] rounded-full blur-3xl"
+        style={{ background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)' }}
+      />
+      <div
+        className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full blur-3xl"
+        style={{ background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' }}
+      />
 
       <div className="relative w-full max-w-md">
-        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-[28px] shadow-2xl shadow-orange-900/10 dark:shadow-black/30 border border-orange-100/80 dark:border-orange-500/20 p-8 sm:p-10">
+        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-[28px] shadow-2xl shadow-black/10 dark:shadow-black/30 border border-[var(--brand-border-subtle)] p-8 sm:p-10">
           {/* Icon */}
           <div className="flex justify-center mb-6">
             <div className="relative">
               <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center text-white transition-transform duration-300 hover:scale-105"
                 style={{
-                  background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)`,
-                  boxShadow: '0 12px 32px -8px rgba(249, 115, 22, 0.4)',
+                  background: 'var(--gradient-brand-cta)',
+                  boxShadow: 'var(--shadow-cta-hover)',
                 }}
               >
                 {step === 'success' ? (
@@ -170,7 +188,7 @@ export function VerifyOTP() {
                 Your email is verified. Redirecting you to sign in…
               </p>
               <div className="flex justify-center">
-                <div className="w-12 h-12 rounded-full border-4 border-orange-500 border-t-transparent animate-spin" />
+                <div className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin border-[var(--brand-primary)]" />
               </div>
             </>
           ) : step === 'email' ? (
@@ -197,7 +215,7 @@ export function VerifyOTP() {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(''); }}
                     placeholder="you@example.com"
-                    className="w-full h-14 pl-12 pr-4 rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 outline-none transition"
+                    className="w-full h-14 pl-12 pr-4 rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 outline-none transition focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)]"
                     autoComplete="email"
                   />
                 </div>
@@ -207,8 +225,8 @@ export function VerifyOTP() {
                   disabled={sendLoading || !validEmail}
                   className="w-full h-14 rounded-2xl font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-95 active:scale-[0.99]"
                   style={{
-                    background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)`,
-                    boxShadow: '0 8px 24px -4px rgba(249, 115, 22, 0.4)',
+                    background: 'var(--gradient-brand-cta)',
+                    boxShadow: 'var(--shadow-cta-hover)',
                   }}
                 >
                   {sendLoading ? (
@@ -245,7 +263,7 @@ export function VerifyOTP() {
                       value={digit}
                       onChange={(e) => handleChange(i, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(i, e)}
-                      className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 outline-none transition-all hover:border-orange-300 dark:hover:border-orange-500/50"
+                      className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none transition-all hover:border-[color-mix(in_srgb,var(--brand-primary)_35%,var(--divider))] dark:hover:border-[color-mix(in_srgb,var(--brand-primary)_45%,transparent)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)]"
                     />
                   ))}
                 </div>
@@ -254,8 +272,8 @@ export function VerifyOTP() {
                   disabled={verifyLoading || !canVerify}
                   className="w-full h-14 rounded-2xl font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-95 active:scale-[0.99]"
                   style={{
-                    background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)`,
-                    boxShadow: '0 8px 24px -4px rgba(249, 115, 22, 0.4)',
+                    background: 'var(--gradient-brand-cta)',
+                    boxShadow: 'var(--shadow-cta-hover)',
                   }}
                 >
                   {verifyLoading ? (
@@ -268,7 +286,8 @@ export function VerifyOTP() {
                     type="button"
                     onClick={handleResend}
                     disabled={resendCooldown > 0 || sendLoading}
-                    className="text-sm font-medium text-orange-600 dark:text-orange-400 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90"
+                    style={{ color: PRIMARY }}
                   >
                     {resendCooldown > 0
                       ? `Resend code in ${resendCooldown}s`
@@ -282,7 +301,7 @@ export function VerifyOTP() {
           {step !== 'success' && (
             <Link
               to="/login"
-              className="mt-8 flex items-center justify-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition"
+              className="mt-8 flex items-center justify-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 transition hover:text-[var(--brand-primary)]"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to sign in

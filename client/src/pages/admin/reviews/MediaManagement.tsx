@@ -79,7 +79,7 @@ export default function MediaManagement() {
             <div className="mb-3 aspect-square rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center relative">
               <Image className="h-12 w-12 text-gray-400" />
               {item.flagged && (
-                <div className="absolute top-2 right-2 rounded-full bg-orange-500 p-1">
+                <div className="absolute top-2 right-2 rounded-full bg-[var(--brand-primary)] p-1">
                   <AlertTriangle className="h-3 w-3 text-white" />
                 </div>
               )}

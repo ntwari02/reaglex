@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Heart, Star } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
-import { useTheme } from '../contexts/ThemeContext';
 import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
@@ -28,9 +27,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
   const [wishlisted, setWishlisted] = useState(false);
   const [added, setAdded] = useState(false);
   const addItem = useBuyerCart((s) => s.addItem);
-  const { theme } = useTheme();
   const currencyPricing = useCurrencyPricing();
-  const isDark = theme === 'dark';
 
   const id = product._id || product.id;
   const name = product.title || product.name || 'Product';
@@ -99,8 +96,8 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
           {/* Discount badge */}
           {discount && (
             <div
-              className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-white font-bold text-xs"
-              style={{ background: '#ff8c42' }}
+              className="absolute top-3 left-3 px-2 py-0.5 rounded-full font-bold text-xs"
+              style={{ background: 'var(--brand-primary)', color: 'var(--text-on-accent)' }}
             >
               -{discount}%
             </div>
@@ -133,10 +130,10 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
                 className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold tracking-wide disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   background: added
-                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                    : (isDark ? '#ffffff' : '#0f172a'),
-                  color: added ? '#ffffff' : (isDark ? '#0f172a' : '#ffffff'),
-                  borderTop: isDark && !added ? '1px solid rgba(15,23,42,0.12)' : 'none',
+                    ? 'var(--accent-success-gradient)'
+                    : 'var(--gradient-brand-cta)',
+                  color: added ? 'var(--text-on-accent)' : 'var(--text-on-accent)',
+                  borderTop: !added ? '1px solid var(--border-subtle)' : 'none',
                 }}
               >
                 <ShoppingBag size={13} />
@@ -160,8 +157,8 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
         >
           <Heart
             style={{ width: '14px', height: '14px' }}
-            fill={wishlisted ? '#ff8c42' : 'none'}
-            stroke={wishlisted ? '#ff8c42' : 'var(--text-muted)'}
+            fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+            stroke={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
           />
         </motion.button>
 
@@ -171,9 +168,9 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
             <div
               className="inline-flex mb-2 px-2 py-0.5 rounded-full text-[10px] font-semibold border"
               style={{
-                color: verificationStatus === 'verified' ? '#15803d' : '#b45309',
-                background: verificationStatus === 'verified' ? '#f0fdf4' : '#fffbeb',
-                borderColor: verificationStatus === 'verified' ? '#bbf7d0' : '#fde68a',
+                color: verificationStatus === 'verified' ? 'var(--badge-success-text)' : 'var(--badge-warning-text)',
+                background: verificationStatus === 'verified' ? 'var(--badge-success-bg)' : 'var(--badge-warning-bg)',
+                borderColor: verificationStatus === 'verified' ? 'var(--badge-success-border)' : 'var(--badge-warning-border)',
               }}
             >
               {verificationStatus === 'verified' ? 'Verified by Reaglex' : 'Verification Pending'}
@@ -197,8 +194,8 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
                   <Star
                     key={i}
                     style={{ width: '11px', height: '11px' }}
-                    fill={i < Math.round(Number(rating)) ? '#ff8c42' : 'none'}
-                    stroke={i < Math.round(Number(rating)) ? '#ff8c42' : 'var(--border-card)'}
+                    fill={i < Math.round(Number(rating)) ? 'var(--brand-primary)' : 'none'}
+                    stroke={i < Math.round(Number(rating)) ? 'var(--brand-primary)' : 'var(--border-card)'}
                   />
                 ))}
               </div>
@@ -210,7 +207,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
             <div className="min-w-0">
               <span
                 className="font-black product-price"
-                style={{ color: 'var(--text-primary)', fontSize: compact ? '12px' : '16px' }}
+                style={{ color: 'var(--text-price)', fontSize: compact ? '12px' : '16px' }}
               >
                 {currencyPricing.formatLocalWithUsd(price)}
               </span>
@@ -230,25 +227,19 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
               whileTap={{ scale: 0.95 }}
               onClick={handleAdd}
               disabled={stock === 0}
-              className="flex-shrink-0 flex items-center justify-center text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-shrink-0 flex items-center justify-center font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
-                background: ctaStyle === 'home'
-                  ? (added
-                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                    : (isDark ? '#ffffff' : '#0f172a'))
-                  : (added
-                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                    : 'linear-gradient(135deg, #ff8c42, #ff5f00)'),
-                color: ctaStyle === 'home'
-                  ? (added ? '#ffffff' : (isDark ? '#0f172a' : '#ffffff'))
-                  : '#ffffff',
+                background: added
+                  ? 'var(--accent-success-gradient)'
+                  : 'var(--gradient-brand-cta)',
+                color: 'var(--text-on-accent)',
                 transition: 'background 0.3s',
-                boxShadow: ctaStyle === 'home' ? 'none' : '0 3px 8px rgba(255,140,66,0.25)',
+                boxShadow: added ? 'none' : 'var(--shadow-cta)',
                 borderRadius: compact ? '8px' : '12px',
                 padding: compact ? '4px 8px' : '6px 12px',
                 fontSize: compact ? '10px' : '12px',
                 gap: '4px',
-                border: ctaStyle === 'home' && isDark && !added ? '1px solid rgba(15,23,42,0.12)' : 'none',
+                border: ctaStyle === 'home' && !added ? '1px solid var(--border-subtle)' : 'none',
               }}
             >
               <ShoppingBag style={{ width: compact ? '10px' : '12px', height: compact ? '10px' : '12px' }} />

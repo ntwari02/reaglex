@@ -347,7 +347,7 @@ export function Signup() {
                       i === 0
                         ? '#ef4444'
                         : i === 1
-                        ? '#f97316'
+                        ? 'var(--brand-primary)'
                         : i === 2
                         ? '#eab308'
                         : '#10b981',
@@ -364,7 +364,7 @@ export function Signup() {
                     strengthScore <= 1
                       ? '#ef4444'
                       : strengthScore === 2
-                      ? '#f97316'
+                      ? 'var(--brand-primary)'
                       : '#10b981',
                 }}
               >
@@ -432,13 +432,13 @@ export function Signup() {
                 className="flex items-center justify-center gap-2 py-2.5 rounded-2xl border-2 text-xs font-semibold transition-all"
                 style={{
                   borderColor:
-                    formData.role === r ? '#f97316' : '#e5e7eb',
+                    formData.role === r ? 'var(--brand-primary)' : 'var(--divider)',
                   background:
                     formData.role === r
-                      ? 'rgba(249,115,22,0.10)'
-                      : 'white',
+                      ? 'var(--brand-tint)'
+                      : 'var(--card-bg)',
                   color:
-                    formData.role === r ? '#f97316' : '#6b7280',
+                    formData.role === r ? 'var(--brand-primary)' : 'var(--text-muted)',
                 }}
               >
                 {r === 'buyer' ? (
@@ -487,15 +487,16 @@ export function Signup() {
             type="checkbox"
             checked={agreedToTerms}
             onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded accent-orange-500 flex-shrink-0"
+            className="mt-0.5 w-4 h-4 rounded flex-shrink-0"
+            style={{ accentColor: 'var(--brand-primary)' }}
           />
           <span
             className="text-[13px] leading-tight"
-            style={{ color: '#6b7280' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             I agree to the{' '}
-            <span style={{ color: '#f97316' }}>Terms of Service</span> and{' '}
-            <span style={{ color: '#f97316' }}>Privacy Policy</span>
+            <span style={{ color: 'var(--brand-primary)' }}>Terms of Service</span> and{' '}
+            <span style={{ color: 'var(--brand-primary)' }}>Privacy Policy</span>
           </span>
         </label>
 
@@ -505,10 +506,8 @@ export function Signup() {
           disabled={loading}
           className="w-full h-[54px] rounded-[14px] text-white font-bold text-[16px] tracking-[0.03em] disabled:opacity-60 disabled:cursor-not-allowed transition-transform"
           style={{
-            background:
-              'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
-            boxShadow:
-              '0 6px 24px rgba(249,115,22,0.45),0 2px 8px rgba(249,115,22,0.25)',
+            background: 'var(--gradient-brand-cta)',
+            boxShadow: 'var(--shadow-cta-hover), var(--shadow-cta)',
           }}
         >
           {loading ? 'Creating account…' : 'Create Account'}
@@ -573,16 +572,19 @@ export function Signup() {
           style={{ borderColor: '#e5e7eb', color: '#374151', background: 'var(--bg-secondary)' }}
         >
           {biometricLoading ? (
-            <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+            <span
+              className="w-4 h-4 rounded-full animate-spin"
+              style={{ borderWidth: 2, borderStyle: 'solid', borderColor: 'var(--brand-primary)', borderTopColor: 'transparent' }}
+            />
           ) : (
             <Fingerprint className="w-4 h-4" />
           )}
           {biometricLoading ? 'Signing in…' : 'Sign in with biometric'}
         </button>
 
-        <p className="text-center text-[14px]" style={{ color: '#9ca3af' }}>
+        <p className="text-center text-[14px]" style={{ color: 'var(--text-faint)' }}>
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold" style={{ color: '#f97316' }}>
+          <Link to="/login" className="font-semibold" style={{ color: 'var(--brand-primary)' }}>
             Sign In
           </Link>
         </p>

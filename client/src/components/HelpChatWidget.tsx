@@ -40,7 +40,7 @@ function inferKind(text: string): ChatMessage['kind'] {
 
 const STORAGE_KEY = 'reaglex_help_chat';
 const MAX_MESSAGES = 50;
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 
 function GeminiIcon({ size = 22, className = '' }: { size?: number; className?: string }) {
   return (
@@ -472,7 +472,7 @@ export default function HelpChatWidget() {
               position: 'absolute',
               right: 72,
               bottom: 10,
-              background: '#111420',
+              background: 'var(--card-bg)',
               color: '#ffffff',
               padding: '8px 14px',
               borderRadius: 10,
@@ -492,7 +492,7 @@ export default function HelpChatWidget() {
                 height: 0,
                 borderTop: '6px solid transparent',
                 borderBottom: '6px solid transparent',
-                borderLeft: '6px solid #111420',
+                borderLeft: '6px solid var(--card-bg)',
               }}
             />
           </div>
@@ -505,7 +505,7 @@ export default function HelpChatWidget() {
               position: 'absolute',
               inset: 0,
               borderRadius: '999px',
-              boxShadow: '0 0 0 0 rgba(249,115,22,0.35)',
+              boxShadow: '0 0 0 0 color-mix(in srgb, var(--brand-primary) 35%, transparent)',
               animation: 'helpchat-pulse 2.5s ease-out infinite',
             }}
           />
@@ -604,7 +604,7 @@ export default function HelpChatWidget() {
                 height: 72,
                 padding: '0 18px',
                 background:
-                  'linear-gradient(135deg,#0f0c24 0%,#1a0f3a 100%)',
+                  'var(--hero-marketing-bg)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -631,7 +631,7 @@ export default function HelpChatWidget() {
                 <div>
                   <div
                     style={{
-                      color: '#ffffff',
+                      color: 'var(--hero-marketing-heading)',
                       fontSize: 14,
                       fontWeight: 600,
                     }}
@@ -644,7 +644,7 @@ export default function HelpChatWidget() {
                       alignItems: 'center',
                       gap: 4,
                       fontSize: 11,
-                      color: 'rgba(255,255,255,0.55)',
+                      color: 'var(--hero-marketing-subtitle)',
                     }}
                   >
                     <span
@@ -944,11 +944,11 @@ export default function HelpChatWidget() {
                             ? '16px 4px 16px 16px'
                             : '4px 16px 16px 16px',
                           background: isUser
-                            ? 'linear-gradient(135deg,#f97316,#ea580c)'
+                            ? 'var(--gradient-brand-cta)'
                             : 'var(--card-bg)',
                           color: isUser ? '#ffffff' : 'var(--text-primary)',
                           boxShadow: isUser
-                            ? '0 4px 10px rgba(249,115,22,0.25)'
+                            ? 'var(--shadow-cta)'
                             : '0 4px 12px rgba(15,23,42,0.15)',
                           fontSize: 13,
                           whiteSpace: 'pre-wrap',
@@ -1050,7 +1050,7 @@ export default function HelpChatWidget() {
                             fontSize: 12,
                             fontWeight: 600,
                             textDecoration: 'none',
-                            boxShadow: '0 4px 10px rgba(249,115,22,0.25)',
+                            boxShadow: 'var(--shadow-cta)',
                           }}
                         >
                           Pay {m.paymentAmount != null ? `${m.paymentCurrency || ''} ${m.paymentAmount}`.trim() : 'now'}{' '}
@@ -1136,10 +1136,10 @@ export default function HelpChatWidget() {
                                 fontSize: 12,
                                 border: 'none',
                                 cursor: 'pointer',
-                                background: 'rgba(249,115,22,0.08)',
+                                background: 'var(--brand-tint)',
                                 color: PRIMARY,
                                 boxShadow:
-                                  'inset 0 0 0 1px rgba(249,115,22,0.35)',
+                                  'inset 0 0 0 1px var(--brand-border-subtle)',
                               }}
                             >
                               📦 Go to My Orders →
@@ -1155,10 +1155,10 @@ export default function HelpChatWidget() {
                                 fontSize: 12,
                                 border: 'none',
                                 cursor: 'pointer',
-                                background: 'rgba(249,115,22,0.08)',
+                                background: 'var(--brand-tint)',
                                 color: PRIMARY,
                                 boxShadow:
-                                  'inset 0 0 0 1px rgba(249,115,22,0.35)',
+                                  'inset 0 0 0 1px var(--brand-border-subtle)',
                               }}
                             >
                               ↩ Start a Return →
@@ -1174,10 +1174,10 @@ export default function HelpChatWidget() {
                                 fontSize: 12,
                                 border: 'none',
                                 cursor: 'pointer',
-                                background: 'rgba(249,115,22,0.08)',
+                                background: 'var(--brand-tint)',
                                 color: PRIMARY,
                                 boxShadow:
-                                  'inset 0 0 0 1px rgba(249,115,22,0.35)',
+                                  'inset 0 0 0 1px var(--brand-border-subtle)',
                               }}
                             >
                               🏪 Become a Seller →
@@ -1213,10 +1213,10 @@ export default function HelpChatWidget() {
                       whiteSpace: 'nowrap',
                       border: 'none',
                       cursor: 'pointer',
-                      background: 'rgba(249,115,22,0.08)',
+                      background: 'var(--brand-tint)',
                       color: PRIMARY,
                       boxShadow:
-                        'inset 0 0 0 1px rgba(249,115,22,0.25)',
+                        'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 25%, transparent)',
                     }}
                   >
                     {chip.label}
@@ -1246,7 +1246,7 @@ export default function HelpChatWidget() {
                       background: PRIMARY,
                       color: '#ffffff',
                       fontSize: 16,
-                      boxShadow: '0 4px 12px rgba(249,115,22,0.4)',
+                      boxShadow: 'var(--shadow-cta-hover)',
                       cursor: 'pointer',
                     }}
                   >
@@ -1312,11 +1312,11 @@ export default function HelpChatWidget() {
                     border: 'none',
                     cursor: input.trim() ? 'pointer' : 'default',
                     background: input.trim()
-                      ? 'linear-gradient(135deg,#f97316,#ea580c)'
+                      ? 'var(--gradient-brand-cta)'
                       : 'var(--bg-tertiary)',
                     color: input.trim() ? '#ffffff' : 'var(--text-muted)',
                     boxShadow: input.trim()
-                      ? '0 4px 12px rgba(249,115,22,0.35)'
+                      ? 'var(--shadow-cta)'
                       : 'none',
                     fontSize: 16,
                   }}

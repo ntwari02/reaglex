@@ -39,7 +39,7 @@ export default function OrderConfirmation() {
             {t('orderConfirmation.placedSubtitle')}
           </p>
           <p className="text-xs font-bold px-4 py-1.5 rounded-full inline-block mb-8"
-            style={{ background: '#fff7ed', color: '#ff8c42' }}>
+            style={{ background: 'var(--brand-tint-strong)', color: 'var(--brand-primary)' }}>
             {t('orderConfirmation.orderNumber')} {orderId}
           </p>
 
@@ -49,8 +49,8 @@ export default function OrderConfirmation() {
             <div className="flex items-center justify-between pb-4" style={{ borderBottom: '1px solid #f3f4f6' }}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(255,140,66,0.1)' }}>
-                  <Package className="w-5 h-5" style={{ color: '#ff8c42' }} />
+                  style={{ background: 'var(--brand-tint)' }}>
+                  <Package className="w-5 h-5" style={{ color: 'var(--brand-primary)' }} />
                 </div>
                 <div>
                   <p className="font-bold text-sm" style={{ color: '#1a1a1a' }}>{t('orderConfirmation.estimatedDelivery')}</p>
@@ -74,7 +74,7 @@ export default function OrderConfirmation() {
                   <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>{o.items} {t('orderConfirmation.items')} · ETA: {o.eta}</p>
                 </div>
                 <span className="px-3 py-1 rounded-full text-xs font-semibold"
-                  style={{ background: 'rgba(255,140,66,0.1)', color: '#ff8c42' }}>{o.status}</span>
+                  style={{ background: 'var(--brand-tint)', color: 'var(--brand-primary)' }}>{o.status}</span>
               </div>
             ))}
           </div>
@@ -96,7 +96,7 @@ export default function OrderConfirmation() {
             <Link to={`/track/${orderId}`} className="flex-1">
               <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold text-sm"
-                style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)', boxShadow: '0 6px 20px rgba(255,140,66,0.35)' }}>
+                style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
                 <Truck className="w-4 h-4" /> {t('orderConfirmation.trackOrder')}
               </motion.button>
             </Link>

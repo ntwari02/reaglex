@@ -129,7 +129,7 @@ export const SellerGuidancePanel: React.FC<SellerGuidancePanelProps> = ({
       >
         <header className="flex items-start gap-2">
           <div className="mt-0.5">
-            <Info size={16} style={{ color: '#f97316' }} />
+            <Info size={16} style={{ color: 'var(--brand-primary)' }} />
           </div>
           <div className="space-y-0.5">
             <p

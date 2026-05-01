@@ -4,7 +4,6 @@ import { motion, useInView } from 'framer-motion';
 import { Star, ShoppingCart, Heart, TrendingUp, Zap } from 'lucide-react';
 import { productAPI } from '../../services/api';
 import { useBuyerCart } from '../../stores/buyerCartStore';
-import { useTheme } from '../../contexts/ThemeContext';
 import { SERVER_URL } from '../../lib/config';
 
 const resolveImg = (src) => {
@@ -28,7 +27,7 @@ const TRENDING_CACHE_TTL = 5 * 60 * 1000;
 let trendingCache = { data: null, ts: 0 };
 
 /* ─── Product card ───────────────────────────────────────────────────────── */
-function TrendCard({ product, index, isDark, onAdd }) {
+function TrendCard({ product, index, onAdd }) {
   const [wished, setWished] = useState(false);
   const [adding, setAdding] = useState(false);
   const img = resolveImg(product.thumbnail || product.images?.[0]);
@@ -54,14 +53,14 @@ function TrendCard({ product, index, isDark, onAdd }) {
         to={`/products/${product._id}`}
         className="block rounded-2xl overflow-hidden"
         style={{
-          background: isDark ? 'var(--bg-card, #1a1d2e)' : '#fff',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-          boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.35)' : '0 2px 16px rgba(0,0,0,0.07)',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--border-card)',
+          boxShadow: 'var(--shadow-card)',
           transition: 'box-shadow 0.3s, transform 0.3s',
         }}
       >
         {/* Image */}
-        <div className="relative overflow-hidden" style={{ aspectRatio: '1', background: isDark ? '#141520' : '#f5f5f7' }}>
+        <div className="relative overflow-hidden" style={{ aspectRatio: '1', background: 'var(--bg-tertiary)' }}>
           <img
             src={img}
             alt={product.name}
@@ -76,7 +75,11 @@ function TrendCard({ product, index, isDark, onAdd }) {
           {discount > 0 && (
             <div
               className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-xs font-bold"
-              style={{ background: '#ef4444', color: '#fff' }}
+              style={{
+                background: 'var(--badge-error-bg)',
+                color: 'var(--badge-error-text)',
+                border: '1px solid var(--badge-error-border)',
+              }}
             >
               -{discount}%
             </div>
@@ -85,7 +88,7 @@ function TrendCard({ product, index, isDark, onAdd }) {
           {/* Trending badge */}
           <div
             className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
-            style={{ background: isDark ? 'rgba(99,102,241,0.85)' : 'rgba(99,102,241,0.9)', color: '#fff' }}
+            style={{ background: 'var(--brand-primary)', color: 'var(--text-on-accent)' }}
           >
             <TrendingUp size={10} />
             HOT
@@ -96,12 +99,14 @@ function TrendCard({ product, index, isDark, onAdd }) {
             onClick={(e) => { e.preventDefault(); setWished(!wished); }}
             className="absolute top-10 right-2.5 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
             style={{
-              background: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.9)',
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border-card)',
+              color: 'var(--text-secondary)',
               backdropFilter: 'blur(8px)',
             }}
             aria-label="Add to wishlist"
           >
-            <Heart size={12} fill={wished ? '#ef4444' : 'none'} stroke={wished ? '#ef4444' : 'currentColor'} />
+            <Heart size={12} fill={wished ? 'var(--badge-error-text)' : 'none'} stroke={wished ? 'var(--badge-error-text)' : 'currentColor'} />
           </button>
 
           {/* Quick add overlay */}
@@ -111,9 +116,9 @@ function TrendCard({ product, index, isDark, onAdd }) {
               disabled={stock <= 0}
               className="w-full py-2.5 md:py-2.5 flex items-center justify-center gap-2 text-xs font-bold tracking-wide"
               style={{
-                background: isDark ? '#ffffff' : '#0f172a',
-                color: isDark ? '#0f172a' : '#ffffff',
-                borderTop: isDark ? '1px solid rgba(15,23,42,0.12)' : 'none',
+                background: 'var(--gradient-brand-cta)',
+                color: 'var(--text-on-accent)',
+                borderTop: '1px solid var(--border-subtle)',
                 opacity: stock <= 0 ? 0.45 : 1,
               }}
             >
@@ -127,7 +132,7 @@ function TrendCard({ product, index, isDark, onAdd }) {
         <div className="p-3">
           <p
             className="text-xs font-medium line-clamp-2 leading-snug mb-2"
-            style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}
+            style={{ color: 'var(--text-primary)' }}
           >
             {product.name}
           </p>
@@ -139,23 +144,23 @@ function TrendCard({ product, index, isDark, onAdd }) {
                 <Star
                   key={n}
                   size={10}
-                  fill={n <= Math.round(product.rating || 4.5) ? '#f59e0b' : 'none'}
-                  stroke={n <= Math.round(product.rating || 4.5) ? '#f59e0b' : (isDark ? '#3d4159' : '#d1d5db')}
+                  fill={n <= Math.round(product.rating || 4.5) ? 'var(--brand-primary)' : 'none'}
+                  stroke={n <= Math.round(product.rating || 4.5) ? 'var(--brand-primary)' : 'var(--border-card)'}
                 />
               ))}
             </div>
-            <span className="text-xs" style={{ color: isDark ? '#616680' : '#9ca3af' }}>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
               ({product.reviewCount || product.review_count || 0})
             </span>
           </div>
 
           {/* Price */}
           <div className="flex items-baseline gap-2">
-            <span className="font-bold text-sm" style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}>
+            <span className="font-bold text-sm" style={{ color: 'var(--text-price)' }}>
               ${product.price}
             </span>
             {product.originalPrice && (
-              <span className="text-xs line-through" style={{ color: isDark ? '#3d4159' : '#9ca3af' }}>
+              <span className="text-xs line-through" style={{ color: 'var(--text-muted)' }}>
                 ${product.originalPrice}
               </span>
             )}
@@ -168,8 +173,6 @@ function TrendCard({ product, index, isDark, onAdd }) {
 
 /* ─── Section ────────────────────────────────────────────────────────────── */
 export default function TrendingProducts() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const { addItem } = useBuyerCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -238,7 +241,7 @@ export default function TrendingProducts() {
   return (
     <section
       className="w-full py-20"
-      style={{ background: isDark ? 'var(--bg-secondary, #10121c)' : '#fff' }}
+      style={{ background: 'var(--bg-page)' }}
     >
       <div className="px-4 sm:px-6 lg:px-10 xl:px-16">
         {/* Header */}
@@ -246,18 +249,18 @@ export default function TrendingProducts() {
           <div>
             <motion.p
               className="text-xs font-semibold tracking-[0.2em] uppercase mb-2 flex items-center gap-2"
-              style={{ color: isDark ? '#616680' : '#9ca3af' }}
+              style={{ color: 'var(--text-muted)' }}
               initial={{ opacity: 0, y: 12 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5 }}
             >
-              <Zap size={12} style={{ color: '#f59e0b' }} />
+              <Zap size={12} style={{ color: 'var(--brand-primary)' }} />
               What&apos;s Hot
             </motion.p>
             <motion.h2
               className="font-black leading-none"
               style={{
-                color: isDark ? '#e2e4ed' : '#0f172a',
+                color: 'var(--text-primary)',
                 fontSize: 'clamp(1.8rem, 4vw, 3rem)',
                 fontFamily: "'Times New Roman', Georgia, serif",
                 letterSpacing: '-0.02em',
@@ -277,7 +280,7 @@ export default function TrendingProducts() {
             <Link
               to="/search"
               className="hidden sm:flex items-center gap-2 text-xs font-semibold tracking-wide"
-              style={{ color: isDark ? '#6366f1' : '#6366f1' }}
+              style={{ color: 'var(--link-color)' }}
             >
               View all <span>→</span>
             </Link>
@@ -291,12 +294,12 @@ export default function TrendingProducts() {
               <div
                 key={i}
                 className="rounded-2xl overflow-hidden"
-                style={{ background: isDark ? '#1a1d2e' : '#f5f5f7', aspectRatio: '0.8' }}
+                style={{ background: 'var(--bg-tertiary)', aspectRatio: '0.8' }}
               >
-                <div className="w-full h-3/5" style={{ background: isDark ? '#141520' : '#ebebed', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div className="w-full h-3/5" style={{ background: 'var(--bg-skeleton)', animation: 'pulse 1.5s ease-in-out infinite' }} />
                 <div className="p-3 space-y-2">
-                  <div className="h-3 rounded" style={{ background: isDark ? '#1e2235' : '#e5e7eb', width: '75%' }} />
-                  <div className="h-3 rounded" style={{ background: isDark ? '#1e2235' : '#e5e7eb', width: '50%' }} />
+                  <div className="h-3 rounded" style={{ background: 'var(--bg-skeleton)', width: '75%' }} />
+                  <div className="h-3 rounded" style={{ background: 'var(--bg-skeleton)', width: '50%' }} />
                 </div>
               </div>
             ))}
@@ -308,7 +311,6 @@ export default function TrendingProducts() {
                 key={p._id}
                 product={p}
                 index={i}
-                isDark={isDark}
                 onAdd={handleAdd}
               />
             ))}
@@ -317,8 +319,8 @@ export default function TrendingProducts() {
           <div
             className="rounded-2xl p-8 text-center"
             style={{
-              background: isDark ? 'rgba(255,255,255,0.03)' : '#f5f5f7',
-              color: isDark ? '#9da3be' : '#64748b',
+              background: 'var(--bg-tertiary)',
+              color: 'var(--text-muted)',
             }}
           >
             Products will appear here once available.

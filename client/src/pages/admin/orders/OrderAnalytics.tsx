@@ -66,7 +66,7 @@ export function OrderAnalytics({ orders, onBack }: OrderAnalyticsProps) {
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{ordersThisMonth.length}</p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 text-white">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-[var(--brand-primary)] to-red-500 text-white">
             <DollarSign className="h-5 w-5" />
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Revenue Today</p>

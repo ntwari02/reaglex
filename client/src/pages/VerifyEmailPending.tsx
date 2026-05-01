@@ -7,7 +7,7 @@ import { authAPI } from '../lib/api';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
 import { useTheme } from '../contexts/ThemeContext';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 
 export function VerifyEmailPending() {
   const [searchParams] = useSearchParams();
@@ -80,7 +80,7 @@ export function VerifyEmailPending() {
   const CARD_SHADOW_DARK =
     '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)';
   const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
-  const cardBg = isDark ? '#111420' : '#ffffff';
+  const cardBg = 'var(--card-bg)';
 
   return (
     <AuthPremiumLayout currentView="pending">
@@ -94,7 +94,7 @@ export function VerifyEmailPending() {
             <div className="relative">
               <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg text-white"
-                style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)`, boxShadow: '0 10px 25px -5px rgba(249, 115, 22, 0.3)' }}
+                style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
               >
                 <Mail className="w-10 h-10" strokeWidth={1.8} />
               </div>
@@ -114,15 +114,22 @@ export function VerifyEmailPending() {
           </p>
 
           {email && (
-            <p className="text-center text-sm font-medium text-orange-800 dark:text-orange-200 bg-orange-50 dark:bg-orange-950/40 rounded-xl py-3 px-4 mb-4 break-all border border-orange-100 dark:border-orange-500/20">
+            <p
+              className="text-center text-sm font-medium rounded-xl py-3 px-4 mb-4 break-all border"
+              style={{
+                color: 'var(--brand-primary)',
+                background: 'var(--brand-tint-strong)',
+                borderColor: 'var(--brand-border-subtle)',
+              }}
+            >
               {email}
             </p>
           )}
 
           <Link
             to={email ? `/verify-otp?email=${encodeURIComponent(email)}` : '/verify-otp'}
-            className="mb-4 w-full flex items-center justify-center gap-2 py-4 px-4 rounded-xl font-bold text-white transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-            style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)` }}
+            className="mb-4 w-full flex items-center justify-center gap-2 py-4 px-4 rounded-xl font-bold text-[var(--text-on-accent)] transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_45%,transparent)] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            style={{ background: 'var(--gradient-brand-cta)' }}
           >
             Enter 6-digit code — recommended
             <ArrowRight className="w-4 h-4" />
@@ -138,8 +145,8 @@ export function VerifyEmailPending() {
             <button
               type="button"
               onClick={openInbox}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold text-white transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-              style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)` }}
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold text-[var(--text-on-accent)] transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_45%,transparent)] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              style={{ background: 'var(--gradient-brand-cta)' }}
             >
               Open inbox & use link
               <ArrowRight className="w-4 h-4" />
@@ -148,11 +155,11 @@ export function VerifyEmailPending() {
               type="button"
               onClick={handleResend}
               disabled={resendLoading || cooldown > 0}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium border-2 transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium border-2 transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               style={{
-                borderColor: 'rgba(249,115,22,0.4)',
+                borderColor: 'var(--brand-border-subtle)',
                 color: PRIMARY,
-                background: 'rgba(249,115,22,0.08)',
+                background: 'var(--brand-tint)',
               }}
             >
               {resendLoading ? (

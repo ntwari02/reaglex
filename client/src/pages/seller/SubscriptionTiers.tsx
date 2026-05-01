@@ -367,7 +367,7 @@ const SubscriptionTiers: React.FC = () => {
               onClick={() => setActiveTab(tab.id as TabId)}
               className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white'
+                  ? 'bg-gradient-to-r from-red-500 to-[var(--brand-primary)] text-white'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
@@ -396,7 +396,7 @@ const SubscriptionTiers: React.FC = () => {
                 </p>
               </div>
               <div className="mt-3 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-red-500 to-orange-500" style={{ width: `${boostPercent}%` }} />
+                <div className="h-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)]" style={{ width: `${boostPercent}%` }} />
               </div>
             </div>
 
@@ -415,7 +415,7 @@ const SubscriptionTiers: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setCycle('annual')}
-                    className={`px-3 py-1.5 rounded-full text-sm ${cycle === 'annual' ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white' : 'text-gray-600 dark:text-gray-400'}`}
+                    className={`px-3 py-1.5 rounded-full text-sm ${cycle === 'annual' ? 'bg-gradient-to-r from-red-500 to-[var(--brand-primary)] text-white' : 'text-gray-600 dark:text-gray-400'}`}
                   >
                     Annual (Save 20%)
                   </button>
@@ -459,7 +459,7 @@ const SubscriptionTiers: React.FC = () => {
                       )}
                     </div>
                     {plan.badge && (
-                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2.5 py-1 text-[11px] font-semibold text-white">
+                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] px-2.5 py-1 text-[11px] font-semibold text-white">
                         <Sparkles className="w-3 h-3" />
                         {plan.badge}
                       </div>
@@ -486,7 +486,7 @@ const SubscriptionTiers: React.FC = () => {
                       className={`mt-5 w-full ${
                         isCurrent
                           ? 'bg-gray-600 hover:bg-gray-600'
-                          : 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600'
+                          : 'bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]'
                       }`}
                     >
                       {upgradingPlanKey === key ? (
@@ -668,7 +668,7 @@ const SubscriptionTiers: React.FC = () => {
               <p className="text-sm text-gray-500 dark:text-gray-400">Manage default card and billing sources.</p>
             </div>
             <Button
-              className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+              className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
               onClick={() => setShowAddCard(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -783,7 +783,7 @@ const SubscriptionTiers: React.FC = () => {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowAddCard(false)}>Cancel</Button>
               <Button
-                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                 onClick={handleAddCard}
                 disabled={addingCard}
               >

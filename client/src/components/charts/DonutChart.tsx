@@ -63,8 +63,8 @@ export function DonutChart({
           {/* Gradients */}
           <defs>
             <linearGradient id="donutGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="100%" stopColor="#ea580c" />
+              <stop offset="0%" stopColor="var(--brand-primary)" />
+              <stop offset="100%" stopColor="var(--brand-primary-hover)" />
             </linearGradient>
           </defs>
         </svg>

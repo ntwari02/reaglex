@@ -1,14 +1,17 @@
 /**
  * ProductDetail v2 — futuristic premium product page
- * Brand accent: #f97316 (orange-500)
+ * Brand accent: theme tokens (light/dark via theme.css)
+ * Mobile-first: single column, bounded gallery height, touch targets, no overflow.
  */
 
 :root {
-  --pd2-brand:      #f97316;
-  --pd2-brand-dark: #ea580c;
-  --pd2-brand-glow: rgba(249, 115, 22, 0.25);
+  --pd2-brand:      var(--brand-primary);
+  --pd2-brand-dark: var(--brand-primary-hover);
+  --pd2-brand-glow: color-mix(in srgb, var(--brand-primary) 25%, transparent);
   --pd2-glass:      rgba(255, 255, 255, 0.72);
   --pd2-glass-dark: rgba(15, 17, 30, 0.82);
+  /* Space for mobile bottom nav + sticky CTA strip */
+  --pd2-mobile-sticky-offset: calc(68px + 60px + env(safe-area-inset-bottom, 0px));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -21,17 +24,26 @@
   }
 }
 
+/* ─── Page shell — prevent horizontal scroll on narrow viewports ─────────── */
+.pd2-page {
+  overflow-x: clip;
+}
+
 /* ─── Hero grid ──────────────────────────────────────────────────────────── */
 .pd2-hero-grid {
   display: grid;
   grid-template-columns: 1fr;
   align-items: start;
+  width: 100%;
+  max-width: 100%;
 }
 
 .pd2-fluid-wrap {
   width: 100%;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
+  max-width: 100%;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+  box-sizing: border-box;
 }
 @media (min-width: 640px) {
   .pd2-fluid-wrap {
@@ -86,19 +98,92 @@
   border-radius: 20px;
 }
 
-/* On mobile / tablet the grid is single-column; use explicit heights */
+/* Mobile: cap gallery height so price/title stay above the fold */
 @media (max-width: 639px) {
   .pd2-main-img {
     flex: none;
-    height: min(72vw, 420px);
-    border-radius: 16px;
+    width: 100%;
+    max-width: 100%;
+    height: min(52vw, 280px);
+    min-height: 200px;
+    max-height: 320px;
+    border-radius: 14px;
+  }
+
+  .pd2-gallery-col {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .pd2-title {
+    font-size: clamp(1.125rem, 4.2vw, 1.35rem);
+    line-height: 1.25;
+  }
+
+  .pd2-price-num {
+    font-size: clamp(1.35rem, 6vw, 1.65rem);
+  }
+
+  /* Gallery arrows visible on touch devices (no hover) */
+  .pd2-main-img .pd2-arrow-btn {
+    opacity: 0.92;
+    width: 40px;
+    height: 40px;
+  }
+
+  .pd2-thumbs-row {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 6px;
+    margin-left: -0.125rem;
+    margin-right: -0.125rem;
+    padding-left: 0.125rem;
+    padding-right: 0.125rem;
+    scrollbar-width: none;
+  }
+
+  .pd2-thumbs-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pd2-thumb-btn {
+    flex: 0 0 auto;
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px;
+    min-height: 64px;
+    scroll-snap-align: start;
+    touch-action: manipulation;
+  }
+
+  .pd2-size-btn-mobile {
+    min-width: 44px;
+    min-height: 44px;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .pd2-qty-control button {
+    min-width: 48px;
+    min-height: 48px;
+    touch-action: manipulation;
+  }
+
+  .pd2-sticky-cta-inner button {
+    min-height: 48px;
+    touch-action: manipulation;
   }
 }
 
 @media (min-width: 640px) and (max-width: 1023px) {
   .pd2-main-img {
     flex: none;
-    height: 440px;
+    height: min(58vw, 400px);
+    max-height: 440px;
   }
 }
 
@@ -176,6 +261,8 @@
 }
 
 .pd2-purchase-flow {
+  display: flex;
+  flex-direction: column;
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -274,7 +361,7 @@
 }
 
 .pd2-btn-primary:not(:disabled):hover {
-  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.45);
+  box-shadow: var(--shadow-cta-hover);
 }
 
 /* shimmer sweep */
@@ -308,7 +395,7 @@
 }
 
 .pd2-btn-secondary:hover {
-  background: rgba(249, 115, 22, 0.08);
+  background: var(--brand-tint);
 }
 
 /* ─── Floating star animation ────────────────────────────────────────────── */
@@ -370,4 +457,43 @@
   border-radius: 99px;
   background: var(--pd2-brand);
   flex-shrink: 0;
+}
+
+/* Dark: PD2 picks up global brand + glass tokens (AuthKit-style stack) */
+html.dark,
+html[data-theme='dark'] {
+  --pd2-brand: var(--brand-primary);
+  --pd2-brand-dark: var(--brand-primary-hover);
+  --pd2-brand-glow: rgba(217, 119, 54, 0.18);
+  --pd2-glass-dark: rgba(28, 28, 28, 0.9);
+}
+
+.dark .pd2-badge--green,
+[data-theme='dark'] .pd2-badge--green {
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  box-shadow: inset 0 0 0 1px var(--badge-success-border);
+}
+
+.dark .pd2-badge--red,
+[data-theme='dark'] .pd2-badge--red {
+  background: var(--badge-error-bg);
+  color: var(--badge-error-text);
+  box-shadow: inset 0 0 0 1px var(--badge-error-border);
+}
+
+.dark .pd2-badge--blue,
+[data-theme='dark'] .pd2-badge--blue {
+  background: var(--badge-info-bg);
+  color: var(--badge-info-text);
+  box-shadow: inset 0 0 0 1px var(--badge-info-border);
+}
+
+/* ─── Mobile accordion (product details) ─────────────────────────────────── */
+@media (max-width: 1023px) {
+  .pd2-mobile-accordion-btn {
+    min-height: 48px;
+    touch-action: manipulation;
+    text-align: left;
+  }
 }

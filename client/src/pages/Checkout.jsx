@@ -34,8 +34,8 @@ const STEPS = [
 ];
 
 const inp =
-  'w-full px-4 py-2.5 rounded-xl text-sm outline-none border bg-[var(--card-bg)] placeholder-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition';
-const inpStyle = { borderColor: '#e5e7eb' };
+  'w-full px-4 py-2.5 rounded-xl text-sm outline-none border bg-[var(--card-bg)] placeholder-gray-400 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_18%,transparent)] transition';
+const inpStyle = { borderColor: 'var(--divider)' };
 
 const DELIVERY_OPTIONS = [
   { id: 'standard', labelKey: 'checkout.delivery.standard', subKey: 'checkout.delivery.standardSub', price: 4.99, icon: '📦' },
@@ -354,14 +354,14 @@ export default function Checkout() {
     return (
       <BuyerLayout>
         <div className="flex h-[70vh] flex-col items-center justify-center gap-4">
-          <ShoppingBag className="h-14 w-14" style={{ color: '#e5e7eb' }} />
-          <h2 className="text-lg font-bold" style={{ color: '#1a1a1a' }}>
+          <ShoppingBag className="h-14 w-14" style={{ color: 'var(--divider)' }} />
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
             {t('checkout.emptyCart')}
           </h2>
           <Link to="/">
             <button
               className="rounded-2xl px-6 py-2.5 font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)' }}
+              style={{ background: 'var(--gradient-brand-cta)' }}
             >
               {t('checkout.shopNow')}
             </button>
@@ -377,7 +377,7 @@ export default function Checkout() {
           whileHover={{ x: -3 }}
           onClick={() => navigate(-1)}
           className="mb-6 flex items-center gap-2 text-sm font-semibold"
-          style={{ color: '#6b7280' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           <ArrowLeft className="h-4 w-4" /> {t('checkout.backToCart')}
         </motion.button>
@@ -388,23 +388,23 @@ export default function Checkout() {
               <button onClick={() => s.id < step && setStep(s.id)} className="group flex flex-col items-center gap-1">
                 <motion.div
                   animate={{
-                    background: step >= s.id ? '#ff8c42' : '#e5e7eb',
+                    background: step >= s.id ? 'var(--brand-primary)' : 'var(--divider)',
                   }}
                   className="flex h-9 w-9 items-center justify-center rounded-full"
-                  style={{ background: step >= s.id ? '#ff8c42' : '#e5e7eb' }}
+                  style={{ background: step >= s.id ? 'var(--brand-primary)' : 'var(--divider)' }}
                 >
                   {step > s.id ? (
                     <CheckCircle className="h-4 w-4 text-white" />
                   ) : (
-                    <s.icon className="h-4 w-4" style={{ color: step >= s.id ? 'white' : '#9ca3af' }} />
+                    <s.icon className="h-4 w-4" style={{ color: step >= s.id ? 'var(--text-on-accent)' : 'var(--text-muted)' }} />
                   )}
                 </motion.div>
-                <span className="hidden text-xs font-semibold sm:block" style={{ color: step >= s.id ? '#ff8c42' : '#9ca3af' }}>
+                <span className="hidden text-xs font-semibold sm:block" style={{ color: step >= s.id ? 'var(--brand-primary)' : 'var(--text-muted)' }}>
                   {t(s.key)}
                 </span>
               </button>
               {i < STEPS.length - 1 && (
-                <div className="mx-2 h-0.5 flex-1" style={{ background: step > s.id ? '#ff8c42' : '#e5e7eb' }} />
+                <div className="mx-2 h-0.5 flex-1" style={{ background: step > s.id ? 'var(--brand-primary)' : 'var(--divider)' }} />
               )}
             </div>
           ))}
@@ -420,11 +420,11 @@ export default function Checkout() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.25 }}
                 className="rounded-2xl p-6"
-                style={{ background: 'white', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
+                style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
               >
                 {step === 1 && (
                   <div className="space-y-4">
-                    <h2 className="mb-4 text-lg font-black" style={{ color: '#1a1a1a' }}>
+                    <h2 className="mb-4 text-lg font-black" style={{ color: 'var(--text-primary)' }}>
                       📍 {t('checkout.shippingAddress')}
                     </h2>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -454,7 +454,7 @@ export default function Checkout() {
                       whileTap={{ scale: 0.98 }}
                       onClick={nextStep}
                       className="mt-2 w-full rounded-2xl py-3 text-sm font-bold text-white"
-                      style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)', boxShadow: '0 6px 20px rgba(255,140,66,0.35)' }}
+                      style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                     >
                       {t('checkout.continueToDelivery')}
                     </motion.button>
@@ -463,7 +463,7 @@ export default function Checkout() {
 
                 {step === 2 && (
                   <div className="space-y-3">
-                    <h2 className="mb-4 text-lg font-black" style={{ color: '#1a1a1a' }}>
+                    <h2 className="mb-4 text-lg font-black" style={{ color: 'var(--text-primary)' }}>
                       🚚 {t('checkout.deliveryMethod')}
                     </h2>
                     {DELIVERY_OPTIONS.map((opt) => (
@@ -472,30 +472,30 @@ export default function Checkout() {
                         onClick={() => setDelivery(opt.id)}
                         className="flex w-full items-center justify-between rounded-2xl border-2 p-4 transition"
                         style={{
-                          borderColor: delivery === opt.id ? '#ff8c42' : '#e5e7eb',
-                          background: delivery === opt.id ? 'rgba(255,140,66,0.05)' : 'white',
+                          borderColor: delivery === opt.id ? 'var(--brand-primary)' : 'var(--divider)',
+                          background: delivery === opt.id ? 'var(--brand-tint)' : 'var(--card-bg)',
                         }}
                       >
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{opt.icon}</span>
                           <div className="text-left">
-                            <p className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                               {t(opt.labelKey)}
                             </p>
-                            <p className="text-xs" style={{ color: '#9ca3af' }}>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                               {t(opt.subKey)}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold" style={{ color: '#ff8c42' }}>
+                          <p className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>
                             {fmtMoney(opt.price)}
                           </p>
                           <div
                             className="mx-auto mt-1 flex h-4 w-4 items-center justify-center rounded-full border-2"
-                            style={{ borderColor: delivery === opt.id ? '#ff8c42' : '#d1d5db' }}
+                            style={{ borderColor: delivery === opt.id ? 'var(--brand-primary)' : 'var(--divider-strong)' }}
                           >
-                            {delivery === opt.id && <div className="h-2 w-2 rounded-full" style={{ background: '#ff8c42' }} />}
+                            {delivery === opt.id && <div className="h-2 w-2 rounded-full" style={{ background: 'var(--brand-primary)' }} />}
                           </div>
                         </div>
                       </button>
@@ -504,7 +504,7 @@ export default function Checkout() {
                       <button
                         onClick={prevStep}
                         className="flex-1 rounded-2xl py-3 text-sm font-semibold"
-                        style={{ background: '#f3f4f6', color: '#374151' }}
+                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
                       >
                         {t('buttons.back')}
                       </button>
@@ -513,7 +513,7 @@ export default function Checkout() {
                         whileTap={{ scale: 0.98 }}
                         onClick={nextStep}
                         className="flex-1 rounded-2xl py-3 text-sm font-bold text-white"
-                        style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)', boxShadow: '0 6px 20px rgba(255,140,66,0.35)' }}
+                        style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                       >
                         {t('checkout.continueToPayment')}
                       </motion.button>
@@ -523,10 +523,10 @@ export default function Checkout() {
 
                 {step === 3 && (
                   <div className="space-y-5">
-                    <h2 className="mb-2 text-lg font-black" style={{ color: '#1a1a1a' }}>
+                    <h2 className="mb-2 text-lg font-black" style={{ color: 'var(--text-primary)' }}>
                       💳 {t('checkout.paymentMethod')}
                     </h2>
-                    <p className="text-xs" style={{ color: '#6b7280' }}>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       {t('checkout.gatewayHint')}
                     </p>
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -536,8 +536,8 @@ export default function Checkout() {
                           onClick={() => setCheckoutProvider('flutterwave')}
                           className="flex flex-col rounded-2xl border-2 p-5 text-left transition hover:shadow-md"
                           style={{
-                            borderColor: checkoutProvider === 'flutterwave' ? '#ff8c42' : '#e5e7eb',
-                            background: checkoutProvider === 'flutterwave' ? 'rgba(255,140,66,0.06)' : '#fff',
+                            borderColor: checkoutProvider === 'flutterwave' ? 'var(--brand-primary)' : 'var(--divider)',
+                            background: checkoutProvider === 'flutterwave' ? 'var(--brand-tint)' : 'var(--card-bg)',
                           }}
                         >
                           <div className="mb-3 flex items-center gap-2">
@@ -547,11 +547,11 @@ export default function Checkout() {
                             >
                               <CreditCard className="h-5 w-5 text-white" />
                             </div>
-                            <span className="text-sm font-black" style={{ color: '#1a1a1a' }}>
+                            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
                               {t('checkout.payFlutterwave')}
                             </span>
                           </div>
-                          <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                             {t('checkout.payFlutterwaveSub')}
                           </p>
                           <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
@@ -565,8 +565,8 @@ export default function Checkout() {
                           onClick={() => setCheckoutProvider('stripe')}
                           className="flex flex-col rounded-2xl border-2 p-5 text-left transition hover:shadow-md"
                           style={{
-                            borderColor: checkoutProvider === 'stripe' ? '#ff8c42' : '#e5e7eb',
-                            background: checkoutProvider === 'stripe' ? 'rgba(255,140,66,0.06)' : '#fff',
+                            borderColor: checkoutProvider === 'stripe' ? 'var(--brand-primary)' : 'var(--divider)',
+                            background: checkoutProvider === 'stripe' ? 'var(--brand-tint)' : 'var(--card-bg)',
                           }}
                         >
                           <div className="mb-3 flex items-center gap-2">
@@ -576,11 +576,11 @@ export default function Checkout() {
                             >
                               <CreditCard className="h-5 w-5 text-white" />
                             </div>
-                            <span className="text-sm font-black" style={{ color: '#1a1a1a' }}>
+                            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
                               {t('checkout.payStripe')}
                             </span>
                           </div>
-                          <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                             {t('checkout.payStripeSub')}
                           </p>
                           <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
@@ -594,8 +594,8 @@ export default function Checkout() {
                           onClick={() => setCheckoutProvider('paypal')}
                           className="flex flex-col rounded-2xl border-2 p-5 text-left transition hover:shadow-md"
                           style={{
-                            borderColor: checkoutProvider === 'paypal' ? '#ff8c42' : '#e5e7eb',
-                            background: checkoutProvider === 'paypal' ? 'rgba(255,140,66,0.06)' : '#fff',
+                            borderColor: checkoutProvider === 'paypal' ? 'var(--brand-primary)' : 'var(--divider)',
+                            background: checkoutProvider === 'paypal' ? 'var(--brand-tint)' : 'var(--card-bg)',
                           }}
                         >
                           <div className="mb-3 flex items-center gap-2">
@@ -605,11 +605,11 @@ export default function Checkout() {
                             >
                               <Wallet className="h-5 w-5 text-white" />
                             </div>
-                            <span className="text-sm font-black" style={{ color: '#1a1a1a' }}>
+                            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
                               {t('checkout.payPaypal')}
                             </span>
                           </div>
-                          <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                             {t('checkout.payPaypalSub')}
                           </p>
                         </button>
@@ -620,8 +620,8 @@ export default function Checkout() {
                           onClick={() => setCheckoutProvider('momo')}
                           className="flex flex-col rounded-2xl border-2 p-5 text-left transition hover:shadow-md"
                           style={{
-                            borderColor: checkoutProvider === 'momo' ? '#ff8c42' : '#e5e7eb',
-                            background: checkoutProvider === 'momo' ? 'rgba(255,140,66,0.06)' : '#fff',
+                            borderColor: checkoutProvider === 'momo' ? 'var(--brand-primary)' : 'var(--divider)',
+                            background: checkoutProvider === 'momo' ? 'var(--brand-tint)' : 'var(--card-bg)',
                           }}
                         >
                           <div className="mb-3 flex items-center gap-2">
@@ -631,11 +631,11 @@ export default function Checkout() {
                             >
                               <Smartphone className="h-5 w-5 text-gray-900" />
                             </div>
-                            <span className="text-sm font-black" style={{ color: '#1a1a1a' }}>
+                            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
                               {t('checkout.payMomo')}
                             </span>
                           </div>
-                          <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                             {t('checkout.payMomoSub')}
                           </p>
                         </button>
@@ -646,8 +646,8 @@ export default function Checkout() {
                           onClick={() => setCheckoutProvider('airtel')}
                           className="flex flex-col rounded-2xl border-2 p-5 text-left transition hover:shadow-md"
                           style={{
-                            borderColor: checkoutProvider === 'airtel' ? '#ff8c42' : '#e5e7eb',
-                            background: checkoutProvider === 'airtel' ? 'rgba(255,140,66,0.06)' : '#fff',
+                            borderColor: checkoutProvider === 'airtel' ? 'var(--brand-primary)' : 'var(--divider)',
+                            background: checkoutProvider === 'airtel' ? 'var(--brand-tint)' : 'var(--card-bg)',
                           }}
                         >
                           <div className="mb-3 flex items-center gap-2">
@@ -657,11 +657,11 @@ export default function Checkout() {
                             >
                               <Smartphone className="h-5 w-5 text-white" />
                             </div>
-                            <span className="text-sm font-black" style={{ color: '#1a1a1a' }}>
+                            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
                               {t('checkout.payAirtel')}
                             </span>
                           </div>
-                          <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                             {t('checkout.payAirtelSub')}
                           </p>
                         </button>
@@ -723,7 +723,7 @@ export default function Checkout() {
                       <button
                         onClick={prevStep}
                         className="flex-1 rounded-2xl py-3 text-sm font-semibold"
-                        style={{ background: '#f3f4f6', color: '#374151' }}
+                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
                       >
                         {t('buttons.back')}
                       </button>
@@ -733,7 +733,7 @@ export default function Checkout() {
                         onClick={nextStep}
                         disabled={!anyGatewayEnabled}
                         className="flex-1 rounded-2xl py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                        style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)', boxShadow: '0 6px 20px rgba(255,140,66,0.35)' }}
+                        style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                       >
                         {t('checkout.reviewOrder')}
                       </motion.button>
@@ -743,13 +743,13 @@ export default function Checkout() {
 
                 {step === 4 && (
                   <div className="space-y-4">
-                    <h2 className="mb-4 text-lg font-black" style={{ color: '#1a1a1a' }}>
+                    <h2 className="mb-4 text-lg font-black" style={{ color: 'var(--text-primary)' }}>
                       ✅ {t('checkout.reviewYourOrder')}
                     </h2>
                     <div className="mb-4 space-y-2">
                       {items.map((item) => (
-                        <div key={item.id} className="flex items-center gap-3 rounded-xl p-3" style={{ background: '#fafafa' }}>
-                          <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl" style={{ background: '#f3f4f6' }}>
+                        <div key={item.id} className="flex items-center gap-3 rounded-xl p-3" style={{ background: 'var(--bg-tertiary)' }}>
+                          <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl" style={{ background: 'var(--bg-tertiary)' }}>
                             <img
                               src={resolveImg(item.image)}
                               alt={item.title}
@@ -760,14 +760,14 @@ export default function Checkout() {
                             />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold" style={{ color: '#1a1a1a' }}>
+                            <p className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                               {item.title}
                             </p>
-                            <p className="text-xs" style={{ color: '#9ca3af' }}>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                               {t('checkout.qty')} {item.quantity}
                             </p>
                           </div>
-                          <span className="text-sm font-bold" style={{ color: '#ff8c42' }}>
+                          <span className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>
                             {fmtMoney(item.price * item.quantity)}
                           </span>
                         </div>
@@ -778,30 +778,30 @@ export default function Checkout() {
                         type="checkbox"
                         checked={agreedTerms}
                         onChange={(e) => setAgreedTerms(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 rounded accent-orange-500"
+                        className="mt-0.5 h-4 w-4 rounded accent-[var(--brand-primary)]"
                       />
-                      <span className="text-xs" style={{ color: '#6b7280' }}>
-                        {t('checkout.agreePrefix')} <span style={{ color: '#ff8c42' }}>{t('checkout.termsOfService')}</span>{' '}
-                        {t('checkout.agreeMiddle')} <span style={{ color: '#ff8c42' }}>{t('checkout.refundPolicy')}</span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {t('checkout.agreePrefix')} <span style={{ color: 'var(--brand-primary)' }}>{t('checkout.termsOfService')}</span>{' '}
+                        {t('checkout.agreeMiddle')} <span style={{ color: 'var(--brand-primary)' }}>{t('checkout.refundPolicy')}</span>
                       </span>
                     </label>
                     <div
                       className="flex items-center gap-2 rounded-xl p-3"
                       style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)' }}
                     >
-                      <Lock className="h-4 w-4 flex-shrink-0" style={{ color: '#22c55e' }} />
-                      <span className="text-xs" style={{ color: '#16a34a' }}>
+                      <Lock className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--badge-success-text)' }} />
+                      <span className="text-xs" style={{ color: 'var(--badge-success-text)' }}>
                         {t('checkout.escrowNote')}
                       </span>
                     </div>
-                    <p className="text-xs" style={{ color: '#6b7280' }}>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       Exchange rate locked at checkout.
                     </p>
                     <div className="flex gap-3">
                       <button
                         onClick={prevStep}
                         className="flex-1 rounded-2xl py-3 text-sm font-semibold"
-                        style={{ background: '#f3f4f6', color: '#374151' }}
+                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
                       >
                         {t('buttons.back')}
                       </button>
@@ -811,7 +811,7 @@ export default function Checkout() {
                         onClick={placeOrder}
                         disabled={placing || !agreedTerms}
                         className="flex-1 rounded-2xl py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                        style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)', boxShadow: '0 6px 20px rgba(255,140,66,0.35)' }}
+                        style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                       >
                         {placing ? t('checkout.placingOrder') : `${t('checkout.placeOrder')} · ${fmtMoney(total)}`}
                       </motion.button>
@@ -824,15 +824,15 @@ export default function Checkout() {
 
           <div
             className="sticky top-20 h-fit space-y-4 rounded-2xl p-5"
-            style={{ background: 'white', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
+            style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
           >
-            <h3 className="text-sm font-black" style={{ color: '#1a1a1a' }}>
+            <h3 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
               {t('checkout.orderSummary')}
             </h3>
             <div className="max-h-48 space-y-2 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
               {items.map((item) => (
                 <div key={item.id} className="flex items-center gap-2">
-                  <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg" style={{ background: '#f3f4f6' }}>
+                  <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
                     <img
                       src={resolveImg(item.image)}
                       alt={item.title}
@@ -843,38 +843,38 @@ export default function Checkout() {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold" style={{ color: '#1a1a1a' }}>
+                    <p className="truncate text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
                       {item.title}
                     </p>
-                    <p className="text-xs" style={{ color: '#9ca3af' }}>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       ×{item.quantity}
                     </p>
                   </div>
-                  <span className="text-xs font-bold" style={{ color: '#1a1a1a' }}>
+                  <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
                     {fmtMoney(item.price * item.quantity)}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="space-y-2 border-t pt-3" style={{ borderColor: '#f3f4f6' }}>
+            <div className="space-y-2 border-t pt-3" style={{ borderColor: 'var(--divider)' }}>
               {[
                 [t('checkout.subtotal'), fmtMoney(subtotal)],
                 [t('checkout.shipping'), fmtMoney(shippingCost)],
                 [t('checkout.tax10'), fmtMoney(tax)],
               ].map(([l, v]) => (
-                <div key={l} className="flex justify-between text-xs" style={{ color: '#6b7280' }}>
+                <div key={l} className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
                   <span>{l}</span>
-                  <span className="font-semibold" style={{ color: '#1a1a1a' }}>
+                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {v}
                   </span>
                 </div>
               ))}
-              <div className="flex justify-between border-t pt-2 font-black" style={{ borderColor: '#f3f4f6' }}>
-                <span style={{ color: '#1a1a1a' }}>{t('checkout.total')}</span>
-                <span style={{ color: '#ff8c42', fontSize: '1.1rem' }}>{fmtMoney(total)}</span>
+              <div className="flex justify-between border-t pt-2 font-black" style={{ borderColor: 'var(--divider)' }}>
+                <span style={{ color: 'var(--text-primary)' }}>{t('checkout.total')}</span>
+                <span style={{ color: 'var(--brand-primary)', fontSize: '1.1rem' }}>{fmtMoney(total)}</span>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 rounded-xl p-2 text-xs" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+            <div className="flex items-center gap-1.5 rounded-xl p-2 text-xs" style={{ background: 'var(--badge-success-bg)', color: 'var(--badge-success-text)', border: '1px solid var(--badge-success-border)' }}>
               <Lock className="h-3.5 w-3.5 flex-shrink-0" /> {t('checkout.escrowProtected')}
             </div>
           </div>

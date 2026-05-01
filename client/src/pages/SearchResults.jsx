@@ -47,7 +47,7 @@ const SORT_OPTIONS = [
 ];
 
 // ── Shared card style ─────────────────────────────────────────────────────────
-const CARD = { borderRadius: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' };
+const CARD = { borderRadius: '12px', boxShadow: 'var(--shadow-sm)' };
 
 // ── Star row ──────────────────────────────────────────────────────────────────
 function Stars({ rating, showLabel = true }) {
@@ -55,11 +55,11 @@ function Stars({ rating, showLabel = true }) {
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map(i => (
         <Star key={i} style={{ width: 13, height: 13 }}
-          fill={i <= rating ? '#f59e0b' : 'none'}
-          stroke={i <= rating ? '#f59e0b' : '#d1d5db'} />
+          fill={i <= rating ? 'var(--size-selector-selected)' : 'none'}
+          stroke={i <= rating ? 'var(--size-selector-selected)' : 'var(--divider-strong)'} />
       ))}
       {showLabel && (
-        <span className="text-xs ml-0.5" style={{ color: '#64748b' }}>{rating}+</span>
+        <span className="text-xs ml-0.5" style={{ color: 'var(--text-breadcrumb)' }}>{rating}+</span>
       )}
     </div>
   );
@@ -96,7 +96,7 @@ function SidebarContent({
     <motion.div animate={shake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }} transition={{ duration: 0.4 }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)]">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 filter-icon-pulse" style={{ color: '#f97316' }} />
+          <Filter className="w-4 h-4 filter-icon-pulse" style={{ color: 'var(--brand-primary)' }} />
           <span className="font-bold text-sm text-[var(--text-primary)]">{t('search.filters')}</span>
         </div>
         <AnimatePresence>
@@ -128,8 +128,8 @@ function SidebarContent({
                   onClick={() => setPriceRange(active ? null : { ...r, label })}
                   className={`relative w-full text-left px-3 py-2 rounded-full text-xs font-medium overflow-hidden transition-colors ${
                     active
-                      ? 'bg-[#3b82f6] text-white shadow-sm'
-                      : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[#bfdbfe]'
+                      ? 'bg-[var(--brand-primary)] text-[var(--text-on-accent)] shadow-sm'
+                      : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--link-color)]'
                   }`}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -165,7 +165,7 @@ function SidebarContent({
               type="button"
               onClick={() => onApplyCustomPrice?.()}
               className="px-2 py-1.5 rounded-lg text-xs font-semibold text-white"
-              style={{ background: '#f97316' }}
+              style={{ background: 'var(--brand-primary)' }}
             >
               {t('buttons.apply')}
             </button>
@@ -179,7 +179,7 @@ function SidebarContent({
           <p className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between text-[var(--text-faint)]">
             {t('search.category')}
             {categories?.length > 0 && (
-              <button type="button" onClick={() => setCategories([])} className="text-[10px] text-orange-500">{t('buttons.clear')}</button>
+              <button type="button" onClick={() => setCategories([])} className="text-[10px] text-[var(--brand-primary)]">{t('buttons.clear')}</button>
             )}
           </p>
           <div className="space-y-1.5">
@@ -190,7 +190,7 @@ function SidebarContent({
                   checked={categories?.includes(cat.value) || false}
                   onChange={() => toggleCategory(cat.value)}
                   className="rounded border-gray-500/60"
-                  style={{ accentColor: '#3b82f6' }}
+                  style={{ accentColor: 'var(--brand-primary)' }}
                 />
                 <span className="text-xs text-[var(--text-secondary)] dark:text-gray-300">{t(cat.key)}</span>
               </label>
@@ -209,7 +209,7 @@ function SidebarContent({
               checked={freeShipping || false}
               onChange={(e) => setFreeShipping(e.target.checked)}
               className="rounded border-gray-500/60"
-              style={{ accentColor: '#3b82f6' }}
+              style={{ accentColor: 'var(--brand-primary)' }}
             />
             <span className="text-xs text-[var(--text-secondary)] dark:text-gray-300">{t('filters.freeShippingOnly')}</span>
           </label>
@@ -229,7 +229,7 @@ function SidebarContent({
                   onClick={() => setMinRating(active ? null : r)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors ${
                     active
-                      ? 'bg-[#0b1120] border border-[#3b82f6]/80 shadow-sm'
+                      ? 'bg-[var(--bg-elevated)] border border-[var(--link-color)]/50 shadow-sm'
                       : 'border border-transparent hover:bg-[var(--bg-tertiary)]'
                   }`}
                   whileTap={active ? {} : { scale: 0.99 }}
@@ -240,7 +240,7 @@ function SidebarContent({
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                      className="w-2 h-2 rounded-full bg-orange-500"
+                      className="w-2 h-2 rounded-full bg-[var(--brand-primary)]"
                     />
                   )}
                 </motion.button>
@@ -263,20 +263,20 @@ function GridSkeletons() {
             className="rounded-t-2xl"
             style={{
               height: 220,
-              background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+              background: 'linear-gradient(90deg, var(--bg-skeleton) 25%, color-mix(in srgb, var(--bg-skeleton) 85%, var(--divider)) 50%, var(--bg-skeleton) 75%)',
               backgroundSize: '200% 100%',
               animation: 'shimmer-skeleton 1.5s infinite',
             }}
           />
           <div className="p-4 space-y-3">
             <div className="h-3 rounded-full overflow-hidden" style={{ width: '60%' }}>
-              <div style={{ height: '100%', background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer-skeleton 1.5s infinite' }} />
+              <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--bg-skeleton) 25%, color-mix(in srgb, var(--bg-skeleton) 85%, var(--divider)) 50%, var(--bg-skeleton) 75%)', backgroundSize: '200% 100%', animation: 'shimmer-skeleton 1.5s infinite' }} />
             </div>
             <div className="h-3 rounded-full overflow-hidden" style={{ width: '40%' }}>
-              <div style={{ height: '100%', background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer-skeleton 1.5s infinite' }} />
+              <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--bg-skeleton) 25%, color-mix(in srgb, var(--bg-skeleton) 85%, var(--divider)) 50%, var(--bg-skeleton) 75%)', backgroundSize: '200% 100%', animation: 'shimmer-skeleton 1.5s infinite' }} />
             </div>
             <div className="h-5 rounded-full overflow-hidden" style={{ width: '35%' }}>
-              <div style={{ height: '100%', background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer-skeleton 1.5s infinite' }} />
+              <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--bg-skeleton) 25%, color-mix(in srgb, var(--bg-skeleton) 85%, var(--divider)) 50%, var(--bg-skeleton) 75%)', backgroundSize: '200% 100%', animation: 'shimmer-skeleton 1.5s infinite' }} />
             </div>
           </div>
         </div>
@@ -290,13 +290,13 @@ function ListSkeletons() {
     <div className="flex flex-col gap-4">
       {[...Array(5)].map((_, i) => (
         <div key={i} className="animate-pulse flex gap-4 p-4" style={CARD}>
-          <div style={{ width: 160, height: 160, borderRadius: 10, background: '#f1f5f9', flexShrink: 0 }} />
+          <div style={{ width: 160, height: 160, borderRadius: 10, background: 'var(--bg-skeleton)', flexShrink: 0 }} />
           <div className="flex-1 space-y-3 py-2">
-            <div className="h-3 rounded-full" style={{ background: '#f1f5f9', width: '20%' }} />
-            <div className="h-5 rounded-full" style={{ background: '#f1f5f9', width: '65%' }} />
-            <div className="h-3 rounded-full" style={{ background: '#f1f5f9', width: '35%' }} />
-            <div className="h-3 rounded-full" style={{ background: '#f1f5f9', width: '80%' }} />
-            <div className="h-3 rounded-full" style={{ background: '#f1f5f9', width: '50%' }} />
+            <div className="h-3 rounded-full" style={{ background: 'var(--bg-skeleton)', width: '20%' }} />
+            <div className="h-5 rounded-full" style={{ background: 'var(--bg-skeleton)', width: '65%' }} />
+            <div className="h-3 rounded-full" style={{ background: 'var(--bg-skeleton)', width: '35%' }} />
+            <div className="h-3 rounded-full" style={{ background: 'var(--bg-skeleton)', width: '80%' }} />
+            <div className="h-3 rounded-full" style={{ background: 'var(--bg-skeleton)', width: '50%' }} />
           </div>
         </div>
       ))}
@@ -627,7 +627,7 @@ export default function SearchResults() {
                     placeholder={t('search.placeholder')}
                     className="flex-1 py-2 px-1 text-sm outline-none bg-transparent min-w-0 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500"
                   />
-                  <button type="submit" className="px-3 py-2 text-xs font-semibold text-orange-500">{t('buttons.search')}</button>
+                  <button type="submit" className="px-3 py-2 text-xs font-semibold text-[var(--brand-primary)]">{t('buttons.search')}</button>
                 </form>
                 {/* Title + count */}
                 <div>
@@ -653,9 +653,9 @@ export default function SearchResults() {
                   {/* Mobile filter button */}
                   <button
                     onClick={() => setDrawerOpen(!drawerOpen)}
-                    className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition text-[var(--text-secondary)] border-[var(--divider-strong)] ${hasFilters ? 'bg-[#0b1120] text-[#bfdbfe] border-[#3b82f6]' : 'bg-[var(--card-bg)]'}`}
+                    className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition text-[var(--text-secondary)] border-[var(--divider-strong)] ${hasFilters ? 'bg-[var(--bg-elevated)] text-[var(--link-color)] border-[var(--link-color)]' : 'bg-[var(--card-bg)]'}`}
                   >
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-orange-500" />
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
                     {t('search.filters')}{hasFilters ? ' •' : ''}
                   </button>
 
@@ -682,10 +682,10 @@ export default function SearchResults() {
                             <button
                               key={o.value}
                               onClick={() => { setActiveSort(o.value); setSortOpen(false); }}
-                              className={`flex items-center justify-between w-full px-4 py-2.5 text-left text-xs transition hover:bg-orange-50 dark:hover:bg-orange-900/20 ${activeSort === o.value ? 'text-orange-500 font-semibold' : 'text-[var(--text-secondary)] dark:text-gray-300'}`}
+                              className={`flex items-center justify-between w-full px-4 py-2.5 text-left text-xs transition hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] ${activeSort === o.value ? 'text-[var(--brand-primary)] font-semibold' : 'text-[var(--text-secondary)] dark:text-gray-300'}`}
                             >
                               {t(o.labelKey)}
-                              {activeSort === o.value && <span className="text-orange-500">✓</span>}
+                              {activeSort === o.value && <span className="text-[var(--brand-primary)]">✓</span>}
                             </button>
                           ))}
                         </motion.div>
@@ -699,7 +699,7 @@ export default function SearchResults() {
                       <button
                         key={m}
                         onClick={() => { setViewMode(m); setSavedViewMode(m); }}
-                        className={`p-2 transition ${viewMode === m ? 'bg-orange-500' : 'bg-[var(--card-bg)] dark:bg-gray-700 hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-600'}`}
+                        className={`p-2 transition ${viewMode === m ? 'bg-[var(--brand-primary)]' : 'bg-[var(--card-bg)] dark:bg-gray-700 hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-600'}`}
                         title={m === 'grid' ? t('search.gridView') : t('search.listView')}
                       >
                         <Icon className={`w-4 h-4 ${viewMode === m ? 'text-white' : 'text-[var(--text-muted)] dark:text-gray-300'}`} />
@@ -724,15 +724,15 @@ export default function SearchResults() {
                         key={tag.key}
                         layout
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                        style={{ background: '#020617', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.55)', boxShadow: '0 0 0 1px rgba(15,23,42,0.9)' }}
+                        style={{ background: 'var(--bg-elevated)', color: 'var(--link-color)', border: '1px solid var(--border-visible)', boxShadow: 'var(--shadow-sm)' }}
                       >
                         {tag.label}
-                        <button type="button" onClick={tag.remove} className="p-0.5 rounded-full hover:bg-orange-200 transition" aria-label={t('buttons.remove')}>
+                        <button type="button" onClick={tag.remove} className="p-0.5 rounded-full hover:bg-[var(--brand-tint-strong)] transition" aria-label={t('buttons.remove')}>
                           <X className="w-3 h-3" />
                         </button>
                       </motion.span>
                     ))}
-                    <button type="button" onClick={clearAllFilters} className="text-xs font-semibold" style={{ color: '#ef4444' }}>
+                    <button type="button" onClick={clearAllFilters} className="text-xs font-semibold" style={{ color: 'var(--badge-error-text)' }}>
                       {t('filters.clearAll')}
                     </button>
                   </motion.div>
@@ -785,7 +785,7 @@ export default function SearchResults() {
                   <button
                     onClick={loadProducts}
                     className="px-5 py-2 rounded-full text-white text-xs font-semibold"
-                    style={{ background: 'linear-gradient(135deg,#ff8c42,#ff5f00)' }}
+                    style={{ background: 'var(--gradient-brand-cta)' }}
                   >
                     {t('buttons.retry')}
                   </button>
@@ -821,7 +821,7 @@ export default function SearchResults() {
                       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                       onClick={clearAllFilters}
                       className="px-6 py-3 rounded-xl text-white text-sm font-semibold"
-                      style={{ background: '#f97316' }}
+                      style={{ background: 'var(--brand-primary)' }}
                     >
                       {t('search.clearFilters')}
                     </motion.button>
@@ -877,7 +877,7 @@ export default function SearchResults() {
                               ? 'text-white'
                               : 'bg-[var(--card-bg)] text-[var(--text-secondary)] dark:text-gray-300 border border-[var(--divider-strong)] hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-700'
                           }`}
-                          style={page === i + 1 ? { background: 'linear-gradient(135deg,#ff8c42,#ff5f00)', boxShadow: '0 4px 14px rgba(255,140,66,0.35)' } : {}}
+                          style={page === i + 1 ? { background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' } : {}}
                         >
                           {i + 1}
                         </button>
@@ -904,7 +904,7 @@ export default function SearchResults() {
                     whileHover={{ scale: 1.1 }}
                     onClick={() => productListRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
                     className="fixed bottom-8 right-8 z-20 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg"
-                    style={{ background: '#f97316', boxShadow: '0 4px 20px rgba(249,115,22,0.4)' }}
+                    style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                     aria-label={t('search.backToTop')}
                   >
                     <ChevronUp className="w-6 h-6" />

@@ -188,7 +188,7 @@ export function ParetoChart({
             </linearGradient>
             <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#f97316" />
+              <stop offset="100%" stopColor="var(--brand-primary)" />
             </linearGradient>
           </defs>
         </svg>
@@ -200,7 +200,7 @@ export function ParetoChart({
             <span className="text-gray-600 dark:text-gray-400">{valueLabel}</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-gradient-to-r from-red-500 to-orange-500"></div>
+            <div className="w-4 h-0.5 bg-gradient-to-r from-red-500 to-[var(--brand-primary)]"></div>
             <span className="text-gray-600 dark:text-gray-400">{cumulativeLabel}</span>
           </div>
         </div>

@@ -31,7 +31,7 @@ export function CohortChart({ data, title }: CohortChartProps) {
     if (ratio >= 0.8) return 'bg-green-600';
     if (ratio >= 0.6) return 'bg-green-500';
     if (ratio >= 0.4) return 'bg-yellow-500';
-    if (ratio >= 0.2) return 'bg-orange-500';
+    if (ratio >= 0.2) return 'bg-[var(--brand-primary)]';
     return 'bg-red-500';
   };
 
@@ -109,7 +109,7 @@ export function CohortChart({ data, title }: CohortChartProps) {
           <span className="text-gray-600 dark:text-gray-400">40-59%</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-orange-500 rounded"></div>
+          <div className="w-4 h-4 bg-[var(--brand-primary)] rounded"></div>
           <span className="text-gray-600 dark:text-gray-400">20-39%</span>
         </div>
         <div className="flex items-center gap-2">

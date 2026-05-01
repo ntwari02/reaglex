@@ -715,7 +715,7 @@ const InventoryManagement: React.FC = () => {
             Export CSV
           </Button>
           <Button
-            className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+            className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
             onClick={() => navigate('/seller/products')}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -875,7 +875,7 @@ const InventoryManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Storage Locations</h2>
             <Button
-              className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+              className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
               onClick={() => setShowLocationModal(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -979,7 +979,7 @@ const InventoryManagement: React.FC = () => {
                     </p>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
                       <div
-                        className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all"
+                        className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] h-2 rounded-full transition-all"
                         style={{ width: `${percent}%` }}
                       ></div>
                     </div>
@@ -1237,7 +1237,7 @@ const InventoryManagement: React.FC = () => {
               </Button>
               <Button
                 type="button"
-                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                 onClick={handleSaveLocation}
               >
                 Save Location
@@ -1361,7 +1361,7 @@ const InventoryManagement: React.FC = () => {
                 </Button>
                 <Button
                   type="button"
-                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                  className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                   onClick={handleUpdateLocation}
                 >
                   Save Changes
@@ -1843,7 +1843,7 @@ const InventoryManagement: React.FC = () => {
                   </Button>
                   <Button
                     type="button"
-                    className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                    className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                     onClick={handleSaveProduct}
                   >
                     Save Changes
@@ -2039,7 +2039,7 @@ const InventoryManagement: React.FC = () => {
               </Button>
               <Button
                 type="button"
-                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                 onClick={async () => {
                   if (!newProduct.name.trim() || !newProduct.sku.trim() || !newProduct.location?.trim()) {
                     showToast('Name, SKU and Location are required.', 'error');

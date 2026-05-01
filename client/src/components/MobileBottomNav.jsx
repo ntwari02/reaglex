@@ -3,14 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Package, ShoppingBag, User } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useAuthStore } from '../stores/authStore';
-
-const PRIMARY = '#f97316';
-
-const NO_NAV_PREFIXES = [
-  '/auth', '/login', '/signup', '/forgot-password', '/reset-password',
-  '/verify-email', '/verify-otp', '/select-role', '/auth/google',
-  '/approve-device-success', '/seller', '/admin', '/dashboard',
-];
+import { isBuyerChromeHidden } from '../config/buyerNavVisibility';
 
 const TABS = [
   { id: 'home',    icon: Home,       label: 'Home',    to: '/' },
@@ -22,7 +15,22 @@ const TABS = [
 function activeId(pathname) {
   if (pathname === '/') return 'home';
   if (pathname.startsWith('/search') || pathname.startsWith('/products')) return 'products';
-  if (pathname.startsWith('/account') || pathname.startsWith('/notifications') || pathname.startsWith('/returns')) return 'account';
+  if (
+    pathname.startsWith('/account')
+    || pathname.startsWith('/notifications')
+    || pathname.startsWith('/returns')
+    || pathname.startsWith('/track')
+    || pathname.startsWith('/messages')
+  ) {
+    return 'account';
+  }
+  if (
+    pathname.startsWith('/checkout')
+    || pathname.startsWith('/order-confirmation')
+    || pathname.startsWith('/payment')
+  ) {
+    return 'cart';
+  }
   return null;
 }
 
@@ -35,10 +43,7 @@ export default function MobileBottomNav() {
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
   const current   = activeId(location.pathname);
 
-  const hidden = NO_NAV_PREFIXES.some(
-    (p) => location.pathname === p || location.pathname.startsWith(p + '/') || location.pathname.startsWith(p),
-  );
-  if (hidden) return null;
+  if (isBuyerChromeHidden(location.pathname)) return null;
 
   const handlePress = (tab) => {
     if (tab.id === 'cart') { openCart(); return; }
@@ -48,7 +53,8 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-[120] flex items-stretch"
+      data-mobile-nav="buyer"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[140] flex items-stretch"
       style={{
         background: 'var(--header-bg, rgba(255,255,255,0.97))',
         borderTop: '1px solid var(--divider, rgba(0,0,0,0.08))',
@@ -87,7 +93,7 @@ export default function MobileBottomNav() {
                   exit={{ opacity: 0, scale: 0.7 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   className="absolute inset-x-[18%] top-1.5 h-0.5 rounded-full"
-                  style={{ background: PRIMARY }}
+                  style={{ background: 'var(--brand-primary)' }}
                 />
               )}
             </AnimatePresence>
@@ -101,7 +107,7 @@ export default function MobileBottomNav() {
                 <Icon
                   size={22}
                   strokeWidth={isActive ? 2.4 : 1.8}
-                  style={{ color: isActive ? PRIMARY : 'var(--text-muted, #94a3b8)' }}
+                  style={{ color: isActive ? 'var(--brand-primary)' : 'var(--text-muted, #94a3b8)' }}
                 />
               </motion.div>
 
@@ -111,7 +117,7 @@ export default function MobileBottomNav() {
                   initial={{ scale: 0.5 }}
                   animate={{ scale: 1 }}
                   className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold text-white"
-                  style={{ background: PRIMARY, paddingInline: 3 }}
+                  style={{ background: 'var(--brand-primary)', paddingInline: 3 }}
                 >
                   {badgeCount > 99 ? '99+' : badgeCount}
                 </motion.span>
@@ -121,7 +127,7 @@ export default function MobileBottomNav() {
             {/* Label */}
             <span
               className="text-[10px] font-medium leading-none transition-colors duration-150"
-              style={{ color: isActive ? PRIMARY : 'var(--text-muted, #94a3b8)' }}
+              style={{ color: isActive ? 'var(--brand-primary)' : 'var(--text-muted, #94a3b8)' }}
             >
               {tab.label}
             </span>

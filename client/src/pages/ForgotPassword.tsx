@@ -5,7 +5,7 @@ import AuthPremiumLayout from '../components/AuthPremiumLayout';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_BASE_URL } from '../lib/config';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 
 
 export function ForgotPassword() {
@@ -48,7 +48,7 @@ export function ForgotPassword() {
     }
   };
 
-  const cardBg = isDark ? '#0e1019' : '#ffffff';
+  const cardBg = 'var(--card-bg)';
   const cardShadow = isDark
     ? '0 32px 64px -12px rgba(0,0,0,0.55), 0 8px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
     : '0 32px 64px -12px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)';
@@ -72,7 +72,7 @@ export function ForgotPassword() {
           >
             {/* Corner glow */}
             <div className="absolute top-0 right-0 w-64 h-64 pointer-events-none"
-              style={{ background: 'radial-gradient(circle at top right, rgba(249,115,22,0.07) 0%, transparent 60%)' }} />
+              style={{ background: 'radial-gradient(circle at top right, color-mix(in srgb, var(--brand-primary) 7%, transparent) 0%, transparent 60%)' }} />
             <div className="absolute inset-0 pointer-events-none rounded-[20px]"
               style={{
                 backgroundImage: `radial-gradient(circle, ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'} 1px, transparent 1px)`,
@@ -92,7 +92,7 @@ export function ForgotPassword() {
               {success ? (
                 <div className="text-center py-2">
                   <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                    style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.22)' }}>
+                    style={{ background: 'var(--brand-tint-strong)', border: '1px solid var(--brand-border-subtle)' }}>
                     <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke={PRIMARY} strokeWidth="2">
                       <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
                       <path d="m9 12 2 2 4-4"/>
@@ -106,7 +106,7 @@ export function ForgotPassword() {
                   </p>
                   <Link to="/reset-password"
                     className="inline-block px-6 py-3 rounded-2xl text-sm font-bold text-white mb-3"
-                    style={{ background: `linear-gradient(135deg, #ff8c2a, ${PRIMARY}, #ea580c)`, boxShadow: '0 6px 20px rgba(249,115,22,0.4)' }}>
+                    style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta-hover)' }}>
                     Enter Code →
                   </Link>
                   <Link to="/auth?tab=login" className="block text-sm font-semibold hover:underline" style={{ color: PRIMARY }}>
@@ -124,7 +124,7 @@ export function ForgotPassword() {
 
                   {error && (
                     <div className="flex items-center gap-2 px-4 py-3 rounded-2xl text-[13px] font-medium"
-                      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}>
+                      style={{ background: 'var(--badge-error-bg)', border: '1px solid var(--badge-error-border)', color: 'var(--badge-error-text)' }}>
                       {error}
                     </div>
                   )}
@@ -140,7 +140,7 @@ export function ForgotPassword() {
                       autoFocus
                       className="w-full h-[50px] rounded-2xl text-[14px] outline-none pl-4 pr-4 transition-all"
                       style={{
-                        background: isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fc',
+                        background: isDark ? 'rgba(255,255,255,0.04)' : 'var(--bg-tertiary)',
                         boxShadow: `0 0 0 1.5px ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
                         color: 'var(--text-primary)',
                       }}
@@ -151,8 +151,8 @@ export function ForgotPassword() {
                     type="submit" disabled={loading}
                     className="w-full h-[52px] rounded-2xl font-bold text-[15px] text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                     style={{
-                      background: 'linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)',
-                      boxShadow: loading ? 'none' : '0 8px 28px rgba(249,115,22,0.4)',
+                      background: 'var(--gradient-brand-cta)',
+                      boxShadow: loading ? 'none' : 'var(--shadow-cta-hover)',
                     }}
                   >
                     {loading && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

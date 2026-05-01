@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { HELP_ARTICLES, HELP_CATEGORIES } from '../data/helpCenterData';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 
 export default function HelpSearch() {
   const [sp] = useSearchParams();
@@ -44,7 +44,7 @@ export default function HelpSearch() {
         {before}
         <span
           style={{
-            background: 'rgba(249,115,22,0.18)',
+            background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)',
             color: PRIMARY,
             borderRadius: 4,
             padding: '0 2px',
@@ -100,7 +100,7 @@ export default function HelpSearch() {
                     : 'var(--text-muted)',
                 boxShadow:
                   categoryFilter === 'all'
-                    ? '0 0 0 1px rgba(249,115,22,0.5),0 8px 20px rgba(249,115,22,0.45)'
+                    ? '0 0 0 1px color-mix(in srgb, var(--brand-primary) 50%, transparent),0 8px 20px color-mix(in srgb, var(--brand-primary) 45%, transparent)'
                     : '0 0 0 1px var(--divider-strong)',
               }}
             >
@@ -123,7 +123,7 @@ export default function HelpSearch() {
                       : 'var(--text-muted)',
                   boxShadow:
                     categoryFilter === cat.id
-                      ? '0 0 0 1px rgba(249,115,22,0.5),0 8px 20px rgba(249,115,22,0.45)'
+                      ? '0 0 0 1px color-mix(in srgb, var(--brand-primary) 50%, transparent),0 8px 20px color-mix(in srgb, var(--brand-primary) 45%, transparent)'
                       : '0 0 0 1px var(--divider-strong)',
                 }}
               >
@@ -245,8 +245,8 @@ export default function HelpSearch() {
                 className="mt-1 px-5 py-2.5 rounded-[12px] text-xs font-semibold text-white"
                 style={{
                   background:
-                    'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
-                  boxShadow: '0 8px 24px rgba(249,115,22,0.45)',
+                    'var(--gradient-brand-cta)',
+                  boxShadow: '0 8px 24px color-mix(in srgb, var(--brand-primary) 45%, transparent)',
                 }}
               >
                 Contact support

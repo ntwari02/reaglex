@@ -108,7 +108,7 @@ export default function TicketingSystem() {
     const styles = {
       low: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
       medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-      high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200',
+      high: 'bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]',
       urgent: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
     };
     return (

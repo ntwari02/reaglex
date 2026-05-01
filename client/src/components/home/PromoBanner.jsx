@@ -25,20 +25,20 @@ function useCountdown(targetHours = 12) {
   return time;
 }
 
-function TimerBlock({ value, label, isDark }) {
+function TimerBlock({ value, label }) {
   return (
     <div className="flex flex-col items-center">
       <div
         className="w-12 h-12 flex items-center justify-center rounded-xl font-black text-xl tabular-nums"
         style={{
-          background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
-          color: isDark ? '#e2e4ed' : '#0f172a',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+          background: 'var(--bg-elevated)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-input)',
         }}
       >
         {String(value).padStart(2, '0')}
       </div>
-      <span className="text-xs mt-1 font-medium" style={{ color: isDark ? '#616680' : '#9ca3af' }}>
+      <span className="text-xs mt-1 font-medium" style={{ color: 'var(--text-muted)' }}>
         {label}
       </span>
     </div>
@@ -57,13 +57,13 @@ export default function PromoBanner() {
     <section
       ref={ref}
       className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-12"
-      style={{ background: isDark ? 'var(--bg-primary, #0d0f1c)' : '#fafafa' }}
+      style={{ background: 'var(--bg-page)' }}
     >
       <motion.div
         className="relative overflow-hidden rounded-3xl"
         style={{
-          background: isDark ? '#0f111a' : '#f4f4f6',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+          background: 'var(--card-bg)',
+          border: '1px solid var(--border-card)',
           minHeight: 340,
         }}
         initial={{ opacity: 0, scale: 0.97 }}
@@ -86,9 +86,7 @@ export default function PromoBanner() {
           <div
             className="absolute inset-0"
             style={{
-              background: isDark
-                ? 'linear-gradient(to right, #0f111a 45%, transparent 100%)'
-                : 'linear-gradient(to right, #f4f4f6 45%, transparent 100%)',
+              background: 'linear-gradient(to right, var(--card-bg) 45%, transparent 100%)',
             }}
           />
         </div>
@@ -96,11 +94,11 @@ export default function PromoBanner() {
         {/* Decorative circles */}
         <div
           className="absolute -right-20 -top-20 w-80 h-80 rounded-full pointer-events-none"
-          style={{ border: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}` }}
+          style={{ border: '1px solid var(--border-subtle)' }}
         />
         <div
           className="absolute -right-8 -bottom-8 w-48 h-48 rounded-full pointer-events-none"
-          style={{ border: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}` }}
+          style={{ border: '1px solid var(--border-subtle)' }}
         />
 
         {/* Content */}
@@ -109,7 +107,7 @@ export default function PromoBanner() {
           <div className="flex-1 text-center lg:text-left">
             <motion.p
               className="text-xs font-bold tracking-[0.22em] uppercase mb-3 flex items-center justify-center lg:justify-start gap-2"
-              style={{ color: isDark ? '#616680' : '#9ca3af' }}
+              style={{ color: 'var(--text-muted)' }}
               initial={{ opacity: 0, y: 12 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.15 }}
@@ -121,7 +119,7 @@ export default function PromoBanner() {
             <motion.h2
               className="font-black leading-none mb-4 whitespace-pre-line"
               style={{
-                color: isDark ? '#e2e4ed' : '#0f172a',
+                color: 'var(--text-primary)',
                 fontSize: 'clamp(2rem, 5vw, 4rem)',
                 fontFamily: "'Times New Roman', Georgia, serif",
                 letterSpacing: '-0.02em',
@@ -135,7 +133,7 @@ export default function PromoBanner() {
 
             <motion.p
               className="text-sm leading-relaxed mb-8 max-w-sm mx-auto lg:mx-0"
-              style={{ color: isDark ? '#616680' : '#6b7280' }}
+              style={{ color: 'var(--text-secondary)' }}
               initial={{ opacity: 0, y: 14 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.55, delay: 0.3 }}
@@ -153,9 +151,9 @@ export default function PromoBanner() {
                 to="/search?sale=true"
                 className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full text-xs font-bold tracking-[0.15em] uppercase transition-all duration-300 hover:gap-5"
                 style={{
-                  background: isDark ? '#e2e4ed' : '#0f172a',
-                  color: isDark ? '#0f111a' : '#fff',
-                  boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.18)',
+                  background: 'var(--gradient-brand-cta)',
+                  color: 'var(--text-on-accent)',
+                  boxShadow: 'var(--shadow-cta)',
                 }}
               >
                 SHOP THE SALE
@@ -166,8 +164,8 @@ export default function PromoBanner() {
                 className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full text-xs font-bold tracking-[0.15em] uppercase transition-all duration-300"
                 style={{
                   background: 'transparent',
-                  color: isDark ? '#9da3be' : '#374151',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)'}`,
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-visible)',
                 }}
               >
                 BROWSE ALL
@@ -184,26 +182,26 @@ export default function PromoBanner() {
           >
             <p
               className="text-xs font-bold tracking-[0.2em] uppercase"
-              style={{ color: isDark ? '#616680' : '#9ca3af' }}
+              style={{ color: 'var(--text-muted)' }}
             >
               Ends In
             </p>
             <div className="flex items-end gap-2">
-              <TimerBlock value={h} label="HRS" isDark={isDark} />
+              <TimerBlock value={h} label="HRS" />
               <span
                 className="font-black text-2xl mb-6"
-                style={{ color: isDark ? '#3d4159' : '#d1d5db' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 :
               </span>
-              <TimerBlock value={m} label="MIN" isDark={isDark} />
+              <TimerBlock value={m} label="MIN" />
               <span
                 className="font-black text-2xl mb-6"
-                style={{ color: isDark ? '#3d4159' : '#d1d5db' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 :
               </span>
-              <TimerBlock value={s} label="SEC" isDark={isDark} />
+              <TimerBlock value={s} label="SEC" />
             </div>
 
             {/* Category quick links */}
@@ -214,9 +212,9 @@ export default function PromoBanner() {
                   to={`/search?category=${cat.toLowerCase()}`}
                   className="px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200"
                   style={{
-                    background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
-                    color: isDark ? '#9da3be' : '#374151',
-                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)'}`,
+                    background: 'var(--btn-ghost-hover-bg)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-card)',
                   }}
                 >
                   {cat}

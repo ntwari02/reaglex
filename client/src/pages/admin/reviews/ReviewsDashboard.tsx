@@ -136,8 +136,8 @@ export default function ReviewsDashboard() {
                 {stats.flaggedReviews}
               </p>
             </div>
-            <div className="rounded-full bg-orange-100 p-3 dark:bg-orange-900/40">
-              <AlertTriangle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            <div className="rounded-full bg-[var(--brand-tint-strong)] p-3 dark:bg-[var(--brand-tint-strong)]">
+              <AlertTriangle className="h-6 w-6 text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]" />
             </div>
           </div>
         </motion.div>

@@ -114,7 +114,7 @@ const Analytics: React.FC = () => {
       change: analyticsData.salesStats.repeatCustomerRate.change,
       trend: analyticsData.salesStats.repeatCustomerRate.trend,
       icon: Users,
-      color: 'from-orange-500 to-red-500',
+      color: 'from-[var(--brand-primary)] to-red-500',
     },
   ] : [];
 
@@ -250,7 +250,7 @@ const Analytics: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-1 p-3 rounded-lg bg-gradient-to-r from-red-500/10 to-orange-500/10 dark:from-red-500/25 dark:to-orange-500/25 border border-red-200 dark:border-red-600/60">
+            <div className="mt-1 p-3 rounded-lg bg-gradient-to-r from-red-500/10 to-[var(--brand-primary)]/10 dark:from-red-500/25 dark:to-[var(--brand-primary)]/25 border border-red-200 dark:border-red-600/60">
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="text-gray-700 dark:text-gray-200 font-medium">
                   Quote Conversion
@@ -261,7 +261,7 @@ const Analytics: React.FC = () => {
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1.5">
                 <div
-                  className="h-1.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500"
+                  className="h-1.5 rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)]"
                   style={{ width: `${rfqStats.rfqConversionRate}%` }}
                 />
               </div>
@@ -417,7 +417,7 @@ const Analytics: React.FC = () => {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">{metric.value}</p>
               </div>
             ))}
-            <div className="p-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 dark:from-red-500/20 dark:to-orange-500/20 rounded-lg border border-red-200 dark:border-red-500/30">
+            <div className="p-4 bg-gradient-to-r from-red-500/10 to-[var(--brand-primary)]/10 dark:from-red-500/20 dark:to-[var(--brand-primary)]/20 rounded-lg border border-red-200 dark:border-red-500/30">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1 transition-colors duration-300">
                 Segmented RFQ & buyer reports
               </p>
@@ -453,7 +453,7 @@ const Analytics: React.FC = () => {
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div 
-                        className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all"
+                        className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] h-2 rounded-full transition-all"
                         style={{ width: `${trafficPercentage}%` }}
                       ></div>
                     </div>

@@ -5,7 +5,7 @@ import { ShoppingBag, Heart, Star, Truck, Eye } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 
 import { SERVER_URL } from '../lib/config';
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
 
 function resolveImg(src) {
@@ -188,7 +188,7 @@ export function SearchProductCard({ product, index = 0 }) {
 
         {/* Card body - padding 16px */}
         <div className="p-4">
-          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-2 bg-orange-50 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-2 bg-[var(--brand-tint)] dark:bg-[var(--brand-tint-strong)] text-[var(--brand-primary)] dark:text-[var(--brand-orange-text)]">
             {category}
           </span>
           <h3 className="font-bold text-[15px] leading-snug line-clamp-2 mb-1 text-gray-900 dark:text-white">

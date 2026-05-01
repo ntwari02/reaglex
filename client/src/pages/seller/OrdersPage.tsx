@@ -522,7 +522,7 @@ const OrdersPage: React.FC = () => {
                       aria-label={`Select order ${order.orderNumber}`}
                     />
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="p-3 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg">
+                      <div className="p-3 bg-gradient-to-br from-red-500 to-[var(--brand-primary)] rounded-lg">
                         <StatusIcon className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
@@ -663,7 +663,7 @@ const OrdersPage: React.FC = () => {
                 {selectedOrder.status === 'processing' && (
                   <Button 
                     onClick={() => handleMarkAsPacked(selectedOrder.id)}
-                    className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                    className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                   >
                     <Package className="w-4 h-4 mr-2" />
                     Mark as Packed
@@ -672,7 +672,7 @@ const OrdersPage: React.FC = () => {
                 {(selectedOrder.status === 'packed' || selectedOrder.status === 'processing') && (
                   <Button 
                     onClick={() => handleMarkAsShipped(selectedOrder.id)}
-                    className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                    className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                   >
                     <Truck className="w-4 h-4 mr-2" />
                     Mark as Shipped
@@ -738,7 +738,7 @@ const OrdersPage: React.FC = () => {
               </Button>
               <Button 
                 onClick={handleSubmitTracking}
-                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Submit
@@ -794,7 +794,7 @@ const OrdersPage: React.FC = () => {
               </Button>
               <Button
                 onClick={handleConfirmBulkShipping}
-                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
               >
                 <Truck className="w-4 h-4 mr-2" />
                 Generate Labels

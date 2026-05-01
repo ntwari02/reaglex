@@ -42,7 +42,7 @@ export default function Cart() {
     LIFESTYLE_IMAGES[activeImg % LIFESTYLE_IMAGES.length];
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ background: '#f9fafb' }}>
+    <div className="h-screen flex overflow-hidden" style={{ background: 'var(--bg-page)' }}>
 
       {/* ════════════════════════════════════════════
           LEFT PANEL — Lifestyle image
@@ -123,13 +123,13 @@ export default function Cart() {
         initial={{ x: 60, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="flex-1 flex flex-col bg-white overflow-hidden"
-        style={{ boxShadow: '-4px 0 40px rgba(0,0,0,0.06)' }}
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{ background: 'var(--card-bg)', boxShadow: '-4px 0 40px rgba(0,0,0,0.06)' }}
       >
         {/* ── Header ── */}
         <div
           className="flex items-center justify-between px-6 py-5 flex-shrink-0"
-          style={{ borderBottom: '1px solid #f3f4f6' }}
+          style={{ borderBottom: '1px solid var(--divider)' }}
         >
           {/* Mobile back */}
           <motion.button
@@ -137,29 +137,29 @@ export default function Cart() {
             onClick={() => navigate(-1)}
             className="md:hidden p-2 rounded-xl hover:bg-gray-50 transition"
           >
-            <ArrowLeft className="w-4 h-4" style={{ color: '#374151' }} />
+            <ArrowLeft className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
           </motion.button>
 
           {/* Arrow icon (desktop) */}
           <motion.div
             whileHover={{ x: 3 }}
             className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl"
-            style={{ background: '#f3f4f6' }}
+            style={{ background: 'var(--bg-tertiary)' }}
           >
-            <ArrowLeft className="w-4 h-4 rotate-180" style={{ color: '#374151' }} />
+            <ArrowLeft className="w-4 h-4 rotate-180" style={{ color: 'var(--text-secondary)' }} />
           </motion.div>
 
           {/* Cart count badge */}
           <div className="flex items-center gap-3">
             <div className="relative">
-              <ShoppingCart className="w-6 h-6" style={{ color: '#111827' }} />
+              <ShoppingCart className="w-6 h-6" style={{ color: 'var(--text-primary)' }} />
               {cartCount > 0 && (
                 <motion.span
                   key={cartCount}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-white flex items-center justify-center font-bold"
-                  style={{ background: '#ff8c42', fontSize: '9px' }}
+                  style={{ background: 'var(--brand-primary)', fontSize: '9px' }}
                 >
                   {cartCount}
                 </motion.span>
@@ -184,15 +184,15 @@ export default function Cart() {
                   animate={{ y: [0, -10, 0] }}
                   transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
                   className="w-16 h-16 rounded-3xl flex items-center justify-center"
-                  style={{ background: '#fff7ed' }}
+                  style={{ background: 'var(--brand-tint-strong)' }}
                 >
-                  <ShoppingCart className="w-8 h-8" style={{ color: '#ff8c42' }} />
+                  <ShoppingCart className="w-8 h-8" style={{ color: 'var(--brand-primary)' }} />
                 </motion.div>
                 <div className="text-center">
-                  <h3 className="font-bold text-lg" style={{ color: '#111827' }}>
+                  <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
                     {t('cart.emptyTitle')}
                   </h3>
-                  <p className="text-sm mt-1" style={{ color: '#9ca3af' }}>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-faint)' }}>
                     {t('cart.emptySubtitle')}
                   </p>
                 </div>
@@ -200,8 +200,8 @@ export default function Cart() {
                   <motion.button
                     whileHover={{ y: -3 }}
                     whileTap={{ scale: 0.97 }}
-                    className="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold"
-                    style={{ background: '#111827' }}
+                    className="px-6 py-2.5 rounded-2xl text-sm font-semibold"
+                    style={{ background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', boxShadow: 'var(--shadow-cta)' }}
                   >
                     {t('cart.browseProducts')}
                   </motion.button>
@@ -215,9 +215,9 @@ export default function Cart() {
               {/* Cart items */}
               <div className="mt-2">
                 <div className="flex items-center justify-between mb-1">
-                  <h2 className="font-bold text-base" style={{ color: '#111827' }}>
+                  <h2 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
                     {t('cart.yourCart')}
-                    <span className="ml-2 text-xs font-normal" style={{ color: '#9ca3af' }}>
+                    <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-faint)' }}>
                       ({cartCount} {cartCount === 1 ? t('cart.itemSingular') : t('cart.itemPlural')})
                     </span>
                   </h2>
@@ -226,7 +226,7 @@ export default function Cart() {
                     whileTap={{ scale: 0.95 }}
                     onClick={clearCart}
                     className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-lg transition"
-                    style={{ color: '#ef4444', background: 'rgba(239,68,68,0.06)' }}
+                    style={{ color: 'var(--badge-error-text)', background: 'var(--badge-error-bg)' }}
                   >
                     <X className="w-3 h-3" />
                     {t('cart.clearAll')}
@@ -260,7 +260,7 @@ export default function Cart() {
               </motion.div>
 
               {/* Divider */}
-              <div className="my-8 border-t border-dashed" style={{ borderColor: '#f3f4f6' }} />
+              <div className="my-8 border-t border-dashed" style={{ borderColor: 'var(--divider)' }} />
 
               {/* Recommended */}
               <motion.div

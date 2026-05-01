@@ -59,8 +59,8 @@ export default function CartDrawer() {
               background: 'var(--bg-secondary)',
               color: 'var(--text-primary)',
               /* Futuristic glowing left edge */
-              borderLeft: '2px solid rgba(249,115,22,0.55)',
-              boxShadow: '-4px 0 0 0 rgba(249,115,22,0.08), -16px 0 48px rgba(249,115,22,0.06), -2px 0 24px rgba(0,0,0,0.18)',
+              borderLeft: '2px solid color-mix(in srgb, var(--brand-primary) 55%, transparent)',
+              boxShadow: '-4px 0 0 0 color-mix(in srgb, var(--brand-primary) 12%, transparent), -16px 0 48px rgba(0,0,0,0.22), -2px 0 24px rgba(0,0,0,0.18)',
             }}
           >
             {/* Futuristic top accent bar */}
@@ -73,7 +73,7 @@ export default function CartDrawer() {
                 position: 'absolute',
                 top: 0, left: 0, right: 0,
                 height: 3,
-                background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.9), rgba(249,115,22,0.4), transparent)',
+                background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 85%, transparent), color-mix(in srgb, var(--brand-primary) 40%, transparent), transparent)',
                 transformOrigin: 'left',
                 zIndex: 30,
               }}
@@ -108,7 +108,7 @@ export default function CartDrawer() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 rounded-full text-white font-bold flex items-center justify-center"
-                        style={{ background: '#ff8c42', fontSize: '9px', padding: '0 3px' }}
+                        style={{ background: 'var(--brand-primary)', fontSize: '9px', padding: '0 3px' }}
                       >
                         {cartCount}
                       </motion.span>
@@ -153,7 +153,7 @@ export default function CartDrawer() {
                         className="w-16 h-16 rounded-3xl flex items-center justify-center"
                         style={{ background: 'var(--brand-tint)' }}
                       >
-                        <ShoppingCart className="w-8 h-8" style={{ color: '#ff8c42' }} />
+                        <ShoppingCart className="w-8 h-8" style={{ color: 'var(--brand-primary)' }} />
                       </motion.div>
                       <div className="text-center">
                         <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
@@ -169,8 +169,8 @@ export default function CartDrawer() {
                         onClick={closeDrawer}
                         className="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold"
                         style={{
-                          background: 'linear-gradient(135deg, #ff8c42, #ff5f00)',
-                          boxShadow: '0 8px 24px rgba(255,140,66,0.35)',
+                          background: 'var(--gradient-brand-cta)',
+                          boxShadow: 'var(--shadow-cta)',
                         }}
                       >
                         Browse Products

@@ -323,8 +323,8 @@ export default function AdminOverview() {
 const getMarkerColor = (growth: number) => {
   if (growth >= 10) return '#22c55e';
   if (growth >= 4) return '#4ade80';
-  if (growth <= -8) return '#f97316';
-  if (growth < 0) return '#fb923c';
+  if (growth <= -8) return 'var(--brand-primary)';
+  if (growth < 0) return 'var(--brand-orange-text)';
   return '#fde047';
 };
 
@@ -333,8 +333,8 @@ const getMarkerLabelTint = (growth: number) => (growth >= 0 ? '#fde68a' : '#fed7
   const heatLegend = [
   { label: 'Accelerating (10%+)', color: '#22c55e' },
   { label: 'Growing (0-10%)', color: '#4ade80' },
-  { label: 'Cooling (0 to -8%)', color: '#fb923c' },
-  { label: 'Declining (≤ -8%)', color: '#f97316' },
+  { label: 'Cooling (0 to -8%)', color: 'var(--brand-orange-text)' },
+  { label: 'Declining (≤ -8%)', color: 'var(--brand-primary)' },
 ];
 const globeTexture = 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
   const bumpTexture = 'https://unpkg.com/three-globe/example/img/earth-topology.png';
@@ -1454,7 +1454,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 <h3 className="font-semibold text-gray-900 dark:text-white">Low Stock Alerts</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Trigger replenishment before listings go dark</p>
           </div>
-              <ListChecks className="w-5 h-5 text-orange-500" />
+              <ListChecks className="w-5 h-5 text-[var(--brand-primary)]" />
             </div>
             <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-xl mb-4">
               <div className="flex items-center gap-2">
@@ -1471,7 +1471,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">SKU {item.sku}</p>
                     </div>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.priority === 'critical' ? 'bg-red-100 text-red-700' : item.priority === 'high' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.priority === 'critical' ? 'bg-red-100 text-red-700' : item.priority === 'high' ? 'bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)]' : 'bg-yellow-100 text-yellow-700'}`}>
                       {item.priority.toUpperCase()}
                     </span>
                   </div>

@@ -141,7 +141,7 @@ const SalesChart: React.FC<SalesChartProps> = ({ data: propData, timeRange = 'we
                 initial={{ height: 0 }}
                 animate={{ height: `${heightPercentage}%` }}
                 transition={{ duration: 0.8, delay: index * 0.1 }}
-                className="w-full bg-gradient-to-t from-red-600 to-orange-500 rounded-t-lg relative group cursor-pointer hover:from-red-500 hover:to-orange-400 transition-all min-h-[4px]"
+                className="w-full bg-gradient-to-t from-red-600 to-[var(--brand-primary)] rounded-t-lg relative group cursor-pointer hover:from-red-500 hover:to-[var(--brand-orange-text)] transition-all min-h-[4px]"
               >
                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
                   ${item.sales.toLocaleString()}

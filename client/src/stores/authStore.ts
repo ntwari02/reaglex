@@ -174,10 +174,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   initialize: async () => {
-    try {
-      const initToken = localStorage.getItem('auth_token');
-      const isStale = () => localStorage.getItem('auth_token') !== initToken;
+    const initToken = localStorage.getItem('auth_token');
+    const isStale = () => localStorage.getItem('auth_token') !== initToken;
 
+    try {
       // Check for stored user from MongoDB backend
       const userStr = localStorage.getItem('user');
       if (userStr) {

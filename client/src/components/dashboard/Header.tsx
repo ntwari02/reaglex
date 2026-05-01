@@ -193,7 +193,7 @@ const Header: React.FC<HeaderProps> = ({
     : {
         focusRing: 'focus:ring-red-500',
         badgeBg: 'bg-red-500',
-        avatarBg: 'bg-gradient-to-br from-red-500 to-orange-500',
+        avatarBg: 'bg-gradient-to-br from-red-500 to-[var(--brand-primary)]',
       };
 
   return (

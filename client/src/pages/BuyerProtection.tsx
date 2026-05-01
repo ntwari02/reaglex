@@ -10,32 +10,32 @@ const PROTECTION_STATS = [
     label: 'Buyer funds protected',
     sub: 'This year',
     icon: '💰',
-    color: '#34d399',
-    gradient: 'linear-gradient(135deg,#22c55e,#16a34a)',
+    color: 'var(--badge-success-text)',
+    gradient: 'var(--accent-success-gradient)',
   },
   {
     title: '94%',
     label: "Disputes resolved for buyer",
     sub: "In buyer's favor",
     icon: '⚖️',
-    color: '#60a5fa',
-    gradient: 'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+    color: 'var(--accent-marketing-text)',
+    gradient: 'var(--accent-marketing-gradient)',
   },
   {
     title: '3,891',
     label: 'Refunds processed',
     sub: 'Last 90 days',
     icon: '💸',
-    color: '#f97316',
-    gradient: 'linear-gradient(135deg,#f97316,#ea580c)',
+    color: 'var(--brand-primary)',
+    gradient: 'var(--gradient-brand-cta)',
   },
   {
     title: '< 48hrs',
     label: 'Dispute resolution',
     sub: 'Average time',
     icon: '⚡',
-    color: '#a78bfa',
-    gradient: 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+    color: 'var(--tab-active-text)',
+    gradient: 'var(--accent-violet-gradient)',
   },
 ];
 
@@ -46,7 +46,7 @@ const HOW_STEPS = [
     title: 'Browse & Purchase',
     desc: 'Find what you love and place your order. Pay securely through Reaglex.',
     badge: 'SSL Encrypted',
-    gradient: 'linear-gradient(135deg,#f97316,#ea580c)',
+    gradient: 'var(--gradient-brand-cta)',
   },
   {
     num: 2,
@@ -54,7 +54,7 @@ const HOW_STEPS = [
     title: 'Funds in Escrow',
     desc: 'Your payment is held safely in our escrow system. The seller cannot access it yet.',
     badge: 'Escrow Protected',
-    gradient: 'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+    gradient: 'var(--accent-marketing-gradient)',
   },
   {
     num: 3,
@@ -70,7 +70,7 @@ const HOW_STEPS = [
     title: 'You Verify Receipt',
     desc: 'Receive your item and confirm everything is as described. You’re satisfied!',
     badge: 'Buyer Verified',
-    gradient: 'linear-gradient(135deg,#22c55e,#16a34a)',
+    gradient: 'var(--accent-success-gradient)',
   },
   {
     num: 5,
@@ -201,7 +201,7 @@ function BuyerProtection() {
           style={{
             padding: '80px 40px',
             background:
-              'linear-gradient(135deg,#0f0c24 0%, #1a0f3a 40%, #0d1f3a 70%, #0a1628 100%)',
+              'var(--hero-marketing-bg)',
           }}
         >
           {/* floating blobs */}
@@ -214,7 +214,7 @@ function BuyerProtection() {
               style={{
                 width: 260,
                 height: 260,
-                background: 'rgba(52,211,153,0.18)',
+                background: 'var(--hero-marketing-blob-c)',
                 filter: 'blur(90px)',
               }}
             />
@@ -226,7 +226,7 @@ function BuyerProtection() {
               style={{
                 width: 280,
                 height: 280,
-                background: 'rgba(249,115,22,0.16)',
+                background: 'var(--hero-marketing-blob-b)',
                 filter: 'blur(90px)',
               }}
             />
@@ -238,7 +238,7 @@ function BuyerProtection() {
               style={{
                 width: 220,
                 height: 220,
-                background: 'rgba(96,165,250,0.20)',
+                background: 'var(--hero-marketing-blob-a)',
                 filter: 'blur(80px)',
               }}
             />
@@ -253,8 +253,8 @@ function BuyerProtection() {
             <div className="inline-flex items-center justify-center">
               <span
                 style={{
-                  background: 'rgba(52,211,153,0.15)',
-                  color: '#34d399',
+                  background: 'var(--hero-marketing-pill-bg)',
+                  color: 'var(--hero-marketing-pill-text)',
                   borderRadius: 999,
                   padding: '6px 16px',
                   fontSize: 13,
@@ -268,7 +268,7 @@ function BuyerProtection() {
             <div className="space-y-3">
               <h1
                 className="font-extrabold leading-tight"
-                style={{ color: '#ffffff', fontSize: 48 }}
+                style={{ color: 'var(--hero-marketing-heading)', fontSize: 48 }}
               >
                 Shop With Complete
               </h1>
@@ -276,16 +276,17 @@ function BuyerProtection() {
                 className="font-extrabold leading-tight"
                 style={{
                   fontSize: 40,
-                  background: 'linear-gradient(135deg,#34d399,#10b981)',
+                  background: 'var(--hero-marketing-line2-gradient)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
                 }}
               >
                 Confidence &amp; Peace of Mind
               </p>
               <p
                 className="mx-auto max-w-xl text-base"
-                style={{ color: 'rgba(255,255,255,0.60)', fontSize: 16 }}
+                style={{ color: 'var(--hero-marketing-subtitle)', fontSize: 16 }}
               >
                 Every purchase on Reaglex is backed by our comprehensive Buyer Protection
                 program. Your money is always safe.
@@ -296,13 +297,15 @@ function BuyerProtection() {
             <motion.div
               className="mx-auto mt-6 flex h-28 w-28 items-center justify-center rounded-[36px]"
               style={{
-                background: 'linear-gradient(135deg,#059669,#047857)',
-                boxShadow: '0 0 60px rgba(52,211,153,0.40)',
+                background: 'var(--hero-marketing-shield-gradient)',
+                boxShadow: 'var(--hero-marketing-shield-shadow)',
               }}
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <span className="text-5xl text-white">🛡️</span>
+              <span className="text-5xl" style={{ color: 'var(--text-on-accent)' }}>
+                🛡️
+              </span>
             </motion.div>
 
             <div className="mt-6 flex flex-wrap justify-center gap-3 text-[13px]">
@@ -311,8 +314,8 @@ function BuyerProtection() {
                   <span
                     key={label}
                     style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      color: 'rgba(255,255,255,0.85)',
+                      background: 'var(--hero-marketing-chip-bg)',
+                      color: 'var(--hero-marketing-chip-text)',
                       borderRadius: 999,
                       padding: '6px 16px',
                       backdropFilter: 'blur(10px)',
@@ -402,7 +405,7 @@ function BuyerProtection() {
               transition={{ duration: 0.45 }}
               className="mx-auto grid max-w-6xl gap-8 rounded-[24px] px-6 py-10 md:grid-cols-[1.2fr_1fr]"
               style={{
-                background: 'linear-gradient(145deg,#1a0f3a 0%,#0d1f3a 100%)',
+                background: 'var(--panel-deep-bg)',
                 boxShadow: 'var(--shadow-xl)',
               }}
             >
@@ -453,7 +456,7 @@ function BuyerProtection() {
                         className="mt-1 flex h-6 w-6 items-center justify-center rounded-full text-xs"
                         style={{
                           background: 'rgba(16,185,129,0.18)',
-                          color: '#22c55e',
+                          color: 'var(--badge-success-text)',
                         }}
                       >
                         ✓
@@ -525,7 +528,7 @@ function BuyerProtection() {
                     </p>
                     <p
                       className="mt-1 text-sm font-bold"
-                      style={{ color: '#22c55e' }}
+                      style={{ color: 'var(--badge-success-text)' }}
                     >
                       $129.00
                     </p>
@@ -556,7 +559,7 @@ function BuyerProtection() {
                     className="absolute left-1/2 top-40 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-2xl"
                     style={{
                       background:
-                        'linear-gradient(135deg,#22c55e,#16a34a)',
+                        'var(--accent-success-gradient)',
                       boxShadow: '0 0 30px rgba(34,197,94,0.6)',
                     }}
                     animate={{ y: [0, -6, 0] }}
@@ -605,7 +608,7 @@ function BuyerProtection() {
                       style={{
                         background: step.gradient,
                         color: '#ffffff',
-                        boxShadow: '0 0 16px rgba(249,115,22,0.45)',
+                        boxShadow: 'var(--shadow-cta-hover)',
                       }}
                     >
                       {step.num}
@@ -632,7 +635,7 @@ function BuyerProtection() {
                       className="mt-2 inline-block rounded-full px-3 py-1 text-[11px] font-semibold"
                       style={{
                         background: 'rgba(16,185,129,0.12)',
-                        color: '#22c55e',
+                        color: 'var(--badge-success-text)',
                       }}
                     >
                       {step.badge}
@@ -645,8 +648,8 @@ function BuyerProtection() {
               <div
                 className="mt-4 rounded-[12px] px-4 py-3 text-sm md:mt-6"
                 style={{
-                  background: 'rgba(249,115,22,0.08)',
-                  color: '#f97316',
+                  background: 'var(--brand-tint)',
+                  color: 'var(--brand-primary)',
                 }}
               >
                 ⚠️ Problem with order?{' '}
@@ -678,7 +681,7 @@ function BuyerProtection() {
                   <div
                     className="flex h-12 w-12 items-center justify-center rounded-full text-2xl"
                     style={{
-                      background: 'linear-gradient(135deg,#22c55e,#16a34a)',
+                      background: 'var(--accent-success-gradient)',
                     }}
                   >
                     🛡️
@@ -686,7 +689,7 @@ function BuyerProtection() {
                   <div>
                     <p
                       className="text-base font-bold"
-                      style={{ color: '#34d399' }}
+                      style={{ color: 'var(--text-in-stock)' }}
                     >
                       ✅ Covered by Protection
                     </p>
@@ -742,7 +745,7 @@ function BuyerProtection() {
                         className="mt-1 flex h-5 w-5 items-center justify-center rounded-full text-[11px]"
                         style={{
                           background: 'rgba(34,197,94,0.18)',
-                          color: '#22c55e',
+                          color: 'var(--badge-success-text)',
                         }}
                       >
                         ✓
@@ -833,8 +836,8 @@ function BuyerProtection() {
                       <div
                         className="mt-1 flex h-5 w-5 items-center justify-center rounded-full text-[11px]"
                         style={{
-                          background: 'rgba(148,163,184,0.25)',
-                          color: '#6b7280',
+                          background: 'color-mix(in srgb, var(--text-muted) 22%, transparent)',
+                          color: 'var(--text-muted)',
                         }}
                       >
                         ✗
@@ -860,9 +863,9 @@ function BuyerProtection() {
                 <div
                   className="mt-4 rounded-[12px] px-4 py-3 text-xs"
                   style={{
-                    background: '#060f22',
-                    boxShadow: 'inset 0 0 0 1px rgba(96,165,250,0.25)',
-                    color: '#60a5fa',
+                    background: 'var(--badge-info-bg)',
+                    boxShadow: 'inset 0 0 0 1px var(--badge-info-border)',
+                    color: 'var(--badge-info-text)',
                   }}
                 >
                   💡 Still have questions about coverage? Contact our support team
@@ -887,7 +890,7 @@ function BuyerProtection() {
               transition={{ duration: 0.45 }}
               className="rounded-[24px] p-8"
               style={{
-                background: 'linear-gradient(145deg,#0a1628,#0d1f3a)',
+                background: 'var(--panel-deep-bg)',
                 boxShadow: 'var(--shadow-xl)',
               }}
             >
@@ -932,7 +935,7 @@ function BuyerProtection() {
                         className="mt-2 inline-block rounded-full px-3 py-1 text-[11px] font-semibold"
                         style={{
                           background: 'rgba(34,197,94,0.18)',
-                          color: '#22c55e',
+                          color: 'var(--badge-success-text)',
                         }}
                       >
                         Bank-level security
@@ -1073,8 +1076,8 @@ function BuyerProtection() {
                       to={s.to || '/account'}
                       className="mt-3 inline-flex rounded-full px-4 py-1.5 text-xs font-semibold"
                       style={{
-                        background: 'linear-gradient(135deg,#f97316,#ea580c)',
-                        color: '#ffffff',
+                        background: 'var(--gradient-brand-cta)',
+                        color: 'var(--text-on-accent)',
                       }}
                     >
                       {s.button}
@@ -1087,7 +1090,7 @@ function BuyerProtection() {
               className="rounded-[16px] px-5 py-4 text-sm"
               style={{
                 background: 'var(--brand-tint)',
-                boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.25)',
+                boxShadow: 'inset 0 0 0 1px var(--brand-border-subtle)',
               }}
             >
               <p
@@ -1107,7 +1110,7 @@ function BuyerProtection() {
                   <li key={t} className="flex gap-2">
                     <span
                       className="mt-1 h-1.5 w-1.5 rounded-full"
-                      style={{ background: '#f97316' }}
+                      style={{ background: 'var(--brand-primary)' }}
                     />
                     <span>{t}</span>
                   </li>
@@ -1209,7 +1212,7 @@ function BuyerProtection() {
                     className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
                     style={{
                       background: 'rgba(34,197,94,0.18)',
-                      color: '#22c55e',
+                      color: 'var(--badge-success-text)',
                     }}
                   >
                     FREE
@@ -1247,7 +1250,7 @@ function BuyerProtection() {
                 transition={{ duration: 4, repeat: Infinity, repeatType: 'mirror' }}
                 className="rounded-[24px] p-8"
                 style={{
-                  background: 'linear-gradient(145deg,#1a0f3a,#0d1f3a)',
+                  background: 'var(--panel-deep-bg)',
                   boxShadow:
                     'var(--shadow-xl), 0 0 0 2px rgba(52,211,153,0.40)',
                 }}
@@ -1255,7 +1258,7 @@ function BuyerProtection() {
                 <div className="mb-4 flex justify-center">
                   <span
                     className="inline-flex rounded-full px-4 py-1 text-xs font-semibold"
-                    style={{ background: '#34d399', color: '#ffffff' }}
+                    style={{ background: 'var(--text-in-stock)', color: 'var(--text-on-accent)' }}
                   >
                     BEST PROTECTION
                   </span>
@@ -1280,7 +1283,7 @@ function BuyerProtection() {
                     className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
                     style={{
                       background: 'rgba(34,197,94,0.18)',
-                      color: '#22c55e',
+                      color: 'var(--badge-success-text)',
                     }}
                   >
                     FREE
@@ -1389,7 +1392,7 @@ function BuyerProtection() {
                   >
                     <div
                       className="pointer-events-none absolute left-5 top-1 text-6xl font-serif"
-                      style={{ color: 'rgba(249,115,22,0.15)' }}
+                      style={{ color: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)' }}
                     >
                       “
                     </div>
@@ -1410,7 +1413,7 @@ function BuyerProtection() {
                       className="mt-3 inline-block rounded-full px-3 py-1 text-[11px] font-semibold"
                       style={{
                         background: 'rgba(34,197,94,0.12)',
-                        color: '#22c55e',
+                        color: 'var(--badge-success-text)',
                         boxShadow: 'inset 0 0 0 1px rgba(34,197,94,0.25)',
                       }}
                     >
@@ -1420,8 +1423,8 @@ function BuyerProtection() {
                       <div
                         className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
                         style={{
-                          background: 'linear-gradient(135deg,#f97316,#fb923c)',
-                          color: '#ffffff',
+                          background: 'var(--gradient-brand-cta)',
+                          color: 'var(--text-on-accent)',
                         }}
                       >
                         {t.name
@@ -1442,7 +1445,7 @@ function BuyerProtection() {
                           style={{ color: 'var(--text-muted)' }}
                         >
                           {t.location} •{' '}
-                          <span style={{ color: '#22c55e' }}>Verified Buyer</span>
+                          <span style={{ color: 'var(--badge-success-text)' }}>Verified Buyer</span>
                         </p>
                       </div>
                     </div>
@@ -1458,7 +1461,7 @@ function BuyerProtection() {
                     className="h-2 w-2 rounded-full"
                     style={{
                       background:
-                        carouselIndex === i ? '#f97316' : 'var(--divider)',
+                        carouselIndex === i ? 'var(--brand-primary)' : 'var(--divider)',
                     }}
                   />
                 ))}

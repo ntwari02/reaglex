@@ -94,7 +94,7 @@ export default function ProductGrid({ searchQuery = '' }) {
               color: 'var(--text-primary)',
             }}
           >
-            <SlidersHorizontal className="w-4 h-4" style={{ color: '#ff8c42' }} />
+            <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
             {currentSort}
             <ChevronDown className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
           </motion.button>
@@ -119,7 +119,7 @@ export default function ProductGrid({ searchQuery = '' }) {
                     onClick={() => { setSort(opt.value); setShowSortMenu(false); }}
                     className="block w-full px-4 py-2.5 text-left text-sm transition"
                     style={{
-                      color: sort === opt.value ? '#ff8c42' : 'var(--text-secondary)',
+                      color: sort === opt.value ? 'var(--brand-primary)' : 'var(--text-secondary)',
                       fontWeight: sort === opt.value ? 600 : 400,
                       background: sort === opt.value ? 'var(--bg-active)' : 'transparent',
                     }}
@@ -148,7 +148,7 @@ export default function ProductGrid({ searchQuery = '' }) {
           <button
             onClick={fetchProducts}
             className="px-6 py-2.5 rounded-2xl text-white text-sm font-semibold"
-            style={{ background: 'linear-gradient(135deg, #ff8c42, #ff5f00)' }}
+            style={{ background: 'var(--gradient-brand-cta)' }}
           >
             {t('buttons.retry')}
           </button>
@@ -238,9 +238,9 @@ export default function ProductGrid({ searchQuery = '' }) {
                 onClick={() => setPage(p)}
                 className="w-9 h-9 rounded-xl text-sm font-semibold"
                 style={{
-                  background: page === p ? 'linear-gradient(135deg, #ff8c42, #ff5f00)' : 'var(--card-bg)',
+                  background: page === p ? 'var(--gradient-brand-cta)' : 'var(--card-bg)',
                   color: page === p ? 'white' : 'var(--text-secondary)',
-                  boxShadow: page === p ? '0 4px 14px rgba(255,140,66,0.35)' : 'var(--shadow-sm)',
+                  boxShadow: page === p ? 'var(--shadow-cta)' : 'var(--shadow-sm)',
                   border: page === p ? 'none' : '1px solid var(--border-card)',
                 }}
               >

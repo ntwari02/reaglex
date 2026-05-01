@@ -8,8 +8,8 @@ import {
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useToastStore } from '../stores/toastStore';
 
-const PRIMARY = '#f97316';
-const SUCCESS = '#10b981';
+const PRIMARY = 'var(--brand-primary)';
+const SUCCESS = 'var(--text-in-stock)';
 const EASE = [0.25, 0.46, 0.45, 0.94];
 
 const PROGRESS_STEPS = [
@@ -85,7 +85,7 @@ export default function OrderTracking() {
           className="w-full px-4 sm:px-8 py-6 flex items-center justify-between flex-wrap gap-4"
           style={{
             minHeight: 120,
-            background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 60%, #f97316 100%)',
+            background: 'linear-gradient(135deg, var(--navbar-bg) 0%, var(--bg-tertiary) 55%, var(--brand-primary) 100%)',
             boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
           }}
         >
@@ -101,7 +101,7 @@ export default function OrderTracking() {
             <motion.span className="text-4xl" animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}>🚚</motion.span>
             <span
               className="px-4 py-2 rounded-full text-sm font-bold text-white track-pulse-ring"
-              style={{ background: PRIMARY, boxShadow: '0 0 0 0 rgba(249,115,22,0.4)' }}
+              style={{ background: PRIMARY, boxShadow: 'var(--shadow-cta)' }}
             >
               In Transit
             </span>
@@ -122,7 +122,7 @@ export default function OrderTracking() {
               className="rounded-2xl p-6 bg-[var(--card-bg)] overflow-hidden track-card track-main-card"
               style={{ boxShadow: 'var(--shadow-md)' }}
             >
-              <h2 className="font-bold text-base mb-6" style={{ color: '#111827' }}>Delivery Progress</h2>
+              <h2 className="font-bold text-base mb-6" style={{ color: 'var(--text-primary)' }}>Delivery Progress</h2>
 
               {/* Horizontal step progress bar - scrollable on small screens */}
               <div className="mb-8 relative overflow-x-auto scrollbar-hide">
@@ -141,9 +141,9 @@ export default function OrderTracking() {
                           style={{
                             background: current || completed ? PRIMARY : 'var(--bg-tertiary)',
                             boxShadow: current
-                              ? '0 0 16px rgba(249,115,22,0.50)'
+                              ? 'var(--shadow-cta-hover)'
                               : completed
-                              ? '0 0 0 4px rgba(249,115,22,0.18)'
+                              ? '0 0 0 4px color-mix(in srgb, var(--brand-primary) 18%, transparent)'
                               : 'none',
                           }}
                         >
@@ -205,9 +205,9 @@ export default function OrderTracking() {
                       style={{
                         background: step.done || step.active ? PRIMARY : 'var(--bg-tertiary)',
                         boxShadow: step.active
-                          ? '0 0 20px rgba(249,115,22,0.50)'
+                          ? 'var(--shadow-cta-hover)'
                           : step.done
-                          ? '0 0 12px rgba(249,115,22,0.35)'
+                          ? 'var(--shadow-cta)'
                           : 'none',
                       }}
                     >
@@ -216,7 +216,7 @@ export default function OrderTracking() {
                       ) : (
                         <step.icon
                           className="w-6 h-6"
-                          style={{ color: step.active || step.done ? '#ffffff' : 'var(--text-faint)' }}
+                          style={{ color: step.active || step.done ? 'var(--text-on-accent)' : 'var(--text-faint)' }}
                         />
                       )}
                     </div>
@@ -297,7 +297,7 @@ export default function OrderTracking() {
                 <div
                   className="absolute left-[60%] top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[var(--card-bg)] shadow-lg track-map-truck flex items-center justify-center"
                   style={{
-                    boxShadow: '0 0 20px rgba(249,115,22,0.50)',
+                    boxShadow: 'var(--shadow-cta-hover)',
                   }}
                 >
                   <Truck className="w-6 h-6" style={{ color: PRIMARY }} />
@@ -333,7 +333,7 @@ export default function OrderTracking() {
               style={{ boxShadow: 'var(--shadow-md)' }}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-base" style={{ color: '#111827' }}>
+                <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
                   Order Summary
                 </h3>
                 <span
@@ -400,7 +400,7 @@ export default function OrderTracking() {
               className="rounded-2xl p-5 bg-[var(--card-bg)] transition-shadow hover:shadow-lg track-card"
               style={{ boxShadow: 'var(--shadow-md)' }}
             >
-              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>SELLER</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>SELLER</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg" style={{ background: 'linear-gradient(135deg,#7c3aed,#a78bfa)' }}>P</div>
                 <div>
@@ -410,7 +410,7 @@ export default function OrderTracking() {
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     ⭐ 4.9 · 247 sales
                   </p>
-                  <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: '#10b981' }}>🟢 Online Now</p>
+                  <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-in-stock)' }}>🟢 Online Now</p>
                 </div>
               </div>
               <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
@@ -427,7 +427,7 @@ export default function OrderTracking() {
               className="rounded-2xl p-5 bg-[var(--card-bg)] track-card"
               style={{ boxShadow: 'var(--shadow-md)' }}
             >
-              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>Shipping To</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>Shipping To</p>
               <div className="flex gap-2">
                 <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: PRIMARY }} />
                 <div>
@@ -451,23 +451,23 @@ export default function OrderTracking() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.15, duration: 0.4, ease: EASE }}
               className="rounded-2xl p-5 border-l-4 flex gap-3"
-              style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', borderLeftColor: SUCCESS }}
+              style={{ background: 'color-mix(in srgb, var(--badge-success-bg) 55%, var(--card-bg))', borderLeftColor: SUCCESS }}
             >
               <motion.span className="text-2xl flex-shrink-0 track-lock-rock" style={{ display: 'inline-block' }}>🛡️</motion.span>
               <div>
-                <p className="font-bold text-base" style={{ color: '#047857' }}>
+                <p className="font-bold text-base" style={{ color: 'var(--badge-success-text)' }}>
                   Escrow Protection Active
                 </p>
-                <p className="text-xs mt-1" style={{ color: '#6b7280' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                   Payment is held securely. Funds released when you confirm delivery.
                 </p>
-                <p className="text-xs font-semibold mt-3" style={{ color: '#374151' }}>
+                <p className="text-xs font-semibold mt-3" style={{ color: 'var(--text-secondary)' }}>
                   Funds released when: You confirm delivery
                 </p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <span className="px-2 py-1 rounded-lg text-xs font-medium text-white" style={{ background: SUCCESS }}>Held ✓</span>
-                  <span className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: '#e5e7eb', color: '#6b7280' }}>Delivered</span>
-                  <span className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: '#e5e7eb', color: '#6b7280' }}>Released to Seller</span>
+                  <span className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: 'var(--bg-badge)', color: 'var(--text-muted)' }}>Delivered</span>
+                  <span className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: 'var(--bg-badge)', color: 'var(--text-muted)' }}>Released to Seller</span>
                 </div>
               </div>
             </motion.div>
@@ -483,17 +483,17 @@ export default function OrderTracking() {
                 <motion.a href="https://www.dhl.com/track" target="_blank" rel="noopener noreferrer" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 min-w-0 sm:min-w-[140px] py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-shadow hover:shadow-lg" style={{ background: PRIMARY }}>
                   🚚 Track on Carrier
                 </motion.a>
-                <motion.button type="button" onClick={() => isDelivered && setConfirmModal(true)} disabled={!isDelivered} whileHover={isDelivered ? { scale: 1.02 } : {}} whileTap={isDelivered ? { scale: 0.98 } : {}} className="flex-1 min-w-0 sm:min-w-[140px] py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-lg" style={{ background: isDelivered ? SUCCESS : '#9ca3af' }}>
+                <motion.button type="button" onClick={() => isDelivered && setConfirmModal(true)} disabled={!isDelivered} whileHover={isDelivered ? { scale: 1.02 } : {}} whileTap={isDelivered ? { scale: 0.98 } : {}} className="flex-1 min-w-0 sm:min-w-[140px] py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-lg" style={{ background: isDelivered ? SUCCESS : 'var(--text-faint)' }}>
                   ✓ Confirm Delivery
                 </motion.button>
-                <motion.button type="button" onClick={() => setChatOpen(true)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 min-w-0 sm:min-w-[120px] py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-[var(--card-bg)] border-2 transition-shadow hover:shadow-md" style={{ color: '#374151', borderColor: '#e5e7eb' }}>
+                <motion.button type="button" onClick={() => setChatOpen(true)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 min-w-0 sm:min-w-[120px] py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-[var(--card-bg)] border-2 transition-shadow hover:shadow-md" style={{ color: 'var(--text-secondary)', borderColor: 'var(--divider)' }}>
                   <MessageSquare className="w-4 h-4" /> Message Seller
                 </motion.button>
               </div>
               <div className="flex flex-wrap gap-3 text-sm">
-                <Link to="/returns" className="px-3 py-2 rounded-xl border-2 font-medium hover:scale-[1.02] transition-transform" style={{ borderColor: '#ef4444', color: '#ef4444' }}>Request Return</Link>
-                <button type="button" className="px-3 py-2 rounded-xl border-2 border-gray-300 font-medium hover:scale-[1.02] transition-transform" style={{ color: '#6b7280' }}>Report Problem</button>
-                <button type="button" className="px-3 py-2 rounded-xl border-2 border-gray-300 font-medium hover:scale-[1.02] transition-transform flex items-center gap-1" style={{ color: '#6b7280' }}><Download className="w-4 h-4" /> Download Invoice</button>
+                <Link to="/returns" className="px-3 py-2 rounded-xl border-2 font-medium hover:scale-[1.02] transition-transform" style={{ borderColor: 'var(--badge-error-text)', color: 'var(--badge-error-text)' }}>Request Return</Link>
+                <button type="button" className="px-3 py-2 rounded-xl border-2 border-gray-300 font-medium hover:scale-[1.02] transition-transform" style={{ color: 'var(--text-muted)' }}>Report Problem</button>
+                <button type="button" className="px-3 py-2 rounded-xl border-2 border-gray-300 font-medium hover:scale-[1.02] transition-transform flex items-center gap-1" style={{ color: 'var(--text-muted)' }}><Download className="w-4 h-4" /> Download Invoice</button>
               </div>
             </motion.div>
 
@@ -505,7 +505,7 @@ export default function OrderTracking() {
               className="rounded-2xl p-5 bg-[var(--card-bg)] track-card"
               style={{ boxShadow: 'var(--shadow-md)' }}
             >
-              <h3 className="font-bold text-sm mb-4" style={{ color: '#111827' }}>
+              <h3 className="font-bold text-sm mb-4" style={{ color: 'var(--text-primary)' }}>
                 Delivery Notifications
               </h3>
               {['sms', 'email', 'push'].map((key) => (
@@ -536,13 +536,13 @@ export default function OrderTracking() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.3, duration: 0.4, ease: EASE }}
               className="rounded-2xl p-5"
-              style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)' }}
+              style={{ background: 'color-mix(in srgb, var(--badge-info-bg) 50%, var(--card-bg))' }}
             >
-              <h3 className="font-bold text-sm mb-3" style={{ color: '#1e40af' }}>Need Help with this order?</h3>
+              <h3 className="font-bold text-sm mb-3" style={{ color: 'var(--badge-info-text)' }}>Need Help with this order?</h3>
               <div className="flex flex-wrap gap-2">
-                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border border-blue-200 transition-colors" style={{ color: '#1e40af' }}>📦 Where&apos;s my package?</button>
-                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border border-blue-200 transition-colors" style={{ color: '#1e40af' }}>🔄 How to return?</button>
-                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border border-blue-200 transition-colors" style={{ color: '#1e40af' }}>💬 Contact Support</button>
+                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border transition-colors" style={{ color: 'var(--badge-info-text)', borderColor: 'var(--badge-info-border)' }}>📦 Where&apos;s my package?</button>
+                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border transition-colors" style={{ color: 'var(--badge-info-text)', borderColor: 'var(--badge-info-border)' }}>🔄 How to return?</button>
+                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border transition-colors" style={{ color: 'var(--badge-info-text)', borderColor: 'var(--badge-info-border)' }}>💬 Contact Support</button>
               </div>
             </motion.div>
           </motion.div>
@@ -556,10 +556,10 @@ export default function OrderTracking() {
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2, ease: EASE }} className="rounded-2xl p-6 bg-[var(--card-bg)] shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
               {!confirmSuccess ? (
                 <>
-                  <p className="font-bold text-lg" style={{ color: '#111827' }}>Are you sure you received your order?</p>
-                  <p className="text-sm mt-2" style={{ color: '#6b7280' }}>Once confirmed, payment is released to the seller.</p>
+                  <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Are you sure you received your order?</p>
+                  <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Once confirmed, payment is released to the seller.</p>
                   <div className="flex gap-3 mt-6">
-                    <motion.button type="button" onClick={() => setConfirmModal(false)} className="flex-1 py-3 rounded-xl font-semibold border-2" style={{ borderColor: '#e5e7eb', color: '#374151' }}>Cancel</motion.button>
+                    <motion.button type="button" onClick={() => setConfirmModal(false)} className="flex-1 py-3 rounded-xl font-semibold border-2" style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}>Cancel</motion.button>
                     <motion.button type="button" onClick={handleConfirmDelivery} className="flex-1 py-3 rounded-xl font-semibold text-white" style={{ background: PRIMARY }}>Yes, Confirm Receipt</motion.button>
                   </div>
                 </>
@@ -568,8 +568,8 @@ export default function OrderTracking() {
                   <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: SUCCESS }}>
                     <Check className="w-8 h-8 text-white" strokeWidth={3} />
                   </div>
-                  <p className="font-bold text-lg" style={{ color: '#111827' }}>Delivery confirmed!</p>
-                  <p className="text-sm" style={{ color: '#6b7280' }}>Payment has been released to the seller.</p>
+                  <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Delivery confirmed!</p>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Payment has been released to the seller.</p>
                 </motion.div>
               )}
             </motion.div>
@@ -583,10 +583,10 @@ export default function OrderTracking() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={() => setChatOpen(false)}>
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-[var(--card-bg)] shadow-2xl rounded-l-2xl p-6" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg" style={{ color: '#111827' }}>Message Seller</h3>
+                <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Message Seller</h3>
                 <button type="button" onClick={() => setChatOpen(false)} className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)]">✕</button>
               </div>
-              <p className="text-sm" style={{ color: '#6b7280' }}>Chat with Premium Store about your order.</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Chat with Premium Store about your order.</p>
               <Link to="/messages" className="inline-block mt-4 px-4 py-2 rounded-xl font-semibold text-white" style={{ background: PRIMARY }}>Open Messages</Link>
             </motion.div>
           </motion.div>

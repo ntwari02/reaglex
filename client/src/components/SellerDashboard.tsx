@@ -82,7 +82,7 @@ const SellerDashboard: React.FC = () => {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--brand-primary)] border-t-transparent" />
           <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
             Restoring your session...
           </p>

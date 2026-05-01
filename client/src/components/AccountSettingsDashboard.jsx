@@ -12,7 +12,7 @@ import {
   updateRecommendationEmailPreference,
 } from '../services/recommendationEmailApi';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const SUCCESS = '#10b981';
 const ERROR = '#ef4444';
 const WARNING = '#f59e0b';
@@ -400,7 +400,7 @@ export default function AccountSettingsDashboard() {
                           background: isActive ? PRIMARY : 'transparent',
                           color: isActive ? '#ffffff' : 'var(--text-muted)',
                           boxShadow: isActive
-                            ? '0 4px 12px rgba(249,115,22,0.35)'
+                            ? 'var(--shadow-cta)'
                             : 'none',
                         }}
                       >
@@ -448,12 +448,12 @@ export default function AccountSettingsDashboard() {
                 className="relative h-[120px]"
                 style={{
                   background:
-                    'linear-gradient(135deg,#1a0f3a 0%,#0d1f3a 50%,#111420 100%)',
+                    'var(--panel-deep-bg)',
                 }}
               >
                 <div
                   className="absolute -top-10 -left-10 w-40 h-40 rounded-full"
-                  style={{ background: 'rgba(249,115,22,0.12)', filter: 'blur(40px)' }}
+                  style={{ background: 'var(--brand-tint-strong)', filter: 'blur(40px)' }}
                 />
                 <div
                   className="absolute -bottom-12 right-0 w-52 h-52 rounded-full"
@@ -625,7 +625,7 @@ export default function AccountSettingsDashboard() {
                       className="h-full rounded-full"
                       style={{
                         background:
-                          'linear-gradient(135deg,#f97316,#fb923c)',
+                          'var(--gradient-brand-cta)',
                       }}
                     />
                   </motion.div>
@@ -649,7 +649,7 @@ export default function AccountSettingsDashboard() {
                         }}
                         className="px-2 py-1 rounded-lg text-xs font-medium"
                         style={{
-                          background: 'rgba(249,115,22,0.08)',
+                          background: 'var(--brand-tint)',
                           color: PRIMARY,
                         }}
                       >
@@ -662,7 +662,7 @@ export default function AccountSettingsDashboard() {
                         onClick={() => setProfileEdit(true)}
                         className="px-2 py-1 rounded-lg text-xs font-medium"
                         style={{
-                          background: 'rgba(249,115,22,0.08)',
+                          background: 'var(--brand-tint)',
                           color: PRIMARY,
                         }}
                       >
@@ -675,7 +675,7 @@ export default function AccountSettingsDashboard() {
                         onClick={() => setProfileEdit(true)}
                         className="px-2 py-1 rounded-lg text-xs font-medium"
                         style={{
-                          background: 'rgba(249,115,22,0.08)',
+                          background: 'var(--brand-tint)',
                           color: PRIMARY,
                         }}
                       >
@@ -715,7 +715,7 @@ export default function AccountSettingsDashboard() {
                           <select
                             value={profileForm[f.key] || ''}
                             onChange={(e) => handleProfileChange(f.key, e.target.value)}
-                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/30"
+                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
                             style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                           >
                             <option value="">Select</option>
@@ -728,7 +728,7 @@ export default function AccountSettingsDashboard() {
                           <select
                             value={profileForm.country || 'RW'}
                             onChange={(e) => handleProfileChange('country', e.target.value)}
-                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/30"
+                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
                             style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                           >
                             {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
@@ -741,7 +741,7 @@ export default function AccountSettingsDashboard() {
                             type={f.type}
                             value={profileForm[f.key] || ''}
                             onChange={(e) => handleProfileChange(f.key, e.target.value)}
-                            className="w-full h-12 pl-10 pr-10 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/30"
+                            className="w-full h-12 pl-10 pr-10 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
                             style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                           />
                           {profileForm[f.key] && <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />}
@@ -768,10 +768,10 @@ export default function AccountSettingsDashboard() {
                       onChange={(e) => handleProfileChange('bio', e.target.value.slice(0, 200))}
                       rows={4}
                       placeholder="Tell buyers and sellers about yourself..."
-                      className="w-full px-4 py-3 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/30 resize-y min-h-[100px]"
+                      className="w-full px-4 py-3 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] resize-y min-h-[100px]"
                       style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                     />
-                    <span className={`absolute bottom-2 right-3 text-xs ${profileForm.bio.length >= 200 ? 'text-red-500' : profileForm.bio.length >= 180 ? 'text-orange-500' : 'text-gray-400'}`}>
+                    <span className={`absolute bottom-2 right-3 text-xs ${profileForm.bio.length >= 200 ? 'text-red-500' : profileForm.bio.length >= 180 ? 'text-[var(--brand-primary)]' : 'text-gray-400'}`}>
                       {profileForm.bio.length} / 200
                     </span>
                   </div>
@@ -916,7 +916,7 @@ export default function AccountSettingsDashboard() {
               className="rounded-[20px] px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
               style={{
                 background:
-                  'linear-gradient(135deg,#1a0f3a 0%,#0d1f3a 50%,#111420 100%)',
+                  'var(--panel-deep-bg)',
                 boxShadow: '0 18px 45px rgba(0,0,0,0.5)',
               }}
             >
@@ -925,7 +925,7 @@ export default function AccountSettingsDashboard() {
                   <div
                     className="w-12 h-12 rounded-full flex items-center justify-center"
                     style={{
-                      background: 'rgba(249,115,22,0.15)',
+                      background: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
                     }}
                   >
                     <span style={{ fontSize: 26 }}>🔔</span>
@@ -962,10 +962,10 @@ export default function AccountSettingsDashboard() {
                     }}
                     className="relative w-11 h-6 rounded-full"
                     style={{
-                      background: pauseAll ? 'rgba(15,23,42,0.8)' : '#f97316',
+                      background: pauseAll ? 'rgba(15,23,42,0.8)' : 'var(--brand-primary)',
                       boxShadow: pauseAll
                         ? 'inset 0 0 0 1px rgba(148,163,184,0.5)'
-                        : '0 0 8px rgba(249,115,22,0.45)',
+                        : '0 0 8px color-mix(in srgb, var(--brand-primary) 45%, transparent)',
                     }}
                   >
                     <motion.div
@@ -978,8 +978,8 @@ export default function AccountSettingsDashboard() {
                 <div
                   className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
                   style={{
-                    background: 'rgba(249,115,22,0.15)',
-                    color: '#f97316',
+                    background: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
+                    color: 'var(--brand-primary)',
                   }}
                 >
                   <span>{pauseAll ? '0' : activeNotifCount}</span>
@@ -1010,7 +1010,7 @@ export default function AccountSettingsDashboard() {
                       className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
                       style={{
                         background:
-                          'linear-gradient(135deg,#f97316,#ea580c)',
+                          'var(--gradient-brand-cta)',
                         color: '#ffffff',
                       }}
                     >
@@ -1092,8 +1092,8 @@ export default function AccountSettingsDashboard() {
                           <div
                             className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center text-xs"
                             style={{
-                              background: 'rgba(249,115,22,0.12)',
-                              color: '#f97316',
+                              background: 'var(--brand-tint-strong)',
+                              color: 'var(--brand-primary)',
                             }}
                           >
                             📦
@@ -1124,10 +1124,10 @@ export default function AccountSettingsDashboard() {
                             className="relative w-11 h-6 rounded-full"
                             style={{
                               background: isOn
-                                ? '#f97316'
+                                ? 'var(--brand-primary)'
                                 : 'rgba(148,163,184,0.4)',
                               boxShadow: isOn
-                                ? '0 0 8px rgba(249,115,22,0.40)'
+                                ? '0 0 8px color-mix(in srgb, var(--brand-primary) 40%, transparent)'
                                 : 'none',
                             }}
                           >
@@ -1432,9 +1432,9 @@ export default function AccountSettingsDashboard() {
                 className="px-5 py-2 rounded-[12px] font-semibold text-sm text-white flex items-center gap-2"
                 style={{
                   background:
-                    'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                    'var(--gradient-brand-cta)',
                   boxShadow:
-                    '0 6px 24px rgba(249,115,22,0.40),0 2px 8px rgba(249,115,22,0.25)',
+                    'var(--shadow-cta-hover), var(--shadow-cta)',
                 }}
               >
                 Save Preferences →

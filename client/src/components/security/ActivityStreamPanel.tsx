@@ -11,7 +11,7 @@ const severityStyle: Record<
   info: { bar: 'border-l-cyan-500/60', badge: 'bg-cyan-500/15 text-cyan-200' },
   low: { bar: 'border-l-emerald-500/50', badge: 'bg-emerald-500/15 text-emerald-200' },
   medium: { bar: 'border-l-amber-500/60', badge: 'bg-amber-500/15 text-amber-200' },
-  high: { bar: 'border-l-orange-500/70', badge: 'bg-orange-500/20 text-orange-100' },
+  high: { bar: 'border-l-[color-mix(in_srgb,var(--brand-primary)_70%,transparent)]', badge: 'bg-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)] text-[var(--text-on-accent)]' },
   critical: { bar: 'border-l-red-500', badge: 'bg-red-500/25 text-red-100' },
 };
 

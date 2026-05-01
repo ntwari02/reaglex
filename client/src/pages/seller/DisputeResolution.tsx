@@ -353,7 +353,7 @@ const DisputeResolution: React.FC = () => {
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; color: string; icon: any }> = {
       'new': { label: 'Open', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: AlertCircle },
-      'seller_response': { label: 'Awaiting Seller Response', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: Clock },
+      'seller_response': { label: 'Awaiting Seller Response', color: 'bg-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)] text-[var(--brand-orange-text)] border-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]', icon: Clock },
       'buyer_response': { label: 'Awaiting Buyer Response', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: Clock },
       'under_review': { label: 'Under Review', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: MessageSquare },
       'resolved': { label: 'Resolved', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle },
@@ -527,7 +527,7 @@ const DisputeResolution: React.FC = () => {
         </div>
         <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700/30">
           <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Awaiting Your Response</p>
-          <p className="text-3xl font-bold text-orange-500 dark:text-orange-400">{stats.awaitingResponse}</p>
+          <p className="text-3xl font-bold text-[var(--brand-primary)] dark:text-[var(--brand-orange-text)]">{stats.awaitingResponse}</p>
         </div>
         <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700/30">
           <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Under Review</p>
@@ -666,7 +666,7 @@ const DisputeResolution: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                         className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-                          needsAction ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''
+                          needsAction ? 'bg-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:bg-[var(--brand-tint)]' : ''
                         }`}
                       >
                         <td className="py-3 px-4">
@@ -684,7 +684,7 @@ const DisputeResolution: React.FC = () => {
                                 className="w-8 h-8 rounded-full object-cover"
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-teal-500 flex items-center justify-center">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-teal-500 flex items-center justify-center">
                                 <User className="w-4 h-4 text-white" />
                               </div>
                             )}
@@ -719,7 +719,7 @@ const DisputeResolution: React.FC = () => {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             {needsAction && (
-                              <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                              <div className="flex items-center gap-1 text-xs text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]">
                                 <AlertCircle className="w-3 h-3" />
                                 {deadline && (
                                   <span className={deadline.urgent ? 'font-bold' : ''}>{deadline.text}</span>
@@ -826,8 +826,8 @@ const DisputeResolution: React.FC = () => {
                   </div>
                   {getNextAction(selectedDispute).deadline && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Clock className="w-4 h-4 text-orange-500" />
-                      <span className="text-orange-600 dark:text-orange-400">
+                      <Clock className="w-4 h-4 text-[var(--brand-primary)]" />
+                      <span className="text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]">
                         Response deadline: {new Date(getNextAction(selectedDispute).deadline!).toLocaleString()}
                       </span>
                     </div>
@@ -1016,7 +1016,7 @@ const DisputeResolution: React.FC = () => {
               <Button
                 onClick={handleSubmitResponse}
                 disabled={!responseText.trim() || submittingResponse}
-                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
               >
                 {submittingResponse ? 'Submitting...' : 'Submit Response'}
               </Button>
@@ -1099,7 +1099,7 @@ const DisputeResolution: React.FC = () => {
                 <Button
                   onClick={handleSubmitEvidence}
                 disabled={(evidenceFiles.length === 0 && !evidenceNotes.trim()) || uploadingEvidence}
-                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                  className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                 >
                 {uploadingEvidence ? 'Uploading...' : 'Submit Evidence'}
                 </Button>

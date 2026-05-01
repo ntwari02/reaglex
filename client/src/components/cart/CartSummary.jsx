@@ -24,7 +24,7 @@ export default function CartSummary({ subtotal, onCheckout }) {
         }}
       >
         <div className="flex items-center gap-2 mb-2.5">
-          <Truck className="w-4 h-4" style={{ color: shippingFree ? '#22c55e' : 'var(--text-muted)' }} />
+          <Truck className="w-4 h-4" style={{ color: shippingFree ? 'var(--text-in-stock)' : 'var(--text-muted)' }} />
           <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
             {shippingFree
               ? '🎉 Congrats! You get free standard shipping.'
@@ -42,8 +42,8 @@ export default function CartSummary({ subtotal, onCheckout }) {
             className="h-full rounded-full"
             style={{
               background: shippingFree
-                ? 'linear-gradient(90deg, #22c55e, #16a34a)'
-                : 'linear-gradient(90deg, #ff8c42, #ff5f00)',
+                ? 'var(--accent-success-gradient)'
+                : 'var(--gradient-brand-bar)',
             }}
           />
         </div>
@@ -60,7 +60,7 @@ export default function CartSummary({ subtotal, onCheckout }) {
             <span style={{ color: 'var(--text-muted)' }}>{label}</span>
             <span
               className="font-semibold"
-              style={{ color: accent ? '#22c55e' : 'var(--text-primary)' }}
+              style={{ color: accent ? 'var(--text-in-stock)' : 'var(--text-primary)' }}
             >
               {value}
             </span>
@@ -70,14 +70,15 @@ export default function CartSummary({ subtotal, onCheckout }) {
 
       {/* Checkout */}
       <motion.button
-        whileHover={{ scale: 1.02, y: -2, boxShadow: '0 14px 36px rgba(255,140,66,0.4)' }}
+        whileHover={{ scale: 1.02, y: -2, boxShadow: 'var(--shadow-cta-hover)' }}
         whileTap={{ scale: 0.98 }}
         onClick={onCheckout}
-        className="w-full py-4 text-sm font-bold tracking-widest uppercase rounded-2xl text-white"
+        className="w-full py-4 text-sm font-bold tracking-widest uppercase rounded-2xl"
         style={{
-          background: 'linear-gradient(135deg, #ff8c42, #ff5f00)',
+          background: 'var(--gradient-brand-cta)',
+          color: 'var(--text-on-accent)',
           letterSpacing: '0.12em',
-          boxShadow: '0 8px 24px rgba(255,140,66,0.3)',
+          boxShadow: 'var(--shadow-cta)',
         }}
       >
         Checkout

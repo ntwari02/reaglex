@@ -554,7 +554,7 @@ const SupportCenter: React.FC = () => {
     const styles: Record<string, string> = {
       open: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700/50',
       in_progress: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50',
-      waiting_customer: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-700/50',
+      waiting_customer: 'bg-[var(--brand-tint)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--brand-orange-text)] border border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)]',
       resolved: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700/50',
       closed: 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700',
     };
@@ -570,7 +570,7 @@ const SupportCenter: React.FC = () => {
     const styles: Record<string, string> = {
       low: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700/50',
       medium: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700/50',
-      high: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-700/50',
+      high: 'bg-[var(--brand-tint)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--brand-orange-text)] border border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)]',
       urgent: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-700/50',
     };
     return (
@@ -838,11 +838,11 @@ const SupportCenter: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Enhanced Header with Seller Info */}
-      <div className="bg-gradient-to-r from-red-50/50 to-orange-50/50 dark:from-red-900/10 dark:to-orange-900/10 rounded-xl p-6 border border-red-100 dark:border-red-500/20">
+      <div className="bg-gradient-to-r from-red-50/50 to-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:from-red-900/10 dark:to-[var(--brand-tint)] rounded-xl p-6 border border-red-100 dark:border-red-500/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1 flex items-center gap-3 sm:gap-4">
             {/* User Profile Avatar */}
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-red-400 to-orange-500 overflow-hidden flex-shrink-0 border-2 border-white dark:border-gray-800 shadow-md">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-red-400 to-[var(--brand-primary)] overflow-hidden flex-shrink-0 border-2 border-white dark:border-gray-800 shadow-md">
               {user?.avatar_url ? (
                 <img
                   src={resolveAvatarUrl(user.avatar_url) || ''}
@@ -880,7 +880,7 @@ const SupportCenter: React.FC = () => {
               setActiveTab('tickets');
               setShowCreateModal(true);
             }}
-            className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-md hover:shadow-lg transition-all"
+            className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] text-white shadow-md hover:shadow-lg transition-all"
           >
             <Plus className="w-4 h-4 mr-2" />
             New Ticket
@@ -941,7 +941,7 @@ const SupportCenter: React.FC = () => {
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
               {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs rounded-full px-2 py-0.5 font-semibold shadow-sm">{tab.badge}</span>
+                <span className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] text-white text-xs rounded-full px-2 py-0.5 font-semibold shadow-sm">{tab.badge}</span>
               )}
             </button>
           );
@@ -953,7 +953,7 @@ const SupportCenter: React.FC = () => {
         <div className="space-y-6">
           {/* Statistics Cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-gradient-to-br from-red-50/80 to-orange-50/80 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl p-4 border border-red-100 dark:border-red-500/20 shadow-sm">
+            <div className="bg-gradient-to-br from-red-50/80 to-[color-mix(in_srgb,var(--brand-primary)_10%,transparent)] dark:from-red-900/20 dark:to-[var(--brand-tint-strong)] rounded-xl p-4 border border-red-100 dark:border-red-500/20 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Total Tickets</p>
@@ -962,7 +962,7 @@ const SupportCenter: React.FC = () => {
                 <FileText className="w-8 h-8 text-red-400 dark:text-red-400" />
               </div>
             </div>
-            <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/80 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-4 border border-amber-100 dark:border-amber-500/20 shadow-sm">
+            <div className="bg-gradient-to-br from-amber-50/80 to-[color-mix(in_srgb,var(--brand-primary)_10%,transparent)] dark:from-amber-900/20 dark:to-[var(--brand-tint-strong)] rounded-xl p-4 border border-amber-100 dark:border-amber-500/20 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Open</p>
@@ -1002,7 +1002,7 @@ const SupportCenter: React.FC = () => {
 
           {/* Account Health Summary */}
           {accountHealth && (
-            <div className="bg-gradient-to-br from-red-50/50 to-orange-50/50 dark:from-red-900/10 dark:to-orange-900/10 rounded-xl p-6 border border-red-100 dark:border-red-500/20">
+            <div className="bg-gradient-to-br from-red-50/50 to-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:from-red-900/10 dark:to-[var(--brand-tint)] rounded-xl p-6 border border-red-100 dark:border-red-500/20">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <Activity className="w-5 h-5 text-red-400" />
                 Account Health
@@ -1146,7 +1146,7 @@ const SupportCenter: React.FC = () => {
                     Clear Filters
                   </Button>
                 ) : (
-                  <div className="mt-4 p-4 bg-gradient-to-r from-red-50/50 to-orange-50/50 dark:from-red-900/10 dark:to-orange-900/10 rounded-lg border border-red-100 dark:border-red-500/20">
+                  <div className="mt-4 p-4 bg-gradient-to-r from-red-50/50 to-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:from-red-900/10 dark:to-[var(--brand-tint)] rounded-lg border border-red-100 dark:border-red-500/20">
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       💡 <strong>Tip:</strong> If you need help, you can create a support ticket by clicking "New Ticket" above.
                     </p>
@@ -1415,7 +1415,7 @@ const SupportCenter: React.FC = () => {
             <p className="text-gray-600 dark:text-gray-400">No tickets found</p>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="mt-4 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-md"
+              className="mt-4 bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] text-white shadow-md"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Your First Ticket

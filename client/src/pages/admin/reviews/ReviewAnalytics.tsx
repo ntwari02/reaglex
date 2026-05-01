@@ -110,7 +110,7 @@ export default function ReviewAnalytics() {
                 onClick={() => setSelectedChart(chart)}
                 className={`rounded-xl px-3 py-1 text-xs font-semibold transition-colors ${
                   selectedChart === chart
-                    ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white'
+                    ? 'bg-gradient-to-r from-amber-500 via-[var(--brand-primary)] to-amber-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
                 }`}
               >

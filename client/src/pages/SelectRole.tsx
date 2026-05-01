@@ -139,7 +139,7 @@ export function SelectRole() {
   const CARD_SHADOW_LIGHT = '0 25px 50px -12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)';
   const CARD_SHADOW_DARK = '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)';
   const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
-  const cardBg = isDark ? '#111420' : '#ffffff';
+  const cardBg = 'var(--card-bg)';
 
   return (
     <AuthPremiumLayout>
@@ -155,7 +155,7 @@ export function SelectRole() {
               </h2>
               {googleName && (
                 <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
-                  Welcome, <span className="font-semibold text-orange-600 dark:text-orange-400">{googleName}</span>!
+                  Welcome, <span className="font-semibold" style={{ color: 'var(--brand-primary)' }}>{googleName}</span>!
                 </p>
               )}
               <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
@@ -172,14 +172,14 @@ export function SelectRole() {
               disabled={loading}
               className={`relative p-6 rounded-xl border-2 transition-all ${
                 selectedRole === 'buyer'
-                  ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                  : 'border-gray-300 dark:border-gray-700 hover:border-orange-400 bg-white dark:bg-gray-800'
+                  ? 'border-[var(--brand-primary)] bg-[var(--brand-tint)]'
+                  : 'border-gray-300 dark:border-gray-700 hover:border-[var(--brand-primary-hover)] bg-white dark:bg-gray-800'
               } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
             >
               <div className="flex flex-col items-center text-center">
                 <div className={`p-4 rounded-full mb-4 ${
                   selectedRole === 'buyer'
-                    ? 'bg-orange-500 text-white'
+                    ? 'bg-[var(--brand-primary)] text-[var(--text-on-accent)]'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                 }`}>
                   <ShoppingBag className="w-8 h-8" />
@@ -191,7 +191,7 @@ export function SelectRole() {
                   Shop and purchase products from sellers
                 </p>
                 {selectedRole === 'buyer' && loading && (
-                  <Loader2 className="w-5 h-5 animate-spin text-orange-500 mt-3" />
+                  <Loader2 className="w-5 h-5 animate-spin mt-3 text-[var(--brand-primary)]" />
                 )}
               </div>
             </button>
@@ -202,14 +202,14 @@ export function SelectRole() {
               disabled={loading}
               className={`relative p-6 rounded-xl border-2 transition-all ${
                 selectedRole === 'seller'
-                  ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                  : 'border-gray-300 dark:border-gray-700 hover:border-orange-400 bg-white dark:bg-gray-800'
+                  ? 'border-[var(--brand-primary)] bg-[var(--brand-tint)]'
+                  : 'border-gray-300 dark:border-gray-700 hover:border-[var(--brand-primary-hover)] bg-white dark:bg-gray-800'
               } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
             >
               <div className="flex flex-col items-center text-center">
                 <div className={`p-4 rounded-full mb-4 ${
                   selectedRole === 'seller'
-                    ? 'bg-orange-500 text-white'
+                    ? 'bg-[var(--brand-primary)] text-[var(--text-on-accent)]'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                 }`}>
                   <Briefcase className="w-8 h-8" />
@@ -221,7 +221,7 @@ export function SelectRole() {
                   Sell products and manage your store
                 </p>
                 {selectedRole === 'seller' && loading && (
-                  <Loader2 className="w-5 h-5 animate-spin text-orange-500 mt-3" />
+                  <Loader2 className="w-5 h-5 animate-spin mt-3 text-[var(--brand-primary)]" />
                 )}
               </div>
             </button>

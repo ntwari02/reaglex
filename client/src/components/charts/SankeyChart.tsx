@@ -139,7 +139,7 @@ export function SankeyChart({ nodes, links, title, height = 400 }: SankeyChartPr
             </linearGradient>
             <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#f97316" />
+              <stop offset="100%" stopColor="var(--brand-primary)" />
             </linearGradient>
           </defs>
         </svg>

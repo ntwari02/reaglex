@@ -14,7 +14,6 @@ import {
   Linkedin,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
-import { useTheme } from '../contexts/ThemeContext';
 
 const TOPIC_PILLS = [
   { id: 'order', label: '📦 Order Issue' },
@@ -95,9 +94,6 @@ function computeReplyTimeLabel() {
 }
 
 export default function Contact() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   const [topic, setTopic] = useState('order');
   const [priority, setPriority] = useState('normal');
   const [form, setForm] = useState({
@@ -168,7 +164,7 @@ export default function Contact() {
     }
     if (activeField === field) {
       return {
-        boxShadow: '0 0 0 2.5px rgba(249,115,22,0.45)',
+        boxShadow: '0 0 0 2.5px color-mix(in srgb, var(--brand-primary) 45%, transparent)',
       };
     }
     return {
@@ -179,7 +175,7 @@ export default function Contact() {
   const messageCounterColor = () => {
     const len = form.message.length;
     if (len >= 950) return '#ef4444';
-    if (len >= 800) return '#f97316';
+    if (len >= 800) return 'var(--brand-primary)';
     return 'var(--text-faint)';
   };
 
@@ -285,16 +281,16 @@ export default function Contact() {
               </span>
             </div>
             <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight">
+              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight" style={{ color: 'var(--hero-marketing-heading)' }}>
                 <span>Get in Touch </span>
-                <span className="block md:inline text-[18px] md:text-[22px] font-normal text-white/50 md:mx-2">
+                <span className="block md:inline text-[18px] md:text-[22px] font-normal md:mx-2" style={{ color: 'var(--hero-marketing-subtitle)' }}>
                   with
                 </span>
                 <span className="contact-hero-gradient">
                   Our Support Team
                 </span>
               </h1>
-              <p className="text-base md:text-lg" style={{ color: 'rgba(255,255,255,0.60)' }}>
+              <p className="text-base md:text-lg" style={{ color: 'var(--hero-marketing-subtitle)' }}>
                 We typically respond within 2 hours. Available 24/7 for urgent issues.
               </p>
             </div>
@@ -315,7 +311,7 @@ export default function Contact() {
             <motion.div
               className="contact-card"
               style={{
-                background: isDark ? '#111420' : 'var(--card-bg)',
+                background: 'var(--card-bg)',
                 boxShadow: 'var(--shadow-lg)',
               }}
               initial={{ opacity: 0, y: 20 }}
@@ -324,8 +320,15 @@ export default function Contact() {
               whileHover={{ y: -4 }}
             >
               <div className="flex flex-col items-center text-center space-y-3">
-                <div className="contact-card-icon-circle" style={{ background: 'linear-gradient(135deg,#059669,#047857)', boxShadow: '0 8px 24px rgba(5,150,105,0.35)' }}>
-                  <MessageCircle className="w-8 h-8 text-white" />
+                <div
+                  className="contact-card-icon-circle"
+                  style={{
+                    background: 'var(--badge-success-bg)',
+                    border: '1px solid var(--badge-success-border)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
+                >
+                  <MessageCircle className="w-8 h-8" style={{ color: 'var(--badge-success-text)' }} />
                 </div>
                 <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                   Live Chat
@@ -333,22 +336,22 @@ export default function Contact() {
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   Chat with our support team in real time
                 </p>
-                <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#10b981' }}>
+                <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-in-stock)' }}>
                   <span className="contact-status-dot" />
                   Online Now
                 </div>
                 <motion.button
                   type="button"
-                  whileHover={{ y: -2, boxShadow: '0 8px 26px rgba(5,150,105,0.45)' }}
+                  whileHover={{ y: -2, boxShadow: 'var(--shadow-cta)' }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full mt-2 text-sm font-semibold"
                   style={{
                     borderRadius: 12,
                     padding: '12px 24px',
                     border: 'none',
-                    color: '#ffffff',
-                    background: 'linear-gradient(135deg,#059669,#047857)',
-                    boxShadow: '0 6px 20px rgba(5,150,105,0.35)',
+                    color: 'var(--text-on-accent)',
+                    background: 'var(--gradient-brand-cta)',
+                    boxShadow: 'var(--shadow-cta)',
                   }}
                   onClick={() => window.dispatchEvent(new Event('reaglex-open-help-chat'))}
                 >
@@ -360,14 +363,13 @@ export default function Contact() {
               </div>
             </motion.div>
 
-            {/* Email Support (featured) */}
+            {/* Email Support (featured — same surface family, subtle brand ring) */}
             <motion.div
               className="contact-card contact-card-featured"
               style={{
-                background: 'linear-gradient(145deg,#1a0f3a,#0d1f3a)',
-                boxShadow:
-                  'var(--shadow-xl), 0 0 0 2px rgba(249,115,22,0.30)',
-                transform: 'scale(1.04)',
+                background: 'var(--card-bg)',
+                border: '1px solid var(--brand-border-subtle)',
+                boxShadow: 'var(--shadow-xl)',
               }}
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
@@ -375,20 +377,27 @@ export default function Contact() {
               whileHover={{ y: -4 }}
             >
               <div className="flex flex-col items-center text-center space-y-3">
-                <div className="contact-card-icon-circle" style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', boxShadow: '0 8px 24px rgba(249,115,22,0.40)' }}>
-                  <Mail className="w-8 h-8 text-white" />
+                <div
+                  className="contact-card-icon-circle"
+                  style={{
+                    background: 'var(--brand-tint-strong)',
+                    border: '1px solid var(--brand-border-subtle)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
+                >
+                  <Mail className="w-8 h-8" style={{ color: 'var(--brand-primary)' }} />
                 </div>
-                <h3 className="text-lg font-bold" style={{ color: '#ffffff' }}>
+                <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                   Email Support
                 </h3>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.60)' }}>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   Send us a detailed message and we&apos;ll get back to you
                 </p>
                 <button
                   type="button"
                   className="text-sm font-semibold"
                   style={{
-                    color: '#fb923c',
+                    color: 'var(--link-color)',
                     border: 'none',
                     background: 'transparent',
                     padding: 0,
@@ -397,26 +406,26 @@ export default function Contact() {
                     window.location.href = 'mailto:reaglerobust2020@gmail.com';
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#fdba74';
+                    e.currentTarget.style.color = 'var(--link-hover)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#fb923c';
+                    e.currentTarget.style.color = 'var(--link-color)';
                   }}
                 >
                   reaglerobust2020@gmail.com
                 </button>
                 <motion.button
                   type="button"
-                  whileHover={{ y: -2, boxShadow: '0 8px 26px rgba(249,115,22,0.45)' }}
+                  whileHover={{ y: -2, boxShadow: 'var(--shadow-cta-hover)' }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full mt-2 text-sm font-semibold"
                   style={{
                     borderRadius: 12,
                     padding: '12px 24px',
                     border: 'none',
-                    color: '#ffffff',
-                    background: 'linear-gradient(135deg,#f97316,#ea580c)',
-                    boxShadow: '0 6px 20px rgba(249,115,22,0.40)',
+                    color: 'var(--text-on-accent)',
+                    background: 'var(--gradient-brand-cta)',
+                    boxShadow: 'var(--shadow-cta)',
                   }}
                   onClick={() => {
                     window.location.href = 'mailto:reaglerobust2020@gmail.com';
@@ -424,7 +433,7 @@ export default function Contact() {
                 >
                   Send Email →
                 </motion.button>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                <p className="text-xs" style={{ color: 'var(--text-faint)' }}>
                   Reply within 24 hours
                 </p>
               </div>
@@ -434,7 +443,7 @@ export default function Contact() {
             <motion.div
               className="contact-card"
               style={{
-                background: isDark ? '#111420' : 'var(--card-bg)',
+                background: 'var(--card-bg)',
                 boxShadow: 'var(--shadow-lg)',
               }}
               initial={{ opacity: 0, y: 28 }}
@@ -443,8 +452,15 @@ export default function Contact() {
               whileHover={{ y: -4 }}
             >
               <div className="flex flex-col items-center text-center space-y-3">
-                <div className="contact-card-icon-circle" style={{ background: 'linear-gradient(135deg,#25d366,#128c7e)', boxShadow: '0 8px 24px rgba(37,211,102,0.35)' }}>
-                  <Phone className="w-8 h-8 text-white" />
+                <div
+                  className="contact-card-icon-circle"
+                  style={{
+                    background: 'var(--badge-info-bg)',
+                    border: '1px solid var(--badge-info-border)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
+                >
+                  <Phone className="w-8 h-8" style={{ color: 'var(--badge-info-text)' }} />
                 </div>
                 <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                   WhatsApp / Phone
@@ -452,21 +468,21 @@ export default function Contact() {
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   Call or message us directly for urgent support
                 </p>
-                <p className="text-sm font-semibold" style={{ color: '#25d366' }}>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
                   +250787057751
                 </p>
                 <motion.button
                   type="button"
-                  whileHover={{ y: -2, boxShadow: '0 8px 26px rgba(37,211,102,0.45)' }}
+                  whileHover={{ y: -2, boxShadow: 'var(--shadow-cta-hover)' }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full mt-2 text-sm font-semibold"
                   style={{
                     borderRadius: 12,
                     padding: '12px 24px',
-                    border: 'none',
-                    color: '#ffffff',
-                    background: 'linear-gradient(135deg,#25d366,#128c7e)',
-                    boxShadow: '0 6px 20px rgba(37,211,102,0.40)',
+                    border: '1px solid var(--btn-secondary-border)',
+                    color: 'var(--btn-secondary-text)',
+                    background: 'var(--btn-secondary-bg)',
+                    boxShadow: 'var(--shadow-sm)',
                   }}
                   onClick={() => {
                     window.open('https://wa.me/250787057751', '_blank');
@@ -496,7 +512,7 @@ export default function Contact() {
                   transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
                   className="rounded-[24px]"
                   style={{
-                    background: isDark ? '#111420' : 'var(--card-bg)',
+                    background: 'var(--card-bg)',
                     boxShadow: 'var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.04)',
                     padding: 36,
                   }}
@@ -535,14 +551,12 @@ export default function Contact() {
                               border: 'none',
                               background: selected
                                 ? 'var(--brand-tint)'
-                                : isDark
-                                ? '#171b28'
                                 : 'var(--bg-secondary)',
                               color: selected
                                 ? 'var(--brand-primary)'
                                 : 'var(--text-muted)',
                               boxShadow: selected
-                                ? '0 0 0 2px rgba(249,115,22,0.40)'
+                                ? '0 0 0 2px color-mix(in srgb, var(--brand-primary) 40%, transparent)'
                                 : '0 0 0 1.5px var(--divider)',
                             }}
                           >
@@ -567,7 +581,7 @@ export default function Contact() {
                           <div
                             className="flex items-center rounded-[12px]"
                             style={{
-                              background: isDark ? '#1a1e2c' : 'var(--bg-secondary)',
+                              background: 'var(--bg-secondary)',
                               height: 50,
                               paddingInline: 16,
                               ...fieldRingStyle(field),
@@ -620,7 +634,7 @@ export default function Contact() {
                         <div
                           className="flex items-center gap-2 rounded-[12px]"
                           style={{
-                            background: isDark ? '#1a1e2c' : 'var(--bg-secondary)',
+                            background: 'var(--bg-secondary)',
                             height: 50,
                             paddingInline: 16,
                             ...fieldRingStyle('email'),
@@ -672,7 +686,7 @@ export default function Contact() {
                         <div
                           className="flex items-center gap-2 rounded-[12px]"
                           style={{
-                            background: isDark ? '#1a1e2c' : 'var(--bg-secondary)',
+                            background: 'var(--bg-secondary)',
                             height: 50,
                             paddingInline: 16,
                             boxShadow: '0 0 0 1.5px var(--input-ring)',
@@ -718,7 +732,7 @@ export default function Contact() {
                       <div
                         className="flex items-center gap-2 rounded-[12px]"
                         style={{
-                          background: isDark ? '#1a1e2c' : 'var(--bg-secondary)',
+                          background: 'var(--bg-secondary)',
                           height: 50,
                           paddingInline: 16,
                           boxShadow: '0 0 0 1.5px var(--input-ring)',
@@ -752,7 +766,7 @@ export default function Contact() {
                       <div
                         className="flex items-center rounded-[12px]"
                         style={{
-                          background: isDark ? '#1a1e2c' : 'var(--bg-secondary)',
+                          background: 'var(--bg-secondary)',
                           height: 50,
                           paddingInline: 16,
                           ...fieldRingStyle('subject'),
@@ -801,7 +815,7 @@ export default function Contact() {
                       <div
                         className="rounded-[16px] relative"
                         style={{
-                          background: isDark ? '#1a1e2c' : 'var(--bg-secondary)',
+                          background: 'var(--bg-secondary)',
                           padding: 12,
                           ...fieldRingStyle('message'),
                         }}
@@ -889,8 +903,8 @@ export default function Contact() {
                           if (input) input.click();
                         }}
                         style={{
-                          background: isDark ? '#1a1e2c' : 'var(--bg-secondary)',
-                          borderColor: fileError ? '#f97316' : 'var(--divider)',
+                          background: 'var(--bg-secondary)',
+                          borderColor: fileError ? 'var(--brand-primary)' : 'var(--divider)',
                         }}
                       >
                         <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
@@ -908,7 +922,7 @@ export default function Contact() {
                         onChange={(e) => handleFiles(e.target.files || [])}
                       />
                       {fileError && (
-                        <p className="text-xs" style={{ color: '#f97316' }}>
+                        <p className="text-xs" style={{ color: 'var(--brand-primary)' }}>
                           {fileError}
                         </p>
                       )}
@@ -955,7 +969,7 @@ export default function Contact() {
                     <div className="space-y-3 pt-1">
                       <motion.button
                         type="submit"
-                        whileHover={!submitting ? { y: -2, boxShadow: '0 8px 28px rgba(249,115,22,0.55)' } : {}}
+                        whileHover={!submitting ? { y: -2, boxShadow: '0 8px 28px color-mix(in srgb, var(--brand-primary) 55%, transparent)' } : {}}
                         whileTap={!submitting ? { scale: 0.98 } : {}}
                         disabled={submitting}
                         className="w-full font-bold text-base flex items-center justify-center gap-2"
@@ -966,9 +980,9 @@ export default function Contact() {
                           color: '#ffffff',
                           cursor: submitting ? 'default' : 'pointer',
                           background: submitting
-                            ? 'linear-gradient(135deg,#fb923c,#f97316,#ea580c)'
-                            : 'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
-                          boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
+                            ? 'var(--gradient-brand-cta)'
+                            : 'var(--gradient-brand-cta)',
+                          boxShadow: '0 6px 24px color-mix(in srgb, var(--brand-primary) 45%, transparent)',
                         }}
                       >
                         {submitting && (
@@ -996,7 +1010,7 @@ export default function Contact() {
                   transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
                   className="rounded-[24px] flex flex-col items-center text-center"
                   style={{
-                    background: isDark ? '#111420' : 'var(--card-bg)',
+                    background: 'var(--card-bg)',
                     boxShadow: 'var(--shadow-md)',
                     padding: '60px 40px',
                   }}
@@ -1038,7 +1052,7 @@ export default function Contact() {
                     style={{
                       borderRadius: 10,
                       padding: '10px 20px',
-                      background: isDark ? '#1c1408' : 'var(--brand-tint)',
+                      background: 'var(--brand-tint)',
                       color: 'var(--brand-primary)',
                     }}
                   >
@@ -1047,12 +1061,12 @@ export default function Contact() {
                   <div className="flex flex-wrap justify-center gap-3 mb-4">
                     <motion.button
                       type="button"
-                      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(249,115,22,0.55)' }}
+                      whileHover={{ y: -2, boxShadow: '0 8px 24px color-mix(in srgb, var(--brand-primary) 55%, transparent)' }}
                       whileTap={{ scale: 0.97 }}
                       className="px-5 py-2.5 text-sm font-semibold rounded-full text-white"
                       style={{
                         border: 'none',
-                        background: 'linear-gradient(135deg,#f97316,#ea580c)',
+                        background: 'var(--gradient-brand-cta)',
                       }}
                     >
                       Track Ticket
@@ -1064,7 +1078,7 @@ export default function Contact() {
                       className="px-5 py-2.5 text-sm font-semibold rounded-full"
                       style={{
                         border: 'none',
-                        background: isDark ? '#1a1e2c' : 'var(--bg-secondary)',
+                        background: 'var(--bg-secondary)',
                         color: 'var(--text-secondary)',
                       }}
                       onClick={resetForm}
@@ -1090,7 +1104,7 @@ export default function Contact() {
               <section
                 className="rounded-[20px] space-y-4"
                 style={{
-                  background: isDark ? '#111420' : 'var(--card-bg)',
+                  background: 'var(--card-bg)',
                   boxShadow: 'var(--shadow-md)',
                   padding: 28,
                 }}
@@ -1111,7 +1125,7 @@ export default function Contact() {
                         width: 40,
                         height: 40,
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg,#38bdf8,#0ea5e9)',
+                        background: 'var(--accent-marketing-gradient)',
                       }}
                     >
                       <Mail className="w-5 h-5 text-white" />
@@ -1163,7 +1177,7 @@ export default function Contact() {
                         width: 40,
                         height: 40,
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg,#f97316,#ea580c)',
+                        background: 'var(--gradient-brand-cta)',
                       }}
                     >
                       <MessageCircle className="w-5 h-5 text-white" />
@@ -1263,7 +1277,7 @@ export default function Contact() {
               <section
                 className="rounded-[20px] space-y-3"
                 style={{
-                  background: isDark ? '#111420' : 'var(--card-bg)',
+                  background: 'var(--card-bg)',
                   boxShadow: 'var(--shadow-sm)',
                   padding: 24,
                   marginTop: 16,
@@ -1286,12 +1300,8 @@ export default function Contact() {
                         style={{
                           padding: '8px 10px',
                           borderRadius: 12,
-                          boxShadow: isToday ? 'inset 4px 0 0 #f97316' : 'none',
-                          background: isToday
-                            ? isDark
-                              ? '#1c1408'
-                              : 'var(--brand-tint)'
-                            : 'transparent',
+                          boxShadow: isToday ? 'inset 4px 0 0 var(--brand-primary)' : 'none',
+                          background: isToday ? 'var(--brand-tint)' : 'transparent',
                           color: isToday ? 'var(--text-primary)' : 'var(--text-secondary)',
                         }}
                       >
@@ -1301,8 +1311,8 @@ export default function Contact() {
                             <span
                               className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                               style={{
-                                background: '#f97316',
-                                color: '#ffffff',
+                                background: 'var(--brand-primary)',
+                                color: 'var(--text-on-accent)',
                               }}
                             >
                               Today
@@ -1314,8 +1324,8 @@ export default function Contact() {
                           <span
                             className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                             style={{
-                              background: isClosed ? '#fee2e2' : '#dcfce7',
-                              color: isClosed ? '#ef4444' : '#16a34a',
+                              background: isClosed ? 'var(--badge-error-bg)' : 'var(--badge-success-bg)',
+                              color: isClosed ? 'var(--badge-error-text)' : 'var(--badge-success-text)',
                             }}
                           >
                             {row.status}
@@ -1334,7 +1344,7 @@ export default function Contact() {
               <section
                 className="rounded-[20px]"
                 style={{
-                  background: isDark ? '#111420' : 'var(--card-bg)',
+                  background: 'var(--card-bg)',
                   boxShadow: 'var(--shadow-sm)',
                   padding: 24,
                   marginTop: 16,
@@ -1347,7 +1357,7 @@ export default function Contact() {
                   ❓ Quick Answers
                 </h3>
                 <div className="space-y-2">
-                  <FAQList items={FAQ_ITEMS} isDark={isDark} />
+                  <FAQList items={FAQ_ITEMS} />
                 </div>
               </section>
             </motion.aside>
@@ -1365,7 +1375,7 @@ export default function Contact() {
             <div
               className="rounded-[20px] overflow-hidden"
               style={{
-                background: isDark ? '#020617' : 'var(--card-bg)',
+                background: 'var(--card-bg)',
                 boxShadow: 'var(--shadow-md)',
                 height: 300,
               }}
@@ -1396,7 +1406,7 @@ export default function Contact() {
                   style={{
                     borderRadius: 999,
                     padding: '8px 16px',
-                    background: isDark ? '#171b28' : 'var(--bg-secondary)',
+                    background: 'var(--bg-secondary)',
                     color: 'var(--text-secondary)',
                     boxShadow: 'var(--shadow-xs)',
                   }}
@@ -1415,7 +1425,7 @@ export default function Contact() {
           position: relative;
           width: 100%;
           padding: 80px 40px;
-          background: linear-gradient(135deg,#0f0c24 0%, #1a0f3a 40%, #0d1f3a 70%, #0a1628 100%);
+          background: var(--hero-marketing-bg);
           overflow: hidden;
         }
         @media (max-width: 768px) {
@@ -1447,21 +1457,22 @@ export default function Contact() {
           animation: auth-float-10 13s ease-in-out infinite;
         }
         .contact-pill-hero {
-          background: rgba(249,115,22,0.15);
-          color: #fb923c;
+          background: var(--badge-info-bg);
+          color: var(--badge-info-text);
           border-radius: 999px;
           padding: 6px 16px;
           font-size: 13px;
           font-weight: 500;
         }
         .contact-hero-gradient {
-          background: linear-gradient(135deg,#f97316,#fb923c);
+          background: var(--hero-marketing-line2-gradient);
           -webkit-background-clip: text;
+          background-clip: text;
           -webkit-text-fill-color: transparent;
         }
         .contact-response-pill {
-          background: rgba(255,255,255,0.08);
-          color: rgba(255,255,255,0.80);
+          background: var(--hero-marketing-chip-bg);
+          color: var(--hero-marketing-chip-text);
           border-radius: 999px;
           padding: 6px 16px;
           font-size: 13px;
@@ -1470,7 +1481,7 @@ export default function Contact() {
         .contact-card {
           border-radius: 20px;
           padding: 28px;
-          border: none;
+          border: 1px solid var(--border-card);
         }
         .contact-card-featured {
           padding: 32px;
@@ -1487,8 +1498,8 @@ export default function Contact() {
           width: 10px;
           height: 10px;
           border-radius: 999px;
-          background: #10b981;
-          box-shadow: 0 0 0 0 rgba(16,185,129,0.6);
+          background: var(--text-in-stock);
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--text-in-stock) 45%, transparent);
           animation: helpchat-status 2s ease-out infinite;
         }
         .contact-dropzone {
@@ -1500,24 +1511,28 @@ export default function Contact() {
           transition: border-color 0.2s ease, background 0.2s ease;
         }
         .contact-dropzone:hover {
-          border-color: #f97316;
+          border-color: var(--brand-primary);
           background: var(--brand-tint);
         }
         .contact-map-inner {
           position: relative;
           width: 100%;
           height: 100%;
-          background: radial-gradient(circle at 10% 0%, #1f2937 0%, #020617 55%);
+          background: radial-gradient(
+            circle at 10% 0%,
+            var(--bg-tertiary) 0%,
+            var(--bg-page) 55%
+          );
           overflow: hidden;
         }
         .contact-map-grid {
           position: absolute;
           inset: 0;
           background-image:
-            linear-gradient(to right, rgba(148,163,184,0.18) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(148,163,184,0.18) 1px, transparent 1px);
+            linear-gradient(to right, color-mix(in srgb, var(--divider-strong) 55%, transparent) 1px, transparent 1px),
+            linear-gradient(to bottom, color-mix(in srgb, var(--divider-strong) 55%, transparent) 1px, transparent 1px);
           background-size: 32px 32px;
-          opacity: 0.9;
+          opacity: 0.85;
         }
         .contact-map-pin {
           position: absolute;
@@ -1529,7 +1544,7 @@ export default function Contact() {
           position: absolute;
           inset: -12px;
           border-radius: 999px;
-          box-shadow: 0 0 0 0 rgba(249,115,22,0.55);
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand-primary) 55%, transparent);
           animation: helpchat-pulse 2.3s ease-out infinite;
         }
         .contact-map-pin-icon {
@@ -1540,7 +1555,7 @@ export default function Contact() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg,#f97316,#ea580c);
+          background: var(--gradient-brand-cta);
         }
         .contact-map-label {
           position: absolute;
@@ -1549,10 +1564,11 @@ export default function Contact() {
           transform: translateX(-50%);
           padding: 6px 14px;
           border-radius: 999px;
-          background: rgba(15,23,42,0.9);
-          color: #e5e7eb;
+          background: var(--card-bg);
+          color: var(--text-primary);
           font-size: 13px;
-          box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+          border: 1px solid var(--divider);
+          box-shadow: var(--shadow-md);
         }
         @media (max-width: 768px) {
           .contact-map-inner {
@@ -1564,7 +1580,7 @@ export default function Contact() {
   );
 }
 
-function FAQList({ items, isDark }) {
+function FAQList({ items }) {
   const [openId, setOpenId] = useState(null);
 
   return (
@@ -1579,7 +1595,7 @@ function FAQList({ items, isDark }) {
             className="rounded-[12px]"
             style={{
               background: 'transparent',
-              boxShadow: '0 4px 10px rgba(15,23,42,0.12)',
+              boxShadow: 'var(--shadow-sm)',
             }}
           >
             <button
@@ -1589,7 +1605,7 @@ function FAQList({ items, isDark }) {
               style={{
                 border: 'none',
                 background: 'transparent',
-                color: isDark ? '#eceef8' : 'var(--text-primary)',
+                color: 'var(--text-primary)',
               }}
             >
               <span className="text-[14px] font-semibold">{faq.question}</span>
@@ -1611,7 +1627,7 @@ function FAQList({ items, isDark }) {
                   <div className="px-3 pb-3">
                     <p
                       className="text-[13px]"
-                      style={{ color: isDark ? '#a8aec8' : 'var(--text-muted)' }}
+                      style={{ color: 'var(--text-muted)' }}
                     >
                       {faq.answer}
                     </p>

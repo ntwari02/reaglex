@@ -1256,7 +1256,7 @@ const ProfilePage: React.FC = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-400 to-orange-500">
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-400 to-[var(--brand-primary)]">
                         <User className="w-12 h-12 sm:w-16 sm:h-16 text-white" />
                       </div>
                     )}
@@ -1624,7 +1624,7 @@ const ProfilePage: React.FC = () => {
                 <Button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50"
+                  className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50"
                 >
                   {isSaving ? (
                     <>
@@ -2187,7 +2187,7 @@ const ProfilePage: React.FC = () => {
               </div>
               <Button
                 type="submit"
-                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50"
+                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50"
                 disabled={isChangingPassword}
               >
                 {isChangingPassword ? 'Updating...' : 'Update Password'}
@@ -2275,7 +2275,7 @@ const ProfilePage: React.FC = () => {
               </h2>
               <div className="relative group w-full sm:w-auto">
                 <Button 
-                  className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                  className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                   onClick={() => setShowAddBank(true)}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
@@ -2372,14 +2372,14 @@ const ProfilePage: React.FC = () => {
                                 setConfirmAccountDetails(false);
                                 setShowVerificationModal(true);
                               }}
-                              className="text-xs sm:text-xs bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 font-semibold hover:from-yellow-100 hover:to-orange-100 dark:hover:from-yellow-900/30 dark:hover:to-orange-900/30 shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse hover:animate-none relative overflow-hidden whitespace-nowrap"
+                              className="text-xs sm:text-xs bg-gradient-to-r from-yellow-50 to-[var(--brand-tint)] dark:from-yellow-900/20 dark:to-[var(--brand-tint-strong)] border-2 border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 font-semibold hover:from-yellow-100 hover:to-[var(--brand-tint-strong)] dark:hover:from-yellow-900/30 dark:hover:to-[var(--brand-tint-strong)] shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse hover:animate-none relative overflow-hidden whitespace-nowrap"
                             >
                               <span className="relative z-10 flex items-center gap-1 sm:gap-1.5">
                                 <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                                 <span className="hidden sm:inline">Verify Account</span>
                                 <span className="sm:hidden">Verify</span>
                               </span>
-                              <span className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 animate-ping opacity-75"></span>
+                              <span className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-[color-mix(in_srgb,var(--brand-primary)_22%,transparent)] animate-ping opacity-75"></span>
                             </Button>
                             {/* Tooltip */}
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
@@ -2957,7 +2957,7 @@ const ProfilePage: React.FC = () => {
                 Team & Permissions
               </h2>
               <Button
-                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                 onClick={() => setShowInviteModal(true)}
               >
                 Invite Team Member
@@ -3364,7 +3364,7 @@ const ProfilePage: React.FC = () => {
                 }
               }}
               disabled={isSavingNotifications}
-              className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50"
+              className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50"
             >
               {isSavingNotifications ? (
                 <>
@@ -3447,7 +3447,7 @@ const ProfilePage: React.FC = () => {
                 <Button
                   onClick={() => handleSavePolicy(key)}
                   disabled={savingPolicy === key}
-                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingPolicy === key ? (
                     <>
@@ -3610,7 +3610,7 @@ const ProfilePage: React.FC = () => {
                           }
                         }}
                         disabled={isGeneratingQR}
-                        className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                        className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                       >
                         {isGeneratingQR ? 'Generating...' : 'Generate QR Code'}
                       </Button>
@@ -3701,7 +3701,7 @@ const ProfilePage: React.FC = () => {
                           }
                         }}
                         disabled={isVerifying || verificationCode.length !== 6}
-                        className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50"
+                        className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50"
                       >
                         {isVerifying ? 'Verifying...' : 'Verify & Enable'}
                       </Button>
@@ -4202,7 +4202,7 @@ const ProfilePage: React.FC = () => {
               </Button>
               <Button
                 type="submit"
-                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                 disabled={isAddingBank}
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -4471,7 +4471,7 @@ const ProfilePage: React.FC = () => {
               </Button>
               <Button
                 type="submit"
-                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                 disabled={isVerifyingAccount || !confirmAccountDetails || !verificationPassword}
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -4623,7 +4623,7 @@ const ProfilePage: React.FC = () => {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                  className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                   disabled={isSavingTeamMember}
                 >
                   {isSavingTeamMember ? 'Sending...' : 'Send Invite'}
@@ -4765,7 +4765,7 @@ const ProfilePage: React.FC = () => {
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                    className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                     disabled={isSavingTeamMember}
                   >
                     {isSavingTeamMember ? 'Saving...' : 'Save Changes'}
@@ -5046,7 +5046,7 @@ const ProfilePage: React.FC = () => {
               <Button
                 type="submit"
                 disabled={isSavingMobileMoney || !mobileMoneyForm.provider || !mobileMoneyForm.number || !mobileMoneyForm.password}
-                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 disabled:opacity-50 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50 shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 {isSavingMobileMoney ? (
                   <>

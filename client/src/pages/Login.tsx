@@ -481,7 +481,7 @@ export function Login() {
         </div>
         {showResendVerification && identifier.includes('@') && (
           <div
-            className="rounded-2xl p-5 space-y-4 border-2 border-orange-200/60 dark:border-orange-500/30 bg-orange-50/50 dark:bg-orange-950/20"
+            className="rounded-2xl p-5 space-y-4 border-2 border-[var(--brand-border-subtle)] dark:border-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:bg-[var(--brand-tint)]"
           >
             <p className="text-[13px] font-semibold text-gray-900 dark:text-white">
               Verify your email to sign in
@@ -497,9 +497,9 @@ export function Login() {
                   onClick={handleResendVerificationEmail}
                   className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all hover:opacity-90"
                   style={{
-                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    background: 'var(--gradient-brand-cta)',
                     color: '#fff',
-                    boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                    boxShadow: 'var(--shadow-cta)',
                   }}
                 >
                   {resendLoading ? (
@@ -512,7 +512,7 @@ export function Login() {
                 <button
                   type="button"
                   onClick={() => setVerificationChoice('otp')}
-                  className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 border-2 border-orange-300 dark:border-orange-500/50 text-orange-700 dark:text-orange-300 bg-white dark:bg-gray-800/50 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+                  className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 border-2 border-[var(--brand-border-subtle)] dark:border-[color-mix(in_srgb,var(--brand-primary)_50%,transparent)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] bg-white dark:bg-gray-800/50 hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint-strong)] transition-colors"
                 >
                   <KeyRound className="w-4 h-4" />
                   Verify with code
@@ -523,7 +523,7 @@ export function Login() {
               <p className="text-center mt-3">
                 <Link
                   to={`/verify-otp?email=${encodeURIComponent(identifier.trim())}`}
-                  className="text-[12px] font-medium text-orange-600 dark:text-orange-400 hover:underline"
+                  className="text-[12px] font-medium text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:underline"
                   onClick={() => setShowVerifyEmailModal(false)}
                 >
                   Open beautiful verify OTP page →
@@ -544,9 +544,9 @@ export function Login() {
                         disabled={otpSendLoading}
                         className="flex-1 h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
                         style={{
-                          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                          background: 'var(--gradient-brand-cta)',
                           color: '#fff',
-                          boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                          boxShadow: 'var(--shadow-cta)',
                         }}
                       >
                         {otpSendLoading ? (
@@ -581,7 +581,7 @@ export function Login() {
                           value={d}
                           onChange={(e) => handleOtpVerificationChange(i, e.target.value)}
                           onKeyDown={(e) => handleOtpVerificationKeyDown(i, e)}
-                          className="w-10 h-11 rounded-xl text-center text-[16px] font-semibold outline-none bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                          className="w-10 h-11 rounded-xl text-center text-[16px] font-semibold outline-none bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)]"
                         />
                       ))}
                     </div>
@@ -595,8 +595,8 @@ export function Login() {
                         disabled={otpVerifyLoading}
                         className="flex-1 h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all text-white"
                         style={{
-                          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                          boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                          background: 'var(--gradient-brand-cta)',
+                          boxShadow: 'var(--shadow-cta)',
                         }}
                       >
                         {otpVerifyLoading ? (
@@ -607,7 +607,7 @@ export function Login() {
                       <button
                         type="button"
                         onClick={() => { setOtpSent(false); setOtpVerifyError(''); }}
-                        className="px-3 rounded-xl text-[13px] font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                        className="px-3 rounded-xl text-[13px] font-medium text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint-strong)]"
                       >
                         New code
                       </button>
@@ -746,7 +746,7 @@ export function Login() {
           onClick={() => setShowVerifyEmailModal(false)}
         >
           <div
-            className="relative w-full max-w-md rounded-2xl shadow-2xl p-6 sm:p-8 border-2 border-orange-200/60 dark:border-orange-500/30 bg-white dark:bg-gray-900"
+            className="relative w-full max-w-md rounded-2xl shadow-2xl p-6 sm:p-8 border-2 border-[var(--brand-border-subtle)] dark:border-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] bg-white dark:bg-gray-900"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -760,7 +760,7 @@ export function Login() {
             <div className="flex justify-center mb-4">
               <div
                 className="w-14 h-14 rounded-2xl flex items-center justify-center text-white"
-                style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}
+                style={{ background: 'var(--gradient-brand-cta)' }}
               >
                 <Mail className="w-7 h-7" strokeWidth={1.8} />
               </div>
@@ -774,7 +774,7 @@ export function Login() {
             <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-4 mb-5 border border-gray-200 dark:border-gray-700">
               <p className="text-[13px] font-semibold text-gray-900 dark:text-white mb-2">How to verify:</p>
               <ol className="text-[13px] text-gray-600 dark:text-gray-400 space-y-1.5 list-decimal list-inside">
-                <li>Open <strong>Gmail</strong> (<a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" className="text-orange-600 dark:text-orange-400 underline">mail.google.com</a>) or your email app.</li>
+                <li>Open <strong>Gmail</strong> (<a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] underline">mail.google.com</a>) or your email app.</li>
                 <li>Check your <strong>Inbox</strong> and <strong>Spam</strong> / Promotions folders.</li>
                 <li>Find the email from us and <strong>click the verification link</strong> inside it.</li>
                 <li>Return here and sign in again.</li>
@@ -789,8 +789,8 @@ export function Login() {
                   onClick={handleResendVerificationEmail}
                   className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all hover:opacity-90 text-white"
                   style={{
-                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                    boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                    background: 'var(--gradient-brand-cta)',
+                    boxShadow: 'var(--shadow-cta)',
                   }}
                 >
                   {resendLoading ? (
@@ -803,7 +803,7 @@ export function Login() {
                 <button
                   type="button"
                   onClick={() => setVerificationChoice('otp')}
-                  className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 border-2 border-orange-300 dark:border-orange-500/50 text-orange-700 dark:text-orange-300 bg-white dark:bg-gray-800/50 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+                  className="flex-1 min-w-[140px] h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 border-2 border-[var(--brand-border-subtle)] dark:border-[color-mix(in_srgb,var(--brand-primary)_50%,transparent)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] bg-white dark:bg-gray-800/50 hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint-strong)] transition-colors"
                 >
                   <KeyRound className="w-4 h-4" />
                   Verify with code
@@ -823,8 +823,8 @@ export function Login() {
                         disabled={otpSendLoading}
                         className="flex-1 h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all text-white"
                         style={{
-                          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                          boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                          background: 'var(--gradient-brand-cta)',
+                          boxShadow: 'var(--shadow-cta)',
                         }}
                       >
                         {otpSendLoading ? (
@@ -859,7 +859,7 @@ export function Login() {
                           value={d}
                           onChange={(e) => handleOtpVerificationChange(i, e.target.value)}
                           onKeyDown={(e) => handleOtpVerificationKeyDown(i, e)}
-                          className="w-10 h-11 rounded-xl text-center text-[16px] font-semibold outline-none bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                          className="w-10 h-11 rounded-xl text-center text-[16px] font-semibold outline-none bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)]"
                         />
                       ))}
                     </div>
@@ -873,8 +873,8 @@ export function Login() {
                         disabled={otpVerifyLoading}
                         className="flex-1 h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-all text-white"
                         style={{
-                          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                          boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+                          background: 'var(--gradient-brand-cta)',
+                          boxShadow: 'var(--shadow-cta)',
                         }}
                       >
                         {otpVerifyLoading ? (
@@ -885,7 +885,7 @@ export function Login() {
                       <button
                         type="button"
                         onClick={() => { setOtpSent(false); setOtpVerifyError(''); }}
-                        className="px-3 rounded-xl text-[13px] font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                        className="px-3 rounded-xl text-[13px] font-medium text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint-strong)]"
                       >
                         New code
                       </button>
@@ -932,14 +932,14 @@ export function Login() {
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="w-4 h-4 rounded border-2"
-                style={{ accentColor: '#f97316' }}
+                style={{ accentColor: 'var(--brand-primary)' }}
               />
               <span style={{ color: 'var(--text-muted)' }}>Remember me</span>
             </label>
             <Link
               to="/forgot-password"
               className="font-semibold"
-              style={{ color: '#f97316' }}
+              style={{ color: 'var(--brand-primary)' }}
             >
               Forgot password?
             </Link>
@@ -953,10 +953,10 @@ export function Login() {
               className="w-full h-[54px] rounded-[14px] font-bold text-[16px] tracking-[0.03em] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed transition-transform"
               style={{
                 background:
-                  'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                  'var(--gradient-brand-cta)',
                 color: '#ffffff',
                 boxShadow:
-                  '0 6px 24px rgba(249,115,22,0.45),0 2px 8px rgba(249,115,22,0.25)',
+                  'var(--shadow-cta-hover), var(--shadow-cta)',
               }}
             >
               {loading && (
@@ -977,7 +977,7 @@ export function Login() {
               }}
             >
               {biometricLoading ? (
-                <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Fingerprint className="w-4 h-4" />
               )}
@@ -1045,7 +1045,7 @@ export function Login() {
             <Link
               to="/signup"
               className="font-semibold"
-              style={{ color: '#f97316' }}
+              style={{ color: 'var(--brand-primary)' }}
             >
               Sign Up
             </Link>
@@ -1107,9 +1107,9 @@ export function Login() {
                   disabled={submittingOtp}
                   className="flex-1 h-[54px] rounded-[14px] font-bold text-[16px] flex items-center justify-center gap-2 disabled:opacity-70"
                   style={{
-                    background: 'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                    background: 'var(--gradient-brand-cta)',
                     color: '#fff',
-                    boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
+                    boxShadow: 'var(--shadow-cta-hover)',
                   }}
                 >
                   {submittingOtp ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
@@ -1135,9 +1135,9 @@ export function Login() {
                     disabled={twoFASetupLoading}
                     className="w-full h-[54px] rounded-[14px] font-bold text-[16px] flex items-center justify-center gap-2 disabled:opacity-70"
                     style={{
-                      background: 'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                      background: 'var(--gradient-brand-cta)',
                       color: '#fff',
-                      boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
+                      boxShadow: 'var(--shadow-cta-hover)',
                     }}
                   >
                     {twoFASetupLoading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <KeyRound className="w-5 h-5" />}
@@ -1147,7 +1147,7 @@ export function Login() {
               ) : (
                 <form onSubmit={handle2FASetupConfirm} className="auth-form-modern space-y-4">
                   <div className="flex justify-center">
-                    <img src={twoFAQRCode} alt="2FA QR" className="w-40 h-40 rounded-xl border-2 border-orange-200 dark:border-orange-500/30" />
+                    <img src={twoFAQRCode} alt="2FA QR" className="w-40 h-40 rounded-xl border-2 border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)]" />
                   </div>
                   {twoFAManualKey && (
                     <p className="text-[11px] font-mono text-center break-all" style={{ color: 'var(--text-muted)' }}>
@@ -1188,9 +1188,9 @@ export function Login() {
                       disabled={submittingOtp}
                       className="flex-1 h-[54px] rounded-[14px] font-bold text-[16px] flex items-center justify-center gap-2 disabled:opacity-70"
                       style={{
-                        background: 'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                        background: 'var(--gradient-brand-cta)',
                         color: '#fff',
-                        boxShadow: '0 6px 24px rgba(249,115,22,0.45)',
+                        boxShadow: 'var(--shadow-cta-hover)',
                       }}
                     >
                       {submittingOtp ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
@@ -1224,11 +1224,11 @@ export function Login() {
             </p>
             <div className="space-y-3 text-left">
               <p className="text-[13px] text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                <Mail className="w-4 h-4 mt-0.5 shrink-0 text-orange-500" />
+                <Mail className="w-4 h-4 mt-0.5 shrink-0 text-[var(--brand-primary)]" />
                 <span><strong>Check your email</strong> ({deviceApprovalEmail}) — we sent an approval link. Click it to sign in on this device.</span>
               </p>
               <p className="text-[13px] text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                <Loader2 className="w-4 h-4 mt-0.5 shrink-0 animate-spin text-orange-500" />
+                <Loader2 className="w-4 h-4 mt-0.5 shrink-0 animate-spin text-[var(--brand-primary)]" />
                 <span><strong>Or wait here</strong> — we’re checking every few seconds. Approve this device from the other browser to continue.</span>
               </p>
             </div>

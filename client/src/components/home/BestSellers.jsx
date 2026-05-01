@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { Star, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { productAPI } from '../../services/api';
-import { useTheme } from '../../contexts/ThemeContext';
 import { SERVER_URL } from '../../lib/config';
 
 const resolveImg = (src) => {
@@ -28,15 +27,15 @@ let bestCache = { data: null, ts: 0 };
 
 /* ─── Rank badge colors ──────────────────────────────────────────────────── */
 const RANK_STYLE = [
-  { bg: '#f59e0b', color: '#fff' },
-  { bg: '#94a3b8', color: '#fff' },
-  { bg: '#cd7f32', color: '#fff' },
+  { bg: 'var(--brand-primary)', color: 'var(--text-on-accent)' },
+  { bg: 'var(--text-muted)', color: 'var(--text-on-accent)' },
+  { bg: 'var(--brand-primary-hover)', color: 'var(--text-on-accent)' },
 ];
 
 /* ─── Single best seller card ────────────────────────────────────────────── */
-function BestCard({ product, rank, isDark }) {
+function BestCard({ product, rank }) {
   const img = resolveImg(product.thumbnail || product.images?.[0]);
-  const rankStyle = RANK_STYLE[rank] || { bg: isDark ? '#1e2235' : '#f1f5f9', color: isDark ? '#9da3be' : '#64748b' };
+  const rankStyle = RANK_STYLE[rank] || { bg: 'var(--bg-badge)', color: 'var(--text-muted)' };
 
   return (
     <motion.div
@@ -49,15 +48,15 @@ function BestCard({ product, rank, isDark }) {
         to={`/products/${product._id}`}
         className="block rounded-2xl overflow-hidden"
         style={{
-          background: isDark ? 'var(--bg-card, #1a1d2e)' : '#fff',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`,
-          boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--border-card)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         {/* Image */}
         <div
           className="relative overflow-hidden"
-          style={{ aspectRatio: '1 / 1', background: isDark ? '#141520' : '#f5f5f7' }}
+          style={{ aspectRatio: '1 / 1', background: 'var(--bg-tertiary)' }}
         >
           <img
             src={img}
@@ -72,7 +71,7 @@ function BestCard({ product, rank, isDark }) {
           {/* Rank badge */}
           <div
             className="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
-            style={{ background: rankStyle.bg, color: rankStyle.color, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+            style={{ background: rankStyle.bg, color: rankStyle.color, boxShadow: 'var(--shadow-sm)' }}
           >
             #{rank + 1}
           </div>
@@ -82,10 +81,10 @@ function BestCard({ product, rank, isDark }) {
             <div
               className="absolute bottom-3 right-3 px-2 py-0.5 rounded-full text-xs font-semibold"
               style={{
-                background: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.9)',
-                color: isDark ? '#9da3be' : '#374151',
+                background: 'var(--card-bg)',
+                color: 'var(--text-secondary)',
                 backdropFilter: 'blur(8px)',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                border: '1px solid var(--border-card)',
               }}
             >
               {product.badge}
@@ -97,7 +96,7 @@ function BestCard({ product, rank, isDark }) {
         <div className="p-4">
           <p
             className="font-semibold text-sm line-clamp-2 leading-snug mb-2"
-            style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}
+            style={{ color: 'var(--text-primary)' }}
           >
             {product.name}
           </p>
@@ -108,28 +107,29 @@ function BestCard({ product, rank, isDark }) {
                 <Star
                   key={n}
                   size={11}
-                  fill={n <= Math.round(product.rating || 4.5) ? '#f59e0b' : 'none'}
-                  stroke={n <= Math.round(product.rating || 4.5) ? '#f59e0b' : (isDark ? '#3d4159' : '#d1d5db')}
+                  fill={n <= Math.round(product.rating || 4.5) ? 'var(--brand-primary)' : 'none'}
+                  stroke={n <= Math.round(product.rating || 4.5) ? 'var(--brand-primary)' : 'var(--border-card)'}
                 />
               ))}
             </div>
-            <span className="text-xs font-medium" style={{ color: isDark ? '#9da3be' : '#374151' }}>
+            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
               {(product.rating || 4.5).toFixed(1)}
             </span>
-            <span className="text-xs" style={{ color: isDark ? '#3d4159' : '#9ca3af' }}>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
               ({(product.reviewCount || product.review_count || 0).toLocaleString()})
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="font-black text-base" style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}>
+            <span className="font-black text-base" style={{ color: 'var(--text-price)' }}>
               ${product.price}
             </span>
             <span
               className="text-xs px-2.5 py-1 rounded-full font-semibold"
               style={{
-                background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)',
-                color: '#6366f1',
+                background: 'var(--brand-tint)',
+                color: 'var(--brand-orange-text)',
+                border: '1px solid var(--brand-border-subtle)',
               }}
             >
               Best Seller
@@ -143,8 +143,6 @@ function BestCard({ product, rank, isDark }) {
 
 /* ─── Section ────────────────────────────────────────────────────────────── */
 export default function BestSellers() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -229,7 +227,7 @@ export default function BestSellers() {
   return (
     <section
       className="w-full py-20"
-      style={{ background: isDark ? 'var(--bg-primary, #0d0f1c)' : '#f8f8f8' }}
+      style={{ background: 'var(--bg-page)' }}
     >
       <div className="px-4 sm:px-6 lg:px-10 xl:px-16">
         {/* Header */}
@@ -237,18 +235,18 @@ export default function BestSellers() {
           <div>
             <motion.p
               className="text-xs font-semibold tracking-[0.2em] uppercase mb-2 flex items-center gap-2"
-              style={{ color: isDark ? '#616680' : '#9ca3af' }}
+              style={{ color: 'var(--text-muted)' }}
               initial={{ opacity: 0, y: 12 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5 }}
             >
-              <Award size={12} style={{ color: '#f59e0b' }} />
+              <Award size={12} style={{ color: 'var(--brand-primary)' }} />
               Most Popular
             </motion.p>
             <motion.h2
               className="font-black leading-none"
               style={{
-                color: isDark ? '#e2e4ed' : '#0f172a',
+                color: 'var(--text-primary)',
                 fontSize: 'clamp(1.8rem, 4vw, 3rem)',
                 fontFamily: "'Times New Roman', Georgia, serif",
                 letterSpacing: '-0.02em',
@@ -267,9 +265,9 @@ export default function BestSellers() {
               onClick={() => scroll(-1)}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200"
               style={{
-                background: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                color: isDark ? '#9da3be' : '#374151',
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border-card)',
+                color: 'var(--text-secondary)',
               }}
               aria-label="Scroll left"
             >
@@ -279,9 +277,9 @@ export default function BestSellers() {
               onClick={() => scroll(1)}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200"
               style={{
-                background: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                color: isDark ? '#9da3be' : '#374151',
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border-card)',
+                color: 'var(--text-secondary)',
               }}
               aria-label="Scroll right"
             >
@@ -304,7 +302,7 @@ export default function BestSellers() {
             width: 36,
             zIndex: 3,
             pointerEvents: 'none',
-            background: `linear-gradient(90deg, ${isDark ? '#0d0f1c' : '#f8f8f8'} 0%, transparent 100%)`,
+            background: 'linear-gradient(90deg, var(--bg-page) 0%, transparent 100%)',
           }}
         />
         <div
@@ -317,7 +315,7 @@ export default function BestSellers() {
             width: 36,
             zIndex: 3,
             pointerEvents: 'none',
-            background: `linear-gradient(270deg, ${isDark ? '#0d0f1c' : '#f8f8f8'} 0%, transparent 100%)`,
+            background: 'linear-gradient(270deg, var(--bg-page) 0%, transparent 100%)',
           }}
         />
 
@@ -343,21 +341,21 @@ export default function BestSellers() {
                 style={{
                   width: 'clamp(220px, 22vw, 260px)',
                   aspectRatio: '0.75',
-                  background: isDark ? '#1a1d2e' : '#f5f5f7',
+                  background: 'var(--bg-tertiary)',
                   animation: 'pulse 1.5s ease-in-out infinite',
                 }}
               />
             ))
           : products.length > 0
           ? displayProducts.map((p, i) => (
-              <BestCard key={`${p._id}-${i}`} product={p} rank={i % products.length} isDark={isDark} />
+              <BestCard key={`${p._id}-${i}`} product={p} rank={i % products.length} />
             ))
           : (
             <div
               className="w-full rounded-2xl p-8 text-center"
               style={{
-                background: isDark ? 'rgba(255,255,255,0.03)' : '#f5f5f7',
-                color: isDark ? '#9da3be' : '#64748b',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-muted)',
               }}
             >
               Best seller products will appear here once available.

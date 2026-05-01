@@ -6,7 +6,7 @@ import { useAuthModal } from '../stores/authModalStore';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const SUCCESS = '#10b981';
 const ERROR = '#ef4444';
 const EASE = [0.25, 0.46, 0.45, 0.94];
@@ -60,7 +60,7 @@ function LeftPanel() {
           </li>
         ))}
       </ul>
-      <div className="h-12 opacity-30" style={{ background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.3), transparent)' }} />
+      <div className="h-12 opacity-30" style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 30%, transparent), transparent)' }} />
     </div>
   );
 }
@@ -101,14 +101,14 @@ function Field({
   inputClassName?: string;
   autoFocus?: boolean;
 }) {
-  const borderColor = error ? ERROR : valid ? SUCCESS : focused ? PRIMARY : '#e5e7eb';
-  const shadow = focused && !error ? '0 0 0 3px rgba(249,115,22,0.15)' : 'none';
+  const borderColor = error ? ERROR : valid ? SUCCESS : focused ? PRIMARY : 'var(--divider)';
+  const shadow = focused && !error ? '0 0 0 3px var(--brand-tint-strong)' : 'none';
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-bold uppercase tracking-wider" style={{ color: '#6b7280' }}>{label}{required ? ' *' : ''}</label>
+      <label className="block text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}{required ? ' *' : ''}</label>
       <div className="relative">
         {LeftIcon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center" style={{ color: error ? ERROR : focused || valid ? PRIMARY : '#9ca3af' }}>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center" style={{ color: error ? ERROR : focused || valid ? PRIMARY : 'var(--text-faint)' }}>
             <LeftIcon className="w-5 h-5" />
           </span>
         )}
@@ -197,7 +197,7 @@ function LoginForm({ onShake }: { onShake: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <h3 className="font-bold text-2xl" style={{ color: '#111827' }}>Welcome back 👋</h3>
-        <p className="text-sm mt-0.5" style={{ color: '#6b7280' }}>Sign in to your Reaglex account</p>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
       </motion.div>
       {error && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-red-50 border border-red-200" style={{ color: ERROR }}>
@@ -210,19 +210,19 @@ function LoginForm({ onShake }: { onShake: () => void }) {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <Field label="Password" type={showPw ? 'text' : 'password'} value={password} onChange={setPassword} placeholder="Password" leftIcon={Lock} focused={focused === 'pw'} onFocus={() => setFocused('pw')} onBlur={() => setFocused(null)} rightEl={
           <button type="button" onClick={() => setShowPw(!showPw)} className="p-1 rounded hover:bg-gray-100 transition" aria-label={showPw ? 'Hide password' : 'Show password'}>
-            {showPw ? <EyeOff className="w-4 h-4" style={{ color: '#6b7280' }} /> : <Eye className="w-4 h-4" style={{ color: '#6b7280' }} />}
+            {showPw ? <EyeOff className="w-4 h-4" style={{ color: 'var(--text-muted)' }} /> : <Eye className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />}
           </button>
         } required />
       </motion.div>
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" className="w-4 h-4 rounded border-2" style={{ accentColor: PRIMARY }} />
-          <span className="text-[13px]" style={{ color: '#6b7280' }}>Remember me</span>
+          <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Remember me</span>
         </label>
         <button type="button" onClick={() => setTab('forgot')} className="text-sm font-medium hover:underline transition" style={{ color: PRIMARY }}>Recover Password?</button>
       </div>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-        <motion.button type="submit" disabled={loading} className="w-full h-[50px] rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all" style={{ background: success ? SUCCESS : 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: success ? 'none' : '0 4px 16px rgba(249,115,22,0.3)' }} whileHover={!loading && !success ? { scale: 1.01 } : {}} whileTap={!loading ? { scale: 0.99 } : {}}>
+        <motion.button type="submit" disabled={loading} className="w-full h-[50px] rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all" style={{ background: success ? SUCCESS : 'var(--gradient-brand-cta)', boxShadow: success ? 'none' : 'var(--shadow-cta)' }} whileHover={!loading && !success ? { scale: 1.01 } : {}} whileTap={!loading ? { scale: 0.99 } : {}}>
           {loading && !success && <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
           {success && <Check className="w-5 h-5" />}
           {!loading && !success && <>Sign In <ArrowRight className="w-4 h-4" /></>}
@@ -250,7 +250,7 @@ function LoginForm({ onShake }: { onShake: () => void }) {
           Continue with Google
         </motion.button>
       </div>
-      <p className="text-center text-sm pt-1" style={{ color: '#6b7280' }}>
+      <p className="text-center text-sm pt-1" style={{ color: 'var(--text-muted)' }}>
         No account? <button type="button" onClick={() => setTab('signup')} className="font-bold hover:underline" style={{ color: PRIMARY }}>Sign Up</button>
       </p>
     </form>
@@ -305,7 +305,7 @@ function SignupForm({ onShake }: { onShake: () => void }) {
       <div className="text-4xl mb-3">🎉</div>
       <h3 className="font-bold text-2xl mb-1" style={{ color: SUCCESS }}>Account Created!</h3>
       <p className="font-semibold text-lg mb-1" style={{ color: PRIMARY }}>Welcome to Reaglex, {fd.fullName.trim().split(/\s+/)[0] || 'there'}!</p>
-      <p className="text-sm mb-6" style={{ color: '#6b7280' }}>Check your email to verify your account</p>
+      <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Check your email to verify your account</p>
       <div className="flex flex-col sm:flex-row gap-2 justify-center">
         <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setTab('login')} className="px-5 py-2.5 rounded-xl font-semibold text-white" style={{ background: PRIMARY }}>Start Shopping →</motion.button>
         <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setTab('login')} className="px-5 py-2.5 rounded-xl font-semibold border-2" style={{ borderColor: PRIMARY, color: PRIMARY }}>Complete Profile</motion.button>
@@ -316,7 +316,7 @@ function SignupForm({ onShake }: { onShake: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h3 className="font-bold text-2xl" style={{ color: '#111827' }}>Create your account 🚀</h3>
-      <p className="text-sm" style={{ color: '#6b7280' }}>Join thousands of buyers and sellers</p>
+      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Join thousands of buyers and sellers</p>
       {error && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-red-50 border border-red-200" style={{ color: ERROR }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
@@ -325,28 +325,28 @@ function SignupForm({ onShake }: { onShake: () => void }) {
       <Field label="Full Name" value={fd.fullName} onChange={(v) => setFd({ ...fd, fullName: v })} placeholder="Your full name" leftIcon={User} valid={fd.fullName.trim().length >= 2} required autoFocus />
       <Field label="Email Address" type="email" value={fd.email} onChange={(v) => setFd({ ...fd, email: v })} placeholder="you@example.com" leftIcon={Mail} error={fd.email.length > 0 && !emailValid ? 'Please enter a valid email' : undefined} valid={emailValid} required />
       <div className="space-y-1.5">
-        <Field label="Password" type={showPw ? 'text' : 'password'} value={fd.password} onChange={(v) => setFd({ ...fd, password: v })} placeholder="At least 8 characters" leftIcon={Lock} onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)} rightEl={<button type="button" onClick={() => setShowPw(!showPw)} className="p-1 rounded hover:bg-gray-100" aria-label={showPw ? 'Hide password' : 'Show password'}>{showPw ? <EyeOff className="w-4 h-4" style={{ color: '#6b7280' }} /> : <Eye className="w-4 h-4" style={{ color: '#6b7280' }} />}</button>} required />
+        <Field label="Password" type={showPw ? 'text' : 'password'} value={fd.password} onChange={(v) => setFd({ ...fd, password: v })} placeholder="At least 8 characters" leftIcon={Lock} onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)} rightEl={<button type="button" onClick={() => setShowPw(!showPw)} className="p-1 rounded hover:bg-gray-100" aria-label={showPw ? 'Hide password' : 'Show password'}>{showPw ? <EyeOff className="w-4 h-4" style={{ color: 'var(--text-muted)' }} /> : <Eye className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />}</button>} required />
         <div className="flex gap-1 h-1.5 rounded-full overflow-hidden bg-gray-200">
-          {[0, 1, 2, 3].map((i) => <motion.div key={i} className="flex-1 rounded-full" initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 0.3 }} style={{ background: i === 0 ? ERROR : i === 1 ? '#f97316' : i === 2 ? '#eab308' : SUCCESS, opacity: strength.level >= i ? 1 : 0.2 }} />)}
+          {[0, 1, 2, 3].map((i) => <motion.div key={i} className="flex-1 rounded-full" initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 0.3 }} style={{ background: i === 0 ? ERROR : i === 1 ? 'var(--brand-primary)' : i === 2 ? '#eab308' : SUCCESS, opacity: strength.level >= i ? 1 : 0.2 }} />)}
         </div>
-        <p className="text-xs" style={{ color: strength.level === 0 ? '#9ca3af' : strength.level <= 2 ? '#f97316' : SUCCESS }}>{strength.label}</p>
+        <p className="text-xs" style={{ color: strength.level === 0 ? 'var(--text-faint)' : strength.level <= 2 ? 'var(--brand-primary)' : SUCCESS }}>{strength.label}</p>
         {pwFocused && (
-          <motion.ul initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="text-xs space-y-1 mt-1" style={{ color: '#6b7280' }}>
+          <motion.ul initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="text-xs space-y-1 mt-1" style={{ color: 'var(--text-muted)' }}>
             {[{ key: 'length', met: reqs.length, text: 'At least 8 characters' }, { key: 'upper', met: reqs.upper, text: 'One uppercase letter' }, { key: 'number', met: reqs.number, text: 'One number' }, { key: 'special', met: reqs.special, text: 'One special character' }].map(({ key, met, text }) => (
               <li key={key} className="flex items-center gap-2">{met ? <Check className="w-3.5 h-3.5 text-green-500" /> : <span className="w-3.5 h-3.5 rounded-full border border-gray-300" />} {text}</li>
             ))}
           </motion.ul>
         )}
       </div>
-      <Field label="Confirm Password" type={showCPw ? 'text' : 'password'} value={fd.confirmPassword} onChange={(v) => setFd({ ...fd, confirmPassword: v })} placeholder="Confirm password" leftIcon={Lock} rightEl={<button type="button" onClick={() => setShowCPw(!showCPw)} className="p-1 rounded hover:bg-gray-100"><Eye className="w-4 h-4" style={{ color: '#6b7280' }} /></button>} valid={match === true} error={match === false ? "Passwords don't match" : undefined} required />
+      <Field label="Confirm Password" type={showCPw ? 'text' : 'password'} value={fd.confirmPassword} onChange={(v) => setFd({ ...fd, confirmPassword: v })} placeholder="Confirm password" leftIcon={Lock} rightEl={<button type="button" onClick={() => setShowCPw(!showCPw)} className="p-1 rounded hover:bg-gray-100"><Eye className="w-4 h-4" style={{ color: 'var(--text-muted)' }} /></button>} valid={match === true} error={match === false ? "Passwords don't match" : undefined} required />
       {fd.confirmPassword.length > 0 && <p className="text-xs" style={{ color: match ? SUCCESS : ERROR }}>{match ? 'Passwords match ✓' : "Passwords don't match"}</p>}
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#6b7280' }}>I want to:</p>
+        <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>I want to:</p>
         <div className="flex gap-2">
           {(['buyer', 'seller'] as const).map((r) => (
             <motion.button key={r} type="button" onClick={() => setFd({ ...fd, role: r })} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all"
-              style={{ borderColor: fd.role === r ? PRIMARY : '#e5e7eb', background: fd.role === r ? PRIMARY : 'white', color: fd.role === r ? 'white' : '#6b7280' }}>
+              style={{ borderColor: fd.role === r ? PRIMARY : 'var(--divider)', background: fd.role === r ? PRIMARY : 'var(--card-bg)', color: fd.role === r ? 'var(--text-on-accent)' : 'var(--text-muted)' }}>
               {r === 'buyer' ? '🛒' : '🏪'} {r === 'buyer' ? 'Buy' : 'Sell'}
             </motion.button>
           ))}
@@ -359,11 +359,11 @@ function SignupForm({ onShake }: { onShake: () => void }) {
       )}
       <label className="flex items-start gap-2 cursor-pointer">
         <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-2 flex-shrink-0" style={{ accentColor: PRIMARY }} />
-        <span className="text-sm" style={{ color: '#6b7280' }}>I agree to the <a href="/terms" className="font-medium hover:underline" style={{ color: PRIMARY }}>Terms of Service</a> and <a href="/privacy" className="font-medium hover:underline" style={{ color: PRIMARY }}>Privacy Policy</a></span>
+        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>I agree to the <a href="/terms" className="font-medium hover:underline" style={{ color: PRIMARY }}>Terms of Service</a> and <a href="/privacy" className="font-medium hover:underline" style={{ color: PRIMARY }}>Privacy Policy</a></span>
       </label>
       <motion.button type="submit" disabled={!canSubmit || loading} whileHover={canSubmit && !loading ? { scale: 1.01 } : {}} whileTap={canSubmit && !loading ? { scale: 0.99 } : {}}
         className="w-full h-[50px] rounded-xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
-        style={{ background: canSubmit && !loading ? 'linear-gradient(135deg, #f97316, #ea580c)' : '#d1d5db', boxShadow: canSubmit && !loading ? '0 4px 16px rgba(249,115,22,0.3)' : 'none' }}>
+        style={{ background: canSubmit && !loading ? 'var(--gradient-brand-cta)' : 'var(--bg-tertiary)', boxShadow: canSubmit && !loading ? 'var(--shadow-cta)' : 'none' }}>
         {loading && <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
         {!loading && (canSubmit ? 'Create Account →' : 'Create Account')}
       </motion.button>
@@ -373,7 +373,7 @@ function SignupForm({ onShake }: { onShake: () => void }) {
         <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.77-6.77C35.41 2.38 30.21 0 24 0 14.67 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.5 17.79 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.16 7.09-10.29 7.09-17.55z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.67 48 24 48z"/></svg>
         Continue with Google
       </button>
-      <p className="text-center text-sm" style={{ color: '#6b7280' }}>Already have an account? <button type="button" onClick={() => setTab('login')} className="font-bold hover:underline" style={{ color: PRIMARY }}>Sign In</button></p>
+      <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>Already have an account? <button type="button" onClick={() => setTab('login')} className="font-bold hover:underline" style={{ color: PRIMARY }}>Sign In</button></p>
     </form>
   );
 }
@@ -418,7 +418,7 @@ function ForgotForm() {
       <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }} className="w-16 h-16 rounded-full flex items-center justify-center mx-auto text-4xl">✉️</motion.div>
       <div>
         <p className="font-bold text-xl mb-1" style={{ color: SUCCESS }}>Check your email!</p>
-        <p className="text-sm" style={{ color: '#6b7280' }}>We sent a reset link to <strong style={{ color: '#111827' }}>{email}</strong></p>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>We sent a reset link to <strong style={{ color: 'var(--text-primary)' }}>{email}</strong></p>
       </div>
       <div className="flex flex-col sm:flex-row gap-2 justify-center">
         <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" className="inline-flex justify-center px-4 py-2.5 rounded-xl font-semibold text-white" style={{ background: PRIMARY }}>Open Gmail →</a>
@@ -432,7 +432,7 @@ function ForgotForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <button type="button" onClick={() => setTab('login')} className="text-sm font-medium hover:underline mb-2 block" style={{ color: PRIMARY }}>← Back to Sign In</button>
       <h3 className="font-bold text-xl" style={{ color: '#111827' }}>Reset Password</h3>
-      <p className="text-sm" style={{ color: '#6b7280' }}>Enter your email and we'll send a reset link.</p>
+      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Enter your email and we'll send a reset link.</p>
       {error && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-red-50 border border-red-200" style={{ color: ERROR }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
@@ -441,7 +441,7 @@ function ForgotForm() {
       <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="Enter your email" leftIcon={Mail} required autoFocus />
       <motion.button type="submit" disabled={loading} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
         className="w-full h-[50px] rounded-xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50"
-        style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 16px rgba(249,115,22,0.3)' }}>
+        style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
         {loading && <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
         {!loading && <>Send Reset Link <ArrowRight className="w-4 h-4" /></>}
       </motion.button>
@@ -522,7 +522,7 @@ export default function AuthModal() {
                     {(['login', 'signup'] as const).map((t) => (
                       <button key={t} type="button" onClick={() => setTab(t)}
                         className="relative z-10 flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
-                        style={{ color: tab === t ? PRIMARY : '#6b7280' }}>
+                        style={{ color: tab === t ? PRIMARY : 'var(--text-muted)' }}>
                         {t === 'login' ? 'Sign In' : 'Register'}
                       </button>
                     ))}

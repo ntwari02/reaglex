@@ -9,7 +9,7 @@ import {
   Sparkles, ArrowLeft, Zap,
 } from 'lucide-react';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const BLUE    = '#3b82f6';
 const PURPLE  = '#8b5cf6';
 const GREEN   = '#22c55e';
@@ -27,7 +27,7 @@ function FuturisticBg() {
         <rect width="100%" height="100%" fill="url(#sp-grid)" />
       </svg>
       <motion.div animate={{ y: [0, -28, 0], scale: [1, 1.08, 1] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ position: 'absolute', top: '5%', left: '-4%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.1) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        style={{ position: 'absolute', top: '5%', left: '-4%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 10%, transparent) 0%, transparent 70%)', filter: 'blur(60px)' }} />
       <motion.div animate={{ y: [0, 20, 0], scale: [1, 0.94, 1] }} transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
         style={{ position: 'absolute', bottom: '5%', right: '-3%', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }} />
       <motion.div animate={{ x: [0, 18, 0] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
@@ -35,7 +35,7 @@ function FuturisticBg() {
       <motion.div
         initial={{ top: '-2px' }} animate={{ top: '102%' }}
         transition={{ duration: 12, repeat: Infinity, ease: 'linear', repeatDelay: 5 }}
-        style={{ position: 'absolute', left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.4), transparent)' }}
+        style={{ position: 'absolute', left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 40%, transparent), transparent)' }}
       />
     </div>
   );
@@ -46,21 +46,21 @@ function StatusOrb({ size = 96 }: { size?: number }) {
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <motion.div animate={{ scale: [1, 1.6], opacity: [0.3, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
-        style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: '1.5px solid rgba(249,115,22,0.45)' }} />
+        style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: '1.5px solid color-mix(in srgb, var(--brand-primary) 45%, transparent)' }} />
       <motion.div animate={{ scale: [1, 1.9], opacity: [0.18, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut', delay: 0.65 }}
-        style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: '1px solid rgba(249,115,22,0.25)' }} />
+        style={{ position: 'absolute', inset: -6, borderRadius: '50%', border: '1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent)' }} />
       <motion.div
-        animate={{ boxShadow: ['0 0 0 0 rgba(249,115,22,0.35), 0 0 28px rgba(249,115,22,0.2)', '0 0 0 10px rgba(249,115,22,0), 0 0 44px rgba(249,115,22,0.28)'] }}
+        animate={{ boxShadow: ['0 0 0 0 color-mix(in srgb, var(--brand-primary) 35%, transparent), 0 0 28px color-mix(in srgb, var(--brand-primary) 20%, transparent)', '0 0 0 10px color-mix(in srgb, var(--brand-primary) 0%, transparent), 0 0 44px color-mix(in srgb, var(--brand-primary) 28%, transparent)'] }}
         transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
         style={{
           position: 'absolute', inset: 0, borderRadius: '50%',
           background: 'linear-gradient(135deg, #1c0d05 0%, #2a1508 50%, #1a0f04 100%)',
-          border: '2px solid rgba(249,115,22,0.45)',
+          border: '2px solid color-mix(in srgb, var(--brand-primary) 45%, transparent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
         <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-          style={{ position: 'absolute', inset: 5, borderRadius: '50%', border: '1px dashed rgba(249,115,22,0.2)' }} />
+          style={{ position: 'absolute', inset: 5, borderRadius: '50%', border: '1px dashed color-mix(in srgb, var(--brand-primary) 20%, transparent)' }} />
         <Clock style={{ width: size * 0.37, height: size * 0.37, color: PRIMARY, position: 'relative', zIndex: 1 }} />
       </motion.div>
     </div>
@@ -78,7 +78,7 @@ function TimelineStep({
   const isCurrent = status === 'current';
   const dotColor  = isDone ? GREEN : isCurrent ? PRIMARY : 'rgba(100,116,139,0.4)';
   const iconColor = isDone ? GREEN : isCurrent ? PRIMARY : '#475569';
-  const glow      = isDone ? '0 0 16px rgba(34,197,94,0.4)' : isCurrent ? '0 0 16px rgba(249,115,22,0.5)' : 'none';
+  const glow      = isDone ? '0 0 16px rgba(34,197,94,0.4)' : isCurrent ? '0 0 16px color-mix(in srgb, var(--brand-primary) 50%, transparent)' : 'none';
 
   return (
     <motion.div
@@ -106,7 +106,7 @@ function TimelineStep({
           transition={{ duration: 1.8, repeat: Infinity }}
           style={{
             width: 42, height: 42, borderRadius: '50%',
-            background: isDone ? 'rgba(34,197,94,0.1)' : isCurrent ? 'rgba(249,115,22,0.1)' : 'rgba(71,85,105,0.08)',
+            background: isDone ? 'rgba(34,197,94,0.1)' : isCurrent ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' : 'rgba(71,85,105,0.08)',
             border: `1.5px solid ${dotColor}`,
             boxShadow: glow,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -125,7 +125,7 @@ function TimelineStep({
             <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.4, repeat: Infinity }}
               style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase',
                 color: PRIMARY, padding: '2px 7px', borderRadius: 4,
-                background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.28)' }}>
+                background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--brand-primary) 28%, transparent)' }}>
               ACTIVE
             </motion.span>
           )}
@@ -146,15 +146,15 @@ function TipRow({ n, text, delay }: { n: string; text: string; delay: number }) 
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 12,
         padding: '12px 16px', borderRadius: 12,
-        background: 'rgba(249,115,22,0.03)',
-        border: '1px solid rgba(249,115,22,0.09)',
+        background: 'color-mix(in srgb, var(--brand-primary) 3%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--brand-primary) 9%, transparent)',
         transition: 'border-color 0.2s',
       }}
-      whileHover={{ borderColor: 'rgba(249,115,22,0.22)' } as any}
+      whileHover={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 22%, transparent)' } as any}
     >
       <span style={{
         flexShrink: 0, width: 24, height: 24, borderRadius: 7,
-        background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.22)',
+        background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--brand-primary) 22%, transparent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 9, fontWeight: 900, color: PRIMARY, fontFamily: 'monospace',
       }}>{n}</span>
@@ -444,7 +444,7 @@ export default function SellerPending() {
                 transition={{ delay: 0.32, duration: 0.4 }}
                 style={{ display: 'flex', gap: 10, flexWrap: 'wrap', flexShrink: 0, alignSelf: 'center' }}
               >
-                <StatPill label="Time Elapsed" color={PRIMARY} accentBg="rgba(249,115,22,0.06)">
+                <StatPill label="Time Elapsed" color={PRIMARY} accentBg="color-mix(in srgb, var(--brand-primary) 6%, transparent)">
                   <ElapsedTimer color={PRIMARY} />
                 </StatPill>
                 <StatPill label="Estimated Review" color={BLUE} accentBg="rgba(59,130,246,0.06)">
@@ -490,7 +490,7 @@ export default function SellerPending() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 24 }}>
                   <div style={{
                     width: 32, height: 32, borderRadius: 9,
-                    background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.22)',
+                    background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--brand-primary) 22%, transparent)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <Sparkles style={{ width: 15, height: 15, color: PRIMARY }} />
@@ -504,7 +504,7 @@ export default function SellerPending() {
                   {/* Progress bar */}
                   <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                     <span style={{ fontSize: 11, fontWeight: 800, color: PRIMARY }}>50%</span>
-                    <div style={{ width: 80, height: 5, borderRadius: 99, background: 'rgba(249,115,22,0.12)', overflow: 'hidden' }}>
+                    <div style={{ width: 80, height: 5, borderRadius: 99, background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', overflow: 'hidden' }}>
                       <motion.div
                         initial={{ width: 0 }} animate={{ width: '50%' }}
                         transition={{ delay: 0.5, duration: 0.7, ease: 'easeOut' }}
@@ -612,15 +612,15 @@ export default function SellerPending() {
           >
             {/* Subtle gradient */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
-              background: 'radial-gradient(ellipse at 10% 50%, rgba(249,115,22,0.03) 0%, transparent 60%)' }} />
+              background: 'radial-gradient(ellipse at 10% 50%, color-mix(in srgb, var(--brand-primary) 3%, transparent) 0%, transparent 60%)' }} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
               <motion.div
-                animate={{ boxShadow: ['0 0 0 0 rgba(249,115,22,0.3)', '0 0 0 6px rgba(249,115,22,0)', '0 0 0 0 rgba(249,115,22,0)'] }}
+                animate={{ boxShadow: ['0 0 0 0 color-mix(in srgb, var(--brand-primary) 30%, transparent)', '0 0 0 6px color-mix(in srgb, var(--brand-primary) 0%, transparent)', '0 0 0 0 color-mix(in srgb, var(--brand-primary) 0%, transparent)'] }}
                 transition={{ duration: 2.5, repeat: Infinity }}
                 style={{
                   width: 36, height: 36, borderRadius: '50%',
-                  background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)',
+                  background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}
               >
@@ -638,12 +638,12 @@ export default function SellerPending() {
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '9px 18px', borderRadius: 10,
-                  background: 'rgba(249,115,22,0.09)', border: '1px solid rgba(249,115,22,0.24)',
+                  background: 'color-mix(in srgb, var(--brand-primary) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--brand-primary) 24%, transparent)',
                   color: PRIMARY, fontSize: 13, fontWeight: 700, textDecoration: 'none',
                   transition: 'all 0.18s ease',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(249,115,22,0.16)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(249,115,22,0.09)'; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'color-mix(in srgb, var(--brand-primary) 16%, transparent)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'color-mix(in srgb, var(--brand-primary) 9%, transparent)'; }}
               >
                 <Mail style={{ width: 14, height: 14 }} />
                 seller-support@reaglex.com

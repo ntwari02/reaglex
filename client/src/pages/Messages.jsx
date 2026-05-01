@@ -9,8 +9,8 @@ import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useAuthStore } from '../stores/authStore';
 import { buyerInboxAPI } from '../services/buyerInboxApi';
 
-const PRIMARY = '#f97316';
-const ONLINE = '#10b981';
+const PRIMARY = 'var(--brand-primary)';
+const ONLINE = 'var(--text-in-stock)';
 const EASE = [0.25, 0.46, 0.45, 0.94];
 const HEADER_HEIGHT = 138;
 
@@ -371,7 +371,7 @@ export default function Messages() {
               style={{
                 background: search ? 'var(--input-bg)' : 'var(--bg-tertiary)',
                 borderColor: search ? PRIMARY : 'transparent',
-                boxShadow: search ? '0 0 0 2px rgba(249,115,22,0.2)' : 'none',
+                boxShadow: search ? '0 0 0 2px color-mix(in srgb, var(--brand-primary) 22%, transparent)' : 'none',
               }}
             >
               <Search
@@ -457,7 +457,7 @@ export default function Messages() {
                     <div className="relative flex-shrink-0">
                       <div
                         className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white"
-                        style={{ background: `linear-gradient(135deg, ${PRIMARY}, #ea580c)` }}
+                        style={{ background: 'var(--gradient-brand-cta)' }}
                       >
                         {c.initial}
                       </div>
@@ -481,7 +481,7 @@ export default function Messages() {
                       {(c.unread || 0) > 0 && (
                         <span
                           className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
-                          style={{ background: '#2563eb' }}
+                          style={{ background: 'var(--brand-primary)' }}
                         />
                       )}
                     </div>
@@ -509,7 +509,7 @@ export default function Messages() {
                         <span
                           className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-medium"
                           style={{
-                            background: 'var(--brand-light)',
+                            background: 'var(--tab-active-bg)',
                             color: PRIMARY,
                           }}
                         >
@@ -636,7 +636,7 @@ export default function Messages() {
                   <div className="relative">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                      style={{ background: `linear-gradient(135deg, ${PRIMARY}, #ea580c)` }}
+                      style={{ background: 'var(--gradient-brand-cta)' }}
                     >
                       {conv.initial}
                     </div>
@@ -779,7 +779,7 @@ export default function Messages() {
                   animate={{ opacity: 1, height: 'auto' }}
                   className="flex items-center justify-between px-4 py-2 flex-shrink-0 border-b"
                   style={{
-                    background: 'var(--brand-light)',
+                    background: 'var(--tab-active-bg)',
                     borderColor: 'var(--brand-border)',
                   }}
                 >
@@ -891,7 +891,7 @@ export default function Messages() {
                             style={
                               m.from === 'buyer'
                                 ? {
-                                    background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                                    background: 'var(--gradient-brand-cta)',
                                     color: 'white',
                                   }
                                 : {
@@ -1131,7 +1131,7 @@ export default function Messages() {
                   style={{
                     background: input ? 'var(--input-bg)' : 'var(--bg-tertiary)',
                     borderColor: input ? PRIMARY : 'transparent',
-                    boxShadow: input ? '0 0 0 2px rgba(249,115,22,0.2)' : 'none',
+                    boxShadow: input ? '0 0 0 2px color-mix(in srgb, var(--brand-primary) 22%, transparent)' : 'none',
                   }}
                 >
                   <textarea
@@ -1147,7 +1147,7 @@ export default function Messages() {
                   {input.length >= 200 && (
                     <span
                       className="text-[11px] mt-0.5"
-                      style={{ color: input.length > 450 ? '#ef4444' : 'var(--text-muted)' }}
+                      style={{ color: input.length > 450 ? 'var(--badge-error-text)' : 'var(--text-muted)' }}
                     >
                       {input.length}/{MAX_INPUT_LENGTH}
                     </span>

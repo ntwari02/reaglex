@@ -186,7 +186,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                   <button
                     type="button"
                     onClick={() => void markAllAsRead()}
-                    className="px-3 py-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                    className="px-3 py-1.5 text-xs font-semibold text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] rounded-lg transition-colors"
                   >
                     {t('notifications.markAllRead')}
                   </button>
@@ -209,7 +209,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                       onClick={() => setActiveFilter(filter.id)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                         isActive
-                          ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+                          ? 'bg-[var(--brand-tint-strong)] dark:bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
@@ -218,7 +218,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                         <span
                           className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
                           isActive
-                            ? 'bg-orange-600 dark:bg-orange-500 text-white'
+                            ? 'bg-[var(--brand-primary-hover)] dark:bg-[var(--brand-primary)] text-white'
                             : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
                           }`}
                         >
@@ -237,7 +237,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
               )}
               {userId && loading && (
                 <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                  <Loader2 className="h-8 w-8 animate-spin text-[var(--brand-primary)]" />
                 </div>
               )}
               {userId && error && !loading && (
@@ -261,9 +261,9 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                         transition={{ delay: index * 0.03 }}
                         className={`group relative p-4 rounded-lg bg-white dark:bg-gray-800 border-2 transition-all cursor-pointer ${
                           notification.unread
-                            ? 'border-orange-200 dark:border-orange-800 shadow-sm'
+                            ? 'border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)] shadow-sm'
                             : 'border-gray-200 dark:border-gray-700'
-                        } hover:shadow-md hover:border-orange-300 dark:hover:border-orange-700`}
+                        } hover:shadow-md hover:border-[var(--brand-border-subtle)] dark:hover:border-[var(--brand-border-subtle)]`}
                         onClick={() => {
                           markAsRead(notification.id);
                           if (notification.actionLink) onClose();
@@ -305,7 +305,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                                 {notification.title}
                               </h4>
                               {notification.unread && (
-                                <div className="w-2.5 h-2.5 bg-orange-600 dark:bg-orange-500 rounded-full flex-shrink-0 mt-1 shadow-sm" />
+                                <div className="w-2.5 h-2.5 bg-[var(--brand-primary-hover)] dark:bg-[var(--brand-primary)] rounded-full flex-shrink-0 mt-1 shadow-sm" />
                               )}
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
@@ -322,7 +322,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                                     onClose();
                                     navigate(notification.actionLink!);
                                   }}
-                                  className="flex items-center gap-1 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-500 transition-colors"
+                                  className="flex items-center gap-1 text-xs font-semibold text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:text-[var(--brand-primary-hover)] dark:hover:text-[var(--brand-primary)] transition-colors"
                                 >
                                   {notification.actionLabel}
                                   <ExternalLink className="h-3 w-3" />
@@ -342,7 +342,7 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
               <Link
                 to={getNotificationsUrl()}
                 onClick={onClose}
-                className="text-sm font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-500 transition-colors"
+                className="text-sm font-semibold text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:text-[var(--brand-primary-hover)] dark:hover:text-[var(--brand-primary)] transition-colors"
               >
                 {t('notifications.viewAll')}
               </Link>

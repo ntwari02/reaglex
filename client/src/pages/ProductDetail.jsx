@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ShoppingBag, Heart, Star, ChevronLeft, ChevronRight,
+  ShoppingBag, Heart, Star, ChevronLeft, ChevronRight, ChevronDown,
   Truck, Shield, Plus, Minus, Share2, ZoomIn, Check,
   X, Link2, ThumbsUp, BadgeCheck, Package, RefreshCw,
   Zap, MessageCircle,
@@ -17,7 +17,7 @@ import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 import { useSeo } from '../utils/useSeo';
 import { SERVER_URL } from '../lib/config';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
 
 /* ─── helpers ────────────────────────────────────────────────────────────── */
@@ -40,7 +40,7 @@ const COLORS = [
   { name: 'Midnight', hex: '#111827' },
   { name: 'Cloud',    hex: '#f1f5f9' },
   { name: 'Navy',     hex: '#1e3a5f' },
-  { name: 'Ember',    hex: '#f97316' },
+  { name: 'Ember',    hex: 'var(--brand-primary)' },
   { name: 'Sage',     hex: '#4ade80' },
 ];
 
@@ -52,7 +52,7 @@ const TABS = [
 ];
 
 const HIGHLIGHTS = [
-  { icon: Package,   title: 'Free Shipping',    desc: 'On orders over $35',    color: '#f97316' },
+  { icon: Package,   title: 'Free Shipping',    desc: 'On orders over $35',    color: 'var(--brand-primary)' },
   { icon: RefreshCw, title: '30-Day Returns',   desc: 'No questions asked',     color: '#10b981' },
   { icon: Shield,    title: 'Buyer Protection', desc: 'Your money is safe',     color: '#6366f1' },
   { icon: Zap,       title: 'Fast Dispatch',    desc: 'Ships within 24 hours', color: '#f59e0b' },
@@ -66,7 +66,7 @@ function GridMesh() {
     <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden>
       <defs>
         <pattern id="pd2-grid" width="52" height="52" patternUnits="userSpaceOnUse">
-          <path d="M 52 0 L 0 0 0 52" fill="none" stroke="rgba(249,115,22,0.055)" strokeWidth="1" />
+          <path d="M 52 0 L 0 0 0 52" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 5.5%, transparent)" strokeWidth="1" />
         </pattern>
         <radialGradient id="pd2-fade" cx="50%" cy="30%" r="65%">
           <stop offset="0%" stopColor="var(--bg-page)" stopOpacity="0" />
@@ -128,6 +128,8 @@ export default function ProductDetail() {
   const [descExpanded, setDescExpanded] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
   const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
+  /** Mobile stacked sections: which detail accordion is open (null = all collapsed) */
+  const [mobileDetailOpen, setMobileDetailOpen] = useState('description');
 
   /* ── refs ── */
   const ctaRef = useRef(null);
@@ -257,7 +259,7 @@ export default function ProductDetail() {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-          className="w-12 h-12 rounded-full border-4 border-orange-200 border-t-orange-500"
+          className="w-12 h-12 rounded-full border-4 border-[color-mix(in_srgb,var(--brand-primary)_22%,var(--card-bg))] border-t-[var(--brand-primary)]"
         />
         <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Loading product…</p>
       </div>
@@ -271,7 +273,7 @@ export default function ProductDetail() {
         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error}</p>
         <button onClick={() => navigate(-1)}
           className="px-7 py-3 rounded-full text-white font-bold text-sm"
-          style={{ background: PRIMARY, boxShadow: '0 8px 20px rgba(249,115,22,0.35)' }}>
+          style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
           Go Back
         </button>
       </div>
@@ -316,6 +318,121 @@ export default function ProductDetail() {
 
   const recentFiltered = recentItems.filter((p) => (p._id || p.id) !== id).slice(0, 6);
 
+  const renderDetailPanel = (panelIndex, opts = { dense: false }) => {
+    const { dense } = opts;
+    switch (panelIndex) {
+      case 0:
+        return (
+          <div className="pt-3">
+            <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
+              {product.description || 'No description available.'}
+            </p>
+            <h4 className="font-bold text-sm mb-3" style={{ color: 'var(--text-primary)' }}>Key Features</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {['Premium quality materials', 'Fast shipping worldwide', '30-day hassle-free returns', 'Verified seller guarantee'].map((f) => (
+                <div key={f} className="flex items-center gap-2 p-2.5 rounded-xl"
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#f0fdf4' }}>
+                    <Check size={13} className="text-green-600" />
+                  </div>
+                  <span className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 1:
+        return (
+          <div className="pt-3 overflow-x-auto">
+            <table className="w-full text-sm min-w-0">
+              <tbody>
+                {specs.map((row, i) => (
+                  <tr key={row.prop} className="border-b last:border-0" style={{ borderColor: 'var(--divider)' }}>
+                    <td className="py-2.5 pr-3 font-semibold align-top w-[36%] max-w-[120px]" style={{ color: 'var(--text-primary)' }}>{row.prop}</td>
+                    <td className="py-2.5 break-words" style={{ color: 'var(--text-secondary)' }}>{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      case 2:
+        return (
+          <div className={dense ? 'pt-3 space-y-4' : 'pt-0 space-y-4'} id="reviews-section">
+            <div className={`flex flex-col gap-4 p-4 sm:p-6 rounded-2xl ${dense ? '' : 'lg:flex-row lg:items-stretch'}`} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
+              <div className={`text-center ${dense ? '' : 'lg:text-left lg:flex-shrink-0'}`}>
+                <p className={`font-black mb-1 ${dense ? 'text-4xl' : 'text-4xl sm:text-5xl'}`} style={{ color: PRIMARY }}>{rating.toFixed(1)}</p>
+                <Stars rating={rating} />
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{reviewsCount} reviews</p>
+              </div>
+              <div className="flex-1 space-y-2 min-w-0">
+                {reviewBars.map((r, i) => (
+                  <div key={r.stars} className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xs font-medium w-5 sm:w-6 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{r.stars}★</span>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+                      <motion.div className="h-full rounded-full" style={{ background: PRIMARY }} initial={{ width: 0 }} animate={{ width: `${r.pct}%` }} transition={{ duration: 0.6, delay: 0.2 + i * 0.06 }} />
+                    </div>
+                    <span className="text-xs w-7 sm:w-8 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{r.pct}%</span>
+                  </div>
+                ))}
+              </div>
+              <div className={`flex flex-col gap-2 ${dense ? '' : 'lg:justify-center lg:items-end'}`}>
+                <button type="button" className="w-full lg:w-auto px-5 py-3 rounded-xl sm:rounded-full text-sm font-bold text-white min-h-[48px]" style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
+                  <MessageCircle size={14} className="inline mr-1.5" />Write a Review
+                </button>
+                <button type="button" onClick={() => setVoteUp((v) => v + 1)} className="w-full lg:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl sm:rounded-full text-sm font-semibold min-h-[44px]" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                  <ThumbsUp size={13} /> {voteUp} Helpful
+                </button>
+              </div>
+            </div>
+            {[
+              { author: 'Alex M.', rating: 5, text: 'Absolutely love this product! Quality exceeded my expectations.', date: '2 days ago' },
+              { author: 'Sarah K.', rating: 4, text: 'Great quality, fast shipping. Would definitely buy again.', date: '1 week ago' },
+            ].map((rev, i) => (
+              <div key={i} className="flex gap-3 sm:gap-4 py-4 sm:py-5 border-b last:border-0" style={{ borderColor: 'var(--divider)' }}>
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white text-sm" style={{ background: 'var(--gradient-brand-cta)' }}>{rev.author.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+                    <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{rev.author}</span>
+                    <Stars rating={rev.rating} size={12} />
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{rev.date}</span>
+                  </div>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{rev.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      case 3:
+        return (
+          <div className="pt-3 space-y-3">
+            <button type="button" className="w-full py-3 rounded-xl text-sm font-bold text-white min-h-[48px]" style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
+              Ask a Question
+            </button>
+            <div className="space-y-2">
+              {qaList.map((qa, i) => (
+                <div key={i} className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
+                  <button type="button" onClick={() => setExpandedQa(expandedQa === i ? null : i)} className="w-full px-4 py-3 text-left flex items-center justify-between gap-3 min-h-[48px] touch-manipulation">
+                    <span className="font-semibold text-sm pr-2" style={{ color: 'var(--text-primary)' }}>{qa.q}</span>
+                    <span className="text-lg font-light flex-shrink-0" style={{ color: PRIMARY }}>{expandedQa === i ? '−' : '+'}</span>
+                  </button>
+                  <AnimatePresence>
+                    {expandedQa === i && (
+                      <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+                        <p className="px-4 pb-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{qa.a}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   /* ════════════════════════════════════════════════════════════════════
      RENDER
   ════════════════════════════════════════════════════════════════════ */
@@ -327,37 +444,37 @@ export default function ProductDetail() {
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <GridMesh />
           <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 65%)' }} />
+            style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 7%, transparent) 0%, transparent 65%)' }} />
           <div className="absolute bottom-40 left-0 w-96 h-96 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.05) 0%, transparent 65%)' }} />
+            style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 5%, transparent) 0%, transparent 65%)' }} />
         </div>
 
-        <div className="relative z-10 w-full pd2-fluid-wrap pt-4 pb-28 md:pb-12">
+        <div className="relative z-10 w-full pd2-fluid-wrap pt-2 sm:pt-4 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] md:pb-12 lg:pb-12 max-w-[100vw]">
 
           {/* ── Breadcrumb ── */}
           <motion.div
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease }}
-            className="flex items-center justify-between gap-3 mb-8 flex-wrap"
+            className="flex items-center justify-between gap-2 mb-4 md:mb-8 flex-wrap min-w-0"
           >
-            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-              <Link to="/" className="hover:text-orange-500 transition-colors">Home</Link>
-              <span>›</span>
-              <Link to="/search" className="hover:text-orange-500 transition-colors">{category}</Link>
-              <span>›</span>
-              <span className="font-semibold truncate max-w-[180px]" style={{ color: 'var(--text-primary)' }}>{title}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0 flex-1" style={{ color: 'var(--text-muted)' }}>
+              <Link to="/" className="hover:text-[var(--brand-primary)] transition-colors shrink-0">Home</Link>
+              <span className="shrink-0">›</span>
+              <Link to="/search" className="hover:text-[var(--brand-primary)] transition-colors truncate">{category}</Link>
+              <span className="shrink-0">›</span>
+              <span className="font-semibold truncate min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</span>
             </div>
-            <button onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-sm font-medium hover:text-orange-500 transition-colors"
+            <button type="button" onClick={() => navigate(-1)}
+              className="flex items-center gap-1 text-xs sm:text-sm font-medium hover:text-[var(--brand-primary)] transition-colors shrink-0 touch-manipulation py-2"
               style={{ color: 'var(--text-muted)' }}>
-              <ChevronLeft size={16} /> Back
+              <ChevronLeft size={16} /> <span className="hidden sm:inline">Back</span>
             </button>
           </motion.div>
 
           {/* ════════════════════════════════════════════════
               HERO: Gallery + Purchase Panel
           ════════════════════════════════════════════════ */}
-          <div className="pd2-hero-grid gap-6 lg:gap-8 mb-10">
+          <div className="pd2-hero-grid gap-4 md:gap-6 lg:gap-8 mb-6 md:mb-10 min-w-0">
 
             {/* ── Gallery ── */}
             <motion.div
@@ -367,7 +484,7 @@ export default function ProductDetail() {
             >
               {/* Main image */}
               <div
-                className="pd2-main-img group relative overflow-hidden rounded-3xl cursor-zoom-in mb-4"
+                className="pd2-main-img group relative overflow-hidden rounded-3xl cursor-zoom-in mb-2 md:mb-4"
                 style={{
                   background: 'var(--bg-secondary)',
                 }}
@@ -430,14 +547,14 @@ export default function ProductDetail() {
                           {[['whatsapp','WhatsApp'],['facebook','Facebook'],['twitter','Twitter']].map(([k,l]) => (
                             <button key={k} type="button"
                               onClick={(e) => { e.stopPropagation(); handleShare(k); }}
-                              className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                              className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] transition-colors"
                               style={{ color: 'var(--text-secondary)' }}>
                               {l}
                             </button>
                           ))}
                           <button type="button"
                             onClick={(e) => { e.stopPropagation(); handleShare('copy'); }}
-                            className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center gap-2"
+                            className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] transition-colors flex items-center gap-2"
                             style={{ color: 'var(--text-secondary)' }}>
                             {shared ? <Check size={14} className="text-green-500" /> : <Link2 size={14} />}
                             {shared ? 'Copied!' : 'Copy Link'}
@@ -470,12 +587,14 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i - 1 + images.length) % images.length); }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 pd2-arrow-btn opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 pd2-arrow-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 touch-manipulation"
+                      aria-label="Previous image"
                     ><ChevronLeft size={18} /></button>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i + 1) % images.length); }}
-                      className="absolute right-16 top-1/2 -translate-y-1/2 pd2-arrow-btn opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 pd2-arrow-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 touch-manipulation"
+                      aria-label="Next image"
                     ><ChevronRight size={18} /></button>
                   </>
                 )}
@@ -483,12 +602,12 @@ export default function ProductDetail() {
 
               {/* Thumbnails */}
               {images.length > 1 && (
-                <div className="flex gap-2.5 overflow-x-auto pb-1 scroll-touch" style={{ scrollSnapType: 'x mandatory' }}>
+                <div className="pd2-thumbs-row flex gap-2 md:gap-2.5 overflow-x-auto pb-1 scroll-touch" style={{ scrollSnapType: 'x mandatory' }}>
                   {images.slice(0, 6).map((img, i) => (
                     <motion.button
                       key={i} type="button"
                       onClick={() => setActiveImage(i)}
-                      className="flex-shrink-0 rounded-xl overflow-hidden transition-all duration-200"
+                      className="pd2-thumb-btn flex-shrink-0 rounded-xl overflow-hidden transition-all duration-200 touch-manipulation"
                       style={{
                         width: 72, height: 72,
                         border: `2px solid ${i === activeImage ? PRIMARY : 'transparent'}`,
@@ -499,7 +618,7 @@ export default function ProductDetail() {
                       }}
                       whileHover={{ scale: 1.07, opacity: 1 }}
                     >
-                      <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" />
+                      <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" draggable={false} />
                     </motion.button>
                   ))}
                 </div>
@@ -512,36 +631,68 @@ export default function ProductDetail() {
               initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease }}
             >
-              <div className="pd2-purchase-flow">
+              <div className="pd2-purchase-flow min-w-0">
+
+                {/* Price + stock — mobile-first scan */}
+                <div className="order-1 lg:order-5 w-full min-w-0 mb-3 lg:mb-0 space-y-2">
+                  <div>
+                    <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-1">
+                      <span className="pd2-price-num tabular-nums">{currencyPricing.formatLocalWithUsd(price)}</span>
+                      {oldPrice && <span className="text-sm sm:text-base line-through" style={{ color: 'var(--text-faint)' }}>{currencyPricing.formatLocalWithUsd(oldPrice)}</span>}
+                      {discount > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black text-white"
+                          style={{ background: '#ef4444' }}>SAVE {discount}%</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] sm:text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
+                      {stock > 0 ? `${stock} available` : 'Unavailable'}
+                      {stock > 0 ? ` · 3 × ${installment}` : ''}
+                    </p>
+                  </div>
+                  <div>
+                    {stock === 0 ? (
+                      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs sm:text-sm font-semibold"
+                        style={{ background: '#fef2f2', color: '#dc2626' }}>Out of stock</span>
+                    ) : stock < 10 ? (
+                      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs sm:text-sm font-semibold"
+                        style={{ background: '#fffbeb', color: '#d97706' }}>Only {stock} left</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs sm:text-sm font-semibold"
+                        style={{ background: '#f0fdf4', color: '#15803d' }}>In stock</span>
+                    )}
+                  </div>
+                </div>
+
+                <h1 className="pd2-title mb-2 lg:mb-3 order-2 lg:order-2 w-full min-w-0">{title}</h1>
 
                 {/* Category + badge */}
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex flex-wrap items-center gap-2 mb-3 lg:mb-4 order-3 lg:order-1 lg:-mt-1">
                   <Link
                     to={`/search?category=${encodeURIComponent(category)}`}
-                    className="px-3 py-1 rounded-full text-xs font-bold transition-all hover:scale-105"
-                    style={{ background: 'rgba(249,115,22,0.1)', color: PRIMARY }}
+                    className="px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all hover:scale-105 touch-manipulation"
+                    style={{ background: 'var(--brand-tint)', color: PRIMARY }}
                   >
                     {category}
                   </Link>
-                  <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                    style={{ background: 'rgba(249,115,22,0.08)', color: PRIMARY, border: '1px solid rgba(249,115,22,0.2)' }}>
-                    <Star size={10} fill={PRIMARY} stroke={PRIMARY} /> #1 MOST LOVED
+                  <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold"
+                    style={{ background: 'var(--brand-tint)', color: PRIMARY, border: '1px solid var(--brand-border-subtle)' }}>
+                    <Star size={10} fill={PRIMARY} stroke={PRIMARY} className="shrink-0" /> Top rated
                   </span>
                 </div>
 
-                {/* Title */}
-                <h1 className="pd2-title mb-3">{title}</h1>
-
                 {/* Short desc */}
-                <div className="mb-4">
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <div className="mb-3 lg:mb-4 order-4 lg:order-3">
+                  <p
+                    className={`text-xs sm:text-sm leading-relaxed ${!descExpanded ? 'line-clamp-3 lg:line-clamp-none' : ''}`}
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     {descExpanded ? (product.description || shortDesc) : shortDesc}
                   </p>
                   {(product.description || '').length > 180 && (
                     <button
                       type="button"
                       onClick={() => setDescExpanded((v) => !v)}
-                      className="mt-2 text-xs font-semibold hover:underline"
+                      className="mt-1.5 text-xs font-semibold hover:underline py-1 touch-manipulation"
                       style={{ color: PRIMARY }}
                     >
                       {descExpanded ? 'Read less' : 'Read more'}
@@ -550,22 +701,26 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Rating row */}
-                <div className="flex flex-wrap items-center gap-3 mb-5 pb-4 pd2-divider">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 lg:mb-5 pb-3 lg:pb-4 border-b order-5 lg:order-4 w-full min-w-0" style={{ borderColor: 'var(--divider)' }}>
                   <Stars rating={rating} />
                   <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating.toFixed(1)}</span>
                   <button
                     type="button"
-                    onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="text-sm hover:underline"
+                    onClick={() => {
+                      setTabIndex(2);
+                      setMobileDetailOpen('reviews');
+                      document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="text-xs sm:text-sm hover:underline touch-manipulation py-1"
                     style={{ color: 'var(--text-muted)' }}>
                     {reviewsCount} reviews
                   </button>
-                  <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded"
+                  <span className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded"
                     style={{ background: '#f0fdf4', color: '#15803d' }}>
                     <BadgeCheck size={12} /> Verified
                   </span>
                   <span
-                    className="text-[11px] font-semibold px-2 py-0.5 rounded border"
+                    className="hidden lg:inline text-[11px] font-semibold px-2 py-0.5 rounded border"
                     style={{
                       color:
                         verificationStatus === 'verified' ? '#15803d' :
@@ -583,61 +738,34 @@ export default function ProductDetail() {
                   >
                     {verificationStatus === 'verified' ? 'Verified by Reaglex' : verificationStatus === 'pending' ? 'Verification Pending' : verificationStatus === 'flagged' ? 'Verification Flagged' : 'Unverified Listing'} · {verificationScore}%
                   </span>
+                  <span className="lg:hidden text-[10px] font-medium w-full sm:w-auto" style={{ color: 'var(--text-muted)' }}>
+                    Listing verification: {verificationScore}%
+                  </span>
                 </div>
 
-                {/* Price */}
-                <div className="mb-5">
-                  <div className="flex flex-wrap items-baseline gap-3 mb-1">
-                    <span className="pd2-price-num tabular-nums">{currencyPricing.formatLocalWithUsd(price)}</span>
-                    {oldPrice && <span className="text-base line-through" style={{ color: 'var(--text-faint)' }}>{currencyPricing.formatLocalWithUsd(oldPrice)}</span>}
-                    {discount > 0 && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-black text-white"
-                        style={{ background: '#ef4444' }}>SAVE {discount}%</span>
-                    )}
-                  </div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    In stock: {stock > 0 ? `${stock} units available` : 'Unavailable'} · 3 payments of {installment}
-                  </p>
-                </div>
-
-                {/* Stock badge */}
-                <div className="mb-5">
-                  {stock === 0 ? (
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
-                      style={{ background: '#fef2f2', color: '#dc2626' }}>● Out of stock</span>
-                  ) : stock < 10 ? (
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
-                      style={{ background: '#fffbeb', color: '#d97706' }}>⚡ Only {stock} left!</span>
-                  ) : (
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
-                      style={{ background: '#f0fdf4', color: '#15803d' }}>✓ {stock} in stock</span>
-                  )}
-                </div>
-
-                {/* Divider */}
-                <div className="pd2-divider mb-5" />
+                <div className="hidden lg:block pd2-divider mb-5 order-6 lg:order-7" />
 
                 {/* Size */}
-                <div className="mb-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                <div className="mb-4 lg:mb-5 order-7 lg:order-8">
+                  <div className="flex items-center justify-between mb-2 lg:mb-3 gap-2">
+                    <span className="text-xs sm:text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
                       Size: <span style={{ color: PRIMARY }}>{selectedSize}</span>
                     </span>
-                    <button type="button" className="text-xs font-medium hover:underline" style={{ color: PRIMARY }}>
-                      Size Guide
+                    <button type="button" className="text-xs font-medium hover:underline touch-manipulation py-2 shrink-0" style={{ color: PRIMARY }}>
+                      Guide
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {SIZES.map((s) => (
                       <motion.button key={s} type="button"
                         onClick={() => setSelectedSize(s)}
                         whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }}
-                        className="w-10 h-8 rounded-lg text-xs font-bold transition-all duration-200"
+                        className="pd2-size-btn-mobile min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 lg:w-10 lg:h-8 rounded-xl lg:rounded-lg text-xs font-bold transition-all duration-200 touch-manipulation"
                         style={{
                           background: selectedSize === s ? PRIMARY : 'var(--bg-secondary)',
                           color: selectedSize === s ? '#fff' : 'var(--text-secondary)',
                           border: `1.5px solid ${selectedSize === s ? PRIMARY : 'var(--border-card)'}`,
-                          boxShadow: selectedSize === s ? '0 4px 12px rgba(249,115,22,0.3)' : 'none',
+                          boxShadow: selectedSize === s ? 'var(--shadow-cta)' : 'none',
                         }}>
                         {s}
                       </motion.button>
@@ -646,61 +774,62 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Color */}
-                <div className="mb-5">
-                  <p className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+                <div className="mb-4 lg:mb-5 order-8 lg:order-9">
+                  <p className="text-xs sm:text-sm font-bold mb-2 lg:mb-3" style={{ color: 'var(--text-primary)' }}>
                     Color: <span style={{ color: PRIMARY }}>{selectedColor.name}</span>
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {COLORS.map((c) => (
                       <motion.button key={c.name} type="button"
                         onClick={() => setSelectedColor(c)}
                         whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }}
-                        className="w-7 h-7 rounded-full transition-all"
+                        className="w-9 h-9 sm:w-8 sm:h-8 rounded-full transition-all touch-manipulation shrink-0"
                         style={{
                           background: c.hex,
                           border: `2px solid ${selectedColor.name === c.name ? PRIMARY : 'transparent'}`,
                           boxShadow: selectedColor.name === c.name
-                            ? `0 0 0 3px rgba(249,115,22,0.25), 0 2px 8px rgba(0,0,0,0.15)`
+                            ? `0 0 0 3px var(--brand-border-subtle), var(--shadow-sm)`
                             : '0 2px 6px rgba(0,0,0,0.12)',
                         }}
                         title={c.name}
+                        aria-label={c.name}
                       />
                     ))}
                   </div>
                 </div>
 
                 {/* Divider */}
-                <div className="pd2-divider mb-5" />
+                <div className="pd2-divider mb-4 lg:mb-5 order-9 lg:order-10" />
 
                 {/* Quantity */}
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Qty</span>
+                <div className="flex items-center gap-3 lg:gap-4 mb-4 lg:mb-6 order-10 lg:order-11">
+                  <span className="text-xs sm:text-sm font-bold shrink-0" style={{ color: 'var(--text-primary)' }}>Qty</span>
                   <motion.div
                     animate={qtyShake ? { x: [0, -5, 5, -4, 4, 0] } : { x: 0 }}
                     transition={{ duration: 0.35 }}
-                    className="flex items-center rounded-xl overflow-hidden"
+                    className="pd2-qty-control flex items-center rounded-xl overflow-hidden"
                     style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}
                   >
                     <button type="button" onClick={decrementQty}
-                      className="w-10 h-10 flex items-center justify-center transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/20 text-lg font-light"
+                      className="min-w-[48px] min-h-[48px] lg:w-10 lg:h-10 flex items-center justify-center transition-colors hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] text-lg font-light touch-manipulation"
                       style={{ color: 'var(--text-secondary)' }}>
                       <Minus size={14} />
                     </button>
-                    <span className="w-10 text-center font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                    <span className="min-w-[44px] text-center font-bold tabular-nums text-sm" style={{ color: 'var(--text-primary)' }}>
                       {quantity}
                     </span>
                     <button type="button"
                       onClick={() => setQuantity((q) => Math.min(stock || 99, q + 1))}
                       disabled={quantity >= (stock || 99)}
-                      className="w-10 h-10 flex items-center justify-center transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-40"
+                      className="min-w-[48px] min-h-[48px] lg:w-10 lg:h-10 flex items-center justify-center transition-colors hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] disabled:opacity-40 touch-manipulation"
                       style={{ color: 'var(--text-secondary)' }}>
                       <Plus size={14} />
                     </button>
                   </motion.div>
                 </div>
 
-                {/* CTAs */}
-                <div ref={ctaRef} className="hidden md:grid md:grid-cols-2 gap-3 mb-6">
+                {/* CTAs desktop */}
+                <div ref={ctaRef} className="hidden md:grid md:grid-cols-2 gap-3 mb-6 order-11 lg:order-12">
                   {/* Add to Cart */}
                   <motion.button
                     type="button"
@@ -730,7 +859,7 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Compact trust icon bar */}
-                <div className="flex items-center justify-between gap-1 pt-4 mt-1 flex-wrap pd2-divider-top">
+                <div className="flex items-center justify-between gap-1 pt-3 lg:pt-4 mt-1 flex-wrap pd2-divider-top order-12 lg:order-13">
                   {[
                     { icon: Shield,     label: 'Protected',   color: PRIMARY      },
                     { icon: Truck,      label: 'Free Ship',   color: '#6366f1'    },
@@ -757,20 +886,20 @@ export default function ProductDetail() {
                equal-height hero and better organisation)
           ════════════════════════════════════════════════ */}
           <motion.div
-            className="pd2-meta-strip"
+            className="pd2-meta-strip !mb-6 md:!mb-14"
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.5 }}
           >
             {/* Seller card */}
-            <div className="pd2-seller-card">
-              <div className="flex items-center gap-3">
+            <div className="pd2-seller-card max-w-[100vw] overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 min-w-0">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 font-black text-white text-xl"
-                  style={{ background: `linear-gradient(135deg, ${PRIMARY}, #ea580c)`, boxShadow: '0 4px 16px rgba(249,115,22,0.3)' }}>
+                  style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
                   {seller.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{seller}</p>
+                    <p className="font-bold text-sm break-words" style={{ color: 'var(--text-primary)' }}>{seller}</p>
                     <span className="flex-shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
                       style={{ background: '#f0fdf4', color: '#15803d' }}>✓ Verified</span>
                   </div>
@@ -779,8 +908,8 @@ export default function ProductDetail() {
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{reviewsCount} reviews</span>
                   </div>
                 </div>
-                <Link to="/search" className="text-xs font-bold flex-shrink-0 hover:underline px-3 py-1.5 rounded-full transition-all"
-                  style={{ color: PRIMARY, background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)' }}>
+                <Link to="/search" className="text-xs font-bold sm:flex-shrink-0 hover:underline px-3 py-2.5 sm:py-1.5 rounded-full transition-all text-center sm:text-left touch-manipulation w-full sm:w-auto"
+                  style={{ color: PRIMARY, background: 'var(--brand-tint)', border: '1px solid var(--brand-border-subtle)' }}>
                   Visit Store →
                 </Link>
               </div>
@@ -819,7 +948,7 @@ export default function ProductDetail() {
               HIGHLIGHTS STRIP
           ════════════════════════════════════════════════ */}
           <motion.div
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-10"
+            className="flex lg:grid lg:grid-cols-4 gap-3 mb-8 md:mb-10 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0 snap-x snap-mandatory lg:snap-none scrollbar-hide -mx-0.5 px-0.5 lg:mx-0 lg:px-0"
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.5 }}
           >
@@ -827,7 +956,7 @@ export default function ProductDetail() {
               const Icon = h.icon;
               return (
                 <motion.div key={h.title}
-                  className="flex items-center gap-3 p-4 rounded-2xl"
+                  className="pd2-highlight-card flex items-center gap-3 p-3 sm:p-4 rounded-2xl min-w-[min(85vw,280px)] lg:min-w-0 flex-shrink-0 lg:flex-shrink snap-center lg:snap-none"
                   style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-card)' }}
                   initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }} transition={{ duration: 0.45, delay: i * 0.07 }}
@@ -847,20 +976,69 @@ export default function ProductDetail() {
           </motion.div>
 
           {/* ════════════════════════════════════════════════
-              TABS
+              Product details — mobile accordions / desktop tabs
           ════════════════════════════════════════════════ */}
+          <div className="lg:hidden space-y-2 mb-8">
+            {TABS.map((t, i) => (
+              <div
+                key={t.id}
+                className="rounded-2xl overflow-hidden max-w-[100vw]"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}
+              >
+                <button
+                  type="button"
+                  className="pd2-mobile-accordion-btn w-full flex items-center justify-between gap-3 px-4 text-sm font-semibold"
+                  style={{ color: 'var(--text-primary)' }}
+                  aria-expanded={mobileDetailOpen === t.id}
+                  id={`pd2-acc-trigger-${t.id}`}
+                  onClick={() => {
+                    setMobileDetailOpen((cur) => (cur === t.id ? null : t.id));
+                    setTabIndex(i);
+                  }}
+                >
+                  <span className="text-left">
+                    {t.id === 'reviews' ? `${t.label} (${reviewsCount})` : t.label}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={`shrink-0 transition-transform duration-200 ${mobileDetailOpen === t.id ? 'rotate-180' : ''}`}
+                    style={{ color: PRIMARY }}
+                    aria-hidden
+                  />
+                </button>
+                <AnimatePresence initial={false}>
+                  {mobileDetailOpen === t.id && (
+                    <motion.div
+                      role="region"
+                      aria-labelledby={`pd2-acc-trigger-${t.id}`}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden border-t"
+                      style={{ borderColor: 'var(--divider)' }}
+                    >
+                      <div className="px-3 py-3 sm:px-4 min-w-0">
+                        {renderDetailPanel(i, { dense: true })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+
           <motion.div
-            className="rounded-3xl overflow-hidden mb-12"
+            className="hidden lg:block rounded-3xl overflow-hidden mb-10 lg:mb-12"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-card)' }}
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.5 }}
           >
-            {/* Tab bar */}
             <div className="relative flex overflow-x-auto scrollbar-hide border-b" style={{ borderColor: 'var(--divider)' }}>
               {TABS.map((t, i) => (
                 <button key={t.id} type="button"
                   onClick={() => setTabIndex(i)}
-                  className="flex-shrink-0 flex-1 min-w-[90px] py-4 px-5 text-sm font-semibold transition-colors whitespace-nowrap"
+                  className="flex-shrink-0 flex-1 min-w-[90px] min-h-[52px] py-4 px-5 text-sm font-semibold transition-colors whitespace-nowrap touch-manipulation"
                   style={{ color: tabIndex === i ? PRIMARY : 'var(--text-muted)' }}>
                   {t.id === 'reviews' ? `${t.label} (${reviewsCount})` : t.label}
                 </button>
@@ -873,166 +1051,17 @@ export default function ProductDetail() {
               />
             </div>
 
-            {/* Tab content */}
             <div className="p-6 md:p-8 min-h-[220px]">
               <AnimatePresence mode="wait">
-                {/* Description */}
-                {tabIndex === 0 && (
-                  <motion.div key="desc"
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>
-                      {product.description || 'No description available.'}
-                    </p>
-                    <h4 className="font-bold text-sm mb-4" style={{ color: 'var(--text-primary)' }}>Key Features</h4>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      {['Premium quality materials', 'Fast shipping worldwide', '30-day hassle-free returns', 'Verified seller guarantee'].map((f) => (
-                        <div key={f} className="flex items-center gap-3 p-3 rounded-xl"
-                          style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
-                          <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ background: '#f0fdf4' }}>
-                            <Check size={13} className="text-green-600" />
-                          </div>
-                          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Specifications */}
-                {tabIndex === 1 && (
-                  <motion.div key="specs"
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-x-auto"
-                  >
-                    <table className="w-full text-sm">
-                      <tbody>
-                        {specs.map((row, i) => (
-                          <motion.tr key={row.prop}
-                            initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="border-b last:border-0"
-                            style={{ borderColor: 'var(--divider)' }}
-                          >
-                            <td className="py-3 pr-6 font-semibold w-1/3" style={{ color: 'var(--text-primary)' }}>{row.prop}</td>
-                            <td className="py-3" style={{ color: 'var(--text-secondary)' }}>{row.value}</td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </motion.div>
-                )}
-
-                {/* Reviews */}
-                {tabIndex === 2 && (
-                  <motion.div key="reviews" id="reviews-section"
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {/* Summary */}
-                    <div className="flex flex-col sm:flex-row gap-6 mb-8 p-6 rounded-2xl"
-                      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
-                      <div className="text-center sm:text-left flex-shrink-0">
-                        <p className="font-black text-5xl mb-1" style={{ color: PRIMARY }}>{rating.toFixed(1)}</p>
-                        <Stars rating={rating} />
-                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{reviewsCount} reviews</p>
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        {reviewBars.map((r, i) => (
-                          <div key={r.stars} className="flex items-center gap-3">
-                            <span className="text-xs font-medium w-6 text-right flex-shrink-0"
-                              style={{ color: 'var(--text-muted)' }}>{r.stars}★</span>
-                            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
-                              <motion.div className="h-full rounded-full" style={{ background: PRIMARY }}
-                                initial={{ width: 0 }} animate={{ width: `${r.pct}%` }}
-                                transition={{ duration: 0.6, delay: 0.3 + i * 0.08 }} />
-                            </div>
-                            <span className="text-xs w-8 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{r.pct}%</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex flex-col gap-2 justify-center sm:items-end">
-                        <button type="button"
-                          className="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:-translate-y-0.5"
-                          style={{ background: `linear-gradient(135deg, ${PRIMARY}, #ea580c)`, boxShadow: '0 6px 16px rgba(249,115,22,0.35)' }}>
-                          <MessageCircle size={14} className="inline mr-1.5" />Write a Review
-                        </button>
-                        <button type="button"
-                          onClick={() => setVoteUp((v) => v + 1)}
-                          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5"
-                          style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
-                          <ThumbsUp size={13} /> {voteUp} Helpful
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Placeholder reviews */}
-                    {[
-                      { author: 'Alex M.', rating: 5, text: 'Absolutely love this product! Quality exceeded my expectations.', date: '2 days ago' },
-                      { author: 'Sarah K.', rating: 4, text: 'Great quality, fast shipping. Would definitely buy again.', date: '1 week ago' },
-                    ].map((rev, i) => (
-                      <motion.div key={i}
-                        className="flex gap-4 py-5 border-b last:border-0"
-                        style={{ borderColor: 'var(--divider)' }}
-                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 + i * 0.1 }}
-                      >
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white"
-                          style={{ background: `linear-gradient(135deg, ${PRIMARY}, #ea580c)` }}>
-                          {rev.author.charAt(0)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{rev.author}</span>
-                            <Stars rating={rev.rating} size={12} />
-                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{rev.date}</span>
-                          </div>
-                          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{rev.text}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                )}
-
-                {/* Q&A */}
-                {tabIndex === 3 && (
-                  <motion.div key="qa"
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <button type="button"
-                      className="mb-6 px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:-translate-y-0.5"
-                      style={{ background: `linear-gradient(135deg, ${PRIMARY}, #ea580c)`, boxShadow: '0 6px 16px rgba(249,115,22,0.35)' }}>
-                      Ask a Question
-                    </button>
-                    <div className="space-y-2">
-                      {qaList.map((qa, i) => (
-                        <div key={i} className="rounded-2xl overflow-hidden"
-                          style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
-                          <button type="button"
-                            onClick={() => setExpandedQa(expandedQa === i ? null : i)}
-                            className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/10"
-                          >
-                            <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{qa.q}</span>
-                            <motion.span animate={{ rotate: expandedQa === i ? 45 : 0 }} className="text-xl font-light flex-shrink-0" style={{ color: PRIMARY }}>+</motion.span>
-                          </button>
-                          <AnimatePresence>
-                            {expandedQa === i && (
-                              <motion.div
-                                initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-                                transition={{ duration: 0.3 }} className="overflow-hidden">
-                                <p className="px-5 pb-4 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{qa.a}</p>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
+                <motion.div
+                  key={tabIndex}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {renderDetailPanel(tabIndex, { dense: false })}
+                </motion.div>
               </AnimatePresence>
             </div>
           </motion.div>
@@ -1133,33 +1162,36 @@ export default function ProductDetail() {
 
       </div>
 
-      {/* Mobile sticky actions */}
-      <div className="md:hidden fixed left-0 right-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-[95] px-3 pb-2">
+      {/* Mobile sticky CTAs — above bottom nav, thumb-sized */}
+      <div className="md:hidden fixed left-0 right-0 z-[95] px-2 sm:px-3 pb-2 pt-1.5 bottom-[calc(60px+env(safe-area-inset-bottom,0px))] pointer-events-none">
         <div
-          className="grid grid-cols-2 gap-2 p-2 rounded-2xl"
+          className="pd2-sticky-cta-inner pointer-events-auto grid grid-cols-2 gap-2 p-2 rounded-2xl max-w-[100vw] mx-auto"
           style={{
-            background: 'color-mix(in srgb, var(--card-bg) 94%, transparent)',
-            border: '1px solid var(--divider)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
+            background: 'color-mix(in srgb, var(--card-bg) 92%, transparent)',
+            border: '1px solid var(--border-card)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            boxShadow: 'var(--shadow-lg)',
           }}
         >
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={stock === 0 || addState === 'adding'}
-            className="h-12 rounded-xl text-sm font-bold"
+            className="min-h-[48px] rounded-xl text-sm font-bold touch-manipulation flex items-center justify-center gap-2"
             style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--divider)' }}
           >
+            {addState === 'adding' && <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
             {addState === 'added' ? 'Added' : 'Add to Cart'}
           </button>
           <button
             type="button"
             onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
-            className="h-12 rounded-xl text-sm font-bold text-white"
-            style={{ background: PRIMARY }}
+            disabled={stock === 0}
+            className="min-h-[48px] rounded-xl text-sm font-bold text-white touch-manipulation flex items-center justify-center gap-1.5 disabled:opacity-45"
+            style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
           >
-            Buy Now
+            <Zap size={16} /> Buy Now
           </button>
         </div>
       </div>
@@ -1171,7 +1203,7 @@ export default function ProductDetail() {
         {lightbox && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-12"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 sm:p-12"
             style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)' }}
             onClick={() => setLightbox(false)}
           >

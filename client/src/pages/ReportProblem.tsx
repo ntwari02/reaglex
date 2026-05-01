@@ -86,6 +86,9 @@ const statusLabel: Record<Status, string> = {
 };
 
 const ReportProblem = () => {
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.id;
+  const [contactEmail, setContactEmail] = useState(user?.email || '');
   const [heroReady, setHeroReady] = useState(false);
   const [category, setCategory] = useState<ReportCategory | null>(null);
   const [severity, setSeverity] = useState<Severity | null>(null);
@@ -103,6 +106,10 @@ const ReportProblem = () => {
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [orderIds, setOrderIds] = useState<string[]>([]);
+  const [filter, setFilter] = useState<'all' | Status>('all');
+  const [activeReport, setActiveReport] = useState<ReportSummary | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+
   const mapDisputeToReport = (d: any): ReportSummary => {
     const statusMap: Record<string, Status> = {
       new: 'open',
@@ -133,7 +140,7 @@ const ReportProblem = () => {
   };
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!userId) return;
     const loadReports = async () => {
       try {
         const [disputesRes, ordersRes] = await Promise.all([
@@ -154,15 +161,8 @@ const ReportProblem = () => {
       }
     };
     loadReports();
-  }, [user?.id]);
+  }, [userId]);
 
-
-  const [filter, setFilter] = useState<'all' | Status>('all');
-  const [activeReport, setActiveReport] = useState<ReportSummary | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
-
-  const { user } = useAuthStore();
-  const [contactEmail, setContactEmail] = useState(user?.email || '');
   const navigate = useNavigate();
   const params = useParams<{ ticketId?: string }>();
 
@@ -186,7 +186,7 @@ const ReportProblem = () => {
     descriptionLength >= 1900
       ? '#ef4444'
       : descriptionLength >= 1600
-      ? '#f97316'
+      ? 'var(--brand-primary)'
       : 'var(--text-faint)';
 
   const canNextFromStep1 =
@@ -278,7 +278,7 @@ const ReportProblem = () => {
           style={{
             padding: '80px 40px',
             background:
-              'linear-gradient(135deg,#0f0c24 0%, #1a0f3a 40%, #0d1f3a 70%, #0a1628 100%)',
+              'var(--hero-marketing-bg)',
           }}
         >
           <div className="pointer-events-none absolute inset-0">
@@ -290,7 +290,7 @@ const ReportProblem = () => {
               style={{
                 width: 260,
                 height: 260,
-                background: 'rgba(239,68,68,0.16)',
+                background: 'var(--hero-marketing-blob-c)',
                 filter: 'blur(90px)',
               }}
             />
@@ -302,7 +302,7 @@ const ReportProblem = () => {
               style={{
                 width: 280,
                 height: 280,
-                background: 'rgba(249,115,22,0.16)',
+                background: 'var(--hero-marketing-blob-b)',
                 filter: 'blur(90px)',
               }}
             />
@@ -314,7 +314,7 @@ const ReportProblem = () => {
               style={{
                 width: 220,
                 height: 220,
-                background: 'rgba(124,58,237,0.20)',
+                background: 'var(--hero-marketing-blob-a)',
                 filter: 'blur(80px)',
               }}
             />
@@ -329,8 +329,8 @@ const ReportProblem = () => {
             <div className="inline-flex items-center justify-center">
               <span
                 style={{
-                  background: 'rgba(239,68,68,0.15)',
-                  color: '#f87171',
+                  background: 'var(--badge-error-bg)',
+                  color: 'var(--badge-error-text)',
                   borderRadius: 999,
                   padding: '6px 16px',
                   fontSize: 13,
@@ -344,7 +344,7 @@ const ReportProblem = () => {
             <div className="space-y-3">
               <h1
                 className="font-extrabold leading-tight"
-                style={{ color: '#ffffff', fontSize: 48 }}
+                style={{ color: 'var(--hero-marketing-heading)', fontSize: 48 }}
               >
                 Report a Problem
               </h1>
@@ -352,17 +352,17 @@ const ReportProblem = () => {
                 className="font-extrabold leading-tight"
                 style={{
                   fontSize: 24,
-                  background:
-                    'linear-gradient(135deg,#f97316,#fb923c)',
+                  background: 'var(--hero-marketing-line2-gradient)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
                 }}
               >
                 We Take Every Report Seriously
               </p>
               <p
                 className="mx-auto max-w-xl text-base"
-                style={{ color: 'rgba(255,255,255,0.60)', fontSize: 16 }}
+                style={{ color: 'var(--hero-marketing-subtitle)', fontSize: 16 }}
               >
                 Help us keep Reaglex safe and fair for everyone. Reports are
                 reviewed within 24 hours.
@@ -375,8 +375,8 @@ const ReportProblem = () => {
                   <span
                     key={label}
                     style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      color: 'rgba(255,255,255,0.85)',
+                      background: 'var(--hero-marketing-chip-bg)',
+                      color: 'var(--hero-marketing-chip-text)',
                       borderRadius: 999,
                       padding: '6px 16px',
                       backdropFilter: 'blur(10px)',
@@ -414,13 +414,13 @@ const ReportProblem = () => {
                 title: '< 24hrs',
                 label: 'Average response',
                 sub: 'Business hours',
-                color: '#f97316',
+                color: 'var(--brand-primary)',
               },
               {
                 title: '1,247',
                 label: 'Reports handled',
                 sub: 'This month',
-                color: '#60a5fa',
+                color: 'var(--accent-marketing-text)',
               },
               {
                 title: '99.2%',
@@ -480,7 +480,7 @@ const ReportProblem = () => {
               <Link
                 to="/help"
                 className="mt-2 inline-flex items-center gap-1 text-xs font-semibold"
-                style={{ color: '#f97316' }}
+                style={{ color: 'var(--brand-primary)' }}
               >
                 View help center
               </Link>
@@ -523,14 +523,14 @@ const ReportProblem = () => {
                       style={{
                         background: selected ? 'var(--brand-tint)' : 'var(--card-bg)',
                         boxShadow: selected
-                          ? '0 0 0 2px #f97316, var(--shadow-md)'
+                          ? '0 0 0 2px var(--brand-primary), var(--shadow-md)'
                           : 'var(--shadow-sm)',
                       }}
                     >
                       <div
                         className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full text-2xl"
                         style={{
-                          background: 'rgba(249,115,22,0.16)',
+                          background: 'color-mix(in srgb, var(--brand-primary) 16%, transparent)',
                           color: '#ffffff',
                         }}
                       >
@@ -598,7 +598,7 @@ const ReportProblem = () => {
                   style={{
                     maxWidth: 420,
                     background: 'var(--brand-tint)',
-                    boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.30)',
+                    boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 30%, transparent)',
                   }}
                 >
                   <p
@@ -625,9 +625,9 @@ const ReportProblem = () => {
                     type="button"
                     className="w-full rounded-[14px] px-6 py-3 text-sm font-bold sm:w-auto"
                     style={{
-                      background: 'linear-gradient(135deg,#f97316,#ea580c)',
+                      background: 'var(--gradient-brand-cta)',
                       color: '#ffffff',
-                      boxShadow: '0 10px 28px rgba(249,115,22,0.50)',
+                      boxShadow: 'var(--shadow-cta-hover)',
                     }}
                   >
                     Track My Report →
@@ -692,7 +692,7 @@ const ReportProblem = () => {
                         setStep(1);
                       }}
                       className="text-xs font-semibold"
-                      style={{ color: '#f97316' }}
+                      style={{ color: 'var(--brand-primary)' }}
                     >
                       Change category
                     </button>
@@ -716,7 +716,7 @@ const ReportProblem = () => {
                                 repeatType: 'mirror',
                               }}
                               style={{
-                                background: completed || current ? '#f97316' : 'var(--bg-secondary)',
+                                background: completed || current ? 'var(--brand-primary)' : 'var(--bg-secondary)',
                                 color: completed || current ? '#ffffff' : 'var(--text-muted)',
                               }}
                             >
@@ -895,7 +895,7 @@ const ReportProblem = () => {
                               onClick={() => setOngoing((v) => !v)}
                               className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium"
                               style={{
-                                background: ongoing ? '#f97316' : 'var(--bg-secondary)',
+                                background: ongoing ? 'var(--brand-primary)' : 'var(--bg-secondary)',
                                 color: ongoing ? '#ffffff' : 'var(--text-secondary)',
                               }}
                             >
@@ -923,7 +923,7 @@ const ReportProblem = () => {
                             className="w-full rounded-[14px] px-5 py-3 text-sm font-bold sm:w-auto"
                             style={{
                               background: canNextFromStep1
-                                ? 'linear-gradient(135deg,#f97316,#ea580c)'
+                                ? 'var(--gradient-brand-cta)'
                                 : 'var(--bg-secondary)',
                               color: canNextFromStep1 ? '#ffffff' : 'var(--text-muted)',
                             }}
@@ -962,7 +962,7 @@ const ReportProblem = () => {
                             onDrop={handleDrop}
                             className="flex cursor-pointer flex-col items-center justify-center rounded-[20px] border-2 border-dashed px-6 py-10 text-center"
                             style={{
-                              borderColor: dragOver ? '#f97316' : 'var(--divider)',
+                              borderColor: dragOver ? 'var(--brand-primary)' : 'var(--divider)',
                               background: dragOver ? 'var(--brand-tint)' : 'var(--bg-secondary)',
                               transition: 'all 0.2s ease',
                               transform: dragOver ? 'scale(1.01)' : 'scale(1)',
@@ -977,8 +977,8 @@ const ReportProblem = () => {
                             <div
                               className="mb-3 flex h-14 w-14 items-center justify-center rounded-full text-2xl"
                               style={{
-                                background: 'rgba(249,115,22,0.12)',
-                                color: '#f97316',
+                                background: 'var(--brand-tint)',
+                                color: 'var(--brand-primary)',
                               }}
                             >
                               📎
@@ -1109,7 +1109,7 @@ const ReportProblem = () => {
                               }}
                               className="rounded-[12px] px-4 py-2 text-sm font-semibold"
                               style={{
-                                background: 'linear-gradient(135deg,#f97316,#ea580c)',
+                                background: 'var(--gradient-brand-cta)',
                                 color: '#ffffff',
                               }}
                             >
@@ -1152,7 +1152,7 @@ const ReportProblem = () => {
                           style={{
                             background: '#060f22',
                             boxShadow: 'inset 0 0 0 1px rgba(96,165,250,0.25)',
-                            color: '#60a5fa',
+                            color: 'var(--accent-marketing-text)',
                           }}
                         >
                           <p className="mb-1 font-semibold">💡 Good evidence includes:</p>
@@ -1182,7 +1182,7 @@ const ReportProblem = () => {
                             onClick={() => setStep(3)}
                             className="w-full rounded-[14px] px-5 py-3 text-sm font-bold sm:w-auto"
                             style={{
-                              background: 'linear-gradient(135deg,#f97316,#ea580c)',
+                              background: 'var(--gradient-brand-cta)',
                               color: '#ffffff',
                             }}
                           >
@@ -1278,7 +1278,7 @@ const ReportProblem = () => {
                             <span
                               className="text-xs font-semibold"
                               style={{
-                                color: ongoing ? '#f97316' : 'var(--text-secondary)',
+                                color: ongoing ? 'var(--brand-primary)' : 'var(--text-secondary)',
                               }}
                             >
                               {ongoing ? 'Yes' : 'No'}
@@ -1416,7 +1416,7 @@ const ReportProblem = () => {
                               <div
                                 className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
                                 style={{
-                                  background: 'rgba(249,115,22,0.15)',
+                                  background: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
                                 }}
                               >
                                 {CATEGORY_META[r.category].icon}
@@ -1424,7 +1424,7 @@ const ReportProblem = () => {
                               <div>
                                 <p
                                   className="text-xs font-semibold"
-                                  style={{ color: '#f97316' }}
+                                  style={{ color: 'var(--brand-primary)' }}
                                 >
                                   #{r.id}
                                 </p>
@@ -1442,20 +1442,20 @@ const ReportProblem = () => {
                                 style={{
                                   background:
                                     r.status === 'open'
-                                      ? '#dbeafe'
+                                      ? 'var(--badge-info-bg)'
                                       : r.status === 'under_review'
-                                      ? '#fef3c7'
+                                      ? 'var(--badge-warning-bg)'
                                       : r.status === 'resolved'
-                                      ? '#dcfce7'
-                                      : '#e5e7eb',
+                                      ? 'var(--badge-success-bg)'
+                                      : 'var(--bg-badge)',
                                   color:
                                     r.status === 'open'
-                                      ? '#1d4ed8'
+                                      ? 'var(--badge-info-text)'
                                       : r.status === 'under_review'
-                                      ? '#b45309'
+                                      ? 'var(--badge-warning-text)'
                                       : r.status === 'resolved'
-                                      ? '#15803d'
-                                      : '#4b5563',
+                                      ? 'var(--badge-success-text)'
+                                      : 'var(--text-secondary)',
                                 }}
                               >
                                 {statusLabel[r.status]}
@@ -1475,13 +1475,13 @@ const ReportProblem = () => {
                             {r.preview}
                           </p>
                           {r.related && (
-                            <p className="text-xs" style={{ color: '#f97316' }}>
+                            <p className="text-xs" style={{ color: 'var(--brand-primary)' }}>
                               Related: {r.related}
                             </p>
                           )}
                           <span
                             className="text-xs font-semibold"
-                            style={{ color: '#f97316' }}
+                            style={{ color: 'var(--brand-primary)' }}
                           >
                             View Details →
                           </span>

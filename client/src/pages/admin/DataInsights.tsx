@@ -174,7 +174,7 @@ export default function DataInsights() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Conversion Rate</h3>
-            <Users className="h-5 w-5 text-orange-600" />
+            <Users className="h-5 w-5 text-[var(--brand-orange-text)]" />
           </div>
           <p className="text-3xl font-bold text-gray-900 dark:text-white">
             {analytics.conversionRate}%

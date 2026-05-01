@@ -14,7 +14,7 @@ const CATS = [
     img: 'https://images.unsplash.com/photo-1593640495253-23196b27a87f?w=800&q=85',
     span: 'col-span-2 row-span-2',  // large card
     imgClass: 'h-full',
-    accent: '#6366f1',
+    accent: 'var(--notif-type-message)',
   },
   {
     id: 'fashion',
@@ -25,7 +25,7 @@ const CATS = [
     img: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&q=85',
     span: 'col-span-1 row-span-1',
     imgClass: 'h-full',
-    accent: '#ec4899',
+    accent: 'var(--brand-primary)',
   },
   {
     id: 'home',
@@ -36,7 +36,7 @@ const CATS = [
     img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=85',
     span: 'col-span-1 row-span-1',
     imgClass: 'h-full',
-    accent: '#10b981',
+    accent: 'var(--text-in-stock)',
   },
   {
     id: 'sports',
@@ -47,7 +47,7 @@ const CATS = [
     img: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600&q=85',
     span: 'col-span-1 row-span-1',
     imgClass: 'h-full',
-    accent: '#f59e0b',
+    accent: 'var(--notif-type-review)',
   },
   {
     id: 'beauty',
@@ -58,7 +58,7 @@ const CATS = [
     img: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&q=85',
     span: 'col-span-1 row-span-1',
     imgClass: 'h-full',
-    accent: '#f43f5e',
+    accent: 'var(--brand-primary-hover)',
   },
   {
     id: 'gaming',
@@ -69,7 +69,7 @@ const CATS = [
     img: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&q=85',
     span: 'col-span-1 row-span-1',
     imgClass: 'h-full',
-    accent: '#8b5cf6',
+    accent: 'var(--notif-type-system)',
   },
   {
     id: 'books',
@@ -80,7 +80,7 @@ const CATS = [
     img: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600&q=85',
     span: 'col-span-1 row-span-1',
     imgClass: 'h-full',
-    accent: '#0ea5e9',
+    accent: 'var(--badge-info-text)',
   },
   {
     id: 'auto',
@@ -91,19 +91,19 @@ const CATS = [
     img: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&q=85',
     span: 'col-span-1 row-span-1',
     imgClass: 'h-full',
-    accent: '#ef4444',
+    accent: 'var(--badge-error-text)',
   },
 ];
 
 /* ─── Card component ─────────────────────────────────────────────────────── */
-function CategoryCard({ cat, index, isLarge, isDark }) {
+function CategoryCard({ cat, index, isLarge }) {
   const Icon = cat.icon;
 
   return (
     <motion.div
       className={`relative overflow-hidden rounded-2xl group cursor-pointer ${cat.span}`}
       style={{
-        background: isDark ? 'var(--bg-card, #1e2235)' : '#f4f4f6',
+        background: 'var(--bg-tertiary)',
         minHeight: isLarge ? 420 : 200,
       }}
       initial={{ opacity: 0, y: 28 }}
@@ -140,14 +140,17 @@ function CategoryCard({ cat, index, isLarge, isDark }) {
           {/* Icon badge */}
           <div
             className="inline-flex items-center justify-center w-9 h-9 rounded-xl mb-3 transition-transform duration-300 group-hover:-translate-y-0.5"
-            style={{ background: cat.accent + '33', border: `1px solid ${cat.accent}55` }}
+            style={{
+              background: `color-mix(in srgb, ${cat.accent} 20%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${cat.accent} 33%, transparent)`,
+            }}
           >
             <Icon size={16} style={{ color: cat.accent }} />
           </div>
 
           <p
             className={`font-bold leading-tight mb-1 ${isLarge ? 'text-2xl' : 'text-base'}`}
-            style={{ color: '#fff' }}
+            style={{ color: 'var(--text-on-accent)' }}
           >
             {cat.label}
           </p>
@@ -184,13 +187,13 @@ export default function FeaturedCategories() {
   return (
     <section
       className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-20"
-      style={{ background: isDark ? 'var(--bg-primary, #0d0f1c)' : '#fafafa' }}
+      style={{ background: 'var(--bg-page)' }}
     >
       {/* Header */}
       <div ref={headerRef} className="mb-10">
         <motion.p
           className="text-xs font-semibold tracking-[0.2em] uppercase mb-2"
-          style={{ color: isDark ? '#616680' : '#9ca3af' }}
+          style={{ color: 'var(--text-muted)' }}
           initial={{ opacity: 0, y: 12 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
@@ -200,7 +203,7 @@ export default function FeaturedCategories() {
         <motion.h2
           className="font-black leading-none"
           style={{
-            color: isDark ? '#e2e4ed' : '#0f172a',
+            color: 'var(--text-primary)',
             fontSize: 'clamp(1.8rem, 4vw, 3rem)',
             fontFamily: "'Times New Roman', Georgia, serif",
             letterSpacing: '-0.02em',
@@ -221,7 +224,6 @@ export default function FeaturedCategories() {
             cat={cat}
             index={i}
             isLarge={i === 0}
-            isDark={isDark}
           />
         ))}
       </div>

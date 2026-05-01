@@ -750,7 +750,7 @@ const OrderDetailsPage: React.FC = () => {
               {(order.status === 'processing' || order.status === 'packed') && (
                 <Button
                   onClick={() => handleStatusChange('shipped')}
-                  className="w-full justify-start bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                  className="w-full justify-start bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                 >
                   <Truck className="w-4 h-4 mr-2" />
                   Mark as Shipped

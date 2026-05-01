@@ -23,7 +23,7 @@ export function AreaChart({
   forecastData = [],
   title,
   height = 300,
-  color = 'from-red-500 to-orange-500',
+  color = 'from-red-500 to-[var(--brand-primary)]',
   forecastColor = 'from-blue-500 to-purple-500',
   yAxisLabel = 'Value',
   annotations = [],
@@ -255,11 +255,11 @@ export function AreaChart({
           <defs>
             <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#ef4444" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#f97316" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="var(--brand-primary)" stopOpacity="0.1" />
             </linearGradient>
             <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#f97316" />
+              <stop offset="100%" stopColor="var(--brand-primary)" />
             </linearGradient>
             <linearGradient id="forecastAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
@@ -293,7 +293,7 @@ export function AreaChart({
         {/* Legend */}
         <div className="absolute top-0 right-0 flex gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-1 bg-gradient-to-r from-red-500 to-orange-500 rounded"></div>
+            <div className="w-6 h-1 bg-gradient-to-r from-red-500 to-[var(--brand-primary)] rounded"></div>
             <span className="text-gray-600 dark:text-gray-400">Historical</span>
           </div>
           {forecastData.length > 0 && (

@@ -1473,7 +1473,7 @@ const InboxPage: React.FC = () => {
     }
   };
 
-  const PRIMARY = '#f97316';
+  const PRIMARY = 'var(--brand-primary)';
   const rfqCount = threads.filter((t) => t.type === 'rfq').length;
   const resolvedCount = threads.filter((t) => t.status === 'resolved').length;
 
@@ -1491,7 +1491,7 @@ const InboxPage: React.FC = () => {
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-white"
-            style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 12px rgba(249,115,22,0.35)' }}
+            style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
           >
             <MessageCircle className="w-5 h-5" />
           </div>
@@ -1522,8 +1522,8 @@ const InboxPage: React.FC = () => {
           type="button"
           onClick={() => { loadAvailableBuyers(); setShowNewThreadDialog(true); }}
           className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white border-0 cursor-pointer transition-all hover:-translate-y-0.5"
-          style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 16px rgba(249,115,22,0.40)' }}
-          whileHover={{ boxShadow: '0 6px 20px rgba(249,115,22,0.5)' }}
+          style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta-hover)' }}
+          whileHover={{ boxShadow: 'var(--shadow-cta-hover)' }}
         >
           <Plus className="w-4 h-4" />
           New Conversation
@@ -1534,7 +1534,7 @@ const InboxPage: React.FC = () => {
       {totalUnread > 0 && !notificationBannerDismissed && (
         <div
           className="mx-4 mt-0 mb-0 rounded-[14px] px-4 py-3 flex items-center justify-between flex-wrap gap-2 flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.10), rgba(234,88,12,0.06))', boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.25)' }}
+          style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 10%, transparent), color-mix(in srgb, var(--brand-primary-hover) 6%, transparent))', boxShadow: 'inset 0 0 0 1px var(--brand-border-subtle)' }}
         >
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5" style={{ color: PRIMARY }} />
@@ -1572,7 +1572,7 @@ const InboxPage: React.FC = () => {
                 style={{
                   background: mailboxFilter === item.id ? 'var(--brand-tint)' : 'transparent',
                   color: mailboxFilter === item.id ? PRIMARY : 'var(--text-muted)',
-                  boxShadow: mailboxFilter === item.id ? 'inset 4px 0 0 #f97316' : 'none',
+                  boxShadow: mailboxFilter === item.id ? 'inset 4px 0 0 var(--brand-primary)' : 'none',
                   fontWeight: mailboxFilter === item.id ? 600 : undefined,
                 }}
               >
@@ -1589,7 +1589,7 @@ const InboxPage: React.FC = () => {
             <p className="text-[11px] uppercase tracking-wider px-2 pb-2" style={{ color: 'var(--text-faint)' }}>🏷️ LABELS</p>
             {['Urgent', 'Follow Up', 'VIP Buyer', 'Bulk Order', 'Negotiating'].map((label, i) => (
               <div key={label} className="flex items-center gap-2 py-1.5 px-3 rounded-[10px] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors">
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ['#ef4444','#f97316','#8b5cf6','#3b82f6','#f59e0b'][i] }} />
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ['#ef4444','var(--brand-primary)','#8b5cf6','#3b82f6','#f59e0b'][i] }} />
                 <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>{label}</span>
               </div>
             ))}
@@ -1644,7 +1644,7 @@ const InboxPage: React.FC = () => {
                     onClick={() => setListFilterPill(pill)}
                     className="rounded-full px-3 py-1 text-[12px] font-medium border-0 cursor-pointer capitalize"
                     style={{
-                      background: listFilterPill === pill ? `linear-gradient(135deg, ${PRIMARY}, #ea580c)` : 'var(--bg-secondary)',
+                      background: listFilterPill === pill ? 'var(--gradient-brand-cta)' : 'var(--bg-secondary)',
                       color: listFilterPill === pill ? '#fff' : 'var(--text-secondary)',
                     }}
                   >
@@ -1670,7 +1670,7 @@ const InboxPage: React.FC = () => {
                 className="mx-3 mt-4 p-10 rounded-[20px] text-center"
                 style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)' }}
               >
-                <div className="w-18 h-18 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.15), rgba(234,88,12,0.10)' }}>
+                <div className="w-18 h-18 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 15%, transparent), color-mix(in srgb, var(--brand-primary-hover) 10%, transparent))' }}>
                   <MessageCircle className="w-9 h-9" style={{ color: PRIMARY }} />
                 </div>
                 <p className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>No conversations yet</p>
@@ -1682,7 +1682,7 @@ const InboxPage: React.FC = () => {
                     type="button"
                     onClick={() => { loadAvailableBuyers(); setShowNewThreadDialog(true); }}
                     className="w-full py-3 rounded-xl font-semibold text-white border-0 cursor-pointer"
-                    style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+                    style={{ background: 'var(--gradient-brand-cta)' }}
                   >
                     + Start New Conversation
                   </button>
@@ -1721,7 +1721,7 @@ const InboxPage: React.FC = () => {
                     className="w-full text-left mx-0 mb-2 px-4 py-3.5 rounded-[14px] cursor-pointer transition-all duration-150 border-0"
                     style={{
                       background: isActive ? 'var(--brand-tint)' : 'var(--card-bg)',
-                      boxShadow: isActive ? '0 0 0 1.5px rgba(249,115,22,0.35), inset 4px 0 0 #f97316' : 'var(--shadow-xs)',
+                      boxShadow: isActive ? '0 0 0 1.5px color-mix(in srgb, var(--brand-primary) 35%, transparent), inset 4px 0 0 var(--brand-primary)' : 'var(--shadow-xs)',
                     }}
                     whileHover={{ boxShadow: isActive ? undefined : 'var(--shadow-sm)', y: -1 }}
                   >
@@ -2221,7 +2221,7 @@ const InboxPage: React.FC = () => {
                 </div>
               </div>
                         {isSeller && (
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-400 to-orange-500 flex items-center justify-center text-[11px] font-semibold text-white flex-shrink-0 overflow-hidden">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-400 to-[var(--brand-primary)] flex items-center justify-center text-[11px] font-semibold text-white flex-shrink-0 overflow-hidden">
                             {user?.avatar_url && user.avatar_url.trim() ? (
                               <img
                                 src={user.avatar_url}
@@ -2310,7 +2310,7 @@ const InboxPage: React.FC = () => {
                       type="button"
                       onClick={() => scrollToBottom('smooth')}
                       className="absolute bottom-4 left-1/2 rounded-full px-4 py-2 text-sm font-bold text-white border-0 cursor-pointer z-10 animate-[inboxPillBounce_1.5s_ease-in-out_infinite]"
-                      style={{ background: '#f97316', boxShadow: '0 4px 16px rgba(249,115,22,0.40)' }}
+                      style={{ background: 'var(--brand-primary)', boxShadow: 'var(--shadow-cta-hover)' }}
                     >
                       ↓ New message from {newMessageFromName}
                     </motion.button>
@@ -2519,7 +2519,7 @@ const InboxPage: React.FC = () => {
                                         </button>
                                       </div>
                                     ) : attachment.type === 'voice' ? (
-                                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gradient-to-br from-red-400 to-orange-500 flex items-center justify-center border border-gray-300 dark:border-gray-600">
+                                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gradient-to-br from-red-400 to-[var(--brand-primary)] flex items-center justify-center border border-gray-300 dark:border-gray-600">
                                         <Play className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                         <div className="absolute bottom-0.5 left-0.5 right-0.5 text-[8px] text-white font-medium text-center">
                                           {attachment.duration ? `${Math.floor(attachment.duration)}s` : 'Voice'}
@@ -2580,7 +2580,7 @@ const InboxPage: React.FC = () => {
                                         </button>
                                       </div>
                                     ) : file.name.startsWith('voice-') || file.type.startsWith('audio/') ? (
-                                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gradient-to-br from-red-400 to-orange-500 flex items-center justify-center border border-gray-300 dark:border-gray-600">
+                                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gradient-to-br from-red-400 to-[var(--brand-primary)] flex items-center justify-center border border-gray-300 dark:border-gray-600">
                                         <Play className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                         <div className="absolute bottom-0.5 left-0.5 right-0.5 text-[8px] text-white font-medium text-center">
                                           {recordingDuration > 0 ? `${recordingDuration}s` : 'Voice'}
@@ -2694,7 +2694,7 @@ const InboxPage: React.FC = () => {
                                   onClick={() => fileInputRef.current?.click()}
                                   className="w-8 h-8 flex items-center justify-center rounded-lg border-0 bg-transparent transition-colors active:scale-95"
                                   style={{ color: 'var(--text-muted)' }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f97316'; }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--brand-primary)'; }}
                                   onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                                   title="Attach file"
                                 >
@@ -2706,7 +2706,7 @@ const InboxPage: React.FC = () => {
                                   onClick={() => imageInputRef.current?.click()}
                                   className="w-8 h-8 flex items-center justify-center rounded-lg border-0 bg-transparent transition-colors active:scale-95"
                                   style={{ color: 'var(--text-muted)' }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.color = '#f97316'; }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--brand-primary)'; }}
                                   onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                                   title="Attach image"
                                 >
@@ -2755,7 +2755,7 @@ const InboxPage: React.FC = () => {
                               disabled={sending || !canSend}
                               className={`inline-flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 transition-all duration-200 ${
                                 canSend
-                                  ? 'bg-[#f97316] hover:bg-[#ea580c] text-white shadow-[0_0_12px_rgba(249,115,22,0.35)]'
+                                  ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white shadow-[var(--shadow-cta)]'
                                   : 'bg-transparent text-[var(--text-muted)] cursor-default'
                               } ${sending ? 'opacity-70 cursor-wait' : ''}`}
                               title={canSend ? 'Send message' : 'Enter a message'}
@@ -2771,7 +2771,7 @@ const InboxPage: React.FC = () => {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center flex-1 p-6" style={{ background: 'var(--bg-page)' }}>
-                <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.10), rgba(124,58,237,0.08))' }}>
+                <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 10%, transparent), rgba(124,58,237,0.08))' }}>
                   <MessageCircle className="w-12 h-12" style={{ color: PRIMARY }} />
                 </div>
                 <p className="text-[22px] font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Select a conversation</p>
@@ -2796,7 +2796,7 @@ const InboxPage: React.FC = () => {
                   type="button"
                   onClick={() => { loadAvailableBuyers(); setShowNewThreadDialog(true); }}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white border-0 cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 16px rgba(249,115,22,0.40)' }}
+                  style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta-hover)' }}
                 >
                   Start New Conversation →
                 </button>
@@ -2828,7 +2828,7 @@ const InboxPage: React.FC = () => {
                 <select
                   value={newThreadBuyerId}
                   onChange={(e) => setNewThreadBuyerId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-orange-500/30"
+                  className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
                   style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                   required
                   aria-required="true"
@@ -2872,7 +2872,7 @@ const InboxPage: React.FC = () => {
                 value={newThreadSubject}
                 onChange={(e) => setNewThreadSubject(e.target.value)}
                 placeholder="What is this about?"
-                className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-orange-500/30"
+                className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
                 style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                 required
                 aria-required="true"
@@ -2885,7 +2885,7 @@ const InboxPage: React.FC = () => {
               <textarea
                 placeholder="Write your first message..."
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-orange-500/30 resize-none"
+                className="w-full px-4 py-3 rounded-xl border-0 text-sm outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] resize-none"
                 style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', minHeight: 100 }}
               />
             </div>
@@ -2893,7 +2893,7 @@ const InboxPage: React.FC = () => {
               type="submit"
               disabled={!newThreadSubject.trim() || !newThreadBuyerId || loadingBuyers || availableBuyers.length === 0 || creatingThread}
               className="w-full py-3 rounded-xl font-bold text-white border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', boxShadow: '0 4px 16px rgba(249,115,22,0.40)' }}
+              style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta-hover)' }}
             >
               {loadingBuyers ? (
                 <><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Loading...</>

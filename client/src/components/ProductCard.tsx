@@ -46,7 +46,7 @@ export function ProductCard({ product, onViewProduct }: ProductCardProps) {
             e.stopPropagation();
             handleViewProduct();
           }}
-          className="absolute bottom-3 right-3 bg-orange-600 hover:bg-orange-700 text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all"
+          className="absolute bottom-3 right-3 bg-[var(--brand-primary-hover)] hover:bg-[color-mix(in_srgb,var(--brand-primary-hover)_85%,#000)] text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all"
         >
           <Eye className="h-4 w-4" />
         </button>

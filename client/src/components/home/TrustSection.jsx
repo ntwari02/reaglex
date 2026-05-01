@@ -8,51 +8,51 @@ const PILLARS = [
     icon: BadgeCheck,
     title: 'Verified Sellers',
     desc: 'Every seller is identity-verified and reviewed before listing products on Reaglex.',
-    accent: '#10b981',
+    accent: 'var(--text-in-stock)',
   },
   {
     icon: Lock,
     title: 'Secure Payments',
     desc: 'End-to-end encrypted transactions with escrow protection so your money is always safe.',
-    accent: '#6366f1',
+    accent: 'var(--notif-type-message)',
   },
   {
     icon: Headphones,
     title: '24/7 Support',
     desc: 'Our dedicated support team is available around the clock to resolve any issues fast.',
-    accent: '#f59e0b',
+    accent: 'var(--notif-type-review)',
   },
   {
     icon: Truck,
     title: 'Fast Delivery',
     desc: 'Real-time tracking and shipping from verified warehouses with guaranteed timelines.',
-    accent: '#0ea5e9',
+    accent: 'var(--badge-info-text)',
   },
   {
     icon: ShieldCheck,
     title: 'Buyer Protection',
     desc: 'Full refund if your order doesn\'t arrive or doesn\'t match the listing description.',
-    accent: '#ec4899',
+    accent: 'var(--brand-primary)',
   },
   {
     icon: CreditCard,
     title: 'Easy Returns',
     desc: 'Hassle-free 30-day return policy. No questions asked for eligible products.',
-    accent: '#8b5cf6',
+    accent: 'var(--notif-type-system)',
   },
 ];
 
 /* ─── Trust pillar card ──────────────────────────────────────────────────── */
-function TrustCard({ pillar, index, isDark }) {
+function TrustCard({ pillar, index }) {
   const Icon = pillar.icon;
 
   return (
     <motion.div
       className="relative p-6 rounded-2xl"
       style={{
-        background: isDark ? 'var(--bg-card, #1a1d2e)' : '#fff',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`,
-        boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.25)' : '0 2px 12px rgba(0,0,0,0.05)',
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border-card)',
+        boxShadow: 'var(--shadow-card)',
       }}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -64,27 +64,30 @@ function TrustCard({ pillar, index, isDark }) {
       <div
         className="absolute top-0 right-0 w-20 h-20 rounded-2xl pointer-events-none"
         style={{
-          background: `radial-gradient(circle at 80% 20%, ${pillar.accent}18, transparent 65%)`,
+          background: `radial-gradient(circle at 80% 20%, color-mix(in srgb, ${pillar.accent} 14%, transparent), transparent 65%)`,
         }}
       />
 
       {/* Icon */}
       <div
         className="inline-flex items-center justify-center w-11 h-11 rounded-xl mb-4"
-        style={{ background: pillar.accent + '1a', border: `1px solid ${pillar.accent}30` }}
+        style={{
+          background: `color-mix(in srgb, ${pillar.accent} 10%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${pillar.accent} 19%, transparent)`,
+        }}
       >
         <Icon size={20} style={{ color: pillar.accent }} />
       </div>
 
       <h3
         className="font-bold text-base mb-2"
-        style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}
+        style={{ color: 'var(--text-primary)' }}
       >
         {pillar.title}
       </h3>
       <p
         className="text-sm leading-relaxed"
-        style={{ color: isDark ? '#616680' : '#6b7280' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         {pillar.desc}
       </p>
@@ -102,13 +105,13 @@ export default function TrustSection() {
   return (
     <section
       className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-20"
-      style={{ background: isDark ? 'var(--bg-secondary, #10121c)' : '#fff' }}
+      style={{ background: 'var(--bg-page)' }}
     >
       {/* Header */}
       <div ref={headerRef} className="max-w-xl mb-12">
         <motion.p
           className="text-xs font-semibold tracking-[0.2em] uppercase mb-2"
-          style={{ color: isDark ? '#616680' : '#9ca3af' }}
+          style={{ color: 'var(--text-muted)' }}
           initial={{ opacity: 0, y: 12 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
@@ -118,7 +121,7 @@ export default function TrustSection() {
         <motion.h2
           className="font-black leading-none mb-4"
           style={{
-            color: isDark ? '#e2e4ed' : '#0f172a',
+            color: 'var(--text-primary)',
             fontSize: 'clamp(1.8rem, 4vw, 3rem)',
             fontFamily: "'Times New Roman', Georgia, serif",
             letterSpacing: '-0.02em',
@@ -131,7 +134,7 @@ export default function TrustSection() {
         </motion.h2>
         <motion.p
           className="text-sm leading-relaxed max-w-sm"
-          style={{ color: isDark ? '#616680' : '#6b7280' }}
+          style={{ color: 'var(--text-secondary)' }}
           initial={{ opacity: 0, y: 12 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 0.16 }}
@@ -143,14 +146,14 @@ export default function TrustSection() {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {PILLARS.map((p, i) => (
-          <TrustCard key={p.title} pillar={p} index={i} isDark={isDark} />
+          <TrustCard key={p.title} pillar={p} index={i} />
         ))}
       </div>
 
       {/* Stats bar */}
       <motion.div
         className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 pt-10"
-        style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'}` }}
+        style={{ borderTop: '1px solid var(--divider)' }}
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -166,14 +169,14 @@ export default function TrustSection() {
             <p
               className="font-black mb-1"
               style={{
-                color: isDark ? '#e2e4ed' : '#0f172a',
+                color: 'var(--text-primary)',
                 fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
                 fontFamily: "'Times New Roman', Georgia, serif",
               }}
             >
               {stat.value}
             </p>
-            <p className="text-xs font-medium" style={{ color: isDark ? '#616680' : '#9ca3af' }}>
+            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
               {stat.label}
             </p>
           </div>

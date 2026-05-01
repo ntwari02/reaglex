@@ -5,10 +5,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        'dark-primary': '#0a0a0f',
-        'dark-secondary': '#13131a',
-        'dark-card': '#1a1a24',
-        'dark-border': '#2a2a35',
+        /* Buyer dark surfaces — resolve from theme.css tokens (light: same vars, different values) */
+        'dark-primary': 'var(--bg-page)',
+        'dark-secondary': 'var(--bg-secondary)',
+        'dark-card': 'var(--card-bg)',
+        'dark-border': 'var(--divider-strong)',
         accent: '#ff8c42',
         'accent-purple': '#6c63ff',
       },

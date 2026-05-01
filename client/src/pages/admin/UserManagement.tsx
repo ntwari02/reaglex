@@ -948,7 +948,7 @@ export default function UserManagement() {
                             disabled={actionLoading === customer.id}
                             className={`rounded-lg border p-1.5 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 transition-colors ${
                               customer.status === 'active'
-                                ? 'border-orange-300 text-orange-600 hover:border-orange-400 hover:bg-orange-50 dark:text-orange-400 dark:hover:border-orange-500 dark:hover:bg-orange-900/20'
+                                ? 'border-[var(--brand-border-subtle)] text-[var(--brand-orange-text)] hover:border-[var(--brand-primary-hover)] hover:bg-[var(--brand-tint)] dark:text-[var(--brand-orange-text)] dark:hover:border-[var(--brand-primary)] dark:hover:bg-[var(--brand-tint)]'
                                 : 'border-emerald-300 text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:border-emerald-500 dark:hover:bg-emerald-900/20'
                             }`}
                             title={customer.status === 'active' ? 'Deactivate user' : 'Activate user'}

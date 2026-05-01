@@ -86,8 +86,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         activeShadow: 'shadow-emerald-500/30',
       }
     : {
-        badgeBg: 'bg-gradient-to-br from-red-500 to-orange-500',
-        activeBg: 'bg-gradient-to-r from-red-500 to-orange-500',
+        badgeBg: 'bg-gradient-to-br from-red-500 to-[var(--brand-primary)]',
+        activeBg: 'bg-gradient-to-r from-red-500 to-[var(--brand-primary)]',
         activeShadow: 'shadow-red-500/40',
       };
 
@@ -177,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-4 border-t bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800 transition-colors duration-300 text-xs text-gray-500 dark:text-gray-400">
         <p className="text-center">
           {t('sidebar.needHelpOpen')}{' '}
-          <span className="font-semibold text-orange-500">{t('sidebar.supportCenter')}</span> {t('sidebar.inMenu')}.
+          <span className="font-semibold text-[var(--brand-primary)]">{t('sidebar.supportCenter')}</span> {t('sidebar.inMenu')}.
         </p>
       </div>
     </div>

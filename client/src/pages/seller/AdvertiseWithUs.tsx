@@ -105,18 +105,18 @@ export default function AdvertiseWithUs() {
                 transition={{ duration: 0.3 }}
                 className={`relative rounded-[20px] p-6 flex flex-col gap-4 border-2 transition-all duration-200 ${
                   pkg.popular
-                    ? 'border-orange-500 shadow-lg'
+                    ? 'border-[var(--brand-primary)] shadow-lg'
                     : 'border-transparent'
                 }`}
                 style={{
                   background: pkg.popular ? 'var(--card-bg)' : 'var(--card-bg)',
-                  boxShadow: pkg.popular ? '0 10px 40px rgba(249, 115, 22, 0.15), var(--shadow-md)' : 'var(--shadow-md)',
+                  boxShadow: pkg.popular ? '0 10px 40px color-mix(in srgb, var(--brand-primary) 15%, transparent), var(--shadow-md)' : 'var(--shadow-md)',
                 }}
               >
                 {pkg.popular && (
                   <span
                     className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-bold text-white uppercase tracking-wider"
-                    style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+                    style={{ background: 'var(--gradient-brand-cta)' }}
                   >
                     Most popular
                   </span>
@@ -130,7 +130,7 @@ export default function AdvertiseWithUs() {
                   </p>
                   <p
                     className="text-2xl font-extrabold mt-1"
-                    style={{ color: '#f97316' }}
+                    style={{ color: 'var(--brand-primary)' }}
                   >
                     {pkg.price}
                   </p>
@@ -144,7 +144,7 @@ export default function AdvertiseWithUs() {
                     >
                       <span
                         className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
-                        style={{ background: 'rgba(249, 115, 22, 0.12)', color: '#f97316' }}
+                        style={{ background: 'var(--brand-tint)', color: 'var(--brand-primary)' }}
                       >
                         <Icon className="w-4 h-4" />
                       </span>
@@ -157,7 +157,7 @@ export default function AdvertiseWithUs() {
                   className="mt-2 block w-full rounded-xl py-2.5 text-center text-sm font-semibold transition-all duration-200 hover:opacity-90"
                   style={{
                     background: pkg.popular
-                      ? 'linear-gradient(135deg, #f97316, #ea580c)'
+                      ? 'var(--gradient-brand-cta)'
                       : 'var(--bg-secondary)',
                     color: pkg.popular ? '#fff' : 'var(--text-primary)',
                     border: pkg.popular ? 'none' : '1.5px solid var(--divider)',
@@ -188,7 +188,7 @@ export default function AdvertiseWithUs() {
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-orange-500/40"
+                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40"
                   style={{
                     background: 'var(--bg-secondary)',
                     border: '1.5px solid var(--divider, #e5e7eb)',
@@ -203,7 +203,7 @@ export default function AdvertiseWithUs() {
                 </label>
                 <input
                   type="email"
-                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-orange-500/40"
+                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40"
                   style={{
                     background: 'var(--bg-secondary)',
                     border: '1.5px solid var(--divider, #e5e7eb)',
@@ -220,7 +220,7 @@ export default function AdvertiseWithUs() {
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-orange-500/40"
+                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40"
                   style={{
                     background: 'var(--bg-secondary)',
                     border: '1.5px solid var(--divider, #e5e7eb)',
@@ -234,7 +234,7 @@ export default function AdvertiseWithUs() {
                   Preferred Ad Type
                 </label>
                 <select
-                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-orange-500/40 cursor-pointer"
+                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40 cursor-pointer"
                   style={{
                     background: 'var(--bg-secondary)',
                     border: '1.5px solid var(--divider, #e5e7eb)',
@@ -256,7 +256,7 @@ export default function AdvertiseWithUs() {
               </label>
               <textarea
                 rows={4}
-                className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-orange-500/40 resize-y min-h-[100px]"
+                className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40 resize-y min-h-[100px]"
                 style={{
                   background: 'var(--bg-secondary)',
                   border: '1.5px solid var(--divider, #e5e7eb)',
@@ -269,8 +269,8 @@ export default function AdvertiseWithUs() {
               type="button"
               className="mt-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
               style={{
-                background: 'linear-gradient(135deg, #f97316, #ea580c)',
-                boxShadow: '0 4px 14px rgba(249, 115, 22, 0.4)',
+                background: 'var(--gradient-brand-cta)',
+                boxShadow: 'var(--shadow-cta-hover)',
               }}
             >
               Get Started

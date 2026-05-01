@@ -197,9 +197,9 @@ export default function SellerFees() {
                   onClick={scrollToCalculator}
                   className="hidden sm:inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
                   style={{
-                    background: 'linear-gradient(135deg,#f97316,#ea580c)',
-                    color: '#ffffff',
-                    boxShadow: '0 6px 18px rgba(249,115,22,0.35)',
+                    background: 'var(--gradient-brand-cta)',
+                    color: 'var(--text-on-accent)',
+                    boxShadow: '0 6px 18px color-mix(in srgb, var(--brand-primary) 35%, transparent)',
                   }}
                 >
                   Calculate My Earnings
@@ -217,7 +217,7 @@ export default function SellerFees() {
           style={{
             padding: '80px 40px',
             background:
-              'linear-gradient(135deg,#0f0c24 0%, #1a0f3a 40%, #0d1f3a 70%, #0a1628 100%)',
+              'var(--hero-marketing-bg)',
           }}
         >
           {/* floating blobs */}
@@ -230,7 +230,7 @@ export default function SellerFees() {
               style={{
                 width: 260,
                 height: 260,
-                background: 'rgba(249,115,22,0.18)',
+                background: 'var(--hero-marketing-blob-c)',
                 filter: 'blur(80px)',
               }}
             />
@@ -242,7 +242,7 @@ export default function SellerFees() {
               style={{
                 width: 280,
                 height: 280,
-                background: 'rgba(124,58,237,0.20)',
+                background: 'var(--hero-marketing-blob-b)',
                 filter: 'blur(90px)',
               }}
             />
@@ -257,8 +257,8 @@ export default function SellerFees() {
             <div className="inline-flex items-center justify-center">
               <span
                 style={{
-                  background: 'rgba(249,115,22,0.15)',
-                  color: '#fb923c',
+                  background: 'var(--badge-info-bg)',
+                  color: 'var(--badge-info-text)',
                   borderRadius: 999,
                   padding: '6px 16px',
                   fontSize: 13,
@@ -270,23 +270,24 @@ export default function SellerFees() {
             </div>
 
             <div className="space-y-3">
-              <h1 className="font-extrabold leading-tight" style={{ color: '#ffffff', fontSize: 48 }}>
+              <h1 className="font-extrabold leading-tight" style={{ color: 'var(--hero-marketing-heading)', fontSize: 48 }}>
                 Simple, Honest
               </h1>
               <h2
                 className="font-extrabold leading-tight"
                 style={{
                   fontSize: 48,
-                  background: 'linear-gradient(135deg,#f97316,#fb923c)',
+                  background: 'var(--hero-marketing-line2-gradient)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
                 }}
               >
                 Seller Fees
               </h2>
               <p
                 className="mx-auto max-w-xl text-base"
-                style={{ color: 'rgba(255,255,255,0.60)', fontSize: 16 }}
+                style={{ color: 'var(--hero-marketing-subtitle)', fontSize: 16 }}
               >
                 No hidden charges. No surprises. Only pay when you make a sale.
               </p>
@@ -297,11 +298,11 @@ export default function SellerFees() {
                 <span
                   key={label}
                   style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    color: 'rgba(255,255,255,0.85)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--divider)',
                     borderRadius: 999,
                     padding: '6px 16px',
-                    backdropFilter: 'blur(10px)',
                   }}
                 >
                   {label}
@@ -329,16 +330,16 @@ export default function SellerFees() {
                 title: '5%',
                 label: 'Commission per sale',
                 sub: 'Only when you earn',
-                gradient: 'linear-gradient(135deg,#f97316,#ea580c)',
-                color: '#f97316',
+                gradient: 'var(--gradient-brand-cta)',
+                color: 'var(--brand-primary)',
                 icon: '%',
               },
               {
                 title: '1.4%',
                 label: 'Payment processing',
                 sub: 'Per transaction',
-                gradient: 'linear-gradient(135deg,#3b82f6,#1d4ed8)',
-                color: '#60a5fa',
+                gradient: 'var(--accent-marketing-gradient)',
+                color: 'var(--badge-info-text)',
                 icon: '💳',
               },
               {
@@ -346,7 +347,7 @@ export default function SellerFees() {
                 label: 'Product listings',
                 sub: 'List unlimited products',
                 gradient: 'linear-gradient(135deg,#22c55e,#16a34a)',
-                color: '#34d399',
+                color: 'var(--badge-success-text)',
                 icon: '✓',
               },
               {
@@ -446,9 +447,9 @@ export default function SellerFees() {
                 className="grid grid-cols-[1.4fr_0.9fr_1fr_1.2fr] gap-4 text-[11px] uppercase tracking-[0.08em]"
                 style={{
                   background:
-                    'linear-gradient(135deg,#1a0f3a,#0d1f3a)',
+                    'var(--panel-deep-bg)',
                   padding: '18px 28px',
-                  color: 'rgba(255,255,255,0.70)',
+                  color: 'var(--text-secondary)',
                 }}
               >
                 <span>Fee Type</span>
@@ -472,7 +473,7 @@ export default function SellerFees() {
                         className="flex h-8 w-8 items-center justify-center rounded-full"
                         style={{
                           background:
-                            'linear-gradient(135deg,#f97316,#ea580c)',
+                            'var(--gradient-brand-cta)',
                         }}
                       >
                         <span className="text-sm">💰</span>
@@ -495,7 +496,7 @@ export default function SellerFees() {
                     <div>
                       <p
                         className="text-[18px] font-bold"
-                        style={{ color: '#f97316' }}
+                        style={{ color: 'var(--brand-primary)' }}
                       >
                         5%
                       </p>
@@ -513,8 +514,8 @@ export default function SellerFees() {
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
-                          background: '#dcfce7',
-                          color: '#15803d',
+                          background: 'var(--badge-success-bg)',
+                          color: 'var(--badge-success-text)',
                         }}
                       >
                         After delivery
@@ -543,7 +544,7 @@ export default function SellerFees() {
                         className="flex h-8 w-8 items-center justify-center rounded-full"
                         style={{
                           background:
-                            'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+                            'var(--accent-marketing-gradient)',
                         }}
                       >
                         <span className="text-sm">💳</span>
@@ -566,7 +567,7 @@ export default function SellerFees() {
                     <div>
                       <p
                         className="text-[18px] font-bold"
-                        style={{ color: '#60a5fa' }}
+                        style={{ color: 'var(--badge-info-text)' }}
                       >
                         1.4%
                       </p>
@@ -584,8 +585,8 @@ export default function SellerFees() {
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
-                          background: '#fef3c7',
-                          color: '#b45309',
+                          background: 'var(--badge-warning-bg)',
+                          color: 'var(--badge-warning-text)',
                         }}
                       >
                         Per transaction
@@ -637,15 +638,15 @@ export default function SellerFees() {
                     <div className="space-y-1">
                       <p
                         className="text-[18px] font-bold"
-                        style={{ color: '#34d399' }}
+                        style={{ color: 'var(--badge-success-text)' }}
                       >
                         $0.00
                       </p>
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
-                          background: '#dcfce7',
-                          color: '#15803d',
+                          background: 'var(--badge-success-bg)',
+                          color: 'var(--badge-success-text)',
                         }}
                       >
                         FREE
@@ -664,8 +665,8 @@ export default function SellerFees() {
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
-                          background: '#e5e7eb',
-                          color: '#374151',
+                          background: 'var(--bg-badge)',
+                          color: 'var(--text-secondary)',
                         }}
                       >
                         Not seller cost
@@ -717,7 +718,7 @@ export default function SellerFees() {
                     <div>
                       <p
                         className="text-[18px] font-bold"
-                        style={{ color: '#34d399' }}
+                        style={{ color: 'var(--badge-success-text)' }}
                       >
                         FREE
                       </p>
@@ -729,8 +730,8 @@ export default function SellerFees() {
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
-                          background: '#dcfce7',
-                          color: '#15803d',
+                          background: 'var(--badge-success-bg)',
+                          color: 'var(--badge-success-text)',
                         }}
                       >
                         Always free
@@ -759,7 +760,7 @@ export default function SellerFees() {
                         className="flex h-8 w-8 items-center justify-center rounded-full"
                         style={{
                           background:
-                            'linear-gradient(135deg,#fbbf24,#f97316)',
+                            'linear-gradient(135deg,#fbbf24,var(--brand-primary))',
                         }}
                       >
                         <span className="text-sm">📅</span>
@@ -782,15 +783,15 @@ export default function SellerFees() {
                     <div className="space-y-1">
                       <p
                         className="text-[18px] font-bold"
-                        style={{ color: '#34d399' }}
+                        style={{ color: 'var(--badge-success-text)' }}
                       >
                         $0
                       </p>
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
-                          background: '#dcfce7',
-                          color: '#15803d',
+                          background: 'var(--badge-success-bg)',
+                          color: 'var(--badge-success-text)',
                         }}
                       >
                         No charge
@@ -824,7 +825,7 @@ export default function SellerFees() {
                         className="flex h-8 w-8 items-center justify-center rounded-full"
                         style={{
                           background:
-                            'linear-gradient(135deg,#22d3ee,#0ea5e9)',
+                            'var(--accent-marketing-gradient)',
                         }}
                       >
                         <span className="text-sm">🏦</span>
@@ -859,8 +860,8 @@ export default function SellerFees() {
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
-                          background: '#fef3c7',
-                          color: '#b45309',
+                          background: 'var(--badge-warning-bg)',
+                          color: 'var(--badge-warning-text)',
                         }}
                       >
                         Per payout
@@ -924,8 +925,8 @@ export default function SellerFees() {
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
-                          background: '#fee2e2',
-                          color: '#b91c1c',
+                          background: 'var(--badge-error-bg)',
+                          color: 'var(--badge-error-text)',
                         }}
                       >
                         Conditional
@@ -989,7 +990,7 @@ export default function SellerFees() {
               className="rounded-[24px]"
               style={{
                 background:
-                  'linear-gradient(145deg,#1a0f3a 0%, #0d1f3a 100%)',
+                  'var(--panel-deep-bg)',
                 padding: 36,
                 boxShadow: 'var(--shadow-xl)',
               }}
@@ -1145,7 +1146,7 @@ export default function SellerFees() {
                       </span>
                       <span
                         className="font-semibold"
-                        style={{ color: '#fb923c', fontSize: 15 }}
+                        style={{ color: 'var(--brand-orange-text)', fontSize: 15 }}
                       >
                         − {formatMoney(animatedCommission)}
                       </span>
@@ -1179,7 +1180,7 @@ export default function SellerFees() {
                     <p
                       className="mt-1 font-black leading-tight"
                       style={{
-                        color: '#34d399',
+                        color: 'var(--badge-success-text)',
                         fontSize: 44,
                       }}
                     >
@@ -1202,7 +1203,7 @@ export default function SellerFees() {
                       </p>
                       <p
                         className="text-sm font-semibold"
-                        style={{ color: '#fb923c' }}
+                        style={{ color: 'var(--brand-orange-text)' }}
                       >
                         Est. Monthly Earnings:{' '}
                         {formatMoney(animatedMonthly)}
@@ -1216,9 +1217,9 @@ export default function SellerFees() {
                     className="mt-2 w-full rounded-[16px] py-3 text-sm font-bold"
                     style={{
                       background:
-                        'linear-gradient(135deg,#f97316,#ea580c,#c2410c)',
+                        'linear-gradient(135deg,var(--brand-primary),var(--brand-primary-hover),#c2410c)',
                       color: '#ffffff',
-                      boxShadow: '0 10px 28px rgba(249,115,22,0.5)',
+                      boxShadow: '0 10px 28px color-mix(in srgb, var(--brand-primary) 50%, transparent)',
                     }}
                   >
                     Start Selling Today →
@@ -1275,7 +1276,7 @@ export default function SellerFees() {
                   </h3>
                   <p
                     className="text-[28px] font-extrabold"
-                    style={{ color: '#34d399' }}
+                    style={{ color: 'var(--badge-success-text)' }}
                   >
                     $0<span className="text-sm font-semibold">/month</span>
                   </p>
@@ -1315,9 +1316,9 @@ export default function SellerFees() {
                   type="button"
                   className="w-full rounded-[999px] py-2.5 text-sm font-semibold"
                   style={{
-                    color: '#34d399',
+                    color: 'var(--badge-success-text)',
                     boxShadow:
-                      '0 0 0 1px rgba(52,211,153,0.4)',
+                      '0 0 0 1px color-mix(in srgb, var(--badge-success-text) 40%, transparent)',
                     background: 'transparent',
                   }}
                 >
@@ -1337,9 +1338,9 @@ export default function SellerFees() {
                 className="rounded-[24px] p-8 relative overflow-hidden"
                 style={{
                   background:
-                    'linear-gradient(145deg,#1a0f3a,#0d1f3a)',
+                    'var(--panel-deep-bg)',
                   boxShadow:
-                    'var(--shadow-xl), 0 0 0 2px rgba(249,115,22,0.40)',
+                    'var(--shadow-xl), 0 0 0 2px color-mix(in srgb, var(--brand-primary) 40%, transparent)',
                   transform: 'scale(1.02)',
                 }}
               >
@@ -1359,7 +1360,7 @@ export default function SellerFees() {
                     className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
                     style={{
                       background:
-                        'linear-gradient(135deg,#f97316,#ea580c)',
+                        'var(--gradient-brand-cta)',
                     }}
                   >
                     <span className="text-3xl">🚀</span>
@@ -1372,7 +1373,7 @@ export default function SellerFees() {
                   </h3>
                   <p
                     className="text-[28px] font-extrabold"
-                    style={{ color: '#f97316' }}
+                    style={{ color: 'var(--brand-primary)' }}
                   >
                     $9.99<span className="text-sm font-semibold">/month</span>
                   </p>
@@ -1406,10 +1407,10 @@ export default function SellerFees() {
                   className="w-full rounded-[16px] py-3 text-sm font-bold"
                   style={{
                     background:
-                      'linear-gradient(135deg,#f97316,#ea580c)',
+                      'var(--gradient-brand-cta)',
                     color: '#ffffff',
                     boxShadow:
-                      '0 10px 30px rgba(249,115,22,0.55)',
+                      '0 10px 30px color-mix(in srgb, var(--brand-primary) 55%, transparent)',
                   }}
                 >
                   Upgrade to Growth
@@ -1505,14 +1506,14 @@ export default function SellerFees() {
                     emoji: '🛒',
                     title: 'Buyer Purchases',
                     desc: 'Customer pays, funds held in escrow.',
-                    gradient: 'linear-gradient(135deg,#f97316,#ea580c)',
+                    gradient: 'var(--gradient-brand-cta)',
                   },
                   {
                     step: 2,
                     emoji: '📦',
                     title: 'You Ship Item',
                     desc: 'Ship within 2 days and update tracking.',
-                    gradient: 'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+                    gradient: 'var(--accent-marketing-gradient)',
                   },
                   {
                     step: 3,
@@ -1526,7 +1527,7 @@ export default function SellerFees() {
                     emoji: '💰',
                     title: 'You Get Paid',
                     desc: 'Net amount deposited within 24 hours.',
-                    gradient: 'linear-gradient(135deg,#f97316,#ea580c)',
+                    gradient: 'var(--gradient-brand-cta)',
                   },
                 ].map((s, idx) => (
                   <motion.div
@@ -1547,7 +1548,7 @@ export default function SellerFees() {
                         background: s.gradient,
                         color: '#ffffff',
                         boxShadow:
-                          '0 0 0 6px rgba(249,115,22,0.15)',
+                          '0 0 0 6px color-mix(in srgb, var(--brand-primary) 15%, transparent)',
                       }}
                     >
                       {s.step}
@@ -1646,7 +1647,7 @@ export default function SellerFees() {
                 style={{
                   background: 'var(--brand-tint)',
                   boxShadow:
-                    'inset 0 0 0 1px rgba(249,115,22,0.25)',
+                    'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 25%, transparent)',
                 }}
               >
                 <p
@@ -1767,7 +1768,7 @@ export default function SellerFees() {
               className="rounded-[24px] px-6 py-10 sm:px-10"
               style={{
                 background:
-                  'linear-gradient(135deg,#f97316 0%,#ea580c 50%,#c2410c 100%)',
+                  'linear-gradient(135deg,var(--brand-primary) 0%,var(--brand-primary-hover) 50%,#c2410c 100%)',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.28)',
               }}
             >
@@ -1808,9 +1809,9 @@ export default function SellerFees() {
                     type="button"
                     className="w-full rounded-[14px] px-8 py-3 text-sm font-bold sm:w-auto"
                     style={{
-                      background: '#ffffff',
-                      color: '#f97316',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                      background: 'var(--text-on-accent)',
+                      color: 'var(--brand-primary)',
+                      boxShadow: 'var(--shadow-md)',
                     }}
                   >
                     Start Selling Free →
@@ -1820,7 +1821,7 @@ export default function SellerFees() {
                     className="w-full rounded-[14px] px-8 py-3 text-sm font-bold sm:w-auto"
                     style={{
                       background: 'rgba(255,255,255,0.15)',
-                      color: '#ffffff',
+                      color: 'var(--text-on-accent)',
                       backdropFilter: 'blur(10px)',
                     }}
                   >

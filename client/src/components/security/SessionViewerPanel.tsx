@@ -253,7 +253,12 @@ export function SessionViewerPanel({
               </div>
 
               <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 dark:bg-black/40 p-4 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[linear-gradient(105deg,transparent_40%,rgba(139,92,246,0.07)_50%,transparent_60%)] animate-[shimmer_4s_linear_infinite] pointer-events-none" />
+                <div
+                  className="absolute inset-0 animate-[shimmer_4s_linear_infinite] pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(105deg, transparent 40%, var(--navbar-violet-glow-soft) 50%, transparent 60%)',
+                  }}
+                />
                 <div className="relative flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 mb-3">
                   <MonitorSmartphone className="w-4 h-4 text-violet-400" />
                   <span className="font-mono truncate">{sel.currentRoute || '/'}</span>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Facebook, Twitter, Instagram, Linkedin, Youtube, Music2, Mail, Phone, Clock,
@@ -7,21 +7,14 @@ import {
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useTranslation } from '../i18n/useTranslation';
-import { useTheme } from '../contexts/ThemeContext';
 
-const PRIMARY = '#f97316';
-const FOOTER_BG = 'linear-gradient(180deg, #020617, #0f172a)';
-const BOTTOM_BG = '#080810';
-const BODY_COLOR = '#9ca3af';
-const HEADING_COLOR = '#ffffff';
-
-// Column heading with animated orange underline
+// Column heading with animated brand underline
 function ColumnHeading({ children }) {
   return (
     <div className="mb-6">
       <h4
         className="footer-heading font-bold uppercase tracking-[0.24em] mb-2"
-        style={{ color: HEADING_COLOR, fontSize: 12 }}
+        style={{ color: 'var(--footer-on-dark-heading)', fontSize: 12 }}
       >
         {children}
       </h4>
@@ -31,7 +24,7 @@ function ColumnHeading({ children }) {
         viewport={{ once: true }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="h-0.5 rounded-full"
-        style={{ background: PRIMARY }}
+        style={{ background: 'var(--brand-primary)' }}
       />
     </div>
   );
@@ -44,7 +37,7 @@ function FooterLink({ to, children }) {
       to={to}
       className="footer-link block text-sm leading-[2] transition-all duration-200 ease-out hover:translate-x-1"
       style={{
-        color: BODY_COLOR,
+        color: 'var(--footer-on-dark-body)',
         border: 'none',
         outline: 'none',
         boxShadow: 'none',
@@ -57,7 +50,6 @@ function FooterLink({ to, children }) {
 
 function SellerFooterLink({ label, tooltipLabel, href, protectedLink, onClick }) {
   const [hovered, setHovered] = useState(false);
-  const baseColor = '#848aaa';
 
   return (
     <div
@@ -70,7 +62,7 @@ function SellerFooterLink({ label, tooltipLabel, href, protectedLink, onClick })
         onClick={onClick}
         className="block text-sm leading-[2] transition-colors duration-200 ease-out"
         style={{
-          color: hovered ? PRIMARY : baseColor,
+          color: hovered ? 'var(--brand-primary)' : 'var(--footer-sell-link-idle)',
           border: 'none',
           outline: 'none',
           boxShadow: 'none',
@@ -95,8 +87,8 @@ function SellerFooterLink({ label, tooltipLabel, href, protectedLink, onClick })
         >
           <div
             style={{
-              background: '#111420',
-              color: '#eceef8',
+              background: 'var(--footer-tooltip-bg)',
+              color: 'var(--footer-tooltip-text)',
               borderRadius: 8,
               padding: '6px 12px',
               fontSize: 12,
@@ -120,10 +112,10 @@ function SocialIcon({ href, icon: Icon, label }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className="footer-social-icon flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ease-out"
+      className="footer-social-icon flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 ease-out hover:text-[var(--footer-on-dark-link-hover)]"
       style={{
         boxShadow: 'none',
-        color: BODY_COLOR,
+        color: 'var(--footer-on-dark-body)',
         border: 'none',
         outline: 'none',
       }}
@@ -139,13 +131,13 @@ function TrustBadge({ icon: Icon, label }) {
     <span
       className="footer-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
       style={{
-        background: 'rgba(255,255,255,0.08)',
-        color: BODY_COLOR,
+        background: 'var(--footer-badge-bg)',
+        color: 'var(--footer-on-dark-body)',
         border: 'none',
         boxShadow: 'none',
       }}
     >
-      <Icon className="footer-badge-icon w-3.5 h-3.5 flex-shrink-0" style={{ color: PRIMARY }} />
+      <Icon className="footer-badge-icon w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--brand-primary)' }} />
       {label}
     </span>
   );
@@ -237,18 +229,14 @@ const BOTTOM_LINKS = [
 
 export default function Footer() {
   const { t } = useTranslation();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const [email, setEmail] = useState('');
   const currentYear = new Date().getFullYear();
-  const navigate = useNavigate();
-  const { isLoggedIn, isSeller } = useSellerAccess();
+  const { isSeller } = useSellerAccess();
   const handleSellerLink = useHandleSellerLink();
 
   const handleNewsletterSubmit = (e) => {
     e.preventDefault();
     if (email.trim()) {
-      // Placeholder: wire to your newsletter API
       setEmail('');
     }
   };
@@ -266,21 +254,20 @@ export default function Footer() {
       <div
         className="relative w-full flex flex-col md:flex-row md:items-center md:justify-between gap-6 px-4 sm:px-6 lg:px-20 py-10"
         style={{
-          background: isDark ? '#0f111a' : '#f4f4f6',
-          borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
-          borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+          background: 'var(--footer-newsletter-bg)',
+          borderTop: `1px solid var(--footer-newsletter-edge)`,
+          borderBottom: `1px solid var(--footer-newsletter-edge)`,
           paddingLeft: 'clamp(1rem, 5vw, 80px)',
           paddingRight: 'clamp(1rem, 5vw, 80px)',
           paddingTop: 40,
           paddingBottom: 40,
         }}
       >
-        {/* Soft dot pattern overlay (matches account banner) */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.08]">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="footer-newsletter-dots" width="12" height="12" patternUnits="userSpaceOnUse">
-                <circle cx="1.5" cy="1.5" r="0.8" fill="white" />
+                <circle cx="1.5" cy="1.5" r="0.8" fill="var(--text-muted)" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#footer-newsletter-dots)" />
@@ -288,10 +275,10 @@ export default function Footer() {
         </div>
 
         <div>
-          <h3 className="font-bold text-2xl mb-1" style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}>
+          <h3 className="font-bold text-2xl mb-1" style={{ color: 'var(--footer-newsletter-title)' }}>
             {t('footer.newsletterTitle')} 🔥
           </h3>
-          <p className="text-sm" style={{ color: isDark ? '#9da3be' : '#6b7280' }}>
+          <p className="text-sm" style={{ color: 'var(--footer-newsletter-muted)' }}>
             {t('footer.newsletterSubtitle')}
           </p>
         </div>
@@ -299,20 +286,20 @@ export default function Footer() {
           <div
             className="flex flex-col sm:flex-row gap-0 rounded-full overflow-hidden"
             style={{
-              background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
-              border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)'}`,
-              boxShadow: isDark ? '0 8px 26px rgba(0,0,0,0.35)' : '0 8px 26px rgba(0,0,0,0.08)',
+              background: 'var(--footer-newsletter-form-bg)',
+              border: `1px solid var(--footer-newsletter-form-border)`,
+              boxShadow: 'var(--footer-newsletter-form-shadow)',
             }}
           >
             <div className="flex items-center gap-2 px-5 py-3 sm:py-0 sm:min-w-[200px] lg:min-w-[320px]">
-              <Mail className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#616680' : '#9ca3af' }} />
+              <Mail className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--footer-newsletter-icon)' }} />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('footer.emailPlaceholder')}
                 className="flex-1 min-w-0 py-2.5 sm:py-3 text-sm outline-none bg-transparent"
-                style={{ color: isDark ? '#e2e4ed' : '#1a1a1a' }}
+                style={{ color: 'var(--footer-newsletter-input)' }}
               />
             </div>
             <motion.button
@@ -321,14 +308,14 @@ export default function Footer() {
               whileTap={{ scale: 0.98 }}
               className="flex items-center justify-center gap-2 px-6 py-3 font-bold text-sm rounded-r-full transition-colors"
               style={{
-                background: isDark ? '#e2e4ed' : '#0f172a',
-                color: isDark ? '#0f111a' : '#ffffff',
+                background: 'var(--footer-newsletter-btn-bg)',
+                color: 'var(--footer-newsletter-btn-text)',
               }}
             >
               {t('footer.subscribe')} <Send className="w-4 h-4" />
             </motion.button>
           </div>
-          <p className="text-xs" style={{ color: isDark ? '#616680' : '#9ca3af' }}>{t('footer.noSpam')}</p>
+          <p className="text-xs" style={{ color: 'var(--footer-newsletter-icon)' }}>{t('footer.noSpam')}</p>
         </form>
       </div>
 
@@ -336,16 +323,15 @@ export default function Footer() {
       <div
         className="footer-main w-full px-4 sm:px-6 lg:px-20"
         style={{
-          background: FOOTER_BG,
+          background: 'var(--footer-main-bg)',
           paddingTop: 72,
           paddingBottom: 48,
           paddingLeft: 'clamp(1rem, 5vw, 80px)',
           paddingRight: 'clamp(1rem, 5vw, 80px)',
-          boxShadow: '0 -1px 0 rgba(255,255,255,0.05) inset',
+          boxShadow: 'inset 0 -1px 0 var(--footer-inset-line)',
         }}
       >
         <div className="footer-grid">
-            {/* COLUMN 1 — Brand (wider on large) */}
             <div className="footer-brand-col">
               <Link
                 to="/"
@@ -357,14 +343,14 @@ export default function Footer() {
                   alt="Reaglex"
                   className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                 />
-                <span className="font-bold text-2xl tracking-wide" style={{ color: HEADING_COLOR, fontFamily: "'Mea Culpa', serif" }}>
+                <span className="font-bold text-2xl tracking-wide" style={{ color: 'var(--footer-on-dark-heading)', fontFamily: "'Mea Culpa', serif" }}>
                   Reaglex
                 </span>
               </Link>
-              <p className="text-sm font-medium mb-1" style={{ color: BODY_COLOR }}>
+              <p className="text-sm font-medium mb-1" style={{ color: 'var(--footer-on-dark-body)' }}>
                 {t('footer.brandTagline')}
               </p>
-              <p className="text-sm mb-4 leading-relaxed" style={{ color: BODY_COLOR, maxWidth: 280 }}>
+              <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--footer-on-dark-body)', maxWidth: 280 }}>
                 {t('footer.brandDescription')}
               </p>
               <div className="flex flex-wrap gap-2 mb-5">
@@ -382,7 +368,7 @@ export default function Footer() {
                   href="#"
                   className="footer-app-btn inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white transition opacity-90 hover:opacity-100"
                   style={{
-                    background: 'rgba(255,255,255,0.12)',
+                    background: 'var(--footer-app-btn-bg)',
                     border: 'none',
                     outline: 'none',
                     boxShadow: 'none',
@@ -394,7 +380,7 @@ export default function Footer() {
                   href="#"
                   className="footer-app-btn inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white transition opacity-90 hover:opacity-100"
                   style={{
-                    background: 'rgba(255,255,255,0.12)',
+                    background: 'var(--footer-app-btn-bg)',
                     border: 'none',
                     outline: 'none',
                     boxShadow: 'none',
@@ -405,7 +391,6 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* COLUMN 2 — Shop */}
             <div>
               <ColumnHeading>{t('nav.shop')}</ColumnHeading>
               <nav className="flex flex-col">
@@ -415,7 +400,6 @@ export default function Footer() {
               </nav>
             </div>
 
-            {/* COLUMN 3 — Account */}
             <div>
               <ColumnHeading>{t('nav.account')}</ColumnHeading>
               <nav className="flex flex-col">
@@ -425,7 +409,6 @@ export default function Footer() {
               </nav>
             </div>
 
-            {/* COLUMN 4 — Sell on Reaglex */}
             <div>
               <ColumnHeading>{t('footer.sellWithUs')}</ColumnHeading>
               <nav className="flex flex-col mb-4">
@@ -448,10 +431,10 @@ export default function Footer() {
                 to={isSeller ? '/seller' : '/become-seller'}
                 className="inline-flex items-center justify-center gap-2 w-full font-bold text-white text-[15px] tracking-[0.03em] footer-cta transition-all duration-200"
                 style={{
-                  background: `linear-gradient(135deg, #ff8c2a, ${PRIMARY}, #ea580c)`,
+                  background: 'var(--gradient-brand-cta)',
+                  boxShadow: 'var(--shadow-cta)',
                   border: 'none',
                   outline: 'none',
-                  boxShadow: 'none',
                 }}
               >
                 {t('footer.startSellingToday')}
@@ -459,7 +442,6 @@ export default function Footer() {
               </Link>
             </div>
 
-            {/* COLUMN 5 — Support */}
             <div>
               <ColumnHeading>{t('nav.help')}</ColumnHeading>
               <nav className="flex flex-col mb-6">
@@ -471,7 +453,7 @@ export default function Footer() {
                         type="button"
                         onClick={() => window.dispatchEvent(new Event('reaglex-open-help-chat'))}
                         className="text-sm mb-1 text-left"
-                        style={{ color: BODY_COLOR, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
+                        style={{ color: 'var(--footer-on-dark-body)', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
                       >
                         {t(labelKey)}
                       </button>
@@ -482,17 +464,17 @@ export default function Footer() {
                   );
                 })}
               </nav>
-              <div className="space-y-2 text-sm" style={{ color: BODY_COLOR }}>
+              <div className="space-y-2 text-sm" style={{ color: 'var(--footer-on-dark-body)' }}>
                 <p className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 flex-shrink-0" style={{ color: PRIMARY }} />
+                  <Mail className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--brand-primary)' }} />
                   reaglerobust2020@gmail.com
                 </p>
                 <p className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 flex-shrink-0" style={{ color: PRIMARY }} />
+                  <Phone className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--brand-primary)' }} />
                   +250787057751
                 </p>
                 <p className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 flex-shrink-0" style={{ color: PRIMARY }} />
+                  <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--brand-primary)' }} />
                   {t('footer.supportHours')}
                 </p>
               </div>
@@ -523,13 +505,13 @@ export default function Footer() {
       <div
         className="footer-bottom w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 sm:px-6 lg:px-20 py-3 min-h-[52px]"
         style={{
-          background: BOTTOM_BG,
-          boxShadow: '0 -1px 0 rgba(255,255,255,0.06)',
+          background: 'var(--footer-bottom-bg)',
+          boxShadow: 'inset 0 1px 0 var(--footer-inset-line)',
           paddingLeft: 'clamp(1rem, 5vw, 80px)',
           paddingRight: 'clamp(1rem, 5vw, 80px)',
         }}
       >
-        <p className="footer-bottom-text text-[13px] order-2 sm:order-1 text-center sm:text-left" style={{ color: BODY_COLOR }}>
+        <p className="footer-bottom-text text-[13px] order-2 sm:order-1 text-center sm:text-left" style={{ color: 'var(--footer-on-dark-body)' }}>
           © {currentYear} <span style={{ fontFamily: "'Mea Culpa', serif", fontWeight: 700, fontSize: '1.05em' }}>Reaglex</span>. {t('footer.rightsReservedPrefix')} <span className="footer-heart">❤️</span> {t('footer.rightsReservedSuffix')}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
@@ -538,8 +520,8 @@ export default function Footer() {
               key={payment.id}
               className="footer-payment-badge px-2.5 py-1 rounded-full inline-flex items-center justify-center"
               style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'var(--footer-payment-bg)',
+                border: '1px solid var(--footer-payment-border)',
                 minHeight: 28,
                 minWidth: payment.id === 'visa' ? 76 : 98,
               }}
@@ -560,13 +542,13 @@ export default function Footer() {
             </span>
           ))}
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 order-3 text-[13px]" style={{ color: BODY_COLOR }}>
+        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 order-3 text-[13px]" style={{ color: 'var(--footer-on-dark-body)' }}>
           {BOTTOM_LINKS.map(({ labelKey, href }, i) => (
             <span key={labelKey} className="flex items-center gap-2">
               {i > 0 && <span className="opacity-50">·</span>}
               <Link
                 to={href}
-                className="transition-colors duration-200 hover:text-white"
+                className="transition-colors duration-200 hover:text-[var(--footer-on-dark-link-hover)]"
                 style={{
                   color: 'inherit',
                   border: 'none',

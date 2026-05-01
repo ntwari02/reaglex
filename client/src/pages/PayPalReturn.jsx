@@ -46,13 +46,13 @@ export default function PayPalReturn() {
       <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center px-4 py-16 text-center">
         {!msg && token ? (
           <>
-            <Loader2 className="mb-4 h-10 w-10 animate-spin text-orange-500" />
+            <Loader2 className="mb-4 h-10 w-10 animate-spin text-[var(--brand-primary)]" />
             <p className="text-sm text-gray-600 dark:text-gray-400">Completing PayPal payment…</p>
           </>
         ) : (
           <>
             <p className="mb-6 text-sm text-gray-700 dark:text-gray-300">{msg}</p>
-            <Link to="/checkout" className="text-sm font-semibold text-orange-500 hover:underline">
+            <Link to="/checkout" className="text-sm font-semibold text-[var(--brand-primary)] hover:underline">
               Back to checkout
             </Link>
           </>

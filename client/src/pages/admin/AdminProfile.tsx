@@ -573,7 +573,7 @@ export function AdminProfile() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
           { label: 'Total Users', value: statsLoading ? '—' : stats.totalUsers.toLocaleString(), icon: Users, color: 'text-blue-600 dark:text-blue-400' },
-          { label: 'Total Sellers', value: statsLoading ? '—' : stats.totalSellers.toLocaleString(), icon: Building2, color: 'text-orange-600 dark:text-orange-400' },
+          { label: 'Total Sellers', value: statsLoading ? '—' : stats.totalSellers.toLocaleString(), icon: Building2, color: 'text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]' },
           { label: 'Total Orders', value: statsLoading ? '—' : stats.totalOrders.toLocaleString(), icon: FileText, color: 'text-purple-600 dark:text-purple-400' },
           { label: 'Total Revenue', value: statsLoading ? '—' : `$${(stats.totalRevenue / 1000).toFixed(0)}K`, icon: DollarSign, color: 'text-green-600 dark:text-green-400' },
           { label: 'Active Disputes', value: statsLoading ? '—' : stats.activeDisputes.toString(), icon: AlertCircle, color: 'text-red-600 dark:text-red-400' },

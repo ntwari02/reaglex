@@ -202,7 +202,7 @@ export function TrendLineChart({
           <defs>
             <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#f97316" />
+              <stop offset="100%" stopColor="var(--brand-primary)" />
             </linearGradient>
             <linearGradient id="gradientForecast" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
@@ -237,7 +237,7 @@ export function TrendLineChart({
         {/* Legend */}
         <div className="absolute top-0 right-0 flex gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-gradient-to-r from-red-500 to-orange-500"></div>
+            <div className="w-4 h-0.5 bg-gradient-to-r from-red-500 to-[var(--brand-primary)]"></div>
             <span className="text-gray-600 dark:text-gray-400">Historical</span>
           </div>
           {forecastData.length > 0 && (

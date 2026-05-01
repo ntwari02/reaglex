@@ -34,7 +34,7 @@ function scoreColor(score: number) {
   if (score >= 85) return 'text-emerald-400';
   if (score >= 65) return 'text-cyan-400';
   if (score >= 45) return 'text-amber-400';
-  if (score >= 20) return 'text-orange-400';
+  if (score >= 20) return 'text-[var(--brand-orange-text)]';
   return 'text-red-400';
 }
 
@@ -494,7 +494,7 @@ export default function SecurityAnalysisPage() {
                       'rounded-lg border px-2.5 py-2',
                       a.type === 'LOGIN_FAIL' && 'border-red-500/40 bg-red-500/5',
                       a.type === 'LOGIN_OK' && 'border-emerald-500/35 bg-emerald-500/5',
-                      a.type === 'LOGIN_BLOCKED' && 'border-orange-500/40 bg-orange-500/5',
+                      a.type === 'LOGIN_BLOCKED' && 'border-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)] bg-[color-mix(in_srgb,var(--brand-primary)_5%,transparent)]',
                       a.type === 'ROLE_SIGNIN' && 'border-cyan-500/35 bg-cyan-500/5',
                     )}
                   >
@@ -581,7 +581,7 @@ export default function SecurityAnalysisPage() {
                           className={cn(
                             'text-[10px] font-mono px-2 py-1 rounded-lg border',
                             n.severity === 'CRITICAL' && 'border-red-500/50 text-red-300',
-                            n.severity === 'HIGH' && 'border-orange-500/50 text-orange-200',
+                            n.severity === 'HIGH' && 'border-[color-mix(in_srgb,var(--brand-primary)_50%,transparent)] text-[var(--badge-warning-text)]',
                             n.severity === 'MEDIUM' && 'border-amber-500/40 text-amber-200',
                             n.severity === 'LOW' && 'border-slate-600 text-slate-300',
                             n.severity === 'OK' && 'border-emerald-500/40 text-emerald-200',

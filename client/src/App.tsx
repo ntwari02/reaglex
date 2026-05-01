@@ -28,16 +28,7 @@ import AssistantChat from './components/AssistantChat';
 import { websocketService } from './services/websocketService';
 // @ts-ignore Zustand JS store without TS types
 import { useBuyerCart } from './stores/buyerCartStore';
-
-/*
- * Paths where the buyer Navbar should NOT be rendered.
- * Auth pages, seller, and admin dashboards use their own chrome.
- */
-const NO_NAV_PREFIXES = [
-  '/auth', '/login', '/signup', '/forgot-password', '/reset-password',
-  '/verify-email', '/verify-otp', '/select-role', '/auth/google',
-  '/approve-device-success', '/seller', '/admin', '/dashboard',
-];
+import { isBuyerChromeHidden } from './config/buyerNavVisibility';
 
 /**
  * Renders the buyer Navbar OUTSIDE the cart-push motion.div so that
@@ -49,11 +40,8 @@ const NO_NAV_PREFIXES = [
 function GlobalNavbar() {
   const { pathname } = useLocation();
   const isSellerPending = pathname === '/seller/pending';
-  const hidden = NO_NAV_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p),
-  );
   if (isSellerPending) return <Navbar />;
-  if (hidden) return null;
+  if (isBuyerChromeHidden(pathname)) return null;
   return <Navbar />;
 }
 
@@ -88,6 +76,10 @@ const ReportProblem        = lazy(() => import('./pages/ReportProblem'));
 const SellerFees           = lazy(() => import('./pages/SellerFees'));
 const BuyerProtection      = lazy(() => import('./pages/BuyerProtection'));
 const CookieSettings       = lazy(() => import('./pages/CookieSettings'));
+const Privacy              = lazy(() => import('./pages/Privacy'));
+const CookiesPolicy        = lazy(() => import('./pages/CookiesPolicy'));
+const SitemapPage          = lazy(() => import('./pages/Sitemap'));
+const Faq                  = lazy(() => import('./pages/Faq'));
 const Terms                = lazy(() => import('./pages/Terms'));
 const BecomeSeller         = lazy(() => import('./pages/BecomeSeller'));
 const SellerProtection     = lazy(() => import('./pages/seller/SellerProtection'));
@@ -148,10 +140,17 @@ function AccountRouteGuard() {
 
 const PageLoader = () => (
   <div
-    className="min-h-screen flex items-center justify-center"
-    style={{ background: 'linear-gradient(135deg,#f5f7fa,#e4e7eb)' }}
+    className="min-h-screen flex flex-col items-center justify-center gap-3"
+    style={{ background: 'var(--buyer-page-loader-bg)' }}
   >
-    <div className="w-12 h-12 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+    <div
+      className="w-12 h-12 rounded-full border-4 animate-spin"
+      style={{
+        borderColor: 'var(--loading-spinner-track)',
+        borderTopColor: 'var(--loading-spinner)',
+      }}
+      aria-hidden
+    />
   </div>
 );
 
@@ -238,6 +237,10 @@ function App() {
             <Route path="/seller/fees"                 element={<SellerFees />} />
             <Route path="/buyer-protection"            element={<BuyerProtection />} />
             <Route path="/cookie-settings"             element={<CookieSettings />} />
+            <Route path="/privacy"                     element={<Privacy />} />
+            <Route path="/cookies"                     element={<CookiesPolicy />} />
+            <Route path="/sitemap"                   element={<SitemapPage />} />
+            <Route path="/faq"                       element={<Faq />} />
             <Route path="/terms"                       element={<Terms />} />
             <Route path="/seller/protection"           element={(
               <SellerRoute>

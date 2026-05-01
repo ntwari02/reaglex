@@ -130,7 +130,7 @@ export default function SellerResponses() {
                 <div className="mb-3 flex flex-wrap items-center gap-3">
                   {getStatusBadge(response.status)}
                   {response.flagged && (
-                    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-900/40 dark:text-orange-200">
+                    <span className="rounded-full bg-[var(--brand-tint-strong)] px-2 py-0.5 text-xs font-semibold text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]">
                       Flagged
                     </span>
                   )}

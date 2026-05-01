@@ -88,7 +88,7 @@ export default function ProductListItem({ product, index = 0 }) {
           {discount && (
             <div
               className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-white font-bold"
-              style={{ background: '#ff8c42', fontSize: '11px' }}
+              style={{ background: 'var(--brand-primary)', fontSize: '11px' }}
             >
               -{discount}%
             </div>
@@ -205,11 +205,11 @@ export default function ProductListItem({ product, index = 0 }) {
                 style={{
                   background:    added
                     ? 'linear-gradient(135deg,#22c55e,#16a34a)'
-                    : 'linear-gradient(135deg,#ff8c42,#ff5f00)',
+                    : 'var(--gradient-brand-cta)',
                   transition:    'background 0.3s',
                   borderRadius:  '9999px',
                   padding:       '8px 18px',
-                  boxShadow:     '0 4px 12px rgba(255,140,66,0.3)',
+                  boxShadow:     added ? undefined : 'var(--shadow-cta)',
                   width:         '140px',
                   justifyContent: 'center',
                 }}

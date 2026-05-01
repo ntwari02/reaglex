@@ -194,7 +194,7 @@ const BoostAnalyticsMiniPanel: React.FC<BoostAnalyticsMiniPanelProps> = ({
           </div>
           <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-red-500 to-orange-500"
+              className="h-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)]"
               style={{
                 width: `${
                   Number.isFinite(boostLimit) && boostLimit > 0

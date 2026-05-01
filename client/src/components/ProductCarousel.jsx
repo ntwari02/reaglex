@@ -114,9 +114,9 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
         whileTap={{ scale: 0.9 }}
         onClick={() => { goTo(activeIdx - 1); pauseAndResume(); }}
         className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 ${arrowSize} rounded-full flex items-center justify-center`}
-        style={{ background: 'white', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
+        style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-md)' }}
       >
-        <ChevronLeft className={compact ? 'w-3 h-3' : 'w-4 h-4'} style={{ color: '#1a1a1a' }} />
+        <ChevronLeft className={compact ? 'w-3 h-3' : 'w-4 h-4'} style={{ color: 'var(--text-primary)' }} />
       </motion.button>
 
       {/* ── Cards Track ── */}
@@ -162,7 +162,7 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
               <motion.div
                 animate={{
                   boxShadow: isActive
-                    ? `0 0 0 2.5px #ff8c42, 0 ${compact ? 6 : 12}px ${compact ? 16 : 32}px rgba(255,140,66,0.3)`
+                    ? `0 0 0 2.5px var(--brand-primary), 0 ${compact ? 6 : 12}px ${compact ? 16 : 32}px var(--brand-tint-strong)`
                     : `0 ${compact ? 4 : 8}px ${compact ? 12 : 24}px rgba(0,0,0,0.09)`,
                 }}
                 transition={{ duration: 0.3 }}
@@ -171,7 +171,7 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
                   width: cardSize,
                   height: cardSize,
                   borderRadius: radius,
-                  border: `2px solid ${isActive ? '#ff8c42' : 'transparent'}`,
+                  border: `2px solid ${isActive ? 'var(--brand-primary)' : 'transparent'}`,
                   background: 'white',
                   transition: 'width 0.3s ease, height 0.3s ease',
                   flexShrink: 0,
@@ -192,7 +192,7 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
               <span
                 className="text-center font-medium leading-tight transition-colors duration-200"
                 style={{
-                  color: isActive ? '#ff8c42' : '#6b7280',
+                  color: isActive ? 'var(--brand-primary)' : 'var(--text-secondary)',
                   fontSize: fontSize,
                   maxWidth: nameWidth,
                   display: '-webkit-box',
@@ -215,9 +215,9 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
         whileTap={{ scale: 0.9 }}
         onClick={() => { goTo(activeIdx + 1); pauseAndResume(); }}
         className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 ${arrowSize} rounded-full flex items-center justify-center`}
-        style={{ background: 'white', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
+        style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-md)' }}
       >
-        <ChevronRight className={compact ? 'w-3 h-3' : 'w-4 h-4'} style={{ color: '#1a1a1a' }} />
+        <ChevronRight className={compact ? 'w-3 h-3' : 'w-4 h-4'} style={{ color: 'var(--text-primary)' }} />
       </motion.button>
 
       {/* Dot indicators — only in full mode */}
@@ -229,7 +229,7 @@ export default function ProductCarousel({ products = [], activeId, onSelect, com
               onClick={() => { goTo(idx); pauseAndResume(); }}
               animate={{
                 width: idx === activeIdx ? 20 : 6,
-                background: idx === activeIdx ? '#ff8c42' : '#d1d5db',
+                background: idx === activeIdx ? 'var(--brand-primary)' : 'var(--divider-strong)',
               }}
               transition={{ duration: 0.3 }}
               className="h-1.5 rounded-full focus:outline-none"

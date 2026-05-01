@@ -4,7 +4,6 @@ import { motion, useInView } from 'framer-motion';
 import { Star, ShoppingCart, Sparkles, Heart } from 'lucide-react';
 import { productAPI } from '../../services/api';
 import { useBuyerCart } from '../../stores/buyerCartStore';
-import { useTheme } from '../../contexts/ThemeContext';
 import { SERVER_URL } from '../../lib/config';
 
 const resolveImg = (src) => {
@@ -28,7 +27,7 @@ const RECOMMENDED_CACHE_TTL = 5 * 60 * 1000;
 const recommendedCache = new Map();
 
 /* ─── Rec card ───────────────────────────────────────────────────────────── */
-function RecCard({ product, index, isDark, onAdd }) {
+function RecCard({ product, index, onAdd }) {
   const [wished, setWished] = useState(false);
   const [adding, setAdding] = useState(false);
   const img = resolveImg(product.thumbnail || product.images?.[0]);
@@ -53,15 +52,15 @@ function RecCard({ product, index, isDark, onAdd }) {
         to={`/products/${product._id}`}
         className="block rounded-2xl overflow-hidden transition-all duration-300 group-hover:-translate-y-1"
         style={{
-          background: isDark ? 'var(--bg-card, #1a1d2e)' : '#fff',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`,
-          boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--border-card)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         {/* Image */}
         <div
           className="relative overflow-hidden"
-          style={{ aspectRatio: '1', background: isDark ? '#141520' : '#f5f5f7' }}
+          style={{ aspectRatio: '1', background: 'var(--bg-tertiary)' }}
         >
           <img
             src={img}
@@ -76,7 +75,7 @@ function RecCard({ product, index, isDark, onAdd }) {
           {/* For You badge */}
           <div
             className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-            style={{ background: 'rgba(236,72,153,0.85)', color: '#fff' }}
+            style={{ background: 'var(--brand-primary)', color: 'var(--text-on-accent)' }}
           >
             <Sparkles size={9} />
             For You
@@ -87,12 +86,14 @@ function RecCard({ product, index, isDark, onAdd }) {
             onClick={(e) => { e.preventDefault(); setWished(!wished); }}
             className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
             style={{
-              background: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)',
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border-card)',
+              color: 'var(--text-secondary)',
               backdropFilter: 'blur(8px)',
             }}
             aria-label="Wishlist"
           >
-            <Heart size={12} fill={wished ? '#ef4444' : 'none'} stroke={wished ? '#ef4444' : 'currentColor'} />
+            <Heart size={12} fill={wished ? 'var(--badge-error-text)' : 'none'} stroke={wished ? 'var(--badge-error-text)' : 'currentColor'} />
           </button>
 
           {/* Quick add */}
@@ -102,9 +103,10 @@ function RecCard({ product, index, isDark, onAdd }) {
               disabled={stock <= 0}
               className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold"
               style={{
-                background: isDark ? '#ec4899' : '#0f172a',
-                color: '#fff',
+                background: 'var(--gradient-brand-cta)',
+                color: 'var(--text-on-accent)',
                 opacity: stock <= 0 ? 0.45 : 1,
+                borderTop: '1px solid var(--border-subtle)',
               }}
             >
               <ShoppingCart size={12} />
@@ -117,19 +119,19 @@ function RecCard({ product, index, isDark, onAdd }) {
         <div className="p-3">
           <p
             className="font-semibold text-xs line-clamp-2 leading-snug mb-2"
-            style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}
+            style={{ color: 'var(--text-primary)' }}
           >
             {product.name}
           </p>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <Star size={10} fill="#f59e0b" stroke="#f59e0b" />
-              <span className="text-xs font-medium" style={{ color: isDark ? '#9da3be' : '#374151' }}>
+              <Star size={10} fill="var(--brand-primary)" stroke="var(--brand-primary)" />
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
                 {(product.rating || 4.5).toFixed(1)}
               </span>
             </div>
-            <span className="font-bold text-sm" style={{ color: isDark ? '#e2e4ed' : '#0f172a' }}>
+            <span className="font-bold text-sm" style={{ color: 'var(--text-price)' }}>
               ${product.price}
             </span>
           </div>
@@ -144,8 +146,6 @@ const TABS = ['For You', 'New Arrivals', 'Popular', 'Deals'];
 
 /* ─── Section ────────────────────────────────────────────────────────────── */
 export default function RecommendedSection() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const { addItem } = useBuyerCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -225,25 +225,25 @@ export default function RecommendedSection() {
   return (
     <section
       className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-20"
-      style={{ background: isDark ? 'var(--bg-primary, #0d0f1c)' : '#f8f8f8' }}
+      style={{ background: 'var(--bg-page)' }}
     >
       {/* Header */}
       <div ref={headerRef} className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
         <div>
           <motion.p
             className="text-xs font-semibold tracking-[0.2em] uppercase mb-2 flex items-center gap-2"
-            style={{ color: isDark ? '#616680' : '#9ca3af' }}
+            style={{ color: 'var(--text-muted)' }}
             initial={{ opacity: 0, y: 12 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
           >
-            <Sparkles size={12} style={{ color: '#ec4899' }} />
+            <Sparkles size={12} style={{ color: 'var(--brand-primary)' }} />
             Picked For You
           </motion.p>
           <motion.h2
             className="font-black leading-none"
             style={{
-              color: isDark ? '#e2e4ed' : '#0f172a',
+              color: 'var(--text-primary)',
               fontSize: 'clamp(1.8rem, 4vw, 3rem)',
               fontFamily: "'Times New Roman', Georgia, serif",
               letterSpacing: '-0.02em',
@@ -271,13 +271,13 @@ export default function RecommendedSection() {
               style={
                 i === activeTab
                   ? {
-                      background: isDark ? '#6366f1' : '#0f172a',
-                      color: '#fff',
+                      background: 'var(--brand-primary)',
+                      color: 'var(--text-on-accent)',
                     }
                   : {
-                      background: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
-                      color: isDark ? '#616680' : '#6b7280',
-                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                      background: 'var(--card-bg)',
+                      color: 'var(--text-muted)',
+                      border: '1px solid var(--border-card)',
                     }
               }
             >
@@ -295,7 +295,7 @@ export default function RecommendedSection() {
               key={i}
               className="rounded-2xl overflow-hidden"
               style={{
-                background: isDark ? '#1a1d2e' : '#f5f5f7',
+                background: 'var(--bg-tertiary)',
                 aspectRatio: '0.8',
                 animation: 'pulse 1.5s ease-in-out infinite',
               }}
@@ -305,15 +305,15 @@ export default function RecommendedSection() {
       ) : products.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {products.map((p, i) => (
-            <RecCard key={p._id} product={p} index={i} isDark={isDark} onAdd={handleAdd} />
+            <RecCard key={p._id} product={p} index={i} onAdd={handleAdd} />
           ))}
         </div>
       ) : (
         <div
           className="rounded-2xl p-8 text-center"
           style={{
-            background: isDark ? 'rgba(255,255,255,0.03)' : '#f5f5f7',
-            color: isDark ? '#9da3be' : '#64748b',
+            background: 'var(--bg-tertiary)',
+            color: 'var(--text-muted)',
           }}
         >
           Recommended products will appear here once available.
@@ -332,10 +332,10 @@ export default function RecommendedSection() {
           to="/search"
           className="inline-flex items-center gap-3 px-8 py-3.5 rounded-full text-xs font-bold tracking-[0.15em] uppercase transition-all duration-300"
           style={{
-            background: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
-            color: isDark ? '#e2e4ed' : '#0f172a',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-            boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.06)',
+            background: 'var(--btn-ghost-hover-bg)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-visible)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           DISCOVER MORE

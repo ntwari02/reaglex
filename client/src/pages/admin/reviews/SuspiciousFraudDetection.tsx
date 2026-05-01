@@ -95,7 +95,7 @@ export default function SuspiciousFraudDetection() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="mb-3 flex items-center gap-3">
-                    <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    <AlertTriangle className="h-5 w-5 text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]" />
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white">
                         {review.productName}

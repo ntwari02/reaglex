@@ -13,36 +13,36 @@ gsap.registerPlugin(ScrollTrigger);
 const SCENES = [
   {
     id: 'welcome',
-    bgLight: '#f2f3f7', bgDark: '#0d0f1c',
+    bgLight: '#f2f3f7', bgDark: '#121212',
     label: 'WELCOME', title: 'THE EVOLUTION OF\nSHOPPING',
     sub: 'Discover premium products from verified sellers around the world. Fast, secure, and built for the future.',
     cta: 'EXPLORE NOW', ctaHref: '/search',
     imgUrl: '/hero-headphones.png', imgAlt: 'Premium headphones', imgPos: 'bottom',
     titleColor: 'light', subColor: 'secondary', labelColor: 'muted', btnStyle: 'light',
     guideColor: 'rgba(255,255,255,0.05)', crossColor: 'rgba(255,255,255,0.22)',
-    glowColor: 'rgba(249,115,22,0.38)', glowColor2: 'rgba(139,92,246,0.22)',
+    glowColor: 'rgba(217,119,54,0.22)', glowColor2: 'rgba(120,110,160,0.14)',
   },
   {
     id: 'feature',
-    bgLight: '#f4f1eb', bgDark: '#100e0a',
+    bgLight: '#f4f1eb', bgDark: '#141414',
     label: 'PRECISION CRAFTED', title: 'LUXURY\nREDEFINED',
     sub: 'Iconic design meets engineering excellence. Each piece carries decades of innovation in its DNA.',
     cta: 'SHOP WATCHES', ctaHref: '/search?q=watches',
     imgUrl: '/hero-watch.png', imgAlt: 'Luxury watch', imgPos: 'center',
     titleColor: 'light', subColor: 'secondary', labelColor: 'muted', btnStyle: 'dark',
     guideColor: 'rgba(180,140,60,0.10)', crossColor: 'rgba(180,140,60,0.30)',
-    glowColor: 'rgba(234,179,8,0.42)', glowColor2: 'rgba(249,115,22,0.22)',
+    glowColor: 'rgba(200,170,90,0.2)', glowColor2: 'rgba(217,119,54,0.14)',
   },
   {
     id: 'innovation',
-    bgLight: '#f2f3f7', bgDark: '#0d0f1c',
+    bgLight: '#f2f3f7', bgDark: '#121212',
     label: 'INNOVATION', title: 'ENGINEERED\nFOR SPEED',
     sub: 'Performance footwear reimagined with cutting-edge materials and aerodynamic construction.',
     cta: 'SHOP FOOTWEAR', ctaHref: '/search?q=sneakers',
     imgUrl: '/hero-shoes.png', imgAlt: 'Nike premium sneakers', imgPos: 'center-right',
     titleColor: 'light', subColor: 'secondary', labelColor: 'muted', btnStyle: 'dark',
     guideColor: 'rgba(0,0,0,0.06)', crossColor: 'rgba(0,0,0,0.16)',
-    glowColor: 'rgba(59,130,246,0.36)', glowColor2: 'rgba(249,115,22,0.18)',
+    glowColor: 'rgba(110,140,180,0.18)', glowColor2: 'rgba(217,119,54,0.12)',
   },
 ];
 
@@ -82,23 +82,23 @@ function ScenePanel({ scene, active, isDark }) {
   const isShoe   = scene.id === 'innovation';
 
   const titleColor = scene.titleColor === 'light'
-    ? (isDark ? '#e2e4ed' : '#0f172a') : scene.titleColor;
+    ? 'var(--text-primary)' : scene.titleColor;
   const subColor = scene.subColor === 'secondary'
-    ? (isDark ? '#9da3be' : '#4b5563') : scene.subColor;
+    ? 'var(--text-secondary)' : scene.subColor;
   const labelColor = scene.labelColor === 'muted'
-    ? (isDark ? '#7a6840' : '#8b7040') : scene.labelColor;
+    ? 'var(--text-muted)' : scene.labelColor;
 
   const btnStyle = scene.btnStyle === 'light'
     ? {
-        background: isDark ? '#e2e4ed' : '#0f172a',
-        color:      isDark ? '#0d0f1c' : '#ffffff',
-        border:     `1px solid ${isDark ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.2)'}`,
-        boxShadow:  isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(15,23,42,0.18)',
+        background: isDark ? 'var(--gradient-brand-cta)' : 'var(--text-primary)',
+        color:      'var(--text-on-accent)',
+        border:     isDark ? '1px solid var(--brand-border-subtle)' : '1px solid color-mix(in srgb, var(--text-primary) 20%, transparent)',
+        boxShadow:  isDark ? 'var(--shadow-cta)' : '0 4px 20px color-mix(in srgb, var(--text-primary) 18%, transparent)',
       }
     : {
-        background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.85)',
-        color:      isDark ? '#e2e4ed' : '#ffffff',
-        border:     isDark ? '1px solid rgba(255,255,255,0.15)' : 'none',
+        background: isDark ? 'var(--btn-ghost-hover-bg)' : 'rgba(0,0,0,0.85)',
+        color:      isDark ? 'var(--text-primary)' : 'var(--text-on-accent)',
+        border:     isDark ? '1px solid var(--border-visible)' : 'none',
         boxShadow:  '0 4px 20px rgba(0,0,0,0.18)',
       };
 
@@ -455,11 +455,11 @@ export default function ReimaginedHero() {
         {SCENES.map((s) => (
           <div key={s.id} className="min-h-screen flex items-center justify-center p-8">
             <div className="text-center">
-              <p style={{ color: '#6b7280', fontSize: '0.75rem', letterSpacing: '0.2em', marginBottom: '1rem' }}>{s.label}</p>
-              <h2 style={{ color: '#f9fafb', fontSize: '3rem', fontFamily: 'serif', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '1.5rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', letterSpacing: '0.2em', marginBottom: '1rem' }}>{s.label}</p>
+              <h2 style={{ color: 'var(--text-primary)', fontSize: '3rem', fontFamily: 'serif', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '1.5rem' }}>
                 {s.title.replace('\n', ' ')}
               </h2>
-              <Link to={s.ctaHref} style={{ background: '#f97316', color: '#fff', padding: '1rem 2rem', borderRadius: '999px', display: 'inline-block', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.15em' }}>
+              <Link to={s.ctaHref} style={{ background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', padding: '1rem 2rem', borderRadius: '999px', display: 'inline-block', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.15em', boxShadow: 'var(--shadow-cta)' }}>
                 {s.cta}
               </Link>
             </div>
@@ -520,8 +520,8 @@ export default function ReimaginedHero() {
               style={{
                 fontSize: '9px', letterSpacing: '0.15em', fontWeight: 700,
                 color: i === activeScene
-                  ? (SCENES[activeScene].id === 'welcome' ? 'rgba(255,255,255,1)' : (isDark ? '#e2e4ed' : '#0f172a'))
-                  : (SCENES[activeScene].id === 'welcome' ? 'rgba(255,255,255,0.45)' : (isDark ? '#9da3be' : 'rgba(0,0,0,0.38)')),
+                  ? (SCENES[activeScene].id === 'welcome' ? 'var(--text-on-accent)' : 'var(--text-primary)')
+                  : (SCENES[activeScene].id === 'welcome' ? 'rgba(242,242,242,0.45)' : (isDark ? 'var(--text-muted)' : 'rgba(0,0,0,0.38)')),
                 lineHeight: 1, cursor: 'pointer', background: 'none', border: 'none', padding: 0,
               }}>
               {label.split('  ').map((part, j) => (
@@ -553,7 +553,7 @@ export default function ReimaginedHero() {
           className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none"
           style={{
             bottom: '6%',
-            color: SCENES[activeScene].id === 'welcome' ? 'rgba(255,255,255,0.32)' : (isDark ? '#3d4159' : 'rgba(0,0,0,0.25)'),
+            color: SCENES[activeScene].id === 'welcome' ? 'rgba(242,242,242,0.32)' : (isDark ? 'var(--text-faint)' : 'rgba(0,0,0,0.25)'),
           }}
         >
           <span style={{ fontSize: '8px', letterSpacing: '0.2em', fontWeight: 700 }}>SCROLL</span>
@@ -577,7 +577,7 @@ export default function ReimaginedHero() {
                 fontSize: 10,
                 fontWeight: 700,
                 letterSpacing: '0.06em',
-                color: isDark ? '#cbd5e1' : '#334155',
+                color: 'var(--text-secondary)',
                 background: isDark ? 'rgba(15,23,42,0.62)' : 'rgba(255,255,255,0.72)',
                 border: `1px solid ${isDark ? 'rgba(148,163,184,0.28)' : 'rgba(15,23,42,0.14)'}`,
                 backdropFilter: 'blur(8px)',
@@ -599,8 +599,8 @@ export default function ReimaginedHero() {
                 borderRadius: 999,
                 padding: '6px 10px',
                 border: 'none',
-                background: 'rgba(249,115,22,0.92)',
-                color: '#fff',
+                background: 'color-mix(in srgb, var(--brand-primary) 92%, transparent)',
+                color: 'var(--text-on-accent)',
               }}
             >
               Skip intro

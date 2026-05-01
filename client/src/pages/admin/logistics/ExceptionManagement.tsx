@@ -56,7 +56,7 @@ export default function ExceptionManagement() {
       failed_delivery: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
       delayed: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
       lost: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200',
-      damaged: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200',
+      damaged: 'bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]',
       sla_breach: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
     };
     const labels = {

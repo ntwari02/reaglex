@@ -8,7 +8,7 @@ import {
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const SUCCESS = '#10b981';
 const ERROR = '#ef4444';
 const EASE = [0.25, 0.46, 0.45, 0.94];
@@ -25,7 +25,7 @@ const TABS = [
 ];
 
 const TYPE_CONFIG = {
-  order: { icon: '📦', label: 'Order Update', color: PRIMARY, bg: 'linear-gradient(135deg,#f97316,#ea580c)' },
+  order: { icon: '📦', label: 'Order Update', color: PRIMARY, bg: 'var(--gradient-brand-cta)' },
   deal: { icon: '🏷️', label: 'Flash Deal', color: '#10b981', bg: 'linear-gradient(135deg,#10b981,#059669)' },
   system: { icon: '👋', label: 'System', color: '#2563eb', bg: 'linear-gradient(135deg,#2563eb,#1d4ed8)' },
   message: { icon: '💬', label: 'Message', color: '#8b5cf6', bg: 'linear-gradient(135deg,#8b5cf6,#7c3aed)' },
@@ -241,7 +241,7 @@ export default function BuyerNotifications() {
           className="flex items-center justify-between px-6 sm:px-8 lg:px-[32px] py-6"
           style={{
             height: 120,
-            background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 60%, #f97316 100%)',
+            background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 60%, var(--brand-primary) 100%)',
           }}
         >
           <div>

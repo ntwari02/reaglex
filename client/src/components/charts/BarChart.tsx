@@ -23,7 +23,7 @@ export function BarChart({
   forecastData = [],
   title,
   height = 300,
-  color = 'from-red-500 to-orange-500',
+  color = 'from-red-500 to-[var(--brand-primary)]',
   forecastColor = 'from-blue-500 to-purple-500',
   yAxisLabel = 'Value',
   annotations = [],

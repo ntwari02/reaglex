@@ -38,7 +38,7 @@ interface ChatMessage {
 const STORAGE_KEY = 'reaglex_unified_assistant_chat';
 const MAX_MESSAGES = 50;
 const SEND_COOLDOWN_MS = 10_000;
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const CYAN = '#22d3ee';
 const INDIGO = '#6366f1';
 
@@ -265,8 +265,8 @@ export default function AssistantChat() {
         cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
       }
       .ai-chip:hover {
-        background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.38);
-        color: #f97316; transform: translateY(-1px);
+        background: var(--brand-tint-strong); border-color: var(--brand-border-subtle);
+        color: var(--brand-primary); transform: translateY(-1px);
       }
 
       /* Input textarea */
@@ -278,20 +278,20 @@ export default function AssistantChat() {
         min-height: 42px; max-height: 110px; font-family: inherit;
         transition: border-color 0.2s, box-shadow 0.2s; line-height: 1.45;
       }
-      .ai-textarea:focus { border-color: rgba(249,115,22,0.5); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+      .ai-textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--brand-tint); }
       .ai-textarea::placeholder { color: var(--text-faint); }
       .ai-textarea::-webkit-scrollbar { width: 2px; }
-      .ai-textarea::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.25); border-radius: 4px; }
+      .ai-textarea::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--brand-primary) 28%, transparent); border-radius: 4px; }
 
       /* Send button */
       .ai-send {
         width: 42px; height: 42px; flex-shrink: 0; border-radius: 13px; border: none;
         cursor: pointer; display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #f97316, #ea580c); color: #fff;
-        box-shadow: 0 4px 14px rgba(249,115,22,0.38);
+        background: var(--gradient-brand-cta); color: var(--text-on-accent);
+        box-shadow: var(--shadow-cta);
         transition: all 0.22s ease;
       }
-      .ai-send:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(249,115,22,0.52); transform: translateY(-1px); }
+      .ai-send:hover:not(:disabled) { box-shadow: var(--shadow-cta-hover); transform: translateY(-1px); }
       .ai-send:disabled { background: var(--bg-tertiary, #e5e7eb); color: var(--text-faint); box-shadow: none; cursor: not-allowed; }
 
       /* Header action buttons */
@@ -311,14 +311,14 @@ export default function AssistantChat() {
         background: var(--bg-secondary); color: var(--text-primary); outline: none;
         font-family: inherit; transition: border-color 0.2s;
       }
-      .ai-ck-input:focus { border-color: rgba(249,115,22,0.45); }
+      .ai-ck-input:focus { border-color: var(--border-focus); }
       .ai-ck-input::placeholder { color: var(--text-faint); }
 
       /* Scrollbar for messages area */
       .ai-msgs::-webkit-scrollbar { width: 3px; }
       .ai-msgs::-webkit-scrollbar-track { background: transparent; }
-      .ai-msgs::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.22); border-radius: 99px; }
-      .ai-msgs::-webkit-scrollbar-thumb:hover { background: rgba(249,115,22,0.4); }
+      .ai-msgs::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--brand-primary) 24%, transparent); border-radius: 99px; }
+      .ai-msgs::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--brand-primary) 42%, transparent); }
 
       /* Animated icon (kept for GeminiIcon) */
       .gemini-animated-icon {
@@ -668,13 +668,13 @@ export default function AssistantChat() {
                         padding: isUser ? '9px 13px' : '10px 13px',
                         borderRadius: isUser ? '17px 4px 17px 17px' : '4px 17px 17px 17px',
                         background: isUser
-                          ? `linear-gradient(135deg, ${PRIMARY} 0%, #ea580c 100%)`
+                          ? 'var(--gradient-brand-cta)'
                           : 'var(--card-bg)',
-                        color: isUser ? '#fff' : 'var(--text-primary)',
+                        color: isUser ? 'var(--text-on-accent)' : 'var(--text-primary)',
                         fontSize: 13, lineHeight: 1.5,
                         whiteSpace: 'pre-wrap',
                         boxShadow: isUser
-                          ? '0 4px 14px rgba(249,115,22,0.22)'
+                          ? 'var(--shadow-cta)'
                           : '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px var(--border-card)',
                         maxWidth: '100%',
                       }}>
@@ -730,7 +730,7 @@ export default function AssistantChat() {
                                 <div style={{ display: 'flex', gap: 6, padding: '0 10px 10px', flexWrap: 'wrap' }}>
                                   <button type="button"
                                     onClick={() => { setCheckoutTarget(p); setOpen(true); }}
-                                    style={{ flex: 1, minWidth: 80, padding: '7px 8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: `linear-gradient(135deg,${PRIMARY},#ea580c)`, color: '#fff', fontWeight: 800, fontSize: 11, boxShadow: '0 3px 10px rgba(249,115,22,0.3)' }}>
+                                    style={{ flex: 1, minWidth: 80, padding: '7px 8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: 11, boxShadow: 'var(--shadow-cta)' }}>
                                     Buy now
                                   </button>
                                   <button type="button"
@@ -757,7 +757,8 @@ export default function AssistantChat() {
                     {!isUser && m.paymentLink && (
                       <div style={{ marginTop: 8, paddingLeft: 34 }}>
                         <a href={m.paymentLink} target="_blank" rel="noopener noreferrer"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, background: `linear-gradient(135deg,${PRIMARY},#ea580c)`, color: '#fff', fontWeight: 800, textDecoration: 'none', fontSize: 12.5, boxShadow: '0 6px 20px rgba(249,115,22,0.3)' }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', fontWeight: 800, textDecoration: 'none', fontSize: 12.5, boxShadow: 'var(--shadow-cta)' }}
+                        >
                           🔒 Pay now{m.paymentAmount != null ? ` (${m.paymentCurrency === 'RWF' ? `RWF ${Math.round(Number(m.paymentAmount)).toLocaleString()}` : `${m.paymentCurrency || ''} ${Number(m.paymentAmount).toFixed(2)}`})` : ''}
                         </a>
                       </div>
@@ -767,7 +768,8 @@ export default function AssistantChat() {
                     {!isUser && !m.paymentLink && m.paymentReferenceId && m.orderIdForPayment && (m.paymentProvider === 'momo' || m.paymentProvider === 'airtel') && (
                       <div style={{ marginTop: 8, paddingLeft: 34 }}>
                         <Link to={`/checkout/momo-wait?ref=${encodeURIComponent(m.paymentReferenceId)}&orderId=${encodeURIComponent(m.orderIdForPayment)}&provider=${m.paymentProvider === 'airtel' ? 'airtel' : 'momo'}`}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, background: `linear-gradient(135deg,${PRIMARY},#ea580c)`, color: '#fff', fontWeight: 800, textDecoration: 'none', fontSize: 12.5, boxShadow: '0 6px 20px rgba(249,115,22,0.3)' }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', fontWeight: 800, textDecoration: 'none', fontSize: 12.5, boxShadow: 'var(--shadow-cta)' }}
+                        >
                           📱 Payment status{m.paymentAmount != null ? ` (${m.paymentCurrency === 'RWF' ? `RWF ${Math.round(Number(m.paymentAmount)).toLocaleString()}` : `${m.paymentCurrency || ''} ${Number(m.paymentAmount).toFixed(2)}`})` : ''}
                         </Link>
                       </div>
@@ -868,7 +870,7 @@ export default function AssistantChat() {
                 </div>
                 {/* Submit */}
                 <button type="button" disabled={checkoutBusy} onClick={() => void submitInlineCheckout()}
-                  style={{ marginTop: 12, width: '100%', padding: '11px 14px', borderRadius: 13, border: 'none', cursor: checkoutBusy ? 'not-allowed' : 'pointer', background: checkoutBusy ? 'var(--bg-tertiary, #e5e7eb)' : `linear-gradient(135deg,${PRIMARY},#ea580c)`, color: checkoutBusy ? 'var(--text-faint)' : '#fff', fontWeight: 800, fontSize: 13, boxShadow: checkoutBusy ? 'none' : '0 6px 20px rgba(249,115,22,0.32)', transition: 'all 0.2s' }}>
+                  style={{ marginTop: 12, width: '100%', padding: '11px 14px', borderRadius: 13, border: 'none', cursor: checkoutBusy ? 'not-allowed' : 'pointer', background: checkoutBusy ? 'var(--bg-tertiary)' : 'var(--gradient-brand-cta)', color: checkoutBusy ? 'var(--text-faint)' : 'var(--text-on-accent)', fontWeight: 800, fontSize: 13, boxShadow: checkoutBusy ? 'none' : 'var(--shadow-cta)', transition: 'all 0.2s' }}>
                   {checkoutBusy ? 'Creating order…' : '🔒 Create order & start payment'}
                 </button>
               </div>

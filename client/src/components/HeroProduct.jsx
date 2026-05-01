@@ -32,7 +32,7 @@ export default function HeroProduct({ product }) {
   if (!product) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="w-12 h-12 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+        <div className="w-12 h-12 rounded-full border-4 border-[color-mix(in_srgb,var(--brand-primary)_22%,var(--card-bg))] border-t-[var(--brand-primary)] animate-spin" />
       </div>
     );
   }
@@ -67,7 +67,7 @@ export default function HeroProduct({ product }) {
           {/* Glow blob */}
           <div
             className="absolute inset-0 rounded-full blur-3xl opacity-30 -z-10 scale-75"
-            style={{ background: 'radial-gradient(circle, #ff8c42 0%, #6c63ff 60%, transparent 80%)' }}
+            style={{ background: 'radial-gradient(circle, var(--brand-primary) 0%, #6c63ff 60%, transparent 80%)' }}
           />
 
           {/* Main image card */}
@@ -108,7 +108,7 @@ export default function HeroProduct({ product }) {
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.4, type: 'spring' }}
                   className="absolute top-4 left-4 px-2.5 py-1 rounded-full text-white text-xs font-bold"
-                  style={{ background: '#ff8c42' }}
+                  style={{ background: 'var(--brand-primary)' }}
                 >
                   -{discount}%
                 </motion.div>
@@ -140,8 +140,8 @@ export default function HeroProduct({ product }) {
               >
                 <Heart
                   className="w-4.5 h-4.5"
-                  fill={wishlisted ? '#ff8c42' : 'none'}
-                  stroke={wishlisted ? '#ff8c42' : 'var(--text-muted)'}
+                  fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+                  stroke={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
                   style={{ width: '18px', height: '18px' }}
                 />
               </motion.button>
@@ -170,8 +170,8 @@ export default function HeroProduct({ product }) {
       >
         {/* Tag line */}
         <div className="flex items-center gap-2">
-          <Star className="w-4 h-4" fill="#ff8c42" stroke="none" />
-          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#ff8c42' }}>
+          <Star className="w-4 h-4" fill="var(--brand-primary)" stroke="none" />
+          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-primary)' }}>
             {t('marketing.mostLoved')}
           </span>
         </div>
@@ -266,16 +266,16 @@ export default function HeroProduct({ product }) {
 
           {/* Add to Cart */}
           <motion.button
-            whileHover={{ y: -3, boxShadow: '0 12px 30px rgba(255,140,66,0.4)' }}
+            whileHover={{ y: -3, boxShadow: 'var(--shadow-cta-hover)' }}
             whileTap={{ scale: 0.97 }}
             onClick={handleAddToCart}
             className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-white text-sm font-semibold"
             style={{
               background: addedAnim
                 ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                : 'linear-gradient(135deg, #ff8c42, #ff5f00)',
+                : 'var(--gradient-brand-cta)',
               transition: 'background 0.3s',
-              boxShadow: '0 8px 24px rgba(255,140,66,0.3)',
+              boxShadow: 'var(--shadow-cta)',
             }}
           >
             <ShoppingBag className="w-4 h-4" />

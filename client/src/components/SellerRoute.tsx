@@ -31,8 +31,8 @@ function SellerAccessDenied() {
           <div
             className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-3xl"
             style={{
-              background: 'linear-gradient(135deg,#f97316,#ea580c)',
-              boxShadow: '0 0 30px rgba(249,115,22,0.7)',
+              background: 'var(--gradient-brand-cta)',
+              boxShadow: '0 0 30px color-mix(in srgb, var(--brand-primary) 70%, transparent)',
             }}
           >
             🔒
@@ -77,7 +77,7 @@ function SellerAccessDenied() {
             to="/become-seller"
             className="w-full sm:w-auto rounded-[12px] px-6 py-2.5 text-sm font-semibold text-white"
             style={{
-              background: 'linear-gradient(135deg,#f97316,#ea580c)',
+              background: 'var(--gradient-brand-cta)',
             }}
           >
             🚀 Become a Seller
@@ -100,7 +100,7 @@ function SellerAccessDenied() {
           style={{ color: 'var(--text-faint)' }}
         >
           Already applied?{' '}
-          <Link to="/seller/pending" style={{ color: '#f97316' }}>
+          <Link to="/seller/pending" style={{ color: 'var(--brand-primary)' }}>
             Check status →
           </Link>
         </p>
@@ -122,7 +122,7 @@ export default function SellerRoute({ children }: SellerRouteProps) {
         className="min-h-[60vh] flex items-center justify-center"
         style={{ background: 'var(--bg-page)' }}
       >
-        <div className="w-12 h-12 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+        <div className="w-12 h-12 rounded-full border-4 border-[color-mix(in_srgb,var(--brand-primary)_22%,var(--card-bg))] border-t-[var(--brand-primary)] animate-spin" />
       </div>
     );
   }

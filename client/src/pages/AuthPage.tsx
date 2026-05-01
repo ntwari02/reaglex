@@ -11,9 +11,9 @@ import AuthPremiumLayout from '../components/AuthPremiumLayout';
 import { authAPI } from '../lib/api';
 import { API_BASE_URL } from '../lib/config';
 
-const PRIMARY     = '#f97316';
-const SUCCESS     = '#10b981';
-const ERROR       = '#ef4444';
+const PRIMARY     = 'var(--brand-primary)';
+const SUCCESS     = 'var(--badge-success-text)';
+const ERROR       = 'var(--badge-error-text)';
 const API_BASE    = API_BASE_URL;
 const RESEND_CD   = 120;
 
@@ -66,14 +66,14 @@ function AuthInput({
     : valid
       ? '0 0 0 2px rgba(16,185,129,0.45)'
       : focused
-        ? `0 0 0 2.5px rgba(249,115,22,0.55), 0 0 18px rgba(249,115,22,0.15)`
+        ? `0 0 0 2.5px color-mix(in srgb, var(--brand-primary) 55%, transparent), 0 0 18px color-mix(in srgb, var(--brand-primary) 15%, transparent)`
         : `0 0 0 1.5px ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`;
 
   const inputBg = error
-    ? 'rgba(239,68,68,0.04)'
+    ? 'var(--badge-error-bg)'
     : focused
-      ? isDark ? 'rgba(255,255,255,0.05)' : '#ffffff'
-      : isDark ? 'rgba(255,255,255,0.04)' : '#f8f9fc';
+      ? isDark ? 'rgba(255,255,255,0.05)' : 'var(--card-bg)'
+      : isDark ? 'rgba(255,255,255,0.04)' : 'var(--bg-tertiary)';
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -118,7 +118,7 @@ function AuthInput({
         <motion.p
           initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
           className="text-[11px] flex items-center gap-1"
-          style={{ color: '#f87171' }}
+          style={{ color: 'var(--badge-error-text)' }}
         >
           <AlertCircle size={10} /> {error}
         </motion.p>
@@ -135,9 +135,9 @@ function ErrorBanner({ message }: { message: string }) {
       initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
       className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-[13px] font-medium"
       style={{
-        background: 'rgba(239,68,68,0.08)',
-        border: '1px solid rgba(239,68,68,0.25)',
-        color: '#f87171',
+        background: 'var(--badge-error-bg)',
+        border: '1px solid var(--badge-error-border)',
+        color: 'var(--badge-error-text)',
       }}
     >
       <AlertCircle size={15} className="flex-shrink-0" />
@@ -154,8 +154,8 @@ function PrimaryBtn({
   disabled?: boolean; loading?: boolean; success?: boolean;
 }) {
   const bg = success
-    ? 'linear-gradient(135deg, #059669, #047857)'
-    : 'linear-gradient(135deg, #ff8c2a 0%, #f97316 50%, #ea580c 100%)';
+    ? 'var(--accent-success-gradient)'
+    : 'var(--gradient-brand-cta)';
 
   return (
     <motion.button
@@ -167,12 +167,12 @@ function PrimaryBtn({
       className="relative w-full h-[56px] rounded-2xl font-bold text-[16px] flex items-center justify-center gap-2.5 overflow-hidden border-none cursor-pointer select-none"
       style={{
         background: bg,
-        color: '#ffffff',
+        color: 'var(--text-on-accent)',
         boxShadow: (disabled && !success)
           ? 'none'
           : success
-            ? '0 8px 24px rgba(5,150,105,0.4)'
-            : '0 8px 28px rgba(249,115,22,0.4), 0 2px 8px rgba(249,115,22,0.25)',
+            ? '0 8px 24px color-mix(in srgb, var(--badge-success-text) 35%, transparent)'
+            : 'var(--shadow-cta-hover), var(--shadow-cta)',
         opacity: disabled && !success ? 0.55 : 1,
         transition: 'box-shadow 250ms ease, transform 250ms ease',
       }}
@@ -358,7 +358,7 @@ function LoginFormContent({
           type="button" role="checkbox" aria-checked={remember}
           onClick={() => setRemember(!remember)}
           className="w-11 h-6 rounded-full transition-all flex-shrink-0 relative"
-          style={{ background: remember ? PRIMARY : 'var(--bg-tertiary)', boxShadow: `0 0 0 1.5px ${remember ? 'rgba(249,115,22,0.5)' : 'var(--divider)'}` }}
+          style={{ background: remember ? PRIMARY : 'var(--bg-tertiary)', boxShadow: `0 0 0 1.5px ${remember ? 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' : 'var(--divider)'}` }}
         >
           <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform"
             style={{ transform: remember ? 'translateX(20px)' : 'translateX(0)' }} />
@@ -469,7 +469,7 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Check your email to verify your account</p>
       <Link to="/auth?tab=login"
         className="inline-flex justify-center px-6 py-2.5 rounded-2xl text-sm font-bold text-white"
-        style={{ background: `linear-gradient(135deg, #ff8c2a, #f97316, #ea580c)`, boxShadow: '0 6px 20px rgba(249,115,22,0.4)' }}>
+        style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta-hover)' }}>
         Sign In →
       </Link>
     </motion.div>
@@ -523,13 +523,13 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
             <div className="flex gap-0.5 flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
               {[0,1,2,3].map((i) => (
                 <div key={i} className="flex-1 transition-all duration-300" style={{
-                  background: [ERROR, '#f97316', '#eab308', SUCCESS][i],
+                  background: [ERROR, 'var(--brand-primary)', 'var(--notif-type-review)', SUCCESS][i],
                   opacity: strength.level > i ? 1 : 0.2,
                 }} />
               ))}
             </div>
             <span className="text-[11px] font-semibold w-14 text-right"
-              style={{ color: strength.level <= 1 ? ERROR : strength.level === 2 ? '#eab308' : SUCCESS }}>
+              style={{ color: strength.level <= 1 ? ERROR : strength.level === 2 ? 'var(--notif-type-review)' : SUCCESS }}>
               {strength.label}
             </span>
           </div>
@@ -545,7 +545,7 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
             ].map((r) => (
               <div key={r.label} className="flex items-center gap-1.5">
                 <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: r.ok ? 'rgba(16,185,129,0.15)' : 'var(--bg-secondary)' }}>
+                  style={{ background: r.ok ? 'var(--badge-success-bg)' : 'var(--bg-secondary)' }}>
                   {r.ok && <Check size={9} style={{ color: SUCCESS }} />}
                 </span>
                 <span className="text-[11px]" style={{ color: r.ok ? SUCCESS : 'var(--text-faint)' }}>{r.label}</span>
@@ -580,9 +580,9 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
               whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
               className="flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl text-[13px] font-bold transition-all"
               style={{
-                background: role === r ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'var(--bg-secondary)',
-                color: role === r ? '#ffffff' : 'var(--text-muted)',
-                boxShadow: role === r ? '0 4px 14px rgba(249,115,22,0.35)' : '0 0 0 1.5px var(--border-card)',
+                background: role === r ? 'var(--gradient-brand-cta)' : 'var(--bg-secondary)',
+                color: role === r ? 'var(--text-on-accent)' : 'var(--text-muted)',
+                boxShadow: role === r ? 'var(--shadow-cta)' : '0 0 0 1.5px var(--border-card)',
               }}>
               {r === 'buyer' ? '🛒' : '🏪'}
               {r === 'buyer' ? 'Buyer' : 'Seller'}
@@ -723,7 +723,7 @@ function OtpInputs({
             background: isDark ? 'rgba(255,255,255,0.06)' : '#f8f9fc',
             boxShadow: error
               ? '0 0 0 2px rgba(239,68,68,0.45)'
-              : d ? `0 0 0 2px rgba(249,115,22,0.5), 0 0 12px rgba(249,115,22,0.15)`
+              : d ? `0 0 0 2px color-mix(in srgb, var(--brand-primary) 50%, transparent), 0 0 12px color-mix(in srgb, var(--brand-primary) 15%, transparent)`
               : `0 0 0 1.5px ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
             color: 'var(--text-primary)',
           }}
@@ -989,7 +989,7 @@ export default function AuthPage() {
     resetRefs.current[Math.min(5, digits.length-1)]?.focus();
   };
 
-  const cardBg     = isDark ? '#0e1019' : '#ffffff';
+  const cardBg     = 'var(--card-bg)';
   const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
 
   /* ── RENDER ── */
@@ -1018,16 +1018,16 @@ export default function AuthPage() {
           >
             {/* Top accent line (gradient overlay) */}
             <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-20" style={{
-              background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.8) 40%, rgba(139,92,246,0.6) 70%, transparent)',
+              background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 80%, transparent) 40%, var(--navbar-violet-strong) 70%, transparent)',
             }} />
 
             {/* Corner glow top-right */}
             <div className="absolute top-0 right-0 w-72 h-72 pointer-events-none" style={{
-              background: 'radial-gradient(circle at top right, rgba(249,115,22,0.09) 0%, transparent 60%)',
+              background: 'radial-gradient(circle at top right, color-mix(in srgb, var(--brand-primary) 9%, transparent) 0%, transparent 60%)',
             }} />
             {/* Corner glow bottom-left */}
             <div className="absolute bottom-0 left-0 w-56 h-56 pointer-events-none" style={{
-              background: 'radial-gradient(circle at bottom left, rgba(139,92,246,0.07) 0%, transparent 60%)',
+              background: 'radial-gradient(circle at bottom left, var(--navbar-violet-glow-soft) 0%, transparent 60%)',
             }} />
             {/* Dot grid */}
             <div className="absolute inset-0 pointer-events-none" style={{
@@ -1077,12 +1077,10 @@ export default function AuthPage() {
                         layoutId="auth-v2-pill"
                         className="absolute top-1.5 rounded-xl"
                         style={{
-                          background: validTab === 'signup'
-                            ? isDark ? '#1a1d2e' : '#ffffff'
-                            : isDark ? '#1a1d2e' : '#ffffff',
+                          background: 'var(--card-bg)',
                           boxShadow: (validTab === 'login' || validTab === 'forgot')
-                            ? `0 2px 12px rgba(249,115,22,0.25), 0 0 0 1px rgba(249,115,22,0.18)`
-                            : `0 2px 12px rgba(139,92,246,0.25), 0 0 0 1px rgba(139,92,246,0.18)`,
+                            ? `var(--shadow-cta), 0 0 0 1px color-mix(in srgb, var(--brand-primary) 18%, transparent)`
+                            : `0 2px 12px var(--navbar-violet-glow-soft), 0 0 0 1px var(--navbar-violet-mix)`,
                           height: 'calc(100% - 12px)',
                         }}
                         animate={{
@@ -1129,11 +1127,11 @@ export default function AuthPage() {
                     {/* Icon orb */}
                     <div className="relative mb-5">
                       <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
-                        style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', boxShadow: '0 0 32px rgba(249,115,22,0.15)' }}>
+                        style={{ background: 'var(--brand-tint-strong)', border: '1px solid var(--brand-border-subtle)', boxShadow: '0 0 32px color-mix(in srgb, var(--brand-primary) 15%, transparent)' }}>
                         <Mail size={32} style={{ color: PRIMARY }} />
                       </div>
                       <motion.div className="absolute inset-0 rounded-2xl pointer-events-none"
-                        animate={{ boxShadow: ['0 0 0 0 rgba(249,115,22,0.3)', '0 0 0 10px rgba(249,115,22,0)', '0 0 0 0 rgba(249,115,22,0)'] }}
+                        animate={{ boxShadow: ['0 0 0 0 color-mix(in srgb, var(--brand-primary) 30%, transparent)', '0 0 0 10px transparent', '0 0 0 0 transparent'] }}
                         transition={{ duration: 2, repeat: Infinity }} />
                     </div>
 
@@ -1152,7 +1150,7 @@ export default function AuthPage() {
 
                       {otpError ? (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                          className="text-[13px] text-center mt-3" style={{ color: '#f87171' }}>
+                          className="text-[13px] text-center mt-3" style={{ color: 'var(--badge-error-text)' }}>
                           {otpError}
                         </motion.p>
                       ) : (
@@ -1161,7 +1159,7 @@ export default function AuthPage() {
 
                       <div className="text-center my-5">
                         {resendN >= 3 ? (
-                          <p className="text-[13px]" style={{ color: '#f87171' }}>Too many attempts. Try again in 30 min.</p>
+                          <p className="text-[13px]" style={{ color: 'var(--badge-error-text)' }}>Too many attempts. Try again in 30 min.</p>
                         ) : resendCd > 0 ? (
                           <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resendCd)}</p>
                         ) : (
@@ -1198,7 +1196,7 @@ export default function AuthPage() {
                   >
                     <div className="relative mb-5">
                       <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
-                        style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', boxShadow: '0 0 32px rgba(249,115,22,0.15)' }}>
+                        style={{ background: 'var(--brand-tint-strong)', border: '1px solid var(--brand-border-subtle)', boxShadow: '0 0 32px color-mix(in srgb, var(--brand-primary) 15%, transparent)' }}>
                         <Lock size={32} style={{ color: PRIMARY }} />
                       </div>
                     </div>
@@ -1216,14 +1214,14 @@ export default function AuthPage() {
 
                       {resetError && (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                          className="text-[13px] text-center mt-3 mb-2" style={{ color: '#f87171' }}>
+                          className="text-[13px] text-center mt-3 mb-2" style={{ color: 'var(--badge-error-text)' }}>
                           {resetError}
                         </motion.p>
                       )}
 
                       <div className="text-center mt-3 mb-6">
                         {resetResendN >= 3 ? (
-                          <p className="text-[13px]" style={{ color: '#f87171' }}>Too many attempts.</p>
+                          <p className="text-[13px]" style={{ color: 'var(--badge-error-text)' }}>Too many attempts.</p>
                         ) : resetResendCd > 0 ? (
                           <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resetResendCd)}</p>
                         ) : (

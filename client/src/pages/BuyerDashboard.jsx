@@ -17,18 +17,18 @@ import { useToastStore } from '../stores/toastStore';
 import api, { paymentAPI } from '../services/api';
 
 import { SERVER_URL } from '../lib/config';
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
   return src.startsWith('http') ? src : `${SERVER_URL}${src}`;
 };
 
 const STATUS = {
-  delivered: { bg: '#dcfce7', color: '#16a34a', label: 'Delivered', icon: CheckCircle },
-  shipped: { bg: '#dbeafe', color: '#2563eb', label: 'Shipped', icon: Truck },
-  processing: { bg: '#fff7ed', color: '#ea580c', label: 'Processing', icon: Clock },
-  pending: { bg: '#fef3c7', color: '#d97706', label: 'Pending', icon: Clock },
-  cancelled: { bg: '#fee2e2', color: '#dc2626', label: 'Cancelled', icon: RotateCcw },
+  delivered: { bg: 'var(--badge-success-bg)', color: 'var(--badge-success-text)', label: 'Delivered', icon: CheckCircle },
+  shipped: { bg: 'var(--badge-info-bg)', color: 'var(--badge-info-text)', label: 'Shipped', icon: Truck },
+  processing: { bg: 'var(--tab-active-bg)', color: 'var(--brand-orange-text)', label: 'Processing', icon: Clock },
+  pending: { bg: 'var(--badge-warning-bg)', color: 'var(--badge-warning-text)', label: 'Pending', icon: Clock },
+  cancelled: { bg: 'var(--badge-error-bg)', color: 'var(--badge-error-text)', label: 'Cancelled', icon: RotateCcw },
 };
 
 const RETURN_FILTERS = [
@@ -40,12 +40,12 @@ const RETURN_FILTERS = [
 ];
 
 const RETURN_STATUS_META = {
-  PENDING: { label: 'Pending Review', bg: '#fef3c7', color: '#d97706' },
-  UNDER_REVIEW: { label: 'Under Review', bg: '#dbeafe', color: '#1d4ed8' },
-  APPROVED: { label: 'Approved', bg: '#dcfce7', color: '#16a34a' },
-  REJECTED: { label: 'Rejected', bg: '#fee2e2', color: '#dc2626' },
-  COMPLETED: { label: 'Completed', bg: '#e5e7eb', color: '#4b5563' },
-  REFUNDED: { label: 'Refunded', bg: '#dcfce7', color: '#16a34a' },
+  PENDING: { label: 'Pending Review', bg: 'var(--badge-warning-bg)', color: 'var(--badge-warning-text)' },
+  UNDER_REVIEW: { label: 'Under Review', bg: 'var(--badge-info-bg)', color: 'var(--badge-info-text)' },
+  APPROVED: { label: 'Approved', bg: 'var(--badge-success-bg)', color: 'var(--badge-success-text)' },
+  REJECTED: { label: 'Rejected', bg: 'var(--badge-error-bg)', color: 'var(--badge-error-text)' },
+  COMPLETED: { label: 'Completed', bg: 'var(--bg-badge)', color: 'var(--text-secondary)' },
+  REFUNDED: { label: 'Refunded', bg: 'var(--badge-success-bg)', color: 'var(--badge-success-text)' },
 };
 
 const TAB_CONFIG = [
@@ -59,28 +59,28 @@ const TAB_CONFIG = [
   { id: 'settings', label: 'Account Settings', icon: Settings },
 ];
 
-const DEFAULT_GREEN = '#10b981';
+const DEFAULT_GREEN = 'var(--text-in-stock)';
 const ADDRESS_TYPES = [
   {
     id: 'home',
     label: 'Home',
     icon: '🏠',
-    circleBg: '#fff7ed', // soft orange tint
+    circleBg: 'var(--tab-active-bg)', // soft brand tint
     circleColor: PRIMARY,
   },
   {
     id: 'work',
     label: 'Work',
     icon: '💼',
-    circleBg: '#eff6ff', // soft blue tint
-    circleColor: '#2563eb',
+    circleBg: 'var(--badge-info-bg)',
+    circleColor: 'var(--badge-info-text)',
   },
   {
     id: 'other',
     label: 'Other',
     icon: '📍',
-    circleBg: '#f3f4f6', // soft gray tint
-    circleColor: '#6b7280',
+    circleBg: 'var(--bg-tertiary)',
+    circleColor: 'var(--text-muted)',
   },
 ];
 
@@ -207,7 +207,7 @@ function ReturnsPolicySection() {
                   <div
                     className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold"
                     style={{
-                      background: 'rgba(249,115,22,0.1)',
+                      background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
                       color: PRIMARY,
                     }}
                   >
@@ -492,7 +492,7 @@ function PaymentsTabContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Total Spent */}
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-orange-50 border border-orange-100 shrink-0">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--brand-tint)] border border-[var(--brand-border-subtle)] shrink-0">
                 <span className="text-lg">💰</span>
               </div>
               <div>
@@ -507,16 +507,22 @@ function PaymentsTabContent() {
 
             {/* In Escrow */}
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 border border-blue-100 shrink-0 escrow-pulse">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 escrow-pulse"
+                style={{
+                  background: 'var(--brand-tint)',
+                  border: '1px solid var(--brand-border-subtle)',
+                }}
+              >
                 <span className="text-lg">🔒</span>
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-[0.15em] text-gray-400 font-medium">In Escrow</p>
-                <p className="mt-1 text-[24px] font-bold leading-none text-orange-500">
+                <p className="mt-1 text-[24px] font-bold leading-none text-[var(--brand-primary)]">
                   <CurrencyCountUp value={29.0} />
                 </p>
                 <p className="text-[11px] mt-1 text-[var(--text-faint)]">Currently held for active orders</p>
-                <p className="text-[11px] mt-1 font-semibold text-orange-500">1 order pending</p>
+                <p className="text-[11px] mt-1 font-semibold text-[var(--brand-primary)]">1 order pending</p>
               </div>
             </div>
 
@@ -559,7 +565,7 @@ function PaymentsTabContent() {
             <span className="text-[var(--text-faint)]">Platform fee: 5% per transaction</span>
             <button
               type="button"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)] transition-colors"
             >
               View Full Transaction History
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -575,13 +581,13 @@ function PaymentsTabContent() {
             <span className="text-lg">🔒</span>
             <h2 className="font-bold text-base text-[var(--text-primary)]">Active Escrow Holdings</h2>
           </div>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400">
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--brand-tint)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint)] dark:text-[var(--brand-orange-text)]">
             {activeEscrowOrders.length} order
           </span>
         </div>
         <div className="p-5 space-y-4">
           {activeEscrowOrders.map((o) => (
-            <div key={o.id} className="rounded-2xl border border-orange-100 dark:border-orange-900/40 bg-white/80 dark:bg-gray-900 p-4 flex flex-col gap-3 escrow-row-pulse transition-colors duration-300">
+            <div key={o.id} className="rounded-2xl border border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)] bg-white/80 dark:bg-gray-900 p-4 flex flex-col gap-3 escrow-row-pulse transition-colors duration-300">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-\[var\(--bg-tertiary\)\]">
                   <img src={o.image} alt={o.productName} className="w-full h-full object-cover" />
@@ -596,7 +602,7 @@ function PaymentsTabContent() {
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold mt-1 ${
                       o.escrowStatus === 'DISPUTED'
                         ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
-                        : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                        : 'bg-[var(--brand-tint)] dark:bg-[var(--brand-tint)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]'
                     }`}
                   >
                     {o.escrowStatus === 'DISPUTED' ? '⚠️ Disputed' : '🔒 Funds Held'}
@@ -708,7 +714,7 @@ function PaymentsTabContent() {
             {['UNDER_REVIEW', 'SELLER_RESPONDED', 'AWAITING_BUYER_RESPONSE', 'ESCALATED_TO_ADMIN', 'RESOLVED'].map((s) => (
               <span
                 key={s}
-                className={`px-2.5 py-1 rounded-full font-semibold ${activeDisputeOrder.dispute.status === s ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' : 'bg-\[var\(--bg-tertiary\)\] text-[var(--text-muted)]'}`}
+                className={`px-2.5 py-1 rounded-full font-semibold ${activeDisputeOrder.dispute.status === s ? 'bg-[var(--brand-tint)] dark:bg-[var(--brand-tint)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]' : 'bg-\[var\(--bg-tertiary\)\] text-[var(--text-muted)]'}`}
               >
                 {s.replaceAll('_', ' ')}
               </span>
@@ -1087,7 +1093,7 @@ function PaymentsTabContent() {
                     <input
                       type="text"
                       placeholder="•••• •••• •••• ••••"
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors"
                     />
                   </div>
                   <div>
@@ -1095,7 +1101,7 @@ function PaymentsTabContent() {
                     <input
                       type="text"
                       placeholder="As shown on card"
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors"
                     />
                   </div>
                 </div>
@@ -1148,7 +1154,7 @@ function PatternOverlay() {
       <div style={{
         position: 'absolute', top: '-40%', left: '-8%',
         width: 360, height: 360, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 22%, transparent) 0%, transparent 70%)',
         filter: 'blur(32px)',
       }} />
       {/* Glow orb right */}
@@ -1176,7 +1182,7 @@ function Card({ children, className = '', style = {}, glow = false }) {
         background: 'var(--card-bg)',
         border: '1px solid var(--card-border)',
         boxShadow: glow
-          ? '0 0 0 1px rgba(249,115,22,0.12), 0 8px 32px rgba(0,0,0,0.12), 0 0 24px rgba(249,115,22,0.05)'
+          ? '0 0 0 1px color-mix(in srgb, var(--brand-primary) 12%, transparent), 0 8px 32px rgba(0,0,0,0.12), 0 0 24px color-mix(in srgb, var(--brand-primary) 5%, transparent)'
           : 'var(--card-shadow)',
         ...style,
       }}
@@ -1209,15 +1215,15 @@ function EmptyState({ icon: Icon, title, sub, cta }) {
       <div
         className="w-20 h-20 rounded-2xl flex items-center justify-center relative"
         style={{
-          background: 'linear-gradient(135deg, rgba(249,115,22,0.08), rgba(139,92,246,0.08))',
-          border: '1px solid rgba(249,115,22,0.12)',
+          background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 8%, transparent), rgba(139,92,246,0.08))',
+          border: '1px solid color-mix(in srgb, var(--brand-primary) 12%, transparent)',
         }}
       >
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 'inherit',
-          background: 'radial-gradient(circle at 50% 50%, rgba(249,115,22,0.07), transparent 70%)',
+          background: 'radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-primary) 7%, transparent), transparent 70%)',
         }} />
-        <Icon className="w-9 h-9 relative z-10" style={{ color: 'rgba(249,115,22,0.5)' }} />
+        <Icon className="w-9 h-9 relative z-10" style={{ color: 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' }} />
       </div>
       <p className="font-bold text-lg" style={{ color: 'var(--text-muted)' }}>{title}</p>
       {sub && (
@@ -1531,24 +1537,24 @@ export default function BuyerDashboard() {
           {/* Background grid */}
           <div style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
-            backgroundImage: 'radial-gradient(circle, rgba(249,115,22,0.05) 1px, transparent 1px)',
+            backgroundImage: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 5%, transparent) 1px, transparent 1px)',
             backgroundSize: '28px 28px',
           }} />
           <div style={{
             position: 'absolute', top: '20%', left: '50%', transform: 'translate(-50%,-50%)',
             width: 400, height: 400, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 65%)',
+            background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 7%, transparent) 0%, transparent 65%)',
             filter: 'blur(40px)',
           }} />
           <div className="relative z-10 flex flex-col items-center gap-5">
             <div style={{
               width: 72, height: 72, borderRadius: 20,
-              background: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(139,92,246,0.08))',
-              border: '1px solid rgba(249,115,22,0.18)',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 10%, transparent), rgba(139,92,246,0.08))',
+              border: '1px solid color-mix(in srgb, var(--brand-primary) 18%, transparent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 24px rgba(249,115,22,0.12)',
+              boxShadow: '0 0 24px color-mix(in srgb, var(--brand-primary) 12%, transparent)',
             }}>
-              <User style={{ width: 32, height: 32, color: 'rgba(249,115,22,0.7)' }} />
+              <User style={{ width: 32, height: 32, color: 'color-mix(in srgb, var(--brand-primary) 70%, transparent)' }} />
             </div>
             <div className="text-center">
               <h2 style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em', color: 'var(--text-primary)', marginBottom: 8 }}>
@@ -1562,10 +1568,10 @@ export default function BuyerDashboard() {
               onClick={() => navigate('/auth?tab=login')}
               style={{
                 padding: '11px 32px', borderRadius: 12,
-                background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                background: 'var(--gradient-brand-cta)',
                 color: 'white', fontWeight: 700, fontSize: 14,
                 border: 'none', cursor: 'pointer',
-                boxShadow: '0 6px 24px rgba(249,115,22,0.4)',
+                boxShadow: '0 6px 24px color-mix(in srgb, var(--brand-primary) 40%, transparent)',
                 letterSpacing: '0.04em',
               }}
             >
@@ -1620,7 +1626,7 @@ export default function BuyerDashboard() {
         {/* Subtle full-page dot grid */}
         <div style={{
           position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
-          backgroundImage: 'radial-gradient(circle, rgba(249,115,22,0.06) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 6%, transparent) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
           opacity: 0.5,
         }} />
@@ -1651,7 +1657,7 @@ export default function BuyerDashboard() {
                     <span style={{
                       fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
                       color: PRIMARY, padding: '2px 8px', borderRadius: 4,
-                      background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)',
+                      background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent)',
                     }}>
                       {isAddressesTab ? 'Addresses' : 'Dashboard'}
                     </span>
@@ -1664,9 +1670,9 @@ export default function BuyerDashboard() {
                   )}
                   <p className="text-xs mt-2 flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-faint)' }}>
                     <Link to="/" className="hover:opacity-90 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Home</Link>
-                    <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
+                    <span style={{ color: 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' }}>›</span>
                     <Link to="/account" className="hover:opacity-90 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Account</Link>
-                    <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
+                    <span style={{ color: 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' }}>›</span>
                     <span style={{ color: 'var(--text-secondary)' }}>{tabLabel}</span>
                   </p>
                 </div>
@@ -1692,7 +1698,7 @@ export default function BuyerDashboard() {
                     <div style={{
                       position: 'absolute', inset: -3, borderRadius: '50%',
                       background: 'transparent',
-                      border: '1.5px solid rgba(249,115,22,0.45)',
+                      border: '1.5px solid color-mix(in srgb, var(--brand-primary) 45%, transparent)',
                     }} />
                     {hasAvatar ? (
                       <img
@@ -1714,8 +1720,8 @@ export default function BuyerDashboard() {
                   <div className="flex items-center gap-2 mb-1">
                     <span style={{
                       fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase',
-                      color: '#60a5fa', padding: '2px 8px', borderRadius: 4,
-                      background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.22)',
+                      color: 'var(--accent-marketing-text)', padding: '2px 8px', borderRadius: 4,
+                      background: 'var(--badge-info-bg)', border: '1px solid var(--badge-info-border)',
                     }}>Payments</span>
                   </div>
                   <h1 className="font-black flex items-center gap-3" style={{ fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--text-primary)' }}>
@@ -1724,9 +1730,9 @@ export default function BuyerDashboard() {
                   <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Manage payments, escrow & payouts</p>
                   <p className="text-xs mt-2 flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-faint)' }}>
                     <Link to="/" className="hover:opacity-90 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Home</Link>
-                    <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
+                    <span style={{ color: 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' }}>›</span>
                     <Link to="/account" className="hover:opacity-90 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Account</Link>
-                    <span style={{ color: 'rgba(249,115,22,0.5)' }}>›</span>
+                    <span style={{ color: 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' }}>›</span>
                     <span style={{ color: 'var(--text-secondary)' }}>Payment Methods</span>
                   </p>
                 </div>
@@ -1841,11 +1847,11 @@ export default function BuyerDashboard() {
                       className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 relative"
                       style={{
                         background: isActive
-                          ? `linear-gradient(135deg, ${PRIMARY}, #c2410c)`
+                          ? 'var(--gradient-brand-cta)'
                           : 'var(--card-bg)',
                         color: isActive ? 'white' : 'var(--text-secondary)',
                         border: isActive ? 'none' : '1px solid var(--card-border)',
-                        boxShadow: isActive ? `0 4px 16px rgba(249,115,22,0.35)` : 'none',
+                        boxShadow: isActive ? `0 4px 16px color-mix(in srgb, var(--brand-primary) 35%, transparent)` : 'none',
                         letterSpacing: '0.02em',
                       }}
                     >
@@ -1894,24 +1900,24 @@ export default function BuyerDashboard() {
                   {/* Grid bg */}
                   <div style={{
                     position: 'absolute', inset: 0,
-                    backgroundImage: 'linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px)',
+                    backgroundImage: 'linear-gradient(color-mix(in srgb, var(--brand-primary) 4%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--brand-primary) 4%, transparent) 1px, transparent 1px)',
                     backgroundSize: '20px 20px',
                   }} />
                   {/* Orb */}
                   <div style={{
                     position: 'absolute', top: -30, right: -20,
                     width: 120, height: 120, borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(249,115,22,0.2) 0%, transparent 70%)',
+                    background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 20%, transparent) 0%, transparent 70%)',
                     filter: 'blur(20px)',
                   }} />
                   <div className="relative z-10 flex flex-col items-center text-center gap-3">
                     <div className="relative">
                       <div style={{
                         width: 64, height: 64, borderRadius: '50%',
-                        background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                        background: 'var(--gradient-brand-cta)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: 'white', fontWeight: 900, fontSize: 24,
-                        boxShadow: `0 0 0 3px rgba(249,115,22,0.2), 0 0 20px rgba(249,115,22,0.3)`,
+                        boxShadow: `0 0 0 3px color-mix(in srgb, var(--brand-primary) 20%, transparent), 0 0 20px color-mix(in srgb, var(--brand-primary) 30%, transparent)`,
                       }}>
                         {initials}
                       </div>
@@ -1929,7 +1935,7 @@ export default function BuyerDashboard() {
                         style={{
                           display: 'inline-block', marginTop: 8, fontSize: 11, fontWeight: 600,
                           color: PRIMARY, padding: '3px 10px', borderRadius: 6,
-                          background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.22)',
+                          background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--brand-primary) 22%, transparent)',
                           letterSpacing: '0.06em', textTransform: 'uppercase', textDecoration: 'none',
                         }}
                       >
@@ -1978,7 +1984,7 @@ export default function BuyerDashboard() {
                         style={{
                           padding: '11px 18px',
                           borderLeft: isActive ? `3px solid ${PRIMARY}` : '3px solid transparent',
-                          background: isActive ? 'rgba(249,115,22,0.07)' : 'transparent',
+                          background: isActive ? 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' : 'transparent',
                           color: isActive ? PRIMARY : 'var(--text-secondary)',
                           fontWeight: isActive ? 700 : 400,
                           textDecoration: 'none',
@@ -1987,7 +1993,7 @@ export default function BuyerDashboard() {
                         aria-current={isActive ? 'page' : undefined}
                         onMouseEnter={(e) => {
                           if (!isActive) {
-                            e.currentTarget.style.background = 'rgba(249,115,22,0.05)';
+                            e.currentTarget.style.background = 'color-mix(in srgb, var(--brand-primary) 5%, transparent)';
                             e.currentTarget.style.color = PRIMARY;
                           }
                         }}
@@ -2002,8 +2008,8 @@ export default function BuyerDashboard() {
                           <div style={{
                             position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)',
                             width: 4, height: '60%', borderRadius: 2,
-                            background: `linear-gradient(180deg, ${PRIMARY}, #c2410c)`,
-                            boxShadow: `0 0 10px rgba(249,115,22,0.6)`,
+                            background: 'var(--gradient-brand-cta)',
+                            boxShadow: `0 0 10px color-mix(in srgb, var(--brand-primary) 60%, transparent)`,
                           }} />
                         )}
                         <Icon
@@ -2018,7 +2024,7 @@ export default function BuyerDashboard() {
                           <span style={{
                             minWidth: 20, height: 20, padding: '0 5px', borderRadius: 10,
                             fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: isActive ? PRIMARY : 'rgba(249,115,22,0.15)',
+                            background: isActive ? PRIMARY : 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
                             color: isActive ? 'white' : PRIMARY,
                           }}>
                             {badge > 99 ? '99+' : badge}
@@ -2056,15 +2062,15 @@ export default function BuyerDashboard() {
                   margin: '4px 14px 14px',
                   padding: '14px 16px',
                   borderRadius: 14,
-                  background: 'linear-gradient(135deg, rgba(249,115,22,0.07), rgba(139,92,246,0.05))',
-                  border: '1px solid rgba(249,115,22,0.15)',
+                  background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 7%, transparent), rgba(139,92,246,0.05))',
+                  border: '1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent)',
                 }}>
                   <div className="flex items-center gap-2.5 mb-3">
                     <div style={{
                       width: 34, height: 34, borderRadius: '50%',
-                      background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
+                      background: 'var(--gradient-brand-cta)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 4px 12px rgba(249,115,22,0.3)',
+                      boxShadow: '0 4px 12px color-mix(in srgb, var(--brand-primary) 30%, transparent)',
                     }}>
                       <Headphones style={{ width: 16, height: 16, color: 'white' }} />
                     </div>
@@ -2079,8 +2085,8 @@ export default function BuyerDashboard() {
                       display: 'block', width: '100%', padding: '9px',
                       borderRadius: 10, textAlign: 'center', fontSize: 12, fontWeight: 700,
                       color: 'white', textDecoration: 'none',
-                      background: `linear-gradient(135deg, ${PRIMARY}, #c2410c)`,
-                      boxShadow: '0 4px 14px rgba(249,115,22,0.3)',
+                      background: 'var(--gradient-brand-cta)',
+                      boxShadow: '0 4px 14px color-mix(in srgb, var(--brand-primary) 30%, transparent)',
                       letterSpacing: '0.04em',
                     }}
                   >
@@ -2106,8 +2112,8 @@ export default function BuyerDashboard() {
                       {/* Stat cards */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
-                          { icon: Package, label: 'Total Orders', value: uiOrders.length, color: PRIMARY, glowColor: 'rgba(249,115,22,0.25)', grad: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(249,115,22,0.03))' },
-                          { icon: Truck, label: 'In Transit', value: 1, color: '#60a5fa', glowColor: 'rgba(96,165,250,0.2)', grad: 'linear-gradient(135deg, rgba(96,165,250,0.1), rgba(96,165,250,0.03))' },
+                          { icon: Package, label: 'Total Orders', value: uiOrders.length, color: PRIMARY, glowColor: 'color-mix(in srgb, var(--brand-primary) 25%, transparent)', grad: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 10%, transparent), color-mix(in srgb, var(--brand-primary) 3%, transparent))' },
+                          { icon: Truck, label: 'In Transit', value: 1, color: 'var(--accent-marketing-text)', glowColor: 'color-mix(in srgb, var(--badge-info-text) 22%, transparent)', grad: 'linear-gradient(135deg, var(--badge-info-bg), color-mix(in srgb, var(--card-bg) 88%, var(--badge-info-bg)))' },
                           { icon: Star, label: 'Reviews Left', value: 8, color: '#fbbf24', glowColor: 'rgba(251,191,36,0.2)', grad: 'linear-gradient(135deg, rgba(251,191,36,0.1), rgba(251,191,36,0.03))' },
                           { icon: ShoppingBag, label: 'Total Spent', value: '$227.49', color: '#4ade80', glowColor: 'rgba(74,222,128,0.2)', grad: 'linear-gradient(135deg, rgba(74,222,128,0.1), rgba(74,222,128,0.03))' },
                         ].map(({ icon: Icon, label, value, color, glowColor, grad }, idx) => (
@@ -2175,7 +2181,7 @@ export default function BuyerDashboard() {
                                   <div
                                     className="flex items-center justify-between px-5 py-3.5 cursor-pointer"
                                     style={{ transition: 'background 0.15s' }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(249,115,22,0.03)'; }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--brand-primary) 3%, transparent)'; }}
                                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                   >
                                     <div className="flex items-center gap-3">
@@ -2215,20 +2221,20 @@ export default function BuyerDashboard() {
                       <div style={{
                         borderRadius: 16, padding: '16px 20px',
                         display: 'flex', alignItems: 'flex-start', gap: 14,
-                        background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.06))',
-                        border: '1px solid rgba(96,165,250,0.2)',
-                        borderLeft: '3px solid #3b82f6',
+                        background: 'linear-gradient(135deg, var(--brand-tint), color-mix(in srgb, var(--badge-info-bg) 65%, var(--card-bg)))',
+                        border: '1px solid var(--badge-info-border)',
+                        borderLeft: '3px solid var(--brand-border-subtle)',
                       }}>
                         <div style={{
                           width: 40, height: 40, borderRadius: 11, flexShrink: 0,
-                          background: 'rgba(59,130,246,0.12)',
-                          border: '1px solid rgba(96,165,250,0.2)',
+                          background: 'var(--badge-info-bg)',
+                          border: '1px solid var(--badge-info-border)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                          <Shield style={{ width: 20, height: 20, color: '#60a5fa' }} />
+                          <Shield style={{ width: 20, height: 20, color: 'var(--accent-marketing-text)' }} />
                         </div>
                         <div>
-                          <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 5, color: '#60a5fa' }}>Buyer Protection Active</p>
+                          <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 5, color: 'var(--accent-marketing-text)' }}>Buyer Protection Active</p>
                           <p style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' }}>Every purchase on Reaglex is protected by escrow. Funds are only released when you confirm delivery.</p>
                         </div>
                       </div>
@@ -2253,8 +2259,8 @@ export default function BuyerDashboard() {
                           <h2 style={{ fontWeight: 800, fontSize: 20, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>My Orders</h2>
                           <span style={{
                             fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
-                            background: 'rgba(249,115,22,0.1)', color: PRIMARY,
-                            border: '1px solid rgba(249,115,22,0.2)',
+                            background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: PRIMARY,
+                            border: '1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent)',
                           }}>{filteredOrders.length}</span>
                         </div>
                       </div>
@@ -2371,8 +2377,8 @@ export default function BuyerDashboard() {
                                         style={{
                                           display: 'flex', alignItems: 'center', gap: 6,
                                           padding: '7px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
-                                          background: 'rgba(249,115,22,0.09)',
-                                          color: PRIMARY, border: '1px solid rgba(249,115,22,0.2)',
+                                          background: 'color-mix(in srgb, var(--brand-primary) 9%, transparent)',
+                                          color: PRIMARY, border: '1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent)',
                                           cursor: 'pointer',
                                         }}
                                       >
@@ -2526,7 +2532,7 @@ export default function BuyerDashboard() {
                                   </div>
                                 </div>
                                 <div className="p-4">
-                                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-2" style={{ background: 'var(--brand-light)', color: PRIMARY }}>{category}</span>
+                                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-2" style={{ background: 'var(--tab-active-bg)', color: PRIMARY }}>{category}</span>
                                   <h3 className="font-bold text-[15px] leading-snug line-clamp-2 mb-1" style={{ color: 'var(--text-primary)' }}>{title}</h3>
                                   <p className="text-xs mb-2" style={{ color: 'var(--text-faint)' }}>by {storeName}</p>
                                   <div className="flex items-center gap-1 mb-2">
@@ -2598,7 +2604,7 @@ export default function BuyerDashboard() {
                       </div>
 
                       {/* Promo card (Tier 6) */}
-                      <div className="rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}>
+                      <div className="rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" style={{ background: 'var(--gradient-brand-cta)' }}>
                         <div>
                           <p className="font-bold text-lg text-white">🛍️ Special Offer</p>
                           <p className="text-white/90 text-sm mt-1">Get 10% off your next purchase</p>
@@ -2629,9 +2635,26 @@ export default function BuyerDashboard() {
 
                       {/* Tip banner */}
                       {!tipDismissed && (
-                        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20">
-                          <span className="text-sm text-blue-700 dark:text-blue-300">💡 Tip: Set a default address to speed up checkout</span>
-                          <button type="button" onClick={() => setTipDismissed(true)} className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"><X className="w-4 h-4 text-blue-700 dark:text-blue-400" /></button>
+                        <motion.div
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center justify-between px-4 py-3 rounded-xl"
+                          style={{
+                            background: 'var(--badge-info-bg)',
+                            border: '1px solid var(--badge-info-border)',
+                          }}
+                        >
+                          <span className="text-sm" style={{ color: 'var(--badge-info-text)' }}>💡 Tip: Set a default address to speed up checkout</span>
+                          <button
+                            type="button"
+                            onClick={() => setTipDismissed(true)}
+                            className="p-1 rounded transition-colors"
+                            style={{ color: 'var(--badge-info-text)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </motion.div>
                       )}
 
@@ -2735,7 +2758,7 @@ export default function BuyerDashboard() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <button type="button" onClick={() => { setAddressEditId(addr.id); setAddressForm({ ...addr }); setAddressModalOpen(true); }} className="p-2 rounded-lg hover:bg-orange-50 transition-colors" title="Edit"><Edit3 className="w-4 h-4 text-[var(--text-muted)]" /></button>
+                                    <button type="button" onClick={() => { setAddressEditId(addr.id); setAddressForm({ ...addr }); setAddressModalOpen(true); }} className="p-2 rounded-lg hover:bg-[var(--brand-tint)] transition-colors" title="Edit"><Edit3 className="w-4 h-4 text-[var(--text-muted)]" /></button>
                                     <div className="relative" data-delete-popover>
                                       <button type="button" onClick={() => addr.default ? null : setDeleteConfirmId(addr.id)} className="p-2 rounded-lg hover:bg-red-50 transition-colors" title={addr.default ? 'Set another as default first' : 'Delete'}><Trash2 className={`w-4 h-4 ${addr.default ? 'text-[var(--text-faint)]' : 'text-[var(--text-muted)]'}`} /></button>
                                       {deleteConfirmId === addr.id && (
@@ -2806,7 +2829,7 @@ export default function BuyerDashboard() {
                             onMouseEnter={(e) => { e.currentTarget.style.borderColor = PRIMARY; e.currentTarget.style.background = 'var(--bg-active)'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--divider-strong)'; e.currentTarget.style.background = 'var(--card-bg)'; }}
                           >
-                            <motion.span whileHover={{ scale: 1.1 }} className="w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold mb-3" style={{ background: 'var(--brand-light)', color: PRIMARY }}>+</motion.span>
+                            <motion.span whileHover={{ scale: 1.1 }} className="w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold mb-3" style={{ background: 'var(--tab-active-bg)', color: PRIMARY }}>+</motion.span>
                             <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>Add New Address</p>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Save time at checkout</p>
                           </motion.button>
@@ -2972,16 +2995,16 @@ export default function BuyerDashboard() {
                         className="rounded-2xl relative overflow-hidden"
                         style={{
                           background: 'linear-gradient(135deg, #0f0f1a, #1a1a2e)',
-                          border: '1px solid rgba(249,115,22,0.8)',
-                          boxShadow: '0 8px 32px rgba(249,115,22,0.15)',
+                          border: '1px solid color-mix(in srgb, var(--brand-primary) 80%, transparent)',
+                          boxShadow: '0 8px 32px color-mix(in srgb, var(--brand-primary) 15%, transparent)',
                         }}
                       >
-                        <div className="absolute inset-0 opacity-40 pointer-events-none" style={{ background: 'radial-gradient(circle at top left, rgba(249,115,22,0.35), transparent 55%)' }} />
+                        <div className="absolute inset-0 opacity-40 pointer-events-none" style={{ background: 'radial-gradient(circle at top left, color-mix(in srgb, var(--brand-primary) 35%, transparent), transparent 55%)' }} />
                         <div className="relative z-10 px-6 sm:px-8 pt-6 pb-4 space-y-6">
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {/* Total spent */}
                             <div className="flex items-start gap-3">
-                              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.14)' }}>
+                              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-primary) 14%, transparent)' }}>
                                 <span className="text-lg">💰</span>
                               </div>
                               <div>
@@ -2995,16 +3018,22 @@ export default function BuyerDashboard() {
                             </div>
                             {/* In escrow */}
                             <div className="flex items-start gap-3">
-                              <div className="w-9 h-9 rounded-full flex items-center justify-center escrow-pulse bg-blue-100 dark:bg-blue-900/30">
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center escrow-pulse"
+                                style={{
+                                  background: 'var(--brand-tint)',
+                                  border: '1px solid var(--brand-border-subtle)',
+                                }}
+                              >
                                 <span className="text-lg">🔒</span>
                               </div>
                               <div>
                                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-faint)]">In Escrow</p>
-                                <p className="mt-1 text-[26px] font-bold leading-none escrow-value-glow text-orange-500">
+                                <p className="mt-1 text-[26px] font-bold leading-none escrow-value-glow text-[var(--brand-primary)]">
                                   <CurrencyCountUp value={29.0} />
                                 </p>
                                 <p className="text-[11px] mt-1 text-[var(--text-faint)]">Currently held for active orders</p>
-                                <p className="text-[11px] mt-1 font-medium text-orange-500">1 order pending</p>
+                                <p className="text-[11px] mt-1 font-medium text-[var(--brand-primary)]">1 order pending</p>
                               </div>
                             </div>
                             {/* Released */}
@@ -3043,7 +3072,7 @@ export default function BuyerDashboard() {
                             <span className="text-[var(--text-faint)]">Platform fee: 5% per transaction</span>
                             <button
                               type="button"
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400 dark:text-orange-300 hover:text-orange-500 transition-colors"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:text-[var(--brand-primary)] transition-colors"
                             >
                               View Full Transaction History
                               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -3063,7 +3092,7 @@ export default function BuyerDashboard() {
                                 <span className="text-lg">🔒</span>
                                 <h2 className="font-bold text-base text-[var(--text-primary)]">Active Escrow Holdings</h2>
                               </div>
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--brand-tint)] dark:bg-[var(--brand-tint)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]">
                                 {activeEscrowOrders.length} order
                               </span>
                             </div>
@@ -3088,7 +3117,7 @@ export default function BuyerDashboard() {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                                    className="rounded-2xl border border-orange-100/80 dark:border-orange-900/30 bg-white/80 dark:bg-gray-800/80 p-4 flex flex-col gap-3 escrow-row-pulse"
+                                    className="rounded-2xl border border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)] bg-white/80 dark:bg-gray-800/80 p-4 flex flex-col gap-3 escrow-row-pulse"
                                   >
                                     <div className="flex items-center gap-3">
                                       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-\[var\(--bg-tertiary\)\]">
@@ -3103,8 +3132,22 @@ export default function BuyerDashboard() {
                                         <span
                                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold mt-1"
                                           style={{
-                                            background: o.status === 'ESCROW_HOLD' ? '#fff7ed' : o.status === 'SHIPPED' ? '#dbeafe' : o.status === 'DISPUTED' ? '#fee2e2' : '#dcfce7',
-                                            color: o.status === 'ESCROW_HOLD' ? '#ea580c' : o.status === 'SHIPPED' ? '#2563eb' : o.status === 'DISPUTED' ? '#b91c1c' : '#15803d',
+                                            background:
+                                              o.status === 'ESCROW_HOLD'
+                                                ? 'var(--brand-tint)'
+                                                : o.status === 'SHIPPED'
+                                                  ? 'var(--badge-info-bg)'
+                                                  : o.status === 'DISPUTED'
+                                                    ? 'var(--badge-error-bg)'
+                                                    : 'var(--badge-success-bg)',
+                                            color:
+                                              o.status === 'ESCROW_HOLD'
+                                                ? 'var(--brand-orange-text)'
+                                                : o.status === 'SHIPPED'
+                                                  ? 'var(--badge-info-text)'
+                                                  : o.status === 'DISPUTED'
+                                                    ? 'var(--badge-error-text)'
+                                                    : 'var(--badge-success-text)',
                                           }}
                                         >
                                           {o.status === 'ESCROW_HOLD' && <>🔒 Funds Held</>}
@@ -3329,7 +3372,7 @@ export default function BuyerDashboard() {
                                   <input
                                     type="text"
                                     placeholder="Search transactions..."
-                                    className="pl-8 pr-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                                    className="pl-8 pr-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors"
                                     style={{ width: 180 }}
                                   />
                                   <Search className="w-3.5 h-3.5 absolute left-2 top-1.5 text-[var(--text-faint)]" />
@@ -3371,7 +3414,7 @@ export default function BuyerDashboard() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  <tr className="group hover:bg-orange-50/60 dark:hover:bg-orange-900/10 cursor-pointer transition-colors">
+                                  <tr className="group hover:bg-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--brand-primary)_10%,transparent)] cursor-pointer transition-colors">
                                     <td className="py-2 text-[11px] text-[var(--text-muted)]">Feb 28, 2026 · 9:14 AM CAT</td>
                                     <td className="py-2">
                                       <Link to="/track/ORD-1002" className="text-xs font-semibold" style={{ color: PRIMARY }}>
@@ -3379,7 +3422,13 @@ export default function BuyerDashboard() {
                                       </Link>
                                     </td>
                                     <td className="py-2">
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
+                                      <span
+                                        className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                        style={{
+                                          background: 'var(--badge-info-bg)',
+                                          color: 'var(--badge-info-text)',
+                                        }}
+                                      >
                                         PAYMENT
                                       </span>
                                     </td>
@@ -3393,7 +3442,7 @@ export default function BuyerDashboard() {
                                       </span>
                                     </td>
                                   </tr>
-                                  <tr className="group hover:bg-orange-50/60 dark:hover:bg-orange-900/10 cursor-pointer transition-colors">
+                                  <tr className="group hover:bg-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--brand-primary)_10%,transparent)] cursor-pointer transition-colors">
                                     <td className="py-2 text-[11px] text-[var(--text-muted)]">Feb 20, 2026 · 4:02 PM CAT</td>
                                     <td className="py-2">
                                       <span className="text-xs font-semibold" style={{ color: PRIMARY }}>ORD-0998</span>
@@ -3431,7 +3480,7 @@ export default function BuyerDashboard() {
                                   status: 'In Escrow',
                                 },
                               ].map((tx) => (
-                                <div key={tx.order} className="rounded-2xl border border-\[var\(--divider\)\] p-3 bg-\[var\(--card-bg\)\] hover:bg-orange-50/60 dark:hover:bg-orange-900/10 transition-colors">
+                                <div key={tx.order} className="rounded-2xl border border-\[var\(--divider\)\] p-3 bg-\[var\(--card-bg\)\] hover:bg-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--brand-primary)_10%,transparent)] transition-colors">
                                   <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
                                     <span>{tx.date}</span>
                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400">
@@ -3483,7 +3532,7 @@ export default function BuyerDashboard() {
                                     </div>
                                     <span className="text-[11px] font-medium text-green-800 dark:text-green-300">{step.split(' ').slice(1).join(' ')}</span>
                                     {idx < arr.length - 1 && (
-                                      <div className="w-8 h-px bg-gradient-to-r from-orange-400 to-orange-500 rounded-full" />
+                                      <div className="w-8 h-px bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-primary-hover)] rounded-full" />
                                     )}
                                   </div>
                                 ))}
@@ -3520,7 +3569,7 @@ export default function BuyerDashboard() {
                                   type="number"
                                   min="1"
                                   defaultValue={100}
-                                  className="pl-5 pr-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] text-xs w-28 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                                  className="pl-5 pr-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] text-xs w-28 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors"
                                 />
                               </div>
                               <span>worth of products:</span>
@@ -3565,7 +3614,7 @@ export default function BuyerDashboard() {
                                 { icon: '🔍', title: 'Fraud Detection', desc: 'Automated checks on risky payments.' },
                               ].map((f) => (
                                 <div key={f.title} className="flex flex-col gap-1">
-                                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-orange-500/20">
+                                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)]">
                                     <span>{f.icon}</span>
                                   </div>
                                   <p className="font-semibold text-white">{f.title}</p>
@@ -3578,7 +3627,7 @@ export default function BuyerDashboard() {
                             </p>
                             <button
                               type="button"
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400 hover:text-orange-300 transition-colors"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-orange-text)] hover:text-[var(--brand-primary)] transition-colors"
                             >
                               🔒 View Security Policy
                               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -3749,20 +3798,20 @@ export default function BuyerDashboard() {
                                   <div className="space-y-3 text-xs">
                                     <div>
                                       <label className="block mb-1 font-medium text-[var(--text-secondary)]">Card Number</label>
-                                      <input type="text" placeholder="•••• •••• •••• ••••" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors" />
+                                      <input type="text" placeholder="•••• •••• •••• ••••" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors" />
                                     </div>
                                     <div>
                                       <label className="block mb-1 font-medium text-[var(--text-secondary)]">Cardholder Name</label>
-                                      <input type="text" placeholder="As shown on card" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors" />
+                                      <input type="text" placeholder="As shown on card" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                       <div>
                                         <label className="block mb-1 font-medium text-[var(--text-secondary)]">Expiry (MM/YY)</label>
-                                        <input type="text" placeholder="12/27" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors" />
+                                        <input type="text" placeholder="12/27" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors" />
                                       </div>
                                       <div>
                                         <label className="block mb-1 font-medium flex items-center justify-between text-[var(--text-secondary)]">CVV</label>
-                                        <input type="password" placeholder="•••" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors" />
+                                        <input type="password" placeholder="•••" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors" />
                                       </div>
                                     </div>
                                   </div>
@@ -3787,7 +3836,7 @@ export default function BuyerDashboard() {
                                       <input
                                         type="tel"
                                         placeholder="788 000 000"
-                                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors"
                                       />
                                     </div>
                                   </div>
@@ -3814,12 +3863,13 @@ export default function BuyerDashboard() {
                                     <input
                                       type="email"
                                       placeholder="you@example.com"
-                                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors"
                                     />
                                   </div>
                                   <button
                                     type="button"
-                                    className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                                    className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-95"
+                                    style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                                   >
                                     🅿️ Connect PayPal
                                   </button>
@@ -3830,7 +3880,7 @@ export default function BuyerDashboard() {
                                   <p className="font-semibold text-[var(--text-primary)]">Bank Account</p>
                                   <div>
                                     <label className="block mb-1 font-medium text-[var(--text-secondary)]">Bank Name</label>
-                                    <select className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors">
+                                    <select className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors">
                                       <option>Choose a bank</option>
                                       <option>Bank of Kigali</option>
                                       <option>I&M Bank</option>
@@ -3842,14 +3892,14 @@ export default function BuyerDashboard() {
                                       <label className="block mb-1 font-medium text-[var(--text-secondary)]">Account Number</label>
                                       <input
                                         type="text"
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors"
                                       />
                                     </div>
                                     <div>
                                       <label className="block mb-1 font-medium text-[var(--text-secondary)]">Account Holder Name</label>
                                       <input
                                         type="text"
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] text-xs focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] transition-colors"
                                       />
                                     </div>
                                   </div>
@@ -3920,7 +3970,7 @@ export default function BuyerDashboard() {
                         className="rounded-[20px] px-6 py-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
                         style={{
                           background:
-                            'linear-gradient(135deg,#1a0f3a 0%,#0d1f3a 50%,#111420 100%)',
+                            'var(--panel-deep-bg)',
                           boxShadow: '0 18px 45px rgba(0,0,0,0.55)',
                         }}
                       >
@@ -3928,8 +3978,8 @@ export default function BuyerDashboard() {
                           <div
                             className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
                             style={{
-                              background: 'rgba(249,115,22,0.15)',
-                              color: '#f97316',
+                              background: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
+                              color: 'var(--brand-primary)',
                             }}
                           >
                             ↩
@@ -4006,7 +4056,7 @@ export default function BuyerDashboard() {
                               .filter((r) => r.status === 'REFUNDED')
                               .reduce((sum, r) => sum + (r.refundAmount || 0), 0)
                               .toFixed(2)}`,
-                            color: '#60a5fa',
+                            color: 'var(--accent-marketing-text)',
                             icon: '💰',
                           },
                         ].map((stat, idx) => (
@@ -4027,7 +4077,7 @@ export default function BuyerDashboard() {
                                 <div
                                   className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
                                   style={{
-                                    background: 'rgba(249,115,22,0.08)',
+                                    background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)',
                                     color: stat.color,
                                   }}
                                 >
@@ -4091,7 +4141,7 @@ export default function BuyerDashboard() {
                                     ? '#ffffff'
                                     : 'var(--text-muted)',
                                   boxShadow: isActive
-                                    ? '0 0 0 1px rgba(251,146,60,0.4),0 8px 20px rgba(249,115,22,0.4)'
+                                    ? '0 0 0 1px color-mix(in srgb, var(--brand-primary) 40%, transparent),0 8px 20px color-mix(in srgb, var(--brand-primary) 40%, transparent)'
                                     : 'none',
                                 }}
                               >
@@ -4142,9 +4192,9 @@ export default function BuyerDashboard() {
                             className="inline-flex items-center gap-2 rounded-[12px] text-xs font-semibold px-4 py-2 text-white whitespace-nowrap"
                             style={{
                               background:
-                                'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                                'var(--gradient-brand-cta)',
                               boxShadow:
-                                '0 8px 24px rgba(249,115,22,0.45),0 2px 8px rgba(249,115,22,0.25)',
+                                '0 8px 24px color-mix(in srgb, var(--brand-primary) 45%, transparent),0 2px 8px color-mix(in srgb, var(--brand-primary) 25%, transparent)',
                             }}
                           >
                             <span className="text-base leading-none">+</span>
@@ -4171,7 +4221,7 @@ export default function BuyerDashboard() {
                             transition={{ type: 'spring', stiffness: 220 }}
                             className="w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-6"
                             style={{
-                              background: 'rgba(249,115,22,0.1)',
+                              background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
                               boxShadow:
                                 '0 18px 45px rgba(15,23,42,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
                             }}
@@ -4198,9 +4248,9 @@ export default function BuyerDashboard() {
                                 className="px-5 py-2.5 rounded-[12px] text-sm font-semibold text-white"
                                 style={{
                                   background:
-                                    'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                                    'var(--gradient-brand-cta)',
                                   boxShadow:
-                                    '0 10px 30px rgba(249,115,22,0.5)',
+                                    '0 10px 30px color-mix(in srgb, var(--brand-primary) 50%, transparent)',
                                 }}
                               >
                                 Browse Products
@@ -4411,7 +4461,7 @@ export default function BuyerDashboard() {
                                                   ? PRIMARY
                                                   : '#e5e7eb',
                                                 boxShadow: isCurrent
-                                                  ? '0 0 0 4px rgba(249,115,22,0.3)'
+                                                  ? '0 0 0 4px color-mix(in srgb, var(--brand-primary) 30%, transparent)'
                                                   : 'none',
                                               }}
                                             />
@@ -4420,7 +4470,7 @@ export default function BuyerDashboard() {
                                                 className="w-6 h-px rounded-full"
                                                 style={{
                                                   background: isCompleted
-                                                    ? 'rgba(249,115,22,0.7)'
+                                                    ? 'color-mix(in srgb, var(--brand-primary) 70%, transparent)'
                                                     : 'rgba(148,163,184,0.6)',
                                                 }}
                                               />
@@ -4460,7 +4510,7 @@ export default function BuyerDashboard() {
                                           className="px-3 py-1.5 rounded-[10px] font-semibold"
                                           style={{
                                             background:
-                                              'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                                              'var(--gradient-brand-cta)',
                                             color: '#ffffff',
                                           }}
                                         >
@@ -4474,7 +4524,7 @@ export default function BuyerDashboard() {
                                         className="px-3 py-1.5 rounded-[10px] font-semibold"
                                         style={{
                                           background:
-                                            'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                                            'var(--gradient-brand-cta)',
                                           color: '#ffffff',
                                         }}
                                       >
@@ -4554,15 +4604,15 @@ export default function BuyerDashboard() {
                 className="px-6 py-4 flex items-center justify-between"
                 style={{
                   background:
-                    'linear-gradient(135deg,#1a0f3a 0%,#0d1f3a 50%,#111420 100%)',
+                    'var(--panel-deep-bg)',
                 }}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center"
                     style={{
-                      background: 'rgba(249,115,22,0.18)',
-                      color: '#f97316',
+                      background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)',
+                      color: 'var(--brand-primary)',
                     }}
                   >
                     ↩
@@ -4695,10 +4745,10 @@ export default function BuyerDashboard() {
                             className="w-full flex items-center justify-between gap-3 rounded-[12px] px-3 py-2.5 text-left"
                             style={{
                               background: selected
-                                ? 'rgba(249,115,22,0.08)'
+                                ? 'color-mix(in srgb, var(--brand-primary) 8%, transparent)'
                                 : 'var(--card-bg)',
                               boxShadow: selected
-                                ? '0 0 0 1px rgba(249,115,22,0.6)'
+                                ? '0 0 0 1px color-mix(in srgb, var(--brand-primary) 60%, transparent)'
                                 : '0 6px 18px rgba(15,23,42,0.35)',
                             }}
                           >
@@ -4823,10 +4873,10 @@ export default function BuyerDashboard() {
                               className="px-3 py-1.5 rounded-full font-semibold"
                               style={{
                                 background: active
-                                  ? 'rgba(249,115,22,0.1)'
+                                  ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)'
                                   : 'var(--bg-tertiary)',
                                 boxShadow: active
-                                  ? '0 0 0 1px rgba(249,115,22,0.6)'
+                                  ? '0 0 0 1px color-mix(in srgb, var(--brand-primary) 60%, transparent)'
                                   : 'none',
                                 color: active
                                   ? PRIMARY
@@ -4954,10 +5004,10 @@ export default function BuyerDashboard() {
                               className="text-left px-3 py-2 rounded-[12px]"
                               style={{
                                 background: active
-                                  ? 'rgba(249,115,22,0.08)'
+                                  ? 'color-mix(in srgb, var(--brand-primary) 8%, transparent)'
                                   : 'var(--bg-tertiary)',
                                 boxShadow: active
-                                  ? '0 0 0 1px rgba(249,115,22,0.7)'
+                                  ? '0 0 0 1px color-mix(in srgb, var(--brand-primary) 70%, transparent)'
                                   : 'none',
                               }}
                             >
@@ -5098,9 +5148,9 @@ export default function BuyerDashboard() {
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-[12px] font-semibold text-white disabled:opacity-50"
                     style={{
                       background:
-                        'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                        'var(--gradient-brand-cta)',
                       boxShadow:
-                        '0 8px 24px rgba(249,115,22,0.45),0 2px 8px rgba(249,115,22,0.25)',
+                        '0 8px 24px color-mix(in srgb, var(--brand-primary) 45%, transparent),0 2px 8px color-mix(in srgb, var(--brand-primary) 25%, transparent)',
                     }}
                   >
                     {newReturnStep < 3 ? 'Next →' : 'Submit Return Request'}
@@ -5199,7 +5249,7 @@ export default function BuyerDashboard() {
                                 background: completed
                                   ? PRIMARY
                                   : current
-                                  ? 'rgba(249,115,22,0.15)'
+                                  ? 'color-mix(in srgb, var(--brand-primary) 15%, transparent)'
                                   : 'var(--bg-tertiary)',
                                 color: completed
                                   ? '#ffffff'
@@ -5215,7 +5265,7 @@ export default function BuyerDashboard() {
                                 className="flex-1 w-px mt-1"
                                 style={{
                                   background: completed
-                                    ? 'rgba(249,115,22,0.7)'
+                                    ? 'color-mix(in srgb, var(--brand-primary) 70%, transparent)'
                                     : 'rgba(148,163,184,0.5)',
                                 }}
                               />

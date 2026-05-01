@@ -73,7 +73,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
       </div>
       {children}
       <p className="mt-6 text-[11px] text-center leading-relaxed" style={{ color: 'var(--text-faint)' }}>
-        {t('auth.continueAgreement')} <span style={{ color: '#f97316' }}>{t('footer.links.bottom.termsOfService')}</span> {t('common.and')} <span style={{ color: '#f97316' }}>{t('footer.links.support.privacyPolicy')}</span>.
+        {t('auth.continueAgreement')} <span style={{ color: 'var(--brand-primary)' }}>{t('footer.links.bottom.termsOfService')}</span> {t('common.and')} <span style={{ color: 'var(--brand-primary)' }}>{t('footer.links.support.privacyPolicy')}</span>.
       </p>
     </>
   );
@@ -90,7 +90,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
         <div
           className="w-full max-w-md rounded-2xl px-5 sm:px-7 py-6 sm:py-8"
           style={{
-            background: isDark ? '#111420' : '#ffffff',
+            background: isDark ? 'var(--card-bg)' : '#ffffff',
             boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.25)' : '0 4px 24px rgba(0,0,0,0.08)',
           }}
         >
@@ -175,7 +175,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                     <br />
                     <span
                       style={{
-                        background: 'linear-gradient(135deg,#f97316,#fb923c)',
+                        background: 'var(--gradient-brand-cta)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                       }}
@@ -222,7 +222,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                       className="absolute -inset-10 rounded-[32px] -z-10"
                       style={{
                         background:
-                          'radial-gradient(circle at 10% 0%, rgba(249,115,22,0.28), transparent 55%), radial-gradient(circle at 90% 100%, rgba(59,130,246,0.28), transparent 55%)',
+                          'radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--brand-primary) 28%, transparent), transparent 55%), radial-gradient(circle at 90% 100%, rgba(59,130,246,0.28), transparent 55%)',
                       }}
                     />
                     <p
@@ -260,7 +260,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                               className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]"
                               style={{
                                 background:
-                                  'linear-gradient(135deg,#f97316,#fb923c)',
+                                  'var(--gradient-brand-cta)',
                                 color: '#0b1120',
                               }}
                             >
@@ -307,7 +307,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                           style={{
                             background:
                               idx === 0
-                                ? 'linear-gradient(135deg,#f97316,#fb923c)'
+                                ? 'var(--gradient-brand-cta)'
                                 : 'rgba(15,23,42,0.85)',
                             color: '#f9fafb',
                           }}
@@ -371,13 +371,13 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
             <section
               className="auth-animate-right auth-form-panel w-full lg:w-[55%] flex items-center justify-center px-4 sm:px-6 lg:px-10 py-8 sm:py-10"
               style={{
-                background: isDark ? '#111420' : '#ffffff',
+                background: isDark ? 'var(--card-bg)' : '#ffffff',
               }}
             >
               <div
                 className="auth-mobile-app-card auth-form-shell w-full max-w-[460px] sm:max-w-md mx-auto rounded-[24px] lg:rounded-[16px_0_0_16px] px-6 sm:px-7 py-6 sm:py-7 shadow-xl overflow-hidden"
                 style={{
-                  background: isDark ? '#111420' : '#ffffff',
+                  background: isDark ? 'var(--card-bg)' : '#ffffff',
                   boxShadow: isDark
                     ? '0 18px 45px rgba(15,23,42,0.9)'
                     : '0 20px 55px rgba(15,23,42,0.16)',
@@ -490,8 +490,8 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                   style={{ color: 'var(--text-faint)' }}
                 >
                   {t('auth.continueAgreement')}{' '}
-                  <span style={{ color: '#f97316' }}>{t('footer.links.bottom.termsOfService')}</span> {t('common.and')}{' '}
-                  <span style={{ color: '#f97316' }}>{t('footer.links.support.privacyPolicy')}</span>.
+                  <span style={{ color: 'var(--brand-primary)' }}>{t('footer.links.bottom.termsOfService')}</span> {t('common.and')}{' '}
+                  <span style={{ color: 'var(--brand-primary)' }}>{t('footer.links.support.privacyPolicy')}</span>.
                 </p>
                 </div>
               </div>

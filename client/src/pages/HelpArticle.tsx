@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { HELP_ARTICLES, HELP_CATEGORIES } from '../data/helpCenterData';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 
 export default function HelpArticle() {
   const { category, article: articleSlug } = useParams();
@@ -82,7 +82,7 @@ export default function HelpArticle() {
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold mt-1"
                   style={{
-                    background: 'rgba(249,115,22,0.1)',
+                    background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
                     color: PRIMARY,
                   }}
                 >
@@ -122,8 +122,8 @@ export default function HelpArticle() {
           <div
             className="mt-5 rounded-[12px] px-4 py-3 text-sm"
             style={{
-              background: 'rgba(249,115,22,0.08)',
-              boxShadow: 'inset 4px 0 0 #f97316',
+              background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)',
+              boxShadow: 'inset 4px 0 0 var(--brand-primary)',
               color: 'var(--text-secondary)',
             }}
           >
@@ -185,7 +185,7 @@ export default function HelpArticle() {
                 <span
                   className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold"
                   style={{
-                    background: 'rgba(249,115,22,0.12)',
+                    background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
                     color: PRIMARY,
                   }}
                 >
@@ -341,9 +341,9 @@ export default function HelpArticle() {
                     className="w-full px-3 py-2 rounded-[10px] text-[11px] font-semibold text-white"
                     style={{
                       background:
-                        'linear-gradient(135deg,#ff8c2a,#f97316,#ea580c)',
+                        'var(--gradient-brand-cta)',
                       boxShadow:
-                        '0 8px 24px rgba(249,115,22,0.45),0 2px 8px rgba(249,115,22,0.25)',
+                        '0 8px 24px color-mix(in srgb, var(--brand-primary) 45%, transparent),0 2px 8px color-mix(in srgb, var(--brand-primary) 25%, transparent)',
                     }}
                   >
                     Chat with support

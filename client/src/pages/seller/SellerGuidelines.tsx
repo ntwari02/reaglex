@@ -95,8 +95,8 @@ function renderSectionContent(sectionId: string) {
             <div
               style={{
                 background:
-                  'linear-gradient(135deg, rgba(249,115,22,0.10), rgba(234,88,12,0.05))',
-                boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.20)',
+                  'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 10%, transparent), color-mix(in srgb, var(--brand-primary-hover) 5%, transparent))',
+                boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 20%, transparent)',
                 borderRadius: 16,
                 padding: '20px 24px',
                 marginBottom: 24,
@@ -106,7 +106,7 @@ function renderSectionContent(sectionId: string) {
                 style={{
                   fontSize: 16,
                   fontWeight: 700,
-                  color: '#fb923c',
+                  color: 'var(--brand-orange-text)',
                   marginBottom: 4,
                 }}
               >
@@ -132,14 +132,14 @@ function renderSectionContent(sectionId: string) {
                   label: 'Complete Profile',
                   desc: 'Add photo, bio, store name',
                   icon: '👤',
-                  bg: 'linear-gradient(135deg,#f97316,#ea580c)',
+                  bg: 'var(--gradient-brand-cta)',
                 },
                 {
                   step: '2',
                   label: 'Add Products',
                   desc: 'List your first items',
                   icon: '📦',
-                  bg: 'linear-gradient(135deg,#38bdf8,#1d4ed8)',
+                  bg: 'var(--accent-marketing-gradient)',
                 },
                 {
                   step: '3',
@@ -160,7 +160,7 @@ function renderSectionContent(sectionId: string) {
                   key={item.step}
                   className="flex flex-col items-center text-center transition-transform duration-200"
                   style={{
-                    background: 'var(--bg-secondary, #1a1e2c)',
+                    background: 'var(--bg-secondary)',
                     borderRadius: 14,
                     padding: '18px 16px',
                     boxShadow: 'var(--shadow-xs)',
@@ -244,13 +244,13 @@ function renderSectionContent(sectionId: string) {
                         className="mt-0.5 flex h-5 w-5 items-center justify-center rounded"
                         style={{
                           background: item.done
-                            ? 'rgba(249,115,22,0.15)'
+                            ? 'color-mix(in srgb, var(--brand-primary) 15%, transparent)'
                             : 'transparent',
                           borderRadius: item.done ? 6 : 999,
                           boxShadow: item.done
-                            ? 'inset 0 0 0 1px rgba(249,115,22,0.85)'
+                            ? 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 85%, transparent)'
                             : 'inset 0 0 0 1px rgba(148,163,184,0.6)',
-                          color: item.done ? '#fb923c' : '#9ca3af',
+                          color: item.done ? 'var(--brand-orange-text)' : '#9ca3af',
                           fontSize: 11,
                         }}
                       >
@@ -278,7 +278,7 @@ function renderSectionContent(sectionId: string) {
               <div className="space-y-3">
                 <div
                   style={{
-                    background: 'var(--bg-secondary, #1a1e2c)',
+                    background: 'var(--bg-secondary)',
                     borderRadius: 14,
                     padding: 20,
                   }}
@@ -313,7 +313,7 @@ function renderSectionContent(sectionId: string) {
                 </div>
                 <div
                   style={{
-                    background: 'var(--bg-secondary, #1a1e2c)',
+                    background: 'var(--bg-secondary)',
                     borderRadius: 14,
                     padding: 20,
                   }}
@@ -348,7 +348,7 @@ function renderSectionContent(sectionId: string) {
                   </ul>
                   <p
                     className="mt-3 text-[11px]"
-                    style={{ color: '#fb923c' }}
+                    style={{ color: 'var(--brand-orange-text)' }}
                   >
                     Business sellers get verified badge.
                   </p>
@@ -361,8 +361,8 @@ function renderSectionContent(sectionId: string) {
           <motion.div variants={contentItemVariants}>
             <div
               style={{
-                background: 'var(--brand-tint, #1c1408)',
-                boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.25)',
+                background: 'var(--brand-tint)',
+                boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 25%, transparent)',
                 borderRadius: 14,
                 padding: '18px 20px',
               }}
@@ -384,7 +384,7 @@ function renderSectionContent(sectionId: string) {
                   <li key={tip} className="flex gap-2">
                     <span
                       className="mt-1 h-1.5 w-1.5 rounded-full"
-                      style={{ background: '#f97316' }}
+                      style={{ background: 'var(--brand-primary)' }}
                     />
                     <span style={{ color: 'var(--text-secondary)' }}>{tip}</span>
                   </li>
@@ -433,8 +433,8 @@ function renderSectionContent(sectionId: string) {
                     className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
                     style={{
                       background: 'transparent',
-                      color: '#fb923c',
-                      boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.6)',
+                      color: 'var(--brand-orange-text)',
+                      boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 60%, transparent)',
                     }}
                   >
                     📸
@@ -454,7 +454,7 @@ function renderSectionContent(sectionId: string) {
                     <li key={rule} className="flex gap-2">
                       <span
                         className="mt-1 h-1.5 w-1.5 rounded-full"
-                        style={{ background: 'transparent', border: '1px solid #f97316' }}
+                        style={{ background: 'transparent', border: '1px solid var(--brand-primary)' }}
                       />
                       <span>{rule}</span>
                     </li>
@@ -479,7 +479,7 @@ function renderSectionContent(sectionId: string) {
                     className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
                     style={{
                       background: 'transparent',
-                      color: '#60a5fa',
+                      color: 'var(--accent-marketing-text)',
                       boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.6)',
                     }}
                   >
@@ -500,7 +500,7 @@ function renderSectionContent(sectionId: string) {
                     <li key={rule} className="flex gap-2">
                       <span
                         className="mt-1 h-1.5 w-1.5 rounded-full"
-                        style={{ background: 'transparent', border: '1px solid #f97316' }}
+                        style={{ background: 'transparent', border: '1px solid var(--brand-primary)' }}
                       />
                       <span>{rule}</span>
                     </li>
@@ -546,7 +546,7 @@ function renderSectionContent(sectionId: string) {
                     <li key={rule} className="flex gap-2">
                       <span
                         className="mt-1 h-1.5 w-1.5 rounded-full"
-                        style={{ background: 'transparent', border: '1px solid #f97316' }}
+                        style={{ background: 'transparent', border: '1px solid var(--brand-primary)' }}
                       />
                       <span>{rule}</span>
                     </li>
@@ -571,8 +571,8 @@ function renderSectionContent(sectionId: string) {
                     className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
                     style={{
                       background: 'transparent',
-                      color: '#fb923c',
-                      boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.6)',
+                      color: 'var(--brand-orange-text)',
+                      boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 60%, transparent)',
                     }}
                   >
                     💰
@@ -592,7 +592,7 @@ function renderSectionContent(sectionId: string) {
                     <li key={rule} className="flex gap-2">
                       <span
                         className="mt-1 h-1.5 w-1.5 rounded-full"
-                        style={{ background: 'transparent', border: '1px solid #f97316' }}
+                        style={{ background: 'transparent', border: '1px solid var(--brand-primary)' }}
                       />
                       <span>{rule}</span>
                     </li>
@@ -617,7 +617,7 @@ function renderSectionContent(sectionId: string) {
                     className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
                     style={{
                       background: 'transparent',
-                      color: '#93c5fd',
+                      color: 'var(--link-color)',
                       boxShadow: 'inset 0 0 0 1px rgba(96,165,250,0.6)',
                     }}
                   >
@@ -638,7 +638,7 @@ function renderSectionContent(sectionId: string) {
                     <li key={rule} className="flex gap-2">
                       <span
                         className="mt-1 h-1.5 w-1.5 rounded-full"
-                        style={{ background: 'transparent', border: '1px solid #f97316' }}
+                        style={{ background: 'transparent', border: '1px solid var(--brand-primary)' }}
                       />
                       <span>{rule}</span>
                     </li>
@@ -663,7 +663,7 @@ function renderSectionContent(sectionId: string) {
                     className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
                     style={{
                       background: 'transparent',
-                      color: '#38bdf8',
+                      color: 'var(--link-color)',
                       boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.6)',
                     }}
                   >
@@ -684,7 +684,7 @@ function renderSectionContent(sectionId: string) {
                     <li key={rule} className="flex gap-2">
                       <span
                         className="mt-1 h-1.5 w-1.5 rounded-full"
-                        style={{ background: 'transparent', border: '1px solid #f97316' }}
+                        style={{ background: 'transparent', border: '1px solid var(--brand-primary)' }}
                       />
                       <span>{rule}</span>
                     </li>
@@ -700,7 +700,7 @@ function renderSectionContent(sectionId: string) {
               {/* DOs */}
               <div
                 style={{
-                  background: 'var(--bg-secondary, #1a1e2c)',
+                  background: 'var(--bg-secondary)',
                   borderRadius: 16,
                   padding: 0,
                   overflow: 'hidden',
@@ -781,7 +781,7 @@ function renderSectionContent(sectionId: string) {
               {/* DON'Ts */}
               <div
                 style={{
-                  background: 'var(--bg-secondary, #1a1e2c)',
+                  background: 'var(--bg-secondary)',
                   borderRadius: 16,
                   padding: 0,
                   overflow: 'hidden',
@@ -865,7 +865,7 @@ function renderSectionContent(sectionId: string) {
           <motion.div variants={contentItemVariants}>
             <div
               className="rounded-2xl px-4 py-4 sm:px-6 sm:py-5"
-              style={{ background: 'var(--bg-secondary, #1a1e2c)' }}
+              style={{ background: 'var(--bg-secondary)' }}
             >
               <p
                 className="mb-3 text-sm font-semibold"
@@ -889,8 +889,8 @@ function renderSectionContent(sectionId: string) {
                     <div
                       className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold"
                       style={{
-                        background: 'rgba(249,115,22,0.15)',
-                        color: '#fb923c',
+                        background: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
+                        color: 'var(--brand-orange-text)',
                       }}
                     >
                       {index + 1}
@@ -1116,13 +1116,13 @@ function renderSectionContent(sectionId: string) {
             >
               <p
                 className="text-sm font-semibold"
-                style={{ color: '#60a5fa' }}
+                style={{ color: 'var(--accent-marketing-text)' }}
               >
                 🔵 Gray Area Items — Contact Us First
               </p>
               <p
                 className="mt-1 text-xs"
-                style={{ color: '#93c5fd' }}
+                style={{ color: 'var(--link-color)' }}
               >
                 These items MIGHT be allowed with proper documentation:
               </p>
@@ -1137,7 +1137,7 @@ function renderSectionContent(sectionId: string) {
                   <li key={item} className="flex gap-2">
                     <span
                       className="mt-1 h-1.5 w-1.5 rounded-full"
-                      style={{ background: '#60a5fa' }}
+                      style={{ background: 'var(--accent-marketing-gradient)' }}
                     />
                     <span>{item}</span>
                   </li>
@@ -1145,10 +1145,10 @@ function renderSectionContent(sectionId: string) {
               </ul>
               <p
                 className="mt-3 text-xs"
-                style={{ color: '#fb923c' }}
+                style={{ color: 'var(--brand-orange-text)' }}
               >
                 📧{' '}
-                <a href="mailto:compliance@reaglex.com" style={{ color: '#fb923c' }}>
+                <a href="mailto:compliance@reaglex.com" style={{ color: 'var(--brand-orange-text)' }}>
                   compliance@reaglex.com
                 </a>
               </p>
@@ -1212,8 +1212,8 @@ function renderSectionContent(sectionId: string) {
                         className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
                         style={{
                           background: 'transparent',
-                          color: '#f97316',
-                          boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.45)',
+                          color: 'var(--brand-primary)',
+                          boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 45%, transparent)',
                         }}
                       >
                         {item.step}
@@ -1226,8 +1226,8 @@ function renderSectionContent(sectionId: string) {
                         className="ml-3 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
                         style={{
                           background: 'transparent',
-                          color: '#f97316',
-                          boxShadow: 'inset 0 0 0 1px rgba(249,115,22,0.45)',
+                          color: 'var(--brand-primary)',
+                          boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 45%, transparent)',
                         }}
                       >
                         {item.badge}
@@ -1352,7 +1352,7 @@ function renderSectionContent(sectionId: string) {
                   <div
                     className="flex h-10 w-10 items-center justify-center rounded-full text-lg"
                     style={{
-                      background: 'rgba(249,115,22,0.18)',
+                      background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)',
                       color: '#fed7aa',
                     }}
                   >
@@ -1445,8 +1445,8 @@ function renderSectionContent(sectionId: string) {
                 {
                   title: '💸 2nd Late',
                   desc: '5% penalty of order value',
-                  bg: 'rgba(249,115,22,0.10)',
-                  border: 'rgba(249,115,22,0.8)',
+                  bg: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
+                  border: 'color-mix(in srgb, var(--brand-primary) 80%, transparent)',
                 },
                 {
                   title: '📉 3rd Late',
@@ -1564,9 +1564,9 @@ function renderSectionContent(sectionId: string) {
                           card.urgency === 'critical'
                             ? '#ef4444'
                             : card.urgency === 'high'
-                            ? '#f97316'
+                            ? 'var(--brand-primary)'
                             : card.urgency === 'info'
-                            ? '#38bdf8'
+                            ? 'var(--link-color)'
                             : '#22c55e',
                       }}
                     />
@@ -1742,13 +1742,13 @@ function renderSectionContent(sectionId: string) {
                     icon: '🔔',
                     title: 'Dispute Opened',
                     desc: 'Acknowledge within 24 hours',
-                    color: '#fb923c',
+                    color: 'var(--brand-orange-text)',
                   },
                   {
                     icon: '📸',
                     title: 'Provide Evidence',
                     desc: 'Photos, tracking, messages',
-                    color: '#60a5fa',
+                    color: 'var(--accent-marketing-text)',
                   },
                   {
                     icon: '💬',
@@ -1964,7 +1964,7 @@ function renderSectionContent(sectionId: string) {
             >
               <p
                 className="mb-2 text-sm font-semibold"
-                style={{ color: '#fb923c' }}
+                style={{ color: 'var(--brand-orange-text)' }}
               >
                 💸 Payout Schedule
               </p>
@@ -2079,7 +2079,7 @@ function renderSectionContent(sectionId: string) {
                 <div
                   key={item.title}
                   className="rounded-2xl p-4"
-                  style={{ background: 'var(--bg-secondary, #1a1e2c)' }}
+                  style={{ background: 'var(--bg-secondary)' }}
                 >
                   <p
                     className="text-xs font-semibold"
@@ -2106,13 +2106,13 @@ function renderSectionContent(sectionId: string) {
             >
               <p
                 className="mb-1 text-sm font-semibold"
-                style={{ color: '#60a5fa' }}
+                style={{ color: 'var(--accent-marketing-text)' }}
               >
                 📋 Tax Responsibility
               </p>
               <p
                 className="text-[11px]"
-                style={{ color: '#93c5fd' }}
+                style={{ color: 'var(--link-color)' }}
               >
                 You are responsible for declaring all Reaglex income to your local tax authority.
                 Reaglex may provide annual earnings statements.
@@ -2138,7 +2138,7 @@ function renderSectionContent(sectionId: string) {
             >
               <p
                 className="text-sm font-semibold"
-                style={{ color: '#fb923c' }}
+                style={{ color: 'var(--brand-orange-text)' }}
               >
                 Your account represents your brand. Maintain professionalism at all times.
               </p>
@@ -2350,7 +2350,7 @@ function renderSectionContent(sectionId: string) {
           <motion.div variants={contentItemVariants}>
             <div
               className="rounded-2xl px-4 py-4 sm:px-5 sm:py-5 space-y-3"
-              style={{ background: 'var(--bg-secondary, #1a1e2c)' }}
+              style={{ background: 'var(--bg-secondary)' }}
             >
               <p
                 className="text-sm font-semibold"
@@ -2374,12 +2374,12 @@ function renderSectionContent(sectionId: string) {
                       className="mt-0.5 h-3 w-3 flex items-center justify-center rounded-sm text-[9px]"
                       style={{
                         background:
-                          index === 7 ? 'transparent' : 'rgba(249,115,22,0.15)',
+                          index === 7 ? 'transparent' : 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
                         boxShadow:
                           index === 7
                             ? 'inset 0 0 0 1px rgba(148,163,184,0.6)'
-                            : 'inset 0 0 0 1px rgba(249,115,22,0.85)',
-                        color: index === 7 ? '#9ca3af' : '#fb923c',
+                            : 'inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 85%, transparent)',
+                        color: index === 7 ? '#9ca3af' : 'var(--brand-orange-text)',
                       }}
                     >
                       {index === 7 ? '○' : '✓'}
@@ -2461,8 +2461,8 @@ function renderSectionContent(sectionId: string) {
                   {
                     title: '⚡⚡ 2 Strikes',
                     consequence: 'Consequence: Restrictions',
-                    bg: 'rgba(249,115,22,0.08)',
-                    accent: '#fb923c',
+                    bg: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)',
+                    accent: 'var(--brand-orange-text)',
                     details: [
                       '7-day listing restriction',
                       'New products need approval',
@@ -2675,7 +2675,7 @@ function renderSectionContent(sectionId: string) {
                   >
                     <div
                       className="flex h-7 w-7 items-center justify-center rounded-full text-xs"
-                      style={{ background: 'rgba(249,115,22,0.18)', color: '#fed7aa' }}
+                      style={{ background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)', color: '#fed7aa' }}
                     >
                       {step.icon}
                     </div>
@@ -2709,7 +2709,7 @@ function renderSectionContent(sectionId: string) {
           <motion.div variants={contentItemVariants}>
             <div
               className="rounded-2xl px-4 py-4 sm:px-5 sm:py-5 space-y-3"
-              style={{ background: 'var(--bg-secondary, #1a1e2c)' }}
+              style={{ background: 'var(--bg-secondary)' }}
             >
               <p
                 className="text-sm font-semibold"
@@ -2769,7 +2769,7 @@ function renderSectionContent(sectionId: string) {
                   type="button"
                   className="inline-flex items-center rounded-full px-4 py-1.5 text-[11px] font-semibold"
                   style={{
-                    background: 'linear-gradient(135deg,#f97316,#ea580c)',
+                    background: 'var(--gradient-brand-cta)',
                     color: '#ffffff',
                     border: 'none',
                   }}
@@ -2778,10 +2778,10 @@ function renderSectionContent(sectionId: string) {
                 </button>
                 <p
                   className="text-[11px]"
-                  style={{ color: '#fb923c' }}
+                  style={{ color: 'var(--brand-orange-text)' }}
                 >
                   Or email{' '}
-                  <a href="mailto:seller-appeals@reaglex.com" style={{ color: '#fb923c' }}>
+                  <a href="mailto:seller-appeals@reaglex.com" style={{ color: 'var(--brand-orange-text)' }}>
                     seller-appeals@reaglex.com
                   </a>
                 </p>
@@ -2793,7 +2793,7 @@ function renderSectionContent(sectionId: string) {
           <motion.div variants={contentItemVariants}>
             <div
               className="rounded-2xl px-4 py-4 sm:px-5 sm:py-5"
-              style={{ background: 'var(--bg-secondary, #1a1e2c)' }}
+              style={{ background: 'var(--bg-secondary)' }}
             >
               <p
                 className="mb-3 text-sm font-semibold"
@@ -3170,7 +3170,7 @@ export default function SellerGuidelines() {
                         transition={{ duration: 0.15 }}
                         style={{
                           background:
-                            'linear-gradient(90deg, rgba(249,115,22,0.14), transparent)',
+                            'linear-gradient(90deg, color-mix(in srgb, var(--brand-primary) 14%, transparent), transparent)',
                         }}
                       />
                       <div className="relative z-10 flex items-center gap-3">
@@ -3333,7 +3333,7 @@ export default function SellerGuidelines() {
                 className="inline-flex items-center justify-center rounded-[999px] px-6 py-2 text-sm font-semibold"
                 style={{
                   background:
-                    'linear-gradient(135deg,#f97316,#ea580c)',
+                    'var(--gradient-brand-cta)',
                   color: '#ffffff',
                 }}
               >
@@ -3353,7 +3353,7 @@ export default function SellerGuidelines() {
                 className="inline-flex items-center justify-center rounded-[999px] px-6 py-2 text-sm font-semibold"
                 style={{
                   background:
-                    'linear-gradient(135deg,#f97316,#ea580c)',
+                    'var(--gradient-brand-cta)',
                   color: '#ffffff',
                 }}
               >

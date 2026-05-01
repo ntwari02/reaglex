@@ -555,7 +555,7 @@ export default function SellerList({ onViewSeller }: SellerListProps) {
       suspended: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
       rejected: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
       banned: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
-      warned: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200',
+      warned: 'bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]',
       inactive: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
     };
     return (
@@ -851,7 +851,7 @@ export default function SellerList({ onViewSeller }: SellerListProps) {
                       <button
                         onClick={() => handleWarnSeller(seller)}
                         disabled={actionLoading === seller.id}
-                        className="rounded-full border border-gray-200 p-2 text-gray-600 hover:border-orange-400 hover:bg-orange-50 dark:border-gray-700 dark:text-gray-400 dark:hover:border-orange-400 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-50"
+                        className="rounded-full border border-gray-200 p-2 text-gray-600 hover:border-[var(--brand-primary-hover)] hover:bg-[var(--brand-tint)] dark:border-gray-700 dark:text-gray-400 dark:hover:border-[var(--brand-primary-hover)] dark:hover:bg-[var(--brand-tint)] transition-colors disabled:opacity-50"
                         title="Warn seller"
                       >
                         <AlertTriangle className="h-4 w-4" />

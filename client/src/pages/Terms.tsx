@@ -18,7 +18,6 @@ import {
 // @ts-ignore
 import BuyerLayout from '../components/buyer/BuyerLayout';
 
-const PRIMARY = '#f97316';
 const LAST_UPDATED = 'March 7, 2025';
 
 const SECTIONS = [
@@ -67,7 +66,7 @@ function Section({
         <div className="flex items-center gap-3 mb-4">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: `${PRIMARY}18`, color: PRIMARY }}
+            style={{ background: 'var(--brand-tint-strong)', color: 'var(--brand-primary)' }}
           >
             <Icon size={20} />
           </div>
@@ -117,18 +116,25 @@ export default function Terms() {
         <div
           className="relative overflow-hidden rounded-b-3xl px-4 sm:px-6 py-12 sm:py-16 mb-10"
           style={{
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-            color: '#f8fafc',
+            background: 'var(--hero-marketing-bg)',
+            color: 'var(--text-primary)',
           }}
         >
-          <div className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(249,115,22,0.25) 0%, transparent 50%)' }} />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(ellipse 70% 55% at 18% 28%, var(--hero-marketing-blob-c) 0%, transparent 52%), radial-gradient(ellipse 65% 50% at 82% 72%, var(--hero-marketing-blob-b) 0%, transparent 50%)',
+              opacity: 0.9,
+            }}
+          />
           <div className="relative max-w-4xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 text-sm font-medium"
-              style={{ background: 'rgba(249,115,22,0.2)', color: '#fdba74' }}
+              style={{ background: 'var(--badge-info-bg)', color: 'var(--badge-info-text)' }}
             >
               <FileText size={16} />
               Legal
@@ -138,6 +144,7 @@ export default function Terms() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.4 }}
               className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-3"
+              style={{ color: 'var(--hero-marketing-heading)' }}
             >
               Terms of Service
             </motion.h1>
@@ -145,7 +152,8 @@ export default function Terms() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-slate-300 text-base sm:text-lg mb-2"
+              className="text-base sm:text-lg mb-2"
+              style={{ color: 'var(--hero-marketing-subtitle)' }}
             >
               Please read these terms carefully before using Reaglex.
             </motion.p>
@@ -153,7 +161,8 @@ export default function Terms() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.25 }}
-              className="text-slate-400 text-sm"
+              className="text-sm"
+              style={{ color: 'var(--hero-marketing-subtitle)' }}
             >
               Last updated: {LAST_UPDATED}
             </motion.p>
@@ -177,8 +186,8 @@ export default function Terms() {
                     href={`#${id}`}
                     className="flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition-colors"
                     style={{
-                      color: activeId === id ? PRIMARY : 'var(--text-secondary)',
-                      background: activeId === id ? `${PRIMARY}12` : 'transparent',
+                      color: activeId === id ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                      background: activeId === id ? 'var(--brand-tint)' : 'transparent',
                     }}
                   >
                     <Icon size={14} className="flex-shrink-0 opacity-70" />
@@ -412,8 +421,8 @@ export default function Terms() {
             viewport={{ once: true }}
             className="rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4"
             style={{
-              background: 'linear-gradient(135deg, rgba(249,115,22,0.08) 0%, rgba(234,88,12,0.05) 100%)',
-              border: '1px solid rgba(249,115,22,0.2)',
+              background: 'linear-gradient(135deg, var(--brand-tint) 0%, color-mix(in srgb, var(--brand-primary) 6%, var(--card-bg)) 100%)',
+              border: '1px solid var(--brand-border-subtle)',
             }}
           >
             <div>
@@ -427,7 +436,7 @@ export default function Terms() {
             <Link
               to="/privacy"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
-              style={{ background: PRIMARY, color: '#fff', boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
+              style={{ background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', boxShadow: 'var(--shadow-cta)' }}
             >
               Privacy Policy
               <ChevronRight size={18} />

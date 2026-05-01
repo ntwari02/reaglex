@@ -6,8 +6,8 @@ import { Lock, Check, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
 
 import { API_BASE_URL } from '../lib/config';
-const PRIMARY = '#f97316';
-const SUCCESS = '#10b981';
+const PRIMARY = 'var(--brand-primary)';
+const SUCCESS = 'var(--badge-success-text)';
 
 function checkPasswordReqs(pw: string) {
   return {
@@ -25,7 +25,7 @@ export function ResetPassword() {
   const tokenFromUrl = searchParams.get('token');
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const cardBg = isDark ? '#111420' : '#ffffff';
+  const cardBg = 'var(--card-bg)';
   const cardShadow = isDark
     ? '0 0 0 1px rgba(255,255,255,0.06), 0 24px 48px -12px rgba(0,0,0,0.5)'
     : '0 0 0 1px rgba(0,0,0,0.04), 0 24px 48px -12px rgba(0,0,0,0.12)';
@@ -143,7 +143,7 @@ export function ResetPassword() {
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 {error && (
-                  <div className="text-sm p-3 rounded-[12px]" style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}>
+                  <div className="text-sm p-3 rounded-[12px]" style={{ background: 'var(--badge-error-bg)', color: 'var(--badge-error-text)' }}>
                     {error}
                   </div>
                 )}
@@ -212,11 +212,11 @@ export function ResetPassword() {
                   disabled={loading || success || !isPasswordValid || !confirmPassword || password !== confirmPassword || !tokenFromUrl?.trim()}
                   className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all"
                   style={{
-                    background: PRIMARY,
-                    color: '#ffffff',
-                    boxShadow: '0 8px 28px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.35)',
+                    background: 'var(--gradient-brand-cta)',
+                    color: 'var(--text-on-accent)',
+                    boxShadow: 'var(--shadow-cta-hover)',
                   }}
-                  whileHover={!loading ? { y: -2, boxShadow: '0 12px 36px rgba(249,115,22,0.5)' } : {}}
+                  whileHover={!loading ? { y: -2, boxShadow: 'var(--shadow-cta-hover)' } : {}}
                   whileTap={!loading ? { y: 0 } : {}}
                 >
                   {loading && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
@@ -291,7 +291,7 @@ function PremiumStyleInput({
   const ring = valid
     ? '0 0 0 2px rgba(16,185,129,0.40)'
     : focused
-      ? '0 0 0 2.5px rgba(249,115,22,0.5)'
+      ? '0 0 0 2.5px color-mix(in srgb, var(--brand-primary) 50%, transparent)'
       : '0 0 0 1.5px rgba(0,0,0,0.08)';
   const bg = valid ? 'rgba(16,185,129,0.03)' : focused ? 'var(--card-bg)' : 'var(--bg-secondary)';
 

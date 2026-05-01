@@ -5,7 +5,7 @@ import { MoreVertical } from 'lucide-react';
 import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
 import { useTranslation } from '../i18n/useTranslation';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 const EASE = [0.25, 0.46, 0.45, 0.94];
 
 const TABS = [
@@ -18,10 +18,10 @@ const TABS = [
 
 const TYPE_CONFIG = {
   order: { icon: '📦', circleBg: PRIMARY, labelKey: 'notifications.actions.trackOrder', linkColor: PRIMARY },
-  deal: { icon: '🏷️', circleBg: '#10b981', labelKey: 'notifications.actions.shopNow', linkColor: '#10b981' },
-  system: { icon: '👋', circleBg: '#2563eb', labelKey: 'notifications.actions.completeProfile', linkColor: '#2563eb' },
-  message: { icon: '💬', circleBg: '#8b5cf6', labelKey: 'notifications.actions.reply', linkColor: '#8b5cf6' },
-  review: { icon: '⭐', circleBg: '#eab308', labelKey: 'notifications.actions.rateNow', linkColor: '#eab308' },
+  deal: { icon: '🏷️', circleBg: 'var(--notif-type-deal)', labelKey: 'notifications.actions.shopNow', linkColor: 'var(--notif-type-deal)' },
+  system: { icon: '👋', circleBg: 'var(--notif-type-system)', labelKey: 'notifications.actions.completeProfile', linkColor: 'var(--notif-type-system)' },
+  message: { icon: '💬', circleBg: 'var(--notif-type-message)', labelKey: 'notifications.actions.reply', linkColor: 'var(--notif-type-message)' },
+  review: { icon: '⭐', circleBg: 'var(--notif-type-review)', labelKey: 'notifications.actions.rateNow', linkColor: 'var(--notif-type-review)' },
 };
 
 export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
@@ -152,10 +152,10 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
             />
 
             {/* Header */}
-            <div className="flex-shrink-0 px-5 py-4 border-b" style={{ borderColor: '#f4f5f7' }}>
+            <div className="flex-shrink-0 px-5 py-4 border-b" style={{ borderColor: 'var(--divider)' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-[17px]" style={{ color: '#111827' }}>{t('nav.notifications')}</h3>
+                  <h3 className="font-bold text-[17px]" style={{ color: 'var(--dropdown-text)' }}>{t('nav.notifications')}</h3>
                   {unreadCount > 0 && (
                     <motion.span initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="px-2 py-0.5 rounded-full text-xs font-bold text-white" style={{ background: PRIMARY }}>
                       {unreadCount} {t('notifications.new')}
@@ -168,7 +168,7 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
                       {t('notifications.markAllRead')}
                     </button>
                   )}
-                  <Link to="/account?tab=settings" onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition" title={t('notifications.settings')}>
+                  <Link to="/account?tab=settings" onClick={onClose} className="p-1.5 rounded-lg transition hover:bg-[var(--bg-hover)]" title={t('notifications.settings')}>
                     <span className="text-base opacity-70 hover:opacity-100" style={{ filter: 'grayscale(0.5)' }}>⚙️</span>
                   </Link>
                 </div>
@@ -181,11 +181,11 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     className="flex-1 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                    style={{ color: activeTab === tab.id ? PRIMARY : '#6b7280' }}
+                    style={{ color: activeTab === tab.id ? PRIMARY : 'var(--text-muted)' }}
                   >
                     {t(tab.labelKey)}
                     {tabCounts[tab.id] > 0 && (
-                      <span className="min-w-[18px] h-[18px] rounded-full bg-gray-200 text-[10px] font-bold flex items-center justify-center" style={{ color: '#374151' }}>
+                      <span className="min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center" style={{ background: 'var(--bg-skeleton)', color: 'var(--text-secondary)' }}>
                         {tabCounts[tab.id]}
                       </span>
                     )}
@@ -203,12 +203,12 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
             {/* List */}
             <div className="notif-list-scroll flex-1 overflow-y-auto min-h-0" style={{ maxHeight: 380 }}>
               {loading ? (
-                <div className="py-6 px-6 text-sm" style={{ color: '#6b7280' }}>{t('notifications.loading')}</div>
+                <div className="py-6 px-6 text-sm" style={{ color: 'var(--text-muted)' }}>{t('notifications.loading')}</div>
               ) : filtered.length === 0 ? (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-12 px-6" style={{ minHeight: 200 }}>
                   <motion.span className="text-4xl mb-3 notif-empty-bell-swing inline-block">🔔</motion.span>
-                  <p className="font-bold text-base" style={{ color: '#111827' }}>{t('notifications.allCaughtUp')} 🎉</p>
-                  <p className="text-[13px] mt-0.5" style={{ color: '#6b7280' }}>{t('notifications.noNew')}</p>
+                  <p className="font-bold text-base" style={{ color: 'var(--dropdown-text)' }}>{t('notifications.allCaughtUp')} 🎉</p>
+                  <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('notifications.noNew')}</p>
                 </motion.div>
               ) : (
                 <div className="py-1" onClick={() => setMenuOpenId(null)} role="presentation">
@@ -227,19 +227,19 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
                           onClick={() => handleItemClick(n)}
                           onMouseEnter={() => setHoveredId(n.id)}
                           onMouseLeave={() => setHoveredId(null)}
-                          className={`flex items-start gap-3 px-5 py-3.5 cursor-pointer transition-all duration-150 border-l-[3px] ${n.unread ? 'bg-[#fff7ed]' : 'bg-white hover:bg-[#f9fafb]'}`}
+                          className={`flex items-start gap-3 px-5 py-3.5 cursor-pointer transition-all duration-150 border-l-[3px] ${n.unread ? 'bg-[var(--bg-active)]' : 'bg-[var(--card-bg)] hover:bg-[var(--bg-hover)]'}`}
                           style={{ borderLeftColor: n.unread ? PRIMARY : 'transparent' }}
                         >
                           <div className="w-[42px] h-[42px] rounded-full flex items-center justify-center text-lg flex-shrink-0" style={{ background: config.circleBg }}>
                             {config.icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm" style={{ color: '#111827' }}>{n.title}</p>
-                            <p className="text-[13px] line-clamp-2 mt-0.5" style={{ color: '#6b7280' }}>{n.message}</p>
+                            <p className="font-bold text-sm" style={{ color: 'var(--dropdown-text)' }}>{n.title}</p>
+                            <p className="text-[13px] line-clamp-2 mt-0.5" style={{ color: 'var(--text-muted)' }}>{n.message}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[11px]" style={{ color: '#9ca3af' }} title={n.time}>{n.time}</span>
+                              <span className="text-[11px]" style={{ color: 'var(--text-faint)' }} title={n.time}>{n.time}</span>
                               {n.orderId && (
-                                <Link to={`/track/${n.orderId}`} onClick={(e) => e.stopPropagation()} className="px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ background: '#fff7ed', color: PRIMARY }}>
+                                <Link to={`/track/${n.orderId}`} onClick={(e) => e.stopPropagation()} className="px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ background: 'var(--brand-tint-strong)', color: PRIMARY }}>
                                   {n.orderId}
                                 </Link>
                               )}
@@ -266,24 +266,25 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
                                   animate={{ opacity: 1 }}
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === n.id ? null : n.id); }}
-                                  className="p-1 rounded hover:bg-gray-200"
+                                  className="p-1 rounded hover:bg-[var(--bg-hover)]"
                                 >
-                                  <MoreVertical className="w-4 h-4" style={{ color: '#6b7280' }} />
+                                  <MoreVertical className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                                 </motion.button>
                                 {menuOpenId === n.id && (
                                   <motion.div
                                     initial={{ opacity: 0, y: -4 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="absolute right-0 top-full mt-1 py-1 w-44 rounded-lg bg-white border border-gray-200 shadow-lg z-10"
+                                    className="absolute right-0 top-full mt-1 py-1 w-44 rounded-lg border shadow-lg z-10"
+                                    style={{ background: 'var(--dropdown-bg)', borderColor: 'var(--dropdown-border)' }}
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    <button type="button" onClick={() => { markAsRead(n.id, n); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                                    <button type="button" onClick={() => { markAsRead(n.id, n); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-hover)]" style={{ color: 'var(--dropdown-text)' }}>
                                       {t('notifications.markAsRead')}
                                     </button>
-                                    <button type="button" onClick={() => { deleteNotification(n.id); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">
+                                    <button type="button" onClick={() => { deleteNotification(n.id); setMenuOpenId(null); }} className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--badge-error-bg)]" style={{ color: 'var(--badge-error-text)' }}>
                                       {t('notifications.delete')}
                                     </button>
-                                    <button type="button" onClick={() => setMenuOpenId(null)} className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                                    <button type="button" onClick={() => setMenuOpenId(null)} className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-hover)]" style={{ color: 'var(--dropdown-text)' }}>
                                       {t('notifications.muteType')}
                                     </button>
                                   </motion.div>
@@ -300,8 +301,8 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
             </div>
 
             {/* Footer */}
-            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: '#f4f5f7', background: '#fafafa', borderRadius: '0 0 20px 20px' }}>
-              <span className="text-xs" style={{ color: '#9ca3af' }}>{t('notifications.showing')} {filtered.length} / {notifications.length}</span>
+            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: 'var(--divider)', background: 'var(--bg-tertiary)', borderRadius: '0 0 20px 20px' }}>
+              <span className="text-xs" style={{ color: 'var(--text-faint)' }}>{t('notifications.showing')} {filtered.length} / {notifications.length}</span>
               <Link to="/notifications" onClick={onClose} className="text-xs font-semibold flex items-center gap-0.5 hover:gap-1 transition-all" style={{ color: PRIMARY }}>
                 {t('notifications.viewAll')} →
               </Link>

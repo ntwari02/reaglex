@@ -238,12 +238,12 @@ export default function SupportDashboard() {
                 {metrics.fraudAlerts}
               </p>
             </div>
-            <div className="rounded-full bg-orange-100 p-3 dark:bg-orange-900/40">
-              <Shield className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            <div className="rounded-full bg-[var(--brand-tint-strong)] p-3 dark:bg-[var(--brand-tint-strong)]">
+              <Shield className="h-6 w-6 text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]" />
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className="text-orange-600 dark:text-orange-400">Action required</span>
+            <span className="text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]">Action required</span>
           </div>
         </motion.div>
 

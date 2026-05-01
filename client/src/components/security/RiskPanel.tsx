@@ -60,7 +60,7 @@ export function RiskPanel({ samples }: { samples: RiskSample[] }) {
         )}
       </div>
       <div className="mt-4 flex items-center gap-2 text-[10px] text-slate-500">
-        <Flame className="w-3.5 h-3.5 text-orange-500" />
+        <Flame className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
         Patterns: failed logins, burst requests, privilege probes, flagged behavior.
       </div>
     </div>

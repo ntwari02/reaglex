@@ -240,7 +240,7 @@ export default function ReviewModuleSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-50"
+          className="rounded-xl bg-gradient-to-r from-amber-500 via-[var(--brand-primary)] to-amber-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-50"
         >
           {saved ? (
             <>

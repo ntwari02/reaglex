@@ -172,7 +172,7 @@ const DashboardOverview: React.FC = () => {
       change: dashboardData.stats.lowStockItems.change,
       trend: dashboardData.stats.lowStockItems.trend,
       icon: Package,
-      color: 'from-red-500 to-orange-500',
+      color: 'from-red-500 to-[var(--brand-primary)]',
     },
   ] : [];
 
@@ -184,7 +184,7 @@ const DashboardOverview: React.FC = () => {
       change: dashboardData.stats.pendingRFQs.change,
       trend: dashboardData.stats.pendingRFQs.trend,
       icon: AlertTriangle,
-      color: 'from-amber-500 to-orange-500',
+      color: 'from-amber-500 to-[var(--brand-primary)]',
     },
     {
       title: 'Avg. Order Value (AOV)',
@@ -529,7 +529,7 @@ const DashboardOverview: React.FC = () => {
               Account Status
             </h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-red-500/10 to-orange-500/10 dark:from-red-500/20 dark:to-orange-500/20 rounded-lg border border-red-200 dark:border-red-500/30">
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-red-500/10 to-[var(--brand-primary)]/10 dark:from-red-500/20 dark:to-[var(--brand-primary)]/20 rounded-lg border border-red-200 dark:border-red-500/30">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">Seller Tier</p>
                   <p className="font-bold text-gray-900 dark:text-white transition-colors duration-300">

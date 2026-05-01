@@ -55,7 +55,7 @@ export default function LiveTracking() {
       out_for_delivery: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200',
       delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
       failed: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
-      returned: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200',
+      returned: 'bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]',
     };
     const labels: Record<string, string> = {
       packed: 'Packed',

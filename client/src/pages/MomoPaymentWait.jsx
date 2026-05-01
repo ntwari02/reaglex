@@ -98,7 +98,7 @@ export default function MomoPaymentWait() {
       <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-12">
         <Link
           to="/account"
-          className="mb-8 flex items-center gap-2 self-start text-sm font-semibold text-gray-500 hover:text-orange-500"
+          className="mb-8 flex items-center gap-2 self-start text-sm font-semibold text-gray-500 hover:text-[var(--brand-primary)]"
         >
           <ArrowLeft className="h-4 w-4" /> {t('checkout.backToCart')}
         </Link>
@@ -136,7 +136,7 @@ export default function MomoPaymentWait() {
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-orange-500/30"
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
               >
                 <RefreshCw className="h-4 w-4" /> {t('checkout.momoWait.retry')}
               </button>
@@ -146,7 +146,7 @@ export default function MomoPaymentWait() {
               <p className="text-sm text-red-600 dark:text-red-400">{message}</p>
               <Link
                 to="/checkout"
-                className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-orange-500/30"
+                className="inline-flex items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
               >
                 {t('checkout.momoWait.backCheckout')}
               </Link>
@@ -155,7 +155,7 @@ export default function MomoPaymentWait() {
             <p className="text-center text-sm text-red-600">{message}</p>
           ) : (
             <div className="flex flex-col items-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-[var(--brand-primary)]" />
               <p className="text-center text-sm text-gray-600 dark:text-gray-400">{message || t('checkout.momoWait.waiting')}</p>
             </div>
           )}

@@ -241,8 +241,8 @@ export function ComboChart({
           {/* Gradients */}
           <defs>
             <linearGradient id="barGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="100%" stopColor="#ea580c" />
+              <stop offset="0%" stopColor="var(--brand-primary)" />
+              <stop offset="100%" stopColor="var(--brand-primary-hover)" />
             </linearGradient>
             <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor={lineColor} stopOpacity="0.5" />
@@ -254,7 +254,7 @@ export function ComboChart({
         {/* Legend */}
         <div className="absolute top-0 right-0 flex gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full"></div>
+            <div className="w-3 h-3 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-hover)] rounded-full"></div>
             <span className="text-gray-600 dark:text-gray-400">{barLabel}</span>
           </div>
           <div className="flex items-center gap-2">

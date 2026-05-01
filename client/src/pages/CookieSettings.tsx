@@ -46,7 +46,7 @@ type ToggleProps = {
 };
 
 function CookieToggle({ on, locked, onChange }: ToggleProps) {
-  const trackColor = locked ? '#34d399' : on ? '#f97316' : 'var(--toggle-off-bg, #e2e8f0)';
+  const trackColor = locked ? '#34d399' : on ? 'var(--brand-primary)' : 'var(--toggle-off-bg, #e2e8f0)';
   const thumbX = on ? 24 : 2;
 
   return (
@@ -60,7 +60,7 @@ function CookieToggle({ on, locked, onChange }: ToggleProps) {
         borderRadius: 999,
         background: trackColor,
         boxShadow: on
-          ? '0 0 0 3px rgba(249,115,22,0.20)'
+          ? '0 0 0 3px color-mix(in srgb, var(--brand-primary) 20%, transparent)'
           : '0 0 0 0 rgba(0,0,0,0)',
         padding: 0,
         border: 'none',
@@ -86,7 +86,7 @@ function CookieToggle({ on, locked, onChange }: ToggleProps) {
           width: 22,
           height: 22,
           borderRadius: '999px',
-          background: '#ffffff',
+          background: 'var(--text-on-accent)',
           boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
           transform: `translateX(${thumbX}px)`,
           transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
@@ -235,7 +235,7 @@ function CookieSettings() {
           style={{
             padding: '80px 40px',
             background:
-              'linear-gradient(135deg,#0f0c24 0%, #1a0f3a 40%, #0d1f3a 70%, #0a1628 100%)',
+              'var(--hero-marketing-bg)',
           }}
         >
           {/* floating blobs */}
@@ -248,7 +248,7 @@ function CookieSettings() {
               style={{
                 width: 260,
                 height: 260,
-                background: 'rgba(249,115,22,0.20)',
+                background: 'var(--hero-marketing-blob-c)',
                 filter: 'blur(90px)',
               }}
             />
@@ -260,7 +260,7 @@ function CookieSettings() {
               style={{
                 width: 220,
                 height: 220,
-                background: 'rgba(96,165,250,0.18)',
+                background: 'var(--hero-marketing-blob-a)',
                 filter: 'blur(80px)',
               }}
             />
@@ -272,7 +272,7 @@ function CookieSettings() {
               style={{
                 width: 260,
                 height: 260,
-                background: 'rgba(124,58,237,0.20)',
+                background: 'var(--hero-marketing-blob-b)',
                 filter: 'blur(90px)',
               }}
             />
@@ -287,8 +287,8 @@ function CookieSettings() {
             <div className="inline-flex items-center justify-center">
               <span
                 style={{
-                  background: 'rgba(249,115,22,0.15)',
-                  color: '#fb923c',
+                  background: 'var(--badge-info-bg)',
+                  color: 'var(--badge-info-text)',
                   borderRadius: 999,
                   padding: '6px 16px',
                   fontSize: 13,
@@ -301,7 +301,7 @@ function CookieSettings() {
             <div className="space-y-3">
               <h1
                 className="font-extrabold leading-tight"
-                style={{ color: '#ffffff', fontSize: 48 }}
+                style={{ color: 'var(--hero-marketing-heading)', fontSize: 48 }}
               >
                 Your Privacy,
               </h1>
@@ -309,16 +309,17 @@ function CookieSettings() {
                 className="font-extrabold leading-tight"
                 style={{
                   fontSize: 48,
-                  background: 'linear-gradient(135deg,#f97316,#fb923c)',
+                  background: 'var(--hero-marketing-line2-gradient)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
                 }}
               >
                 Your Choice
               </p>
               <p
                 className="mx-auto max-w-xl text-base"
-                style={{ color: 'rgba(255,255,255,0.60)', fontSize: 16 }}
+                style={{ color: 'var(--hero-marketing-subtitle)', fontSize: 16 }}
               >
                 Control how Reaglex uses cookies to personalize your experience. Your
                 preferences are saved instantly.
@@ -330,8 +331,8 @@ function CookieSettings() {
                   <span
                     key={label}
                     style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      color: 'rgba(255,255,255,0.85)',
+                      background: 'var(--hero-marketing-chip-bg)',
+                      color: 'var(--hero-marketing-chip-text)',
                       borderRadius: 999,
                       padding: '6px 16px',
                       backdropFilter: 'blur(10px)',
@@ -363,8 +364,8 @@ function CookieSettings() {
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-full text-xl"
                 style={{
-                  background: 'linear-gradient(135deg,#f97316,#ea580c)',
-                  boxShadow: '0 0 24px rgba(234,88,12,0.6)',
+                  background: 'var(--gradient-brand-cta)',
+                  boxShadow: '0 0 24px color-mix(in srgb, var(--brand-primary-hover) 60%, transparent)',
                 }}
               >
                 🍪
@@ -447,7 +448,7 @@ function CookieSettings() {
               transition={{ duration: 0.45 }}
               className="grid gap-8 rounded-[24px] px-6 py-8 md:grid-cols-[1.2fr_1fr]"
               style={{
-                background: 'linear-gradient(145deg,#1a0f3a 0%,#0d1f3a 100%)',
+                background: 'var(--panel-deep-bg)',
                 boxShadow: 'var(--shadow-xl)',
               }}
             >
@@ -477,7 +478,7 @@ function CookieSettings() {
                     <li key={item} className="flex gap-2">
                       <span
                         className="mt-1 h-1.5 w-1.5 rounded-full"
-                        style={{ background: '#f97316' }}
+                        style={{ background: 'var(--brand-primary)' }}
                       />
                       <span style={{ color: 'rgba(248,250,252,0.90)' }}>{item}</span>
                     </li>
@@ -489,22 +490,22 @@ function CookieSettings() {
                   {
                     label: 'Essential',
                     value: 100,
-                    color: 'linear-gradient(135deg,#f97316,#ea580c)',
+                    color: 'var(--gradient-brand-cta)',
                   },
                   {
                     label: 'Analytics',
                     value: prefs.analytics ? 60 : 0,
-                    color: 'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+                    color: 'var(--accent-marketing-gradient)',
                   },
                   {
                     label: 'Marketing',
                     value: prefs.marketing ? 40 : 0,
-                    color: 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+                    color: 'var(--accent-violet-gradient)',
                   },
                   {
                     label: 'Preferences',
                     value: prefs.personalization ? 80 : 0,
-                    color: 'linear-gradient(135deg,#22c55e,#16a34a)',
+                    color: 'var(--accent-success-gradient)',
                   },
                 ].map((bar) => (
                   <div key={bar.label}>
@@ -567,7 +568,7 @@ function CookieSettings() {
                   >
                     <span
                       className="h-2 w-2 rounded-full"
-                      style={{ background: '#f97316' }}
+                      style={{ background: 'var(--brand-primary)' }}
                     />
                     <span
                       className="text-xs font-semibold"
@@ -581,7 +582,7 @@ function CookieSettings() {
                       className="rounded-full px-3 py-1 text-xs font-semibold text-white"
                       style={{
                         background:
-                          'linear-gradient(135deg,#f97316,#ea580c)',
+                          'var(--gradient-brand-cta)',
                       }}
                     >
                       Save Preferences
@@ -632,7 +633,7 @@ function CookieSettings() {
                 subtitle="Help us understand how you use Reaglex"
                 description="These cookies collect anonymous information about how visitors use Reaglex. This helps us improve the site, fix bugs, and understand which features are most useful. All data is anonymized."
                 icon="📊"
-                iconGradient="linear-gradient(135deg,#3b82f6,#1d4ed8)"
+                iconGradient="var(--accent-marketing-gradient)"
                 cookiesCount={6}
                 badges={[{ label: '6 cookies', tone: 'neutral' }]}
                 cookies={[
@@ -654,8 +655,8 @@ function CookieSettings() {
                     <div
                       className="mt-3 rounded-[12px] px-4 py-3 text-xs"
                       style={{
-                        background: 'var(--status-info-bg, #060f22)',
-                        color: '#60a5fa',
+                        background: 'var(--badge-info-bg)',
+                        color: 'var(--badge-info-text)',
                       }}
                     >
                       ℹ️ Disabling analytics means we can&apos;t improve your experience
@@ -693,7 +694,7 @@ function CookieSettings() {
                     className="mt-3 rounded-[12px] px-4 py-3 text-xs"
                     style={{
                       background: 'rgba(248,153,90,0.10)',
-                      color: '#fb923c',
+                      color: 'var(--brand-primary-hover)',
                     }}
                   >
                     We never sell your data to third parties. Marketing cookies are used
@@ -753,7 +754,7 @@ function CookieSettings() {
                 subtitle="Enable social sharing features"
                 description="Social cookies enable features like sharing products to Facebook, Twitter, or WhatsApp. They may also allow social networks to track your visit."
                 icon="👥"
-                iconGradient="linear-gradient(135deg,#f97316,#ec4899)"
+                iconGradient="linear-gradient(135deg,var(--brand-primary),#ec4899)"
                 cookiesCount={4}
                 badges={[{ label: '4 cookies', tone: 'neutral' }]}
                 cookies={[
@@ -833,7 +834,7 @@ function CookieSettings() {
                 className="flex gap-4 px-6 py-4 text-[11px] font-semibold uppercase tracking-wide"
                 style={{
                   background:
-                    'linear-gradient(135deg,#1a0f3a,#0d1f3a)',
+                    'var(--panel-deep-bg)',
                   color: 'rgba(255,255,255,0.60)',
                 }}
               >
@@ -882,13 +883,13 @@ function CookieSettings() {
                             kind === 'accepted'
                               ? 'rgba(34,197,94,0.15)'
                               : kind === 'updated'
-                              ? 'rgba(249,115,22,0.15)'
+                              ? 'var(--brand-tint-strong)'
                               : 'rgba(148,163,184,0.15)',
                           color:
                             kind === 'accepted'
                               ? '#22c55e'
                               : kind === 'updated'
-                              ? '#f97316'
+                              ? 'var(--brand-primary)'
                               : '#9ca3af',
                           boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.15)',
                         }}
@@ -931,7 +932,7 @@ function CookieSettings() {
                   title: 'Right to Access',
                   desc: 'Request a copy of all personal data we hold about you.',
                   link: 'Request Data →',
-                  color: '#3b82f6',
+                  color: 'var(--accent-marketing-text)',
                 },
                 {
                   icon: '🗑️',
@@ -945,7 +946,7 @@ function CookieSettings() {
                   title: 'Right to Rectification',
                   desc: 'Correct any inaccurate personal data we hold about you.',
                   link: 'Update Data →',
-                  color: '#f97316',
+                  color: 'var(--brand-primary)',
                 },
                 {
                   icon: '📦',
@@ -1012,7 +1013,7 @@ function CookieSettings() {
             <div
               className="rounded-[20px] p-6 md:p-7"
               style={{
-                background: 'linear-gradient(145deg,#1a0f3a,#0d1f3a)',
+                background: 'var(--panel-deep-bg)',
                 boxShadow: 'var(--shadow-xl)',
               }}
             >
@@ -1076,7 +1077,7 @@ function CookieSettings() {
                     className="rounded-[12px] px-5 py-2 text-xs font-semibold text-white"
                     style={{
                       background:
-                        'linear-gradient(135deg,#f97316,#ea580c)',
+                        'var(--gradient-brand-cta)',
                     }}
                   >
                     Submit Request
@@ -1118,7 +1119,7 @@ function CookieSettings() {
               {[
                 {
                   name: 'Google Analytics',
-                  color: '#3b82f6',
+                  color: 'var(--accent-marketing-text)',
                   desc: 'Website analytics & performance',
                   badge: 'Analytics',
                   key: 'analytics' as const,
@@ -1136,7 +1137,7 @@ function CookieSettings() {
                 },
                 {
                   name: 'Facebook Pixel',
-                  color: '#2563eb',
+                  color: 'var(--link-color)',
                   desc: 'Social advertising tracking',
                   badge: 'Marketing',
                   key: 'marketing' as const,
@@ -1145,7 +1146,7 @@ function CookieSettings() {
                 },
                 {
                   name: 'Cloudflare',
-                  color: '#f97316',
+                  color: 'var(--brand-primary)',
                   desc: 'Performance & security CDN',
                   badge: 'Performance',
                   key: 'performance' as const,
@@ -1212,7 +1213,7 @@ function CookieSettings() {
                         <button
                           type="button"
                           className="text-[11px] font-semibold"
-                          style={{ color: '#f97316' }}
+                          style={{ color: 'var(--brand-primary)' }}
                         >
                           Privacy Policy →
                         </button>
@@ -1306,7 +1307,7 @@ function CookieSettings() {
                           <button
                             type="button"
                             className="mt-1 text-[11px] font-semibold"
-                            style={{ color: '#fb923c' }}
+                            style={{ color: 'var(--brand-primary-hover)' }}
                           >
                             Learn more →
                           </button>
@@ -1339,8 +1340,8 @@ function CookieSettings() {
                           className="rounded-[10px] px-3 py-1.5 font-semibold"
                           style={{
                             background: 'transparent',
-                            color: '#f97316',
-                            boxShadow: '0 0 0 1px rgba(249,115,22,0.6)',
+                            color: 'var(--brand-primary)',
+                            boxShadow: '0 0 0 1px color-mix(in srgb, var(--brand-primary) 60%, transparent)',
                           }}
                         >
                           Customize
@@ -1431,7 +1432,7 @@ function CookieSettings() {
               />
               <DangerCard
                 icon="↺"
-                color="#60a5fa"
+                color="var(--accent-marketing-text)"
                 title="Reset to Default"
                 description="Resets all cookie preferences to their default values. Essential ON, others as originally set."
                 buttonLabel="Reset All"
@@ -1458,7 +1459,7 @@ function CookieSettings() {
               className="flex flex-col gap-5 rounded-[24px] px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-10"
               style={{
                 background:
-                  'linear-gradient(135deg,#1a0f3a 0%,#0d1f3a 50%,#111420 100%)',
+                  'var(--panel-deep-bg)',
                 boxShadow: 'var(--shadow-xl)',
               }}
             >
@@ -1466,7 +1467,7 @@ function CookieSettings() {
                 <div
                   className="mt-1 flex h-14 w-14 items-center justify-center rounded-full text-2xl"
                   style={{
-                    background: 'linear-gradient(135deg,#f97316,#fb923c)',
+                    background: 'var(--gradient-brand-cta)',
                     boxShadow: '0 0 30px rgba(248,153,90,0.6)',
                   }}
                 >
@@ -1501,8 +1502,8 @@ function CookieSettings() {
                     className="rounded-[12px] px-4 py-2 text-xs font-semibold"
                     style={{
                       background: 'transparent',
-                      color: '#f97316',
-                      boxShadow: '0 0 0 1px rgba(249,115,22,0.7)',
+                      color: 'var(--brand-primary)',
+                      boxShadow: '0 0 0 1px color-mix(in srgb, var(--brand-primary) 70%, transparent)',
                     }}
                   >
                     📧 Email Privacy Team
@@ -1523,7 +1524,7 @@ function CookieSettings() {
                     className="rounded-[12px] px-4 py-2 text-xs font-semibold text-white"
                     style={{
                       background:
-                        'linear-gradient(135deg,#f97316,#ea580c)',
+                        'var(--gradient-brand-cta)',
                     }}
                   >
                     💬 Chat With Us
@@ -1554,7 +1555,7 @@ function CookieSettings() {
                 <div className="flex items-start gap-2 text-xs sm:text-sm">
                   <span
                     className="mt-1 h-2 w-2 rounded-full"
-                    style={{ background: '#f97316' }}
+                    style={{ background: 'var(--brand-primary)' }}
                   />
                   <div>
                     <p
@@ -1592,8 +1593,8 @@ function CookieSettings() {
                     style={{
                       background: saving
                         ? 'linear-gradient(135deg,#22c55e,#16a34a)'
-                        : 'linear-gradient(135deg,#f97316,#ea580c)',
-                      boxShadow: '0 0 20px rgba(249,115,22,0.6)',
+                        : 'var(--gradient-brand-cta)',
+                      boxShadow: '0 0 20px color-mix(in srgb, var(--brand-primary) 60%, transparent)',
                     }}
                   >
                     {saving ? 'Saving...' : saveSuccess ? '✓ Saved!' : 'Save My Preferences →'}
@@ -1658,7 +1659,7 @@ function CookieSettings() {
                       background:
                         pendingDangerAction === 'delete-data'
                           ? 'linear-gradient(135deg,#ef4444,#b91c1c)'
-                          : 'linear-gradient(135deg,#f97316,#ea580c)',
+                          : 'var(--gradient-brand-cta)',
                     }}
                     onClick={() => setPendingDangerAction(null)}
                   >
@@ -1821,7 +1822,7 @@ function CategoryCard({
                       className="inline-flex items-center justify-start rounded-[6px] px-2 py-1 font-mono text-[11px]"
                       style={{
                         background: '#1a1e2c',
-                        color: '#fb923c',
+                        color: 'var(--brand-primary-hover)',
                       }}
                     >
                       {name}

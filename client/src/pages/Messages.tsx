@@ -1756,7 +1756,7 @@ export function Messages() {
               <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Messages</h1>
                 {totalUnread > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-orange-500 text-white text-xs sm:text-sm font-bold">
+                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-[var(--brand-primary)] text-white text-xs sm:text-sm font-bold">
                     {totalUnread > 99 ? '99+' : totalUnread}
                   </span>
                 )}
@@ -1798,7 +1798,7 @@ export function Messages() {
                   placeholder="Search conversations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]"
                 />
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0">
@@ -1815,7 +1815,7 @@ export function Messages() {
                       onClick={() => setFilter(filterOption.id as FilterType)}
                       className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap active:scale-95 ${
                         filter === filterOption.id
-                          ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                          ? 'bg-[var(--brand-tint-strong)] dark:bg-[var(--brand-tint)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -1856,14 +1856,14 @@ export function Messages() {
                   placeholder="Search or start new chat"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]"
                 />
               </div>
             </div>
             <div className="flex-1 overflow-y-auto">
               {loading ? (
                 <div className="flex items-center justify-center p-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                  <Loader2 className="w-5 h-5 animate-spin text-[var(--brand-primary)]" />
                 </div>
               ) : filteredThreads.length === 0 ? (
                 <div className="p-8 text-center">
@@ -1896,12 +1896,12 @@ export function Messages() {
                           setSelectedThread(thread._id);
                         }}
                         className={`w-full p-2.5 sm:p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 active:bg-gray-100 dark:active:bg-gray-700 transition-colors ${
-                          isActive ? 'bg-orange-50 dark:bg-orange-900/10 border-l-4 border-orange-500' : ''
+                          isActive ? 'bg-[var(--brand-tint)] dark:bg-[var(--brand-tint)] border-l-4 border-[var(--brand-primary)]' : ''
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="relative flex-shrink-0">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-teal-500 overflow-hidden">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-teal-500 overflow-hidden">
                               {seller?.avatarUrl && seller.avatarUrl.trim() ? (
                               <img
                                   src={resolveAvatarUrl(seller.avatarUrl) || seller.avatarUrl}
@@ -1969,7 +1969,7 @@ export function Messages() {
                               );
                             })()}
                               {thread.buyerUnreadCount > 0 && (
-                                <span className="bg-orange-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0 min-w-[20px]">
+                                <span className="bg-[var(--brand-primary-hover)] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0 min-w-[20px]">
                                   {thread.buyerUnreadCount > 9 ? '9+' : thread.buyerUnreadCount}
                               </span>
                             )}
@@ -2006,7 +2006,7 @@ export function Messages() {
                       <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     </button>
                     <div className="relative flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-teal-500 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-teal-500 overflow-hidden">
                         {typeof activeThread.sellerId === 'object' && activeThread.sellerId.avatarUrl && activeThread.sellerId.avatarUrl.trim() ? (
                           <img
                             src={resolveAvatarUrl(activeThread.sellerId.avatarUrl) || activeThread.sellerId.avatarUrl}
@@ -2100,7 +2100,7 @@ export function Messages() {
                         )}
                         <div className={`flex gap-2 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
                           {!isOwnMessage && (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-teal-500 overflow-hidden flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-teal-500 overflow-hidden flex-shrink-0">
                               {sender?.avatarUrl && sender.avatarUrl.trim() ? (
                                 <img
                                   src={resolveAvatarUrl(sender.avatarUrl) || ''}
@@ -2185,7 +2185,7 @@ export function Messages() {
                               {/* Sender name with avatar for received messages */}
                               {!isOwnMessage && sender && (
                                 <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-gray-200 dark:border-gray-700">
-                                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-orange-400 to-teal-500 flex items-center justify-center text-[9px] font-semibold text-white flex-shrink-0 overflow-hidden">
+                                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-teal-500 flex items-center justify-center text-[9px] font-semibold text-white flex-shrink-0 overflow-hidden">
                                     {sender.avatarUrl && sender.avatarUrl.trim() ? (
                                       <img
                                         src={sender.avatarUrl}
@@ -2242,10 +2242,10 @@ export function Messages() {
                                     <div className={`mb-2 px-2 py-1.5 rounded-lg border-l-4 ${
                                       isOwnMessage 
                                         ? 'bg-white/30 dark:bg-white/10 border-white/50' 
-                                        : 'bg-gray-100 dark:bg-gray-700/50 border-orange-500'
+                                        : 'bg-gray-100 dark:bg-gray-700/50 border-[var(--brand-primary)]'
                                     }`}>
                                       <div className="flex items-center gap-1.5 mb-0.5">
-                                        <Reply className={`w-3 h-3 ${isOwnMessage ? 'text-white/80' : 'text-orange-500'}`} />
+                                        <Reply className={`w-3 h-3 ${isOwnMessage ? 'text-white/80' : 'text-[var(--brand-primary)]'}`} />
                                         <span className={`text-[10px] font-semibold ${isOwnMessage ? 'text-white/90' : 'text-gray-700 dark:text-gray-300'}`}>
                                           {typeof message.replyTo === 'object' && message.replyTo.senderId 
                                             ? (typeof message.replyTo.senderId === 'object' 
@@ -2271,9 +2271,9 @@ export function Messages() {
                                               id={`message-${message._id}`}
                                               className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
                                                 isPlaying(message._id, idx)
-                                                  ? 'bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-500'
+                                                  ? 'bg-[var(--brand-tint-strong)] dark:bg-[var(--brand-tint-strong)] border-2 border-[var(--brand-primary)]'
                                                   : isInSequence(message._id, idx)
-                                                  ? 'bg-orange-50 dark:bg-orange-900/10 border border-orange-300 dark:border-orange-700'
+                                                  ? 'bg-[var(--brand-tint)] dark:bg-[var(--brand-tint)] border border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)]'
                                                   : 'bg-black/10 dark:bg-white/10'
                                               }`}
                                             >
@@ -2292,15 +2292,15 @@ export function Messages() {
                                                 }}
                                                 className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all flex-shrink-0 relative ${
                                                   isPlaying(message._id, idx)
-                                                    ? 'bg-orange-600 hover:bg-orange-700 animate-pulse shadow-lg'
-                                                    : 'bg-orange-500 hover:bg-orange-600'
+                                                    ? 'bg-[var(--brand-primary-hover)] hover:bg-[color-mix(in_srgb,var(--brand-primary-hover)_85%,#000)] animate-pulse shadow-lg'
+                                                    : 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)]'
                                                 }`}
                                                 title={isPlaying(message._id, idx) ? 'Pause playback' : 'Play voice note (autoplay enabled)'}
                                               >
                                                 {isPlaying(message._id, idx) ? (
                                                   <>
                                                     <X className="w-4 h-4" />
-                                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-400 rounded-full animate-ping" />
+                                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[var(--brand-orange-text)] rounded-full animate-ping" />
                                                   </>
                                                 ) : (
                                                   <Play className="w-4 h-4 ml-0.5" />
@@ -2323,15 +2323,15 @@ export function Messages() {
                                                     }
                                                   }}
                                                   className="mb-1"
-                                                  waveformColor="rgb(249 115 22)" // orange-500
-                                                  progressColor="rgb(234 88 12)" // orange-600
+                                                  waveformColor="var(--brand-primary)"
+                                                  progressColor="var(--brand-primary-hover)"
                                                   />
                                                 <div className="flex items-center gap-2 justify-between">
                                                   <span className="text-[10px] text-gray-600 dark:text-gray-400">
                                                     {attachment.duration ? `${Math.floor(attachment.duration)}s` : 'Voice'}
                                                   </span>
                                                   {isInSequence(message._id, idx) && !isPlaying(message._id, idx) && (
-                                                    <span className="text-[8px] text-orange-500 dark:text-orange-400 opacity-75">
+                                                    <span className="text-[8px] text-[var(--brand-primary)] dark:text-[var(--brand-orange-text)] opacity-75">
                                                       (in queue)
                                                     </span>
                                                   )}
@@ -2529,10 +2529,10 @@ export function Messages() {
                     />
                   )}
                   {replyTo && (
-                    <div className="mb-2 p-2.5 bg-gray-100 dark:bg-gray-800 rounded-lg border-l-4 border-orange-500 flex items-start justify-between gap-2">
+                    <div className="mb-2 p-2.5 bg-gray-100 dark:bg-gray-800 rounded-lg border-l-4 border-[var(--brand-primary)] flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <Reply className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
+                          <Reply className="w-3.5 h-3.5 text-[var(--brand-primary)] flex-shrink-0" />
                           <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
                             {typeof replyTo.senderId === 'object' 
                               ? (replyTo.senderId.fullName || 'User')
@@ -2684,7 +2684,7 @@ export function Messages() {
                               }
                             }}
                             disabled={sending || recordingDuration === 0}
-                            className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0 transition-colors"
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0 transition-colors"
                             title="Send voice note"
                           >
                             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -2942,7 +2942,7 @@ export function Messages() {
                           <button
                       onClick={handleSendMessage}
                             disabled={sending}
-                            className="inline-flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0 transition-colors shadow-md active:scale-95"
+                            className="inline-flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white flex-shrink-0 transition-colors shadow-md active:scale-95"
                             title="Send message"
                           >
                             {sending ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
@@ -2996,13 +2996,13 @@ export function Messages() {
               </label>
               {loadingSellers ? (
                 <div className="flex items-center justify-center p-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                  <Loader2 className="w-5 h-5 animate-spin text-[var(--brand-primary)]" />
                 </div>
               ) : (
                 <select
                   value={newThreadSellerId}
                   onChange={(e) => setNewThreadSellerId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]"
                   required
                 >
                   <option value="">Select a seller...</option>
@@ -3023,7 +3023,7 @@ export function Messages() {
                 value={newThreadSubject}
                 onChange={(e) => setNewThreadSubject(e.target.value)}
                 placeholder="e.g., Question about product availability"
-                className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]"
                 required
               />
             </div>
@@ -3034,7 +3034,7 @@ export function Messages() {
               <select
                 value={newThreadType}
                 onChange={(e) => setNewThreadType(e.target.value as 'rfq' | 'message' | 'order')}
-                className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]"
               >
                 <option value="message">General Message</option>
                 <option value="rfq">RFQ (Request for Quote)</option>

@@ -907,7 +907,7 @@ export default function CollectionManagement() {
                       </span>
                     )}
                     {(collection as any).is_trending && (
-                      <span className="px-2 py-1 rounded bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">
+                      <span className="px-2 py-1 rounded bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)] text-xs">
                         Trending
                       </span>
                     )}

@@ -1150,7 +1150,7 @@ const ProductManagement: React.FC = () => {
             )}
           </div>
           <Button 
-            className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+            className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
             onClick={() => setShowAddProduct(true)}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -1975,7 +1975,7 @@ const ProductManagement: React.FC = () => {
                   onChange={handleVideoProofUpload}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" className="rounded-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600" onClick={() => videoInputRef.current?.click()}>
+                  <Button type="button" className="rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]" onClick={() => videoInputRef.current?.click()}>
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Video Proof
                   </Button>
@@ -2325,7 +2325,7 @@ const ProductManagement: React.FC = () => {
                 </Button>
                 <Button
                   onClick={handleSaveProduct}
-                  className="w-full sm:w-auto rounded-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                  className="w-full sm:w-auto rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
                 >
                   <Check className="w-4 h-4 mr-2" />
                   {editingProduct ? 'Save Product' : 'Create Product'}

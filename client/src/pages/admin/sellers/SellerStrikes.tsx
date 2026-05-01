@@ -110,7 +110,7 @@ export default function SellerStrikes({ sellerId }: SellerStrikesProps) {
   const getStrikeTypeBadge = (type: StrikeType) => {
     const styles = {
       warning: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-      strike: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200',
+      strike: 'bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]',
       suspension: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
       ban: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
     };
@@ -123,7 +123,7 @@ export default function SellerStrikes({ sellerId }: SellerStrikesProps) {
     const styles = {
       low: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
       medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-      high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200',
+      high: 'bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]',
       critical: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
     };
     return (
@@ -152,7 +152,7 @@ export default function SellerStrikes({ sellerId }: SellerStrikesProps) {
       {/* Summary Cards */}
       <div className="grid gap-4 lg:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 text-white">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 via-[var(--brand-primary)] to-red-500 text-white">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Strikes</p>

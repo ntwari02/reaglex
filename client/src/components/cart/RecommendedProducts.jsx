@@ -45,7 +45,7 @@ export default function RecommendedProducts({ excludeIds = [] }) {
     <div>
       <h3
         className="text-xs font-bold uppercase tracking-widest mb-4"
-        style={{ color: '#6b7280', letterSpacing: '0.1em' }}
+        style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}
       >
         You might also like
       </h3>
@@ -70,9 +70,9 @@ export default function RecommendedProducts({ excludeIds = [] }) {
               whileHover={{ y: -2 }}
               className="rounded-2xl overflow-hidden"
               style={{
-                background: 'white',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
-                border: '1px solid #f3f4f6',
+                background: 'var(--card-bg)',
+                boxShadow: 'var(--shadow-sm)',
+                border: '1px solid var(--divider)',
               }}
             >
               {/* Main row */}
@@ -81,7 +81,7 @@ export default function RecommendedProducts({ excludeIds = [] }) {
                 <motion.div
                   whileHover={{ scale: 1.06 }}
                   className="flex-shrink-0 rounded-xl overflow-hidden"
-                  style={{ width: 52, height: 52, background: '#f9fafb' }}
+                  style={{ width: 52, height: 52, background: 'var(--bg-tertiary)' }}
                 >
                   <img
                     src={img}
@@ -96,7 +96,7 @@ export default function RecommendedProducts({ excludeIds = [] }) {
 
                 {/* Name + colors */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: '#111827' }}>
+                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                     {name}
                   </p>
                   {/* Color dots */}
@@ -116,7 +116,7 @@ export default function RecommendedProducts({ excludeIds = [] }) {
 
                 {/* Price + expand */}
                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                  <span className="text-sm font-bold" style={{ color: '#111827' }}>
+                  <span className="text-sm font-bold" style={{ color: 'var(--text-price)' }}>
                     ${price.toFixed(2)}
                   </span>
                   <motion.button
@@ -125,7 +125,7 @@ export default function RecommendedProducts({ excludeIds = [] }) {
                     onClick={() => setExpanded(isOpen ? null : id)}
                     className="w-6 h-6 rounded-full flex items-center justify-center"
                     style={{
-                      background: isOpen ? '#111827' : '#f3f4f6',
+                      background: isOpen ? 'var(--text-primary)' : 'var(--bg-tertiary)',
                       transition: 'background 0.2s',
                     }}
                   >
@@ -135,7 +135,7 @@ export default function RecommendedProducts({ excludeIds = [] }) {
                     >
                       <ChevronRight
                         className="w-3.5 h-3.5"
-                        style={{ color: isOpen ? 'white' : '#374151' }}
+                        style={{ color: isOpen ? 'var(--card-bg)' : 'var(--text-secondary)' }}
                       />
                     </motion.span>
                   </motion.button>
@@ -151,9 +151,9 @@ export default function RecommendedProducts({ excludeIds = [] }) {
               >
                 <div
                   className="px-3 pb-3"
-                  style={{ borderTop: '1px solid #f3f4f6' }}
+                  style={{ borderTop: '1px solid var(--divider)' }}
                 >
-                  <p className="text-xs font-semibold mt-2 mb-2" style={{ color: '#6b7280' }}>
+                  <p className="text-xs font-semibold mt-2 mb-2" style={{ color: 'var(--text-muted)' }}>
                     Select a size
                   </p>
                   <div className="flex flex-wrap gap-2 mb-3">
@@ -161,7 +161,7 @@ export default function RecommendedProducts({ excludeIds = [] }) {
                       <button
                         key={s}
                         className="px-3 py-1 rounded-lg text-xs font-medium border transition-colors hover:border-gray-800 hover:text-gray-800"
-                        style={{ borderColor: '#e5e7eb', color: '#374151' }}
+                        style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}
                       >
                         {s}
                       </button>
@@ -173,8 +173,8 @@ export default function RecommendedProducts({ excludeIds = [] }) {
                     onClick={() => { addItem(product, 1); setExpanded(null); }}
                     className="w-full py-2 rounded-xl text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
                     style={{
-                      background: 'linear-gradient(135deg, #ff8c42, #ff5f00)',
-                      boxShadow: '0 4px 14px rgba(255,140,66,0.3)',
+                      background: 'var(--gradient-brand-cta)',
+                      boxShadow: 'var(--shadow-cta)',
                     }}
                   >
                     <Plus className="w-3.5 h-3.5" />

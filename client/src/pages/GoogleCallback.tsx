@@ -332,7 +332,7 @@ export function GoogleCallback() {
                   value={v}
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="w-10 h-12 text-center text-lg font-semibold rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"
+                  className="w-10 h-12 text-center text-lg font-semibold rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)] outline-none"
                 />
               ))}
             </div>
@@ -340,7 +340,7 @@ export function GoogleCallback() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full h-12 rounded-xl font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full h-12 rounded-xl font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
               {submitting ? 'Verifying…' : 'Verify & continue'}
@@ -378,7 +378,7 @@ export function GoogleCallback() {
                 type="button"
                 onClick={handle2FASetupGetQR}
                 disabled={setupQRLoading}
-                className="w-full h-12 rounded-xl font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full h-12 rounded-xl font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {setupQRLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <KeyRound className="w-5 h-5" />}
                 {setupQRLoading ? 'Loading…' : 'Get QR code'}
@@ -387,7 +387,7 @@ export function GoogleCallback() {
           ) : (
             <form onSubmit={handle2FASetupConfirm} className="space-y-4">
               <div className="flex justify-center">
-                <img src={twoFAQRCode} alt="2FA QR" className="w-36 h-36 rounded-xl border-2 border-orange-200 dark:border-orange-500/30" />
+                <img src={twoFAQRCode} alt="2FA QR" className="w-36 h-36 rounded-xl border-2 border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)]" />
               </div>
               {twoFAManualKey && (
                 <p className="text-[11px] font-mono text-center break-all text-gray-500 dark:text-gray-400">
@@ -406,7 +406,7 @@ export function GoogleCallback() {
                     value={v}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)} 
-                    className="w-10 h-12 text-center text-lg font-semibold rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-orange-500 outline-none"
+                    className="w-10 h-12 text-center text-lg font-semibold rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-[var(--brand-primary)] outline-none"
                   />
                 ))}
               </div>
@@ -414,7 +414,7 @@ export function GoogleCallback() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full h-12 rounded-xl font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full h-12 rounded-xl font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
                 {submitting ? 'Verifying…' : 'Enable 2FA & sign in'}
@@ -436,7 +436,7 @@ export function GoogleCallback() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-primary flex items-center justify-center">
       <div className="text-center">
-        <Loader2 className="w-12 h-12 animate-spin text-orange-500 mx-auto mb-4" />
+        <Loader2 className="w-12 h-12 animate-spin text-[var(--brand-primary)] mx-auto mb-4" />
         <p className="text-gray-600 dark:text-gray-400">Completing sign-in...</p>
       </div>
     </div>

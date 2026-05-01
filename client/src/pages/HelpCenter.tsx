@@ -5,7 +5,7 @@ import { ChevronDown, Search as SearchIcon, Check as CheckIcon, ArrowRight } fro
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { HELP_CATEGORIES, HELP_ARTICLES } from '../data/helpCenterData';
 
-const PRIMARY = '#f97316';
+const PRIMARY = 'var(--brand-primary)';
 
 export default function HelpCenter() {
   const navigate = useNavigate();
@@ -99,7 +99,7 @@ export default function HelpCenter() {
           className="relative w-full px-4 sm:px-6 lg:px-10 py-16 sm:py-20"
           style={{
             background:
-              'linear-gradient(135deg,#0f0c24 0%,#1a0f3a 40%,#0d1f3a 70%,#0a1628 100%)',
+              'var(--hero-marketing-bg)',
           }}
         >
           {/* Floating blobs */}
@@ -131,8 +131,8 @@ export default function HelpCenter() {
               <span
                 className="text-xs font-medium"
                 style={{
-                  background: 'rgba(249,115,22,0.15)',
-                  color: '#fb923c',
+                  background: 'var(--badge-info-bg)',
+                  color: 'var(--badge-info-text)',
                   borderRadius: 999,
                   padding: '6px 16px',
                 }}
@@ -142,13 +142,13 @@ export default function HelpCenter() {
             </div>
             <h1
               className="text-3xl sm:text-4xl lg:text-5xl font-extrabold"
-              style={{ color: '#ffffff' }}
+              style={{ color: 'var(--hero-marketing-heading)' }}
             >
               How can we help you?
             </h1>
             <p
               className="text-sm sm:text-base"
-              style={{ color: 'rgba(255,255,255,0.6)' }}
+              style={{ color: 'var(--hero-marketing-subtitle)' }}
             >
               Search our knowledge base or browse categories below.
             </p>
@@ -165,17 +165,16 @@ export default function HelpCenter() {
                   className="flex items-center gap-3"
                   style={{
                     height: 60,
-                    background: 'rgba(255,255,255,0.10)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-card)',
                     borderRadius: 999,
                     padding: '0 16px 0 20px',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.30)',
+                    boxShadow: 'var(--shadow-md)',
                   }}
                 >
                   <span
                     className="text-lg"
-                    style={{ color: 'rgba(255,255,255,0.7)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     🔍
                   </span>
@@ -188,9 +187,9 @@ export default function HelpCenter() {
                       if (e.key === 'Enter') handleSearch();
                     }}
                     placeholder="Search for help articles..."
-                    className="flex-1 bg-transparent outline-none text-sm sm:text-base"
+                    className="flex-1 bg-transparent outline-none text-sm sm:text-base placeholder:text-[var(--input-placeholder)]"
                     style={{
-                      color: '#ffffff',
+                      color: 'var(--text-primary)',
                     }}
                   />
                   <button
@@ -198,11 +197,11 @@ export default function HelpCenter() {
                     onClick={() => handleSearch()}
                     className="text-xs sm:text-sm font-semibold"
                     style={{
-                      background: PRIMARY,
-                      color: '#ffffff',
+                      background: 'var(--hero-marketing-shield-gradient)',
+                      color: 'var(--text-on-accent)',
                       borderRadius: 999,
                       padding: '8px 20px',
-                      boxShadow: '0 4px 14px rgba(249,115,22,0.4)',
+                      boxShadow: 'var(--hero-marketing-shield-shadow)',
                     }}
                   >
                     Search
@@ -214,12 +213,13 @@ export default function HelpCenter() {
                   <div
                     className="absolute left-0 right-0 mt-3 text-left text-sm"
                     style={{
-                      background: '#111420',
+                      background: 'var(--card-bg)',
                       borderRadius: 16,
-                      boxShadow: '0 18px 45px rgba(0,0,0,0.6)',
+                      border: '1px solid var(--divider)',
+                      boxShadow: 'var(--shadow-xl)',
                     }}
                   >
-                    <div className="px-4 py-3 border-b border-white/5 text-xs font-medium text-white/60">
+                    <div className="px-4 py-3 border-b text-xs font-medium" style={{ borderColor: 'var(--divider)', color: 'var(--text-muted)' }}>
                       Popular:
                     </div>
                     <ul className="py-2">
@@ -229,8 +229,10 @@ export default function HelpCenter() {
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => handleSearch(sug)}
-                            className="w-full text-left px-4 py-2 text-xs sm:text-sm hover:bg-white/5"
-                            style={{ color: 'rgba(255,255,255,0.85)' }}
+                            className="w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors"
+                            style={{ color: 'var(--text-primary)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                           >
                             {sug}
                           </button>
@@ -284,7 +286,7 @@ export default function HelpCenter() {
               <h2 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                 Browse by Category
               </h2>
-              <div className="mt-2 h-[3px] w-24 rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-rose-400" />
+              <div className="mt-2 h-[3px] w-24 rounded-full bg-gradient-to-r from-[var(--brand-primary)] via-amber-400 to-rose-400" />
             </div>
 
             <div className="mt-3" ref={dropdownRef}>
@@ -408,7 +410,7 @@ export default function HelpCenter() {
                                 className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-[10px] text-left text-sm mb-1 transition-colors"
                                 style={{
                                   background: isSelected
-                                    ? 'rgba(249,115,22,0.08)'
+                                    ? 'color-mix(in srgb, var(--brand-primary) 8%, transparent)'
                                     : 'transparent',
                                 }}
                               >
@@ -611,10 +613,11 @@ export default function HelpCenter() {
                 </div>
                 <button
                   type="button"
-                  className="mt-2 w-full py-2.5 rounded-[12px] text-xs font-semibold text-white"
+                  className="mt-2 w-full py-2.5 rounded-[12px] text-xs font-semibold"
                   style={{
-                    background: 'linear-gradient(135deg,#059669,#047857)',
-                    boxShadow: '0 6px 20px rgba(5,150,105,0.35)',
+                    background: 'var(--hero-marketing-shield-gradient)',
+                    color: 'var(--text-on-accent)',
+                    boxShadow: 'var(--hero-marketing-shield-shadow)',
                   }}
                 >
                   Start Chat →
@@ -706,10 +709,11 @@ export default function HelpCenter() {
                 </div>
                 <button
                   type="button"
-                  className="mt-2 w-full py-2.5 rounded-[12px] text-xs font-semibold text-white"
+                  className="mt-2 w-full py-2.5 rounded-[12px] text-xs font-semibold"
                   style={{
-                    background: 'linear-gradient(135deg,#7c3aed,#6d28d9)',
-                    boxShadow: '0 6px 20px rgba(124,58,237,0.4)',
+                    background: 'var(--hero-marketing-shield-gradient)',
+                    color: 'var(--text-on-accent)',
+                    boxShadow: 'var(--hero-marketing-shield-shadow)',
                   }}
                 >
                   Visit Forum →

@@ -140,7 +140,7 @@ export default function SellerOrders({ sellerId }: SellerOrdersProps) {
       delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
       cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
       refunded: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-      returned: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200',
+      returned: 'bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]',
     };
     return (
       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${styles[status]}`}>{status}</span>
@@ -276,7 +276,7 @@ export default function SellerOrders({ sellerId }: SellerOrdersProps) {
                         </span>
                       )}
                       {order.hasReturnRequest && (
-                        <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-900/40 dark:text-orange-200">
+                        <span className="rounded-full bg-[var(--brand-tint-strong)] px-2 py-0.5 text-xs font-semibold text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--badge-warning-text)]">
                           Return
                         </span>
                       )}

@@ -17,8 +17,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
-const PRIMARY = '#f97316';
-const PRIMARY_HOVER = '#ea580c';
+const PRIMARY = 'var(--brand-primary)';
+const PRIMARY_HOVER = 'var(--brand-primary-hover)';
 const DROPDOWN_SHADOW = '0 8px 24px rgba(0,0,0,0.12)';
 const ALL_CATEGORIES = 'All Categories';
 
@@ -179,7 +179,7 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) 
                     key={l.code}
                     type="button"
                     onClick={() => { setLanguage(l.code); setLangOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-xs hover:bg-orange-50 transition"
+                    className="w-full text-left px-4 py-2 text-xs hover:bg-[var(--brand-tint)] transition"
                     style={{ color: l.code === language ? PRIMARY : 'var(--dropdown-text)' }}
                   >
                     {t(l.labelKey)}
@@ -218,7 +218,7 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) 
                     key={c.code}
                     type="button"
                     onClick={() => { setCurrency(c); setCurrOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-xs hover:bg-orange-50 transition flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-xs hover:bg-[var(--brand-tint)] transition flex items-center gap-2"
                     style={{ color: currencyDisplay === `${c.symbol} ${c.code}` ? PRIMARY : 'var(--dropdown-text)' }}
                   >
                     {c.symbol} {c.label}
@@ -509,7 +509,7 @@ function MainHeader({
           style={{
             position: 'absolute', inset: -2, borderRadius: 999, pointerEvents: 'none',
             background: searchFocus
-              ? 'linear-gradient(90deg, rgba(249,115,22,0.55) 0%, rgba(139,92,246,0.38) 50%, rgba(249,115,22,0.55) 100%)'
+              ? 'linear-gradient(90deg, color-mix(in srgb, var(--brand-primary) 55%, transparent) 0%, var(--navbar-violet-mix) 50%, color-mix(in srgb, var(--brand-primary) 55%, transparent) 100%)'
               : 'transparent',
             opacity: searchFocus ? 1 : 0,
             filter: 'blur(4px)',
@@ -524,10 +524,10 @@ function MainHeader({
             borderRadius: 999,
             background: 'var(--search-bg)',
             border: searchFocus
-              ? '1.5px solid rgba(249,115,22,0.7)'
+              ? '1.5px solid color-mix(in srgb, var(--brand-primary) 70%, transparent)'
               : '1px solid var(--search-border)',
             boxShadow: searchFocus
-              ? '0 0 0 3px rgba(249,115,22,0.12), 0 4px 20px rgba(0,0,0,0.08)'
+              ? '0 0 0 3px color-mix(in srgb, var(--brand-primary) 12%, transparent), 0 4px 20px rgba(0,0,0,0.08)'
               : '0 1px 4px rgba(0,0,0,0.06)',
             transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
             zIndex: 1,
@@ -546,7 +546,7 @@ function MainHeader({
                 transition={{ duration: 1.8, repeat: Infinity, ease: 'linear', repeatDelay: 1.2 }}
                 style={{
                   position: 'absolute', top: 0, bottom: 0, width: '40%',
-                  background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.06), transparent)',
+                  background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 6%, transparent), transparent)',
                 }}
               />
             </motion.div>
@@ -602,7 +602,7 @@ function MainHeader({
                       className="w-full text-left px-3 py-2 text-xs transition-colors duration-100 flex items-center gap-2"
                       style={{
                         color: category === cat ? PRIMARY : 'var(--dropdown-text)',
-                        background: category === cat ? 'rgba(249,115,22,0.07)' : 'transparent',
+                        background: category === cat ? 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' : 'transparent',
                         fontWeight: category === cat ? 600 : 400,
                       }}
                     >
@@ -641,7 +641,7 @@ function MainHeader({
                   style={{ background: 'rgba(107,114,128,0.15)' }}
                   aria-label={t('buttons.clear')}
                 >
-                  <X className="w-3 h-3" style={{ color: '#6b7280' }} />
+                  <X className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
                 </motion.button>
               )}
             </AnimatePresence>
@@ -653,7 +653,7 @@ function MainHeader({
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             className="flex-shrink-0 w-12 h-full flex items-center justify-center rounded-r-full relative overflow-hidden"
-            style={{ background: `linear-gradient(135deg, ${PRIMARY}, #ea580c)` }}
+            style={{ background: 'var(--gradient-brand-cta)' }}
           >
             {/* Shimmer */}
             <motion.div
@@ -682,19 +682,19 @@ function MainHeader({
               style={{
                 background: 'var(--card-bg)',
                 border: '1px solid var(--card-border)',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(249,115,22,0.06)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 4px 16px color-mix(in srgb, var(--brand-primary) 6%, transparent)',
                 maxHeight: 420,
                 overflowY: 'auto',
               }}
             >
               {/* Accent top bar */}
-              <div style={{ height: 2, background: `linear-gradient(90deg, ${PRIMARY}, rgba(139,92,246,0.7), ${PRIMARY})`, opacity: 0.8 }} />
+              <div style={{ height: 2, background: `linear-gradient(90deg, ${PRIMARY}, var(--navbar-violet-strong), ${PRIMARY})`, opacity: 0.8 }} />
 
               {/* No results */}
               {searchQuery.trim() && suggestions.products?.length === 0 && (
                 <div className="py-5 px-5">
                   <div className="flex items-center gap-2 mb-2">
-                    <Search className="w-4 h-4" style={{ color: '#9ca3af' }} />
+                    <Search className="w-4 h-4" style={{ color: 'var(--text-faint)' }} />
                     <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                       No matches for <span style={{ color: PRIMARY }}>&ldquo;{searchQuery.trim()}&rdquo;</span>
                     </p>
@@ -704,7 +704,7 @@ function MainHeader({
                     onClick={() => setSuggestionsOpen(false)}
                     data-suggestion-index={0}
                     className="inline-flex items-center gap-1.5 mt-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-                    style={{ color: PRIMARY, background: 'rgba(249,115,22,0.09)' }}
+                    style={{ color: PRIMARY, background: 'var(--brand-tint)' }}
                   >
                     Search anyway →
                   </Link>
@@ -732,7 +732,7 @@ function MainHeader({
                         onClick={() => setSuggestionsOpen(false)}
                         data-suggestion-index={rowIndex >= 0 ? rowIndex : idx}
                         className="flex items-center gap-3 px-4 py-2.5 transition-colors duration-100"
-                        style={{ background: isActive ? 'rgba(249,115,22,0.07)' : 'transparent' }}
+                        style={{ background: isActive ? 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' : 'transparent' }}
                       >
                         <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ background: 'var(--bg-secondary)' }}>
                           <img src={resolveImg(p.images?.[0] || p.image)} alt="" className="w-full h-full object-cover" />
@@ -774,7 +774,7 @@ function MainHeader({
                           onClick={() => { setSearchQuery(r); addRecentSearch(r); navigate(`/search?q=${encodeURIComponent(r)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); }}
                           data-suggestion-index={rowIndex}
                           className="flex-1 text-left px-4 py-2 text-sm transition-colors duration-100 flex items-center gap-2.5 min-w-0"
-                          style={{ background: isActive ? 'rgba(249,115,22,0.07)' : 'transparent', color: 'var(--text-secondary)' }}
+                          style={{ background: isActive ? 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' : 'transparent', color: 'var(--text-secondary)' }}
                         >
                           <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
                           <span className="truncate">{r}</span>
@@ -813,9 +813,9 @@ function MainHeader({
                         data-suggestion-index={rowIndex}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150"
                         style={{
-                          background: isActive ? PRIMARY : 'rgba(249,115,22,0.09)',
-                          color: isActive ? '#fff' : PRIMARY,
-                          border: `1px solid ${isActive ? PRIMARY : 'rgba(249,115,22,0.2)'}`,
+                          background: isActive ? PRIMARY : 'var(--brand-tint)',
+                          color: isActive ? 'var(--text-on-accent)' : PRIMARY,
+                          border: `1px solid ${isActive ? PRIMARY : 'var(--brand-border-subtle)'}`,
                         }}
                       >
                         <Flame className="w-3 h-3" />
@@ -865,7 +865,7 @@ function MainHeader({
             style={{ transformOrigin: 'center' }}
           >
             <Bell
-              className={`w-[22px] h-[22px] transition-colors duration-200 ${bellRing ? 'notif-bell-ring' : ''} ${notifOpen ? 'text-orange-500' : 'text-gray-500 group-hover:text-orange-500'}`}
+              className={`w-[22px] h-[22px] transition-colors duration-200 ${bellRing ? 'notif-bell-ring' : ''} ${notifOpen ? 'text-[var(--brand-primary)]' : 'text-gray-500 group-hover:text-[var(--brand-primary)]'}`}
             />
             {notifUnreadCount > 0 && (
               <motion.span
@@ -891,7 +891,7 @@ function MainHeader({
           className="relative hidden md:flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition group"
           title={t('wishlist.title')}
         >
-          <Heart className="w-[22px] h-[22px] group-hover:fill-red-500 group-hover:stroke-red-500 transition" style={{ color: '#6b7280' }} />
+          <Heart className="w-[22px] h-[22px] group-hover:fill-red-500 group-hover:stroke-red-500 transition" style={{ color: 'var(--text-muted)' }} />
           {wishlistCount > 0 && (
             <span
               className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full text-white text-xs font-bold flex items-center justify-center"
@@ -909,7 +909,7 @@ function MainHeader({
             onClick={openCart}
             className="relative p-2 rounded-lg hover:bg-gray-100 transition"
           >
-            <ShoppingBag className="w-[22px] h-[22px]" style={{ color: '#6b7280' }} />
+            <ShoppingBag className="w-[22px] h-[22px]" style={{ color: 'var(--text-muted)' }} />
             {cartCount > 0 && (
               <span
                 className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full text-white text-xs font-bold flex items-center justify-center"
@@ -921,7 +921,7 @@ function MainHeader({
           </button>
         </div>
 
-        <div className="hidden md:block w-px h-6" style={{ background: '#e5e7eb' }} />
+        <div className="hidden md:block w-px h-6" style={{ background: 'var(--divider-strong)' }} />
 
         {/* Profile / Login */}
         <div className="relative" ref={profileRef}>
@@ -990,7 +990,7 @@ function MainHeader({
                           key={labelKey}
                           to={to}
                           onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 transition text-gray-700 dark:text-gray-300"
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] transition text-gray-700 dark:text-gray-300"
                         >
                           <Icon className="w-4 h-4 flex-shrink-0" /> {t(labelKey)}
                         </Link>
@@ -1027,7 +1027,7 @@ function MainHeader({
           onClick={onMobileMenuOpen}
           className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
         >
-          <Menu className="w-6 h-6" style={{ color: '#374151' }} />
+          <Menu className="w-6 h-6" style={{ color: 'var(--text-secondary)' }} />
         </button>
       </div>
     </div>
@@ -1080,7 +1080,7 @@ function CategoryNav({ t }) {
       {isSeller ? (
         <Link
           to="/seller"
-          className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-orange-500 hover:text-orange-600"
+          className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)]"
         >
           {t('header.sellerDashboard')} <ChevronRight className="w-4 h-4" />
         </Link>
@@ -1088,7 +1088,7 @@ function CategoryNav({ t }) {
         <Link
           to="/seller/pending"
           className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition"
-          style={{ color: '#fbbf24' }}
+          style={{ color: 'var(--notif-type-review)' }}
         >
           {t('header.applicationPending')} ⏳
         </Link>
@@ -1099,7 +1099,7 @@ function CategoryNav({ t }) {
             if (!isLoggedIn) return;
             handleSellerLink(e, '/seller');
           }}
-          className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-orange-500 hover:text-orange-600"
+          className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold transition text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)]"
         >
           {t('header.becomeSeller')} <ChevronRight className="w-4 h-4" />
         </Link>
@@ -1185,7 +1185,7 @@ function MobileDrawer({
 
             {/* Mobile search */}
             <form onSubmit={onSearchSubmit} className="p-4 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 focus-within:border-orange-500">
+              <div className="flex rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 focus-within:border-[var(--brand-primary)]">
                 <input
                   type="text"
                   value={searchQuery}
@@ -1206,7 +1206,7 @@ function MobileDrawer({
                   key={name}
                   to={`/search?category=${encodeURIComponent(name)}`}
                   onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] transition"
                 >
                   <span>{icon}</span> {name}
                 </Link>
@@ -1217,7 +1217,7 @@ function MobileDrawer({
                   key={labelKey}
                   to={to}
                   onClick={onClose}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm transition ${location.pathname === to ? 'text-orange-500' : 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400'}`}
+                  className={`flex items-center gap-3 px-4 py-3 text-sm transition ${location.pathname === to ? 'text-[var(--brand-primary)]' : 'text-gray-700 dark:text-gray-300 hover:text-[var(--brand-primary)] dark:hover:text-[var(--brand-orange-text)]'}`}
                 >
                   {t(labelKey)}
                 </Link>
@@ -1234,7 +1234,7 @@ function MobileDrawer({
                       onClick={() => setLanguage(l.code)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
                         language === l.code
-                          ? 'border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20'
+                          ? 'border-[var(--brand-primary)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] bg-[var(--brand-tint)] dark:bg-[var(--brand-tint)]'
                           : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400'
                       }`}
                     >
@@ -1339,7 +1339,7 @@ export default function Navbar() {
         className="flex flex-col"
         style={{
           background: 'var(--header-bg)',
-          borderBottom: 'none',
+          borderBottom: '1px solid var(--header-border)',
           boxShadow: 'var(--shadow-header)',
           position: 'relative',
           zIndex: 102,
