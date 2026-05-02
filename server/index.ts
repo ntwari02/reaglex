@@ -182,15 +182,9 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again in a few minutes.' },
 });
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many login attempts, please try again later.' },
-});
 app.use('/api', apiLimiter);
-app.use('/api/auth', authLimiter);
+// Per-route limits live in authRoutes (login, register, OTP, etc.). A global /api/auth
+// limiter was stacking with those and counting /me + every auth call — causing 429 on normal use.
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {

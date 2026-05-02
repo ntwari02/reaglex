@@ -69,10 +69,12 @@ const verify2FALimiter = rateLimit({
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15,
-  message: { message: 'Too many sign-in attempts. Please try again in 15 minutes.' },
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  message: { message: 'Too many failed sign-in attempts. Please try again in 15 minutes.' },
+  /** Successful logins do not consume the budget (brute-force still capped on failures). */
+  skipSuccessfulRequests: true,
 });
 
 const registerLimiter = rateLimit({
