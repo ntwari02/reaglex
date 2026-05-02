@@ -290,7 +290,7 @@ export default function SecurityAnalysisPage() {
       cn(
         'relative min-h-full rounded-3xl overflow-hidden',
         isDark
-          ? 'border border-cyan-500/15 bg-[#050814] text-slate-200 shadow-[0_0_80px_-20px_rgba(34,211,238,0.15)]'
+          ? 'border border-cyan-500/15 bg-[var(--bg-page)] text-[var(--text-secondary)] shadow-[var(--shadow-lg)]'
           : 'border border-slate-200 bg-gradient-to-b from-slate-50 to-white text-slate-900 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.35)]',
       ),
     [isDark],
@@ -322,7 +322,7 @@ export default function SecurityAnalysisPage() {
                   'bg-clip-text text-transparent',
                   isDark
                     ? 'bg-gradient-to-r from-white via-cyan-100 to-violet-200'
-                    : 'bg-gradient-to-r from-slate-900 via-cyan-700 to-violet-700',
+                    : 'bg-gradient-to-r from-dark-secondary via-cyan-800 to-violet-900',
                 )}
               >
                 Security Intelligence Control Room
@@ -388,12 +388,12 @@ export default function SecurityAnalysisPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="xl:col-span-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-950/50 backdrop-blur-xl p-6 flex flex-col items-center justify-center min-h-[260px] relative overflow-hidden"
+            className="xl:col-span-4 rounded-2xl border border-slate-200 dark:border-[var(--border-card)] bg-white/85 dark:bg-dark-card/90 backdrop-blur-xl p-6 flex flex-col items-center justify-center min-h-[260px] relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,211,238,0.08),transparent_55%)] opacity-80" />
             <div className="relative w-48 h-48">
               <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
-                <circle cx="100" cy="100" r="78" fill="none" className="stroke-slate-300 dark:stroke-slate-800" strokeWidth="14" />
+                <circle cx="100" cy="100" r="78" fill="none" className="stroke-slate-300 dark:stroke-[var(--bg-tertiary)]" strokeWidth="14" />
                 <circle
                   cx="100"
                   cy="100"
@@ -465,9 +465,9 @@ export default function SecurityAnalysisPage() {
         <AuditTimeline weekly={intel.weekly} />
 
         {/* Identity & sign-in (existing) */}
-        <div className="rounded-2xl border border-violet-500/25 bg-white/85 dark:bg-slate-950/40 backdrop-blur-md overflow-hidden">
+        <div className="rounded-2xl border border-violet-500/25 bg-white/85 dark:bg-dark-card/85 backdrop-blur-md overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-[var(--text-primary)] flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-violet-400" />
               Identity &amp; sign-in intelligence
             </h2>
@@ -503,7 +503,7 @@ export default function SecurityAnalysisPage() {
                       {a.role && <span className="text-slate-600 dark:text-slate-500">· {a.role}</span>}
                       <span className="text-slate-600 dark:text-slate-500 ml-auto tabular-nums">{new Date(a.at).toLocaleString()}</span>
                     </div>
-                    <p className="text-slate-800 dark:text-slate-300 mt-1 break-words">{a.detail}</p>
+                    <p className="text-slate-800 dark:text-[var(--text-secondary)] mt-1 break-words">{a.detail}</p>
                     <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">IP {a.ip}</p>
                   </motion.div>
                 ))}
@@ -516,7 +516,7 @@ export default function SecurityAnalysisPage() {
               </p>
               <div className="overflow-x-auto max-h-[240px] overflow-y-auto">
                 <table className="w-full text-left text-xs min-w-[400px]">
-                  <thead className="text-slate-600 dark:text-slate-500 uppercase sticky top-0 bg-white/95 dark:bg-slate-950/95">
+                  <thead className="text-slate-600 dark:text-[var(--text-muted)] uppercase sticky top-0 bg-white/95 dark:bg-dark-card">
                     <tr>
                       <th className="py-1.5 pr-2">Role</th>
                       <th className="py-1.5 pr-2">Action</th>
@@ -548,7 +548,7 @@ export default function SecurityAnalysisPage() {
         </div>
 
         {/* Collapsible posture */}
-        <div className="rounded-2xl border border-white/10 bg-slate-950/30 overflow-hidden">
+        <div className="rounded-2xl border border-white/10 dark:border-[var(--border-card)] bg-white dark:bg-dark-secondary/70 overflow-hidden">
           <button
             type="button"
             onClick={() => setPostureOpen((o) => !o)}

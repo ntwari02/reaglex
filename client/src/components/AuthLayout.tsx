@@ -23,8 +23,8 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
     ? { background: 'transparent', minHeight: '100vh' }
     : {
         background: isDark
-          ? 'radial-gradient(circle at top, #020617 0%, #030712 40%, #020617 100%)'
-          : 'linear-gradient(135deg, #e8edf8 0%, #dce3f5 50%, #e4e8f6 100%)',
+          ? 'linear-gradient(165deg, var(--bg-page) 0%, color-mix(in srgb, var(--bg-secondary) 92%, var(--brand-primary) 8%) 48%, var(--bg-page) 100%)'
+          : 'linear-gradient(135deg, var(--bg-page) 0%, color-mix(in srgb, var(--bg-tertiary) 88%, var(--brand-primary) 12%) 50%, var(--bg-page) 100%)',
       };
 
   const formCardContent = (
@@ -40,7 +40,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
           </p>
           <div className="flex items-center gap-1 text-[12px]">
             <span style={{ color: 'var(--text-secondary)' }}>{t('auth.buyer')}</span>
-            <span style={{ color: 'rgba(148,163,184,0.8)' }}>/ {t('auth.seller')}</span>
+            <span style={{ color: 'var(--text-muted)' }}>/ {t('auth.seller')}</span>
           </div>
         </div>
         <div
@@ -51,8 +51,8 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
             to={authBasePath ? `${authBasePath}?tab=login` : '/login'}
             className="relative px-3 py-1.5 rounded-[10px] transition-all"
             style={{
-              background: tab === 'login' ? (isDark ? '#1a1e2c' : '#ffffff') : 'transparent',
-              boxShadow: tab === 'login' ? (isDark ? '0 0 0 1px rgba(15,23,42,0.9)' : '0 4px 12px rgba(15,23,42,0.12)') : 'none',
+              background: tab === 'login' ? (isDark ? 'var(--bg-elevated)' : '#ffffff') : 'transparent',
+              boxShadow: tab === 'login' ? (isDark ? '0 0 0 1px var(--divider-strong)' : '0 4px 12px rgba(15,23,42,0.12)') : 'none',
               color: tab === 'login' ? 'var(--text-primary)' : 'var(--text-muted)',
             }}
           >
@@ -62,8 +62,8 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
             to={authBasePath ? `${authBasePath}?tab=signup` : '/signup'}
             className="relative px-3 py-1.5 rounded-[10px] transition-all"
             style={{
-              background: tab === 'signup' ? (isDark ? '#1a1e2c' : '#ffffff') : 'transparent',
-              boxShadow: tab === 'signup' ? (isDark ? '0 0 0 1px rgba(15,23,42,0.9)' : '0 4px 12px rgba(15,23,42,0.12)') : 'none',
+              background: tab === 'signup' ? (isDark ? 'var(--bg-elevated)' : '#ffffff') : 'transparent',
+              boxShadow: tab === 'signup' ? (isDark ? '0 0 0 1px var(--divider-strong)' : '0 4px 12px rgba(15,23,42,0.12)') : 'none',
               color: tab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)',
             }}
           >
@@ -83,7 +83,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
       <div
         className="min-h-screen flex items-center justify-center p-4 sm:p-6"
         style={{
-          background: isDark ? 'var(--bg-primary, #0f172a)' : 'var(--bg-primary, #ffffff)',
+          background: 'var(--bg-page)',
           minHeight: '100vh',
         }}
       >
@@ -113,7 +113,11 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
         <main className="auth-main-stage flex-1 flex items-stretch justify-center px-3 sm:px-6 lg:px-10 pb-6 pt-[116px] sm:pt-[132px] lg:pt-[150px]">
           <div
             className="auth-shell-surface w-full max-w-6xl xl:max-w-7xl flex rounded-2xl overflow-hidden shadow-2xl"
-            style={{ background: isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.7)' }}
+            style={{
+              background: isDark
+                ? 'color-mix(in srgb, var(--card-bg) 88%, transparent)'
+                : 'rgba(255,255,255,0.7)',
+            }}
           >
             {/* LEFT PANEL */}
             <section
@@ -214,15 +218,15 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                   <div
                     className="relative mx-auto max-w-sm rounded-3xl p-4 sm:p-5"
                     style={{
-                      background: 'rgba(15,23,42,0.85)',
-                      boxShadow: '0 18px 45px rgba(0,0,0,0.55)',
+                      background: 'color-mix(in srgb, var(--bg-secondary) 92%, transparent)',
+                      boxShadow: '0 18px 45px rgba(0,0,0,0.45)',
                     }}
                   >
                     <div
                       className="absolute -inset-10 rounded-[32px] -z-10"
                       style={{
                         background:
-                          'radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--brand-primary) 28%, transparent), transparent 55%), radial-gradient(circle at 90% 100%, rgba(59,130,246,0.28), transparent 55%)',
+                          'radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--brand-primary) 28%, transparent), transparent 55%), radial-gradient(circle at 90% 100%, color-mix(in srgb, var(--brand-primary) 22%, transparent), transparent 55%)',
                       }}
                     />
                     <p
@@ -250,8 +254,8 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                           key={c.title}
                           className="flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5"
                           style={{
-                            background: 'rgba(15,23,42,0.9)',
-                            border: '1px solid rgba(148,163,184,0.25)',
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--divider-strong)',
                             transform: idx === 0 ? 'rotate(-2deg)' : 'rotate(2deg)',
                           }}
                         >
@@ -259,9 +263,8 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                             <div
                               className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]"
                               style={{
-                                background:
-                                  'var(--gradient-brand-cta)',
-                                color: '#0b1120',
+                                background: 'var(--gradient-brand-cta)',
+                                color: 'var(--text-on-accent)',
                               }}
                             >
                               {idx === 0 ? '🎧' : '⌚'}
@@ -269,13 +272,13 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                             <div className="min-w-0">
                               <p
                                 className="text-xs font-semibold truncate"
-                                style={{ color: '#e5e7eb' }}
+                                style={{ color: 'var(--text-secondary)' }}
                               >
                                 {c.title}
                               </p>
                               <p
                                 className="text-[11px]"
-                                style={{ color: 'rgba(148,163,184,0.9)' }}
+                                style={{ color: 'var(--text-muted)' }}
                               >
                                 {c.tag} • {c.rating}★
                               </p>
@@ -283,7 +286,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                           </div>
                           <p
                             className="text-sm font-semibold"
-                            style={{ color: '#f9fafb' }}
+                            style={{ color: 'var(--text-primary)' }}
                           >
                             {c.price}
                           </p>
@@ -308,8 +311,8 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                             background:
                               idx === 0
                                 ? 'var(--gradient-brand-cta)'
-                                : 'rgba(15,23,42,0.85)',
-                            color: '#f9fafb',
+                                : 'var(--bg-tertiary)',
+                            color: idx === 0 ? 'var(--text-on-accent)' : 'var(--text-primary)',
                           }}
                         >
                           {initials}
@@ -379,7 +382,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                 style={{
                   background: isDark ? 'var(--card-bg)' : '#ffffff',
                   boxShadow: isDark
-                    ? '0 18px 45px rgba(15,23,42,0.9)'
+                    ? '0 18px 45px rgba(0,0,0,0.5)'
                     : '0 20px 55px rgba(15,23,42,0.16)',
                 }}
               >
@@ -413,11 +416,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                       >
                         {t('auth.buyer')}
                       </span>
-                      <span
-                        style={{
-                          color: 'rgba(148,163,184,0.8)',
-                        }}
-                      >
+                      <span style={{ color: 'var(--text-muted)' }}>
                         / {t('auth.seller')}
                       </span>
                     </div>
@@ -437,13 +436,13 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                         background:
                           tab === 'login'
                             ? isDark
-                              ? '#1a1e2c'
+                              ? 'var(--bg-elevated)'
                               : '#ffffff'
                             : 'transparent',
                         boxShadow:
                           tab === 'login'
                             ? isDark
-                              ? '0 0 0 1px rgba(15,23,42,0.9)'
+                              ? '0 0 0 1px var(--divider-strong)'
                               : '0 4px 12px rgba(15,23,42,0.12)'
                             : 'none',
                         color:
@@ -461,13 +460,13 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                         background:
                           tab === 'signup'
                             ? isDark
-                              ? '#1a1e2c'
+                              ? 'var(--bg-elevated)'
                               : '#ffffff'
                             : 'transparent',
                         boxShadow:
                           tab === 'signup'
                             ? isDark
-                              ? '0 0 0 1px rgba(15,23,42,0.9)'
+                              ? '0 0 0 1px var(--divider-strong)'
                               : '0 4px 12px rgba(15,23,42,0.12)'
                             : 'none',
                         color:

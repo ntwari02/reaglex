@@ -4,6 +4,7 @@ export interface CurrencyContextPayload {
   baseCurrency: 'USD';
   detectedCurrency: string;
   selectedCurrency: string;
+  currencyUserPinned?: boolean;
   exchangeRate: number;
   fetchedAt: string;
   source: 'live' | 'cache';

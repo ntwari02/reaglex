@@ -75,7 +75,7 @@ export default function AuthPremiumLayout({
         <div className="absolute pointer-events-none" style={{
           bottom: '10%', right: '-6%',
           width: '50%', paddingBottom: '50%', borderRadius: '50%',
-          background: 'radial-gradient(circle, var(--navbar-violet-glow-soft) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary-hover) 18%, transparent) 0%, transparent 70%)',
           animation: 'ag-float-b 10s ease-in-out infinite',
         }} />
         <div className="absolute pointer-events-none" style={{

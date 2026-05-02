@@ -223,22 +223,32 @@ export default function AssistantChat() {
       }
       .ai-trigger-core {
         width: 54px; height: 54px; border-radius: 50%;
-        background: linear-gradient(145deg, #1a1a2e 0%, #0d0f1c 100%);
-        border: 1.5px solid rgba(34,211,238,0.32);
-        box-shadow: 0 0 18px rgba(34,211,238,0.18), 0 0 36px rgba(99,102,241,0.12), 0 8px 28px rgba(0,0,0,0.55);
+        /* Same charcoal stack as buyer dark mode: --card-bg / --bg-page */
+        background: linear-gradient(145deg, #1c1c1c 0%, #121212 100%);
+        border: 1.5px solid color-mix(in srgb, var(--brand-primary) 32%, transparent);
+        box-shadow:
+          0 0 18px color-mix(in srgb, var(--brand-primary) 18%, transparent),
+          0 0 36px color-mix(in srgb, var(--brand-primary) 8%, transparent),
+          0 8px 28px rgba(0,0,0,0.45);
         display: flex; align-items: center; justify-content: center;
         transition: transform 0.28s ease, box-shadow 0.28s ease;
       }
-      .ai-trigger-core:hover { transform: translateY(-3px); box-shadow: 0 0 26px rgba(34,211,238,0.28), 0 0 48px rgba(99,102,241,0.18), 0 10px 36px rgba(0,0,0,0.55); }
+      .ai-trigger-core:hover {
+        transform: translateY(-3px);
+        box-shadow:
+          0 0 26px color-mix(in srgb, var(--brand-primary) 26%, transparent),
+          0 0 48px color-mix(in srgb, var(--brand-primary) 12%, transparent),
+          0 10px 36px rgba(0,0,0,0.5);
+      }
       .ai-ring {
         position: absolute; border-radius: 50%;
-        border: 1.5px solid rgba(34,211,238,0.22);
+        border: 1.5px solid color-mix(in srgb, var(--brand-primary) 22%, transparent);
         animation: aiRingPulse 2.6s ease-out infinite; pointer-events: none;
         top: -5px; left: -5px; right: -5px; bottom: -5px;
       }
       .ai-ring-2 {
         top: -10px; left: -10px; right: -10px; bottom: -10px;
-        border: 1px solid rgba(99,102,241,0.13);
+        border: 1px solid color-mix(in srgb, var(--brand-primary) 12%, transparent);
         animation-delay: 0.9s;
       }
       @keyframes aiRingPulse {
@@ -247,7 +257,7 @@ export default function AssistantChat() {
       }
 
       /* Typing dots */
-      .ai-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(34,211,238,0.7); animation: aiDot 1.3s ease-in-out infinite; }
+      .ai-dot { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--brand-primary) 65%, transparent); animation: aiDot 1.3s ease-in-out infinite; }
       .ai-dot:nth-child(2) { animation-delay: 0.22s; }
       .ai-dot:nth-child(3) { animation-delay: 0.44s; }
       @keyframes aiDot {
@@ -323,7 +333,8 @@ export default function AssistantChat() {
       /* Animated icon (kept for GeminiIcon) */
       .gemini-animated-icon {
         animation: geminiFloatSpin 3.2s ease-in-out infinite, geminiPulseGlow 2.4s ease-in-out infinite;
-        filter: drop-shadow(0 0 10px rgba(34,211,238,0.36)) drop-shadow(0 0 18px rgba(99,102,241,0.28));
+        filter: drop-shadow(0 0 10px color-mix(in srgb, var(--brand-primary) 40%, transparent))
+          drop-shadow(0 0 16px color-mix(in srgb, var(--brand-primary) 22%, transparent));
         transform-origin: 50% 50%;
       }
       @keyframes geminiFloatSpin {

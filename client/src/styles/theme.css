@@ -157,14 +157,14 @@
   /* Table or card bands that were #1a0f3a / #0d1f3a */
   --panel-deep-bg: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
 
-  /* Auth premium split (illustration rail + form — form gradient tracks theme below) */
+  /* Auth premium split — warm charcoal rail (white copy on aside); no blue-black */
   --auth-premium-aside-bg: linear-gradient(
     160deg,
-    color-mix(in srgb, #07080c 94%, var(--brand-primary)) 0%,
-    color-mix(in srgb, #0e1018 90%, var(--brand-primary)) 50%,
-    #050607 100%
+    color-mix(in srgb, #2c2826 95%, var(--brand-primary)) 0%,
+    color-mix(in srgb, #1f1c1a 93%, var(--brand-primary)) 52%,
+    #181615 100%
   );
-  --auth-premium-mesh-fade: color-mix(in srgb, #0a0c12 88%, var(--brand-primary) 12%);
+  --auth-premium-mesh-fade: color-mix(in srgb, #1f1c1a 86%, var(--brand-primary) 14%);
   --auth-premium-form-bg: linear-gradient(160deg, var(--bg-secondary) 0%, var(--bg-tertiary) 60%, var(--bg-page) 100%);
 
   /* Notification dropdown type accents */
@@ -389,6 +389,14 @@
   --panel-deep-bg: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
 
   --auth-premium-form-bg: linear-gradient(160deg, var(--bg-page) 0%, var(--bg-secondary) 60%, var(--bg-page) 100%);
+  /* Auth illustration rail — neutral #121212 family + warm brand tint (no blue-black) */
+  --auth-premium-aside-bg: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--bg-page) 96%, var(--brand-primary)) 0%,
+    color-mix(in srgb, var(--bg-secondary) 94%, var(--brand-primary)) 52%,
+    var(--bg-page) 100%
+  );
+  --auth-premium-mesh-fade: color-mix(in srgb, var(--bg-page) 88%, var(--brand-primary) 12%);
   --notif-type-system: #7eb0d8;
   --notif-type-message: #a78bfa;
   --notif-type-review: #fbbf24;

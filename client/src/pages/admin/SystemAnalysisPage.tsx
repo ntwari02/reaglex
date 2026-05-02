@@ -310,7 +310,7 @@ export default function SystemAnalysisPage() {
           <button
             type="button"
             onClick={() => void loadAll()}
-            className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-gray-200/80 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md text-sm font-medium hover:bg-white dark:hover:bg-slate-800"
+            className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-gray-200/80 dark:border-white/10 bg-white/70 dark:bg-dark-card/85 backdrop-blur-md text-sm font-medium hover:bg-white dark:hover:bg-dark-secondary"
           >
             <RefreshCw className="w-4 h-4" />
             Sync
@@ -348,7 +348,7 @@ export default function SystemAnalysisPage() {
               whileHover={{ y: -2, transition: { duration: 0.2 } }}
               className={cn(
                 'relative overflow-hidden rounded-2xl border border-white/10 dark:border-white/5 p-4',
-                'bg-white/60 dark:bg-slate-900/50 backdrop-blur-xl shadow-lg',
+                'bg-white/60 dark:bg-dark-card/75 backdrop-blur-xl shadow-lg',
                 tone.glow,
               )}
             >
@@ -367,7 +367,7 @@ export default function SystemAnalysisPage() {
               <p className={cn('relative text-3xl font-mono font-bold', tone.text)}>
                 {Number(card.value).toFixed(1)}%
               </p>
-              <div className="relative mt-2 h-2 rounded-full bg-gray-200/80 dark:bg-slate-800 overflow-hidden">
+              <div className="relative mt-2 h-2 rounded-full bg-gray-200/80 dark:bg-dark-secondary overflow-hidden">
                 <motion.div
                   className={cn('h-full rounded-full', tone.bar)}
                   initial={false}
@@ -386,7 +386,7 @@ export default function SystemAnalysisPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-6">
-        <div className="xl:col-span-1 rounded-2xl border border-white/10 bg-white/50 dark:bg-slate-900/40 backdrop-blur-xl p-4">
+        <div className="xl:col-span-1 rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
           <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Uptime pulse (24h)</h3>
           <div className="flex items-end gap-1 h-24">
             {(buckets24h.length ? buckets24h : Array(24).fill(50)).map((h, i) => (
@@ -400,7 +400,7 @@ export default function SystemAnalysisPage() {
             ))}
           </div>
         </div>
-        <div className="xl:col-span-3 rounded-2xl border border-white/10 bg-white/50 dark:bg-slate-900/40 backdrop-blur-xl p-4">
+        <div className="xl:col-span-3 rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <Server className="w-5 h-5 text-cyan-500" />
@@ -455,7 +455,7 @@ export default function SystemAnalysisPage() {
                         <td className="py-2 pr-2 font-mono">{row.avgResponseMs}ms</td>
                         <td className="py-2 pr-2">{row.errorRatePercent?.toFixed(1) ?? 0}%</td>
                         <td className="py-2 w-32">
-                          <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-800 overflow-hidden">
+                          <div className="h-2 rounded-full bg-gray-200 dark:bg-dark-secondary overflow-hidden">
                             <div
                               className={cn(
                                 'h-full rounded-full transition-all',
@@ -507,7 +507,7 @@ export default function SystemAnalysisPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/50 dark:bg-slate-900/40 backdrop-blur-xl p-4">
+        <div className="rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Live alerts</h3>
           <div className="space-y-2 max-h-[240px] overflow-y-auto">
             {alerts.map((a) => (
@@ -539,7 +539,7 @@ export default function SystemAnalysisPage() {
             <motion.div
               key={tc.id}
               whileHover={{ scale: 1.01 }}
-              className="rounded-2xl border border-violet-500/20 bg-gradient-to-b from-slate-900/90 to-black/90 p-4 text-gray-200 shadow-[0_0_24px_rgba(139,92,246,0.12)]"
+              className="rounded-2xl border border-violet-500/20 bg-gradient-to-b from-slate-900/90 to-slate-800/90 dark:from-dark-secondary dark:to-dark-primary p-4 text-gray-200 dark:text-[var(--text-primary)] shadow-[0_0_24px_rgba(139,92,246,0.12)] dark:shadow-[var(--shadow-card)]"
             >
               <div className="flex items-center gap-2 mb-2 text-violet-300 text-xs font-mono">
                 <span>{'>'}</span>_
@@ -587,7 +587,7 @@ export default function SystemAnalysisPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/50 dark:bg-slate-900/40 backdrop-blur-xl p-4">
+        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Engine logs</h2>
             {(['all', 'error', 'warning', 'info'] as const).map((f) => (
@@ -622,7 +622,7 @@ export default function SystemAnalysisPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/50 dark:bg-slate-900/40 backdrop-blur-xl p-4">
+        <div className="rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Thresholds</h2>
           {settings && (
             <form
@@ -651,21 +651,21 @@ export default function SystemAnalysisPage() {
               </label>
               <label className="block text-gray-700 dark:text-gray-300">
                 CPU warn
-                <input type="number" name="cpuWarn" defaultValue={settings.cpuWarn} className="mt-1 w-full rounded-lg border dark:bg-slate-950 px-2 py-2" />
+                <input type="number" name="cpuWarn" defaultValue={settings.cpuWarn} className="mt-1 w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2" />
               </label>
               <label className="block text-gray-700 dark:text-gray-300">
                 CPU critical
-                <input type="number" name="cpuCritical" defaultValue={settings.cpuCritical} className="mt-1 w-full rounded-lg border dark:bg-slate-950 px-2 py-2" />
+                <input type="number" name="cpuCritical" defaultValue={settings.cpuCritical} className="mt-1 w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2" />
               </label>
               <label className="block text-gray-700 dark:text-gray-300">
                 API slow warn (ms)
-                <input type="number" name="apiSlowWarnMs" defaultValue={settings.apiSlowWarnMs ?? 1000} className="mt-1 w-full rounded-lg border dark:bg-slate-950 px-2 py-2" />
+                <input type="number" name="apiSlowWarnMs" defaultValue={settings.apiSlowWarnMs ?? 1000} className="mt-1 w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2" />
               </label>
               <label className="block text-gray-700 dark:text-gray-300">
                 API slow critical (ms)
-                <input type="number" name="apiSlowCriticalMs" defaultValue={settings.apiSlowCriticalMs ?? 3000} className="mt-1 w-full rounded-lg border dark:bg-slate-950 px-2 py-2" />
+                <input type="number" name="apiSlowCriticalMs" defaultValue={settings.apiSlowCriticalMs ?? 3000} className="mt-1 w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2" />
               </label>
-              <select name="sensitivity" defaultValue={settings.sensitivity} className="w-full rounded-lg border dark:bg-slate-950 px-2 py-2">
+              <select name="sensitivity" defaultValue={settings.sensitivity} className="w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2">
                 <option value="strict">strict</option>
                 <option value="normal">normal</option>
                 <option value="relaxed">relaxed</option>
@@ -679,7 +679,7 @@ export default function SystemAnalysisPage() {
       </div>
 
       <motion.div
-        className="mt-8 rounded-2xl border border-white/10 bg-white/40 dark:bg-slate-900/30 px-4 py-3 flex flex-wrap justify-between gap-2 text-sm"
+        className="mt-8 rounded-2xl border border-white/10 bg-white/40 dark:bg-dark-card/60 px-4 py-3 flex flex-wrap justify-between gap-2 text-sm"
         layout
       >
         <span className="text-gray-600 dark:text-gray-400">Process uptime</span>
@@ -704,7 +704,7 @@ export default function SystemAnalysisPage() {
             <motion.div
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
-              className="max-w-md w-full rounded-2xl border border-white/20 bg-slate-900 p-6 text-white shadow-2xl"
+              className="max-w-md w-full rounded-2xl border border-white/20 bg-slate-900 dark:bg-[var(--modal-bg)] dark:border-[var(--modal-border)] p-6 text-white dark:text-[var(--text-primary)] shadow-2xl dark:shadow-[var(--shadow-modal)]"
             >
               <p className="text-lg font-bold">Confirm action</p>
               <p className="text-sm text-gray-400 mt-2">{pendingAction.label}</p>

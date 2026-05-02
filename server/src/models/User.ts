@@ -58,7 +58,9 @@ export interface IPrivacySettings {
 export interface IUserPreferences {
   theme: Theme;
   language: string; // ISO 639-1 code, e.g., "en", "fr"
-  currency: string; // ISO 4217 code, e.g., "RWF", "USD"
+  currency?: string; // ISO 4217 code when set or pinned
+  /** When true, buyer chose currency in UI; otherwise show prices from IP/geo (AliExpress-style). */
+  currencyUserPinned?: boolean;
 }
 
 export interface ILoginHistory {
@@ -196,7 +198,8 @@ const userPreferencesSchema = new Schema<IUserPreferences>(
       default: 'light',
     },
     language: { type: String, default: 'en' },
-    currency: { type: String, default: 'RWF' },
+    currency: { type: String },
+    currencyUserPinned: { type: Boolean, default: false },
   },
   { _id: false }
 );

@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </nav>
 
-      <div className="p-4 border-t bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-gray-800 transition-colors duration-300 text-xs text-gray-500 dark:text-gray-400">
+      <div className="p-4 border-t bg-gray-50 dark:bg-dark-secondary border-gray-200 dark:border-[var(--border-card)] transition-colors duration-300 text-xs text-gray-500 dark:text-[var(--text-muted)]">
         <p className="text-center">
           {t('sidebar.needHelpOpen')}{' '}
           <span className="font-semibold text-[var(--brand-primary)]">{t('sidebar.supportCenter')}</span> {t('sidebar.inMenu')}.

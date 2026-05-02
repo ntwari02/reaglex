@@ -6,7 +6,8 @@ import Footer from '../Footer';
  * cart-push motion.div.  Rendering it here (inside the transformed wrapper)
  * would make position:fixed anchor to the transformed ancestor, causing the
  * navbar to scroll away with the page and shift with the cart animation.
- * The pt-[150px] offset below still compensates for the fixed navbar height.
+ * The padding-top on the inner wrapper compensates for the fixed GlobalNavbar height
+ * (mobile includes the extra search row) plus a small gap and safe-area insets.
  */
 export default function BuyerLayout({ children, className = '' }) {
   return (
@@ -18,12 +19,13 @@ export default function BuyerLayout({ children, className = '' }) {
       }}
     >
       {/*
-       * pt-[74px] on mobile  = only the MainHeader is visible (height:70 + 4px buffer).
-       * pt-[150px] on ≥md    = UtilityBar(36) + MainHeader(70) + CategoryNav(44) = 150px.
-       * pb-[calc(60px+env(safe-area-inset-bottom))] on mobile clears the bottom nav bar.
+       * Mobile: MainHeader(70) + mobile search row (h-11 + pb-3 ≈ 56) ≈ 126px, plus 8px gap,
+       * plus safe-area for notched devices (Navbar is fixed to top-0).
+       * md+: UtilityBar(36) + MainHeader(70) + CategoryNav(44) = 150px + gap + safe-area.
+       * pb clears MobileBottomNav on small screens.
        */}
       <div
-        className="pt-[74px] md:pt-[150px] pb-[calc(60px+env(safe-area-inset-bottom))] md:pb-0"
+        className="pt-[calc(134px+env(safe-area-inset-top,0px))] md:pt-[calc(158px+env(safe-area-inset-top,0px))] pb-[calc(60px+env(safe-area-inset-bottom))] md:pb-0"
         style={{ color: 'var(--text-primary, #0f172a)' }}
       >
         {children}

@@ -50,8 +50,8 @@ function GridMesh({ isDark }: { isDark: boolean }) {
             strokeWidth="1" />
         </pattern>
         <radialGradient id="bs-fade" cx="50%" cy="40%" r="60%">
-          <stop offset="0%" stopColor={isDark ? '#0d0f1c' : '#fafafa'} stopOpacity="0" />
-          <stop offset="100%" stopColor={isDark ? '#0d0f1c' : '#fafafa'} stopOpacity="1" />
+          <stop offset="0%" stopColor="var(--bg-page)" stopOpacity="0" />
+          <stop offset="100%" stopColor="var(--bg-page)" stopOpacity="1" />
         </radialGradient>
       </defs>
       <rect width="100%" height="100%" fill="url(#bs-grid)" />
@@ -219,8 +219,8 @@ export default function BecomeSeller() {
                 fontSize: 'clamp(2.6rem, 7vw, 5.5rem)',
                 letterSpacing: '-0.03em',
                 background: isDark
-                  ? `linear-gradient(135deg, #e2e4ed 0%, ${PL} 45%, ${A1} 100%)`
-                  : `linear-gradient(135deg, #0f172a 0%, ${P} 45%, ${PD} 100%)`,
+                  ? `linear-gradient(135deg, var(--text-primary) 0%, ${PL} 45%, ${A1} 100%)`
+                  : `linear-gradient(135deg, var(--text-primary) 0%, ${P} 45%, ${PD} 100%)`,
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -423,8 +423,8 @@ export default function BecomeSeller() {
                   fontSize: 'clamp(2rem, 5vw, 4rem)',
                   letterSpacing: '-0.03em',
                   background: isDark
-                    ? `linear-gradient(135deg, #e2e4ed 0%, ${PL} 55%, ${A1} 100%)`
-                    : `linear-gradient(135deg, #0f172a 0%, ${P} 55%, ${PD} 100%)`,
+                    ? `linear-gradient(135deg, var(--text-primary) 0%, ${PL} 55%, ${A1} 100%)`
+                    : `linear-gradient(135deg, var(--text-primary) 0%, ${P} 55%, ${PD} 100%)`,
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                 }}
               >

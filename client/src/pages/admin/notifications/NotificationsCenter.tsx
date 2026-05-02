@@ -92,7 +92,9 @@ export default function NotificationsCenter() {
   const [selectedSubject, setSelectedSubject] = useState(1);
   const [selectedBody, setSelectedBody] = useState(1);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiCollapsed, setAiCollapsed] = useState(false);
+  const [aiCollapsed, setAiCollapsed] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
   const [appliedBodyId, setAppliedBodyId] = useState<number | null>(null);
   const [expandedBodyId, setExpandedBodyId] = useState<number | null>(null);
 
@@ -530,29 +532,33 @@ export default function NotificationsCenter() {
         flexDirection: 'column',
         height: '100%',
         minHeight: 0,
-        background: '#0D1117',
         fontFamily: 'inherit',
         margin: 0,
         padding: 0,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
       {toast && (
         <div
           role="status"
+          className="nc-toast"
           style={{
             position: 'fixed',
-            bottom: 24,
-            right: 24,
+            bottom: 'max(24px, env(safe-area-inset-bottom, 0px))',
+            right: 'max(16px, env(safe-area-inset-right, 0px))',
+            left: 'auto',
             zIndex: 9999,
-            background: '#161B27',
+            maxWidth: 'min(420px, calc(100vw - 32px))',
+            background: 'var(--modal-bg)',
             border: '1px solid rgba(255,255,255,0.12)',
             borderLeft: toast.type === 'success' ? '3px solid #00BFA5' : '3px solid #EF4444',
-            borderRadius: 10,
-            padding: '14px 20px',
-            color: '#F1F5F9',
+            borderRadius: 12,
+            padding: '14px 18px',
+            color: 'var(--text-primary, #F1F5F9)',
             fontSize: 14,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,191,165,0.08)',
             animation: 'ncSlideIn 0.25s ease',
+            backdropFilter: 'blur(12px)',
           }}
         >
           {toast.message}
@@ -564,14 +570,12 @@ export default function NotificationsCenter() {
         className="nc-topbar"
         style={{
           flexShrink: 0,
-          height: 44,
-          padding: '0 24px',
+          minHeight: 44,
+          padding: '10px max(16px, env(safe-area-inset-left)) 10px max(16px, env(safe-area-inset-right))',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
           flexWrap: 'wrap',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          background: '#0D1117',
           position: 'sticky',
           top: 0,
           zIndex: 20,
@@ -584,34 +588,44 @@ export default function NotificationsCenter() {
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            flexWrap: 'wrap',
             minWidth: 0,
             overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'thin',
+            paddingBottom: 2,
+            maskImage: 'linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent)',
           }}
         >
           {tabDefs.map((t) => (
             <button
               key={t.id}
               type="button"
+              title={`${t.label} notification`}
+              aria-label={`${t.label} notification`}
               onClick={() => setNotifType(t.id)}
+              className="nc-tab-btn"
               style={{
-                padding: '4px 12px',
+                padding: '6px 14px',
                 borderRadius: 99,
                 fontSize: 12,
                 cursor: 'pointer',
                 border: '1px solid',
                 borderColor: notifType === t.id ? '#00BFA5' : 'rgba(255,255,255,0.08)',
-                background: notifType === t.id ? 'rgba(0,191,165,0.12)' : 'transparent',
+                background: notifType === t.id ? 'rgba(0,191,165,0.14)' : 'rgba(255,255,255,0.03)',
                 color: notifType === t.id ? '#00BFA5' : '#64748B',
                 whiteSpace: 'nowrap',
+                flexShrink: 0,
+                minHeight: 36,
+                boxShadow: notifType === t.id ? '0 0 20px rgba(0,191,165,0.15)' : 'none',
+                transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
               }}
             >
-              {t.icon} {t.label}
+              <span aria-hidden>{t.icon}</span> <span className="nc-tab-label">{t.label}</span>
             </button>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div className="nc-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <span style={{ fontSize: 12, color: '#64748B' }}>Auto-save</span>
             <button
@@ -646,18 +660,21 @@ export default function NotificationsCenter() {
 
           <button
             type="button"
+            className="nc-btn-ghost"
             onClick={() => setShowScheduleModal(true)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 6,
-              padding: '6px 14px',
-              borderRadius: 8,
+              padding: '8px 14px',
+              borderRadius: 10,
               fontSize: 13,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.04)',
               color: '#94A3B8',
               cursor: 'pointer',
+              minHeight: 40,
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -669,6 +686,7 @@ export default function NotificationsCenter() {
 
           <button
             type="button"
+            className="nc-btn-ghost"
             onClick={() => {
               try {
                 localStorage.setItem(
@@ -695,14 +713,16 @@ export default function NotificationsCenter() {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 6,
-              padding: '6px 14px',
-              borderRadius: 8,
+              padding: '8px 14px',
+              borderRadius: 10,
               fontSize: 13,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.04)',
               color: '#94A3B8',
               cursor: 'pointer',
+              minHeight: 40,
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -715,6 +735,7 @@ export default function NotificationsCenter() {
 
           <button
             type="button"
+            className="nc-btn-send"
             onClick={() => handleSend(false)}
             disabled={sending}
             onMouseEnter={(e) => {
@@ -726,15 +747,18 @@ export default function NotificationsCenter() {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 8,
-              padding: '6px 18px',
-              borderRadius: 8,
+              padding: '10px 20px',
+              borderRadius: 12,
               fontSize: 13,
               fontWeight: 600,
               border: 'none',
               background: sending ? '#007A68' : '#00BFA5',
               color: 'white',
               cursor: sending ? 'not-allowed' : 'pointer',
+              minHeight: 44,
+              boxShadow: sending ? 'none' : '0 4px 24px rgba(0,191,165,0.35)',
             }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
@@ -747,7 +771,7 @@ export default function NotificationsCenter() {
 
       {/* Main row */}
       <div
-        className="nc-main"
+        className={`nc-main${aiCollapsed ? ' nc-main--ai-collapsed' : ''}`}
         style={{
           flex: 1,
           display: 'flex',
@@ -758,7 +782,7 @@ export default function NotificationsCenter() {
       >
         {/* Left composer */}
         <div
-          className="nc-left"
+          className="nc-left nc-composer-glow"
           style={{
             flex: 1,
             minWidth: 0,
@@ -769,8 +793,12 @@ export default function NotificationsCenter() {
           }}
         >
           {/* From */}
-          <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div
+            className="nc-field-row"
+            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
             <div
+              className="nc-field-label"
               style={{
                 width: 72,
                 flexShrink: 0,
@@ -782,7 +810,10 @@ export default function NotificationsCenter() {
             >
               From
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '14px 16px 14px 0' }}>
+            <div
+              className="nc-field-value"
+              style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '14px 16px 14px 0' }}
+            >
               <span style={{ fontSize: 13, color: '#94A3B8' }}>
                 Admin &lt;{fromEmail}&gt;
               </span>
@@ -792,9 +823,11 @@ export default function NotificationsCenter() {
           {/* To */}
           <div
             ref={toRowRef}
+            className="nc-field-row nc-to-row"
             style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
           >
             <div
+              className="nc-field-label"
               style={{
                 width: 72,
                 flexShrink: 0,
@@ -806,7 +839,10 @@ export default function NotificationsCenter() {
             >
               To
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 0', minWidth: 0 }}>
+            <div
+              className="nc-field-value nc-to-inputs"
+              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 0', minWidth: 0 }}
+            >
               {targetGroup && (
                 <span
                   style={{
@@ -901,7 +937,7 @@ export default function NotificationsCenter() {
                     top: '100%',
                     marginTop: 4,
                     minWidth: 200,
-                    background: '#161B27',
+                    background: 'var(--modal-bg)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 8,
                     zIndex: 50,
@@ -948,7 +984,7 @@ export default function NotificationsCenter() {
                 maxWidth: 420,
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
-                background: '#161B27',
+                background: 'var(--modal-bg)',
                 zIndex: 40,
               }}
             >
@@ -978,8 +1014,12 @@ export default function NotificationsCenter() {
           )}
 
           {/* Cc */}
-          <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div
+            className="nc-field-row"
+            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
             <div
+              className="nc-field-label"
               style={{
                 width: 72,
                 flexShrink: 0,
@@ -994,29 +1034,49 @@ export default function NotificationsCenter() {
             >
               Cc
               {!showBcc && (
-                <button type="button" onClick={() => setShowBcc(true)} style={{ fontSize: 11, color: '#00BFA5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <button
+                  type="button"
+                  className="nc-bcc-link"
+                  onClick={() => setShowBcc(true)}
+                  style={{
+                    fontSize: 11,
+                    color: '#00BFA5',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '6px 4px',
+                    minHeight: 36,
+                  }}
+                >
                   Bcc
                 </button>
               )}
             </div>
-            <input
-              value={ccInput}
-              onChange={(e) => setCcInput(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: '#F1F5F9',
-                fontSize: 13,
-                padding: '14px 16px 14px 0',
-              }}
-            />
+            <div className="nc-field-value nc-cc-input-wrap" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+              <input
+                value={ccInput}
+                onChange={(e) => setCcInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#F1F5F9',
+                  fontSize: 13,
+                  padding: '14px 16px 14px 0',
+                }}
+              />
+            </div>
           </div>
 
           {showBcc && (
-            <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div
+              className="nc-field-row"
+              style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
               <div
+                className="nc-field-label"
                 style={{
                   width: 72,
                   flexShrink: 0,
@@ -1028,24 +1088,28 @@ export default function NotificationsCenter() {
               >
                 Bcc
               </div>
-              <input
-                value={bccInput}
-                onChange={(e) => setBccInput(e.target.value)}
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: '#F1F5F9',
-                  fontSize: 13,
-                  padding: '14px 16px 14px 0',
-                }}
-              />
+              <div className="nc-field-value" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                <input
+                  value={bccInput}
+                  onChange={(e) => setBccInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#F1F5F9',
+                    fontSize: 13,
+                    padding: '14px 16px 14px 0',
+                  }}
+                />
+              </div>
             </div>
           )}
 
           {/* Toolbar */}
           <div
+            className="nc-composer-toolbar"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1083,9 +1147,10 @@ export default function NotificationsCenter() {
           </div>
 
           {/* Subject */}
-          <div>
+          <div className="nc-subject-block">
             <div style={{ padding: '12px 16px 4px', fontSize: 13, color: '#64748B' }}>Subject</div>
             <input
+              className="nc-subject-input"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Enter notification subject..."
@@ -1104,9 +1169,10 @@ export default function NotificationsCenter() {
           </div>
 
           {/* Body area */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 200, minWidth: 0 }}>
+          <div className="nc-body-area" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 200, minWidth: 0 }}>
             {notifType === 'email' && (
               <div
+                className="nc-format-bar"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1153,6 +1219,7 @@ export default function NotificationsCenter() {
 
             <textarea
               ref={bodyRef}
+              className="nc-body-textarea"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder={
@@ -1186,12 +1253,14 @@ export default function NotificationsCenter() {
 
           {/* Bottom toolbar */}
           <div
+            className="nc-bottom-bar"
             style={{
               flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
               gap: 16,
-              padding: '10px 16px',
+              padding: '10px max(12px, env(safe-area-inset-left)) 10px max(12px, env(safe-area-inset-right))',
+              paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
               borderTop: '1px solid rgba(255,255,255,0.06)',
             }}
           >
@@ -1248,7 +1317,7 @@ export default function NotificationsCenter() {
                       bottom: '100%',
                       left: 0,
                       marginBottom: 6,
-                      background: '#161B27',
+                      background: 'var(--modal-bg)',
                       border: '1px solid rgba(255,255,255,0.1)',
                       borderRadius: 8,
                       minWidth: 180,
@@ -1290,7 +1359,7 @@ export default function NotificationsCenter() {
             ))}
 
             {notifType === 'email' && (
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div className="nc-bottom-email-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <input
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
@@ -1349,7 +1418,7 @@ export default function NotificationsCenter() {
         {/* Right column */}
         {!aiCollapsed && (
           <div
-            className="nc-right"
+            className="nc-right nc-ai-panel"
             style={{
               width: 340,
               flexShrink: 0,
@@ -1357,7 +1426,7 @@ export default function NotificationsCenter() {
               flexDirection: 'column',
               borderLeft: '1px solid rgba(255,255,255,0.06)',
               minHeight: 0,
-              background: '#0D1117',
+              background: 'color-mix(in srgb, var(--bg-page) 96%, rgba(0,191,165,0.04))',
             }}
           >
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
@@ -1912,20 +1981,26 @@ export default function NotificationsCenter() {
         {aiCollapsed && (
           <button
             type="button"
+            className="nc-ai-expand"
             onClick={() => setAiCollapsed(false)}
             style={{
               width: 36,
               flexShrink: 0,
               border: 'none',
               borderLeft: '1px solid rgba(255,255,255,0.06)',
-              background: '#0D1117',
+              background: 'color-mix(in srgb, var(--bg-page) 88%, rgba(0,191,165,0.06))',
               color: '#00BFA5',
               cursor: 'pointer',
               fontSize: 18,
+              minHeight: 44,
             }}
             title="Show AI panel"
+            aria-label="Show AI assistant panel"
           >
-            ‹
+            <span className="nc-ai-expand-desktop" aria-hidden>
+              ‹
+            </span>
+            <span className="nc-ai-expand-mobile">✦ AI assistant</span>
           </button>
         )}
       </div>
@@ -1934,29 +2009,33 @@ export default function NotificationsCenter() {
       {showScheduleModal && (
         <div
           role="presentation"
+          className="nc-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            padding: 'max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))',
           }}
           onClick={() => setShowScheduleModal(false)}
         >
           <div
             role="dialog"
             aria-modal="true"
+            className="nc-modal-dialog"
             style={{
-              background: '#161B27',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
+              background: 'var(--modal-bg)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 18,
               padding: 24,
               width: 400,
-              maxWidth: '92vw',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+              maxWidth: '100%',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,191,165,0.08)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2046,31 +2125,35 @@ export default function NotificationsCenter() {
       {showTemplatesModal && (
         <div
           role="presentation"
+          className="nc-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 16,
+            padding: 'max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))',
           }}
           onClick={() => setShowTemplatesModal(false)}
         >
           <div
             role="dialog"
+            className="nc-modal-dialog nc-modal-dialog--scroll"
             style={{
-              background: '#161B27',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
+              background: 'var(--modal-bg)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 18,
               padding: 20,
               width: 480,
               maxWidth: '100%',
-              maxHeight: '80vh',
+              maxHeight: 'min(80vh, 90dvh)',
               overflowY: 'auto',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+              WebkitOverflowScrolling: 'touch',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,191,165,0.08)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2136,27 +2219,32 @@ export default function NotificationsCenter() {
       {showSaveTplModal && (
         <div
           role="presentation"
+          className="nc-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            padding: 'max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))',
           }}
           onClick={() => setShowSaveTplModal(false)}
         >
           <div
             role="dialog"
+            className="nc-modal-dialog"
             style={{
-              background: '#161B27',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
+              background: 'var(--modal-bg)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 18,
               padding: 24,
               width: 360,
-              boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+              maxWidth: '100%',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,191,165,0.08)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2211,15 +2299,257 @@ export default function NotificationsCenter() {
           animation: ncShimmer 1.5s ease-in-out infinite;
         }
         @keyframes ncSlideIn {
-          from { transform: translateX(20px); opacity: 0 }
-          to { transform: translateX(0); opacity: 1 }
+          from { transform: translateY(8px); opacity: 0 }
+          to { transform: translateY(0); opacity: 1 }
         }
+        .nc-root {
+          position: relative;
+          isolation: isolate;
+          background-color: var(--bg-page);
+          background-image:
+            radial-gradient(ellipse 140% 90% at 50% -30%, rgba(0, 191, 165, 0.11), transparent 55%),
+            radial-gradient(ellipse 70% 45% at 100% 0%, rgba(0, 191, 165, 0.06), transparent 45%),
+            radial-gradient(ellipse 60% 40% at 0% 100%, rgba(99, 102, 241, 0.05), transparent 50%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-page) 92%, #0a1628) 0%, var(--bg-page) 38%, var(--bg-page) 100%);
+          background-attachment: fixed;
+        }
+        .nc-root::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          opacity: 0.35;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+          background-size: 48px 48px;
+          mask-image: radial-gradient(ellipse 85% 70% at 50% 20%, black 15%, transparent 70%);
+        }
+
+        .nc-topbar {
+          border-bottom: 1px solid color-mix(in srgb, rgba(0, 191, 165, 0.35) 25%, rgba(255,255,255,0.06));
+          background: color-mix(in srgb, var(--bg-page) 82%, transparent) !important;
+          backdrop-filter: saturate(160%) blur(14px);
+          -webkit-backdrop-filter: saturate(160%) blur(14px);
+          box-shadow: 0 1px 0 rgba(0, 191, 165, 0.06);
+        }
+
+        .nc-main,
+        .nc-topbar,
+        .nc-left,
+        .nc-right,
+        .nc-ai-expand {
+          position: relative;
+          z-index: 1;
+        }
+
+        .nc-composer-glow {
+          box-shadow: inset 0 0 80px rgba(0, 191, 165, 0.03);
+        }
+
+        .nc-ai-panel {
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border-left: 1px solid color-mix(in srgb, rgba(0, 191, 165, 0.2) 40%, rgba(255,255,255,0.06)) !important;
+        }
+
+        .nc-tab-btn:focus-visible {
+          outline: 2px solid #00BFA5;
+          outline-offset: 2px;
+        }
+
+        .nc-btn-ghost:active {
+          transform: scale(0.98);
+        }
+        .nc-btn-send:active:not(:disabled) {
+          transform: scale(0.98);
+        }
+
         @media (max-width: 1200px) {
-          .nc-main { flex-direction: column !important; overflow-y: auto !important; }
-          .nc-left { border-right: none !important; width: 100% !important; }
-          .nc-right { width: 100% !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.06); }
-          .nc-topbar { flex-wrap: wrap; height: auto !important; min-height: 44px; }
-          .nc-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+          .nc-main {
+            flex-direction: column !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .nc-left {
+            border-right: none !important;
+            width: 100% !important;
+            min-height: min(60vh, 520px);
+          }
+          .nc-right {
+            width: 100% !important;
+            max-width: 100% !important;
+            border-left: none !important;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            min-height: 280px;
+          }
+          .nc-topbar {
+            flex-wrap: wrap;
+            min-height: 44px;
+          }
+          .nc-tabs {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            padding-bottom: 4px;
+            scrollbar-width: thin;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .nc-actions {
+            flex: 1 1 100%;
+            justify-content: flex-start;
+            gap: 8px !important;
+          }
+          .nc-actions .nc-btn-send {
+            flex: 1 1 auto;
+            min-width: 0;
+          }
+          .nc-actions .nc-btn-ghost {
+            flex: 1 1 calc(50% - 4px);
+            min-width: 0;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .nc-tab-label {
+            font-size: 11px;
+          }
+          .nc-tab-btn {
+            padding: 8px 12px !important;
+            min-height: 40px !important;
+          }
+          .nc-field-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .nc-field-label {
+            width: 100% !important;
+            padding: 12px 16px 4px !important;
+            box-sizing: border-box;
+          }
+          .nc-field-value,
+          .nc-to-inputs {
+            width: 100% !important;
+            padding: 4px 16px 12px !important;
+            box-sizing: border-box;
+          }
+          .nc-cc-input-wrap {
+            padding: 4px 16px 12px !important;
+          }
+          .nc-to-inputs {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .nc-to-inputs button {
+            min-height: 44px;
+            padding: 8px 14px !important;
+          }
+          .nc-composer-toolbar button {
+            min-height: 40px;
+            padding: 8px 12px !important;
+          }
+          .nc-subject-input {
+            min-height: 48px !important;
+            font-size: 16px !important;
+            padding: 12px 16px !important;
+          }
+          .nc-body-textarea {
+            min-height: 220px !important;
+            font-size: 16px !important;
+          }
+          .nc-format-bar button {
+            min-width: 40px !important;
+            min-height: 40px !important;
+            padding: 0 8px !important;
+          }
+          .nc-bottom-bar {
+            flex-wrap: wrap !important;
+            gap: 10px !important;
+            align-items: flex-start !important;
+          }
+          .nc-bottom-email-actions {
+            margin-left: 0 !important;
+            width: 100%;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            order: 10;
+          }
+          .nc-bottom-email-actions input {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 44px;
+            box-sizing: border-box;
+            padding: 10px 12px !important;
+          }
+          .nc-bottom-email-actions button {
+            min-height: 44px;
+            flex: 1 1 auto;
+          }
+          .nc-bottom-bar > div[style*="position: relative"] button[type="button"] {
+            min-width: 44px;
+            min-height: 44px;
+          }
+          .nc-modal-overlay {
+            align-items: flex-end !important;
+          }
+          .nc-modal-dialog {
+            width: 100% !important;
+            max-width: 100% !important;
+            border-radius: 18px 18px 0 0 !important;
+            max-height: min(92dvh, 92vh) !important;
+            overflow-y: auto;
+          }
+          .nc-modal-dialog--scroll {
+            max-height: min(88dvh, 88vh) !important;
+          }
+          .nc-toast {
+            right: 12px !important;
+            left: 12px !important;
+            max-width: none !important;
+          }
+          @keyframes ncSlideIn {
+            from { transform: translateY(12px); opacity: 0 }
+            to { transform: translateY(0); opacity: 1 }
+          }
+        }
+
+        @media (max-width: 480px) {
+          .nc-tab-btn .nc-tab-label {
+            display: none;
+          }
+          .nc-tab-btn {
+            padding: 10px 12px !important;
+          }
+        }
+
+        .nc-main.nc-main--ai-collapsed .nc-ai-expand {
+          border-left: 1px solid rgba(255,255,255,0.08);
+        }
+        .nc-ai-expand-mobile {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .nc-ai-expand-desktop {
+            display: none;
+          }
+          .nc-ai-expand-mobile {
+            display: inline;
+          }
+          .nc-main.nc-main--ai-collapsed {
+            flex-direction: column !important;
+          }
+          .nc-main.nc-main--ai-collapsed .nc-ai-expand {
+            width: 100% !important;
+            border-left: none !important;
+            border-top: 1px solid color-mix(in srgb, rgba(0, 191, 165, 0.25) 35%, rgba(255,255,255,0.08));
+            min-height: 48px;
+            font-size: 15px !important;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+          }
         }
       `}</style>
     </div>

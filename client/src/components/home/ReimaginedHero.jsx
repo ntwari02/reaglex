@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 
@@ -545,23 +545,19 @@ export default function ReimaginedHero() {
           />
         </div>
 
-        {/* Scroll hint — nudge on mobile too, but smaller */}
+        {/* Scroll hint — animated down arrow */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, y: [0, 6, 0] }}
           transition={{ duration: 2.5, repeat: Infinity, delay: 1.5 }}
-          className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none"
+          className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none"
           style={{
             bottom: '6%',
-            color: SCENES[activeScene].id === 'welcome' ? 'rgba(242,242,242,0.32)' : (isDark ? 'var(--text-faint)' : 'rgba(0,0,0,0.25)'),
+            color: SCENES[activeScene].id === 'welcome' ? 'rgba(242,242,242,0.45)' : (isDark ? 'var(--text-muted)' : 'rgba(0,0,0,0.35)'),
           }}
+          aria-label="Scroll to explore"
         >
-          <span style={{ fontSize: '8px', letterSpacing: '0.2em', fontWeight: 700 }}>SCROLL</span>
-          <div className="w-px h-5" style={{
-            background: SCENES[activeScene].id === 'welcome'
-              ? 'linear-gradient(to bottom, rgba(255,255,255,0.38), transparent)'
-              : 'linear-gradient(to bottom, rgba(0,0,0,0.22), transparent)',
-          }} />
+          <ChevronDown className="w-8 h-8 md:w-9 md:h-9" strokeWidth={2.25} aria-hidden />
         </motion.div>
 
         {/* Mobile helper: explicit continuation guidance + fast exit */}
@@ -572,22 +568,22 @@ export default function ReimaginedHero() {
             transition={{ duration: 0.4, delay: 0.5 }}
             className="absolute top-4 right-4 z-30 flex items-center gap-2"
           >
-            <span
+            <div
+              role="img"
+              aria-label="Scroll to explore the hero"
+              className="flex items-center justify-center"
               style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: '0.06em',
                 color: 'var(--text-secondary)',
                 background: isDark ? 'rgba(15,23,42,0.62)' : 'rgba(255,255,255,0.72)',
                 border: `1px solid ${isDark ? 'rgba(148,163,184,0.28)' : 'rgba(15,23,42,0.14)'}`,
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)',
                 borderRadius: 999,
-                padding: '6px 10px',
+                padding: '8px 10px',
               }}
             >
-              Keep scrolling
-            </span>
+              <ChevronDown className="w-5 h-5" strokeWidth={2.5} aria-hidden />
+            </div>
             <button
               type="button"
               onClick={handleSkipIntro}

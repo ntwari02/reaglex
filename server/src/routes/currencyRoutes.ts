@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth';
+import { authenticate, AuthenticatedRequest, optionalAuthenticate } from '../middleware/auth';
 import { User } from '../models/User';
 import {
   detectCurrencyFromRequest,
@@ -10,20 +10,35 @@ import {
 
 const router = Router();
 
-router.get('/context', async (req, res) => {
+router.get('/context', optionalAuthenticate, async (req, res) => {
   try {
     const snapshot = await refreshExchangeRates(false);
-    const detectedCurrency = detectCurrencyFromRequest(req);
-    const preferredCurrency = (req as AuthenticatedRequest).user?.id
-      ? (await User.findById((req as AuthenticatedRequest).user?.id).select('preferences.currency').lean() as any)
-          ?.preferences?.currency
-      : null;
+    const detectedRaw = detectCurrencyFromRequest(req);
+    const detectedCurrency = isSupportedDisplayCurrency(detectedRaw) ? detectedRaw : 'USD';
 
-    const selectedCurrency = String(preferredCurrency || detectedCurrency || 'USD').toUpperCase();
+    let preferredCurrency: string | null = null;
+    let currencyUserPinned = false;
+    const authUser = (req as AuthenticatedRequest).user;
+    if (authUser?.id) {
+      const u = (await User.findById(authUser.id)
+        .select('preferences.currency preferences.currencyUserPinned')
+        .lean()) as {
+        preferences?: { currency?: string; currencyUserPinned?: boolean };
+      } | null;
+      const pc = u?.preferences?.currency ? String(u.preferences.currency).toUpperCase() : null;
+      preferredCurrency = pc && isSupportedDisplayCurrency(pc) ? pc : null;
+      currencyUserPinned = Boolean(u?.preferences?.currencyUserPinned);
+    }
+
+    const selectedCurrency = currencyUserPinned && preferredCurrency
+      ? preferredCurrency
+      : detectedCurrency;
+
     return res.json({
       baseCurrency: 'USD',
       detectedCurrency,
       selectedCurrency,
+      currencyUserPinned,
       exchangeRate: Number(snapshot.rates[selectedCurrency] || 1),
       fetchedAt: snapshot.fetchedAt,
       source: snapshot.source,
@@ -73,7 +88,7 @@ router.post('/preference', authenticate, async (req: AuthenticatedRequest, res) 
     }
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    user.preferences = { ...user.preferences, currency };
+    user.preferences = { ...user.preferences, currency, currencyUserPinned: true };
     await user.save();
     const snapshot = getExchangeSnapshot();
     return res.json({

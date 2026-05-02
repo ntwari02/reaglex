@@ -339,7 +339,7 @@ const getMarkerLabelTint = (growth: number) => (growth >= 0 ? '#fde68a' : '#fed7
 const globeTexture = 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
   const bumpTexture = 'https://unpkg.com/three-globe/example/img/earth-topology.png';
 const mapBackdropClass = isDarkMode
-  ? 'from-[#020617] via-[#050f2a] to-[#01030c]'
+  ? 'from-dark-primary via-dark-secondary to-dark-primary'
   : 'from-[#041226] via-[#082449] to-[#030712]';
 const globeMarkers = useMemo<GlobeMarker[]>(() => {
   if (!mapRegions.length || !maxRegionSales) return [];
@@ -948,7 +948,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
             </button>
           <button 
             onClick={loadDashboardData}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-dark-secondary rounded-full hover:bg-gray-200 dark:hover:bg-[var(--bg-hover)] transition-colors text-sm"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh data
@@ -972,7 +972,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
               return (
                 <div
                   key={card.label}
-                  className="relative overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"
+                  className="relative overflow-hidden rounded-2xl border border-gray-100 dark:border-[var(--border-card)] bg-white dark:bg-dark-card p-4 shadow-sm"
                 >
                   <div className={`absolute inset-0 opacity-60 bg-gradient-to-br ${card.accent}`} />
                   <div className="relative flex items-start justify-between">
@@ -988,7 +988,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                         {card.delta}
                       </p>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-white/70 dark:bg-gray-800/70 flex items-center justify-center shadow-sm">
+                    <div className="w-10 h-10 rounded-xl bg-white/70 dark:bg-dark-card/85 flex items-center justify-center shadow-sm">
                       <Icon className="w-5 h-5 text-gray-800 dark:text-gray-200" />
                     </div>
                 </div>
@@ -1014,7 +1014,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 return (
                   <div
                     key={card.label}
-                    className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm flex flex-col gap-2"
+                    className="rounded-2xl border border-gray-100 dark:border-[var(--border-card)] bg-white dark:bg-dark-card p-4 shadow-sm flex flex-col gap-2"
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -1028,7 +1028,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 );
               })}
             </div>
-            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm">
+            <div className="rounded-2xl border border-gray-100 dark:border-[var(--border-card)] bg-white dark:bg-dark-card p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -1067,7 +1067,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
           aria-label="Core analytics summary"
           className="grid gap-6 md:grid-cols-2"
         >
-          <div className="rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gradient-to-br dark:from-[#070d1b] dark:via-[#0a1424] dark:to-[#0f1d35] text-gray-900 dark:text-white shadow-2xl p-6 space-y-5 transition-colors">
+          <div className="rounded-3xl border border-gray-200 dark:border-[var(--border-card)] bg-white dark:bg-dark-card text-gray-900 dark:text-[var(--text-primary)] shadow-2xl dark:shadow-[var(--shadow-card)] p-6 space-y-5 transition-colors">
             <div className="flex flex-col gap-2">
               <p className="text-xs uppercase tracking-[0.35em] text-emerald-600 dark:text-emerald-300/80">Velocity</p>
               <h3 className="text-2xl font-semibold leading-tight">Sales over time</h3>
@@ -1103,7 +1103,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 </button>
               ))}
             </div>
-            <div className="rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/20 p-3 transition-colors">
+            <div className="rounded-2xl border border-gray-200 dark:border-[var(--border-subtle)] bg-gray-50 dark:bg-dark-primary p-3 transition-colors">
               <TrendLineChart
                 data={filteredRevenueData}
                 forecastData={filteredForecastData}
@@ -1115,7 +1115,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gradient-to-b dark:from-[#0b152a] dark:via-[#0f1c34] dark:to-[#111f3b] text-gray-900 dark:text-white shadow-2xl p-6 space-y-5 transition-colors">
+          <div className="rounded-3xl border border-gray-200 dark:border-[var(--border-card)] bg-white dark:bg-dark-card text-gray-900 dark:text-[var(--text-primary)] shadow-2xl dark:shadow-[var(--shadow-card)] p-6 space-y-5 transition-colors">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-sky-600 dark:text-sky-300/70">Composition</p>
@@ -1156,7 +1156,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
 
         </section>
 
-        <section className="rounded-2xl sm:rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gradient-to-br dark:from-[#030711] dark:via-[#071226] dark:to-[#050d1d] text-gray-900 dark:text-white p-3 sm:p-4 md:p-6 shadow-[0_25px_60px_rgba(15,23,42,0.08)] dark:shadow-[0_45px_120px_rgba(5,8,20,0.75)] space-y-3 sm:space-y-4 md:space-y-6 transition-colors">
+        <section className="rounded-2xl sm:rounded-3xl border border-gray-200 dark:border-[var(--border-card)] bg-white dark:bg-dark-card text-gray-900 dark:text-[var(--text-primary)] p-3 sm:p-4 md:p-6 shadow-[0_25px_60px_rgba(15,23,42,0.08)] dark:shadow-[var(--shadow-lg)] space-y-3 sm:space-y-4 md:space-y-6 transition-colors">
           <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-[10px] sm:text-xs uppercase tracking-[0.35em] text-emerald-300">Sales by Region</p>
@@ -1168,7 +1168,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                   onClick={() => setTimeRange(option.value)}
                   className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border ${
                     timeRange === option.value
-                      ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                      ? 'bg-slate-900 text-white border-slate-900 dark:bg-[var(--bg-active)] dark:text-[var(--text-primary)] dark:border-[var(--border-strong)]'
                       : 'border-gray-300 text-gray-600 hover:text-gray-900 dark:border-white/20 dark:text-white/70 dark:hover:text-white'
                   }`}
                 >
@@ -1208,14 +1208,14 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                   />
               </div>
               <div className="flex flex-col gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 items-end z-10 pointer-events-auto order-1 lg:order-2 p-2 sm:p-3 md:p-4 lg:p-6 lg:absolute lg:bottom-6 lg:right-6">
-                <div className="bg-white text-gray-900 dark:bg-slate-900/80 dark:text-white rounded-lg sm:rounded-xl md:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 backdrop-blur w-full sm:w-40 md:w-48 lg:w-56 shadow-lg border border-gray-200 dark:border-white/10 transition-colors">
+                <div className="bg-white text-gray-900 dark:bg-dark-secondary dark:text-[var(--text-primary)] rounded-lg sm:rounded-xl md:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 backdrop-blur w-full sm:w-40 md:w-48 lg:w-56 shadow-lg border border-gray-200 dark:border-[var(--border-card)] transition-colors">
                   <p className="text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wide text-gray-500 dark:text-white/70">Regional GMV</p>
                   <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-white">${(totalRegionalSales / 1000).toFixed(1)}k</p>
                   <p className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-gray-500 dark:text-white/60">
                     Avg order size ${Math.round((totalRegionalSales / activeRegions) / 100).toLocaleString()}k
                   </p>
                 </div>
-                <div className="bg-white text-gray-900 dark:bg-slate-900/80 dark:text-white border border-gray-200 dark:border-white/10 rounded-lg sm:rounded-xl md:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 backdrop-blur w-full sm:w-40 md:w-48 lg:w-56 shadow-lg transition-colors">
+                <div className="bg-white text-gray-900 dark:bg-dark-secondary dark:text-[var(--text-primary)] border border-gray-200 dark:border-[var(--border-card)] rounded-lg sm:rounded-xl md:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-3 lg:px-5 lg:py-4 backdrop-blur w-full sm:w-40 md:w-48 lg:w-56 shadow-lg transition-colors">
                   <p className="font-semibold mb-1 sm:mb-1.5 md:mb-2 text-[9px] sm:text-[10px] md:text-xs lg:text-sm">Legend</p>
                   <div className="space-y-0.5 sm:space-y-1 md:space-y-1.5 text-gray-600 dark:text-white/80">
                     {heatLegend.map(step => (
@@ -1256,7 +1256,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
             </div>
 
             {/* Weekly Revenue */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">This Week</p>
@@ -1273,7 +1273,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                   </div>
 
             {/* Monthly Revenue */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">This Month</p>
@@ -1297,7 +1297,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
             </div>
 
             {/* Orders Today */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Orders Today</p>
@@ -1317,7 +1317,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       {/* Orders Breakdown + Sellers + Customers + Alerts */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Orders Status Breakdown */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">Order Status</h3>
@@ -1344,7 +1344,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
 
         {/* Sellers Widget */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Seller Performance</h3>
             <Store className="w-5 h-5 text-gray-400" />
@@ -1384,7 +1384,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
 
         {/* Customers Widget */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Customers</h3>
             <Users className="w-5 h-5 text-gray-400" />
@@ -1448,7 +1448,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
 
           {/* Low Stock Alerts */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">Low Stock Alerts</h3>
@@ -1493,7 +1493,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* System Health Monitor */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">System Health</h3>
             <Server className="w-5 h-5 text-gray-400" />
@@ -1540,7 +1540,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
         {/* Security & Risk Widget */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Security & Risk</h3>
             <Shield className="w-5 h-5 text-gray-400" />
@@ -1571,7 +1571,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
 
         {/* Marketing Performance */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Marketing</h3>
             <Target className="w-5 h-5 text-gray-400" />
@@ -1613,7 +1613,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
 
         {/* Shipping Performance */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Shipping Performance</h3>
             <Truck className="w-5 h-5 text-gray-400" />
@@ -1657,7 +1657,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       ═══════════════════════════════════════════════════════════════════ */}
 
       {/* Revenue Trend */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Revenue Trend</h3>
@@ -1709,7 +1709,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
 
       {/* Conversion & Traffic */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">Conversion Funnel</h3>
@@ -1749,7 +1749,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
           </div>
       </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Traffic Sources</h3>
             <Target className="w-5 h-5 text-gray-400" />
@@ -1773,7 +1773,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
                     <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Category Performance</h3>
@@ -1789,7 +1789,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 <p className="text-xs text-gray-500 dark:text-gray-400">{category.share}% of GMV</p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-32 bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-32 bg-gray-100 dark:bg-dark-secondary rounded-full h-2">
                   <div
                     className="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-blue-500"
                     style={{ width: `${category.share}%` }}
@@ -1808,7 +1808,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       {/* Top 5 Lists moved to command column */}
 
       {/* Geo Analytics */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-6 lg:p-7 shadow-[0_10px_30px_rgba(15,23,42,0.08)] border border-gray-200/80 dark:border-gray-700/80 overflow-hidden">
+      <div className="bg-white dark:bg-dark-card rounded-3xl p-4 sm:p-6 lg:p-7 shadow-[0_10px_30px_rgba(15,23,42,0.08)] border border-gray-200/80 dark:border-gray-700/80 overflow-hidden">
         <div className="flex flex-col gap-4 lg:gap-5 mb-6">
           <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
             <div className="min-w-0">
@@ -1830,7 +1830,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                     className={`px-3 py-2 rounded-full text-xs font-semibold border transition-all ${
                     timeRange === option.value
                         ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
-                        : 'bg-white border-gray-200 dark:bg-gray-900 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-600'
+                        : 'bg-white border-gray-200 dark:bg-dark-secondary dark:border-[var(--border-card)] text-gray-600 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-600'
                   }`}
                 >
                   {option.label}
@@ -1910,7 +1910,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
               delta: liveDataMode ? 'Realtime mode' : 'Snapshot',
             },
           ].map(card => (
-            <div key={card.label} className="p-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+            <div key={card.label} className="p-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-dark-secondary/70">
               <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{card.label}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{card.value}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{card.helper}</p>
@@ -1920,15 +1920,15 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                       </div>
 
         <div className="space-y-5">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-4 sm:p-5 border border-slate-700/70 shadow-[0_12px_28px_rgba(15,23,42,0.35)]">
+          <div className="rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-[var(--border-card)] bg-gradient-to-br from-slate-50 to-white dark:from-dark-secondary dark:to-dark-primary text-gray-900 dark:text-[var(--text-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] dark:shadow-[var(--shadow-card)]">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div>
                 <h4 className="text-base sm:text-lg font-semibold">Filters</h4>
-                <p className="text-xs text-white/70">Slice performance by dimension</p>
+                <p className="text-xs text-gray-600 dark:text-[var(--text-muted)]">Slice performance by dimension</p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
                 <button
-                  className="px-3 py-2 rounded-full border border-white/30 hover:border-emerald-400 transition-colors"
+                  className="px-3 py-2 rounded-full border border-gray-300 dark:border-[var(--border-visible)] hover:border-emerald-400 transition-colors"
                   onClick={() => setFilters({ continent: 'all', country: 'all', category: 'all', sellerType: 'all', shipping: 'all' })}
                 >
                   Reset filters
@@ -1937,11 +1937,11 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-4 mt-4 text-xs">
               <label className="flex flex-col gap-1">
-                <span className="text-white/70">Region</span>
+                <span className="text-gray-600 dark:text-[var(--text-muted)]">Region</span>
                 <select
                   value={filters.continent}
                   onChange={(e) => handleFilterChange('continent', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  className="text-gray-900 dark:text-[var(--input-text)] dark:bg-[var(--bg-input)] dark:border-[var(--border-input)] border rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {filterOptions.continents.map(option => (
                     <option key={option} value={option}>
@@ -1951,11 +1951,11 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-white/70">Country</span>
+                <span className="text-gray-600 dark:text-[var(--text-muted)]">Country</span>
                 <select
                   value={filters.country}
                   onChange={(e) => handleFilterChange('country', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  className="text-gray-900 dark:text-[var(--input-text)] dark:bg-[var(--bg-input)] dark:border-[var(--border-input)] border rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {countryOptions.map(option => (
                     <option key={option} value={option}>
@@ -1965,11 +1965,11 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-white/70">Category</span>
+                <span className="text-gray-600 dark:text-[var(--text-muted)]">Category</span>
                 <select
                   value={filters.category}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  className="text-gray-900 dark:text-[var(--input-text)] dark:bg-[var(--bg-input)] dark:border-[var(--border-input)] border rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {filterOptions.categories.map(option => (
                     <option key={option} value={option}>
@@ -1979,11 +1979,11 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-white/70">Seller type</span>
+                <span className="text-gray-600 dark:text-[var(--text-muted)]">Seller type</span>
                 <select
                   value={filters.sellerType}
                   onChange={(e) => handleFilterChange('sellerType', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  className="text-gray-900 dark:text-[var(--input-text)] dark:bg-[var(--bg-input)] dark:border-[var(--border-input)] border rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {filterOptions.sellerTypes.map(option => (
                     <option key={option} value={option}>
@@ -1993,11 +1993,11 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-white/70">Shipping</span>
+                <span className="text-gray-600 dark:text-[var(--text-muted)]">Shipping</span>
                 <select
                   value={filters.shipping}
                   onChange={(e) => handleFilterChange('shipping', e.target.value)}
-                  className="text-gray-900 rounded-lg px-3 py-2.5 min-h-[40px]"
+                  className="text-gray-900 dark:text-[var(--input-text)] dark:bg-[var(--bg-input)] dark:border-[var(--border-input)] border rounded-lg px-3 py-2.5 min-h-[40px]"
                 >
                   {filterOptions.shipping.map(option => (
                     <option key={option} value={option}>
@@ -2007,15 +2007,15 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 </select>
               </label>
             </div>
-            <div className="border-t border-white/10 pt-4 mt-4">
+            <div className="border-t border-gray-200 dark:border-[var(--divider)] pt-4 mt-4">
               <h4 className="text-base sm:text-lg font-semibold mb-3">Top Regions</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
                 {topRegions.map((region, index) => (
-                  <div key={region.name} className="rounded-xl border border-white/10 p-3">
+                  <div key={region.name} className="rounded-xl border border-gray-200 dark:border-[var(--border-card)] p-3 dark:bg-dark-primary/50">
                     <p className="text-sm font-semibold flex items-center gap-1">
-                      <span className="text-white/50">{index + 1}.</span> {region.name}
+                      <span className="text-gray-500 dark:text-[var(--text-faint)]">{index + 1}.</span> {region.name}
                     </p>
-                    <p className="text-[11px] text-white/60">{region.country}</p>
+                    <p className="text-[11px] text-gray-600 dark:text-[var(--text-muted)]">{region.country}</p>
                     <p className="text-base font-bold mt-1">${(region.sales / 1000).toFixed(1)}k</p>
                     <p className="text-[11px]" style={{ color: getTrendColor(region.growth) }}>
                       {region.growth > 0 ? '+' : ''}
@@ -2028,17 +2028,17 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
           </div>
 
         <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.9fr)] items-start">
-          <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 p-3 sm:p-4">
-            <div className="absolute top-4 right-4 z-10 flex flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/80 text-white shadow-lg backdrop-blur">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-[var(--border-card)] bg-gradient-to-b from-slate-50 to-white dark:from-dark-card dark:to-dark-primary p-3 sm:p-4">
+            <div className="absolute top-4 right-4 z-10 flex flex-col overflow-hidden rounded-xl border border-gray-200 dark:border-[var(--border-card)] bg-white/95 dark:bg-dark-secondary text-gray-900 dark:text-[var(--text-primary)] shadow-lg backdrop-blur">
               <button
-                className="p-2.5 border-b border-white/10 hover:bg-white/10 transition-colors flex items-center justify-center"
+                className="p-2.5 border-b border-gray-200 dark:border-[var(--divider)] hover:bg-gray-100 dark:hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center"
                 onClick={() => handleGlobeZoom('in')}
                 aria-label="Zoom in"
               >
                 <Plus className="w-4 h-4" />
               </button>
               <button
-                className="p-2.5 hover:bg-white/10 transition-colors flex items-center justify-center"
+                className="p-2.5 hover:bg-gray-100 dark:hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center"
                 onClick={() => handleGlobeZoom('out')}
                 aria-label="Zoom out"
               >
@@ -2075,17 +2075,17 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
             </div>
           </div>
           <div className="space-y-4 min-w-0">
-            <div className="bg-slate-900/80 text-white rounded-2xl px-4 py-4 backdrop-blur shadow-lg border border-white/10">
-            <p className="text-xs uppercase tracking-wide text-white/70">Regional GMV</p>
+            <div className="bg-white text-gray-900 dark:bg-dark-secondary dark:text-[var(--text-primary)] rounded-2xl px-4 py-4 backdrop-blur shadow-lg border border-gray-200 dark:border-[var(--border-card)]">
+            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-[var(--text-muted)]">Regional GMV</p>
               <p className="text-2xl font-semibold mt-1">${(totalRegionalSales / 1000).toFixed(1)}k</p>
-              <p className="text-sm text-white/70 mt-2">
+              <p className="text-sm text-gray-600 dark:text-[var(--text-muted)] mt-2">
                 Avg order size ${Math.round((totalRegionalSales / activeRegions) / 100).toLocaleString()}k
               </p>
-              <p className="text-xs text-white/50 mt-3">
+              <p className="text-xs text-gray-500 dark:text-[var(--text-faint)] mt-3">
                 {totalOrdersFromRegions.toLocaleString()} orders · {totalSellersFromRegions.toLocaleString()} sellers
               </p>
           </div>
-            <div className="bg-slate-900/80 border border-white/10 rounded-2xl px-4 py-4 text-xs text-white backdrop-blur shadow-lg">
+            <div className="bg-white text-gray-900 dark:bg-dark-secondary dark:text-[var(--text-primary)] border border-gray-200 dark:border-[var(--border-card)] rounded-2xl px-4 py-4 text-xs backdrop-blur shadow-lg">
               <p className="font-semibold mb-3 text-sm">Legend</p>
             <div className="space-y-1">
               {heatLegend.map(step => (
@@ -2095,7 +2095,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                   </div>
                 ))}
               </div>
-              <p className="text-[11px] text-white/60 mt-3">Bar height & dot size scale with GMV</p>
+              <p className="text-[11px] text-gray-500 dark:text-[var(--text-muted)] mt-3">Bar height & dot size scale with GMV</p>
             </div>
           </div>
         </div>
@@ -2106,7 +2106,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
 
       {/* Sales Forecast */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">30-Day Sales Forecast</h3>
@@ -2160,7 +2160,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Live Revenue Pulse */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">Live Revenue</p>
@@ -2180,7 +2180,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
             <p className="text-xs text-blue-600 dark:text-blue-400">Settlement</p>
             <p className="text-lg font-semibold text-blue-700 dark:text-blue-300">${liveRevenuePulse.settlement.toLocaleString()}</p>
           </div>
-          <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
+          <div className="p-3 rounded-xl bg-gray-50 dark:bg-dark-primary">
             <p className="text-xs text-gray-500 dark:text-gray-400">Gross</p>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">${liveRevenuePulse.gross.toLocaleString()}</p>
           </div>
@@ -2188,7 +2188,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
           <Zap className="w-5 h-5 text-emerald-500" />
@@ -2200,7 +2200,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
               <button
                 key={i}
                 onClick={action.action}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-emerald-300 transition-colors group"
+                className="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 dark:border-[var(--border-card)] hover:border-emerald-300 transition-colors group"
               >
                 <div className={`p-2 ${action.color} rounded-xl text-white group-hover:scale-110 transition-transform`}>
                   <Icon className="w-5 h-5" />
@@ -2213,7 +2213,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Payment Issues */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-gray-400" />
@@ -2225,7 +2225,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
         <div className="space-y-3">
           {paymentAlerts.map(alert => (
-            <div key={`cmd-${alert.provider}`} className="p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+            <div key={`cmd-${alert.provider}`} className="p-3 rounded-xl border border-gray-100 dark:border-[var(--border-card)]">
               <div className="flex items-center justify-between">
                 <p className="font-medium text-gray-900 dark:text-white">{alert.provider}</p>
                 <span
@@ -2250,7 +2250,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Live Orders */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
@@ -2260,7 +2260,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
         <div className="space-y-3">
           {liveOrderFeed.map((order) => (
-            <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+            <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-primary rounded-xl">
           <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{order.customer}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{order.location} • {order.time}</p>
@@ -2272,7 +2272,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Seller Applications */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-gray-400" />
@@ -2282,7 +2282,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
         <div className="space-y-3">
           {sellerApplications.map((application) => (
-            <div key={application.name} className="p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+            <div key={application.name} className="p-3 rounded-xl border border-gray-100 dark:border-[var(--border-card)]">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">{application.name}</p>
@@ -2306,7 +2306,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Warehouse Status */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Truck className="w-5 h-5 text-gray-400" />
@@ -2321,7 +2321,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                 <span>{warehouse.name}</span>
                 <span className="text-xs uppercase tracking-wide text-gray-400">{warehouse.status}</span>
               </div>
-              <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 mt-1">
+              <div className="w-full bg-gray-100 dark:bg-dark-secondary rounded-full h-2 mt-1">
                 <div
                   className="h-2 rounded-full bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500"
                   style={{ width: `${warehouse.capacity}%` }}
@@ -2333,7 +2333,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Payment Health */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-gray-400" />
@@ -2359,7 +2359,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Top performers (right column) */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-500" />
@@ -2390,7 +2390,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Store className="w-5 h-5 text-blue-500" />
@@ -2418,7 +2418,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark-border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <PieChart className="w-5 h-5 text-purple-500" />
@@ -2444,7 +2444,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark-border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-emerald-500" />
@@ -2472,7 +2472,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
       </div>
 
       {/* Operational KPIs */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-xl border border-gray-200 dark-border-gray-800">
+      <div className="bg-white dark:bg-dark-card rounded-2xl p-5 shadow-xl border border-gray-200 dark:border-[var(--border-card)]">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Operational KPIs</h3>
@@ -2486,7 +2486,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
           return (
             <div
               key={card.label}
-              className="relative overflow-hidden rounded-2xl border border-gray-200/70 dark:border-gray-800/60 bg-white/80 dark:bg-gray-800/80 shadow-md"
+              className="relative overflow-hidden rounded-2xl border border-gray-200/70 dark:border-[var(--border-card)]/60 bg-white/80 dark:bg-dark-card/90 shadow-md"
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${card.accent}`} />
               <div className="relative p-4 flex flex-col gap-4 h-full">

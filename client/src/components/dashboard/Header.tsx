@@ -203,7 +203,7 @@ const Header: React.FC<HeaderProps> = ({
           variant="ghost"
           size="icon"
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden min-h-[44px] min-w-[44px] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+          className="lg:hidden min-h-[44px] min-w-[44px] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-dark-secondary/60 transition-colors"
           aria-label={t('header.openMenu')}
         >
           <Menu className="w-6 h-6" />
@@ -215,7 +215,7 @@ const Header: React.FC<HeaderProps> = ({
             <input
               type="text"
               placeholder={t('search.placeholderShort')}
-              className={`w-full bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700/50 rounded-lg pl-10 pr-4 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 ${accent.focusRing} focus:border-transparent transition-all`}
+              className={`w-full bg-gray-100 dark:bg-dark-secondary/70 border border-gray-300 dark:border-[var(--border-card)] rounded-lg pl-10 pr-4 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-[var(--input-placeholder)] focus:outline-none focus:ring-2 ${accent.focusRing} focus:border-transparent transition-all`}
             />
           </div>
         </div>
@@ -257,7 +257,7 @@ const Header: React.FC<HeaderProps> = ({
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white py-1 shadow-xl z-40 dark:border-gray-700 dark:bg-gray-900"
+              className="absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white py-1 shadow-xl z-40 dark:border-[var(--border-card)] dark:bg-[var(--dropdown-bg)]"
               role="menu"
             >
               {(['en', 'fr', 'rw'] as const).map((code) => (
@@ -358,7 +358,7 @@ const Header: React.FC<HeaderProps> = ({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl z-20 backdrop-blur-xl"
+                  className="absolute right-0 mt-2 w-64 bg-white dark:bg-[var(--dropdown-bg)] border border-gray-200 dark:border-[var(--border-card)] rounded-xl shadow-2xl z-20 backdrop-blur-xl"
                 >
                   <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700">
                     <p className="font-semibold text-gray-900 dark:text-white text-sm">
@@ -469,7 +469,7 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Logout confirmation dialog */}
       <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-        <DialogContent className="max-w-sm bg-white dark:bg-gray-900 border border-red-200 dark:border-red-700">
+        <DialogContent className="max-w-sm bg-white dark:bg-[var(--modal-bg)] border border-red-200 dark:border-red-700">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-red-600 dark:text-red-400">
               {t('dialog.logoutTitle')}

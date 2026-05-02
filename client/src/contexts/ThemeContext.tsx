@@ -136,6 +136,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (user) return;
     const hasLocalCurrency = Boolean(localStorage.getItem('currency'));
     if (hasLocalCurrency) return;
     currencyApi
@@ -147,32 +148,44 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('currency', next);
       })
       .catch(() => null);
-  }, []);
+  }, [user]);
 
-  // Load user preferences from DB when logged in
+  useEffect(() => {
+    if (!user) {
+      setDbPreferencesLoaded(false);
+    }
+  }, [user]);
+
+  // Load user preferences from DB when logged in; currency comes from /currency/context (geo vs pinned).
   useEffect(() => {
     if (user && !dbPreferencesLoaded) {
       const loadPreferencesFromDB = async () => {
         try {
           const profileData = await profileAPI.getProfile();
+          const prefs = profileData.user?.preferences;
 
-          if (profileData.preferences) {
-            if (profileData.preferences.theme && profileData.preferences.theme !== 'auto') {
-              setThemeState(profileData.preferences.theme as Theme);
-              localStorage.setItem('theme', profileData.preferences.theme);
+          if (prefs) {
+            if (prefs.theme && prefs.theme !== 'auto') {
+              setThemeState(prefs.theme as Theme);
+              localStorage.setItem('theme', prefs.theme);
             }
-            if (profileData.preferences.language) {
-              const lang = normalizeLanguage(profileData.preferences.language);
+            if (prefs.language) {
+              const lang = normalizeLanguage(prefs.language);
               setLanguage(lang);
               localStorage.setItem('language', lang);
             }
-            if (profileData.preferences.currency) {
-              const cur = String(profileData.preferences.currency).toUpperCase();
-              const nextCur: Currency = isSupportedCurrency(cur) ? cur : 'USD';
-              setCurrency(nextCur);
-              localStorage.setItem('currency', nextCur);
-            }
           }
+
+          try {
+            const ctx = await currencyApi.getContext();
+            const raw = String(ctx?.selectedCurrency || ctx?.detectedCurrency || 'USD').toUpperCase();
+            const nextCur: Currency = isSupportedCurrency(raw) ? raw : 'USD';
+            setCurrency(nextCur);
+            localStorage.setItem('currency', nextCur);
+          } catch {
+            /* keep existing local currency */
+          }
+
           setDbPreferencesLoaded(true);
         } catch (error) {
           if (isAuthSessionError(error)) {

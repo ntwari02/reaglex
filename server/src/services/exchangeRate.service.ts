@@ -53,11 +53,29 @@ const COUNTRY_TO_CURRENCY: Record<string, string> = {
   TZ: 'TZS',
   NG: 'NGN',
   GB: 'GBP',
+  US: 'USD',
+  CA: 'USD',
+  // Eurozone & common EU (only currencies in SUPPORTED_DISPLAY_CURRENCIES)
   FR: 'EUR',
   DE: 'EUR',
   BE: 'EUR',
-  US: 'USD',
-  CA: 'USD',
+  IT: 'EUR',
+  ES: 'EUR',
+  NL: 'EUR',
+  PT: 'EUR',
+  AT: 'EUR',
+  IE: 'EUR',
+  FI: 'EUR',
+  GR: 'EUR',
+  LU: 'EUR',
+  CY: 'EUR',
+  MT: 'EUR',
+  EE: 'EUR',
+  LV: 'EUR',
+  LT: 'EUR',
+  SI: 'EUR',
+  SK: 'EUR',
+  HR: 'EUR',
 };
 
 const REFRESH_MS = Number(process.env.EXCHANGE_RATE_REFRESH_MS || 5 * 60 * 1000);
@@ -218,8 +236,27 @@ export async function convertListingToUsd(
   return { usd: Math.max(0.01, usd), rate };
 }
 
+function countryCodeFromHeaders(req: Request): string {
+  const candidates = [
+    req.headers['cf-ipcountry'],
+    req.headers['x-vercel-ip-country'],
+    req.headers['cloudfront-viewer-country'],
+    req.headers['fastly-client-geo-country'],
+    req.headers['x-country-code'],
+    req.headers['x-appengine-country'],
+  ];
+  for (const raw of candidates) {
+    const code = String(raw || '')
+      .trim()
+      .toUpperCase()
+      .slice(0, 2);
+    if (code && code !== 'XX' && code !== 'T1' && /^[A-Z]{2}$/.test(code)) return code;
+  }
+  return '';
+}
+
 export function detectCurrencyFromRequest(req: Request): string {
-  const hdrCountry = String(req.headers['cf-ipcountry'] || req.headers['x-country-code'] || '').toUpperCase();
+  const hdrCountry = countryCodeFromHeaders(req);
   if (hdrCountry && COUNTRY_TO_CURRENCY[hdrCountry]) return COUNTRY_TO_CURRENCY[hdrCountry];
   const lang = String(req.headers['accept-language'] || '').toLowerCase();
   if (lang.includes('rw')) return 'RWF';

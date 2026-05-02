@@ -82,6 +82,8 @@ const preferencesSchema = z.object({
     .max(3)
     .optional()
     .refine((c) => !c || isSupportedDisplayCurrency(String(c).toUpperCase()), 'Unsupported currency'),
+  /** false = follow IP/geo for display currency (AliExpress-style). */
+  currencyUserPinned: z.boolean().optional(),
 });
 
 const changePasswordSchema = z.object({
@@ -538,15 +540,22 @@ export async function updatePreferences(req: AuthenticatedRequest, res: Response
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const validatedPreferences = preferencesSchema.parse(req.body);
+    const v = preferencesSchema.parse(req.body);
     const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Merge preferences
-    user.preferences = { ...user.preferences, ...validatedPreferences };
+    const p = user.preferences;
+    if (v.theme !== undefined) p.theme = v.theme;
+    if (v.language !== undefined) p.language = v.language;
+    if (v.currency !== undefined) {
+      p.currency = String(v.currency).toUpperCase();
+      p.currencyUserPinned = true;
+    } else if (v.currencyUserPinned !== undefined) {
+      p.currencyUserPinned = v.currencyUserPinned;
+    }
     await user.save();
 
     return res.json({

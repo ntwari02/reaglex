@@ -79,7 +79,7 @@ export default function Home() {
   return (
     <BuyerLayout>
       {/* Hero extends to top of viewport, cancelling BuyerLayout's navbar padding */}
-      <div className="-mt-[150px]">
+      <div className="-mt-[calc(134px+env(safe-area-inset-top,0px))] md:-mt-[calc(158px+env(safe-area-inset-top,0px))]">
         <ReimaginedHero />
       </div>
 

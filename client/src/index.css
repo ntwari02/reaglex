@@ -46,6 +46,20 @@
   .dark .dark\:divide-gray-700 > :not([hidden]) ~ :not([hidden]) { border-color: var(--divider) !important; }
   .dark .dark\:divide-gray-600 > :not([hidden]) ~ :not([hidden]) { border-color: var(--divider) !important; }
 
+  /* Admin + Seller `dashboard-app`: map cool slate panels to buyer dark theme neutrals */
+  .dark .dashboard-app .dark\:bg-slate-900 { background-color: var(--card-bg) !important; }
+  .dark .dashboard-app .dark\:bg-slate-950 { background-color: var(--bg-page) !important; }
+  .dark .dashboard-app .dark\:bg-slate-800 { background-color: var(--bg-secondary) !important; }
+  .dark .dashboard-app .dark\:bg-slate-900\/30 { background-color: color-mix(in srgb, var(--card-bg) 55%, transparent) !important; }
+  .dark .dashboard-app .dark\:bg-slate-900\/40 { background-color: color-mix(in srgb, var(--card-bg) 65%, transparent) !important; }
+  .dark .dashboard-app .dark\:bg-slate-900\/50 { background-color: color-mix(in srgb, var(--card-bg) 72%, transparent) !important; }
+  .dark .dashboard-app .dark\:bg-slate-900\/60 { background-color: color-mix(in srgb, var(--card-bg) 78%, transparent) !important; }
+  .dark .dashboard-app .dark\:bg-slate-900\/80 { background-color: color-mix(in srgb, var(--card-bg) 90%, transparent) !important; }
+  .dark .dashboard-app .dark\:bg-slate-950\/30 { background-color: color-mix(in srgb, var(--bg-page) 78%, transparent) !important; }
+  .dark .dashboard-app .dark\:bg-slate-950\/40 { background-color: color-mix(in srgb, var(--card-bg) 72%, transparent) !important; }
+  .dark .dashboard-app .dark\:bg-slate-950\/50 { background-color: color-mix(in srgb, var(--card-bg) 80%, transparent) !important; }
+  .dark .dashboard-app .dark\:bg-slate-950\/95 { background-color: var(--card-bg) !important; }
+
   .dark .dark\:hover\:bg-gray-700:hover { background-color: var(--bg-hover) !important; }
   .dark .dark\:hover\:bg-gray-800:hover { background-color: var(--bg-elevated) !important; }
 
@@ -735,6 +749,17 @@
     background: var(--hero-marketing-blob-a);
   }
 
+  /* Classic auth layout blobs: in dark mode use warm brand glows instead of cyan/violet */
+  .dark .auth-blob--blue {
+    background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
+  }
+  .dark .auth-blob--purple {
+    background: color-mix(in srgb, var(--brand-primary-hover) 16%, transparent);
+  }
+  .dark .auth-blob--orange {
+    background: color-mix(in srgb, var(--brand-primary) 12%, transparent);
+  }
+
   .auth-stats-divider {
     width: 1px;
     height: 32px;
@@ -752,7 +777,8 @@
   }
 
   .dark .auth-glass-pill {
-    background: rgba(15, 23, 42, 0.6);
+    background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
+    border: 1px solid var(--divider);
   }
 }
 
@@ -1402,6 +1428,10 @@ html {
   background: rgba(124, 58, 237, 0.16);
 }
 
+.dark .auth-mobile-app-glow--violet {
+  background: color-mix(in srgb, var(--brand-primary-hover) 18%, transparent);
+}
+
 /* ─── Premium auth forms: mobile-app quality ─── */
 .auth-main-shell {
   min-height: 100dvh;
@@ -1413,6 +1443,10 @@ html {
 
 .auth-shell-surface {
   border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.dark .auth-shell-surface {
+  border-color: var(--divider);
 }
 
 .auth-form-panel {
@@ -1452,10 +1486,24 @@ html {
     0 8px 20px rgba(15, 23, 42, 0.08) !important;
 }
 
+.dark .auth-form-shell .auth-form-modern input:focus,
+.dark .auth-form-shell .auth-form-modern select:focus,
+.dark .auth-form-shell .auth-form-modern textarea:focus {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--brand-primary) 35%, transparent),
+    0 8px 22px rgba(0, 0, 0, 0.28) !important;
+}
+
 .auth-form-shell .auth-form-modern button[type='submit'] {
   box-shadow:
     var(--shadow-cta-hover),
     0 4px 12px rgba(15, 23, 42, 0.1) !important;
+}
+
+.dark .auth-form-shell .auth-form-modern button[type='submit'] {
+  box-shadow:
+    var(--shadow-cta-hover),
+    0 4px 14px rgba(0, 0, 0, 0.35) !important;
 }
 
 @media screen and (max-width: 1023px) {
@@ -1485,6 +1533,12 @@ html {
     box-shadow:
       0 24px 60px rgba(15, 23, 42, 0.18),
       inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  }
+
+  .dark .auth-form-shell {
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
   }
 
   .auth-form-shell .auth-form-modern {
