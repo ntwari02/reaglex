@@ -4,7 +4,6 @@
 
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
-import type { Message, MessageThread } from './inboxApi';
 import { SERVER_URL } from '../lib/config';
 
 const WS_URL = (import.meta as any).env?.VITE_WS_URL?.trim() || SERVER_URL.replace(/^http/, 'ws');
@@ -77,11 +76,11 @@ class WebSocketService {
     });
 
     // Inbox-specific events
-    this.socket.on('new_message', (data: { threadId: string; message: Message }) => {
+    this.socket.on('new_message', (data: { threadId: string; message: unknown }) => {
       this.onNewMessage?.(data.threadId, data.message);
     });
 
-    this.socket.on('thread_updated', (data: { threadId: string; update?: any; lastMessage?: Message }) => {
+    this.socket.on('thread_updated', (data: { threadId: string; update?: unknown; lastMessage?: unknown }) => {
       this.onThreadUpdate?.(data.threadId, data.update, data.lastMessage);
     });
 
@@ -202,8 +201,8 @@ class WebSocketService {
   onDisconnect?: (reason: string) => void;
   onError?: (error: Error) => void;
   onMaxReconnectAttempts?: () => void;
-  onNewMessage?: (threadId: string, message: Message) => void;
-  onThreadUpdate?: (threadId: string, update?: any, lastMessage?: Message) => void;
+  onNewMessage?: (threadId: string, message: unknown) => void;
+  onThreadUpdate?: (threadId: string, update?: unknown, lastMessage?: unknown) => void;
   onUserTyping?: (threadId: string, userId: string, userName: string, isTyping: boolean) => void;
   onUserRecording?: (threadId: string, userId: string, isRecording: boolean, duration?: number) => void;
   onUserSelectingFile?: (threadId: string, userId: string, isSelecting: boolean, fileName?: string) => void;

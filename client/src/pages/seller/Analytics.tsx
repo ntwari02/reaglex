@@ -98,7 +98,7 @@ const Analytics: React.FC = () => {
       change: analyticsData.salesStats.totalOrders.change,
       trend: analyticsData.salesStats.totalOrders.trend,
       icon: ShoppingCart,
-      color: 'from-blue-500 to-cyan-500',
+      color: 'from-[var(--brand-primary)] to-red-600',
     },
     {
       title: 'Average Order Value',
@@ -242,9 +242,9 @@ const Analytics: React.FC = () => {
                   {rfqStats.quotesAccepted.toLocaleString()}
                 </p>
               </div>
-              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700/50">
+              <div className="p-3 rounded-lg bg-gray-100 dark:bg-[var(--bg-tertiary)] border border-gray-200 dark:border-[var(--border-input)]">
                 <p className="text-gray-600 dark:text-gray-300">RFQ → Order Rate</p>
-                <p className="mt-1 text-lg font-semibold text-blue-700 dark:text-blue-300">
+                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">
                   {rfqStats.rfqToOrderRate}%
                 </p>
               </div>
@@ -437,29 +437,35 @@ const Analytics: React.FC = () => {
           <div>
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 transition-colors duration-300">Traffic Sources</h3>
             <div className="space-y-3">
-              {marketingInsights.map((insight, index) => {
-                // Calculate total traffic for percentage calculation
-                const totalTraffic = marketingInsights.reduce((sum, item) => sum + item.traffic, 0);
-                const trafficPercentage = totalTraffic > 0 ? ((insight.traffic / totalTraffic) * 100).toFixed(0) : '0';
-                
-                return (
-                  <div key={index} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-900 dark:text-white transition-colors duration-300">{insight.source}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-600 dark:text-gray-400 transition-colors duration-300">{trafficPercentage}%</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-500">({insight.conversions}% conv.)</span>
+              {marketingInsights.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Channel-level traffic is not tracked in the database yet. Use product views and order metrics on this
+                  page for real performance data.
+                </p>
+              ) : (
+                marketingInsights.map((insight, index) => {
+                  const totalTraffic = marketingInsights.reduce((sum, item) => sum + item.traffic, 0);
+                  const trafficPercentage = totalTraffic > 0 ? ((insight.traffic / totalTraffic) * 100).toFixed(0) : '0';
+
+                  return (
+                    <div key={index} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-900 dark:text-white transition-colors duration-300">{insight.source}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 dark:text-gray-400 transition-colors duration-300">{trafficPercentage}%</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-500">({insight.conversions}% conv.)</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] h-2 rounded-full transition-all"
+                          style={{ width: `${trafficPercentage}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] h-2 rounded-full transition-all"
-                        style={{ width: `${trafficPercentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
           <div>

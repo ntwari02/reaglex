@@ -186,23 +186,35 @@ const OrderDetailsPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'processing': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'packed': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      case 'shipped': return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
-      case 'delivered': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'cancelled': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'pending':
+        return 'bg-yellow-500/20 text-yellow-800 border-yellow-500/30 dark:text-yellow-300 dark:border-yellow-500/25';
+      case 'processing':
+        return 'bg-gray-500/15 text-gray-800 border-gray-500/25 dark:bg-[var(--bg-hover)] dark:text-[var(--text-secondary)] dark:border-[var(--border-input)]';
+      case 'packed':
+        return 'bg-purple-500/15 text-purple-800 border-purple-500/25 dark:text-[var(--text-secondary)] dark:bg-[var(--bg-tertiary)] dark:border-[var(--border-input)]';
+      case 'shipped':
+        return 'bg-gray-500/15 text-gray-800 border-gray-500/25 dark:bg-[var(--bg-tertiary)] dark:text-[var(--text-primary)] dark:border-[var(--divider-strong)]';
+      case 'delivered':
+        return 'bg-green-500/20 text-green-800 border-green-500/30 dark:text-green-300 dark:border-green-500/25';
+      case 'cancelled':
+        return 'bg-red-500/20 text-red-800 border-red-500/30 dark:text-red-300 dark:border-red-500/25';
+      default:
+        return 'bg-gray-500/15 text-gray-700 border-gray-500/25 dark:text-[var(--text-muted)] dark:bg-[var(--bg-tertiary)] dark:border-[var(--border-input)]';
     }
   };
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'failed': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'refunded': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'paid':
+        return 'bg-green-500/20 text-green-800 border-green-500/30 dark:text-green-300 dark:border-green-500/25';
+      case 'pending':
+        return 'bg-yellow-500/20 text-yellow-800 border-yellow-500/30 dark:text-yellow-300 dark:border-yellow-500/25';
+      case 'failed':
+        return 'bg-red-500/20 text-red-800 border-red-500/30 dark:text-red-300 dark:border-red-500/25';
+      case 'refunded':
+        return 'bg-gray-500/15 text-gray-700 border-gray-500/25 dark:text-[var(--text-muted)] dark:bg-[var(--bg-tertiary)] dark:border-[var(--border-input)]';
+      default:
+        return 'bg-gray-500/15 text-gray-700 border-gray-500/25 dark:text-[var(--text-muted)] dark:bg-[var(--bg-tertiary)] dark:border-[var(--border-input)]';
     }
   };
 
@@ -676,7 +688,7 @@ const OrderDetailsPage: React.FC = () => {
                 <Mail className="w-4 h-4 text-gray-400" />
                 <a
                   href={`mailto:${order.customerEmail}`}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-sm text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)] hover:underline"
                 >
                   {order.customerEmail}
                 </a>
@@ -685,7 +697,7 @@ const OrderDetailsPage: React.FC = () => {
                 <Phone className="w-4 h-4 text-gray-400" />
                 <a
                   href={`tel:${order.customerPhone}`}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-sm text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)] hover:underline"
                 >
                   {order.customerPhone}
                 </a>

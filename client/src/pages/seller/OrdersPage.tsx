@@ -174,13 +174,20 @@ const OrdersPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'processing': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'packed': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      case 'shipped': return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
-      case 'delivered': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'cancelled': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'pending':
+        return 'bg-yellow-500/20 text-yellow-800 border-yellow-500/30 dark:text-yellow-300 dark:border-yellow-500/25';
+      case 'processing':
+        return 'bg-gray-500/15 text-gray-800 border-gray-500/25 dark:bg-[var(--bg-hover)] dark:text-[var(--text-secondary)] dark:border-[var(--border-input)]';
+      case 'packed':
+        return 'bg-purple-500/15 text-purple-800 border-purple-500/25 dark:text-[var(--text-secondary)] dark:bg-[var(--bg-tertiary)] dark:border-[var(--border-input)]';
+      case 'shipped':
+        return 'bg-gray-500/15 text-gray-800 border-gray-500/25 dark:bg-[var(--bg-tertiary)] dark:text-[var(--text-primary)] dark:border-[var(--divider-strong)]';
+      case 'delivered':
+        return 'bg-green-500/20 text-green-800 border-green-500/30 dark:text-green-300 dark:border-green-500/25';
+      case 'cancelled':
+        return 'bg-red-500/20 text-red-800 border-red-500/30 dark:text-red-300 dark:border-red-500/25';
+      default:
+        return 'bg-gray-500/15 text-gray-700 border-gray-500/25 dark:text-[var(--text-muted)] dark:bg-[var(--bg-tertiary)] dark:border-[var(--border-input)]';
     }
   };
 
@@ -367,24 +374,24 @@ const OrdersPage: React.FC = () => {
       <SellerGuidancePanel context="shipping" />
 
       {/* Filters */}
-      <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/30 transition-colors duration-300">
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+      <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700/30 transition-colors duration-300 w-full max-w-full min-w-0 overflow-hidden">
+        <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-stretch sm:gap-4 w-full min-w-0">
+          <div className="relative flex-1 min-w-0 w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by order ID, customer name, or product..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700/50 rounded-lg pl-10 pr-4 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-300"
+              className="w-full min-w-0 bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700/50 rounded-lg pl-10 pr-4 py-2.5 text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors duration-300 text-sm sm:text-base"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-500" />
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 min-w-0">
+            <Filter className="w-5 h-5 text-gray-500 shrink-0 hidden sm:block" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full sm:w-auto min-w-0 flex-1 sm:flex-initial bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="all">All Orders</option>
               <option value="pending">Pending</option>
@@ -399,93 +406,97 @@ const OrdersPage: React.FC = () => {
 
         {/* Batch actions toolbar */}
         {selectedOrderIds.length > 0 && (
-          <div className="mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 rounded-lg border border-red-200/60 dark:border-red-500/40 bg-red-50/40 dark:bg-red-900/10 px-4 py-3">
-            <div className="flex items-center gap-3 text-sm">
+          <div className="mb-4 flex flex-col gap-3 rounded-lg border border-red-200/60 dark:border-red-500/40 bg-red-50/40 dark:bg-red-900/10 px-3 py-3 sm:px-4 lg:flex-row lg:items-start lg:justify-between min-w-0 overflow-hidden">
+            <div className="flex items-start gap-3 text-sm min-w-0">
               <input
                 type="checkbox"
-                className="rounded border-red-300 text-red-500 focus:ring-red-500"
+                className="rounded border-red-300 text-red-500 focus:ring-red-500 mt-1 shrink-0"
                 onChange={handleSelectAllVisible}
                 checked={
                   filteredOrders.length > 0 &&
                   filteredOrders.every((order) => selectedOrderIds.includes(order.id))
                 }
               />
-              <div>
-                <p className="font-medium text-red-800 dark:text-red-200">
+              <div className="min-w-0">
+                <p className="font-medium text-red-800 dark:text-red-200 break-words">
                   {selectedOrderIds.length} order{selectedOrderIds.length > 1 ? 's' : ''} selected
                 </p>
-                <p className="text-xs text-red-700/80 dark:text-red-200/80">
+                <p className="text-xs text-red-700/80 dark:text-red-200/80 break-words">
                   Run batch operations like invoice printing, label generation, and status updates.
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-300 dark:border-gray-700"
-                onClick={handleBatchPrintInvoices}
-              >
-                <Printer className="w-3 h-3 mr-2" />
-                Print Invoices
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-300 dark:border-gray-700"
-                onClick={handleBatchPrintPackingSlips}
-              >
-                <Printer className="w-3 h-3 mr-2" />
-                Print Packing Slips
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-300 dark:border-gray-700"
-                onClick={handleBatchGenerateLabels}
-              >
-                <Truck className="w-3 h-3 mr-2" />
-                Generate Labels
-              </Button>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-gray-600 dark:text-gray-400">Update status to</span>
-                <select
-                  value={bulkStatus}
-                  onChange={(e) => setBulkStatus(e.target.value as Order['status'] | '')}
-                  className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  <option value="">Select...</option>
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="packed">Packed</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+            <div className="flex flex-col gap-3 w-full min-w-0 lg:max-w-[55%] xl:max-w-none lg:items-end">
+              <div className="flex flex-wrap gap-2 w-full lg:justify-end">
                 <Button
-                  size="sm"
                   variant="outline"
-                  disabled={!bulkStatus}
-                  className="border-gray-300 dark:border-gray-700 text-xs"
-                  onClick={() => bulkStatus && handleBatchStatusUpdate(bulkStatus)}
+                  size="sm"
+                  className="border-gray-300 dark:border-gray-700 flex-1 min-w-[140px] sm:flex-initial"
+                  onClick={handleBatchPrintInvoices}
                 >
-                  Apply
+                  <Printer className="w-3 h-3 mr-2 shrink-0" />
+                  Print Invoices
                 </Button>
-                <button
-                  type="button"
-                  onClick={clearSelection}
-                  className="ml-1 inline-flex items-center text-[11px] text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-300 dark:border-gray-700 flex-1 min-w-[140px] sm:flex-initial"
+                  onClick={handleBatchPrintPackingSlips}
                 >
-                  <X className="w-3 h-3 mr-1" />
-                  Clear
-                </button>
+                  <Printer className="w-3 h-3 mr-2 shrink-0" />
+                  Packing Slips
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-300 dark:border-gray-700 flex-1 min-w-[140px] sm:flex-initial"
+                  onClick={handleBatchGenerateLabels}
+                >
+                  <Truck className="w-3 h-3 mr-2 shrink-0" />
+                  Labels
+                </Button>
+              </div>
+              <div className="flex flex-col gap-2 text-xs w-full min-w-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                <span className="text-gray-600 dark:text-gray-400 shrink-0">Update status to</span>
+                <div className="flex flex-wrap items-stretch gap-2 flex-1 min-w-0 sm:flex-initial sm:justify-end">
+                  <select
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value as Order['status'] | '')}
+                    className="min-w-0 flex-1 sm:flex-initial sm:min-w-[120px] bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                  >
+                    <option value="">Select...</option>
+                    <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
+                    <option value="packed">Packed</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!bulkStatus}
+                    className="border-gray-300 dark:border-gray-700 text-xs shrink-0"
+                    onClick={() => bulkStatus && handleBatchStatusUpdate(bulkStatus)}
+                  >
+                    Apply
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="inline-flex items-center justify-center gap-1 text-[11px] text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 px-2 py-1 rounded-md border border-transparent hover:border-gray-300 dark:hover:border-gray-600 shrink-0"
+                  >
+                    <X className="w-3 h-3 shrink-0" />
+                    Clear
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
       {/* Orders List */}
-        <div className="space-y-4">
+        <div className="space-y-4 w-full min-w-0 max-w-full">
         {loading && (
           <p className="text-sm text-gray-600 dark:text-gray-400">Loading orders...</p>
         )}
@@ -506,49 +517,60 @@ const OrdersPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className={`bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 border hover:border-red-500/50 transition-all ${
+                className={`bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 sm:p-6 border hover:border-red-500/50 transition-all w-full max-w-full min-w-0 overflow-hidden ${
                   isSelected
                     ? 'border-red-400/70 dark:border-red-500/70 ring-1 ring-red-500/40'
                     : 'border-gray-200 dark:border-gray-700/50'
                 }`}
               >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 flex-1">
+                <div className="flex flex-col gap-4 min-w-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div className="flex gap-3 min-w-0 flex-1">
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleSelectOrder(order.id)}
-                      className="mt-1 rounded border-gray-300 dark:border-gray-600 text-red-500 focus:ring-red-500"
+                      className="mt-1.5 rounded border-gray-300 dark:border-gray-600 text-red-500 focus:ring-red-500 shrink-0"
                       aria-label={`Select order ${order.orderNumber}`}
                     />
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="p-3 bg-gradient-to-br from-red-500 to-[var(--brand-primary)] rounded-lg">
-                        <StatusIcon className="w-6 h-6 text-white" />
+                    <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-start">
+                      <div className="p-2.5 sm:p-3 bg-gradient-to-br from-red-500 to-[var(--brand-primary)] rounded-lg shrink-0">
+                        <StatusIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-white transition-colors duration-300">{order.orderNumber}</h3>
-                          <span className={`text-xs px-2 py-1 rounded-full border ${getStatusColor(order.status)} font-medium capitalize`}>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-col gap-2 min-w-0 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
+                          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white transition-colors duration-300 break-all sm:break-words">
+                            {order.orderNumber}
+                          </h3>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full border ${getStatusColor(order.status)} font-medium capitalize w-fit shrink-0`}
+                          >
                             {order.status}
                           </span>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm transition-colors duration-300">
-                          {order.customer} • {order.items.length} items • {order.date}
+                        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm transition-colors duration-300 break-words">
+                          <span className="font-medium text-gray-800 dark:text-gray-200">{order.customer}</span>
+                          <span className="mx-1 text-gray-400">•</span>
+                          {order.items.length} items
+                          <span className="mx-1 text-gray-400">•</span>
+                          {order.date}
                         </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">${order.total.toFixed(2)}</p>
                       </div>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="ml-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    onClick={() => handleViewOrder(order)}
-                  >
-                    <Eye className="w-5 h-5" />
-                  </Button>
+                  <div className="flex items-center justify-between gap-3 border-t border-gray-200 pt-3 dark:border-gray-700/80 sm:border-t-0 sm:pt-0 sm:flex-col sm:items-end sm:justify-start sm:shrink-0">
+                    <p className="text-xl font-bold tabular-nums text-gray-900 dark:text-white sm:text-2xl">
+                      ${order.total.toFixed(2)}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      onClick={() => handleViewOrder(order)}
+                      aria-label={`View order ${order.orderNumber}`}
+                    >
+                      <Eye className="w-5 h-5" />
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             );

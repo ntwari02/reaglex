@@ -98,8 +98,8 @@ const NotificationsPage: React.FC = () => {
     if (type === 'policy_update' || type === 'system_announcement') {
       return {
         icon: FileText,
-        iconBg: 'bg-blue-100 dark:bg-blue-900/20',
-        iconColor: 'text-blue-600 dark:text-blue-400',
+        iconBg: 'bg-gray-100 dark:bg-[var(--bg-tertiary)]',
+        iconColor: 'text-gray-700 dark:text-[var(--text-secondary)]',
       };
     }
     return {

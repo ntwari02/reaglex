@@ -18,6 +18,22 @@ import {
 
 export const GROUP_KEY_SEP = '|';
 
+/** Stable fingerprint for checkout lock — must match client quote `addressFingerprint`. */
+export function fingerprintShippingAddress(shippingAddress: {
+  address_line1?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+}): string {
+  const buyerCountry = String(shippingAddress.country || '').toUpperCase();
+  return [
+    shippingAddress.address_line1?.toLowerCase().trim(),
+    shippingAddress.city?.toLowerCase().trim(),
+    shippingAddress.postal_code?.toLowerCase().trim(),
+    buyerCountry,
+  ].join('|');
+}
+
 export function makeShipmentGroupKey(sellerId: string, warehouseId: string): string {
   return `${String(sellerId)}${GROUP_KEY_SEP}${String(warehouseId || 'default')}`;
 }
@@ -410,12 +426,7 @@ export async function quoteReaglexShipments(params: {
     });
   }
 
-  const addressFingerprint = [
-    params.shippingAddress.address_line1?.toLowerCase().trim(),
-    params.shippingAddress.city?.toLowerCase().trim(),
-    params.shippingAddress.postal_code?.toLowerCase().trim(),
-    buyerCountry,
-  ].join('|');
+  const addressFingerprint = fingerprintShippingAddress(params.shippingAddress);
 
   return { groups, totalShipping: Math.round(totalShipping * 100) / 100, addressFingerprint, warnings };
 }

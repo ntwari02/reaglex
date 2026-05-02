@@ -25,6 +25,19 @@
   .dark .dark\:bg-gray-700\/40 { background-color: rgba(36, 36, 36, 0.52) !important; }
   .dark .dark\:bg-gray-700\/50 { background-color: rgba(36, 36, 36, 0.58) !important; }
   .dark .dark\:bg-gray-800\/50 { background-color: rgba(28, 28, 28, 0.72) !important; }
+  .dark .dark\:bg-gray-800\/60 { background-color: color-mix(in srgb, var(--card-bg) 82%, transparent) !important; }
+  /* `dark:bg-gray-900/*` opacity utilities default to cool Tailwind gray → map to warm card/page tokens */
+  .dark .dark\:bg-gray-900\/20 { background-color: color-mix(in srgb, var(--card-bg) 42%, transparent) !important; }
+  .dark .dark\:bg-gray-900\/30 { background-color: color-mix(in srgb, var(--card-bg) 52%, transparent) !important; }
+  .dark .dark\:bg-gray-900\/40 { background-color: color-mix(in srgb, var(--card-bg) 65%, transparent) !important; }
+  .dark .dark\:bg-gray-900\/50 { background-color: color-mix(in srgb, var(--card-bg) 80%, transparent) !important; }
+  .dark .dark\:bg-gray-900\/60 { background-color: color-mix(in srgb, var(--card-bg) 85%, transparent) !important; }
+  .dark .dark\:bg-gray-900\/80 { background-color: color-mix(in srgb, var(--card-bg) 92%, transparent) !important; }
+  .dark .dark\:bg-gray-900\/95 { background-color: color-mix(in srgb, var(--card-bg) 97%, transparent) !important; }
+  .dark .dark\:border-gray-700\/30 { border-color: rgba(255, 255, 255, 0.05) !important; }
+  .dark .dark\:border-gray-700\/50 { border-color: rgba(255, 255, 255, 0.08) !important; }
+  .dark .dark\:border-gray-700\/60 { border-color: rgba(255, 255, 255, 0.1) !important; }
+  .dark .dark\:border-gray-700\/80 { border-color: rgba(255, 255, 255, 0.12) !important; }
   .dark .dark\:bg-black { background-color: var(--bg-page) !important; }
   .dark .dark\:bg-black\/40 { background-color: rgba(18, 18, 18, 0.52) !important; }
   .dark .dark\:bg-black\/50 { background-color: var(--bg-overlay) !important; }
@@ -1303,28 +1316,6 @@ html {
 @keyframes messages-typing-dot {
   0%, 60%, 100% { transform: translateY(0); }
   30% { transform: translateY(-4px); }
-}
-/* Seller Inbox: WhatsApp-style typing bubble (3 dots, stagger 0.15s) */
-@keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-8px); }
-}
-.inbox-typing-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--text-muted);
-  animation: typingBounce 1.2s ease-in-out infinite;
-}
-.inbox-typing-dot:nth-child(1) { animation-delay: 0s; }
-.inbox-typing-dot:nth-child(2) { animation-delay: 0.15s; }
-.inbox-typing-dot:nth-child(3) { animation-delay: 0.3s; }
-@keyframes inboxPillBounce {
-  0%, 100% { transform: translate(-50%, 0); }
-  50% { transform: translate(-50%, -4px); }
-}
-.inbox-input-wrap:focus-within {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-primary) 35%, transparent);
 }
 @keyframes messages-online-pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }

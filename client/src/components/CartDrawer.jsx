@@ -6,6 +6,7 @@ import CartItem from './cart/CartItem';
 import CartSummary from './cart/CartSummary';
 import RecommendedProducts from './cart/RecommendedProducts';
 import { useBuyerCart } from '../stores/buyerCartStore';
+import { useCartShippingPreview } from '../hooks/useCartShippingPreview';
 
 export default function CartDrawer() {
   const navigate = useNavigate();
@@ -15,8 +16,13 @@ export default function CartDrawer() {
   const removeItem = useBuyerCart((s) => s.removeItem);
   const updateQuantity = useBuyerCart((s) => s.updateQuantity);
   const clearCart  = useBuyerCart((s) => s.clearCart);
+  const shippingPreviewLocation = useBuyerCart((s) => s.shippingPreviewLocation);
+  const setShippingPreviewLocation = useBuyerCart((s) => s.setShippingPreviewLocation);
 
-  const subtotal   = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const { quote, loading, error, subtotal, tax, shippingTotal, grand } = useCartShippingPreview(
+    items,
+    shippingPreviewLocation
+  );
   const cartCount  = items.reduce((sum, i) => sum + i.quantity, 0);
   const excludeIds = items.map((i) => i.id);
 
@@ -222,6 +228,14 @@ export default function CartDrawer() {
                     >
                       <CartSummary
                         subtotal={subtotal}
+                        shippingTotal={shippingTotal}
+                        tax={tax}
+                        grand={grand}
+                        quote={quote}
+                        loading={loading}
+                        error={error}
+                        shippingPreviewLocation={shippingPreviewLocation}
+                        onChangeLocation={setShippingPreviewLocation}
                         onCheckout={() => {
                           closeDrawer();
                           navigate('/checkout');

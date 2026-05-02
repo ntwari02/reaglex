@@ -6,7 +6,11 @@ import { Product } from '../models/Product';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 import { restoreInventoryForOrder } from '../services/inventory.service';
 import { convertUsdToCurrency, detectCurrencyFromRequest } from '../services/exchangeRate.service';
-import { buildShipmentGroupsFromLines, computeShippingForOrderGroup } from '../services/reaglexShipping.service';
+import {
+  buildShipmentGroupsFromLines,
+  computeShippingForOrderGroup,
+  fingerprintShippingAddress,
+} from '../services/reaglexShipping.service';
 import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
 
 function normalizeShippingMethodKey(raw?: string): ReaglexShippingMethodKey {
@@ -43,6 +47,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       paymentMethod,
       shippingMethods,
       notes,
+      shippingQuoteLock,
     } = req.body as {
       sellerGroups: Array<{
         sellerId: string;
@@ -68,6 +73,12 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       shippingMethods: Record<string, string>;
       notes?: Record<string, string>;
       displayCurrency?: string;
+      /** Client lock from last checkout quote — must match server recomputation (escrow-safe totals). */
+      shippingQuoteLock?: {
+        addressFingerprint: string;
+        totalShipping: number;
+        byGroup: Record<string, number>;
+      };
     };
 
     const buyerId = new mongoose.Types.ObjectId(req.user.id);
@@ -133,17 +144,31 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       sellerSubtotalSum.set(g.sellerId, (sellerSubtotalSum.get(g.sellerId) || 0) + s);
     }
 
-    for (const [groupKey, g] of groupMap) {
-      const sellerOid = new mongoose.Types.ObjectId(g.sellerId);
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-      const orderItems: {
+    type Planned = {
+      groupKey: string;
+      sellerOid: mongoose.Types.ObjectId;
+      orderNumber: string;
+      orderItems: {
         productId: mongoose.Types.ObjectId;
         name: string;
         quantity: number;
         price: number;
         variant?: string;
-      }[] = [];
+      }[];
+      groupSubtotal: number;
+      subtotalAfterDiscount: number;
+      tax: number;
+      shippingCost: number;
+      snapshot: Record<string, unknown>;
+    };
+
+    const planned: Planned[] = [];
+
+    for (const [groupKey, g] of groupMap) {
+      const sellerOid = new mongoose.Types.ObjectId(g.sellerId);
+      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+      const orderItems: Planned['orderItems'] = [];
 
       let groupSubtotal = 0;
       for (const l of g.lines) {
@@ -185,20 +210,65 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       });
 
       const shippingCost = shippingTotal;
-      const total = subtotalAfterDiscount + tax + shippingCost;
+
+      planned.push({
+        groupKey,
+        sellerOid,
+        orderNumber,
+        orderItems,
+        groupSubtotal,
+        subtotalAfterDiscount,
+        tax,
+        shippingCost,
+        snapshot,
+      });
+    }
+
+    if (shippingQuoteLock) {
+      const fp = fingerprintShippingAddress({
+        address_line1: shippingAddress.address_line1,
+        city: shippingAddress.city,
+        postal_code: shippingAddress.postal_code,
+        country: shippingAddress.country,
+      });
+      if (fp !== shippingQuoteLock.addressFingerprint) {
+        return res.status(409).json({
+          message: 'Shipping address changed since your quote. Please return to delivery and refresh.',
+        });
+      }
+      const sumShip = planned.reduce((s, p) => s + p.shippingCost, 0);
+      const lockSum = Number(shippingQuoteLock.totalShipping);
+      if (!Number.isFinite(lockSum) || Math.abs(sumShip - lockSum) > 0.05) {
+        return res.status(409).json({
+          message: 'Shipping total changed. Please review delivery options and try again.',
+        });
+      }
+      for (const p of planned) {
+        const expected = shippingQuoteLock.byGroup[p.groupKey];
+        if (expected == null) continue;
+        if (Math.abs(p.shippingCost - Number(expected)) > 0.05) {
+          return res.status(409).json({
+            message: 'A seller shipping charge changed. Please review delivery options and try again.',
+          });
+        }
+      }
+    }
+
+    for (const p of planned) {
+      const total = p.subtotalAfterDiscount + p.tax + p.shippingCost;
       const converted = await convertUsdToCurrency(total, checkoutCurrency, { roundMode: 'round' });
 
       const order = new Order({
-        sellerId: sellerOid,
+        sellerId: p.sellerOid,
         buyerId,
-        orderNumber,
+        orderNumber: p.orderNumber,
         customer: shippingAddress.full_name,
         customerEmail: req.user.email || '',
         customerPhone: shippingAddress.phone,
-        items: orderItems,
-        subtotal: groupSubtotal,
-        shipping: shippingCost,
-        tax,
+        items: p.orderItems,
+        subtotal: p.groupSubtotal,
+        shipping: p.shippingCost,
+        tax: p.tax,
         total,
         status: 'pending' as OrderStatus,
         date: new Date(),
@@ -211,7 +281,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
           country: shippingAddress.country,
         },
         paymentMethod,
-        reaglexShipping: snapshot as any,
+        reaglexShipping: p.snapshot as any,
         currencySnapshot: {
           totalUsd: total,
           totalLocal: converted.local,
@@ -232,14 +302,14 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       await order.save();
       orders.push(order);
 
-      for (const item of orderItems) {
+      for (const item of p.orderItems) {
         void recordRecommendationActivity({
           userId: req.user.id,
           eventType: 'purchase',
           productId: String(item.productId),
           meta: {
             quantity: item.quantity,
-            orderNumber,
+            orderNumber: p.orderNumber,
           },
         });
       }

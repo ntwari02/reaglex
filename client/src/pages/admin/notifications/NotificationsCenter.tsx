@@ -44,9 +44,9 @@ const pillBtn: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: 5,
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  color: '#94A3B8',
+  background: 'var(--btn-ghost-hover-bg)',
+  border: '1px solid var(--border-visible)',
+  color: 'var(--text-disabled)',
   fontSize: 12,
   padding: '5px 10px',
   borderRadius: 99,
@@ -514,7 +514,7 @@ export default function NotificationsCenter() {
   };
 
   const smsLen = body.length;
-  const smsColor = smsLen > 160 ? '#EF4444' : smsLen > 140 ? '#FB923C' : '#64748B';
+  const smsColor = smsLen > 160 ? '#EF4444' : smsLen > 140 ? '#FB923C' : 'var(--text-muted)';
 
   const tabDefs: { id: NotifTab; label: string; icon: string }[] = [
     { id: 'email', label: 'Email', icon: '✉' },
@@ -550,13 +550,13 @@ export default function NotificationsCenter() {
             zIndex: 9999,
             maxWidth: 'min(420px, calc(100vw - 32px))',
             background: 'var(--modal-bg)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            border: '1px solid var(--divider-strong)',
             borderLeft: toast.type === 'success' ? '3px solid #00BFA5' : '3px solid #EF4444',
             borderRadius: 12,
             padding: '14px 18px',
-            color: 'var(--text-primary, #F1F5F9)',
+            color: 'var(--text-primary)',
             fontSize: 14,
-            boxShadow: '0 12px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,191,165,0.08)',
+            boxShadow: 'var(--shadow-modal)',
             animation: 'ncSlideIn 0.25s ease',
             backdropFilter: 'blur(12px)',
           }}
@@ -565,6 +565,18 @@ export default function NotificationsCenter() {
         </div>
       )}
 
+      <div className="nc-layout mx-auto flex w-full max-w-[1680px] flex-1 flex-col gap-5 min-h-0">
+        <header className="nc-page-header shrink-0 space-y-1 px-0.5">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+            Notifications Center
+          </h1>
+          <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+            Compose and send campaigns across email, in-app, SMS, push, and system alerts. Use the composer below, then
+            refine copy with the AI assistant.
+          </p>
+        </header>
+
+        <div className="nc-surface flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm dark:border-white/[0.07] dark:bg-[var(--card-bg)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
       {/* Top action bar */}
       <div
         className="nc-topbar"
@@ -610,9 +622,9 @@ export default function NotificationsCenter() {
                 fontSize: 12,
                 cursor: 'pointer',
                 border: '1px solid',
-                borderColor: notifType === t.id ? '#00BFA5' : 'rgba(255,255,255,0.08)',
-                background: notifType === t.id ? 'rgba(0,191,165,0.14)' : 'rgba(255,255,255,0.03)',
-                color: notifType === t.id ? '#00BFA5' : '#64748B',
+                borderColor: notifType === t.id ? '#00BFA5' : 'var(--border-visible)',
+                background: notifType === t.id ? 'rgba(0,191,165,0.14)' : 'var(--bg-hover)',
+                color: notifType === t.id ? '#00BFA5' : 'var(--text-muted)',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
                 minHeight: 36,
@@ -627,7 +639,7 @@ export default function NotificationsCenter() {
 
         <div className="nc-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <span style={{ fontSize: 12, color: '#64748B' }}>Auto-save</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Auto-save</span>
             <button
               type="button"
               role="switch"
@@ -638,7 +650,7 @@ export default function NotificationsCenter() {
                 height: 20,
                 borderRadius: 99,
                 border: 'none',
-                background: autoSave ? '#00BFA5' : 'rgba(255,255,255,0.12)',
+                background: autoSave ? '#00BFA5' : 'var(--divider-strong)',
                 position: 'relative',
                 cursor: 'pointer',
               }}
@@ -670,9 +682,9 @@ export default function NotificationsCenter() {
               padding: '8px 14px',
               borderRadius: 10,
               fontSize: 13,
-              border: '1px solid rgba(255,255,255,0.12)',
-              background: 'rgba(255,255,255,0.04)',
-              color: '#94A3B8',
+              border: '1px solid var(--divider-strong)',
+              background: 'var(--btn-ghost-hover-bg)',
+              color: 'var(--text-disabled)',
               cursor: 'pointer',
               minHeight: 40,
             }}
@@ -718,9 +730,9 @@ export default function NotificationsCenter() {
               padding: '8px 14px',
               borderRadius: 10,
               fontSize: 13,
-              border: '1px solid rgba(255,255,255,0.12)',
-              background: 'rgba(255,255,255,0.04)',
-              color: '#94A3B8',
+              border: '1px solid var(--divider-strong)',
+              background: 'var(--btn-ghost-hover-bg)',
+              color: 'var(--text-disabled)',
               cursor: 'pointer',
               minHeight: 40,
             }}
@@ -788,14 +800,14 @@ export default function NotificationsCenter() {
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            borderRight: aiCollapsed ? 'none' : '1px solid rgba(255,255,255,0.06)',
+            borderRight: aiCollapsed ? 'none' : '1px solid var(--divider)',
             minHeight: 0,
           }}
         >
           {/* From */}
           <div
             className="nc-field-row"
-            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
           >
             <div
               className="nc-field-label"
@@ -803,7 +815,7 @@ export default function NotificationsCenter() {
                 width: 72,
                 flexShrink: 0,
                 fontSize: 13,
-                color: '#64748B',
+                color: 'var(--text-muted)',
                 fontWeight: 500,
                 padding: '14px 16px',
               }}
@@ -814,7 +826,7 @@ export default function NotificationsCenter() {
               className="nc-field-value"
               style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '14px 16px 14px 0' }}
             >
-              <span style={{ fontSize: 13, color: '#94A3B8' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-disabled)' }}>
                 Admin &lt;{fromEmail}&gt;
               </span>
             </div>
@@ -824,7 +836,7 @@ export default function NotificationsCenter() {
           <div
             ref={toRowRef}
             className="nc-field-row nc-to-row"
-            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
           >
             <div
               className="nc-field-label"
@@ -832,7 +844,7 @@ export default function NotificationsCenter() {
                 width: 72,
                 flexShrink: 0,
                 fontSize: 13,
-                color: '#64748B',
+                color: 'var(--text-muted)',
                 fontWeight: 500,
                 padding: '14px 16px',
               }}
@@ -907,7 +919,7 @@ export default function NotificationsCenter() {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#F1F5F9',
+                  color: 'var(--text-primary)',
                   fontSize: 13,
                   padding: '6px 0',
                 }}
@@ -919,8 +931,8 @@ export default function NotificationsCenter() {
                 onClick={() => setShowTargetDd((v) => !v)}
                 style={{
                   background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#94A3B8',
+                  border: '1px solid var(--border-visible)',
+                  color: 'var(--text-disabled)',
                   fontSize: 12,
                   padding: '4px 10px',
                   borderRadius: 6,
@@ -938,10 +950,10 @@ export default function NotificationsCenter() {
                     marginTop: 4,
                     minWidth: 200,
                     background: 'var(--modal-bg)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    border: '1px solid var(--border-visible)',
                     borderRadius: 8,
                     zIndex: 50,
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
+                    boxShadow: 'var(--dropdown-shadow)',
                   }}
                 >
                   {['All Customers', 'All Sellers', 'Specific User', 'Custom Segment'].map((g) => (
@@ -956,12 +968,12 @@ export default function NotificationsCenter() {
                         padding: '10px 14px',
                         background: 'transparent',
                         border: 'none',
-                        color: '#F1F5F9',
+                        color: 'var(--text-primary)',
                         fontSize: 13,
                         cursor: 'pointer',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                        e.currentTarget.style.background = 'var(--bg-hover)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent';
@@ -982,7 +994,7 @@ export default function NotificationsCenter() {
                 marginTop: -6,
                 marginBottom: 8,
                 maxWidth: 420,
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid var(--border-visible)',
                 borderRadius: 8,
                 background: 'var(--modal-bg)',
                 zIndex: 40,
@@ -1000,14 +1012,14 @@ export default function NotificationsCenter() {
                     padding: '10px 12px',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    color: '#F1F5F9',
+                    borderBottom: '1px solid var(--divider)',
+                    color: 'var(--text-primary)',
                     cursor: 'pointer',
                     fontSize: 13,
                   }}
                 >
                   <span style={{ fontWeight: 600 }}>{u.fullName || 'User'}</span>
-                  <span style={{ color: '#64748B', marginLeft: 8 }}>{u.email}</span>
+                  <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>{u.email}</span>
                 </button>
               ))}
             </div>
@@ -1016,7 +1028,7 @@ export default function NotificationsCenter() {
           {/* Cc */}
           <div
             className="nc-field-row"
-            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
           >
             <div
               className="nc-field-label"
@@ -1024,7 +1036,7 @@ export default function NotificationsCenter() {
                 width: 72,
                 flexShrink: 0,
                 fontSize: 13,
-                color: '#64748B',
+                color: 'var(--text-muted)',
                 fontWeight: 500,
                 padding: '14px 16px',
                 display: 'flex',
@@ -1062,7 +1074,7 @@ export default function NotificationsCenter() {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#F1F5F9',
+                  color: 'var(--text-primary)',
                   fontSize: 13,
                   padding: '14px 16px 14px 0',
                 }}
@@ -1073,7 +1085,7 @@ export default function NotificationsCenter() {
           {showBcc && (
             <div
               className="nc-field-row"
-              style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
             >
               <div
                 className="nc-field-label"
@@ -1081,7 +1093,7 @@ export default function NotificationsCenter() {
                   width: 72,
                   flexShrink: 0,
                   fontSize: 13,
-                  color: '#64748B',
+                  color: 'var(--text-muted)',
                   fontWeight: 500,
                   padding: '14px 16px',
                 }}
@@ -1098,7 +1110,7 @@ export default function NotificationsCenter() {
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
-                    color: '#F1F5F9',
+                    color: 'var(--text-primary)',
                     fontSize: 13,
                     padding: '14px 16px 14px 0',
                   }}
@@ -1116,7 +1128,7 @@ export default function NotificationsCenter() {
               gap: 8,
               flexWrap: 'wrap',
               padding: '10px 16px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: '1px solid var(--divider)',
             }}
           >
             {(
@@ -1133,12 +1145,12 @@ export default function NotificationsCenter() {
                 onClick={fn}
                 style={pillBtn}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                  e.currentTarget.style.color = '#F1F5F9';
+                  e.currentTarget.style.background = 'var(--bg-active)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                  e.currentTarget.style.color = '#94A3B8';
+                  e.currentTarget.style.background = 'var(--btn-ghost-hover-bg)';
+                  e.currentTarget.style.color = 'var(--text-disabled)';
                 }}
               >
                 {icon} {label}
@@ -1148,7 +1160,7 @@ export default function NotificationsCenter() {
 
           {/* Subject */}
           <div className="nc-subject-block">
-            <div style={{ padding: '12px 16px 4px', fontSize: 13, color: '#64748B' }}>Subject</div>
+            <div style={{ padding: '12px 16px 4px', fontSize: 13, color: 'var(--text-muted)' }}>Subject</div>
             <input
               className="nc-subject-input"
               value={subject}
@@ -1159,9 +1171,9 @@ export default function NotificationsCenter() {
                 boxSizing: 'border-box',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderBottom: '1px solid var(--divider)',
                 outline: 'none',
-                color: '#F1F5F9',
+                color: 'var(--text-primary)',
                 fontSize: 14,
                 padding: '8px 16px',
               }}
@@ -1179,7 +1191,7 @@ export default function NotificationsCenter() {
                   gap: 4,
                   flexWrap: 'wrap',
                   padding: '8px 16px',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: '1px solid var(--divider)',
                 }}
               >
                 {[
@@ -1200,12 +1212,12 @@ export default function NotificationsCenter() {
                       borderRadius: 6,
                       border: 'none',
                       background: 'transparent',
-                      color: '#64748B',
+                      color: 'var(--text-muted)',
                       cursor: 'pointer',
                       fontSize: 12,
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                      e.currentTarget.style.background = 'var(--bg-hover)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'transparent';
@@ -1235,7 +1247,7 @@ export default function NotificationsCenter() {
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                color: '#F1F5F9',
+                color: 'var(--text-primary)',
                 fontSize: 14,
                 lineHeight: 1.7,
                 padding: 16,
@@ -1261,7 +1273,7 @@ export default function NotificationsCenter() {
               gap: 16,
               padding: '10px max(12px, env(safe-area-inset-left)) 10px max(12px, env(safe-area-inset-right))',
               paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
-              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderTop: '1px solid var(--divider)',
             }}
           >
             {[
@@ -1295,17 +1307,17 @@ export default function NotificationsCenter() {
                     borderRadius: 6,
                     border: 'none',
                     background: 'transparent',
-                    color: '#64748B',
+                    color: 'var(--text-muted)',
                     cursor: 'pointer',
                     fontSize: 14,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                    e.currentTarget.style.color = '#F1F5F9';
+                    e.currentTarget.style.background = 'var(--bg-hover)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#64748B';
+                    e.currentTarget.style.color = 'var(--text-muted)';
                   }}
                 >
                   {icon}
@@ -1318,7 +1330,7 @@ export default function NotificationsCenter() {
                       left: 0,
                       marginBottom: 6,
                       background: 'var(--modal-bg)',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      border: '1px solid var(--border-visible)',
                       borderRadius: 8,
                       minWidth: 180,
                       zIndex: 60,
@@ -1345,7 +1357,7 @@ export default function NotificationsCenter() {
                           padding: '8px 12px',
                           background: 'transparent',
                           border: 'none',
-                          color: '#F1F5F9',
+                          color: 'var(--text-primary)',
                           fontSize: 12,
                           cursor: 'pointer',
                         }}
@@ -1368,12 +1380,12 @@ export default function NotificationsCenter() {
                   style={{
                     width: 160,
                     maxWidth: '40vw',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'var(--btn-ghost-hover-bg)',
+                    border: '1px solid var(--border-visible)',
                     borderRadius: 6,
                     padding: '4px 8px',
                     fontSize: 12,
-                    color: '#F1F5F9',
+                    color: 'var(--text-primary)',
                     outline: 'none',
                   }}
                 />
@@ -1385,9 +1397,9 @@ export default function NotificationsCenter() {
                     padding: '5px 10px',
                     borderRadius: 6,
                     fontSize: 12,
-                    border: '1px solid rgba(255,255,255,0.12)',
+                    border: '1px solid var(--divider-strong)',
                     background: 'transparent',
-                    color: '#94A3B8',
+                    color: 'var(--text-disabled)',
                     cursor: sending ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -1424,9 +1436,7 @@ export default function NotificationsCenter() {
               flexShrink: 0,
               display: 'flex',
               flexDirection: 'column',
-              borderLeft: '1px solid rgba(255,255,255,0.06)',
               minHeight: 0,
-              background: 'color-mix(in srgb, var(--bg-page) 96%, rgba(0,191,165,0.04))',
             }}
           >
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
@@ -1434,7 +1444,7 @@ export default function NotificationsCenter() {
                 style={{
                   height: 44,
                   padding: '0 16px',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: '1px solid var(--divider)',
                   display: 'flex',
                   alignItems: 'center',
                   flexShrink: 0,
@@ -1449,7 +1459,7 @@ export default function NotificationsCenter() {
                       fill="rgba(0,191,165,0.15)"
                     />
                   </svg>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#F1F5F9' }}>Write with AI</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Write with AI</span>
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
                   <button
@@ -1466,9 +1476,9 @@ export default function NotificationsCenter() {
                       width: 28,
                       height: 28,
                       borderRadius: '50%',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      border: '1px solid var(--border-visible)',
                       background: 'transparent',
-                      color: '#64748B',
+                      color: 'var(--text-muted)',
                       cursor: 'pointer',
                     }}
                   >
@@ -1482,9 +1492,9 @@ export default function NotificationsCenter() {
                       width: 28,
                       height: 28,
                       borderRadius: '50%',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      border: '1px solid var(--border-visible)',
                       background: 'transparent',
-                      color: '#64748B',
+                      color: 'var(--text-muted)',
                       cursor: 'pointer',
                     }}
                   >
@@ -1499,7 +1509,7 @@ export default function NotificationsCenter() {
                     padding: '12px 16px 8px',
                     fontSize: 11,
                     fontWeight: 600,
-                    color: '#475569',
+                    color: 'var(--text-secondary)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.08em',
                   }}
@@ -1524,7 +1534,7 @@ export default function NotificationsCenter() {
                     }}
                     style={{
                       padding: '0 16px',
-                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                      borderBottom: '1px solid var(--divider)',
                       cursor: 'pointer',
                       background: selectedSubject === s.id ? 'rgba(0,191,165,0.05)' : 'transparent',
                       borderLeft: selectedSubject === s.id ? '2px solid #00BFA5' : '2px solid transparent',
@@ -1553,7 +1563,7 @@ export default function NotificationsCenter() {
                           flex: 1,
                           fontSize: 13,
                           fontWeight: 500,
-                          color: selectedSubject === s.id ? '#F1F5F9' : '#64748B',
+                          color: selectedSubject === s.id ? 'var(--text-primary)' : 'var(--text-muted)',
                           marginLeft: 8,
                         }}
                       >
@@ -1566,7 +1576,7 @@ export default function NotificationsCenter() {
                           e.stopPropagation();
                           generateAI(`Regenerate only subject line ${i + 1}`);
                         }}
-                        style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 14 }}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
                       >
                         ↺
                       </button>
@@ -1578,12 +1588,12 @@ export default function NotificationsCenter() {
                           if (subjects.length <= 1) return;
                           setSubjects((prev) => prev.filter((x) => x.id !== s.id));
                         }}
-                        style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 14 }}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
                       >
                         ✕
                       </button>
                     </div>
-                    <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: '#64748B', lineHeight: 1.5, maxHeight: 36, overflow: 'hidden' }}>
+                    <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, maxHeight: 36, overflow: 'hidden' }}>
                       {aiLoading ? (
                         <div className="nc-shimmer" style={{ height: 12, borderRadius: 6 }} />
                       ) : (
@@ -1598,7 +1608,7 @@ export default function NotificationsCenter() {
                     padding: '12px 16px 8px',
                     fontSize: 11,
                     fontWeight: 600,
-                    color: '#475569',
+                    color: 'var(--text-secondary)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.08em',
                   }}
@@ -1623,7 +1633,7 @@ export default function NotificationsCenter() {
                       }}
                       style={{
                         padding: '0 16px',
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        borderBottom: '1px solid var(--divider)',
                         cursor: 'pointer',
                         background: selectedBody === b.id ? 'rgba(0,191,165,0.05)' : 'transparent',
                         borderLeft: selectedBody === b.id ? '2px solid #00BFA5' : '2px solid transparent',
@@ -1644,7 +1654,7 @@ export default function NotificationsCenter() {
                         >
                           {selectedBody === b.id && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00BFA5' }} />}
                         </div>
-                        <span style={{ flex: 1, marginLeft: 8, fontSize: 13, fontWeight: 500, color: selectedBody === b.id ? '#F1F5F9' : '#64748B' }}>
+                        <span style={{ flex: 1, marginLeft: 8, fontSize: 13, fontWeight: 500, color: selectedBody === b.id ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                           Body {i + 1}
                           {appliedBodyId === b.id && (
                             <span style={{ marginLeft: 8, fontSize: 11, color: '#00BFA5' }}>Applied ✓</span>
@@ -1656,7 +1666,7 @@ export default function NotificationsCenter() {
                             e.stopPropagation();
                             generateAI(`Regenerate only body ${i + 1}`);
                           }}
-                          style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 14 }}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
                         >
                           ↺
                         </button>
@@ -1667,12 +1677,12 @@ export default function NotificationsCenter() {
                             if (bodies.length <= 1) return;
                             setBodies((prev) => prev.filter((x) => x.id !== b.id));
                           }}
-                          style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 14 }}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
                         >
                           ✕
                         </button>
                       </div>
-                      <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: '#64748B', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                      <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                         {aiLoading ? (
                           <>
                             <div className="nc-shimmer" style={{ height: 12, borderRadius: 6, marginBottom: 6 }} />
@@ -1711,7 +1721,7 @@ export default function NotificationsCenter() {
                 })}
 
                 <div style={{ padding: '12px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#475569', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Tone</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Tone</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {['professional', 'friendly', 'urgent', 'promotional', 'informative'].map((t) => (
                       <button
@@ -1723,9 +1733,9 @@ export default function NotificationsCenter() {
                           padding: '4px 10px',
                           borderRadius: 99,
                           cursor: 'pointer',
-                          border: tone === t ? '1.5px solid #00BFA5' : '1px solid rgba(255,255,255,0.08)',
-                          background: tone === t ? 'rgba(0,191,165,0.08)' : 'rgba(255,255,255,0.02)',
-                          color: tone === t ? '#00BFA5' : '#64748B',
+                          border: tone === t ? '1.5px solid #00BFA5' : '1px solid var(--border-visible)',
+                          background: tone === t ? 'rgba(0,191,165,0.08)' : 'var(--bg-tertiary)',
+                          color: tone === t ? '#00BFA5' : 'var(--text-muted)',
                         }}
                       >
                         {t}
@@ -1736,7 +1746,7 @@ export default function NotificationsCenter() {
 
                 <div style={{ padding: '0 16px 12px' }}>
                   <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 12, top: 10, fontSize: 13, color: '#475569' }}>⌕</span>
+                    <span style={{ position: 'absolute', left: 12, top: 10, fontSize: 13, color: 'var(--text-secondary)' }}>⌕</span>
                     <input
                       value={eventSearch}
                       onChange={(e) => setEventSearch(e.target.value)}
@@ -1746,10 +1756,10 @@ export default function NotificationsCenter() {
                         boxSizing: 'border-box',
                         height: 36,
                         padding: '0 12px 0 32px',
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        background: 'var(--btn-ghost-hover-bg)',
+                        border: '1px solid var(--border-visible)',
                         borderRadius: 8,
-                        color: '#F1F5F9',
+                        color: 'var(--text-primary)',
                         fontSize: 13,
                         outline: 'none',
                       }}
@@ -1757,12 +1767,12 @@ export default function NotificationsCenter() {
                         e.target.style.borderColor = 'rgba(0,191,165,0.4)';
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = 'rgba(255,255,255,0.08)';
+                        e.target.style.borderColor = 'var(--border-visible)';
                       }}
                     />
                   </div>
                   {filteredEvents.length > 1 && eventSearch && (
-                    <div style={{ marginTop: 6, maxHeight: 120, overflowY: 'auto', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ marginTop: 6, maxHeight: 120, overflowY: 'auto', borderRadius: 8, border: '1px solid var(--border-visible)' }}>
                       {filteredEvents.map((ev) => (
                         <button
                           key={ev}
@@ -1778,7 +1788,7 @@ export default function NotificationsCenter() {
                             padding: '8px 12px',
                             background: 'transparent',
                             border: 'none',
-                            color: '#F1F5F9',
+                            color: 'var(--text-primary)',
                             fontSize: 12,
                             cursor: 'pointer',
                           }}
@@ -1791,15 +1801,15 @@ export default function NotificationsCenter() {
                   <div
                     style={{
                       marginTop: 10,
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'var(--btn-ghost-hover-bg)',
+                      border: '1px solid var(--border-visible)',
                       borderRadius: 8,
                       padding: '10px 12px',
                     }}
                   >
-                    <div style={{ fontSize: 13, color: '#F1F5F9' }}>{eventTrigger}</div>
-                    <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Use custom event trigger</div>
-                    <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
+                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{eventTrigger}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Use custom event trigger</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                       Event class: transactional. Suggested tone set to professional.
                     </div>
                   </div>
@@ -1816,9 +1826,9 @@ export default function NotificationsCenter() {
                       borderRadius: 8,
                       fontSize: 13,
                       fontWeight: 500,
-                      border: '1px solid rgba(255,255,255,0.12)',
+                      border: '1px solid var(--divider-strong)',
                       background: 'transparent',
-                      color: '#94A3B8',
+                      color: 'var(--text-disabled)',
                       cursor: aiLoading ? 'not-allowed' : 'pointer',
                     }}
                   >
@@ -1852,13 +1862,13 @@ export default function NotificationsCenter() {
                 <div
                   style={{
                     padding: '10px 16px',
-                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    borderTop: '1px solid var(--divider)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
                     <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                   </svg>
                   <input
@@ -1876,7 +1886,7 @@ export default function NotificationsCenter() {
                       background: 'transparent',
                       border: 'none',
                       outline: 'none',
-                      color: '#F1F5F9',
+                      color: 'var(--text-primary)',
                       fontSize: 13,
                     }}
                   />
@@ -1888,7 +1898,7 @@ export default function NotificationsCenter() {
                         setAiContext('');
                       }
                     }}
-                    style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 16 }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16 }}
                   >
                     →
                   </button>
@@ -1897,8 +1907,8 @@ export default function NotificationsCenter() {
             </div>
 
             {/* A/B panel */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: 16, flexShrink: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#F1F5F9', marginBottom: 12 }}>A/B Testing</div>
+            <div style={{ borderTop: '1px solid var(--divider)', padding: 16, flexShrink: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>A/B Testing</div>
               <textarea
                 value={variantA}
                 onChange={(e) => setVariantA(e.target.value)}
@@ -1907,11 +1917,11 @@ export default function NotificationsCenter() {
                   width: '100%',
                   minHeight: 80,
                   boxSizing: 'border-box',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--btn-ghost-hover-bg)',
+                  border: '1px solid var(--border-visible)',
                   borderRadius: 8,
                   padding: '10px 12px',
-                  color: '#F1F5F9',
+                  color: 'var(--text-primary)',
                   fontSize: 13,
                   resize: 'vertical',
                   outline: 'none',
@@ -1922,7 +1932,7 @@ export default function NotificationsCenter() {
                   e.target.style.borderColor = 'rgba(0,191,165,0.4)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255,255,255,0.08)';
+                  e.target.style.borderColor = 'var(--border-visible)';
                 }}
               />
               <textarea
@@ -1933,11 +1943,11 @@ export default function NotificationsCenter() {
                   width: '100%',
                   minHeight: 80,
                   boxSizing: 'border-box',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--btn-ghost-hover-bg)',
+                  border: '1px solid var(--border-visible)',
                   borderRadius: 8,
                   padding: '10px 12px',
-                  color: '#F1F5F9',
+                  color: 'var(--text-primary)',
                   fontSize: 13,
                   resize: 'vertical',
                   outline: 'none',
@@ -1948,7 +1958,7 @@ export default function NotificationsCenter() {
                   e.target.style.borderColor = 'rgba(0,191,165,0.4)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255,255,255,0.08)';
+                  e.target.style.borderColor = 'var(--border-visible)';
                 }}
               />
               <button
@@ -1987,7 +1997,7 @@ export default function NotificationsCenter() {
               width: 36,
               flexShrink: 0,
               border: 'none',
-              borderLeft: '1px solid rgba(255,255,255,0.06)',
+              borderLeft: '1px solid var(--divider)',
               background: 'color-mix(in srgb, var(--bg-page) 88%, rgba(0,191,165,0.06))',
               color: '#00BFA5',
               cursor: 'pointer',
@@ -2004,6 +2014,7 @@ export default function NotificationsCenter() {
           </button>
         )}
       </div>
+        </div>
 
       {/* Schedule modal */}
       {showScheduleModal && (
@@ -2014,7 +2025,7 @@ export default function NotificationsCenter() {
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: 'rgba(0,0,0,0.65)',
+            background: 'var(--bg-overlay)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
@@ -2030,58 +2041,58 @@ export default function NotificationsCenter() {
             className="nc-modal-dialog"
             style={{
               background: 'var(--modal-bg)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--modal-border)',
               borderRadius: 18,
               padding: 24,
               width: 400,
               maxWidth: '100%',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,191,165,0.08)',
+              boxShadow: 'var(--shadow-modal)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#F1F5F9', marginBottom: 4 }}>Schedule Notification</div>
-            <div style={{ fontSize: 13, color: '#64748B', marginBottom: 20 }}>Choose when to send this notification</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Schedule Notification</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Choose when to send this notification</div>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6 }}>Date</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Date</div>
               <input
                 type="date"
+                className="nc-native-datetime"
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-input)',
                   borderRadius: 8,
                   padding: '8px 12px',
-                  color: '#F1F5F9',
+                  color: 'var(--text-primary)',
                   fontSize: 13,
                   outline: 'none',
-                  colorScheme: 'dark',
                 }}
               />
             </div>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6 }}>Time</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Time</div>
               <input
                 type="time"
+                className="nc-native-datetime"
                 value={scheduleTime}
                 onChange={(e) => setScheduleTime(e.target.value)}
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-input)',
                   borderRadius: 8,
                   padding: '8px 12px',
-                  color: '#F1F5F9',
+                  color: 'var(--text-primary)',
                   fontSize: 13,
                   outline: 'none',
-                  colorScheme: 'dark',
                 }}
               />
             </div>
-            <div style={{ fontSize: 12, color: '#475569', marginBottom: 20 }}>Timezone: Africa/Kigali (CAT, UTC+2)</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 20 }}>Timezone: Africa/Kigali (CAT, UTC+2)</div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
@@ -2090,9 +2101,9 @@ export default function NotificationsCenter() {
                   flex: 1,
                   height: 38,
                   borderRadius: 8,
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid var(--border-visible)',
                   background: 'transparent',
-                  color: '#94A3B8',
+                  color: 'var(--text-disabled)',
                   cursor: 'pointer',
                   fontSize: 13,
                 }}
@@ -2130,7 +2141,7 @@ export default function NotificationsCenter() {
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: 'rgba(0,0,0,0.65)',
+            background: 'var(--bg-overlay)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
@@ -2145,7 +2156,7 @@ export default function NotificationsCenter() {
             className="nc-modal-dialog nc-modal-dialog--scroll"
             style={{
               background: 'var(--modal-bg)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--modal-border)',
               borderRadius: 18,
               padding: 20,
               width: 480,
@@ -2153,13 +2164,13 @@ export default function NotificationsCenter() {
               maxHeight: 'min(80vh, 90dvh)',
               overflowY: 'auto',
               WebkitOverflowScrolling: 'touch',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,191,165,0.08)',
+              boxShadow: 'var(--shadow-modal)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#F1F5F9', marginBottom: 12 }}>Templates</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Templates</div>
             {loadingTemplates ? (
-              <p style={{ color: '#64748B' }}>Loading…</p>
+              <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
             ) : (
               templates.map((tpl) => (
                 <button
@@ -2178,20 +2189,20 @@ export default function NotificationsCenter() {
                     marginBottom: 10,
                     padding: 14,
                     borderRadius: 10,
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'var(--btn-ghost-hover-bg)',
+                    border: '1px solid var(--border-visible)',
                     cursor: 'pointer',
                     color: 'inherit',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                    e.currentTarget.style.background = 'var(--bg-hover)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                    e.currentTarget.style.background = 'var(--btn-ghost-hover-bg)';
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9' }}>{tpl.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{tpl.name}</span>
                     <span
                       style={{
                         fontSize: 12,
@@ -2205,10 +2216,10 @@ export default function NotificationsCenter() {
                       {tpl.type}
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {tpl.subject || '—'}
                   </div>
-                  <div style={{ fontSize: 11, color: '#475569', marginTop: 6 }}>{tpl.lastModified || tpl.updatedAt || ''}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>{tpl.lastModified || tpl.updatedAt || ''}</div>
                 </button>
               ))
             )}
@@ -2224,7 +2235,7 @@ export default function NotificationsCenter() {
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: 'rgba(0,0,0,0.65)',
+            background: 'var(--bg-overlay)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
@@ -2239,16 +2250,16 @@ export default function NotificationsCenter() {
             className="nc-modal-dialog"
             style={{
               background: 'var(--modal-bg)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--modal-border)',
               borderRadius: 18,
               padding: 24,
               width: 360,
               maxWidth: '100%',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,191,165,0.08)',
+              boxShadow: 'var(--shadow-modal)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#F1F5F9', marginBottom: 12 }}>Save template</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Save template</div>
             <input
               value={newTplName}
               onChange={(e) => setNewTplName(e.target.value)}
@@ -2259,9 +2270,9 @@ export default function NotificationsCenter() {
                 marginBottom: 16,
                 padding: '10px 12px',
                 borderRadius: 8,
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.04)',
-                color: '#F1F5F9',
+                border: '1px solid var(--border-visible)',
+                background: 'var(--btn-ghost-hover-bg)',
+                color: 'var(--text-primary)',
                 outline: 'none',
               }}
             />
@@ -2269,7 +2280,7 @@ export default function NotificationsCenter() {
               <button
                 type="button"
                 onClick={() => setShowSaveTplModal(false)}
-                style={{ flex: 1, height: 36, borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}
+                style={{ flex: 1, height: 36, borderRadius: 8, border: '1px solid var(--divider-strong)', background: 'transparent', color: 'var(--text-disabled)', cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -2285,18 +2296,29 @@ export default function NotificationsCenter() {
         </div>
       )}
 
+      </div>
+
       <style>{`
         @keyframes ncShimmer {
           0% { background-position: -400px 0 }
           100% { background-position: 400px 0 }
         }
         .nc-shimmer {
+          background-size: 400px 100%;
+          animation: ncShimmer 1.5s ease-in-out infinite;
+        }
+        [data-theme='light'] .nc-shimmer {
+          background: linear-gradient(90deg,
+            rgba(15,23,42,0.05) 25%,
+            rgba(15,23,42,0.09) 50%,
+            rgba(15,23,42,0.05) 75%);
+        }
+        [data-theme='dark'] .nc-shimmer,
+        .dark .nc-shimmer {
           background: linear-gradient(90deg,
             rgba(255,255,255,0.04) 25%,
             rgba(255,255,255,0.08) 50%,
             rgba(255,255,255,0.04) 75%);
-          background-size: 400px 100%;
-          animation: ncShimmer 1.5s ease-in-out infinite;
         }
         @keyframes ncSlideIn {
           from { transform: translateY(8px); opacity: 0 }
@@ -2306,12 +2328,20 @@ export default function NotificationsCenter() {
           position: relative;
           isolation: isolate;
           background-color: var(--bg-page);
+          background-attachment: fixed;
+        }
+        [data-theme='light'] .nc-root {
+          background-image:
+            radial-gradient(ellipse 120% 72% at 50% -26%, rgba(13, 148, 136, 0.055), transparent 58%),
+            linear-gradient(180deg, var(--bg-tertiary) 0%, var(--bg-page) 38%, var(--bg-page) 100%);
+        }
+        [data-theme='dark'] .nc-root,
+        .dark .nc-root {
           background-image:
             radial-gradient(ellipse 140% 90% at 50% -30%, rgba(0, 191, 165, 0.11), transparent 55%),
             radial-gradient(ellipse 70% 45% at 100% 0%, rgba(0, 191, 165, 0.06), transparent 45%),
             radial-gradient(ellipse 60% 40% at 0% 100%, rgba(99, 102, 241, 0.05), transparent 50%),
             linear-gradient(180deg, color-mix(in srgb, var(--bg-page) 92%, #0a1628) 0%, var(--bg-page) 38%, var(--bg-page) 100%);
-          background-attachment: fixed;
         }
         .nc-root::before {
           content: '';
@@ -2319,20 +2349,48 @@ export default function NotificationsCenter() {
           inset: 0;
           pointer-events: none;
           z-index: 0;
+          background-size: 48px 48px;
+          mask-image: radial-gradient(ellipse 85% 70% at 50% 20%, black 15%, transparent 70%);
+        }
+        [data-theme='light'] .nc-root::before {
+          opacity: 0.45;
+          background-image:
+            linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+        }
+        [data-theme='dark'] .nc-root::before,
+        .dark .nc-root::before {
           opacity: 0.35;
           background-image:
             linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-          background-size: 48px 48px;
-          mask-image: radial-gradient(ellipse 85% 70% at 50% 20%, black 15%, transparent 70%);
         }
 
         .nc-topbar {
-          border-bottom: 1px solid color-mix(in srgb, rgba(0, 191, 165, 0.35) 25%, rgba(255,255,255,0.06));
-          background: color-mix(in srgb, var(--bg-page) 82%, transparent) !important;
           backdrop-filter: saturate(160%) blur(14px);
           -webkit-backdrop-filter: saturate(160%) blur(14px);
+        }
+        [data-theme='light'] .nc-topbar {
+          border-bottom: 1px solid var(--header-border);
+          background: color-mix(in srgb, var(--card-bg) 94%, var(--bg-tertiary)) !important;
+          box-shadow: var(--shadow-xs);
+        }
+        [data-theme='dark'] .nc-topbar,
+        .dark .nc-topbar {
+          border-bottom: 1px solid color-mix(in srgb, rgba(0, 191, 165, 0.35) 25%, rgba(255,255,255,0.06));
+          background: color-mix(in srgb, var(--bg-page) 82%, transparent) !important;
           box-shadow: 0 1px 0 rgba(0, 191, 165, 0.06);
+        }
+
+        [data-theme='light'] .nc-left {
+          background: var(--card-bg);
+        }
+        .nc-native-datetime {
+          color-scheme: light;
+        }
+        [data-theme='dark'] .nc-native-datetime,
+        .dark .nc-native-datetime {
+          color-scheme: dark;
         }
 
         .nc-main,
@@ -2347,11 +2405,22 @@ export default function NotificationsCenter() {
         .nc-composer-glow {
           box-shadow: inset 0 0 80px rgba(0, 191, 165, 0.03);
         }
+        [data-theme='light'] .nc-composer-glow {
+          box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.03);
+        }
 
         .nc-ai-panel {
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
+        }
+        [data-theme='light'] .nc-ai-panel {
+          border-left: 1px solid var(--divider) !important;
+          background: var(--bg-tertiary) !important;
+        }
+        [data-theme='dark'] .nc-ai-panel,
+        .dark .nc-ai-panel {
           border-left: 1px solid color-mix(in srgb, rgba(0, 191, 165, 0.2) 40%, rgba(255,255,255,0.06)) !important;
+          background: color-mix(in srgb, var(--bg-secondary) 94%, rgba(0, 191, 165, 0.06)) !important;
         }
 
         .nc-tab-btn:focus-visible {
@@ -2382,7 +2451,7 @@ export default function NotificationsCenter() {
             width: 100% !important;
             max-width: 100% !important;
             border-left: none !important;
-            border-top: 1px solid rgba(255,255,255,0.08);
+            border-top: 1px solid var(--border-visible);
             min-height: 280px;
           }
           .nc-topbar {
@@ -2526,7 +2595,7 @@ export default function NotificationsCenter() {
         }
 
         .nc-main.nc-main--ai-collapsed .nc-ai-expand {
-          border-left: 1px solid rgba(255,255,255,0.08);
+          border-left: 1px solid var(--border-visible);
         }
         .nc-ai-expand-mobile {
           display: none;

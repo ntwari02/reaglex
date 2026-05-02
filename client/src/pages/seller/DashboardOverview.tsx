@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import StatCard from '@/components/dashboard/StatCard';
 import RecentOrders from '@/components/dashboard/RecentOrders';
 import SalesChart from '@/components/dashboard/SalesChart';
-import { BarChart } from '@/components/charts/BarChart';
+import { SalesTrendPixelChart } from '@/components/charts/SalesTrendPixelChart';
 import { ComboChart } from '@/components/charts/ComboChart';
 import { DonutChart } from '@/components/charts/DonutChart';
 import { useAuthStore } from '@/stores/authStore';
@@ -49,6 +49,11 @@ interface DashboardStats {
     time: string;
   }>;
   revenueTrend: Array<{ date: string; value: number }>;
+  salesTrend: {
+    weekly: Array<{ date: string; label: string; newRevenue: number; existingRevenue: number; total: number }>;
+    monthly: Array<{ date: string; label: string; newRevenue: number; existingRevenue: number; total: number }>;
+    yearly: Array<{ date: string; label: string; newRevenue: number; existingRevenue: number; total: number }>;
+  };
   dailySales: Array<{ day: string; sales: number }>;
   conversionData: {
     value: number;
@@ -156,7 +161,7 @@ const DashboardOverview: React.FC = () => {
       change: dashboardData.stats.activeOrders.change,
       trend: dashboardData.stats.activeOrders.trend,
       icon: ShoppingCart,
-      color: 'from-blue-500 to-cyan-500',
+      color: 'from-[var(--brand-primary)] to-red-600',
     },
     {
       title: 'Conversion Rate',
@@ -192,13 +197,13 @@ const DashboardOverview: React.FC = () => {
       change: dashboardData.stats.avgOrderValue.change,
       trend: dashboardData.stats.avgOrderValue.trend,
       icon: DollarSign,
-      color: 'from-sky-500 to-indigo-500',
+      color: 'from-zinc-600 to-zinc-800',
     },
   ] : [];
 
   const orderStats = dashboardData ? [
     { label: 'Pending', count: dashboardData.orderStats.pending, color: 'bg-yellow-500', icon: Clock },
-    { label: 'In Transit', count: dashboardData.orderStats.inTransit, color: 'bg-blue-500', icon: Truck },
+    { label: 'In Transit', count: dashboardData.orderStats.inTransit, color: 'bg-[var(--brand-primary)]', icon: Truck },
     { label: 'Completed', count: dashboardData.orderStats.completed, color: 'bg-green-500', icon: CheckCircle },
     { label: 'Cancelled', count: dashboardData.orderStats.cancelled, color: 'bg-red-500', icon: XCircle },
   ] : [];
@@ -304,15 +309,20 @@ const DashboardOverview: React.FC = () => {
 
       {/* Revenue, Conversions & Performance Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Revenue Trend & Forecast - Bar Chart */}
-        <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/30 shadow-xl transition-colors duration-300 h-full">
-          <BarChart
-            title="Revenue Trend & Forecast"
-            data={dashboardData?.revenueTrend.map(item => ({ date: item.date, value: item.value })) || []}
-            forecastData={[]}
-            height={350}
-            yAxisLabel="Revenue ($)"
-          />
+        {/* Sales trend — pixel stacked bars (new vs existing customer revenue) */}
+        <div className="h-full min-h-[380px] xl:col-span-1">
+          {dashboardData?.salesTrend ? (
+            <SalesTrendPixelChart
+              weekly={dashboardData.salesTrend.weekly}
+              monthly={dashboardData.salesTrend.monthly}
+              yearly={dashboardData.salesTrend.yearly}
+              height={350}
+            />
+          ) : (
+            <div className="flex h-[350px] items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/50">
+              No sales trend data
+            </div>
+          )}
         </div>
 
         {/* Conversions - Donut Chart */}
@@ -321,19 +331,21 @@ const DashboardOverview: React.FC = () => {
             title="Conversions"
             value={dashboardData?.conversionData.value || 0}
             maxValue={100}
-            label="Returning Customer"
+            label="Returning order share"
             size={180}
             strokeWidth={16}
           />
           <div className="mt-6 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-400">This Week</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Returning orders (this {timeRange === 'today' ? 'day' : timeRange === 'week' ? 'week' : 'month'})
+              </span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
                 {dashboardData?.conversionData.thisWeek.toLocaleString() || '0'}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Last Week</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Prior period</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
                 {dashboardData?.conversionData.lastWeek.toLocaleString() || '0'}
               </span>

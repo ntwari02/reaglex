@@ -553,7 +553,7 @@ const SupportCenter: React.FC = () => {
   const getStatusBadge = (status: SupportTicket['status']) => {
     const styles: Record<string, string> = {
       open: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700/50',
-      in_progress: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50',
+      in_progress: 'bg-amber-50 text-amber-900 dark:bg-[var(--brand-tint)] dark:text-[var(--brand-orange-text)] border border-amber-200 dark:border-[var(--brand-border-subtle)]',
       waiting_customer: 'bg-[var(--brand-tint)] text-[var(--brand-orange-text)] dark:bg-[var(--brand-tint-strong)] dark:text-[var(--brand-orange-text)] border border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)]',
       resolved: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700/50',
       closed: 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700',
@@ -971,13 +971,13 @@ const SupportCenter: React.FC = () => {
                 <Clock className="w-8 h-8 text-amber-500 dark:text-amber-400" />
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-50/80 to-cyan-50/80 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-500/20 shadow-sm">
+            <div className="bg-gradient-to-br from-gray-50 to-amber-50/60 dark:from-[var(--bg-tertiary)] dark:to-[var(--brand-tint)] rounded-xl p-4 border border-gray-200 dark:border-[var(--border-input)] shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">In Progress</p>
-                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300 mt-1">{stats.inProgress}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)] mt-1">{stats.inProgress}</p>
                 </div>
-                <Loader2 className="w-8 h-8 text-blue-500 dark:text-blue-400 animate-spin" />
+                <Loader2 className="w-8 h-8 text-[var(--brand-primary)] animate-spin" />
               </div>
             </div>
             <div className="bg-gradient-to-br from-green-50/80 to-emerald-50/80 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border border-green-100 dark:border-green-500/20 shadow-sm">

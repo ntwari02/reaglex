@@ -1751,7 +1751,7 @@ const ProfilePage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                        <span className="text-blue-600">f</span> Facebook
+                        <span className="text-blue-600 dark:text-[var(--text-secondary)]">f</span> Facebook
                       </label>
                       <input
                         type="url"
@@ -1763,7 +1763,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                        <span className="text-blue-400">@</span> Twitter/X
+                        <span className="text-sky-500 dark:text-[var(--text-secondary)]">@</span> Twitter/X
                       </label>
                       <input
                         type="url"
@@ -1787,7 +1787,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                        <span className="text-blue-700">in</span> LinkedIn
+                        <span className="text-blue-700 dark:text-[var(--text-secondary)]">in</span> LinkedIn
                       </label>
                       <input
                         type="url"
@@ -2320,7 +2320,7 @@ const ProfilePage: React.FC = () => {
                               </span>
                             )}
                             {account.verificationStatus === 'verified' && (
-                              <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-xs font-semibold flex items-center gap-1 whitespace-nowrap">
+                              <span className="px-2 py-0.5 bg-gray-100 dark:bg-[var(--bg-tertiary)] text-gray-800 dark:text-[var(--text-secondary)] rounded text-xs font-semibold flex items-center gap-1 whitespace-nowrap">
                                 <CheckCircle className="w-3 h-3 flex-shrink-0" />
                                 Verified
                               </span>
@@ -2499,7 +2499,7 @@ const ProfilePage: React.FC = () => {
                           {payoutSettings.mobileMoney.mobileMoneyProvider || 'Mobile Money'}
                         </p>
                         {payoutSettings.mobileMoney.verificationStatus === 'verified' && (
-                          <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-xs font-semibold flex items-center gap-1 whitespace-nowrap">
+                          <span className="px-2 py-0.5 bg-gray-100 dark:bg-[var(--bg-tertiary)] text-gray-800 dark:text-[var(--text-secondary)] rounded text-xs font-semibold flex items-center gap-1 whitespace-nowrap">
                             <CheckCircle className="w-3 h-3 flex-shrink-0" />
                             Verified
                           </span>
@@ -2865,9 +2865,9 @@ const ProfilePage: React.FC = () => {
               )}
 
               {/* Next Payout - Highlighted section */}
-              <div className="flex items-center justify-between p-4 sm:p-5 bg-gradient-to-r from-blue-50 via-blue-50 to-green-50 dark:from-blue-900/20 dark:via-blue-900/20 dark:to-green-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-800 shadow-sm">
+              <div className="flex items-center justify-between p-4 sm:p-5 bg-gradient-to-r from-gray-50 via-amber-50/50 to-green-50 dark:from-[var(--bg-tertiary)] dark:via-[var(--bg-secondary)] dark:to-[var(--bg-tertiary)] rounded-lg border-2 border-gray-200 dark:border-[var(--border-input)] shadow-sm">
                 <span className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300 flex items-center gap-2">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--brand-primary)] flex-shrink-0" />
                   <span>Next Payout</span>
                 </span>
                 <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white transition-colors duration-300">
@@ -3389,8 +3389,8 @@ const ProfilePage: React.FC = () => {
       {/* Policy Pages Tab */}
       {activeTab === 'policies' && (
             <div className="space-y-4 sm:space-y-6">
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-900 dark:text-blue-200">
+          <div className="bg-gray-50 dark:bg-[var(--bg-tertiary)] border border-gray-200 dark:border-[var(--border-input)] rounded-lg p-4 mb-6">
+            <p className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
               <strong>Note:</strong> These policy pages will be visible to your customers. Make sure to keep them up-to-date and compliant with your business practices.
             </p>
           </div>
@@ -4327,8 +4327,8 @@ const ProfilePage: React.FC = () => {
             }}
             className="space-y-4 mt-4 overflow-y-auto max-h-[calc(90vh-200px)] pr-2"
           >
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
+            <div className="bg-gray-50 dark:bg-[var(--bg-tertiary)] border border-gray-200 dark:border-[var(--border-input)] rounded-lg p-3">
+              <p className="text-sm text-gray-800 dark:text-[var(--text-secondary)]">
                 <strong>Verification Process:</strong> Please review your bank account details below and confirm they are correct. 
                 This account will be used to receive payments from escrow transactions.
               </p>
@@ -4406,8 +4406,8 @@ const ProfilePage: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs text-blue-800 dark:text-blue-300">
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-[var(--bg-tertiary)] rounded-lg border border-gray-200 dark:border-[var(--border-input)]">
+                  <p className="text-xs text-gray-800 dark:text-[var(--text-secondary)]">
                     <strong>Note:</strong> Sensitive account details are masked for security. Please verify that the displayed information matches your bank records.
                   </p>
                 </div>
@@ -4906,8 +4906,8 @@ const ProfilePage: React.FC = () => {
             }}
             className="space-y-4 mt-4 overflow-y-auto max-h-[calc(90vh-200px)] pr-2"
           >
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
+            <div className="bg-gray-50 dark:bg-[var(--bg-tertiary)] border border-gray-200 dark:border-[var(--border-input)] rounded-lg p-3">
+              <p className="text-sm text-gray-800 dark:text-[var(--text-secondary)]">
                 <strong>Security Notice:</strong> Your mobile money details are encrypted and stored securely. Password confirmation is required.
               </p>
             </div>

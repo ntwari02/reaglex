@@ -43,6 +43,7 @@ export default function Checkout() {
   const user = useAuthStore((s) => s.user);
   const items = useBuyerCart((s) => s.items);
   const clearCart = useBuyerCart((s) => s.clearCart);
+  const shippingPreviewLocation = useBuyerCart((s) => s.shippingPreviewLocation);
   const currencyPricing = useCurrencyPricing();
 
   const [step, setStep] = useState(1);
@@ -164,6 +165,17 @@ export default function Checkout() {
   }, [user]);
 
   useEffect(() => {
+    if (!shippingPreviewLocation?.country && !shippingPreviewLocation?.city) return;
+    setAddress((a) => ({
+      ...a,
+      country: a.country?.trim() ? a.country : shippingPreviewLocation.country,
+      city: a.city?.trim() ? a.city : shippingPreviewLocation.city,
+      state: a.state?.trim() ? a.state : shippingPreviewLocation.state || '',
+      zip: a.zip?.trim() ? a.zip : shippingPreviewLocation.zip || '',
+    }));
+  }, [shippingPreviewLocation]);
+
+  useEffect(() => {
     if (!gwLoaded) return;
     const enabled = (k) => {
       if (k === 'momo') return gateways.mtn_momo;
@@ -181,22 +193,29 @@ export default function Checkout() {
   const tax = subtotal * 0.1;
   const total = subtotal + shippingCost + tax;
 
-  const quoteFingerprint = useMemo(
-    () =>
-      [
-        address.street?.toLowerCase().trim(),
-        address.city?.toLowerCase().trim(),
-        address.zip?.toLowerCase().trim(),
-        address.country?.toUpperCase().trim(),
-        items.map((i) => `${i.id}:${i.quantity}`).join(','),
-        JSON.stringify(shippingMethodsByGroup),
-      ].join('~'),
-    [address.street, address.city, address.zip, address.country, items, shippingMethodsByGroup]
-  );
+  const quoteFingerprint = useMemo(() => {
+    const hasFull =
+      !!address.street?.trim() && !!address.city?.trim() && !!address.country?.trim();
+    return [
+      hasFull ? 'full' : 'est',
+      address.street?.toLowerCase().trim(),
+      address.city?.toLowerCase().trim(),
+      address.zip?.toLowerCase().trim(),
+      address.country?.toUpperCase().trim(),
+      items.map((i) => `${i.id}:${i.quantity}`).join(','),
+      JSON.stringify(shippingMethodsByGroup),
+    ].join('~');
+  }, [address.street, address.city, address.zip, address.country, items, shippingMethodsByGroup]);
 
   useEffect(() => {
-    if (step < 2 || !items.length) return undefined;
-    if (!address.street?.trim() || !address.city?.trim() || !address.country?.trim()) {
+    if (!items.length) {
+      setShippingQuote(null);
+      return undefined;
+    }
+    const hasFull =
+      address.street?.trim() && address.city?.trim() && address.country?.trim();
+    const hasPartial = address.city?.trim() && address.country?.trim();
+    if (!hasFull && !hasPartial) {
       setShippingQuote(null);
       return undefined;
     }
@@ -206,20 +225,48 @@ export default function Checkout() {
       setShippingQuoteErr(null);
       try {
         const lines = items.map((i) => ({ productId: i.id, quantity: i.quantity }));
-        const data = await shippingAPI.quote({
-          lines,
-          shippingAddress: {
-            full_name: address.fullName,
-            phone: address.phone,
-            address_line1: address.street,
-            address_line2: '',
-            city: address.city,
-            state: address.state,
-            postal_code: address.zip,
-            country: address.country,
-          },
-          selectedMethods: shippingMethodsByGroup,
-        });
+        const fullName =
+          (address.fullName || user?.fullName || user?.name || 'Customer').trim() || 'Customer';
+        let data;
+        if (user?.id) {
+          data = await shippingAPI.quote({
+            lines,
+            estimate: !hasFull,
+            shippingAddress: hasFull
+              ? {
+                  full_name: fullName,
+                  phone: address.phone || user?.phone || '000',
+                  address_line1: address.street,
+                  address_line2: '',
+                  city: address.city,
+                  state: address.state,
+                  postal_code: address.zip,
+                  country: address.country,
+                }
+              : {
+                  full_name: fullName,
+                  phone: address.phone || user?.phone || '000',
+                  address_line1: `${address.city} (estimate)`,
+                  address_line2: '',
+                  city: address.city,
+                  state: address.state || '—',
+                  postal_code: address.zip || '00000',
+                  country: address.country,
+                },
+            selectedMethods: shippingMethodsByGroup,
+          });
+        } else {
+          data = await shippingAPI.estimate({
+            lines,
+            destination: {
+              country: address.country,
+              city: address.city,
+              state: address.state || '',
+              postal_code: address.zip || '',
+            },
+            selectedMethods: shippingMethodsByGroup,
+          });
+        }
         if (cancelled) return;
         setShippingQuote(data);
         setShippingMethodsByGroup((prev) => {
@@ -242,7 +289,7 @@ export default function Checkout() {
     return () => {
       cancelled = true;
     };
-  }, [step, quoteFingerprint, items.length]);
+  }, [quoteFingerprint, items.length, user?.id]);
 
   const rwfLike = checkoutProvider === 'momo' || checkoutProvider === 'airtel';
   const fmtMoney = (n) =>
@@ -291,6 +338,17 @@ export default function Checkout() {
     if (!shippingQuote?.groups?.length && items.length) {
       return alert(t('checkout.errors.shippingNotReady'));
     }
+    if (shippingQuote?.isEstimate) {
+      return alert(t('checkout.errors.finalizeShippingAddress'));
+    }
+    if (
+      !address.street?.trim() ||
+      !address.city?.trim() ||
+      !address.country?.trim() ||
+      !((address.fullName || user?.fullName || user?.name || '').trim())
+    ) {
+      return alert(t('checkout.errors.finalizeShippingAddress'));
+    }
 
     setPlacing(true);
     let createdOrders = null;
@@ -336,6 +394,14 @@ export default function Checkout() {
         }
       }
 
+      const byGroup = {};
+      for (const g of shippingQuote?.groups || []) {
+        const mk = shippingMethodsPayload[g.groupKey] || 'standard';
+        const m = (g.methods || []).find((x) => x.key === mk && x.enabled);
+        const amt = m?.freeShippingApplied ? 0 : Number(m?.price ?? 0);
+        byGroup[g.groupKey] = amt;
+      }
+
       const createRes = await orderAPI.create({
         sellerGroups,
         shippingAddress: {
@@ -357,6 +423,14 @@ export default function Checkout() {
         displayCurrency: currencyPricing.selectedCurrency,
         shippingMethods: shippingMethodsPayload,
         notes: {},
+        shippingQuoteLock:
+          shippingQuote?.addressFingerprint && shippingQuote.isEstimate === false
+            ? {
+                addressFingerprint: shippingQuote.addressFingerprint,
+                totalShipping: Number(shippingQuote.totalShipping) || 0,
+                byGroup,
+              }
+            : undefined,
       });
 
       const orders = createRes?.orders;
@@ -424,7 +498,11 @@ export default function Checkout() {
       }
       setPlacing(false);
       const msg = err?.response?.data?.message || err?.message || t('checkout.errors.paymentInitFailed');
-      alert(msg);
+      if (err?.response?.status === 409) {
+        alert(t('checkout.errors.shippingQuoteChanged'));
+      } else {
+        alert(msg);
+      }
     }
   };
 
@@ -886,6 +964,19 @@ export default function Checkout() {
                     <h2 className="mb-4 text-lg font-black" style={{ color: 'var(--text-primary)' }}>
                       ✅ {t('checkout.reviewYourOrder')}
                     </h2>
+                    {shippingQuote && !shippingQuote.isEstimate && (
+                      <div
+                        className="mb-4 flex gap-3 rounded-xl border p-4 text-xs leading-relaxed"
+                        style={{
+                          borderColor: 'color-mix(in srgb, var(--brand-primary) 35%, var(--divider))',
+                          background: 'var(--brand-tint)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        <Lock className="h-4 w-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                        <p>{t('checkout.shippingLockedNotice')}</p>
+                      </div>
+                    )}
                     {shippingQuote?.groups?.length > 0 && (
                       <div className="mb-4 rounded-xl border p-3 text-xs" style={{ borderColor: 'var(--divider)', background: 'var(--bg-tertiary)' }}>
                         <p className="mb-2 font-bold" style={{ color: 'var(--text-primary)' }}>

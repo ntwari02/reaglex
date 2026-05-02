@@ -17,6 +17,25 @@ const getSellerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null 
   }
 };
 
+function orderTimeMs(o: { createdAt?: Date; date?: Date }): number {
+  const d = o.createdAt || o.date;
+  return d ? new Date(d).getTime() : 0;
+}
+
+function assignOrderCustomerSegments(allOrders: any[]): Map<string, 'new' | 'existing'> {
+  const sorted = [...allOrders].sort((a, b) => orderTimeMs(a) - orderTimeMs(b));
+  const seen = new Set<string>();
+  const map = new Map<string, 'new' | 'existing'>();
+  for (const o of sorted) {
+    const bid = o.buyerId?.toString();
+    if (!bid) continue;
+    const wasSeen = seen.has(bid);
+    if (!wasSeen) seen.add(bid);
+    map.set(o._id.toString(), wasSeen ? 'existing' : 'new');
+  }
+  return map;
+}
+
 /**
  * Helper to get date range based on time period
  */
@@ -108,23 +127,17 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
     const { start, end } = getDateRange(timeRange as 'week' | 'month' | 'year');
     const { start: prevStart, end: prevEnd } = getPreviousPeriod(timeRange as 'week' | 'month' | 'year');
 
-    // Build order filter
-    const orderFilter: any = {
+    const allSellerOrders = await Order.find({
       sellerId: sellerId as any,
-      date: { $gte: start, $lte: end },
-      status: { $ne: 'cancelled' }, // Exclude cancelled orders
-    };
-
-    // Build previous period filter
-    const prevOrderFilter: any = {
-      sellerId: sellerId as any,
-      date: { $gte: prevStart, $lte: prevEnd },
       status: { $ne: 'cancelled' },
-    };
+    } as any).lean();
 
-    // Get orders for current period
-    const orders = await Order.find(orderFilter).lean();
-    const prevOrders = await Order.find(prevOrderFilter).lean();
+    const orders = allSellerOrders.filter(
+      (o) => orderTimeMs(o) >= start.getTime() && orderTimeMs(o) <= end.getTime(),
+    );
+    const prevOrders = allSellerOrders.filter(
+      (o) => orderTimeMs(o) >= prevStart.getTime() && orderTimeMs(o) <= prevEnd.getTime(),
+    );
 
     // Calculate sales stats
     const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
@@ -139,27 +152,15 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
     const prevAverageOrderValue = prevTotalOrders > 0 ? prevTotalRevenue / prevTotalOrders : 0;
     const aovChange = calculateChange(averageOrderValue, prevAverageOrderValue);
 
-    // Calculate repeat customer rate
+    const segMap = assignOrderCustomerSegments(allSellerOrders);
+    const returningOrders = orders.filter((o) => segMap.get(o._id.toString()) === 'existing').length;
+    const repeatCustomerRate = totalOrders > 0 ? (returningOrders / totalOrders) * 100 : 0;
+    const prevReturningOrders = prevOrders.filter((o) => segMap.get(o._id.toString()) === 'existing').length;
+    const prevRepeatCustomerRate = prevTotalOrders > 0 ? (prevReturningOrders / prevTotalOrders) * 100 : 0;
+    const repeatCustomerChange = calculateChange(repeatCustomerRate, prevRepeatCustomerRate);
+
     const uniqueBuyers = new Set(orders.map((o) => o.buyerId.toString()));
     const prevUniqueBuyers = new Set(prevOrders.map((o) => o.buyerId.toString()));
-    
-    // Get all buyers who made multiple orders
-    const buyerOrderCounts = new Map<string, number>();
-    orders.forEach((order) => {
-      const buyerId = order.buyerId.toString();
-      buyerOrderCounts.set(buyerId, (buyerOrderCounts.get(buyerId) || 0) + 1);
-    });
-    const repeatCustomers = Array.from(buyerOrderCounts.values()).filter((count) => count > 1).length;
-    const repeatCustomerRate = totalOrders > 0 ? (repeatCustomers / uniqueBuyers.size) * 100 : 0;
-
-    const prevBuyerOrderCounts = new Map<string, number>();
-    prevOrders.forEach((order) => {
-      const buyerId = order.buyerId.toString();
-      prevBuyerOrderCounts.set(buyerId, (prevBuyerOrderCounts.get(buyerId) || 0) + 1);
-    });
-    const prevRepeatCustomers = Array.from(prevBuyerOrderCounts.values()).filter((count) => count > 1).length;
-    const prevRepeatCustomerRate = prevTotalOrders > 0 ? (prevRepeatCustomers / prevUniqueBuyers.size) * 100 : 0;
-    const repeatCustomerChange = calculateChange(repeatCustomerRate, prevRepeatCustomerRate);
 
     // Get all products for this seller
     const products = await Product.find({ sellerId: sellerId as any } as any).lean();
@@ -177,8 +178,7 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
       });
     });
 
-    // Calculate sold quantity and revenue from orders
-    // Also estimate views for products that were ordered (products that sell likely have views)
+    // Sold quantity and revenue from orders (views = product.views only — no synthetic inflation)
     orders.forEach((order) => {
       order.items.forEach((item) => {
         const productId = item.productId.toString();
@@ -186,30 +186,8 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
         if (stats) {
           stats.sold += item.quantity;
           stats.revenue += item.price * item.quantity;
-          // Estimate views: if a product was sold, it likely had at least 10-50 views before purchase
-          // This is a conservative estimate based on typical e-commerce conversion rates
-          if (stats.views === 0 && item.quantity > 0) {
-            stats.views = Math.max(10, item.quantity * 20); // At least 10 views, or 20x the quantity sold
-          }
         }
       });
-    });
-    
-    // For products with no views and no sales, estimate based on product age and other factors
-    // Products that exist longer or have better stock status might have more views
-    const now = new Date();
-    productStats.forEach((stats, productId) => {
-      if (stats.views === 0) {
-        const product = products.find((p) => p._id.toString() === productId);
-        if (product) {
-          // Estimate views based on:
-          // - Product age (older products might have more views)
-          // - Stock status (in stock products might have more views)
-          const daysSinceCreation = Math.floor((now.getTime() - new Date(product.createdAt).getTime()) / (1000 * 60 * 60 * 24));
-          const baseViews = Math.floor(daysSinceCreation * 0.5); // ~0.5 views per day for inactive products
-          stats.views = Math.max(0, baseViews);
-        }
-      }
     });
 
     // Convert to array and sort
@@ -310,28 +288,21 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
     const prevCustomerLifetimeValue = prevUniqueBuyers.size > 0 ? prevTotalCustomerRevenue / prevUniqueBuyers.size : 0;
     const clvChange = calculateChange(customerLifetimeValue, prevCustomerLifetimeValue);
 
-    // New customers (customers who made their first order in this period)
+    // New customers (first order with seller in this period)
     const allPreviousBuyers = new Set<string>();
-    const allPreviousOrders = await Order.find({
-      sellerId: sellerId as any,
-      date: { $lt: start },
-      status: { $ne: 'cancelled' },
-    } as any).lean();
-    allPreviousOrders.forEach((order) => {
-      allPreviousBuyers.add(order.buyerId.toString());
+    allSellerOrders.forEach((order) => {
+      if (orderTimeMs(order) < start.getTime()) {
+        allPreviousBuyers.add(order.buyerId.toString());
+      }
     });
 
     const newCustomers = Array.from(uniqueBuyers).filter((buyerId) => !allPreviousBuyers.has(buyerId)).length;
-    
-    // Get all buyers before the previous period
+
     const beforePrevBuyers = new Set<string>();
-    const beforePrevOrders = await Order.find({
-      sellerId: sellerId as any,
-      date: { $lt: prevStart },
-      status: { $ne: 'cancelled' },
-    } as any).lean();
-    beforePrevOrders.forEach((order) => {
-      beforePrevBuyers.add(order.buyerId.toString());
+    allSellerOrders.forEach((order) => {
+      if (orderTimeMs(order) < prevStart.getTime()) {
+        beforePrevBuyers.add(order.buyerId.toString());
+      }
     });
     
     const prevNewCustomers = Array.from(prevUniqueBuyers).filter((buyerId) => !beforePrevBuyers.has(buyerId)).length;
@@ -357,9 +328,10 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
       const dayEnd = new Date(currentDate);
       dayEnd.setHours(23, 59, 59, 999);
 
-      const dayOrders = orders.filter(
-        (order) => new Date(order.date) >= dayStart && new Date(order.date) <= dayEnd
-      );
+      const dayOrders = orders.filter((order) => {
+        const t = orderTimeMs(order);
+        return t >= dayStart.getTime() && t <= dayEnd.getTime();
+      });
 
       const dayRevenue = dayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
       const dayOrdersCount = dayOrders.length;
@@ -373,102 +345,24 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Calculate Marketing Insights from order data
-    // Traffic sources estimation based on order patterns
-    // Note: In a real system, this would come from analytics tracking
-    const totalUniqueBuyers = uniqueBuyers.size;
-    const estimatedVisitors = totalUniqueBuyers > 0 ? Math.max(totalUniqueBuyers * 10, totalOrders * 20) : totalOrders * 20;
-    
-    // Estimate traffic sources distribution (typical e-commerce distribution)
-    // This is an estimation - in production, use actual analytics data
-    const organicSearchTraffic = Math.round(estimatedVisitors * 0.45);
-    const directTraffic = Math.round(estimatedVisitors * 0.28);
-    const socialMediaTraffic = Math.round(estimatedVisitors * 0.18);
-    const referralTraffic = Math.round(estimatedVisitors * 0.09);
-    
-    // Calculate conversion rates for each source (estimated based on order patterns)
-    const organicSearchOrders = Math.round(totalOrders * 0.40);
-    const directOrders = Math.round(totalOrders * 0.35);
-    const socialMediaOrders = Math.round(totalOrders * 0.15);
-    const referralOrders = Math.round(totalOrders * 0.10);
-    
-    const marketingInsights = [
-      {
-        source: 'Organic Search',
-        traffic: organicSearchTraffic,
-        conversions: organicSearchTraffic > 0 ? ((organicSearchOrders / organicSearchTraffic) * 100).toFixed(1) : '0.0',
-      },
-      {
-        source: 'Direct',
-        traffic: directTraffic,
-        conversions: directTraffic > 0 ? ((directOrders / directTraffic) * 100).toFixed(1) : '0.0',
-      },
-      {
-        source: 'Social Media',
-        traffic: socialMediaTraffic,
-        conversions: socialMediaTraffic > 0 ? ((socialMediaOrders / socialMediaTraffic) * 100).toFixed(1) : '0.0',
-      },
-      {
-        source: 'Referral',
-        traffic: referralTraffic,
-        conversions: referralTraffic > 0 ? ((referralOrders / referralTraffic) * 100).toFixed(1) : '0.0',
-      },
-    ];
+    // No third-party ad traffic — only store facts from the database
+    const marketingInsights: Array<{ source: string; traffic: number; conversions: string }> = [];
 
-    // Calculate Conversion Funnel from actual order data
-    // Estimate funnel stages based on typical e-commerce conversion rates
-    const completedOrders = totalOrders;
-    
-    // Typical e-commerce conversion rates (can be adjusted based on actual data)
-    // Checkout to Completed: ~70% (some abandon at checkout)
-    const estimatedCheckout = completedOrders > 0 ? Math.round(completedOrders / 0.70) : 0;
-    
-    // Add to Cart to Checkout: ~37.5% (typical rate)
-    const estimatedAddToCart = estimatedCheckout > 0 ? Math.round(estimatedCheckout / 0.375) : 0;
-    
-    // Product Views to Add to Cart: ~34.3% (typical rate)
-    const estimatedProductViews = estimatedAddToCart > 0 ? Math.round(estimatedAddToCart / 0.343) : 0;
-    
-    // Visitors to Product Views: ~35% (typical rate)
-    const estimatedVisitorsForFunnel = estimatedProductViews > 0 ? Math.round(estimatedProductViews / 0.35) : Math.max(estimatedVisitors, 100);
-    
-    // Calculate percentages
-    const visitorsValue = estimatedVisitorsForFunnel;
-    const productViewsValue = estimatedProductViews;
-    const addToCartValue = estimatedAddToCart;
-    const checkoutValue = estimatedCheckout;
-    const completedValue = completedOrders;
-    
+    const catalogViewSum = products.reduce((sum, p) => sum + (p.views || 0), 0);
+    const orderToViewPct =
+      catalogViewSum > 0 && totalOrders > 0 ? ((totalOrders / catalogViewSum) * 100).toFixed(2) : '0.0';
     const conversionFunnel = [
       {
-        label: 'Visitors',
-        value: visitorsValue,
+        label: 'Catalog views (sum of product.views)',
+        value: catalogViewSum,
         percentage: 100,
-        dropOff: 0,
+        dropOff: catalogViewSum > 0 ? (((catalogViewSum - totalOrders) / catalogViewSum) * 100).toFixed(1) : '0.0',
       },
       {
-        label: 'Product Views',
-        value: productViewsValue,
-        percentage: visitorsValue > 0 ? ((productViewsValue / visitorsValue) * 100).toFixed(1) : '0.0',
-        dropOff: visitorsValue > 0 ? (((visitorsValue - productViewsValue) / visitorsValue) * 100).toFixed(1) : '0.0',
-      },
-      {
-        label: 'Add to Cart',
-        value: addToCartValue,
-        percentage: productViewsValue > 0 ? ((addToCartValue / productViewsValue) * 100).toFixed(1) : '0.0',
-        dropOff: productViewsValue > 0 ? (((productViewsValue - addToCartValue) / productViewsValue) * 100).toFixed(1) : '0.0',
-      },
-      {
-        label: 'Checkout',
-        value: checkoutValue,
-        percentage: addToCartValue > 0 ? ((checkoutValue / addToCartValue) * 100).toFixed(1) : '0.0',
-        dropOff: addToCartValue > 0 ? (((addToCartValue - checkoutValue) / addToCartValue) * 100).toFixed(1) : '0.0',
-      },
-      {
-        label: 'Completed',
-        value: completedValue,
-        percentage: checkoutValue > 0 ? ((completedValue / checkoutValue) * 100).toFixed(1) : '0.0',
-        dropOff: checkoutValue > 0 ? (((checkoutValue - completedValue) / checkoutValue) * 100).toFixed(1) : '0.0',
+        label: 'Orders (period, excl. cancelled)',
+        value: totalOrders,
+        percentage: orderToViewPct,
+        dropOff: '0',
       },
     ];
 
@@ -555,11 +449,13 @@ export async function getSalesChartData(req: AuthenticatedRequest, res: Response
     const { timeRange = 'month' } = req.query;
     const { start, end } = getDateRange(timeRange as 'week' | 'month' | 'year');
 
-    const orders = await Order.find({
+    const allSeller = await Order.find({
       sellerId: sellerId as any,
-      date: { $gte: start, $lte: end },
       status: { $ne: 'cancelled' },
     } as any).lean();
+    const orders = allSeller.filter(
+      (o) => orderTimeMs(o) >= start.getTime() && orderTimeMs(o) <= end.getTime(),
+    );
 
     // Group by day
     const salesChartData: Array<{ date: string; revenue: number; orders: number }> = [];
@@ -572,9 +468,10 @@ export async function getSalesChartData(req: AuthenticatedRequest, res: Response
       const dayEnd = new Date(currentDate);
       dayEnd.setHours(23, 59, 59, 999);
 
-      const dayOrders = orders.filter(
-        (order) => new Date(order.date) >= dayStart && new Date(order.date) <= dayEnd
-      );
+      const dayOrders = orders.filter((order) => {
+        const t = orderTimeMs(order);
+        return t >= dayStart.getTime() && t <= dayEnd.getTime();
+      });
 
       const dayRevenue = dayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
       const dayOrdersCount = dayOrders.length;

@@ -2,6 +2,12 @@ import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axio
 
 import { API_BASE_URL } from '../lib/config';
 
+const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 60000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
 declare module 'axios' {
   export interface InternalAxiosRequestConfig {
     _retryCount?: number;
@@ -63,6 +69,8 @@ api.interceptors.response.use(
         url.startsWith('/orders?') ||
         url === '/shipping/quote' ||
         url.startsWith('/shipping/quote?') ||
+        url === '/shipping/estimate' ||
+        url.startsWith('/shipping/estimate?') ||
         url === '/payments/initialize' ||
         url.startsWith('/payments/initialize?'));
     const shouldRetry = !noRetryCheckout && (!err.response || (status != null && status >= 500));
@@ -117,6 +125,8 @@ export const orderAPI = {
 /** Reaglex multi-seller distance-based shipping quotes (buyer). */
 export const shippingAPI = {
   quote: (body: unknown) => api.post('/shipping/quote', body).then((r) => r.data),
+  /** Public coarse quote for guests (cart preview). */
+  estimate: (body: unknown) => publicApi.post('/shipping/estimate', body).then((r) => r.data),
 };
 
 /** Seller Reaglex shipping rules (warehouses, methods, zones). */

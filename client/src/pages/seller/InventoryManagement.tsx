@@ -1022,7 +1022,7 @@ const InventoryManagement: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full ${
                       entry.type === 'added' ? 'bg-green-500' : 
-                      entry.type === 'sold' ? 'bg-blue-500' : 
+                      entry.type === 'sold' ? 'bg-[var(--brand-primary)]' : 
                       'bg-red-500'
                     }`}></div>
                     <div>
@@ -1034,7 +1034,7 @@ const InventoryManagement: React.FC = () => {
                 <div className="text-right">
                   <p className={`font-semibold ${
                     entry.type === 'added' ? 'text-green-500' : 
-                    entry.type === 'sold' ? 'text-blue-500' : 
+                    entry.type === 'sold' ? 'text-[var(--brand-primary)]' : 
                     'text-red-500'
                   }`}>
                     {entry.type === 'added' ? '+' : ''}{entry.change}

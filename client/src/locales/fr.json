@@ -108,7 +108,15 @@
     "itemSingular": "article",
     "itemPlural": "articles",
     "clearAll": "Tout supprimer",
-    "checkoutComingSoon": "Paiement bientôt disponible"
+    "checkoutComingSoon": "Paiement bientôt disponible",
+    "shipToEstimate": "Estimer la livraison vers",
+    "shippingPreviewHint": "Utilise votre ville et pays pour une estimation rapide. La livraison finale est confirmée au paiement avec l’adresse complète.",
+    "calculatingShipping": "Calcul de la livraison…",
+    "estimatedShipping": "Livraison estimée (par vendeur)",
+    "shippingTotal": "Total livraison",
+    "estimatedTotal": "Total estimé",
+    "secureCheckout": "Paiement sécurisé · SSL",
+    "freeShippingOver": "Livraison gratuite dès"
   },
   "checkout": {
     "title": "Paiement",
@@ -545,12 +553,10 @@
   "sidebar": {
     "shippingReaglex": "Livraison (Reaglex)",
     "disputes": "Litiges",
-    "inboxRfqs": "Demandes RFQ",
     "collections": "Collections",
     "subscription": "Abonnement",
     "supportCenter": "Centre de support",
-    "needHelpOpen": "Besoin d'aide ?",
-    "inMenu": "Dans le menu"
+    "supportEmailIntro": "Besoin d'aide ? Écrivez-nous à"
   },
   "orderConfirmation": {
     "placedTitle": "Commande confirmée",

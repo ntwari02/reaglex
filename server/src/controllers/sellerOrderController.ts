@@ -144,6 +144,7 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
       update.$set.status = 'shipped';
       const paid = Boolean((prior as any).payment?.paidAt);
       const escrowSt = (prior as any).escrow?.status;
+      // Escrow pipeline: paid → ESCROW_HOLD → seller ships (here) → SHIPPED → buyer delivery / auto-release.
       if (paid && escrowSt === 'ESCROW_HOLD') {
         update.$set['escrow.status'] = 'SHIPPED';
       }

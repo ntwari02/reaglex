@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   LucideIcon,
   FolderKanban,
-  MessageCircle,
   LifeBuoy,
   Truck,
 } from 'lucide-react';
@@ -64,12 +63,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   accentVariant = 'emerald',
 }) => {
   const { t } = useTranslation();
+  const sellerSupportEmail = 'reaglexltd@gmail.com';
   const defaultMenuItems: MenuItem[] = [
     { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'inventory', label: t('header.inventory'), icon: Package },
     { id: 'orders', label: t('nav.orders'), icon: ShoppingCart },
     { id: 'disputes', label: t('sidebar.disputes'), icon: AlertTriangle },
-    { id: 'inbox', label: t('sidebar.inboxRfqs'), icon: MessageCircle },
     { id: 'products', label: t('header.products'), icon: Box },
     { id: 'shipping', label: t('sidebar.shippingReaglex'), icon: Truck },
     { id: 'collections', label: t('sidebar.collections'), icon: FolderKanban },
@@ -177,9 +176,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className="p-4 border-t bg-gray-50 dark:bg-dark-secondary border-gray-200 dark:border-[var(--border-card)] transition-colors duration-300 text-xs text-gray-500 dark:text-[var(--text-muted)]">
-        <p className="text-center">
-          {t('sidebar.needHelpOpen')}{' '}
-          <span className="font-semibold text-[var(--brand-primary)]">{t('sidebar.supportCenter')}</span> {t('sidebar.inMenu')}.
+        <p className="text-center leading-relaxed">
+          {t('sidebar.supportEmailIntro')}{' '}
+          <a
+            href={`mailto:${sellerSupportEmail}`}
+            className="font-semibold text-[var(--brand-primary)] hover:underline break-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/40 rounded"
+          >
+            {sellerSupportEmail}
+          </a>
         </p>
       </div>
     </div>

@@ -108,7 +108,15 @@
     "itemSingular": "item",
     "itemPlural": "items",
     "clearAll": "Clear all",
-    "checkoutComingSoon": "Checkout coming soon!"
+    "checkoutComingSoon": "Checkout coming soon!",
+    "shipToEstimate": "Estimate shipping to",
+    "shippingPreviewHint": "Uses your city and country for a quick distance-based preview. Final shipping is locked at checkout with your full address.",
+    "calculatingShipping": "Calculating shipping…",
+    "estimatedShipping": "Estimated shipping (by seller)",
+    "shippingTotal": "Shipping total",
+    "estimatedTotal": "Estimated total",
+    "secureCheckout": "Secure checkout · SSL encrypted",
+    "freeShippingOver": "Free shipping on this seller over"
   },
   "checkout": {
     "title": "Checkout",
@@ -160,7 +168,9 @@
       "gatewayDisabled": "This payment method is currently turned off. Choose another option or try again later.",
       "momoPhoneRequired": "Enter the MTN MoMo number that will approve the payment.",
       "airtelPhoneRequired": "Enter the Airtel Money number that will approve the payment.",
-      "noGateway": "No payment provider is enabled yet. Please contact support or try again later."
+      "noGateway": "No payment provider is enabled yet. Please contact support or try again later.",
+      "finalizeShippingAddress": "Complete your full street address before paying so we can lock the correct shipping total.",
+      "shippingQuoteChanged": "Shipping or address changed. Go back to the delivery step and refresh, then try again."
     },
     "gatewayHint": "Choose how you want to pay. Options shown here follow your administrator settings.",
     "payFlutterwave": "Cards & banks (Flutterwave)",
@@ -209,6 +219,7 @@
     "continueToDelivery": "Continue to Delivery ->",
     "multiPayNotice": "Multiple seller orders were created. Complete payment for the first order now; pay remaining sellers from your Orders page.",
     "reaglexShippingTitle": "Reaglex shipping",
+    "shippingLockedNotice": "Totals below use your latest delivery quote. Shipping and exchange rate lock when you pay. If you edited your address or methods, go back one step to refresh before confirming.",
     "reaglexShippingIntro": "Each seller sets fees and warehouses. We combine that with driving distance to your address (OpenRouteService when configured). Items from the same warehouse ship as one shipment.",
     "reaglexShippingLoading": "Calculating shipping for each seller…",
     "reaglexSellerGroup": "Seller",
@@ -591,13 +602,11 @@
   },
   "sidebar": {
     "disputes": "Disputes",
-    "inboxRfqs": "Inbox & RFQs",
     "shippingReaglex": "Shipping (Reaglex)",
     "collections": "Collections",
     "subscription": "Subscription",
     "supportCenter": "Support Center",
-    "needHelpOpen": "Need help? Open",
-    "inMenu": "in the menu"
+    "supportEmailIntro": "Need help? Email us at"
   },
   "orderConfirmation": {
     "placedTitle": "Order Placed! 🎉",

@@ -1,10 +1,11 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { Order, OrderStatus } from '../models/Order';
+import { Order } from '../models/Order';
 import { Product } from '../models/Product';
 import { Dispute } from '../models/Dispute';
 import { User } from '../models/User';
+import { SellerRating } from '../models/SellerRating';
 
 const getSellerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null => {
   if (!req.user?.id) return null;
@@ -18,6 +19,108 @@ const getSellerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null 
 /**
  * Helper function to get time ago string
  */
+function orderTime(order: { createdAt?: Date; date?: Date }): number {
+  const d = order.createdAt || order.date;
+  return d ? new Date(d).getTime() : 0;
+}
+
+/**
+ * First order with seller for a buyer = "new"; later orders = "existing" (chronological).
+ */
+function assignOrderCustomerSegments(allOrders: any[]): Map<string, 'new' | 'existing'> {
+  const sorted = [...allOrders].sort((a, b) => orderTime(a) - orderTime(b));
+  const seenBuyers = new Set<string>();
+  const map = new Map<string, 'new' | 'existing'>();
+  for (const o of sorted) {
+    const bid = o.buyerId?.toString();
+    if (!bid) continue;
+    const wasSeen = seenBuyers.has(bid);
+    if (!wasSeen) seenBuyers.add(bid);
+    map.set(o._id.toString(), wasSeen ? 'existing' : 'new');
+  }
+  return map;
+}
+
+interface SalesTrendPoint {
+  date: string;
+  label: string;
+  newRevenue: number;
+  existingRevenue: number;
+  total: number;
+}
+
+function buildSalesTrendByCustomerType(allOrders: any[]): {
+  weekly: SalesTrendPoint[];
+  monthly: SalesTrendPoint[];
+  yearly: SalesTrendPoint[];
+} {
+  const segMap = assignOrderCustomerSegments(allOrders);
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const now = new Date();
+
+  const sumBucket = (start: Date, end: Date) => {
+    let newR = 0;
+    let exR = 0;
+    for (const order of allOrders) {
+      const t = orderTime(order);
+      if (t < start.getTime() || t >= end.getTime()) continue;
+      const amt = Number(order.total || 0);
+      const s = segMap.get(order._id.toString());
+      if (s === 'existing') exR += amt;
+      else newR += amt;
+    }
+    return { newR: Math.round(newR), exR: Math.round(exR) };
+  };
+
+  const weekly: SalesTrendPoint[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - i * 7);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const { newR, exR } = sumBucket(weekStart, weekEnd);
+    weekly.push({
+      date: weekStart.toISOString().split('T')[0],
+      label: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,
+      newRevenue: newR,
+      existingRevenue: exR,
+      total: newR + exR,
+    });
+  }
+
+  const monthly: SalesTrendPoint[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    const { newR, exR } = sumBucket(monthStart, monthEnd);
+    monthly.push({
+      date: monthStart.toISOString().split('T')[0],
+      label: monthNames[monthStart.getMonth()],
+      newRevenue: newR,
+      existingRevenue: exR,
+      total: newR + exR,
+    });
+  }
+
+  const yearly: SalesTrendPoint[] = [];
+  for (let y = 4; y >= 0; y--) {
+    const year = now.getFullYear() - y;
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year + 1, 0, 1);
+    const { newR, exR } = sumBucket(yearStart, yearEnd);
+    yearly.push({
+      date: yearStart.toISOString().split('T')[0],
+      label: String(year),
+      newRevenue: newR,
+      existingRevenue: exR,
+      total: newR + exR,
+    });
+  }
+
+  return { weekly, monthly, yearly };
+}
+
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -99,26 +202,36 @@ function generateDailySales(orders: any[], timeRange: string): Array<{ day: stri
 }
 
 /**
- * Calculate conversion data for DonutChart
+ * Returning customer % = share of orders in slice from buyers who had ordered before (same seller).
  */
-function calculateConversionData(currentOrders: any[], previousOrders: any[]): {
+function calculateConversionData(
+  allOrders: any[],
+  currentOrders: any[],
+  previousOrders: any[],
+): {
   value: number;
   thisWeek: number;
   lastWeek: number;
 } {
-  // Simplified: using order count as proxy for conversions
-  // In real system, would track actual visitors/conversions
-  const thisWeekCount = currentOrders.length;
-  const lastWeekCount = previousOrders.length;
-  
-  // Calculate returning customer rate (simplified)
-  const uniqueBuyers = new Set(currentOrders.map(o => o.buyerId?.toString()).filter(Boolean));
-  const returningRate = uniqueBuyers.size > 0 ? (uniqueBuyers.size / thisWeekCount) * 100 : 0;
-  
+  const seg = assignOrderCustomerSegments(allOrders);
+  const countRet = (slice: any[]) => {
+    let ret = 0;
+    let tot = 0;
+    for (const o of slice) {
+      const bid = o.buyerId?.toString();
+      if (!bid) continue;
+      tot++;
+      if (seg.get(o._id.toString()) === 'existing') ret++;
+    }
+    return { ret, tot };
+  };
+  const cur = countRet(currentOrders);
+  const prev = countRet(previousOrders);
+  const value = cur.tot > 0 ? Math.round((cur.ret / cur.tot) * 1000) / 10 : 0;
   return {
-    value: Math.round(returningRate * 10) / 10, // Round to 1 decimal
-    thisWeek: thisWeekCount * 100, // Scale for display
-    lastWeek: lastWeekCount * 100,
+    value,
+    thisWeek: cur.ret,
+    lastWeek: prev.ret,
   };
 }
 
@@ -296,16 +409,14 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
       ? ((activeOrders - previousActiveOrders) / previousActiveOrders * 100).toFixed(1)
       : '0';
 
-    // Conversion rate (simplified: orders / total visitors - using orders as proxy)
-    // In a real system, you'd track actual visitors
-    const conversionRate = 3.24; // Placeholder - would need analytics integration
-    const conversionChange = '+2.3'; // Placeholder
+    const totalSkus = await Product.countDocuments({ sellerId: sellerObjectId });
 
     // Low stock items (stock < 20)
     const lowStockItems = await Product.countDocuments({
       sellerId: sellerObjectId,
       stock: { $lt: 20 }
     });
+    const lowStockPct = totalSkus > 0 ? (lowStockItems / totalSkus) * 100 : 0;
 
     // Order status breakdown
     const orderStats = {
@@ -375,37 +486,82 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
     const recentOrders = allOrders
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5)
-      .map(order => ({
-        id: order.orderNumber,
-        customer: order.customer,
-        amount: `$${order.total.toFixed(2)}`,
-        status: order.status === 'processing' ? 'processing' as const
-          : order.status === 'shipped' ? 'shipped' as const
-          : 'delivered' as const,
-        time: getTimeAgo(new Date(order.createdAt)),
-      }));
+      .map((order) => {
+        let st: 'processing' | 'shipped' | 'delivered' = 'processing';
+        if (order.status === 'delivered') st = 'delivered';
+        else if (order.status === 'shipped' || order.status === 'packed') st = 'shipped';
+        return {
+          id: order.orderNumber,
+          customer: order.customer,
+          amount: `$${Number(order.total || 0).toFixed(2)}`,
+          status: st,
+          time: getTimeAgo(new Date(order.createdAt)),
+        };
+      });
 
     // Revenue trend data (last 12 weeks)
     const revenueTrend = generateRevenueTrend(allOrders);
 
+    // Pixel chart: new vs existing customer revenue by week / month / year
+    const salesTrend = buildSalesTrendByCustomerType(allOrders);
+
     // Daily sales for SalesChart (last 7 days)
     const dailySales = generateDailySales(allOrders, timeRange as string);
 
-    // Conversion data for DonutChart
-    const conversionData = calculateConversionData(ordersInRange, previousOrders);
+    // Conversion data for DonutChart (returning buyer order share)
+    const conversionData = calculateConversionData(allOrders, ordersInRange, previousOrders);
+    const conversionRate = conversionData.value;
+    const prevRet = previousOrders.length
+      ? (() => {
+          const seg = assignOrderCustomerSegments(allOrders);
+          let r = 0;
+          let t = 0;
+          for (const o of previousOrders) {
+            if (!o.buyerId) continue;
+            t++;
+            if (seg.get(o._id.toString()) === 'existing') r++;
+          }
+          return t > 0 ? (r / t) * 100 : 0;
+        })()
+      : 0;
+    const conversionChangePct =
+      prevRet > 0 ? (((conversionRate - prevRet) / prevRet) * 100).toFixed(1) : conversionRate > 0 ? '100' : '0';
+    const conversionChange = `${parseFloat(conversionChangePct) >= 0 ? '+' : ''}${conversionChangePct}%`;
 
     // Performance data for ComboChart (last 12 months)
     const performanceData = generatePerformanceData(allOrders);
 
-    // Account status from user
+    // Account status from user + aggregate seller rating
     const seller = await User.findById(sellerId).lean();
+    const sellerRating = await SellerRating.findOne({ sellerId: sellerObjectId }).lean();
     const accountStatus = {
       tier: (seller as any)?.subscriptionTier || 'Starter',
       verificationStatus: seller?.sellerVerificationStatus || 'pending',
       isVerified: seller?.isSellerVerified || false,
-      storeRating: 0, // Would need reviews model
-      reviewCount: 0, // Would need reviews model
+      storeRating: sellerRating?.overallRating ?? 0,
+      reviewCount: sellerRating?.totalReviews ?? 0,
     };
+
+    const dayMs = 86400000;
+    const today0 = new Date(now);
+    today0.setHours(0, 0, 0, 0);
+    const y0 = new Date(today0.getTime() - dayMs);
+    const newDisputesToday = await Dispute.countDocuments({
+      sellerId: sellerObjectId,
+      status: 'new',
+      createdAt: { $gte: today0 },
+    } as any);
+    const newDisputesYesterday = await Dispute.countDocuments({
+      sellerId: sellerObjectId,
+      status: 'new',
+      createdAt: { $gte: y0, $lt: today0 },
+    } as any);
+    const rfqChange =
+      newDisputesYesterday > 0
+        ? `${newDisputesToday >= newDisputesYesterday ? '+' : ''}${newDisputesToday - newDisputesYesterday} vs yday`
+        : newDisputesToday > 0
+          ? `+${newDisputesToday} today`
+          : '0 new today';
 
     // Action required items (disputes needing response, low stock items, etc.)
     const actionRequired = await generateActionRequired(sellerObjectId);
@@ -423,14 +579,14 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
           trend: parseFloat(activeOrdersChange) >= 0 ? 'up' : 'down',
         },
         conversionRate: {
-          value: `${conversionRate}%`,
+          value: `${conversionRate.toFixed(1)}%`,
           change: conversionChange,
-          trend: 'up' as const,
+          trend: parseFloat(conversionChangePct) >= 0 ? ('up' as const) : ('down' as const),
         },
         lowStockItems: {
           value: lowStockItems.toString(),
-          change: '+5.4%', // Placeholder
-          trend: 'up' as const,
+          change: `${lowStockPct.toFixed(1)}% of SKUs`,
+          trend: lowStockItems > 0 ? ('up' as const) : ('down' as const),
         },
         avgOrderValue: {
           value: `$${avgOrderValue.toFixed(2)}`,
@@ -439,14 +595,15 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
         },
         pendingRFQs: {
           value: pendingRFQs.toString(),
-          change: '+6 new today', // Placeholder
-          trend: 'up' as const,
+          change: rfqChange,
+          trend: newDisputesToday >= newDisputesYesterday ? ('up' as const) : ('down' as const),
         },
       },
       orderStats,
       bestSellingProducts,
       recentOrders,
       revenueTrend,
+      salesTrend,
       dailySales,
       conversionData,
       performanceData,

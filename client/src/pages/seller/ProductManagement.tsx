@@ -2602,12 +2602,12 @@ const ProductManagement: React.FC = () => {
           
           <div className="space-y-6 mt-4">
             {/* Instructions */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2">
+            <div className="bg-gray-50 dark:bg-[var(--bg-tertiary)] border border-gray-200 dark:border-[var(--border-input)] rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
                 Import Instructions
               </h3>
-              <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 list-disc list-inside">
+              <ul className="text-sm text-gray-800 dark:text-[var(--text-secondary)] space-y-1 list-disc list-inside">
                 <li>Supported formats: CSV (.csv) or Excel (.xlsx, .xls)</li>
                 <li>Required columns: Name, Category, Price, Stock</li>
                 <li>Optional columns: SKU, Discount (%), MOQ, Status, Description</li>

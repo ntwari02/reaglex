@@ -573,7 +573,7 @@ export default function CollectionManagement() {
                     strokeWidth="4"
                     fill="none"
                     strokeDasharray={`${(sellerRestrictions.currentCollections / sellerRestrictions.maxCollections) * 125.6} 125.6`}
-                    className="text-blue-600 dark:text-blue-400"
+                    className="text-[var(--brand-primary)]"
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -589,7 +589,7 @@ export default function CollectionManagement() {
                 {sellerRestrictions.currentCollections >= sellerRestrictions.maxCollections && (
                   <a
                     href="/seller/subscription"
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-xs text-[var(--brand-primary)] hover:underline"
                   >
                     Upgrade plan to add more →
                   </a>
@@ -622,7 +622,7 @@ export default function CollectionManagement() {
               placeholder="Search collections..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
           </div>
           <Button
@@ -633,7 +633,7 @@ export default function CollectionManagement() {
             <Filter className="h-4 w-4" />
             Filters
             {Object.values(filters).some(v => v !== 'all') && (
-              <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-0.5">
+              <span className="bg-[var(--brand-primary)] text-white text-xs rounded-full px-2 py-0.5">
                 {Object.values(filters).filter(v => v !== 'all').length}
               </span>
             )}
@@ -642,7 +642,7 @@ export default function CollectionManagement() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-[var(--brand-primary)]"
             >
               <option value="recently_updated">Recently Updated</option>
               <option value="a-z">A-Z</option>
@@ -804,7 +804,7 @@ export default function CollectionManagement() {
       {/* Collections Grid */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-primary)]"></div>
         </div>
       ) : filteredCollections.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
@@ -824,18 +824,21 @@ export default function CollectionManagement() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-0">
           {filteredCollections.map((collection) => {
-            // Mock analytics data (per collection) for the seller dashboard demo
-            const sales = Math.floor(Math.random() * 50000) + 1000;
-            const views = Math.floor(Math.random() * 10000) + 100;
-            const orders = Math.floor(Math.random() * 450) + 50;
-            const aov = orders > 0 ? sales / orders : 0;
+            const sales = collection.total_sales ?? 0;
+            const views = collection.views_count ?? 0;
+            const orders = 0;
+            const aov = 0;
+            const cr =
+              collection.conversion_rate != null && !Number.isNaN(Number(collection.conversion_rate))
+                ? Number(collection.conversion_rate).toFixed(2)
+                : '—';
             const analytics = {
               sales,
               views,
               orders,
               aov,
-              conversionRate: (Math.random() * 5 + 1).toFixed(2),
-              clickThroughRate: (Math.random() * 10 + 2).toFixed(1),
+              conversionRate: cr,
+              clickThroughRate: '—' as string,
             };
 
             return (
@@ -855,7 +858,7 @@ export default function CollectionManagement() {
                       setSelectedCollections(selectedCollections.filter(id => id !== collection.id));
                     }
                   }}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="w-5 h-5 rounded border-gray-300 text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                 />
               </div>
               {collection.cover_image_url || collection.image_url ? (
@@ -865,7 +868,7 @@ export default function CollectionManagement() {
                   className="w-full h-48 object-cover"
                 />
               ) : (
-                <div className="w-full h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                <div className="w-full h-48 bg-gradient-to-br from-gray-500 to-gray-700 dark:from-[var(--bg-tertiary)] dark:to-[var(--bg-page)] flex items-center justify-center">
                   <span className="text-4xl text-white font-bold">
                     {collection.name.charAt(0).toUpperCase()}
                   </span>
@@ -879,7 +882,7 @@ export default function CollectionManagement() {
                   <span className={`px-2 py-1 text-xs rounded ${
                     collection.type === 'smart'
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-[var(--bg-tertiary)] dark:text-[var(--text-secondary)]'
                   }`}>
                     {collection.type === 'smart' ? 'Automated' : 'Manual'}
                   </span>
@@ -912,7 +915,7 @@ export default function CollectionManagement() {
                       </span>
                     )}
                     {(collection as any).is_seasonal && (
-                      <span className="px-2 py-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
+                      <span className="px-2 py-1 rounded bg-gray-100 text-gray-800 dark:bg-[var(--bg-tertiary)] dark:text-[var(--text-secondary)] text-xs">
                         Seasonal
                       </span>
                     )}
@@ -949,7 +952,7 @@ export default function CollectionManagement() {
                     <div>
                       <div className="text-gray-500 dark:text-gray-400">Conversion</div>
                       <div className="font-semibold text-gray-900 dark:text-white">
-                        {analytics.conversionRate}%
+                        {analytics.conversionRate === '—' ? '—' : `${analytics.conversionRate}%`}
                       </div>
                     </div>
                     <div>
@@ -967,7 +970,7 @@ export default function CollectionManagement() {
                     <div>
                       <div className="text-gray-500 dark:text-gray-400">CTR</div>
                       <div className="font-semibold text-gray-900 dark:text-white">
-                        {analytics.clickThroughRate}%
+                        {analytics.clickThroughRate === '—' ? '—' : `${analytics.clickThroughRate}%`}
                       </div>
                     </div>
                   </div>
@@ -1808,7 +1811,7 @@ function CollectionFormModal({
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] dark:bg-gray-700 dark:text-white"
               />
             </div>
             <div>
@@ -1819,7 +1822,7 @@ function CollectionFormModal({
                 type="text"
                 value={formData.slug}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] dark:bg-gray-700 dark:text-white"
                 placeholder="auto-generated"
               />
             </div>
@@ -1833,7 +1836,7 @@ function CollectionFormModal({
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -1904,12 +1907,12 @@ function CollectionFormModal({
 
           {/* Automated Collection Conditions */}
           {formData.type === 'smart' && (
-            <div className="border border-blue-200 dark:border-blue-800 rounded-lg p-6 bg-blue-50 dark:bg-blue-900/10">
+            <div className="border border-gray-200 dark:border-[var(--border-input)] rounded-lg p-6 bg-gray-50 dark:bg-[var(--bg-tertiary)]">
               {/* Header with clear messaging */}
               <div className="mb-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[var(--bg-hover)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Package className="w-4 h-4 text-[var(--brand-primary)]" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white text-lg mb-2">
@@ -1918,7 +1921,7 @@ function CollectionFormModal({
                     <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                       Products are added automatically based on your conditions. You don't need to manually select products.
                     </p>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-[var(--border-input)]">
                       <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                         <span>This collection updates itself when your products change</span>
@@ -1943,7 +1946,7 @@ function CollectionFormModal({
                       </p>
                     </div>
                     {previewProducts.length > 0 && (
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      <div className="text-2xl font-bold text-[var(--brand-primary)]">
                         {previewProducts.length}
                       </div>
                     )}
@@ -2005,7 +2008,7 @@ function CollectionFormModal({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowConditionBuilder(!showConditionBuilder)}
-                  className="border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                  className="border-gray-300 dark:border-[var(--border-input)] text-gray-800 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--bg-hover)]"
                 >
                   {showConditionBuilder ? 'Cancel' : formData.conditions.length === 0 ? 'Add Your First Condition' : 'Add Another Condition'}
                 </Button>
@@ -2191,7 +2194,7 @@ function CollectionFormModal({
                     variant="outline" 
                     onClick={handlePreview}
                     disabled={previewLoading}
-                    className="border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                    className="border-gray-300 dark:border-[var(--border-input)] text-gray-800 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--bg-hover)]"
                   >
                     {previewLoading ? 'Loading...' : 'Preview Products'}
                   </Button>
@@ -2258,7 +2261,7 @@ function CollectionFormModal({
                     placeholder="Search products by name or SKU..."
                     value={productSearchTerm}
                     onChange={(e) => setProductSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] dark:bg-gray-700 dark:text-white"
                   />
                 </div>
 
@@ -2320,7 +2323,7 @@ function CollectionFormModal({
                       {selectedProducts.map((product) => (
                         <div
                           key={product.id}
-                          className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[var(--bg-tertiary)] rounded hover:bg-gray-100 dark:hover:bg-[var(--bg-hover)] transition-colors"
                         >
                           <div className="flex items-center gap-3 flex-1">
                             {product.images && product.images.length > 0 && (
@@ -2368,7 +2371,7 @@ function CollectionFormModal({
             <select
               value={formData.sort_order}
               onChange={(e) => setFormData({ ...formData, sort_order: e.target.value as any })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] dark:bg-gray-700 dark:text-white"
             >
               <option value="manual">Manual</option>
               <option value="price_asc">Price: Low to High</option>
@@ -2491,7 +2494,7 @@ function CollectionFormModal({
                     type="url"
                     value={formData.cover_image_url}
                     onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] dark:bg-gray-700 dark:text-white"
                     placeholder="https://example.com/image.jpg"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -2506,7 +2509,7 @@ function CollectionFormModal({
                     type="url"
                     value={formData.image_url}
                     onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] dark:bg-gray-700 dark:text-white"
                     placeholder="https://example.com/thumbnail.jpg"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -2759,7 +2762,7 @@ function CollectionFormModal({
                   onChange={(e) =>
                     setFormData({ ...formData, placement_priority: parseInt(e.target.value) || 0 })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] dark:bg-gray-700 dark:text-white"
                   placeholder="0 (lower = higher priority)"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -2775,12 +2778,12 @@ function CollectionFormModal({
               <ExternalLink className="w-5 h-5 text-red-400" />
               Collection Page
             </h3>
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-300 mb-3">
+            <div className="bg-gray-50 dark:bg-[var(--bg-tertiary)] border border-gray-200 dark:border-[var(--border-input)] rounded-lg p-4">
+              <p className="text-sm text-gray-800 dark:text-[var(--text-secondary)] mb-3">
                 A dedicated page for this collection will be automatically generated and accessible at:
               </p>
-              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-500/30">
-                <code className="text-sm text-blue-600 dark:text-blue-400 flex-1">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-[var(--border-input)]">
+                <code className="text-sm text-[var(--brand-primary)] flex-1">
                   /collections/{formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-')}
                 </code>
                 <Button
@@ -2797,7 +2800,7 @@ function CollectionFormModal({
                   Preview Page
                 </Button>
               </div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+              <p className="text-xs text-[var(--brand-primary)] mt-2">
                 The page will include all products in this collection with filtering, sorting, and search capabilities.
               </p>
             </div>
@@ -3248,7 +3251,7 @@ function CollectionProductsModal({
                   </p>
                   <button
                     onClick={() => setShowSmartRules(!showSmartRules)}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-1"
+                    className="text-sm text-[var(--brand-primary)] hover:underline mt-1"
                   >
                     {showSmartRules ? 'Hide Rules' : 'View Rules →'}
                   </button>
@@ -3269,7 +3272,7 @@ function CollectionProductsModal({
 
           {/* Smart Collection Rules Preview */}
           {showSmartRules && collection.type === 'smart' && collection.conditions && (
-            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-[var(--bg-tertiary)] rounded-lg border border-gray-200 dark:border-[var(--border-input)]">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Collection Rules</h3>
               <div className="space-y-2">
                 {collection.conditions.map((condition, idx) => (
@@ -3373,8 +3376,8 @@ function CollectionProductsModal({
               <>
                 <div className="space-y-2">
                   {collection.type === 'manual' && (
-                    <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-500/30">
-                      <p className="text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                    <div className="mb-2 p-2 bg-gray-50 dark:bg-[var(--bg-tertiary)] rounded-lg border border-gray-200 dark:border-[var(--border-input)]">
+                      <p className="text-xs text-gray-800 dark:text-[var(--text-secondary)] flex items-center gap-2">
                         <GripVertical className="w-4 h-4" />
                         Drag products to reorder them in the collection
                       </p>
@@ -3391,7 +3394,7 @@ function CollectionProductsModal({
                       className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-all ${
                         draggedProduct === product.id ? 'opacity-50' : ''
                       } ${
-                        dragOverProduct === product.id ? 'border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border border-transparent'
+                        dragOverProduct === product.id ? 'border-2 border-[var(--brand-primary)] bg-[var(--brand-tint)] dark:bg-[var(--bg-hover)]' : 'border border-transparent'
                       } ${collection.type === 'manual' ? 'cursor-move' : ''}`}
                     >
                       <div className="flex items-center gap-3 flex-1">
@@ -3656,7 +3659,7 @@ function CollectionPreviewModal({
               className={`px-3 py-1 rounded-full ${
                 collection.type === 'smart'
                   ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                  : 'bg-gray-100 text-gray-800 dark:bg-[var(--bg-tertiary)] dark:text-[var(--text-secondary)]'
               }`}
             >
               {collection.type === 'smart' ? 'Smart Collection' : 'Manual Collection'}
@@ -3676,13 +3679,13 @@ function CollectionPreviewModal({
             <div className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400'}`}
+                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-[var(--brand-primary)] text-white' : 'text-gray-600 dark:text-gray-400'}`}
               >
                 <Grid3x3 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400'}`}
+                className={`p-2 rounded ${viewMode === 'list' ? 'bg-[var(--brand-primary)] text-white' : 'text-gray-600 dark:text-gray-400'}`}
               >
                 <List className="h-4 w-4" />
               </button>
@@ -3692,7 +3695,7 @@ function CollectionPreviewModal({
           {/* Products Grid/List */}
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-primary)]"></div>
             </div>
           ) : paginatedProducts.length === 0 ? (
             <div className="text-center py-12">

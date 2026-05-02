@@ -108,7 +108,15 @@
     "itemSingular": "Ikintu",
     "itemPlural": "Ibintu",
     "clearAll": "Siba byose",
-    "checkoutComingSoon": "Kwishyura biri hafi"
+    "checkoutComingSoon": "Kwishyura biri hafi",
+    "shipToEstimate": "Tangira kugera ku",
+    "shippingPreviewHint": "Dukoresha umujyi n’igihugu kugira ngo tubone ingano y’ingendo. Kohereza nyayo iza gufungurwa ku buryo bwuzuye.",
+    "calculatingShipping": "Gukataza kohereza…",
+    "estimatedShipping": "Kohereza giteganyijwe (kuri buri mucuruzi)",
+    "shippingTotal": "Kohereza hamwe",
+    "estimatedTotal": "Igiteranyo giteganyijwe",
+    "secureCheckout": "Kwishyura kwizewe · SSL",
+    "freeShippingOver": "Kohereza kubuntu hejuru ya"
   },
   "checkout": {
     "title": "Kwishyura",
@@ -592,12 +600,10 @@
   "sidebar": {
     "shippingReaglex": "Kohereza (Reaglex)",
     "disputes": "Impaka",
-    "inboxRfqs": "Ibibazo by'abaguzi",
     "collections": "Icyegeranyo",
     "subscription": "Iyandikishirize",
     "supportCenter": "Ikigo cy'ubufasha",
-    "needHelpOpen": "Ukeneye ubufasha?",
-    "inMenu": "Mu bikubiyemo"
+    "supportEmailIntro": "Ukeneye ubufasha? Ohereza imeri kuri"
   },
   "orderConfirmation": {
     "placedTitle": "Itumiza ryashyizweho",

@@ -352,13 +352,13 @@ const DisputeResolution: React.FC = () => {
   // Get status badge info
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; color: string; icon: any }> = {
-      'new': { label: 'Open', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: AlertCircle },
+      'new': { label: 'Open', color: 'bg-red-500/20 text-red-800 border-red-500/30 dark:text-red-300 dark:border-red-500/25', icon: AlertCircle },
       'seller_response': { label: 'Awaiting Seller Response', color: 'bg-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)] text-[var(--brand-orange-text)] border-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]', icon: Clock },
-      'buyer_response': { label: 'Awaiting Buyer Response', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: Clock },
-      'under_review': { label: 'Under Review', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: MessageSquare },
-      'resolved': { label: 'Resolved', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle },
-      'approved': { label: 'Approved', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle },
-      'rejected': { label: 'Rejected', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: XCircle },
+      'buyer_response': { label: 'Awaiting Buyer Response', color: 'bg-gray-500/15 text-gray-800 border-gray-500/25 dark:bg-[var(--bg-hover)] dark:text-[var(--text-secondary)] dark:border-[var(--border-input)]', icon: Clock },
+      'under_review': { label: 'Under Review', color: 'bg-yellow-500/20 text-yellow-800 border-yellow-500/30 dark:text-yellow-300 dark:border-yellow-500/25', icon: MessageSquare },
+      'resolved': { label: 'Resolved', color: 'bg-green-500/20 text-green-800 border-green-500/30 dark:text-green-300 dark:border-green-500/25', icon: CheckCircle },
+      'approved': { label: 'Approved', color: 'bg-green-500/20 text-green-800 border-green-500/30 dark:text-green-300 dark:border-green-500/25', icon: CheckCircle },
+      'rejected': { label: 'Rejected', color: 'bg-gray-500/15 text-gray-700 border-gray-500/25 dark:text-[var(--text-muted)] dark:bg-[var(--bg-tertiary)] dark:border-[var(--border-input)]', icon: XCircle },
     };
 
     return statusMap[status] || statusMap['new'];
@@ -812,7 +812,7 @@ const DisputeResolution: React.FC = () => {
               </div>
 
               {/* Status & Next Action Section */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-500/30">
+              <div className="bg-gray-50 dark:bg-[var(--bg-tertiary)] rounded-lg p-4 border border-gray-200 dark:border-[var(--border-input)]">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Status & Next Action</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -846,7 +846,7 @@ const DisputeResolution: React.FC = () => {
                         msg.sender === 'seller'
                           ? 'bg-red-50 dark:bg-red-900/20 ml-4 border border-red-200 dark:border-red-500/30'
                           : msg.sender === 'platform'
-                          ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30'
+                          ? 'bg-gray-50 dark:bg-[var(--bg-tertiary)] border border-gray-200 dark:border-[var(--border-input)]'
                           : 'bg-gray-100 dark:bg-gray-700 mr-4'
                       }`}
                     >
@@ -942,9 +942,9 @@ const DisputeResolution: React.FC = () => {
                     <Button 
                       variant="outline"
                       onClick={() => handleOpenResponseModal('evidence')}
-                      className="flex flex-col items-center gap-2 h-auto py-4 border-blue-200 dark:border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      className="flex flex-col items-center gap-2 h-auto py-4 border-gray-200 dark:border-[var(--border-input)] hover:bg-gray-50 dark:hover:bg-[var(--bg-hover)]"
                     >
-                      <FileCheck className="w-6 h-6 text-blue-500" />
+                      <FileCheck className="w-6 h-6 text-[var(--brand-primary)]" />
                       <span className="text-sm">Provide Evidence</span>
                     </Button>
                     <Button 
