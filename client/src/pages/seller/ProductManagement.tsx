@@ -7,9 +7,13 @@ import { useToastStore } from '@/stores/toastStore';
 import * as XLSX from 'xlsx';
 import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
 import { SERVER_URL, API_BASE_URL } from '@/lib/config';
+import { currencyApi } from '@/services/currencyApi';
+import { formatIntNoDecimals } from '@/lib/currencyFormat';
 
 const API_HOST = SERVER_URL;
 const API_BASE = `${API_BASE_URL}/seller/inventory`;
+
+const LISTING_CURRENCIES = ['USD', 'RWF', 'KES', 'UGX', 'TZS', 'NGN', 'EUR', 'GBP'] as const;
 
 type Variant = {
   color?: string;
@@ -23,6 +27,8 @@ interface Product {
   name: string;
   category: string;
   price: number;
+  listingCurrency?: string;
+  listingPriceAmount?: number;
   discount?: number;
   stock: number;
   moq?: number;
@@ -44,10 +50,21 @@ interface Product {
     status: 'unverified' | 'pending' | 'verified' | 'flagged' | 'rejected';
     score: number;
     riskLevel: 'low' | 'medium' | 'high';
+    trustBand?: 'high' | 'medium' | 'low';
+    submissionAllowed?: boolean;
     hasIdentifier: boolean;
     lastCheckedAt?: string;
   };
 }
+
+type TrustPreview = {
+  totalScore: number;
+  trustBand: 'high' | 'medium' | 'low';
+  submissionAllowed: boolean;
+  hardBlocked: boolean;
+  blockers: string[];
+  breakdown: Array<{ key: string; label: string; state: 'ok' | 'warn' | 'fail'; detail: string }>;
+};
 
 const ProductManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,6 +89,8 @@ const ProductManagement: React.FC = () => {
   const [, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [productSubmitting, setProductSubmitting] = useState(false);
+  const productSaveInFlightRef = useRef(false);
   const { showToast } = useToastStore();
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
@@ -82,6 +101,7 @@ const ProductManagement: React.FC = () => {
     description: '',
     category: '',
     price: '',
+    listingCurrency: 'USD' as string,
     discount: '',
     stock: '',
     weight: '',
@@ -119,6 +139,12 @@ const ProductManagement: React.FC = () => {
     labelMatch: 0,
     structureMatch: 0,
   });
+  const [videoImageSimilarity, setVideoImageSimilarity] = useState<number | null>(null);
+  const [scanPassed, setScanPassed] = useState(false);
+  const [imageSimilarityScore, setImageSimilarityScore] = useState(0);
+  const [trustPreview, setTrustPreview] = useState<TrustPreview | null>(null);
+  const [trustPreviewLoading, setTrustPreviewLoading] = useState(false);
+  const [listingUsdPreview, setListingUsdPreview] = useState<number | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   const resolveImageUrl = (url: string): string => {
@@ -144,6 +170,11 @@ const ProductManagement: React.FC = () => {
     name: p.name,
     category: p.category || 'Uncategorized',
     price: p.price,
+    listingCurrency: p.listingCurrency || 'USD',
+    listingPriceAmount:
+      p.listingPriceAmount != null && p.listingPriceAmount !== ''
+        ? Math.round(Number(p.listingPriceAmount))
+        : Math.round(Number(p.price) || 0),
     discount: p.discount,
     stock: p.stock,
     moq: p.moq,
@@ -192,6 +223,109 @@ const ProductManagement: React.FC = () => {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (!showAddProduct && !editingProduct) return;
+    const lc = String(editingProduct?.listingCurrency || newProduct.listingCurrency || 'USD').toUpperCase();
+    const raw = editingProduct
+      ? lc === 'USD'
+        ? editingProduct.price
+        : editingProduct.listingPriceAmount
+      : newProduct.price;
+    const amt = Math.round(typeof raw === 'number' ? Number(raw) : parseFloat(String(raw || '')) || 0);
+    if (!amt || amt <= 0) {
+      setListingUsdPreview(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      if (lc === 'USD') {
+        if (!cancelled) setListingUsdPreview(amt);
+        return;
+      }
+      try {
+        const r = await currencyApi.getRates([lc]);
+        const rate = Number(r?.rates?.[lc] || 1);
+        if (!cancelled) setListingUsdPreview(Math.round((amt / rate) * 100) / 100);
+      } catch {
+        if (!cancelled) setListingUsdPreview(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    showAddProduct,
+    editingProduct,
+    editingProduct?.listingCurrency,
+    editingProduct?.listingPriceAmount,
+    editingProduct?.price,
+    newProduct.listingCurrency,
+    newProduct.price,
+  ]);
+
+  useEffect(() => {
+    if (!showAddProduct && !editingProduct) return;
+    const name = (editingProduct?.name ?? newProduct.name).trim();
+    if (!name) {
+      setTrustPreview(null);
+      return;
+    }
+    const t = window.setTimeout(async () => {
+      setTrustPreviewLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/verification/preview`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          credentials: 'include',
+          body: JSON.stringify({
+            name: editingProduct?.name ?? newProduct.name,
+            category: editingProduct?.category ?? newProduct.category,
+            description: editingProduct?.description ?? newProduct.description,
+            images: editingProduct?.images ?? newProduct.images ?? [],
+            excludeProductId: editingProduct?.id,
+            verification: {
+              barcode: verificationInput.barcode,
+              serialNumber: verificationInput.serialNumber,
+              imei: verificationInput.imei,
+              qrCode: verificationInput.qrCode,
+              videoProofUploaded: Boolean(videoProof) || verificationInput.videoProofUploaded,
+              labelProofUploaded: verificationInput.labelProofUploaded,
+              videoImageSimilarity: videoImageSimilarity ?? undefined,
+              scanPassed,
+              imageSimilarityScore,
+              stolenImageSuspected: false,
+            },
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.verification) setTrustPreview(data.verification as TrustPreview);
+        else setTrustPreview(null);
+      } catch {
+        setTrustPreview(null);
+      } finally {
+        setTrustPreviewLoading(false);
+      }
+    }, 450);
+    return () => window.clearTimeout(t);
+  }, [
+    showAddProduct,
+    editingProduct,
+    newProduct.name,
+    newProduct.category,
+    newProduct.description,
+    newProduct.images,
+    editingProduct?.name,
+    editingProduct?.category,
+    editingProduct?.description,
+    editingProduct?.images,
+    editingProduct?.id,
+    verificationInput,
+    videoProof,
+    videoImageSimilarity,
+    scanPassed,
+    imageSimilarityScore,
+  ]);
 
   useEffect(() => {
     const onInventoryUpdated = () => {
@@ -403,15 +537,53 @@ const ProductManagement: React.FC = () => {
     // Basic client-side validation for required backend fields
     const name = editingProduct ? editingProduct.name : newProduct.name;
     const sku = editingProduct ? editingProduct.sku : newProduct.sku;
-    const priceValue = editingProduct
-      ? editingProduct.price
-      : newProduct.price ? parseFloat(newProduct.price) : NaN;
+    const listCur = editingProduct
+      ? editingProduct.listingCurrency || 'USD'
+      : newProduct.listingCurrency || 'USD';
+    const listingPriceInt = editingProduct
+      ? listCur === 'USD'
+        ? Math.round(Number(editingProduct.price))
+        : Math.round(Number(editingProduct.listingPriceAmount ?? 0))
+      : Math.round(parseFloat(String(newProduct.price)) || 0);
 
-    if (!name || !sku || !sku.trim() || Number.isNaN(priceValue) || priceValue <= 0) {
-      setFormError('Name, SKU and a valid positive price are required.');
+    if (!name || !sku || !sku.trim() || listingPriceInt <= 0) {
+      setFormError('Name, SKU and a valid positive list price are required.');
       return;
     }
 
+    if (trustPreviewLoading) {
+      setFormError('Trust checks are still loading. Please wait a moment.');
+      return;
+    }
+    if (!trustPreview) {
+      setFormError('Trust preview is not ready. Check your connection and try again.');
+      return;
+    }
+    if (!trustPreview.submissionAllowed) {
+      const msg =
+        (trustPreview.blockers && trustPreview.blockers.length > 0 && trustPreview.blockers.join(' ')) ||
+        'Trust score is too low or required proofs are missing. Fix the issues below.';
+      setFormError(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
+    const verificationPayload = {
+      barcode: verificationInput.barcode.trim() || undefined,
+      serialNumber: verificationInput.serialNumber.trim() || undefined,
+      imei: verificationInput.imei.trim() || undefined,
+      qrCode: verificationInput.qrCode.trim() || undefined,
+      videoProofUploaded: Boolean(videoProof) || verificationInput.videoProofUploaded,
+      videoImageSimilarity: videoImageSimilarity ?? undefined,
+      scanPassed,
+      labelProofUploaded: verificationInput.labelProofUploaded,
+      imageSimilarityScore,
+      stolenImageSuspected: false,
+    };
+
+    if (productSaveInFlightRef.current) return;
+    productSaveInFlightRef.current = true;
+    setProductSubmitting(true);
     try {
       if (editingProduct) {
         // Update existing product
@@ -425,11 +597,13 @@ const ProductManagement: React.FC = () => {
           seoKeywords: editingProduct.seoKeywords,
           sku: editingProduct.sku,
           stock: editingProduct.stock,
-          price: editingProduct.price,
+          listingCurrency: editingProduct.listingCurrency || 'USD',
+          listingPriceAmount: listingPriceInt,
           discount: editingProduct.discount,
           moq: editingProduct.moq,
           images: editingProduct.images,
           variants: editingProduct.variants,
+          verification: verificationPayload,
         };
         const response = await fetch(`${API_BASE}/products/${editingProduct.id}`, {
           method: 'PUT',
@@ -439,30 +613,10 @@ const ProductManagement: React.FC = () => {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
+          if (data.verification) setTrustPreview(data.verification as TrustPreview);
           setFormError(data.message || 'Failed to update product.');
           showToast(data.message || 'Failed to update product.', 'error');
           return;
-        }
-        const updatedProductId = data?.product?._id || editingProduct.id;
-        if (verificationInput.barcode || verificationInput.serialNumber || verificationInput.imei || verificationInput.qrCode || verificationInput.videoProofUploaded || verificationInput.labelProofUploaded) {
-          await fetch(`${API_BASE_URL}/verification/records`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            credentials: 'include',
-            body: JSON.stringify({
-              productId: updatedProductId,
-              identifiers: {
-                barcode: verificationInput.barcode || undefined,
-                serialNumber: verificationInput.serialNumber || undefined,
-                imei: verificationInput.imei || undefined,
-                qrCode: verificationInput.qrCode || undefined,
-              },
-              aiInput: {
-                videoProofUploaded: verificationInput.videoProofUploaded,
-                labelProofUploaded: verificationInput.labelProofUploaded,
-              },
-            }),
-          });
         }
         showToast('Product updated successfully.', 'success');
       } else {
@@ -477,7 +631,8 @@ const ProductManagement: React.FC = () => {
           seoKeywords: newProduct.seoKeywords,
           sku: newProduct.sku,
           stock: newProduct.stock ? parseInt(newProduct.stock, 10) : 0,
-          price: priceValue,
+          listingCurrency: newProduct.listingCurrency || 'USD',
+          listingPriceAmount: listingPriceInt,
           discount: newProduct.discount
             ? parseFloat(newProduct.discount)
             : undefined,
@@ -486,6 +641,7 @@ const ProductManagement: React.FC = () => {
             : undefined,
           images: newProduct.images,
           variants: newProduct.variants,
+          verification: verificationPayload,
         };
         const response = await fetch(`${API_BASE}/products`, {
           method: 'POST',
@@ -495,30 +651,10 @@ const ProductManagement: React.FC = () => {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
+          if (data.verification) setTrustPreview(data.verification as TrustPreview);
           setFormError(data.message || 'Failed to create product.');
           showToast(data.message || 'Failed to create product.', 'error');
           return;
-        }
-        const createdProductId = data?.product?._id;
-        if (createdProductId && (verificationInput.barcode || verificationInput.serialNumber || verificationInput.imei || verificationInput.qrCode || verificationInput.videoProofUploaded || verificationInput.labelProofUploaded)) {
-          await fetch(`${API_BASE_URL}/verification/records`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            credentials: 'include',
-            body: JSON.stringify({
-              productId: createdProductId,
-              identifiers: {
-                barcode: verificationInput.barcode || undefined,
-                serialNumber: verificationInput.serialNumber || undefined,
-                imei: verificationInput.imei || undefined,
-                qrCode: verificationInput.qrCode || undefined,
-              },
-              aiInput: {
-                videoProofUploaded: verificationInput.videoProofUploaded,
-                labelProofUploaded: verificationInput.labelProofUploaded,
-              },
-            }),
-          });
         }
         showToast('Product created successfully.', 'success');
       }
@@ -532,6 +668,7 @@ const ProductManagement: React.FC = () => {
         description: '',
         category: '',
         price: '',
+        listingCurrency: 'USD',
         discount: '',
         stock: '',
         weight: '',
@@ -556,6 +693,10 @@ const ProductManagement: React.FC = () => {
         videoProofUploaded: false,
         labelProofUploaded: false,
       });
+      setTrustPreview(null);
+      setVideoImageSimilarity(null);
+      setScanPassed(false);
+      setImageSimilarityScore(0);
       if (videoProof?.previewUrl) {
         URL.revokeObjectURL(videoProof.previewUrl);
       }
@@ -568,6 +709,9 @@ const ProductManagement: React.FC = () => {
       const msg = e.message || 'Failed to save product.';
       setFormError(msg);
       showToast(msg, 'error');
+    } finally {
+      productSaveInFlightRef.current = false;
+      setProductSubmitting(false);
     }
   };
 
@@ -731,37 +875,28 @@ const ProductManagement: React.FC = () => {
           const visual = Math.min(96, 55 + imageCount * 8);
           const label = verificationInput.labelProofUploaded ? 88 : 58;
           const structure = verificationInput.barcode || verificationInput.qrCode ? 90 : 62;
-          const avg = Math.round((visual + label + structure) / 3);
           setScanBreakdown({
             visualMatch: visual,
             labelMatch: label,
             structureMatch: structure,
           });
-          setScanStatus(avg >= 70 ? 'pass' : 'warning');
+          const avg100 = Math.round((visual + label + structure) / 3);
+          setImageSimilarityScore(avg100);
+          const sim01 = (visual + label + structure) / 300;
+          setVideoImageSimilarity(sim01);
+          const passed = sim01 >= 0.6;
+          setScanPassed(passed);
+          setScanStatus(passed ? 'pass' : 'warning');
         }
         return next;
       });
     }, 160);
   };
 
-  const verificationScore = useMemo(() => {
-    const activeProduct = editingProduct || newProduct;
-    const imageCount = activeProduct.images?.length || 0;
-    let score = 0;
-    if ((activeProduct.name || '').trim()) score += 12;
-    if ((activeProduct.sku || '').trim()) score += 12;
-    if ((verificationInput.barcode || '').trim()) score += 16;
-    if ((verificationInput.qrCode || '').trim()) score += 14;
-    if ((verificationInput.serialNumber || '').trim() || (verificationInput.imei || '').trim()) score += 12;
-    if (imageCount > 0) score += 14;
-    if (verificationInput.videoProofUploaded) score += 14;
-    if (verificationInput.labelProofUploaded) score += 6;
-    if (scanStatus === 'pass') score += 10;
-    return Math.min(100, score);
-  }, [editingProduct, newProduct, verificationInput, scanStatus]);
-
-  const trustLevel: 'low' | 'medium' | 'high' =
-    verificationScore >= 75 ? 'high' : verificationScore >= 45 ? 'medium' : 'low';
+  const displayTrustScore = trustPreview?.totalScore ?? 0;
+  const trustBandUi = trustPreview?.trustBand ?? 'low';
+  const submitAllowed =
+    Boolean(trustPreview?.submissionAllowed) && !trustPreviewLoading && !productSubmitting;
 
   // Close export menu when clicking outside
   React.useEffect(() => {
@@ -1149,12 +1284,17 @@ const ProductManagement: React.FC = () => {
               </div>
             )}
           </div>
-          <Button 
-            className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
+          <Button
+            className="bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={productSubmitting || showAddProduct || editingProduct !== null}
             onClick={() => setShowAddProduct(true)}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Product
+            {productSubmitting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4 mr-2" />
+            )}
+            {productSubmitting ? 'Saving product…' : 'Add Product'}
           </Button>
         </div>
       </div>
@@ -1706,6 +1846,7 @@ const ProductManagement: React.FC = () => {
       {/* Add/Edit Product Dialog */}
       <Dialog open={showAddProduct || editingProduct !== null} onOpenChange={(open) => {
         if (!open) {
+          if (productSaveInFlightRef.current) return;
           if (videoProof?.previewUrl) {
             URL.revokeObjectURL(videoProof.previewUrl);
           }
@@ -1788,15 +1929,60 @@ const ProductManagement: React.FC = () => {
                 <DollarSign className="w-5 h-5 text-red-400" />
                 Pricing
               </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Enter a whole-number list price in your currency. We store USD internally for checkout and accounting.
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Listing currency *</label>
+                  <select
+                    value={editingProduct?.listingCurrency || newProduct.listingCurrency}
+                    onChange={(e) =>
+                      editingProduct
+                        ? setEditingProduct({ ...editingProduct, listingCurrency: e.target.value })
+                        : setNewProduct({ ...newProduct, listingCurrency: e.target.value })
+                    }
+                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                  >
+                    {LISTING_CURRENCIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">List price * (no decimals)</label>
                   <input
                     type="number"
-                    value={editingProduct?.price || newProduct.price}
-                    onChange={(e) => editingProduct ? setEditingProduct({...editingProduct, price: parseFloat(e.target.value)}) : setNewProduct({...newProduct, price: e.target.value})}
+                    step={1}
+                    min={1}
+                    value={
+                      editingProduct
+                        ? editingProduct.listingCurrency === 'USD'
+                          ? editingProduct.price
+                          : (editingProduct.listingPriceAmount ?? '')
+                        : newProduct.price
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const n = v === '' ? 0 : Math.max(0, Math.round(Number(v)));
+                      if (editingProduct) {
+                        if (editingProduct.listingCurrency === 'USD') {
+                          setEditingProduct({
+                            ...editingProduct,
+                            price: n,
+                            listingPriceAmount: n,
+                          });
+                        } else {
+                          setEditingProduct({ ...editingProduct, listingPriceAmount: n });
+                        }
+                      } else {
+                        setNewProduct({ ...newProduct, price: v === '' ? '' : String(n) });
+                      }
+                    }}
                     className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="0.00"
+                    placeholder="0"
                   />
                 </div>
                 <div>
@@ -1818,10 +2004,22 @@ const ProductManagement: React.FC = () => {
                     defaultValue="10"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sale Price (auto)</label>
-                  <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/70 px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
-                    ${Number((Number(editingProduct?.price || newProduct.price || 0) * (1 - Number(editingProduct?.discount || newProduct.discount || 0) / 100)).toFixed(2))}
+                <div className="md:col-span-2 xl:col-span-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sale preview (after discount)</label>
+                  <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/70 px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white space-y-1">
+                    <div>
+                      {(() => {
+                        const disc = Number(editingProduct?.discount || newProduct.discount || 0);
+                        const baseUsd = listingUsdPreview ?? (editingProduct ? editingProduct.price : null);
+                        if (baseUsd == null || Number.isNaN(baseUsd)) return '—';
+                        const saleUsd = Math.round(baseUsd * (1 - disc / 100));
+                        const cur = editingProduct?.listingCurrency || newProduct.listingCurrency || 'USD';
+                        if (cur === 'USD') {
+                          return `~ $${formatIntNoDecimals(saleUsd)} USD`;
+                        }
+                        return `≈ ${formatIntNoDecimals(saleUsd)} USD after discount (stored internally; buyers see local totals at checkout)`;
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2226,26 +2424,58 @@ const ProductManagement: React.FC = () => {
               </h3>
               <div className="rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ${
-                    trustLevel === 'high'
-                      ? 'bg-green-50 border-green-300 text-green-700 dark:bg-green-950/30 dark:border-green-800 dark:text-green-300'
-                      : trustLevel === 'medium'
-                      ? 'bg-yellow-50 border-yellow-300 text-yellow-700 dark:bg-yellow-950/30 dark:border-yellow-800 dark:text-yellow-300'
-                      : 'bg-red-50 border-red-300 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300'
-                  }`}>
+                  <div
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ${
+                      trustBandUi === 'high'
+                        ? 'bg-green-50 border-green-300 text-green-700 dark:bg-green-950/30 dark:border-green-800 dark:text-green-300'
+                        : trustBandUi === 'medium'
+                          ? 'bg-yellow-50 border-yellow-300 text-yellow-700 dark:bg-yellow-950/30 dark:border-yellow-800 dark:text-yellow-300'
+                          : 'bg-red-50 border-red-300 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300'
+                    }`}
+                  >
                     <Sparkles className="w-3.5 h-3.5" />
-                    Trust Score: {verificationScore}/100 ({trustLevel.toUpperCase()})
+                    Trust Score: {displayTrustScore}/100 ({trustBandUi.toUpperCase()})
+                    {trustPreviewLoading ? ' · …' : ''}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Higher score reduces manual review risk and improves buyer confidence.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Score is computed from barcode, images, video match, and metadata consistency only — no default 100%.
+                  </p>
                 </div>
                 <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
                   <div
                     className={`h-full transition-all ${
-                      trustLevel === 'high' ? 'bg-green-500' : trustLevel === 'medium' ? 'bg-yellow-500' : 'bg-red-500'
+                      trustBandUi === 'high' ? 'bg-green-500' : trustBandUi === 'medium' ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
-                    style={{ width: `${verificationScore}%` }}
+                    style={{ width: `${Math.min(100, displayTrustScore)}%` }}
                   />
                 </div>
+                {trustPreview?.breakdown?.length ? (
+                  <ul className="space-y-2 text-sm">
+                    {trustPreview.breakdown.map((row) => (
+                      <li
+                        key={row.key}
+                        className="flex flex-wrap items-start gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 bg-gray-50/60 dark:bg-gray-800/40"
+                      >
+                        <span className="shrink-0" aria-hidden>
+                          {row.state === 'ok' ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          ) : row.state === 'warn' ? (
+                            <AlertCircle className="w-4 h-4 text-amber-500" />
+                          ) : (
+                            <X className="w-4 h-4 text-red-500" />
+                          )}
+                        </span>
+                        <span className="font-medium text-gray-900 dark:text-white">{row.label}</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">{row.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {trustPreview?.blockers?.length ? (
+                  <div className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/80 dark:bg-red-950/30 px-3 py-2 text-xs text-red-800 dark:text-red-200">
+                    {trustPreview.blockers.join(' ')}
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1"><Barcode className="w-4 h-4" /> Barcode / UPC / EAN</label>
@@ -2308,16 +2538,29 @@ const ProductManagement: React.FC = () => {
             {/* Actions */}
             <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 sm:px-6 py-3">
               <div className="mx-auto w-full max-w-6xl flex flex-col sm:flex-row gap-2 sm:justify-end">
-                <Button variant="outline" className="w-full sm:w-auto rounded-full" onClick={() => {
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto rounded-full"
+                  disabled={productSubmitting}
+                  onClick={() => {
                   setShowAddProduct(false);
                   setEditingProduct(null);
-                }}>
+                  setTrustPreview(null);
+                  setVideoImageSimilarity(null);
+                  setScanPassed(false);
+                  setImageSimilarityScore(0);
+                  setScanStatus('idle');
+                  setScanProgress(0);
+                  setScanBreakdown({ visualMatch: 0, labelMatch: 0, structureMatch: 0 });
+                }}
+                >
                   Cancel
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full sm:w-auto rounded-full border-gray-300 dark:border-gray-700"
+                  disabled={productSubmitting}
                   onClick={runSimilarityScan}
                 >
                   <ScanSearch className="w-4 h-4 mr-2" />
@@ -2325,10 +2568,21 @@ const ProductManagement: React.FC = () => {
                 </Button>
                 <Button
                   onClick={handleSaveProduct}
-                  className="w-full sm:w-auto rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]"
+                  disabled={!submitAllowed}
+                  className="w-full sm:w-auto rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Check className="w-4 h-4 mr-2" />
-                  {editingProduct ? 'Save Product' : 'Create Product'}
+                  {productSubmitting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 mr-2" />
+                  )}
+                  {productSubmitting
+                    ? editingProduct
+                      ? 'Saving…'
+                      : 'Creating…'
+                    : editingProduct
+                      ? 'Save Product'
+                      : 'Create Product'}
                 </Button>
               </div>
             </div>

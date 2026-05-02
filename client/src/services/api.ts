@@ -61,6 +61,8 @@ api.interceptors.response.use(
       method === 'post' &&
       (url === '/orders' ||
         url.startsWith('/orders?') ||
+        url === '/shipping/quote' ||
+        url.startsWith('/shipping/quote?') ||
         url === '/payments/initialize' ||
         url.startsWith('/payments/initialize?'));
     const shouldRetry = !noRetryCheckout && (!err.response || (status != null && status >= 500));
@@ -110,6 +112,17 @@ export const authAPI = {
 export const orderAPI = {
   create: (body: unknown) => api.post('/orders', body).then((r) => r.data),
   cancel: (orderId: string) => api.patch(`/orders/${orderId}/cancel`).then((r) => r.data),
+};
+
+/** Reaglex multi-seller distance-based shipping quotes (buyer). */
+export const shippingAPI = {
+  quote: (body: unknown) => api.post('/shipping/quote', body).then((r) => r.data),
+};
+
+/** Seller Reaglex shipping rules (warehouses, methods, zones). */
+export const sellerShippingAPI = {
+  get: () => api.get('/seller/shipping-settings').then((r) => r.data),
+  put: (settings: unknown) => api.put('/seller/shipping-settings', { settings }).then((r) => r.data),
 };
 
 // ─── Payments & Escrow ────────────────────────────────────────────────────────

@@ -4,43 +4,52 @@ import { SellerTrustProfile } from '../models/SellerTrustProfile';
 import { Order } from '../models/Order';
 import { Dispute } from '../models/Dispute';
 import mongoose from 'mongoose';
+import {
+  evaluateTrustDraft,
+  type TrustDraftInput,
+  type TrustEvaluationResult,
+  MIN_TRUST_TO_SUBMIT,
+} from './trustVerification.engine';
 
 function norm(s: unknown) {
   return String(s || '').trim().toLowerCase();
 }
 
-function overlap(a: string[], b: string[]) {
-  const sa = new Set(a.map(norm).filter(Boolean));
-  const sb = new Set(b.map(norm).filter(Boolean));
-  let hit = 0;
-  sa.forEach((x) => { if (sb.has(x)) hit += 1; });
-  return hit;
+export async function hasDuplicateListingImages(
+  sellerId: string,
+  imageUrls: string[],
+  excludeProductId?: string,
+): Promise<boolean> {
+  const urls = (imageUrls || []).filter(Boolean);
+  if (!urls.length) return false;
+  try {
+    const sid = new mongoose.Types.ObjectId(sellerId);
+    const filter: Record<string, unknown> = { sellerId: sid, images: { $in: urls } };
+    if (excludeProductId && mongoose.Types.ObjectId.isValid(excludeProductId)) {
+      filter._id = { $ne: new mongoose.Types.ObjectId(excludeProductId) };
+    }
+    const n = await Product.countDocuments(filter as any);
+    return n > 0;
+  } catch {
+    return false;
+  }
 }
 
-export function computeVerificationScore(input: {
-  hasIdentifier: boolean;
-  externalMatchConfidence: number;
-  imageSimilarityScore: number;
-  categoryConsistencyScore: number;
-  videoProofUploaded: boolean;
-  stolenImageSuspected: boolean;
-  suspiciousFlagsCount: number;
-}) {
-  let score = 20;
-  if (input.hasIdentifier) score += 22;
-  score += Math.round(input.externalMatchConfidence * 0.22);
-  score += Math.round(input.imageSimilarityScore * 0.18);
-  score += Math.round(input.categoryConsistencyScore * 0.18);
-  if (input.videoProofUploaded) score += 8;
-  if (input.stolenImageSuspected) score -= 28;
-  score -= input.suspiciousFlagsCount * 6;
-  score = Math.max(0, Math.min(100, score));
-  const riskLevel = score >= 75 ? 'low' : score >= 45 ? 'medium' : 'high';
-  const status =
-    score >= 80 && input.suspiciousFlagsCount === 0 ? 'verified' :
-    input.suspiciousFlagsCount > 0 || score < 45 ? 'flagged' :
-    'pending';
-  return { score, riskLevel, status };
+export async function evaluateProductTrustForSeller(
+  sellerId: string,
+  draft: { name: string; category?: string; description?: string; images?: string[] },
+  verification: Partial<TrustDraftInput>,
+  excludeProductId?: string,
+): Promise<TrustEvaluationResult> {
+  const dup = await hasDuplicateListingImages(sellerId, draft.images || [], excludeProductId);
+  return evaluateTrustDraft({
+    name: draft.name,
+    category: draft.category,
+    description: draft.description,
+    images: draft.images || [],
+    duplicateListingImage: dup,
+    ...verification,
+  });
 }
 
 export async function externalIdentifierCheck(input: {
@@ -56,7 +65,7 @@ export async function externalIdentifierCheck(input: {
 
   const apiUrl = String(process.env.BARCODE_LOOKUP_API_URL || '').trim();
   if (!apiUrl) {
-    return { provider: 'internal-fallback', confidence: 55, matchedTitle: true, matchedCategory: true, raw: { fallback: true } };
+    return { provider: 'none', confidence: 0, matchedTitle: undefined, matchedCategory: undefined, raw: { skipped: true } };
   }
 
   try {
@@ -76,8 +85,24 @@ export async function externalIdentifierCheck(input: {
     const confidence = (matchedTitle ? 60 : 20) + (matchedCategory ? 30 : 10);
     return { provider: 'barcode-api', confidence, matchedTitle, matchedCategory, raw };
   } catch (err: any) {
-    return { provider: 'lookup-failed', confidence: 35, matchedTitle: false, matchedCategory: false, raw: { error: err?.message || String(err) } };
+    return { provider: 'lookup-failed', confidence: 0, matchedTitle: false, matchedCategory: false, raw: { error: err?.message || String(err) } };
   }
+}
+
+function deriveVerificationStatus(evaluation: TrustEvaluationResult): {
+  status: 'unverified' | 'pending' | 'verified' | 'flagged' | 'rejected';
+  riskLevel: 'low' | 'medium' | 'high';
+} {
+  if (evaluation.hardBlocked || !evaluation.submissionAllowed) {
+    return { status: 'rejected', riskLevel: 'high' };
+  }
+  if (evaluation.totalScore >= 80 && evaluation.suspiciousFlags.length === 0) {
+    return { status: 'verified', riskLevel: 'low' };
+  }
+  if (evaluation.totalScore >= 50) {
+    return { status: 'pending', riskLevel: evaluation.trustBand === 'medium' ? 'medium' : 'high' };
+  }
+  return { status: 'flagged', riskLevel: 'high' };
 }
 
 export async function runProductVerification(input: {
@@ -85,7 +110,14 @@ export async function runProductVerification(input: {
   sellerId: string;
   actorId?: string;
   identifiers?: Partial<{
-    barcode: string; ean: string; upc: string; qrCode: string; serialNumber: string; imei: string; rfid: string; nfc: string;
+    barcode: string;
+    ean: string;
+    upc: string;
+    qrCode: string;
+    serialNumber: string;
+    imei: string;
+    rfid: string;
+    nfc: string;
   }>;
   aiInput?: Partial<{
     imageSimilarityScore: number;
@@ -93,14 +125,23 @@ export async function runProductVerification(input: {
     stolenImageSuspected: boolean;
     videoProofUploaded: boolean;
     labelProofUploaded: boolean;
+    videoImageSimilarity?: number;
+    videoProofUrl?: string;
+    scanPassed?: boolean;
     notes: string[];
   }>;
 }) {
   const product = await Product.findById(input.productId).lean();
   if (!product) throw new Error('Product not found');
+
   const hasIdentifier = Boolean(
-    input.identifiers?.barcode || input.identifiers?.ean || input.identifiers?.upc ||
-    input.identifiers?.serialNumber || input.identifiers?.imei || input.identifiers?.rfid || input.identifiers?.nfc
+    input.identifiers?.barcode ||
+      input.identifiers?.ean ||
+      input.identifiers?.upc ||
+      input.identifiers?.serialNumber ||
+      input.identifiers?.imei ||
+      input.identifiers?.rfid ||
+      input.identifiers?.nfc,
   );
 
   const external = await externalIdentifierCheck({
@@ -112,24 +153,64 @@ export async function runProductVerification(input: {
     imei: input.identifiers?.imei,
   });
 
-  const suspiciousFlags: string[] = [];
-  if (hasIdentifier && external.matchedTitle === false) suspiciousFlags.push('identifier_title_mismatch');
-  if (hasIdentifier && external.matchedCategory === false) suspiciousFlags.push('identifier_category_mismatch');
-  if (input.aiInput?.stolenImageSuspected) suspiciousFlags.push('possible_stolen_images');
-  if ((input.aiInput?.categoryConsistencyScore ?? 65) < 40) suspiciousFlags.push('image_category_inconsistency');
-  if (norm((product as any).category).includes('electronics') && !input.aiInput?.videoProofUploaded) {
-    suspiciousFlags.push('high_risk_no_video_proof');
+  const dup = await hasDuplicateListingImages(
+    String((product as any).sellerId),
+    ((product as any).images || []) as string[],
+    String(product._id),
+  );
+
+  const draftInput: TrustDraftInput = {
+    name: String((product as any).name || ''),
+    description: String((product as any).description || ''),
+    category: String((product as any).category || ''),
+    images: ((product as any).images || []) as string[],
+    duplicateListingImage: dup,
+    barcode: input.identifiers?.barcode || input.identifiers?.ean || input.identifiers?.upc,
+    qrCode: input.identifiers?.qrCode,
+    serialNumber: input.identifiers?.serialNumber,
+    imei: input.identifiers?.imei,
+    videoProofUploaded: !!input.aiInput?.videoProofUploaded,
+    videoProofUrl: input.aiInput?.videoProofUrl,
+    videoImageSimilarity: input.aiInput?.videoImageSimilarity,
+    labelProofUploaded: !!input.aiInput?.labelProofUploaded,
+    imageSimilarityScore: input.aiInput?.imageSimilarityScore,
+    stolenImageSuspected: !!input.aiInput?.stolenImageSuspected,
+    scanPassed: !!input.aiInput?.scanPassed,
+  };
+
+  let evaluation = evaluateTrustDraft(draftInput);
+
+  let consistencyScore = evaluation.consistencyScore;
+  const extraFlags: string[] = [];
+  if (hasIdentifier && external.matchedTitle === false) {
+    consistencyScore = Math.max(0, consistencyScore - 10);
+    extraFlags.push('identifier_title_mismatch');
+  }
+  if (hasIdentifier && external.matchedCategory === false) {
+    consistencyScore = Math.max(0, consistencyScore - 10);
+    extraFlags.push('identifier_category_mismatch');
   }
 
-  const scoreResult = computeVerificationScore({
-    hasIdentifier,
-    externalMatchConfidence: external.confidence,
-    imageSimilarityScore: input.aiInput?.imageSimilarityScore ?? 68,
-    categoryConsistencyScore: input.aiInput?.categoryConsistencyScore ?? 70,
-    videoProofUploaded: !!input.aiInput?.videoProofUploaded,
-    stolenImageSuspected: !!input.aiInput?.stolenImageSuspected,
-    suspiciousFlagsCount: suspiciousFlags.length,
-  });
+  const suspiciousMerged = [...new Set([...evaluation.suspiciousFlags, ...extraFlags])];
+  const totalScore = Math.max(
+    0,
+    Math.min(100, evaluation.barcodeScore + evaluation.imageScore + evaluation.videoScore + consistencyScore),
+  );
+  const trustBand: TrustEvaluationResult['trustBand'] =
+    totalScore >= 80 ? 'high' : totalScore >= 50 ? 'medium' : 'low';
+  const hardBlocked = evaluation.hardBlocked;
+  const submissionAllowed = !hardBlocked && totalScore >= MIN_TRUST_TO_SUBMIT;
+
+  evaluation = {
+    ...evaluation,
+    consistencyScore,
+    totalScore,
+    trustBand,
+    suspiciousFlags: suspiciousMerged,
+    submissionAllowed,
+  };
+
+  const { status, riskLevel } = deriveVerificationStatus(evaluation);
 
   const auditAction = input.actorId ? 'verification_updated_by_user' : 'verification_auto_run';
   const verification = await ProductVerification.findOneAndUpdate(
@@ -152,21 +233,32 @@ export async function runProductVerification(input: {
           nfc: input.identifiers?.nfc || undefined,
         },
         aiChecks: {
-          imageSimilarityScore: input.aiInput?.imageSimilarityScore ?? 68,
-          categoryConsistencyScore: input.aiInput?.categoryConsistencyScore ?? 70,
+          imageSimilarityScore: input.aiInput?.imageSimilarityScore ?? 0,
+          categoryConsistencyScore: input.aiInput?.categoryConsistencyScore ?? 0,
           stolenImageSuspected: !!input.aiInput?.stolenImageSuspected,
           videoProofUploaded: !!input.aiInput?.videoProofUploaded,
           labelProofUploaded: !!input.aiInput?.labelProofUploaded,
+          videoImageSimilarity: input.aiInput?.videoImageSimilarity,
+          videoProofUrl: input.aiInput?.videoProofUrl,
+          scanPassed: !!input.aiInput?.scanPassed,
           notes: input.aiInput?.notes || [],
           checkedAt: new Date(),
         },
-        verificationScore: scoreResult.score,
-        riskLevel: scoreResult.riskLevel,
-        status: scoreResult.status,
-        suspiciousFlags,
+        componentScores: {
+          barcode: evaluation.barcodeScore,
+          image: evaluation.imageScore,
+          video: evaluation.videoScore,
+          consistency: evaluation.consistencyScore,
+        },
+        trustBreakdown: evaluation.breakdown,
+        submissionAllowed: evaluation.submissionAllowed,
+        verificationScore: evaluation.totalScore,
+        riskLevel,
+        status,
+        suspiciousFlags: suspiciousMerged,
         manualReview: {
-          required: scoreResult.status === 'flagged' || scoreResult.riskLevel === 'high',
-          status: scoreResult.status === 'flagged' ? 'queued' : 'not_required',
+          required: status === 'flagged' || status === 'rejected' || riskLevel === 'high',
+          status: status === 'flagged' || status === 'rejected' ? 'queued' : 'not_required',
         },
         printableQrUrl: `${String(process.env.CLIENT_URL || '').replace(/\/$/, '')}/products/${product._id}?rxid=${encodeURIComponent(String((product as any).reaglexProductId || ''))}`,
       },
@@ -180,9 +272,12 @@ export async function runProductVerification(input: {
           checkedAt: new Date(),
         },
         auditTrail: {
-          actorId: input.actorId && mongoose.Types.ObjectId.isValid(input.actorId) ? new mongoose.Types.ObjectId(input.actorId) : undefined,
+          actorId:
+            input.actorId && mongoose.Types.ObjectId.isValid(input.actorId)
+              ? new mongoose.Types.ObjectId(input.actorId)
+              : undefined,
           action: auditAction,
-          note: `score=${scoreResult.score} status=${scoreResult.status}`,
+          note: `score=${evaluation.totalScore} status=${status} submissionAllowed=${evaluation.submissionAllowed}`,
           at: new Date(),
         },
       },
@@ -195,9 +290,11 @@ export async function runProductVerification(input: {
     {
       $set: {
         verificationSummary: {
-          status: scoreResult.status,
-          score: scoreResult.score,
-          riskLevel: scoreResult.riskLevel,
+          status,
+          score: evaluation.totalScore,
+          riskLevel,
+          trustBand: evaluation.trustBand,
+          submissionAllowed: evaluation.submissionAllowed,
           hasIdentifier,
           lastCheckedAt: new Date(),
         },
@@ -216,7 +313,10 @@ export async function recalculateSellerTrust(sellerId: string) {
     ProductVerification.countDocuments({ sellerId: sellerObjectId, status: { $in: ['flagged', 'rejected'] } } as any),
     Order.countDocuments({ sellerId: sellerObjectId, status: { $in: ['delivered'] } } as any),
     Dispute.countDocuments({ sellerId: sellerObjectId } as any),
-    ProductVerification.countDocuments({ sellerId: sellerObjectId, suspiciousFlags: { $in: ['possible_stolen_images', 'identifier_title_mismatch'] } } as any),
+    ProductVerification.countDocuments({
+      sellerId: sellerObjectId,
+      suspiciousFlags: { $in: ['possible_stolen_images', 'identifier_title_mismatch'] },
+    } as any),
     ProductVerification.aggregate([
       { $match: { sellerId: new mongoose.Types.ObjectId(sellerId) } },
       { $group: { _id: null, avgScore: { $avg: '$aiChecks.imageSimilarityScore' } } },
@@ -253,4 +353,3 @@ export async function recalculateSellerTrust(sellerId: string) {
     { upsert: true, new: true },
   );
 }
-

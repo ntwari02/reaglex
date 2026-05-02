@@ -19,7 +19,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, trend, icon: 
         visible: { opacity: 1, y: 0 },
       }}
       whileHover={{ scale: 1.02, y: -5 }}
-      className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700/30 shadow-lg hover:shadow-red-500/20 hover:border-red-500/50 transition-all duration-300 h-full flex flex-col"
+      className="dashboard-surface rounded-xl p-4 border border-gray-200 dark:border-gray-700/30 shadow-lg hover:shadow-red-500/20 hover:border-red-500/50 transition-all duration-300 h-full flex flex-col"
     >
       <div className="flex items-start justify-between mb-3">
         <div className={`p-2 bg-gradient-to-br ${color} rounded-lg shadow-lg`}>

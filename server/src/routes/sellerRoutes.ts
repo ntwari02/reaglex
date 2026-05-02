@@ -21,6 +21,10 @@ import {
   previewCollectionRules,
 } from '../controllers/sellerCollectionController';
 import { getDashboardStats } from '../controllers/sellerDashboardController';
+import {
+  getSellerShippingSettings,
+  putSellerShippingSettings,
+} from '../controllers/sellerShippingSettingsController';
 
 const router = Router();
 
@@ -28,6 +32,8 @@ const router = Router();
 router.use(authenticate, authorize('seller'));
 
 router.get('/dashboard/stats', getDashboardStats);
+router.get('/shipping-settings', getSellerShippingSettings);
+router.put('/shipping-settings', putSellerShippingSettings);
 router.get('/orders', getSellerOrders);
 router.get('/orders/:orderId', getSellerOrderById);
 router.patch('/orders/:orderId/status', updateSellerOrderStatus);

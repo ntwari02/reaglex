@@ -315,3 +315,16 @@ export function getRecommendationDealsEmailHtml(options: {
   `;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, options.title)}</body></html>`;
 }
+
+export function getNewsletterWelcomeEmailHtml(options: { shopUrl: string; appName?: string }) {
+  const appName = options.appName || 'Reaglex';
+  const content = `
+  <p style="margin: 0 0 16px; font-size: 16px;">Thanks for subscribing,</p>
+  <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">You'll get curated deals, new arrivals, and marketplace updates. You can unsubscribe anytime from the link in future emails.</p>
+  <p style="text-align: center; margin: 28px 0;">
+    <a href="${options.shopUrl}" style="${buttonStyle}">Shop ${appName}</a>
+  </p>
+  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't sign up for this list, you can ignore this message.</p>
+  <div style="${footerStyle}">This email was sent by ${appName} because you subscribed on our website.</div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, "You're on the list")}</body></html>`;
+}

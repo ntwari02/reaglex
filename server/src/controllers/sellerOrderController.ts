@@ -131,6 +131,8 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
     const update: any = {
       $set: {
         trackingNumber: trackingNumber || '',
+        'reaglexShipping.trackingNumber': trackingNumber || '',
+        'reaglexShipping.shipmentStatus': shouldMarkShipped ? 'shipped' : 'pending',
       },
     };
 
@@ -140,6 +142,11 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
 
     if (shouldMarkShipped) {
       update.$set.status = 'shipped';
+      const paid = Boolean((prior as any).payment?.paidAt);
+      const escrowSt = (prior as any).escrow?.status;
+      if (paid && escrowSt === 'ESCROW_HOLD') {
+        update.$set['escrow.status'] = 'SHIPPED';
+      }
       update.$push = {
         timeline: {
           status: 'Shipped',

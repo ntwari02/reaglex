@@ -33,9 +33,20 @@ export interface IProductVerification extends Document {
     stolenImageSuspected?: boolean;
     videoProofUploaded?: boolean;
     labelProofUploaded?: boolean;
+    videoImageSimilarity?: number;
+    videoProofUrl?: string;
+    scanPassed?: boolean;
     notes?: string[];
     checkedAt?: Date;
   };
+  componentScores?: {
+    barcode: number;
+    image: number;
+    video: number;
+    consistency: number;
+  };
+  trustBreakdown?: Array<{ key: string; label: string; state: string; detail: string }>;
+  submissionAllowed?: boolean;
   verificationScore: number;
   riskLevel: RiskLevel;
   status: VerificationStatus;
@@ -94,9 +105,33 @@ const productVerificationSchema = new Schema<IProductVerification>(
       stolenImageSuspected: { type: Boolean, default: false },
       videoProofUploaded: { type: Boolean, default: false },
       labelProofUploaded: { type: Boolean, default: false },
+      videoImageSimilarity: { type: Number },
+      videoProofUrl: { type: String, trim: true },
+      scanPassed: { type: Boolean, default: false },
       notes: { type: [String], default: [] },
       checkedAt: { type: Date },
     },
+    componentScores: {
+      type: {
+        barcode: { type: Number, default: 0 },
+        image: { type: Number, default: 0 },
+        video: { type: Number, default: 0 },
+        consistency: { type: Number, default: 0 },
+      },
+      default: undefined,
+    },
+    trustBreakdown: {
+      type: [
+        {
+          key: { type: String, trim: true },
+          label: { type: String, trim: true },
+          state: { type: String, trim: true },
+          detail: { type: String, trim: true },
+        },
+      ],
+      default: undefined,
+    },
+    submissionAllowed: { type: Boolean, default: false, index: true },
     verificationScore: { type: Number, default: 0, index: true },
     riskLevel: { type: String, enum: ['low', 'medium', 'high'], default: 'medium', index: true },
     status: {

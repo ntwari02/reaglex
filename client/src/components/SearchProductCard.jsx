@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ShoppingBag, Heart, Star, Truck, Eye } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
+import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
 const PRIMARY = 'var(--brand-primary)';
@@ -27,6 +28,7 @@ export function SearchProductCard({ product, index = 0 }) {
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
   const addItem = useBuyerCart((s) => s.addItem);
+  const currencyPricing = useCurrencyPricing();
 
   const id = product._id || product.id;
   const name = product.title || product.name || 'Product';
@@ -217,10 +219,12 @@ export function SearchProductCard({ product, index = 0 }) {
 
           {/* Price */}
           <div className="flex items-center gap-2 flex-wrap mb-2">
-            <span className="font-bold text-lg" style={{ color: PRIMARY }}>${price.toFixed(2)}</span>
+            <span className="font-bold text-lg tabular-nums" style={{ color: PRIMARY }}>
+              {currencyPricing.formatLocalWithUsd(price)}
+            </span>
             {oldPrice && (
-              <span className="text-[13px] line-through" style={{ color: '#9ca3af' }}>
-                ${oldPrice.toFixed(2)}
+              <span className="text-[13px] line-through tabular-nums" style={{ color: '#9ca3af' }}>
+                {currencyPricing.formatLocalWithUsd(oldPrice)}
               </span>
             )}
           </div>

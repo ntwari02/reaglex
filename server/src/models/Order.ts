@@ -76,6 +76,33 @@ export interface IOrderPayout {
   sellerSubaccountId?: string;
 }
 
+export type ReaglexShipmentStatus = 'pending' | 'ready_for_pickup' | 'shipped' | 'delivered' | 'failed';
+
+export interface IOrderReaglexShipping {
+  version: number;
+  groupKey?: string;
+  sellerId?: string;
+  warehouseId?: string;
+  warehouseLabel?: string;
+  origin?: { lat: number; lng: number; addressText?: string };
+  buyerDelivery?: Record<string, string | undefined>;
+  selectedShippingMethod?: string;
+  distanceKm?: number;
+  distanceSource?: string;
+  baseFee?: number;
+  ratePerKm?: number;
+  handlingFee?: number;
+  minShippingFee?: number;
+  zoneSurcharge?: number;
+  shippingTotal?: number;
+  freeShippingApplied?: boolean;
+  estimatedDeliveryFrom?: Date;
+  estimatedDeliveryTo?: Date;
+  trackingNumber?: string;
+  shipmentStatus?: ReaglexShipmentStatus;
+  deliveryProofUrl?: string;
+}
+
 export interface IOrder extends Document {
   sellerId: Schema.Types.ObjectId;
   buyerId: Schema.Types.ObjectId;
@@ -118,6 +145,8 @@ export interface IOrder extends Document {
     stockRestoredAt?: Date;
     lastChangeReason?: string;
   };
+  carrier?: string;
+  reaglexShipping?: IOrderReaglexShipping;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -138,6 +167,42 @@ const orderTimelineSchema = new Schema<IOrderTimelineEntry>(
     status: { type: String, required: true },
     date: { type: Date, required: true },
     time: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const reaglexOrderShippingSchema = new Schema(
+  {
+    version: { type: Number, default: 1 },
+    groupKey: { type: String },
+    sellerId: { type: String },
+    warehouseId: { type: String },
+    warehouseLabel: { type: String },
+    origin: {
+      lat: Number,
+      lng: Number,
+      addressText: String,
+    },
+    buyerDelivery: { type: Schema.Types.Mixed },
+    selectedShippingMethod: { type: String },
+    distanceKm: { type: Number },
+    distanceSource: { type: String },
+    baseFee: { type: Number },
+    ratePerKm: { type: Number },
+    handlingFee: { type: Number },
+    minShippingFee: { type: Number },
+    zoneSurcharge: { type: Number },
+    shippingTotal: { type: Number },
+    freeShippingApplied: { type: Boolean },
+    estimatedDeliveryFrom: { type: Date },
+    estimatedDeliveryTo: { type: Date },
+    trackingNumber: { type: String },
+    shipmentStatus: {
+      type: String,
+      enum: ['pending', 'ready_for_pickup', 'shipped', 'delivered', 'failed'],
+      default: 'pending',
+    },
+    deliveryProofUrl: { type: String },
   },
   { _id: false }
 );
@@ -171,6 +236,7 @@ const orderSchema = new Schema<IOrder>(
       country: { type: String, required: true },
     },
     paymentMethod: { type: String, required: true },
+    carrier: { type: String, trim: true },
     trackingNumber: { type: String },
     timeline: { type: [orderTimelineSchema], default: [] },
     payment: {
@@ -240,6 +306,7 @@ const orderSchema = new Schema<IOrder>(
       stockRestoredAt: { type: Date },
       lastChangeReason: { type: String },
     },
+    reaglexShipping: { type: reaglexOrderShippingSchema },
   },
   { timestamps: true }
 );

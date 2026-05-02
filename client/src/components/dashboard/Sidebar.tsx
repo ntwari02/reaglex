@@ -15,6 +15,7 @@ import {
   FolderKanban,
   MessageCircle,
   LifeBuoy,
+  Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -70,6 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'disputes', label: t('sidebar.disputes'), icon: AlertTriangle },
     { id: 'inbox', label: t('sidebar.inboxRfqs'), icon: MessageCircle },
     { id: 'products', label: t('header.products'), icon: Box },
+    { id: 'shipping', label: t('sidebar.shippingReaglex'), icon: Truck },
     { id: 'collections', label: t('sidebar.collections'), icon: FolderKanban },
     { id: 'analytics', label: t('header.analytics'), icon: BarChart3 },
     { id: 'subscription', label: t('sidebar.subscription'), icon: Crown },
@@ -93,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const sidebarContent = (
   <div
-    className="flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth sidebar transition-colors duration-300 bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-gray-100 backdrop-blur border-r border-gray-200 dark:border-gray-800 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600"
+    className="dashboard-sidebar flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth sidebar transition-colors duration-300 text-gray-900 dark:text-gray-100 backdrop-blur border-r border-gray-200 dark:border-gray-800 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600"
   >
       <div className="p-6 flex items-center justify-between sidebar-profile border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">

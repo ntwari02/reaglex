@@ -94,9 +94,13 @@ const NAV_LINKS = [
 
 const CURRENCIES = [
   { code: 'USD', symbol: '$', label: 'USD' },
-  { code: 'EUR', symbol: '€', label: 'EUR' },
   { code: 'RWF', symbol: 'FRw', label: 'RWF' },
   { code: 'KES', symbol: 'KSh', label: 'KES' },
+  { code: 'UGX', symbol: 'USh', label: 'UGX' },
+  { code: 'TZS', symbol: 'TSh', label: 'TZS' },
+  { code: 'NGN', symbol: '₦', label: 'NGN' },
+  { code: 'EUR', symbol: '€', label: 'EUR' },
+  { code: 'GBP', symbol: '£', label: 'GBP' },
 ];
 
 // ── Tier 1: Utility bar ───────────────────────────────────────────────────────

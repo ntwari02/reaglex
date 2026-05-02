@@ -33,7 +33,7 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ orders: ordersProp = [] }) 
   };
 
   return (
-    <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/30 shadow-xl h-[364px] flex flex-col transition-colors duration-300">
+    <div className="dashboard-surface rounded-xl p-6 border border-gray-200 dark:border-gray-700/30 shadow-xl h-[364px] flex flex-col transition-colors duration-300">
       <div className="flex items-center justify-between mb-6 flex-shrink-0">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 transition-colors duration-300">
           <Package className="w-6 h-6 text-red-400" />

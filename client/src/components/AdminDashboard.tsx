@@ -127,7 +127,10 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-300">
+    <div
+      className="dashboard-app flex h-screen overflow-hidden transition-colors duration-300"
+      style={{ background: 'var(--bg-page)', color: 'var(--text-primary)' }}
+    >
       <Sidebar 
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -178,7 +181,7 @@ const AdminDashboard: React.FC = () => {
           accentVariant="emerald"
         />
         
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden scroll-smooth bg-gray-50/50 dark:bg-black/30 p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <main className="dashboard-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden scroll-smooth p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
           <Routes>
             <Route index element={<AdminOverview />} />
             <Route path="dashboard" element={<AdminOverview />} />

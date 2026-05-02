@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Heart, Star, Truck } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
+import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
 
@@ -27,6 +28,7 @@ export default function ProductListItem({ product, index = 0 }) {
   const [added,      setAdded]      = useState(false);
   const [hovered,    setHovered]    = useState(false);
   const addItem = useBuyerCart(s => s.addItem);
+  const currencyPricing = useCurrencyPricing();
 
   const id          = product._id || product.id;
   const name        = product.title || product.name || 'Product';
@@ -191,7 +193,7 @@ export default function ProductListItem({ product, index = 0 }) {
                 </span>
                 {oldPrice && (
                   <span className="ml-1.5 text-xs line-through" style={{ color: '#cbd5e1' }}>
-                    ${oldPrice.toFixed(2)}
+                    {currencyPricing.formatLocalWithUsd(oldPrice)}
                   </span>
                 )}
               </div>

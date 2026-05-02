@@ -197,7 +197,7 @@ const Header: React.FC<HeaderProps> = ({
       };
 
   return (
-    <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700/30 px-4 md:px-6 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300">
+    <header className="dashboard-header backdrop-blur-md border-b border-gray-200 dark:border-gray-700/30 px-4 md:px-6 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300">
       <div className="flex items-center gap-4 flex-1">
         <Button
           variant="ghost"

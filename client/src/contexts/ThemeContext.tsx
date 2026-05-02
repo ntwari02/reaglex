@@ -2,10 +2,11 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useAuthStore } from '../stores/authStore';
 import { profileAPI } from '../lib/api';
 import { currencyApi } from '../services/currencyApi';
+import { isSupportedCurrency, type SupportedCurrency } from '../lib/currencyFormat';
 
 type Theme = 'dark' | 'light';
 type Language = 'en' | 'fr' | 'rw' | 'sw';
-type Currency = 'USD' | 'EUR' | 'RWF' | 'KES';
+type Currency = SupportedCurrency;
 
 function normalizeLanguage(raw: string | undefined | null): Language {
   const lower = String(raw || 'en').toLowerCase();
@@ -97,7 +98,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   const [currency, setCurrency] = useState<Currency>(() => {
-    try { return (localStorage.getItem('currency') as Currency) || 'USD'; } catch { return 'USD'; }
+    try {
+      const stored = localStorage.getItem('currency');
+      if (stored && isSupportedCurrency(stored)) return stored;
+    } catch {}
+    return 'USD';
   });
 
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -136,7 +141,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     currencyApi
       .getContext()
       .then((data) => {
-        const next = String(data?.selectedCurrency || data?.detectedCurrency || 'USD').toUpperCase() as Currency;
+        const raw = String(data?.selectedCurrency || data?.detectedCurrency || 'USD').toUpperCase();
+        const next: Currency = isSupportedCurrency(raw) ? raw : 'USD';
         setCurrency(next);
         localStorage.setItem('currency', next);
       })
@@ -161,8 +167,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
               localStorage.setItem('language', lang);
             }
             if (profileData.preferences.currency) {
-              setCurrency(profileData.preferences.currency as Currency);
-              localStorage.setItem('currency', profileData.preferences.currency);
+              const cur = String(profileData.preferences.currency).toUpperCase();
+              const nextCur: Currency = isSupportedCurrency(cur) ? cur : 'USD';
+              setCurrency(nextCur);
+              localStorage.setItem('currency', nextCur);
             }
           }
           setDbPreferencesLoaded(true);
@@ -230,8 +238,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSetCurrency = (curr: Currency) => {
-    setCurrency(curr);
-    localStorage.setItem('currency', curr);
+    const next: Currency = isSupportedCurrency(curr) ? curr : 'USD';
+    setCurrency(next);
+    localStorage.setItem('currency', next);
     if (user && dbPreferencesLoaded) {
       const saveCurrencyToDB = async () => {
         try {

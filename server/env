@@ -1,11 +1,3 @@
-# =============================================================================
-# LOCAL DEVELOPMENT — server/.env (gitignored)
-# =============================================================================
-# For Render production, set the same keys in the host Environment with:
-#   NODE_ENV=production
-#   CLIENT_URL / SERVER_URL / GOOGLE_CALLBACK_URL / ALLOWED_ORIGINS (production values)
-# =============================================================================
-
 PORT=5000
 NODE_ENV=production
 CLIENT_URL=https://www.reaglex.com
@@ -49,9 +41,14 @@ MOMO_TARGET_ENVIRONMENT=sandbox
 
 MOMO_CALLBACK_URL=https://reaglex.onrender.com/api/payments/momo/callback
 
-Access Key: ak_5ab4b6685a5b4aec944ce7067bf1b821
-Secret Key: sk_c727c6fb15074cb1b56ca331a7ccb142
+## 3D keys
+Access_Key= ak_5ab4b6685a5b4aec944ce7067bf1b821
+Secret_Key= sk_c727c6fb15074cb1b56ca331a7ccb142
 
+# Exchange rates (ExchangeRate-API) 
 EXCHANGE_RATE_API_KEY=accba48b71e271111073effe
 EXCHANGE_RATE_API_URL=https://v6.exchangerate-api.com/v6
 EXCHANGE_RATE_REFRESH_MS=300000
+
+## Openrouter service keys
+OPENROUTESERVICE_API_KEY=eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjczMDU1NjkyZDM3NTRiMzc4ZTFiYzM4YjQ2NTU1NDEzIiwiaCI6Im11cm11cjY0In0=

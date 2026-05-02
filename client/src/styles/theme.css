@@ -211,7 +211,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   DARK MODE — Buyer / storefront
+   DARK MODE — Buyer storefront + admin / seller dashboards (html.dark + data-theme)
    • Base #121212 / text #F2F2F2 — comfortable contrast, no pure black or white
    • Brand & semantics: accent-only, desaturated to avoid glare and “vibration”
    ══════════════════════════════════════════════════════════════════════════════ */

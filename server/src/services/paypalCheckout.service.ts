@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getClientUrl } from '../config/publicEnv';
 import { Order, IOrder } from '../models/Order';
+import { orderPayAmount, orderPayCurrency } from './orderPayMoney';
 import { getPaypalCredentialsResolved } from './paymentGatewayCredentials.service';
 
 function paypalApiBase(environment: 'sandbox' | 'live'): string {
@@ -41,9 +42,9 @@ export async function createPayPalCheckoutOrder(order: IOrder): Promise<{ approv
   if (!siteBase) {
     throw new Error('CLIENT_URL is not set');
   }
-  const currency = order.paymentMethod === 'RWF' ? 'RWF' : 'USD';
+  const currency = orderPayCurrency(order);
   const { token, base } = await getPayPalAccessToken();
-  const value = formatPayPalAmount(currency, order.total);
+  const value = formatPayPalAmount(currency, orderPayAmount(order));
 
   const { data } = await axios.post(
     `${base}/v2/checkout/orders`,

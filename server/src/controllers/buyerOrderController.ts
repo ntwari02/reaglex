@@ -6,11 +6,30 @@ import { Product } from '../models/Product';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 import { restoreInventoryForOrder } from '../services/inventory.service';
 import { convertUsdToCurrency, detectCurrencyFromRequest } from '../services/exchangeRate.service';
+import { buildShipmentGroupsFromLines, computeShippingForOrderGroup } from '../services/reaglexShipping.service';
+import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
+
+function normalizeShippingMethodKey(raw?: string): ReaglexShippingMethodKey {
+  const m = String(raw || 'standard').toLowerCase();
+  if (m === 'express' || m === 'overnight' || m === 'international') return 'express';
+  if (m === 'pickup') return 'pickup';
+  return 'standard';
+}
+
+function resolveMethodForGroup(
+  shippingMethods: Record<string, string>,
+  groupKey: string,
+  sellerId: string
+): ReaglexShippingMethodKey {
+  if (shippingMethods[groupKey]) return normalizeShippingMethodKey(shippingMethods[groupKey]);
+  if (shippingMethods[sellerId]) return normalizeShippingMethodKey(shippingMethods[sellerId]);
+  return 'standard';
+}
 
 /**
  * Create order(s) from cart checkout
  * POST /api/orders
- * Creates separate orders for each seller group
+ * Creates one order per Reaglex shipment group (seller + warehouse).
  */
 export async function createOrder(req: AuthenticatedRequest, res: Response) {
   if (!req.user) {
@@ -52,69 +71,147 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
     };
 
     const buyerId = new mongoose.Types.ObjectId(req.user.id);
-    const orders = [];
+    const orders: mongoose.Document[] = [];
 
     const requestedCurrency = String(req.body?.displayCurrency || '').trim().toUpperCase();
     const checkoutCurrency = requestedCurrency || detectCurrencyFromRequest(req);
 
-    // Create one order per seller group
-    for (const group of sellerGroups) {
-      const sellerId = new mongoose.Types.ObjectId(group.sellerId);
-      
-      // Generate order number
+    const qtyByProduct = new Map<string, number>();
+    for (const group of sellerGroups || []) {
+      for (const item of group.items || []) {
+        const pid = String(item.product_id || '').trim();
+        if (!pid) continue;
+        qtyByProduct.set(pid, (qtyByProduct.get(pid) || 0) + Math.max(1, Math.min(999, Number(item.quantity) || 1)));
+      }
+    }
+
+    const productIds = [...qtyByProduct.keys()].filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (!productIds.length) {
+      return res.status(400).json({ message: 'No valid line items' });
+    }
+
+    const products = await Product.find({ _id: { $in: productIds } })
+      .select('sellerId name price warehouseId')
+      .lean();
+    if (products.length !== productIds.length) {
+      return res.status(404).json({ message: 'One or more products were not found' });
+    }
+
+    const pmap = new Map<
+      string,
+      { sellerId: mongoose.Types.ObjectId; name: string; price: number; warehouseId?: string }
+    >();
+    for (const p of products) {
+      pmap.set(String(p._id), {
+        sellerId: p.sellerId as mongoose.Types.ObjectId,
+        name: p.name,
+        price: p.price,
+        warehouseId: (p as { warehouseId?: string }).warehouseId,
+      });
+    }
+
+    const lines = productIds.map((productId) => ({
+      productId,
+      quantity: qtyByProduct.get(productId) || 1,
+    }));
+
+    const groupMap = await buildShipmentGroupsFromLines(lines, pmap);
+
+    const discountBySeller = new Map<string, number>();
+    for (const g of sellerGroups || []) {
+      const sid = String(g.sellerId);
+      discountBySeller.set(sid, (discountBySeller.get(sid) || 0) + Math.max(0, Number(g.discount) || 0));
+    }
+
+    const sellerSubtotalSum = new Map<string, number>();
+    for (const [, g] of groupMap) {
+      let s = 0;
+      for (const l of g.lines) {
+        const p = pmap.get(String(l.productId));
+        if (p) s += p.price * l.quantity;
+      }
+      sellerSubtotalSum.set(g.sellerId, (sellerSubtotalSum.get(g.sellerId) || 0) + s);
+    }
+
+    for (const [groupKey, g] of groupMap) {
+      const sellerOid = new mongoose.Types.ObjectId(g.sellerId);
       const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-      // Calculate costs
-      const discount = group.discount || 0;
-      const subtotalAfterDiscount = group.subtotal - discount;
-      const tax = subtotalAfterDiscount * 0.1; // 10% tax
-      const shippingCost = shippingMethods[group.sellerId] === 'express' ? 15 :
-                          shippingMethods[group.sellerId] === 'international' ? 25 : 5;
+      const orderItems: {
+        productId: mongoose.Types.ObjectId;
+        name: string;
+        quantity: number;
+        price: number;
+        variant?: string;
+      }[] = [];
+
+      let groupSubtotal = 0;
+      for (const l of g.lines) {
+        const p = pmap.get(String(l.productId));
+        if (!p) continue;
+        orderItems.push({
+          productId: new mongoose.Types.ObjectId(l.productId),
+          name: p.name,
+          quantity: l.quantity,
+          price: p.price,
+        });
+        groupSubtotal += p.price * l.quantity;
+      }
+
+      const sellerTotal = sellerSubtotalSum.get(g.sellerId) || groupSubtotal;
+      const sellerDisc = Math.min(discountBySeller.get(g.sellerId) || 0, sellerTotal);
+      const groupDiscount =
+        sellerTotal > 0 ? (groupSubtotal / sellerTotal) * sellerDisc : 0;
+
+      const subtotalAfterDiscount = Math.max(0, groupSubtotal - groupDiscount);
+      const tax = subtotalAfterDiscount * 0.1;
+
+      const methodKey = resolveMethodForGroup(shippingMethods || {}, groupKey, g.sellerId);
+      const { snapshot, shippingTotal } = await computeShippingForOrderGroup({
+        sellerId: g.sellerId,
+        warehouseId: g.warehouseId,
+        lines: g.lines,
+        shippingAddress: {
+          full_name: shippingAddress.full_name,
+          phone: shippingAddress.phone,
+          address_line1: shippingAddress.address_line1,
+          address_line2: shippingAddress.address_line2,
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          postal_code: shippingAddress.postal_code,
+          country: shippingAddress.country,
+        },
+        methodKey,
+      });
+
+      const shippingCost = shippingTotal;
       const total = subtotalAfterDiscount + tax + shippingCost;
       const converted = await convertUsdToCurrency(total, checkoutCurrency, { roundMode: 'round' });
 
-      // Fetch product details for order items
-      const orderItems = [];
-      for (const item of group.items) {
-        const product = await Product.findById(item.product_id).lean();
-        if (!product) {
-          return res.status(404).json({ message: `Product ${item.product_id} not found` });
-        }
-
-        const price = product.price;
-        orderItems.push({
-          productId: new mongoose.Types.ObjectId(item.product_id),
-          name: product.name,
-          quantity: item.quantity,
-          price: price,
-          variant: item.variant_id || undefined,
-        });
-      }
-
-      // Create order
       const order = new Order({
-        sellerId,
+        sellerId: sellerOid,
         buyerId,
         orderNumber,
         customer: shippingAddress.full_name,
         customerEmail: req.user.email || '',
         customerPhone: shippingAddress.phone,
         items: orderItems,
-        subtotal: group.subtotal,
+        subtotal: groupSubtotal,
         shipping: shippingCost,
-        tax: tax,
-        total: total,
+        tax,
+        total,
         status: 'pending' as OrderStatus,
         date: new Date(),
         shippingAddress: {
           name: shippingAddress.full_name,
           street: `${shippingAddress.address_line1}${shippingAddress.address_line2 ? `, ${shippingAddress.address_line2}` : ''}`,
           city: shippingAddress.city,
-          state: shippingAddress.state || 'N/A', // Fallback if state is missing
+          state: shippingAddress.state || 'N/A',
           zip: shippingAddress.postal_code || '',
           country: shippingAddress.country,
         },
-        paymentMethod: paymentMethod,
+        paymentMethod,
+        reaglexShipping: snapshot as any,
         currencySnapshot: {
           totalUsd: total,
           totalLocal: converted.local,
@@ -123,11 +220,13 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
           timestamp: new Date(),
           lockedAt: new Date(),
         },
-        timeline: [{
-          status: 'pending',
-          date: new Date(),
-          time: new Date().toLocaleTimeString(),
-        }],
+        timeline: [
+          {
+            status: 'pending',
+            date: new Date(),
+            time: new Date().toLocaleTimeString(),
+          },
+        ],
       });
 
       await order.save();
@@ -146,18 +245,20 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       }
     }
 
-    return res.status(201).json({ 
+    return res.status(201).json({
       success: true,
-      orders: orders.map(o => ({
+      orders: orders.map((o) => ({
         id: o._id,
-        orderNumber: o.orderNumber,
-        status: o.status,
-        total: o.total,
-        total_usd: o.currencySnapshot?.totalUsd ?? o.total,
-        total_local: o.currencySnapshot?.totalLocal ?? o.total,
-        currency: o.currencySnapshot?.currency ?? 'USD',
-        exchange_rate: o.currencySnapshot?.exchangeRate ?? 1,
-        locked_at: o.currencySnapshot?.lockedAt ?? o.createdAt,
+        orderNumber: (o as any).orderNumber,
+        status: (o as any).status,
+        total: (o as any).total,
+        total_usd: (o as any).currencySnapshot?.totalUsd ?? (o as any).total,
+        total_local: (o as any).currencySnapshot?.totalLocal ?? (o as any).total,
+        currency: (o as any).currencySnapshot?.currency ?? 'USD',
+        exchange_rate: (o as any).currencySnapshot?.exchangeRate ?? 1,
+        locked_at: (o as any).currencySnapshot?.lockedAt ?? (o as any).createdAt,
+        sellerId: String((o as any).sellerId),
+        reaglexShipping: (o as any).reaglexShipping,
       })),
     });
   } catch (err: any) {

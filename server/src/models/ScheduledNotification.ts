@@ -12,6 +12,7 @@ export interface IScheduledNotification extends Document {
   templateId?: mongoose.Types.ObjectId;
   subject?: string;
   body?: string;
+  createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +33,7 @@ const scheduledNotificationSchema = new Schema<IScheduledNotification>(
     templateId: { type: Schema.Types.ObjectId, ref: 'NotificationTemplate' },
     subject: { type: String, trim: true },
     body: { type: String },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );

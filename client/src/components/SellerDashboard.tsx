@@ -15,6 +15,7 @@ import InboxPage from '@/pages/seller/InboxPage';
 import SupportCenter from '@/pages/seller/SupportCenter';
 import NotificationsPage from '@/pages/seller/NotificationsPage';
 import OrderDetailsPage from '@/pages/seller/OrderDetailsPage';
+import SellerShippingSettings from '@/pages/seller/SellerShippingSettings';
 import Notifications from '@/components/dashboard/Notifications';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import { useAuthStore } from '../stores/authStore';
@@ -57,7 +58,7 @@ const SellerDashboard: React.FC = () => {
 
   // Ensure we're on a valid route
   useEffect(() => {
-    const validRoutes = ['dashboard', 'inventory', 'orders', 'disputes', 'products', 'collections', 'analytics', 'subscription', 'settings', 'inbox', 'support', 'notifications'];
+    const validRoutes = ['dashboard', 'inventory', 'orders', 'disputes', 'products', 'shipping', 'collections', 'analytics', 'subscription', 'settings', 'inbox', 'support', 'notifications'];
     if (pathSegments.length === sellerIndex + 1) {
       // We're on /seller, which is fine (index route)
       return;
@@ -80,7 +81,10 @@ const SellerDashboard: React.FC = () => {
   // While auth is initializing, keep the seller on this page and show a lightweight loader
   if (loading && !initialized) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div
+        className="dashboard-app flex h-screen items-center justify-center transition-colors duration-300"
+        style={{ background: 'var(--bg-page)', color: 'var(--text-primary)' }}
+      >
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--brand-primary)] border-t-transparent" />
           <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
@@ -92,7 +96,10 @@ const SellerDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors duration-300">
+    <div
+      className="dashboard-app flex h-screen overflow-hidden transition-colors duration-300"
+      style={{ background: 'var(--bg-page)', color: 'var(--text-primary)' }}
+    >
       <Sidebar 
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -119,7 +126,7 @@ const SellerDashboard: React.FC = () => {
           accentVariant="orange"
         />
         
-        <main className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth bg-gray-50/50 dark:bg-black/30 p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden scroll-smooth p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
           <Routes>
             <Route index element={<DashboardOverview />} />
             <Route path="dashboard" element={<DashboardOverview />} />
@@ -128,6 +135,7 @@ const SellerDashboard: React.FC = () => {
             <Route path="orders/:orderId" element={<OrderDetailsPage />} />
             <Route path="disputes" element={<DisputeResolution />} />
             <Route path="products" element={<ProductManagement />} />
+            <Route path="shipping" element={<SellerShippingSettings />} />
             <Route path="collections" element={<CollectionManagement />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="subscription" element={<SubscriptionTiers />} />

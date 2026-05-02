@@ -26,6 +26,7 @@ import { createStripeCheckoutSession } from './stripeCheckout.service';
 import { createPayPalCheckoutOrder, capturePayPalOrder } from './paypalCheckout.service';
 import { getMomoResolvedConfig } from './paymentGatewayCredentials.service';
 import { decrementInventoryForPaidOrderInSession, emitInventoryUpdatedForOrder } from './inventory.service';
+import { orderPayAmount, orderPayCurrency } from './orderPayMoney';
 
 export type CheckoutPaymentProcessor = 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
 
@@ -73,21 +74,6 @@ export function calculateFees(orderTotal: number, processor: CheckoutPaymentProc
       netToSeller: sellerReceives,
     },
   };
-}
-
-function orderPayCurrency(order: IOrder): 'RWF' | 'USD' | 'EUR' {
-  const m = String(order.paymentMethod || '').trim().toUpperCase();
-  if (m === 'RWF') return 'RWF';
-  if (m === 'EUR') return 'EUR';
-  return 'USD';
-}
-
-function orderPayAmount(order: IOrder): number {
-  const payCur = orderPayCurrency(order);
-  if (payCur !== 'USD' && order.currencySnapshot?.currency === payCur) {
-    return Math.round(Number(order.currencySnapshot.totalLocal || 0));
-  }
-  return Number(order.total || 0);
 }
 
 /**
@@ -439,12 +425,12 @@ export async function verifyPayment(transactionId: number | string, orderId: str
   const flw = await getFlutterwaveClient();
   const response = await flw.Transaction.verify({ id: transactionId } as any);
 
-  const expectedCurrency = order.payment?.currency || orderPayCurrency(order);
+  const expectedCurrency = orderPayCurrency(order);
 
   if (
     response.data.status === 'successful' &&
     response.data.amount >= orderPayAmount(order) &&
-    response.data.currency === expectedCurrency
+    String(response.data.currency || '').toUpperCase() === expectedCurrency
   ) {
     const out = await finalizeSuccessfulEscrowPayment(orderId, {
       provider: 'flutterwave',

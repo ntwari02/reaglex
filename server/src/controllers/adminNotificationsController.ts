@@ -242,12 +242,13 @@ export async function createTemplate(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
+    const bodyText = (body.body as string) || (body.content as string) || '';
     const template = await (NotificationTemplate as any).create({
       name: body.name,
       category: body.category || 'General',
       type: body.type || 'inapp',
       subject: body.subject,
-      content: body.content || '',
+      content: bodyText,
       variables: body.variables || [],
       tone: body.tone || '',
       contextType: body.contextType || '',

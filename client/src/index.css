@@ -400,6 +400,40 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Admin & Seller dashboards — same theme tokens as buyer (ThemeContext)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.dashboard-app {
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+.dashboard-main {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.dashboard-sidebar {
+  background: color-mix(in srgb, var(--card-bg) 92%, var(--bg-page));
+  color: var(--text-primary);
+}
+
+.dashboard-header {
+  background: color-mix(in srgb, var(--header-bg) 88%, transparent);
+  color: var(--text-primary);
+}
+
+.dashboard-surface {
+  background: color-mix(in srgb, var(--card-bg) 82%, var(--bg-page));
+  color: var(--text-primary);
+}
+
+/* Tailwind opacity variants not covered by global .dark .bg-white remap */
+.dark .dark\:bg-black\/30,
+[data-theme='dark'] .dark\:bg-black\/30 {
+  background-color: color-mix(in srgb, var(--bg-page) 65%, transparent) !important;
+}
+
 /* ── Reaglex Cinematic Animations ─────────────────────────────────────────── */
 @keyframes reaglex-orbit {
   from { transform: rotate(0deg); }

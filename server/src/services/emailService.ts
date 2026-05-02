@@ -11,6 +11,7 @@ import {
   getDeviceApprovalEmailHtml,
   getLoginNotificationEmailHtml,
   getRecommendationDealsEmailHtml,
+  getNewsletterWelcomeEmailHtml,
 } from '../email/templates';
 import { getClientUrl } from '../config/publicEnv';
 
@@ -56,7 +57,8 @@ function getTransporter(): nodemailer.Transporter | null {
   return transporter;
 }
 
-function getResendClient(): Resend | null {
+/** Singleton Resend client — use from admin bulk routes; do not construct a second `new Resend()`. */
+export function getResendClient(): Resend | null {
   if (resendClient) return resendClient;
   const API_KEY = getEnv('RESEND_API_KEY');
   if (!API_KEY) return null;
@@ -377,6 +379,19 @@ export async function sendRecommendationDealsEmail(options: {
   return sendEmail({
     to: options.to,
     subject: options.subject,
+    html,
+  });
+}
+
+export async function sendNewsletterWelcomeEmail(to: string): Promise<{ success: boolean; error?: string }> {
+  if (!isEmailConfigured()) {
+    return { success: false, error: 'Email service not configured' };
+  }
+  const shopUrl = `${CLIENT_URL}/`;
+  const html = getNewsletterWelcomeEmailHtml({ shopUrl, appName: APP_NAME });
+  return sendEmail({
+    to,
+    subject: `You're subscribed to ${APP_NAME} updates`,
     html,
   });
 }

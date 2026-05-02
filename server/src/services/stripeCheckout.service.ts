@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { getClientUrl } from '../config/publicEnv';
 import { Order, IOrder } from '../models/Order';
+import { orderPayAmount, orderPayCurrency } from './orderPayMoney';
 import { getStripeCredentialsResolved } from './paymentGatewayCredentials.service';
 
 function stripeUnitAmount(currency: string, amount: number): number {
@@ -37,8 +38,9 @@ export async function createStripeCheckoutSession(order: IOrder, buyerEmail: str
   if (!siteBase) {
     throw new Error('CLIENT_URL is not set');
   }
-  const currency = (order.paymentMethod === 'RWF' ? 'RWF' : 'USD').toLowerCase();
+  const currency = orderPayCurrency(order).toLowerCase();
   const stripe = await getStripe();
+  const payAmount = orderPayAmount(order);
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     customer_email: buyerEmail,
@@ -46,7 +48,7 @@ export async function createStripeCheckoutSession(order: IOrder, buyerEmail: str
       {
         price_data: {
           currency,
-          unit_amount: stripeUnitAmount(currency.toUpperCase(), order.total),
+          unit_amount: stripeUnitAmount(currency.toUpperCase(), payAmount),
           product_data: {
             name: `Order ${order.orderNumber}`,
             description: `Reaglex order ${order._id}`,

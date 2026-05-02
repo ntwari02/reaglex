@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import type { ReaglexSellerShippingConfig } from '../types/reaglexShipping.types';
 
 export type UserRole = 'buyer' | 'seller' | 'admin';
 export type SellerVerificationStatus = 'pending' | 'approved' | 'rejected';
@@ -113,6 +114,8 @@ export interface IUser extends Document {
   referralCode?: string;
   /** User who referred this account (reward triggers on referee's first paid order) */
   referredBy?: mongoose.Types.ObjectId;
+  /** Reaglex marketplace shipping (sellers): warehouses, zones, methods, fees. */
+  reaglexSellerShipping?: ReaglexSellerShippingConfig;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -205,6 +208,73 @@ const loginHistorySchema = new Schema<ILoginHistory>(
     location: { type: String },
     device: { type: String },
     userAgent: { type: String },
+  },
+  { _id: false }
+);
+
+const reaglexWarehouseSchema = new Schema(
+  {
+    warehouseId: { type: String, required: true, trim: true },
+    label: { type: String, default: 'Warehouse' },
+    street: { type: String, trim: true },
+    city: { type: String, trim: true },
+    state: { type: String, trim: true },
+    postalCode: { type: String, trim: true },
+    country: { type: String, trim: true },
+    lat: { type: Number, required: true },
+    lng: { type: Number, required: true },
+    pickupAvailable: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const reaglexShippingDefaultsSchema = new Schema(
+  {
+    baseFee: { type: Number, default: 5 },
+    ratePerKm: { type: Number, default: 0.35 },
+    handlingFee: { type: Number, default: 0 },
+    minShippingFee: { type: Number, default: 3 },
+    freeShippingThreshold: { type: Number },
+  },
+  { _id: false }
+);
+
+const reaglexZoneSchema = new Schema(
+  {
+    id: { type: String, required: true },
+    name: { type: String, default: '' },
+    countryCodes: [{ type: String, uppercase: true, trim: true }],
+    surcharge: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const reaglexMethodSchema = new Schema(
+  {
+    key: { type: String, enum: ['standard', 'express', 'pickup'], required: true },
+    enabled: { type: Boolean, default: true },
+    label: { type: String, trim: true },
+    etaDaysMin: { type: Number, default: 3 },
+    etaDaysMax: { type: Number, default: 7 },
+    baseFee: { type: Number },
+    ratePerKm: { type: Number },
+    handlingFee: { type: Number },
+    minShippingFee: { type: Number },
+    freeShippingThreshold: { type: Number },
+    expressDistanceMultiplier: { type: Number },
+    pickupFee: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const reaglexSellerShippingSchema = new Schema(
+  {
+    enabled: { type: Boolean, default: true },
+    currency: { type: String, default: 'USD' },
+    warehouses: { type: [reaglexWarehouseSchema], default: [] },
+    defaults: { type: reaglexShippingDefaultsSchema, default: () => ({}) },
+    zones: { type: [reaglexZoneSchema], default: [] },
+    methods: { type: [reaglexMethodSchema], default: [] },
   },
   { _id: false }
 );
@@ -304,6 +374,7 @@ const userSchema = new Schema<IUser>(
       sparse: true,
       index: true,
     },
+    reaglexSellerShipping: { type: reaglexSellerShippingSchema },
   },
   { timestamps: true }
 );

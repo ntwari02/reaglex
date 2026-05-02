@@ -1,22 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { currencyApi } from '../services/currencyApi';
+import { CURRENCY_SYMBOLS, formatIntNoDecimals, roundMoneyInt } from '../lib/currencyFormat';
 
 const REFRESH_MS = 5 * 60 * 1000;
-
-const SYMBOLS: Record<string, string> = {
-  USD: '$',
-  RWF: 'RWF',
-  EUR: 'EUR',
-  KES: 'KES',
-  UGX: 'UGX',
-  TZS: 'TZS',
-  NGN: 'NGN',
-};
-
-function formatInt(n: number): string {
-  return Math.round(Number(n || 0)).toLocaleString();
-}
 
 export function useCurrencyPricing() {
   const { currency, setCurrency } = useTheme();
@@ -54,18 +41,18 @@ export function useCurrencyPricing() {
       rate,
       loading,
       source,
-      convertUsdToLocal: (usd: number) => Math.round(Number(usd || 0) * rate),
+      convertUsdToLocal: (usd: number) => roundMoneyInt(Number(usd || 0) * rate),
       formatLocalWithUsd: (usd: number) => {
-        const local = Math.round(Number(usd || 0) * rate);
-        const symbol = SYMBOLS[currency] || currency;
-        return `${formatInt(local)} ${symbol} (~ $${Math.round(usd).toLocaleString()} USD)`;
+        const local = roundMoneyInt(Number(usd || 0) * rate);
+        const symbol = CURRENCY_SYMBOLS[currency] || currency;
+        return `${formatIntNoDecimals(local)} ${symbol} (~ $${formatIntNoDecimals(usd)} USD)`;
       },
       formatLocalOnly: (usd: number) => {
-        const local = Math.round(Number(usd || 0) * rate);
-        const symbol = SYMBOLS[currency] || currency;
-        return `${formatInt(local)} ${symbol}`;
+        const local = roundMoneyInt(Number(usd || 0) * rate);
+        const symbol = CURRENCY_SYMBOLS[currency] || currency;
+        return `${formatIntNoDecimals(local)} ${symbol}`;
       },
-      formatUsd: (usd: number) => `$${Math.round(Number(usd || 0)).toLocaleString()}`,
+      formatUsd: (usd: number) => `$${formatIntNoDecimals(usd)}`,
     }),
     [currency, rate, loading, source, setCurrency],
   );

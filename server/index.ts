@@ -27,6 +27,7 @@ import subscriptionRoutes from './src/routes/subscriptionRoutes';
 import analyticsRoutes from './src/routes/analyticsRoutes';
 import productRoutes from './src/routes/productRoutes';
 import buyerOrderRoutes from './src/routes/buyerOrderRoutes';
+import shippingRoutes from './src/routes/shippingRoutes';
 import inboxRoutes from './src/routes/inboxRoutes';
 import buyerInboxRoutes from './src/routes/buyerInboxRoutes';
 import buyerDisputeRoutes from './src/routes/buyerDisputeRoutes';
@@ -70,6 +71,7 @@ import { startRecommendationEmailWorker } from './src/services/recommendationEma
 import productVerificationRoutes from './src/routes/productVerificationRoutes';
 import currencyRoutes from './src/routes/currencyRoutes';
 import { startExchangeRateWorker } from './src/services/exchangeRate.service';
+import newsletterRoutes from './src/routes/newsletterRoutes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -201,6 +203,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 app.use('/api/public', publicContentRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 // Auth routes
 app.use('/api/auth', authRoutes);
@@ -249,6 +252,8 @@ app.use('/api/affiliate', affiliateRoutes);
 app.use('/api/track', trackingRoutes);
 // Buyer order routes
 app.use('/api/orders', buyerOrderRoutes);
+// Reaglex shipping (quotes)
+app.use('/api/shipping', shippingRoutes);
 // Admin routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/finance', adminFinanceRoutes);

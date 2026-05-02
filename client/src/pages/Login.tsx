@@ -15,7 +15,7 @@ function hasSQLInjectionRisk(value: string): boolean {
 export function Login() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { login, setUserAndToken } = useAuthStore();
+  const { login } = useAuthStore();
   const { showToast } = useToastStore();
 
   const [identifier, setIdentifier] = useState('');
@@ -33,10 +33,8 @@ export function Login() {
   const [deviceApprovalEmail, setDeviceApprovalEmail] = useState('');
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const [otpCountdown, setOtpCountdown] = useState(30);
   const [otpError, setOtpError] = useState('');
   const [submittingOtp, setSubmittingOtp] = useState(false);
-  const [buttonSuccess, setButtonSuccess] = useState(false);
   // 2FA for seller/admin
   const [twoFATempToken, setTwoFATempToken] = useState('');
   const [twoFAEmail, setTwoFAEmail] = useState('');
@@ -81,15 +79,6 @@ export function Login() {
       setRememberMe(true);
     }
   }, []);
-
-  // OTP countdown (used for email verification OTP on login page, not for 2FA)
-  useEffect(() => {
-    if (otpCountdown <= 0) return;
-    const t = setInterval(() => {
-      setOtpCountdown((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-    return () => clearInterval(t);
-  }, [otpCountdown]);
 
   // Poll for device approval when waiting for other device to approve
   useEffect(() => {
@@ -201,7 +190,10 @@ export function Login() {
           setLoading(false);
           return;
         }
-        const errMsg = result.error || 'Login failed. Please check your credentials.';
+        const errMsg =
+          'error' in result && typeof result.error === 'string'
+            ? result.error
+            : 'Login failed. Please check your credentials.';
         setFormError(errMsg);
         if (errMsg.toLowerCase().includes('verify your email') && identifier.includes('@')) {
           setShowResendVerification(true);
@@ -265,23 +257,28 @@ export function Login() {
         setSubmittingOtp(false);
         return;
       }
+      if (!('user' in data) || !('token' in data) || !data.user || !data.token) {
+        setOtpError('Unexpected response from server.');
+        return;
+      }
+      const { user, token } = data;
       const { setUserAndToken: setAuth } = useAuthStore.getState();
       const profile = {
-        id: data.user.id?.toString() || data.user._id?.toString() || '',
-        email: data.user.email,
-        full_name: data.user.fullName,
-        role: data.user.role,
-        seller_status: data.user.sellerVerificationStatus,
-        seller_verified: data.user.isSellerVerified,
-        phone: data.user.phone,
-        avatar_url: data.user.avatarUrl,
-        created_at: data.user.createdAt || new Date().toISOString(),
-        updated_at: data.user.updatedAt || new Date().toISOString(),
+        id: user.id?.toString() || user._id?.toString() || '',
+        email: user.email,
+        full_name: user.fullName,
+        role: user.role,
+        seller_status: user.sellerVerificationStatus,
+        seller_verified: user.isSellerVerified,
+        phone: user.phone,
+        avatar_url: user.avatarUrl,
+        created_at: user.createdAt || new Date().toISOString(),
+        updated_at: user.updatedAt || new Date().toISOString(),
       };
-      setAuth(profile, data.token);
+      setAuth(profile, token);
       if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
-      if (data.user.role === 'seller') redirectRef.current = '/seller';
-      else if (data.user.role === 'admin') redirectRef.current = '/admin';
+      if (user.role === 'seller') redirectRef.current = '/seller';
+      else if (user.role === 'admin') redirectRef.current = '/admin';
       else redirectRef.current = '/';
       showToast('Signed in successfully. Welcome back!', 'success');
       navigate(redirectRef.current);
@@ -328,23 +325,28 @@ export function Login() {
         setSubmittingOtp(false);
         return;
       }
+      if (!('user' in data) || !('token' in data) || !data.user || !data.token) {
+        setOtpError('Unexpected response from server.');
+        return;
+      }
+      const { user, token } = data;
       const { setUserAndToken: setAuth } = useAuthStore.getState();
       const profile = {
-        id: data.user.id?.toString() || data.user._id?.toString() || '',
-        email: data.user.email,
-        full_name: data.user.fullName,
-        role: data.user.role,
-        seller_status: data.user.sellerVerificationStatus,
-        seller_verified: data.user.isSellerVerified,
-        phone: data.user.phone,
-        avatar_url: data.user.avatarUrl,
-        created_at: data.user.createdAt || new Date().toISOString(),
-        updated_at: data.user.updatedAt || new Date().toISOString(),
+        id: user.id?.toString() || user._id?.toString() || '',
+        email: user.email,
+        full_name: user.fullName,
+        role: user.role,
+        seller_status: user.sellerVerificationStatus,
+        seller_verified: user.isSellerVerified,
+        phone: user.phone,
+        avatar_url: user.avatarUrl,
+        created_at: user.createdAt || new Date().toISOString(),
+        updated_at: user.updatedAt || new Date().toISOString(),
       };
-      setAuth(profile, data.token);
+      setAuth(profile, token);
       if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
-      if (data.user.role === 'seller') redirectRef.current = '/seller';
-      else if (data.user.role === 'admin') redirectRef.current = '/admin';
+      if (user.role === 'seller') redirectRef.current = '/seller';
+      else if (user.role === 'admin') redirectRef.current = '/admin';
       else redirectRef.current = '/';
       showToast('2FA enabled. Welcome!', 'success');
       navigate(redirectRef.current);
@@ -423,14 +425,6 @@ export function Login() {
     } finally {
       setOtpVerifyLoading(false);
     }
-  };
-
-  const handleResendOtp = () => {
-    if (otpCountdown > 0) return;
-    setOtpCountdown(30);
-    setOtp(['', '', '', '', '', '']);
-    setOtpError('');
-    setTimeout(() => otpRefs.current[0]?.focus(), 50);
   };
 
   const handleBiometricLogin = async () => {

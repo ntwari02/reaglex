@@ -4,6 +4,7 @@ import { User } from '../models/User';
 import {
   detectCurrencyFromRequest,
   getExchangeSnapshot,
+  isSupportedDisplayCurrency,
   refreshExchangeRates,
 } from '../services/exchangeRate.service';
 
@@ -67,8 +68,8 @@ router.post('/preference', authenticate, async (req: AuthenticatedRequest, res) 
       return res.status(401).json({ message: 'Authentication required' });
     }
     const currency = String(req.body?.currency || '').trim().toUpperCase();
-    if (!currency || currency.length !== 3) {
-      return res.status(400).json({ message: 'Invalid currency code' });
+    if (!currency || currency.length !== 3 || !isSupportedDisplayCurrency(currency)) {
+      return res.status(400).json({ message: 'Invalid or unsupported currency code' });
     }
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });

@@ -43,7 +43,7 @@ function TrendCard({ product, index, onAdd }) {
 
   return (
     <motion.div
-      className="group relative flex-shrink-0 w-56 sm:w-auto"
+      className="group relative w-full min-w-0"
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
@@ -279,7 +279,7 @@ export default function TrendingProducts() {
           >
             <Link
               to="/search"
-              className="hidden sm:flex items-center gap-2 text-xs font-semibold tracking-wide"
+              className="flex sm:justify-end items-center gap-2 text-xs font-semibold tracking-wide self-start sm:self-auto"
               style={{ color: 'var(--link-color)' }}
             >
               View all <span>→</span>
@@ -305,7 +305,7 @@ export default function TrendingProducts() {
             ))}
           </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-5 sm:gap-5 md:gap-6">
             {products.map((p, i) => (
               <TrendCard
                 key={p._id}

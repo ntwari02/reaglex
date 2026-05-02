@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useTranslation } from '../i18n/useTranslation';
+import { API_BASE_URL } from '../lib/config';
+import { useToastStore } from '../stores/toastStore';
 
 // Column heading with animated brand underline
 function ColumnHeading({ children }) {
@@ -230,14 +232,50 @@ const BOTTOM_LINKS = [
 export default function Footer() {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const showToast = useToastStore((s) => s.showToast);
   const currentYear = new Date().getFullYear();
   const { isSeller } = useSellerAccess();
   const handleSellerLink = useHandleSellerLink();
 
-  const handleNewsletterSubmit = (e) => {
+  const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
-    if (email.trim()) {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      showToast(t('footer.subscribeErrorEmpty'), 'warning');
+      return;
+    }
+    if (!API_BASE_URL) {
+      showToast(t('footer.subscribeError'), 'error');
+      return;
+    }
+    setNewsletterSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        body: JSON.stringify({ email: trimmed, source: 'footer' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(data?.message || t('footer.subscribeError'), 'error');
+        return;
+      }
+      if (data.alreadySubscribed) {
+        showToast(data.message || t('footer.subscribeAlready'), 'info');
+        return;
+      }
+      if (data.emailSent === false) {
+        showToast(data.message || t('footer.subscribePartial'), 'warning');
+      } else {
+        showToast(data.message || t('footer.subscribeSuccess'), 'success');
+      }
       setEmail('');
+    } catch {
+      showToast(t('footer.subscribeError'), 'error');
+    } finally {
+      setNewsletterSubmitting(false);
     }
   };
 
@@ -282,37 +320,49 @@ export default function Footer() {
             {t('footer.newsletterSubtitle')}
           </p>
         </div>
-        <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-2 flex-shrink-0">
+        <form
+          onSubmit={handleNewsletterSubmit}
+          className="flex w-full max-w-full flex-col gap-2 flex-shrink-0 md:w-auto md:max-w-[min(100%,28rem)] lg:max-w-[min(100%,36rem)]"
+        >
           <div
-            className="flex flex-col sm:flex-row gap-0 rounded-full overflow-hidden"
+            className="flex flex-col sm:flex-row gap-0 overflow-hidden rounded-2xl sm:rounded-full"
             style={{
               background: 'var(--footer-newsletter-form-bg)',
               border: `1px solid var(--footer-newsletter-form-border)`,
               boxShadow: 'var(--footer-newsletter-form-shadow)',
             }}
           >
-            <div className="flex items-center gap-2 px-5 py-3 sm:py-0 sm:min-w-[200px] lg:min-w-[320px]">
+            <div className="flex min-w-0 w-full items-center gap-2 px-5 py-3 sm:min-w-[200px] sm:py-0 lg:min-w-[320px]">
               <Mail className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--footer-newsletter-icon)' }} />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('footer.emailPlaceholder')}
-                className="flex-1 min-w-0 py-2.5 sm:py-3 text-sm outline-none bg-transparent"
+                className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none ring-0 sm:py-3"
                 style={{ color: 'var(--footer-newsletter-input)' }}
               />
             </div>
+            <div
+              className="h-px w-full shrink-0 sm:hidden"
+              style={{ background: 'var(--footer-newsletter-form-border)' }}
+              aria-hidden
+            />
             <motion.button
               type="submit"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center justify-center gap-2 px-6 py-3 font-bold text-sm rounded-r-full transition-colors"
+              disabled={newsletterSubmitting}
+              aria-busy={newsletterSubmitting}
+              whileHover={newsletterSubmitting ? undefined : { scale: 1.02 }}
+              whileTap={newsletterSubmitting ? undefined : { scale: 0.98 }}
+              className="flex w-full shrink-0 items-center justify-center gap-2 rounded-b-2xl px-6 py-3 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:rounded-b-none sm:rounded-r-full sm:border-l"
               style={{
                 background: 'var(--footer-newsletter-btn-bg)',
                 color: 'var(--footer-newsletter-btn-text)',
+                borderLeftColor: 'var(--footer-newsletter-form-border)',
               }}
             >
-              {t('footer.subscribe')} <Send className="w-4 h-4" />
+              {newsletterSubmitting ? t('footer.subscribeSending') : t('footer.subscribe')}{' '}
+              <Send className="w-4 h-4" aria-hidden />
             </motion.button>
           </div>
           <p className="text-xs" style={{ color: 'var(--footer-newsletter-icon)' }}>{t('footer.noSpam')}</p>

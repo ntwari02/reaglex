@@ -6,6 +6,7 @@ import { User, IAddress, IPaymentMethod } from '../models/User';
 import { AuthenticatedRequest } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
 import { ensureReferralCodeForUser } from '../services/referralReward.service';
+import { isSupportedDisplayCurrency } from '../services/exchangeRate.service';
 
 // Validation schemas
 const updateProfileSchema = z.object({
@@ -75,7 +76,12 @@ const privacySettingsSchema = z.object({
 const preferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'auto']).optional(),
   language: z.string().min(2).max(5).optional(),
-  currency: z.string().min(3).max(3).optional(),
+  currency: z
+    .string()
+    .min(3)
+    .max(3)
+    .optional()
+    .refine((c) => !c || isSupportedDisplayCurrency(String(c).toUpperCase()), 'Unsupported currency'),
 });
 
 const changePasswordSchema = z.object({

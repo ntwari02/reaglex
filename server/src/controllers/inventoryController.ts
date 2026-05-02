@@ -6,7 +6,30 @@ const { deleteImage } = require('../../config/cloudinary');
 import { Product } from '../models/Product';
 import { Warehouse } from '../models/Warehouse';
 import { StockHistory } from '../models/StockHistory';
-import { runProductVerification } from '../services/productVerification.service';
+import {
+  evaluateProductTrustForSeller,
+  runProductVerification,
+} from '../services/productVerification.service';
+import type { TrustDraftInput } from '../services/trustVerification.engine';
+import { convertListingToUsd, isSupportedDisplayCurrency } from '../services/exchangeRate.service';
+
+function mapVerificationBody(v: unknown): Partial<TrustDraftInput> {
+  if (!v || typeof v !== 'object') return {};
+  const o = v as Record<string, unknown>;
+  return {
+    barcode: typeof o.barcode === 'string' ? o.barcode : undefined,
+    qrCode: typeof o.qrCode === 'string' ? o.qrCode : undefined,
+    serialNumber: typeof o.serialNumber === 'string' ? o.serialNumber : undefined,
+    imei: typeof o.imei === 'string' ? o.imei : undefined,
+    videoProofUploaded: Boolean(o.videoProofUploaded),
+    videoProofUrl: typeof o.videoProofUrl === 'string' ? o.videoProofUrl : undefined,
+    videoImageSimilarity: typeof o.videoImageSimilarity === 'number' ? o.videoImageSimilarity : undefined,
+    labelProofUploaded: Boolean(o.labelProofUploaded),
+    imageSimilarityScore: typeof o.imageSimilarityScore === 'number' ? o.imageSimilarityScore : 0,
+    stolenImageSuspected: Boolean(o.stolenImageSuspected),
+    scanPassed: Boolean(o.scanPassed),
+  };
+}
 
 // Helper to get sellerId from JWT payload
 function getSellerId(req: AuthenticatedRequest): mongoose.Types.ObjectId | null {
@@ -16,6 +39,60 @@ function getSellerId(req: AuthenticatedRequest): mongoose.Types.ObjectId | null 
   } catch {
     return null;
   }
+}
+
+type CanonicalListingOk = {
+  ok: true;
+  priceUsd: number;
+  listingCurrency: string;
+  listingPriceAmount: number;
+  listingExchangeRate: number;
+};
+type CanonicalListingErr = { ok: false; message: string };
+
+/**
+ * Maps seller listing input (currency + whole amount) to canonical USD `price` for storage.
+ */
+async function computeCanonicalListingPricing(body: {
+  listingCurrency?: unknown;
+  listingPriceAmount?: unknown;
+  price?: unknown;
+}): Promise<CanonicalListingOk | CanonicalListingErr> {
+  const listingCurrency = String(body.listingCurrency ?? 'USD')
+    .trim()
+    .toUpperCase();
+  if (!isSupportedDisplayCurrency(listingCurrency)) {
+    return { ok: false, message: 'Unsupported listing currency' };
+  }
+  let listingPriceAmount: number;
+  if (body.listingPriceAmount != null && body.listingPriceAmount !== '') {
+    listingPriceAmount = Math.round(Number(body.listingPriceAmount));
+  } else if (body.price != null && body.price !== '') {
+    listingPriceAmount = Math.round(Number(body.price));
+  } else {
+    return { ok: false, message: 'Valid listing price is required' };
+  }
+  if (!Number.isFinite(listingPriceAmount) || listingPriceAmount <= 0) {
+    return { ok: false, message: 'Valid listing price is required' };
+  }
+  if (listingCurrency !== 'USD') {
+    const conv = await convertListingToUsd(listingPriceAmount, listingCurrency);
+    return {
+      ok: true,
+      priceUsd: conv.usd,
+      listingCurrency,
+      listingPriceAmount,
+      listingExchangeRate: conv.rate,
+    };
+  }
+  const priceUsd = Math.round(listingPriceAmount * 100) / 100;
+  return {
+    ok: true,
+    priceUsd,
+    listingCurrency: 'USD',
+    listingPriceAmount,
+    listingExchangeRate: 1,
+  };
 }
 
 // ===== Products =====
@@ -93,10 +170,44 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       seoTitle,
       seoDescription,
       seoKeywords,
+      warehouseId,
+      verification: verificationBody,
     } = req.body;
 
-    if (!name || !sku || price == null) {
+    const hasListingAmount =
+      (req.body as any).listingPriceAmount != null && (req.body as any).listingPriceAmount !== '';
+    if (!name || !sku || (price == null && !hasListingAmount)) {
       return res.status(400).json({ message: 'name, sku and price are required' });
+    }
+
+    const trustEval = await evaluateProductTrustForSeller(
+      String(sellerId),
+      {
+        name,
+        category,
+        description,
+        images: images || [],
+      },
+      mapVerificationBody(verificationBody),
+      undefined,
+    );
+    if (!trustEval.submissionAllowed) {
+      return res.status(400).json({
+        message: 'Product verification failed. Fix the issues below before submitting.',
+        verification: trustEval,
+      });
+    }
+
+    const vDraft = mapVerificationBody(verificationBody);
+
+    const wid =
+      warehouseId != null && String(warehouseId).trim()
+        ? String(warehouseId).trim().slice(0, 64)
+        : 'default';
+
+    const canonical = await computeCanonicalListingPricing(req.body as any);
+    if (!canonical.ok) {
+      return res.status(400).json({ message: canonical.message });
     }
 
     const product = await Product.create({
@@ -107,7 +218,10 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       weight,
       sku,
       stock: stock ?? 0,
-      price,
+      price: canonical.priceUsd,
+      listingCurrency: canonical.listingCurrency,
+      listingPriceAmount: canonical.listingPriceAmount,
+      listingExchangeRate: canonical.listingExchangeRate,
       discount,
       moq,
       status: status || 'in_stock',
@@ -118,6 +232,7 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       seoTitle,
       seoDescription,
       seoKeywords,
+      warehouseId: wid,
     });
 
     // Optional: create initial stock history record if stock > 0
@@ -134,14 +249,29 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       });
     }
 
-    // Create baseline verification identity so trust can build over time.
-    void runProductVerification({
+    await runProductVerification({
       productId: String(product._id),
       sellerId: String(sellerId),
       actorId: req.user?.id,
-    }).catch(() => null);
+      identifiers: {
+        barcode: vDraft.barcode,
+        qrCode: vDraft.qrCode,
+        serialNumber: vDraft.serialNumber,
+        imei: vDraft.imei,
+      },
+      aiInput: {
+        videoProofUploaded: vDraft.videoProofUploaded,
+        videoProofUrl: vDraft.videoProofUrl,
+        videoImageSimilarity: vDraft.videoImageSimilarity,
+        labelProofUploaded: vDraft.labelProofUploaded,
+        imageSimilarityScore: vDraft.imageSimilarityScore,
+        stolenImageSuspected: vDraft.stolenImageSuspected,
+        scanPassed: vDraft.scanPassed,
+      },
+    });
 
-    return res.status(201).json({ product });
+    const productOut = await Product.findById(product._id).lean();
+    return res.status(201).json({ product: productOut });
   } catch (err: any) {
     console.error('Create product error:', err);
     return res.status(500).json({ message: 'Failed to create product' });
@@ -174,7 +304,6 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       'seoKeywords',
       'sku',
       'stock',
-      'price',
       'discount',
       'moq',
       'status',
@@ -182,6 +311,7 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       'variants',
       'tiers',
       'images',
+      'warehouseId',
     ] as const;
 
   for (const field of updatableFields) {
@@ -190,17 +320,74 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       }
     }
 
+    if ('listingCurrency' in req.body || 'listingPriceAmount' in req.body || 'price' in req.body) {
+      const merged = {
+        listingCurrency:
+          'listingCurrency' in req.body
+            ? (req.body as any).listingCurrency
+            : (existing as any).listingCurrency || 'USD',
+        listingPriceAmount:
+          'listingPriceAmount' in req.body
+            ? (req.body as any).listingPriceAmount
+            : (existing as any).listingPriceAmount ?? (req.body as any).price ?? existing.price,
+        price: 'price' in req.body ? (req.body as any).price : existing.price,
+      };
+      const canonical = await computeCanonicalListingPricing(merged);
+      if (!canonical.ok) {
+        return res.status(400).json({ message: canonical.message });
+      }
+      (existing as any).price = canonical.priceUsd;
+      (existing as any).listingCurrency = canonical.listingCurrency;
+      (existing as any).listingPriceAmount = canonical.listingPriceAmount;
+      (existing as any).listingExchangeRate = canonical.listingExchangeRate;
+    }
+
+    const verificationBody = (req.body as any).verification;
+    if (verificationBody !== undefined) {
+      const trustEval = await evaluateProductTrustForSeller(
+        String(sellerId),
+        {
+          name: existing.name,
+          category: existing.category,
+          description: existing.description,
+          images: (existing.images || []) as string[],
+        },
+        mapVerificationBody(verificationBody),
+        String(existing._id),
+      );
+      if (!trustEval.submissionAllowed) {
+        return res.status(400).json({
+          message: 'Product verification failed. Fix the issues below before submitting.',
+          verification: trustEval,
+        });
+      }
+    }
+
     await existing.save();
 
-    void runProductVerification({
-      productId: String(existing._id),
-      sellerId: String(sellerId),
-      actorId: req.user?.id,
-      aiInput: {
-        videoProofUploaded: false,
-        labelProofUploaded: false,
-      },
-    }).catch(() => null);
+    if (verificationBody !== undefined) {
+      const v = mapVerificationBody(verificationBody);
+      await runProductVerification({
+        productId: String(existing._id),
+        sellerId: String(sellerId),
+        actorId: req.user?.id,
+        identifiers: {
+          barcode: v.barcode,
+          qrCode: v.qrCode,
+          serialNumber: v.serialNumber,
+          imei: v.imei,
+        },
+        aiInput: {
+          videoProofUploaded: v.videoProofUploaded,
+          videoProofUrl: v.videoProofUrl,
+          videoImageSimilarity: v.videoImageSimilarity,
+          labelProofUploaded: v.labelProofUploaded,
+          imageSimilarityScore: v.imageSimilarityScore,
+          stolenImageSuspected: v.stolenImageSuspected,
+          scanPassed: v.scanPassed,
+        },
+      });
+    }
 
     // Record stock history if stock changed
     if (typeof req.body.stock === 'number' && req.body.stock !== prevStock) {
@@ -217,7 +404,8 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       });
     }
 
-    return res.json({ product: existing });
+    const out = await Product.findById(existing._id).lean();
+    return res.json({ product: out });
   } catch (err: any) {
     console.error('Update product error:', err);
     return res.status(500).json({ message: 'Failed to update product' });

@@ -5,7 +5,11 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { ProductVerification } from '../models/ProductVerification';
 import { SellerTrustProfile } from '../models/SellerTrustProfile';
 import { Product } from '../models/Product';
-import { recalculateSellerTrust, runProductVerification } from '../services/productVerification.service';
+import {
+  evaluateProductTrustForSeller,
+  recalculateSellerTrust,
+  runProductVerification,
+} from '../services/productVerification.service';
 
 const createRecordSchema = z.object({
   productId: z.string().min(1),
@@ -25,8 +29,34 @@ const createRecordSchema = z.object({
     stolenImageSuspected: z.boolean().optional(),
     videoProofUploaded: z.boolean().optional(),
     labelProofUploaded: z.boolean().optional(),
+    videoImageSimilarity: z.number().min(0).max(1).optional(),
+    videoProofUrl: z.string().max(2000).optional(),
+    scanPassed: z.boolean().optional(),
     notes: z.array(z.string()).optional(),
   }).optional(),
+});
+
+const previewDraftSchema = z.object({
+  name: z.string().min(1),
+  category: z.string().optional(),
+  description: z.string().optional(),
+  images: z.array(z.string()).optional().default([]),
+  excludeProductId: z.string().optional(),
+  verification: z
+    .object({
+      barcode: z.string().optional(),
+      qrCode: z.string().optional(),
+      serialNumber: z.string().optional(),
+      imei: z.string().optional(),
+      videoProofUploaded: z.boolean().optional(),
+      videoProofUrl: z.string().max(2000).optional(),
+      videoImageSimilarity: z.number().min(0).max(1).optional(),
+      labelProofUploaded: z.boolean().optional(),
+      imageSimilarityScore: z.number().min(0).max(100).optional(),
+      stolenImageSuspected: z.boolean().optional(),
+      scanPassed: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 const trustAdjustSchema = z.object({
@@ -34,6 +64,32 @@ const trustAdjustSchema = z.object({
   delta: z.number().min(-40).max(40),
   reason: z.string().min(2),
 });
+
+export async function previewVerificationDraft(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user?.id) return res.status(401).json({ message: 'Authentication required' });
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Sellers only' });
+    }
+    const body = previewDraftSchema.parse(req.body || {});
+    const verification = body.verification || {};
+    const evaluation = await evaluateProductTrustForSeller(
+      String(req.user.id),
+      {
+        name: body.name,
+        category: body.category,
+        description: body.description,
+        images: body.images || [],
+      },
+      verification as any,
+      body.excludeProductId,
+    );
+    return res.json({ verification: evaluation });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid payload', errors: err.flatten() });
+    return res.status(500).json({ message: err?.message || 'Failed to preview verification' });
+  }
+}
 
 export async function createOrUpdateVerificationRecord(req: AuthenticatedRequest, res: Response) {
   try {

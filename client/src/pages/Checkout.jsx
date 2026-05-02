@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useBuyerCart } from '../stores/buyerCartStore';
-import { paymentAPI, orderAPI, productAPI } from '../services/api';
+import { paymentAPI, orderAPI, productAPI, shippingAPI } from '../services/api';
 import { useTranslation } from '../i18n/useTranslation';
 import { useAuthStore } from '../stores/authStore';
 import { API_BASE_URL, SERVER_URL } from '../lib/config';
@@ -37,17 +37,6 @@ const inp =
   'w-full px-4 py-2.5 rounded-xl text-sm outline-none border bg-[var(--card-bg)] placeholder-gray-400 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_18%,transparent)] transition';
 const inpStyle = { borderColor: 'var(--divider)' };
 
-const DELIVERY_OPTIONS = [
-  { id: 'standard', labelKey: 'checkout.delivery.standard', subKey: 'checkout.delivery.standardSub', price: 4.99, icon: '📦' },
-  { id: 'express', labelKey: 'checkout.delivery.express', subKey: 'checkout.delivery.expressSub', price: 12.99, icon: '⚡' },
-  { id: 'overnight', labelKey: 'checkout.delivery.overnight', subKey: 'checkout.delivery.overnightSub', price: 24.99, icon: '🚀' },
-];
-
-function mapDeliveryToApi(id) {
-  if (id === 'overnight') return 'international';
-  return id;
-}
-
 export default function Checkout() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -67,7 +56,11 @@ export default function Checkout() {
     zip: '',
     country: '',
   });
-  const [delivery, setDelivery] = useState('standard');
+  /** Reaglex: per shipment group `sellerId|warehouseId` → standard | express | pickup */
+  const [shippingMethodsByGroup, setShippingMethodsByGroup] = useState({});
+  const [shippingQuote, setShippingQuote] = useState(null);
+  const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
+  const [shippingQuoteErr, setShippingQuoteErr] = useState(null);
   const [checkoutProvider, setCheckoutProvider] = useState('flutterwave');
   const [momoPhone, setMomoPhone] = useState('');
   const [airtelPhone, setAirtelPhone] = useState('');
@@ -184,9 +177,72 @@ export default function Checkout() {
   }, [gwLoaded, gateways, checkoutProvider]);
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const shippingCost = DELIVERY_OPTIONS.find((d) => d.id === delivery)?.price || 4.99;
+  const shippingCost = Number(shippingQuote?.totalShipping) || 0;
   const tax = subtotal * 0.1;
   const total = subtotal + shippingCost + tax;
+
+  const quoteFingerprint = useMemo(
+    () =>
+      [
+        address.street?.toLowerCase().trim(),
+        address.city?.toLowerCase().trim(),
+        address.zip?.toLowerCase().trim(),
+        address.country?.toUpperCase().trim(),
+        items.map((i) => `${i.id}:${i.quantity}`).join(','),
+        JSON.stringify(shippingMethodsByGroup),
+      ].join('~'),
+    [address.street, address.city, address.zip, address.country, items, shippingMethodsByGroup]
+  );
+
+  useEffect(() => {
+    if (step < 2 || !items.length) return undefined;
+    if (!address.street?.trim() || !address.city?.trim() || !address.country?.trim()) {
+      setShippingQuote(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const run = async () => {
+      setShippingQuoteLoading(true);
+      setShippingQuoteErr(null);
+      try {
+        const lines = items.map((i) => ({ productId: i.id, quantity: i.quantity }));
+        const data = await shippingAPI.quote({
+          lines,
+          shippingAddress: {
+            full_name: address.fullName,
+            phone: address.phone,
+            address_line1: address.street,
+            address_line2: '',
+            city: address.city,
+            state: address.state,
+            postal_code: address.zip,
+            country: address.country,
+          },
+          selectedMethods: shippingMethodsByGroup,
+        });
+        if (cancelled) return;
+        setShippingQuote(data);
+        setShippingMethodsByGroup((prev) => {
+          const next = { ...prev };
+          for (const g of data.groups || []) {
+            if (next[g.groupKey] == null) next[g.groupKey] = 'standard';
+          }
+          return next;
+        });
+      } catch (e) {
+        if (!cancelled) {
+          setShippingQuote(null);
+          setShippingQuoteErr(e?.response?.data?.message || e?.message || 'Shipping quote failed');
+        }
+      } finally {
+        if (!cancelled) setShippingQuoteLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [step, quoteFingerprint, items.length]);
 
   const rwfLike = checkoutProvider === 'momo' || checkoutProvider === 'airtel';
   const fmtMoney = (n) =>
@@ -229,11 +285,17 @@ export default function Checkout() {
       if (!ph) return alert(t('checkout.errors.airtelPhoneRequired'));
     }
 
+    if (shippingQuoteErr) {
+      return alert(shippingQuoteErr);
+    }
+    if (!shippingQuote?.groups?.length && items.length) {
+      return alert(t('checkout.errors.shippingNotReady'));
+    }
+
     setPlacing(true);
     let createdOrders = null;
     try {
       const productById = new Map();
-      const sellerIds = new Set();
       for (const line of items) {
         const res = await productAPI.getProductById(line.id);
         const p = res?.product;
@@ -247,32 +309,35 @@ export default function Checkout() {
           return alert(t('checkout.errors.productUnavailable'));
         }
         productById.set(line.id, p);
-        sellerIds.add(sid);
       }
 
-      if (sellerIds.size !== 1) {
-        setPlacing(false);
-        return alert(t('checkout.errors.multiSeller'));
-      }
-
-      const sellerId = [...sellerIds][0];
-      const shipKey = mapDeliveryToApi(delivery);
-      let subFromDb = 0;
-      const orderItems = items.map((line) => {
+      const linesBySeller = new Map();
+      for (const line of items) {
         const p = productById.get(line.id);
-        subFromDb += p.price * line.quantity;
-        return { product_id: line.id, quantity: line.quantity };
-      });
+        const sid = String(p.sellerId);
+        if (!linesBySeller.has(sid)) linesBySeller.set(sid, []);
+        linesBySeller.get(sid).push({ product_id: line.id, quantity: line.quantity });
+      }
+
+      const sellerGroups = [...linesBySeller.entries()].map(([sellerId, orderItems]) => ({
+        sellerId,
+        items: orderItems,
+        subtotal: orderItems.reduce((s, it) => {
+          const pr = productById.get(it.product_id);
+          return s + (pr ? pr.price * it.quantity : 0);
+        }, 0),
+        discount: 0,
+      }));
+
+      const shippingMethodsPayload = { ...shippingMethodsByGroup };
+      for (const g of shippingQuote?.groups || []) {
+        if (shippingMethodsPayload[g.groupKey] == null) {
+          shippingMethodsPayload[g.groupKey] = 'standard';
+        }
+      }
 
       const createRes = await orderAPI.create({
-        sellerGroups: [
-          {
-            sellerId,
-            items: orderItems,
-            subtotal: subFromDb,
-            discount: 0,
-          },
-        ],
+        sellerGroups,
         shippingAddress: {
           full_name: address.fullName,
           phone: address.phone,
@@ -290,7 +355,7 @@ export default function Checkout() {
               ? 'RWF'
               : 'card',
         displayCurrency: currencyPricing.selectedCurrency,
-        shippingMethods: { [sellerId]: shipKey },
+        shippingMethods: shippingMethodsPayload,
         notes: {},
       });
 
@@ -301,6 +366,16 @@ export default function Checkout() {
       }
 
       createdOrders = orders;
+      try {
+        if (orders.length > 1 && typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(
+            'reaglex_unpaid_order_ids',
+            JSON.stringify(orders.slice(1).map((o) => String(o.id || o._id)))
+          );
+        }
+      } catch {
+        /* ignore */
+      }
       const first = orders[0];
       const orderId = first.id || first._id;
       const init = await paymentAPI.initialize({
@@ -312,12 +387,14 @@ export default function Checkout() {
 
       if ((init?.provider === 'flutterwave' || init?.provider === 'stripe' || init?.provider === 'paypal') && init?.paymentLink) {
         clearCart();
+        if (orders.length > 1) alert(t('checkout.multiPayNotice'));
         window.location.href = init.paymentLink;
         return;
       }
 
       if (init?.provider === 'momo' && init?.referenceId) {
         clearCart();
+        if (orders.length > 1) alert(t('checkout.multiPayNotice'));
         navigate(
           `/checkout/momo-wait?ref=${encodeURIComponent(init.referenceId)}&orderId=${encodeURIComponent(String(orderId))}`
         );
@@ -326,6 +403,7 @@ export default function Checkout() {
 
       if (init?.provider === 'airtel' && init?.referenceId) {
         clearCart();
+        if (orders.length > 1) alert(t('checkout.multiPayNotice'));
         navigate(
           `/checkout/momo-wait?ref=${encodeURIComponent(init.referenceId)}&orderId=${encodeURIComponent(String(orderId))}&provider=airtel`
         );
@@ -464,41 +542,103 @@ export default function Checkout() {
                 {step === 2 && (
                   <div className="space-y-3">
                     <h2 className="mb-4 text-lg font-black" style={{ color: 'var(--text-primary)' }}>
-                      🚚 {t('checkout.deliveryMethod')}
+                      🚚 {t('checkout.reaglexShippingTitle')}
                     </h2>
-                    {DELIVERY_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setDelivery(opt.id)}
-                        className="flex w-full items-center justify-between rounded-2xl border-2 p-4 transition"
-                        style={{
-                          borderColor: delivery === opt.id ? 'var(--brand-primary)' : 'var(--divider)',
-                          background: delivery === opt.id ? 'var(--brand-tint)' : 'var(--card-bg)',
-                        }}
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                      {t('checkout.reaglexShippingIntro')}
+                    </p>
+                    {shippingQuoteLoading && (
+                      <div className="rounded-xl p-4 text-sm" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                        {t('checkout.reaglexShippingLoading')}
+                      </div>
+                    )}
+                    {shippingQuoteErr && (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+                        {shippingQuoteErr}
+                      </div>
+                    )}
+                    {(shippingQuote?.warnings || []).length > 0 && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+                        {(shippingQuote.warnings || []).map((w) => (
+                          <p key={w}>{w}</p>
+                        ))}
+                      </div>
+                    )}
+                    {(shippingQuote?.groups || []).map((g) => (
+                      <div
+                        key={g.groupKey}
+                        className="rounded-2xl border-2 p-4"
+                        style={{ borderColor: 'var(--divider)', background: 'var(--card-bg)' }}
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{opt.icon}</span>
-                          <div className="text-left">
-                            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                              {t(opt.labelKey)}
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                              {g.warehouseLabel}
                             </p>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                              {t(opt.subKey)}
+                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                              {t('checkout.reaglexSellerGroup')}{' '}
+                              <span className="font-mono">{String(g.sellerId).slice(-6)}</span>
+                              {' · '}
+                              {g.distanceKm} km {t('checkout.reaglexByRoad')}
                             </p>
                           </div>
+                          <Truck className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--brand-primary)' }} />
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>
-                            {fmtMoney(opt.price)}
-                          </p>
-                          <div
-                            className="mx-auto mt-1 flex h-4 w-4 items-center justify-center rounded-full border-2"
-                            style={{ borderColor: delivery === opt.id ? 'var(--brand-primary)' : 'var(--divider-strong)' }}
-                          >
-                            {delivery === opt.id && <div className="h-2 w-2 rounded-full" style={{ background: 'var(--brand-primary)' }} />}
-                          </div>
+                        <ul className="mb-3 space-y-1 border-t border-dashed pt-2 text-xs" style={{ borderColor: 'var(--divider)' }}>
+                          {(g.lines || []).map((ln) => (
+                            <li key={ln.productId} className="flex justify-between gap-2" style={{ color: 'var(--text-secondary)' }}>
+                              <span className="truncate">
+                                {ln.name} ×{ln.quantity}
+                              </span>
+                              <span className="font-semibold">{fmtMoney(ln.unitPrice * ln.quantity)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                          {t('checkout.reaglexChooseMethod')}
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          {(g.methods || []).map((m) => {
+                              const selected = shippingMethodsByGroup[g.groupKey] === m.key;
+                              return (
+                                <button
+                                  key={`${g.groupKey}-${m.key}`}
+                                  type="button"
+                                  disabled={!m.enabled}
+                                  onClick={() => {
+                                    if (!m.enabled) return;
+                                    setShippingMethodsByGroup((prev) => ({ ...prev, [g.groupKey]: m.key }));
+                                  }}
+                                  className="flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-45"
+                                  style={{
+                                    borderColor: selected ? 'var(--brand-primary)' : 'var(--divider)',
+                                    background: selected ? 'var(--brand-tint)' : 'transparent',
+                                  }}
+                                >
+                                  <div>
+                                    <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                      {m.label}
+                                      {m.key === 'pickup' && m.pickupAvailable ? (
+                                        <span className="ml-2 text-[10px] font-bold text-emerald-600"> {t('checkout.reaglexPickupBadge')}</span>
+                                      ) : null}
+                                    </p>
+                                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                      {m.etaDaysMin}–{m.etaDaysMax} {t('checkout.reaglexEtaDays')}
+                                      {m.freeShippingThreshold != null && m.freeShippingThreshold > 0
+                                        ? ` · ${t('checkout.reaglexFreePrefix')} ${fmtMoney(m.freeShippingThreshold)}`
+                                        : ''}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-bold" style={{ color: 'var(--brand-primary)' }}>
+                                      {m.freeShippingApplied ? t('checkout.reaglexFree') : fmtMoney(m.price)}
+                                    </p>
+                                  </div>
+                                </button>
+                              );
+                            })}
                         </div>
-                      </button>
+                      </div>
                     ))}
                     <div className="flex gap-3 pt-2">
                       <button
@@ -746,6 +886,29 @@ export default function Checkout() {
                     <h2 className="mb-4 text-lg font-black" style={{ color: 'var(--text-primary)' }}>
                       ✅ {t('checkout.reviewYourOrder')}
                     </h2>
+                    {shippingQuote?.groups?.length > 0 && (
+                      <div className="mb-4 rounded-xl border p-3 text-xs" style={{ borderColor: 'var(--divider)', background: 'var(--bg-tertiary)' }}>
+                        <p className="mb-2 font-bold" style={{ color: 'var(--text-primary)' }}>
+                          {t('checkout.reaglexShippingBreakdown')}
+                        </p>
+                        <ul className="space-y-2">
+                          {shippingQuote.groups.map((g) => {
+                            const mk = shippingMethodsByGroup[g.groupKey] || 'standard';
+                            const m = (g.methods || []).find((x) => x.key === mk);
+                            return (
+                              <li key={g.groupKey} className="flex justify-between gap-2">
+                                <span className="text-[var(--text-muted)]">
+                                  {g.warehouseLabel} · {mk}
+                                </span>
+                                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                  {m?.freeShippingApplied ? t('checkout.reaglexFree') : fmtMoney(m?.price ?? 0)}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
                     <div className="mb-4 space-y-2">
                       {items.map((item) => (
                         <div key={item.id} className="flex items-center gap-3 rounded-xl p-3" style={{ background: 'var(--bg-tertiary)' }}>
@@ -857,18 +1020,42 @@ export default function Checkout() {
               ))}
             </div>
             <div className="space-y-2 border-t pt-3" style={{ borderColor: 'var(--divider)' }}>
-              {[
-                [t('checkout.subtotal'), fmtMoney(subtotal)],
-                [t('checkout.shipping'), fmtMoney(shippingCost)],
-                [t('checkout.tax10'), fmtMoney(tax)],
-              ].map(([l, v]) => (
-                <div key={l} className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
-                  <span>{l}</span>
-                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {v}
-                  </span>
+              <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span>{t('checkout.subtotal')}</span>
+                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {fmtMoney(subtotal)}
+                </span>
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                {t('checkout.reaglexShippingBreakdown')}
+              </p>
+              {shippingQuoteLoading && (
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {t('checkout.reaglexShippingLoading')}
                 </div>
-              ))}
+              )}
+              {(shippingQuote?.groups || []).map((g) => {
+                const mk = shippingMethodsByGroup[g.groupKey] || 'standard';
+                const m = (g.methods || []).find((x) => x.key === mk);
+                return (
+                  <div key={`sum-${g.groupKey}`} className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span className="max-w-[58%] truncate">{g.warehouseLabel}</span>
+                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {m?.freeShippingApplied ? t('checkout.reaglexFree') : fmtMoney(m?.price ?? 0)}
+                    </span>
+                  </div>
+                );
+              })}
+              <div className="flex justify-between text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+                <span>{t('checkout.shipping')}</span>
+                <span>{fmtMoney(shippingCost)}</span>
+              </div>
+              <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span>{t('checkout.tax10')}</span>
+                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {fmtMoney(tax)}
+                </span>
+              </div>
               <div className="flex justify-between border-t pt-2 font-black" style={{ borderColor: 'var(--divider)' }}>
                 <span style={{ color: 'var(--text-primary)' }}>{t('checkout.total')}</span>
                 <span style={{ color: 'var(--brand-primary)', fontSize: '1.1rem' }}>{fmtMoney(total)}</span>

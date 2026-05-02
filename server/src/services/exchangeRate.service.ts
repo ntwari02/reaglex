@@ -1,6 +1,28 @@
 import { Request } from 'express';
+import NodeCache from 'node-cache';
 
 type RatesMap = Record<string, number>;
+
+/** ISO 4217 codes accepted for checkout + seller listing (USD is canonical base). */
+export const SUPPORTED_DISPLAY_CURRENCIES = [
+  'USD',
+  'RWF',
+  'KES',
+  'EUR',
+  'GBP',
+  'UGX',
+  'TZS',
+  'NGN',
+] as const;
+
+export type SupportedDisplayCurrency = (typeof SUPPORTED_DISPLAY_CURRENCIES)[number];
+
+export function isSupportedDisplayCurrency(code: string): boolean {
+  const c = String(code || '')
+    .trim()
+    .toUpperCase();
+  return (SUPPORTED_DISPLAY_CURRENCIES as readonly string[]).includes(c);
+}
 
 interface ExchangeSnapshot {
   base: 'USD';
@@ -58,6 +80,13 @@ let currentSnapshot: ExchangeSnapshot = {
 let refreshTimer: NodeJS.Timeout | null = null;
 let inflight: Promise<ExchangeSnapshot> | null = null;
 
+/** Extra process-local cache (survives short gaps; TTL aligns with refresh window). */
+const exchangeNodeCache = new NodeCache({
+  stdTTL: Math.max(60, Math.floor(Number(process.env.EXCHANGE_RATE_REFRESH_MS || 5 * 60 * 1000) / 1000)),
+  useClones: false,
+});
+const NODE_CACHE_KEY = 'reaglex:usd_rates_snapshot';
+
 function safeRound(value: number, mode: 'round' | 'ceil' = 'round'): number {
   return mode === 'ceil' ? Math.ceil(value) : Math.round(value);
 }
@@ -99,8 +128,30 @@ export async function refreshExchangeRates(force = false): Promise<ExchangeSnaps
     try {
       const snapshot = await fetchLiveRates();
       currentSnapshot = snapshot;
+      try {
+        exchangeNodeCache.set(NODE_CACHE_KEY, JSON.stringify({ ...snapshot, fetchedAt: snapshot.fetchedAt.toISOString() }));
+      } catch {
+        /* ignore */
+      }
       return currentSnapshot;
     } catch {
+      try {
+        const raw = exchangeNodeCache.get<string>(NODE_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { rates: RatesMap; fetchedAt: string; source?: string };
+          if (parsed?.rates) {
+            currentSnapshot = {
+              base: 'USD',
+              rates: { ...DEFAULT_RATES, ...parsed.rates, USD: 1 },
+              fetchedAt: new Date(parsed.fetchedAt || Date.now()),
+              source: 'cache',
+            };
+            return currentSnapshot;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
       if (currentSnapshot.fetchedAt.getTime() > 0) {
         return { ...currentSnapshot, source: 'cache' as const };
       }
@@ -145,6 +196,26 @@ export async function convertUsdToCurrency(
   const rate = await getRateForCurrency(code);
   const local = safeRound(Number(usdAmount || 0) * rate, options.roundMode || 'round');
   return { usd: Number(usdAmount || 0), local, currency: code, rate };
+}
+
+/**
+ * Convert a seller-entered listing amount in `currency` (units per 1 USD from API) to canonical USD stored on Product.price.
+ * Uses the same rate table as buyer display (USD → local rate; invert for local → USD).
+ */
+export async function convertListingToUsd(
+  localAmount: number,
+  currency: string,
+): Promise<{ usd: number; rate: number }> {
+  const code = normalizeCurrency(currency);
+  if (code === 'USD') {
+    return { usd: Math.max(0.01, Math.round(Number(localAmount || 0) * 100) / 100), rate: 1 };
+  }
+  const rate = await getRateForCurrency(code);
+  if (!rate || rate <= 0) {
+    return { usd: Math.max(0.01, Math.round(Number(localAmount || 0) * 100) / 100), rate: 1 };
+  }
+  const usd = Math.round((Number(localAmount || 0) / rate) * 100) / 100;
+  return { usd: Math.max(0.01, usd), rate };
 }
 
 export function detectCurrencyFromRequest(req: Request): string {

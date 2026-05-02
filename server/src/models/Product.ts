@@ -27,7 +27,14 @@ export interface IProduct extends Document {
   tags?: string[];
   sku: string;
   stock: number;
+  /** Canonical unit price in USD (accounting / checkout base). */
   price: number;
+  /** ISO 4217 — currency the seller used when entering the list price. */
+  listingCurrency?: string;
+  /** Whole-number amount the seller entered in listingCurrency (for display / audit). */
+  listingPriceAmount?: number;
+  /** USD→listing rate snapshot at last listing save (how many listing units per 1 USD). */
+  listingExchangeRate?: number;
   discount?: number;
   moq?: number;
   status: InventoryStatus;
@@ -37,10 +44,14 @@ export interface IProduct extends Document {
   tiers?: TieredPrice[];
   views?: number;
   reaglexProductId?: string;
+  /** Ships from this warehouse for Reaglex grouped shipping (seller-defined). */
+  warehouseId?: string;
   verificationSummary?: {
     status: 'unverified' | 'pending' | 'verified' | 'flagged' | 'rejected';
     score: number;
     riskLevel: 'low' | 'medium' | 'high';
+    trustBand?: 'high' | 'medium' | 'low';
+    submissionAllowed?: boolean;
     hasIdentifier: boolean;
     lastCheckedAt?: Date;
   };
@@ -62,6 +73,9 @@ const productSchema = new Schema<IProduct>(
     sku: { type: String, required: true, trim: true },
     stock: { type: Number, required: true, default: 0 },
     price: { type: Number, required: true },
+    listingCurrency: { type: String, trim: true, default: 'USD' },
+    listingPriceAmount: { type: Number },
+    listingExchangeRate: { type: Number },
     discount: { type: Number, default: 0 },
     moq: { type: Number, default: 0 },
     status: {
@@ -89,6 +103,7 @@ const productSchema = new Schema<IProduct>(
     ],
     views: { type: Number, default: 0, index: true },
     reaglexProductId: { type: String, trim: true, unique: true, sparse: true, index: true },
+    warehouseId: { type: String, trim: true, default: 'default', index: true },
     verificationSummary: {
       status: {
         type: String,
@@ -98,6 +113,8 @@ const productSchema = new Schema<IProduct>(
       },
       score: { type: Number, default: 0 },
       riskLevel: { type: String, enum: ['low', 'medium', 'high'], default: 'medium', index: true },
+      trustBand: { type: String, enum: ['high', 'medium', 'low'], default: 'low' },
+      submissionAllowed: { type: Boolean, default: false },
       hasIdentifier: { type: Boolean, default: false },
       lastCheckedAt: { type: Date },
     },

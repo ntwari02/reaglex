@@ -548,10 +548,8 @@ export default function SearchResults() {
   return (
     <BuyerLayout>
       <div
-        className="flex flex-col w-full relative"
+        className="flex flex-col w-full relative min-h-0 overflow-hidden h-[calc(100dvh-74px-60px-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-150px)]"
         style={{
-          height: '100vh',
-          overflow: 'hidden',
           fontFamily: 'Inter, system-ui, sans-serif',
         }}
       >
@@ -604,21 +602,94 @@ export default function SearchResults() {
           {/* ── Product list area (ONLY this scrolls) ── */}
           <div
             ref={productListRef}
-            className="flex-1 min-w-0 flex flex-col overflow-y-auto h-full relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full"
-            style={{
-              padding: '16px 24px',
-            }}
+            className="flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden h-full relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full px-3 py-3 sm:px-4 sm:py-4 md:px-6"
           >
             {/* "All Products" header row — sticky within scroll area, page-load animation */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="flex-shrink-0 sticky top-0 z-10 mb-5 flex items-center justify-between flex-wrap gap-3 px-4 py-3 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)] transition-colors duration-300"
+              className="flex-shrink-0 sticky top-0 z-20 mb-3 sm:mb-5 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)] transition-colors duration-300 shadow-sm"
               style={{ ...CARD, paddingBottom: 12 }}
             >
+                {/* Mobile / tablet: filters + sort + view first so they stay visible */}
+                <div className="flex lg:hidden items-center gap-2 min-w-0 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen((o) => !o)}
+                    aria-expanded={drawerOpen}
+                    aria-controls="search-mobile-filters"
+                    className={`relative flex shrink-0 items-center justify-center rounded-lg border p-2.5 transition touch-manipulation border-[var(--divider-strong)] ${hasFilters ? 'bg-[var(--bg-elevated)] text-[var(--link-color)] border-[var(--link-color)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}
+                    title={t('search.filters')}
+                  >
+                    <SlidersHorizontal className="w-[18px] h-[18px] text-[var(--brand-primary)]" aria-hidden />
+                    {hasFilters && (
+                      <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[var(--brand-primary)] ring-2 ring-[var(--card-bg)]" aria-hidden />
+                    )}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-sm leading-tight text-[var(--text-primary)] truncate">
+                      {q ? `${t('search.resultsFor')} "${q}"` : t('home.exploreAllProducts')}
+                    </p>
+                    {!loading && (
+                      <p className="text-[11px] mt-0.5 text-[var(--text-faint)] truncate">
+                        {total} {t('product.itemsFound')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setSortOpen(!sortOpen)}
+                        className="flex max-w-[7.5rem] items-center gap-1 rounded-lg border border-[var(--divider-strong)] bg-[var(--card-bg)] px-2 py-2 text-[11px] font-medium text-[var(--text-secondary)] touch-manipulation dark:bg-gray-700 dark:text-gray-300"
+                      >
+                        <span className="truncate">{sortLabel}</span>
+                        <ChevronDown className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)]" />
+                      </button>
+                      <AnimatePresence>
+                        {sortOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                            transition={{ duration: 0.14 }}
+                            className="absolute right-0 top-full z-40 mt-1 max-h-[min(70dvh,360px)] overflow-y-auto overflow-x-hidden rounded-xl border border-[var(--divider)] bg-[var(--card-bg)] py-1 shadow-lg"
+                            style={{ minWidth: 'min(100vw-2rem,200px)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+                          >
+                            {SORT_OPTIONS.map(o => (
+                              <button
+                                key={o.value}
+                                type="button"
+                                onClick={() => { setActiveSort(o.value); setSortOpen(false); }}
+                                className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-xs transition hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] ${activeSort === o.value ? 'font-semibold text-[var(--brand-primary)]' : 'text-[var(--text-secondary)] dark:text-gray-300'}`}
+                              >
+                                {t(o.labelKey)}
+                                {activeSort === o.value && <span className="text-[var(--brand-primary)]">✓</span>}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    <div className="flex overflow-hidden rounded-lg border border-[var(--divider-strong)]">
+                      {[['grid', LayoutGrid], ['list', List]].map(([m, Icon]) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => { setViewMode(m); setSavedViewMode(m); }}
+                          className={`touch-manipulation p-2 transition ${viewMode === m ? 'bg-[var(--brand-primary)]' : 'bg-[var(--card-bg)] dark:bg-gray-700 hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-600'}`}
+                          title={m === 'grid' ? t('search.gridView') : t('search.listView')}
+                        >
+                          <Icon className={`h-4 w-4 ${viewMode === m ? 'text-white' : 'text-[var(--text-muted)] dark:text-gray-300'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
                 {/* In-page search bar */}
-                <form onSubmit={handlePageSearchSubmit} className="search-page-bar flex-1 min-w-0 max-w-sm flex items-center gap-2 rounded-lg border border-[var(--divider-strong)] overflow-hidden bg-[var(--bg-secondary)] dark:bg-gray-700">
+                <form onSubmit={handlePageSearchSubmit} className="search-page-bar flex w-full min-w-0 items-center gap-2 rounded-lg border border-[var(--divider-strong)] overflow-hidden bg-[var(--bg-secondary)] dark:bg-gray-700 lg:max-w-sm lg:flex-1">
                   <Search className="w-4 h-4 flex-shrink-0 ml-3 text-[var(--text-muted)]" />
                   <input
                     type="text"
@@ -627,10 +698,11 @@ export default function SearchResults() {
                     placeholder={t('search.placeholder')}
                     className="flex-1 py-2 px-1 text-sm outline-none bg-transparent min-w-0 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500"
                   />
-                  <button type="submit" className="px-3 py-2 text-xs font-semibold text-[var(--brand-primary)]">{t('buttons.search')}</button>
+                  <button type="submit" className="px-3 py-2 text-xs font-semibold text-[var(--brand-primary)] shrink-0 touch-manipulation">{t('buttons.search')}</button>
                 </form>
-                {/* Title + count */}
-                <div>
+
+                {/* Title + count — desktop */}
+                <div className="hidden min-w-0 lg:block">
                   <p className="font-bold text-base text-[var(--text-primary)]">
                     {q ? `${t('search.resultsFor')} "${q}"` : t('home.exploreAllProducts')}
                   </p>
@@ -647,21 +719,11 @@ export default function SearchResults() {
                   )}
                 </div>
 
-                {/* Right: controls */}
-                <div className="flex items-center gap-2 w-full flex-wrap justify-end">
-
-                  {/* Mobile filter button */}
-                  <button
-                    onClick={() => setDrawerOpen(!drawerOpen)}
-                    className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition text-[var(--text-secondary)] border-[var(--divider-strong)] ${hasFilters ? 'bg-[var(--bg-elevated)] text-[var(--link-color)] border-[var(--link-color)]' : 'bg-[var(--card-bg)]'}`}
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
-                    {t('search.filters')}{hasFilters ? ' •' : ''}
-                  </button>
-
-                  {/* Sort dropdown */}
+                {/* Desktop: sort + view + filter drawer trigger not needed (sidebar) */}
+                <div className="hidden lg:flex items-center gap-2 shrink-0 flex-wrap justify-end">
                   <div className="relative">
                     <button
+                      type="button"
                       onClick={() => setSortOpen(!sortOpen)}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-[var(--divider-strong)] text-[var(--text-secondary)] dark:text-gray-300 bg-[var(--card-bg)] dark:bg-gray-700 transition-colors"
                     >
@@ -681,6 +743,7 @@ export default function SearchResults() {
                           {SORT_OPTIONS.map(o => (
                             <button
                               key={o.value}
+                              type="button"
                               onClick={() => { setActiveSort(o.value); setSortOpen(false); }}
                               className={`flex items-center justify-between w-full px-4 py-2.5 text-left text-xs transition hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] ${activeSort === o.value ? 'text-[var(--brand-primary)] font-semibold' : 'text-[var(--text-secondary)] dark:text-gray-300'}`}
                             >
@@ -693,11 +756,11 @@ export default function SearchResults() {
                     </AnimatePresence>
                   </div>
 
-                  {/* View toggle */}
                   <div className="flex overflow-hidden rounded-lg border border-[var(--divider-strong)]">
                     {[['grid', LayoutGrid], ['list', List]].map(([m, Icon]) => (
                       <button
                         key={m}
+                        type="button"
                         onClick={() => { setViewMode(m); setSavedViewMode(m); }}
                         className={`p-2 transition ${viewMode === m ? 'bg-[var(--brand-primary)]' : 'bg-[var(--card-bg)] dark:bg-gray-700 hover:bg-[var(--bg-secondary)] dark:hover:bg-gray-600'}`}
                         title={m === 'grid' ? t('search.gridView') : t('search.listView')}
@@ -739,17 +802,14 @@ export default function SearchResults() {
                 )}
               </AnimatePresence>
 
-              {/* Mobile filter drawer */}
-              <AnimatePresence>
-                {drawerOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.22 }}
-                    className="overflow-hidden mb-4 lg:hidden rounded-xl bg-[var(--card-bg)] border border-[var(--divider)]"
-                    style={CARD}
-                  >
+              {/* Mobile filter panel — max-height + scroll (reliable on small screens; avoids height:auto layout bugs) */}
+              <div
+                className={`mb-3 overflow-hidden rounded-xl border border-[var(--divider)] bg-[var(--card-bg)] transition-[max-height,opacity] duration-200 ease-out lg:hidden ${drawerOpen ? 'max-h-[min(72dvh,560px)] opacity-100' : 'max-h-0 opacity-0 pointer-events-none border-transparent'}`}
+                style={drawerOpen ? CARD : undefined}
+                id="search-mobile-filters"
+              >
+                <div className="flex max-h-[min(72dvh,560px)] flex-col overflow-hidden">
+                  <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
                     <SidebarContent
                       priceRange={priceRange}
                       setPriceRange={setPriceRange}
@@ -771,9 +831,19 @@ export default function SearchResults() {
                       freeShipping={freeShipping}
                       setFreeShipping={setFreeShipping}
                     />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                  <div className="shrink-0 border-t border-[var(--divider)] bg-[var(--bg-secondary)] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] dark:bg-gray-800/80">
+                    <button
+                      type="button"
+                      onClick={() => setDrawerOpen(false)}
+                      className="w-full touch-manipulation rounded-lg py-2.5 text-sm font-semibold text-white transition active:opacity-90"
+                      style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
+                    >
+                      {t('buttons.done')}
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* Loading */}
               {loading && (viewMode === 'grid' ? <GridSkeletons /> : <ListSkeletons />)}
@@ -903,7 +973,7 @@ export default function SearchResults() {
                     exit={{ opacity: 0, scale: 0.8 }}
                     whileHover={{ scale: 1.1 }}
                     onClick={() => productListRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-                    className="fixed bottom-8 right-8 z-20 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg"
+                    className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg sm:bottom-8 sm:right-8 md:bottom-8"
                     style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                     aria-label={t('search.backToTop')}
                   >
