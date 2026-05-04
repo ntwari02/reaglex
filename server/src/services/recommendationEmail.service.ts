@@ -43,7 +43,6 @@ export async function getOrCreateRecommendationPreference(userId: string) {
     {
       $setOnInsert: {
         userId,
-        email: String(user.email).toLowerCase(),
         unsubscribeToken: generateToken(),
         enabled: Boolean((user as any)?.notifications?.email?.promotions ?? true),
         frequency: 'weekly',
