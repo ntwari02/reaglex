@@ -169,7 +169,7 @@
     "backToCart": "Retour au panier",
     "continueToDelivery": "Continuer vers la livraison",
     "multiPayNotice": "Plusieurs commandes ont été créées. Payez la première maintenant ; payez les autres vendeurs depuis Mes commandes.",
-    "reaglexShippingTitle": "Livraison Reaglex",
+    "reaglexShippingTitle": "Shipping",
     "reaglexShippingIntro": "Chaque vendeur définit frais et entrepôts. Nous combinons cela avec la distance routière jusqu'à votre adresse (OpenRouteService si configuré).",
     "reaglexShippingLoading": "Calcul des frais par vendeur…",
     "reaglexSellerGroup": "Vendeur",
@@ -551,7 +551,7 @@
     }
   },
   "sidebar": {
-    "shippingReaglex": "Livraison (Reaglex)",
+    "shippingReaglex": "Shipping",
     "disputes": "Litiges",
     "collections": "Collections",
     "subscription": "Abonnement",

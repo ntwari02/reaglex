@@ -16,6 +16,7 @@ import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 import { useSeo } from '../utils/useSeo';
 import { SERVER_URL } from '../lib/config';
+import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
@@ -35,8 +36,8 @@ function resolveImage(src) {
 }
 
 /* ─── static data ────────────────────────────────────────────────────────── */
-const SIZES  = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const COLORS = [
+const FALLBACK_SIZES  = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const FALLBACK_COLORS = [
   { name: 'Midnight', hex: '#111827' },
   { name: 'Cloud',    hex: '#f1f5f9' },
   { name: 'Navy',     hex: '#1e3a5f' },
@@ -118,9 +119,8 @@ export default function ProductDetail() {
   const [tabIndex,     setTabIndex]     = useState(0);
   const [shared,       setShared]       = useState(false);
   const [shareOpen,    setShareOpen]    = useState(false);
-  const [selectedSize, setSelectedSize] = useState('M');
-  const [selectedColor,setSelectedColor]= useState(COLORS[0]);
-  const [qtyShake,     setQtyShake]     = useState(false);
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const [expandedQa,   setExpandedQa]   = useState(null);
   const [reviewPage,   setReviewPage]   = useState(0);
   const [voteUp,       setVoteUp]       = useState(187);
@@ -201,6 +201,20 @@ export default function ProductDetail() {
   }, [id, inventoryRefreshTick]);
 
   useEffect(() => {
+    if (!product) return;
+    const productSizes = Array.isArray(product.sizes) ? product.sizes.filter(Boolean) : [];
+    const productColors = Array.isArray(product.colors) ? product.colors.filter(Boolean) : [];
+    setSelectedSize((prev) => prev || productSizes[0] || FALLBACK_SIZES[2] || '');
+    setSelectedColor((prev) => prev || productColors[0] || FALLBACK_COLORS[0]?.hex || '');
+  }, [product]);
+
+  useEffect(() => {
+    if (!product) return;
+    const maxAllowed = Math.max(1, product.stockQuantity ?? product.stock ?? 99);
+    setQuantity((q) => Math.min(maxAllowed, Math.max(1, q)));
+  }, [product?.stockQuantity, product?.stock, product]);
+
+  useEffect(() => {
     const onInventoryUpdated = (e) => {
       const updatedId = e?.detail?.productId;
       if (updatedId && String(updatedId) === String(id)) {
@@ -231,11 +245,6 @@ export default function ProductDetail() {
     else if (method === 'facebook')  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
     else if (method === 'twitter')   window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
     setShareOpen(false);
-  };
-
-  const decrementQty = () => {
-    if (quantity <= 1) { setQtyShake(true); setTimeout(() => setQtyShake(false), 400); return; }
-    setQuantity((q) => q - 1);
   };
 
   /* ── related products auto-slide strip ── */
@@ -282,6 +291,8 @@ export default function ProductDetail() {
 
   /* ── derived values ── */
   const price        = product.price || 0;
+  const basePrice    = product?.price || 0;
+  const totalPrice   = basePrice * quantity;
   const oldPrice     = product.compareAtPrice || product.originalPrice || null;
   const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const rating       = Number(product.averageRating || product.rating || 4.8);
@@ -291,7 +302,12 @@ export default function ProductDetail() {
   const verificationScore = Number(product.verificationSummary?.score || 0);
   const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
   const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
-  const installment  = currencyPricing.formatLocalWithUsd(price / 3);
+  const installment  = currencyPricing.formatLocalWithUsd(totalPrice / 3);
+  const totalLocalPrice = currencyPricing.convertUsdToLocal(totalPrice);
+  const baseLocalPrice = currencyPricing.convertUsdToLocal(basePrice);
+  const totalUsdText = currencyPricing.formatUsd(totalPrice);
+  const showSizeSelector = categoryNeedsSize(product?.category) && Array.isArray(product?.sizes) && product.sizes.length > 0;
+  const showColorSelector = categoryNeedsColor(product?.category) && Array.isArray(product?.colors) && product.colors.length > 0;
   const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
 
   const specs = [
@@ -299,7 +315,7 @@ export default function ProductDetail() {
     { prop: 'SKU',            value: product.sku      || id            },
     { prop: 'Category',       value: category                          },
     { prop: 'Material',       value: product.material || 'Cotton blend'},
-    { prop: 'Sizes',          value: SIZES.join(', ')                  },
+    { prop: 'Sizes',          value: (Array.isArray(product?.sizes) && product.sizes.length ? product.sizes : FALLBACK_SIZES).join(', ') },
     { prop: 'Weight',         value: product.weight   || '200g'        },
     { prop: 'Origin',         value: product.origin   || 'Imported'    },
     { prop: 'Warranty',       value: '1 year limited'                  },
@@ -637,13 +653,34 @@ export default function ProductDetail() {
                 <div className="order-1 lg:order-5 w-full min-w-0 mb-3 lg:mb-0 space-y-2">
                   <div>
                     <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-1">
-                      <span className="pd2-price-num tabular-nums">{currencyPricing.formatLocalWithUsd(price)}</span>
+                      <span className="pd2-price-num tabular-nums">
+                        {totalLocalPrice.toLocaleString('en-RW', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        })}{' '}
+                        {currencyPricing.selectedCurrency}
+                        {quantity > 1 && (
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              color: '#6B7280',
+                              marginLeft: '8px',
+                              fontWeight: 400,
+                            }}
+                          >
+                            ({baseLocalPrice.toLocaleString('en-RW')} × {quantity})
+                          </span>
+                        )}
+                      </span>
                       {oldPrice && <span className="text-sm sm:text-base line-through" style={{ color: 'var(--text-faint)' }}>{currencyPricing.formatLocalWithUsd(oldPrice)}</span>}
                       {discount > 0 && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black text-white"
                           style={{ background: '#ef4444' }}>SAVE {discount}%</span>
                       )}
                     </div>
+                    <p className="text-[11px] sm:text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
+                      ~ {totalUsdText} USD
+                    </p>
                     <p className="text-[11px] sm:text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
                       {stock > 0 ? `${stock} available` : 'Unavailable'}
                       {stock > 0 ? ` · 3 × ${installment}` : ''}
@@ -746,6 +783,7 @@ export default function ProductDetail() {
                 <div className="hidden lg:block pd2-divider mb-5 order-6 lg:order-7" />
 
                 {/* Size */}
+                {showSizeSelector && (
                 <div className="mb-4 lg:mb-5 order-7 lg:order-8">
                   <div className="flex items-center justify-between mb-2 lg:mb-3 gap-2">
                     <span className="text-xs sm:text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
@@ -756,7 +794,7 @@ export default function ProductDetail() {
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {SIZES.map((s) => (
+                    {product.sizes.map((s) => (
                       <motion.button key={s} type="button"
                         onClick={() => setSelectedSize(s)}
                         whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }}
@@ -772,31 +810,34 @@ export default function ProductDetail() {
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* Color */}
+                {showColorSelector && (
                 <div className="mb-4 lg:mb-5 order-8 lg:order-9">
                   <p className="text-xs sm:text-sm font-bold mb-2 lg:mb-3" style={{ color: 'var(--text-primary)' }}>
-                    Color: <span style={{ color: PRIMARY }}>{selectedColor.name}</span>
+                    Color: <span style={{ color: PRIMARY }}>{selectedColor}</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {COLORS.map((c) => (
-                      <motion.button key={c.name} type="button"
-                        onClick={() => setSelectedColor(c)}
+                    {product.colors.map((color) => (
+                      <motion.button key={color} type="button"
+                        onClick={() => setSelectedColor(color)}
                         whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }}
                         className="w-9 h-9 sm:w-8 sm:h-8 rounded-full transition-all touch-manipulation shrink-0"
                         style={{
-                          background: c.hex,
-                          border: `2px solid ${selectedColor.name === c.name ? PRIMARY : 'transparent'}`,
-                          boxShadow: selectedColor.name === c.name
+                          background: color,
+                          border: `2px solid ${selectedColor === color ? PRIMARY : 'transparent'}`,
+                          boxShadow: selectedColor === color
                             ? `0 0 0 3px var(--brand-border-subtle), var(--shadow-sm)`
                             : '0 2px 6px rgba(0,0,0,0.12)',
                         }}
-                        title={c.name}
-                        aria-label={c.name}
+                        title={color}
+                        aria-label={color}
                       />
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* Divider */}
                 <div className="pd2-divider mb-4 lg:mb-5 order-9 lg:order-10" />
@@ -805,14 +846,13 @@ export default function ProductDetail() {
                 <div className="flex items-center gap-3 lg:gap-4 mb-4 lg:mb-6 order-10 lg:order-11">
                   <span className="text-xs sm:text-sm font-bold shrink-0" style={{ color: 'var(--text-primary)' }}>Qty</span>
                   <motion.div
-                    animate={qtyShake ? { x: [0, -5, 5, -4, 4, 0] } : { x: 0 }}
-                    transition={{ duration: 0.35 }}
                     className="pd2-qty-control flex items-center rounded-xl overflow-hidden"
                     style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}
                   >
-                    <button type="button" onClick={decrementQty}
+                    <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      disabled={quantity === 1}
                       className="min-w-[48px] min-h-[48px] lg:w-10 lg:h-10 flex items-center justify-center transition-colors hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] text-lg font-light touch-manipulation"
-                      style={{ color: 'var(--text-secondary)' }}>
+                      style={{ color: 'var(--text-secondary)', opacity: quantity === 1 ? 0.4 : 1, cursor: quantity === 1 ? 'not-allowed' : 'pointer' }}>
                       <Minus size={14} />
                     </button>
                     <span className="min-w-[44px] text-center font-bold tabular-nums text-sm" style={{ color: 'var(--text-primary)' }}>
@@ -822,7 +862,7 @@ export default function ProductDetail() {
                       onClick={() => setQuantity((q) => Math.min(stock || 99, q + 1))}
                       disabled={quantity >= (stock || 99)}
                       className="min-w-[48px] min-h-[48px] lg:w-10 lg:h-10 flex items-center justify-center transition-colors hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] disabled:opacity-40 touch-manipulation"
-                      style={{ color: 'var(--text-secondary)' }}>
+                      style={{ color: 'var(--text-secondary)', opacity: quantity >= (stock || 99) ? 0.4 : 1, cursor: quantity >= (stock || 99) ? 'not-allowed' : 'pointer' }}>
                       <Plus size={14} />
                     </button>
                   </motion.div>

@@ -159,7 +159,6 @@ const ACCOUNT_LINKS = [
   { labelKey: 'nav.dashboard', href: '/account' },
   { labelKey: 'nav.orders', href: '/account?tab=orders' },
   { labelKey: 'nav.wishlist', href: '/account?tab=wishlist' },
-  { labelKey: 'nav.messages', href: '/messages' },
   { labelKey: 'footer.links.account.myReviews', href: '/account?tab=reviews' },
   { labelKey: 'account.addresses', href: '/account?tab=addresses' },
   { labelKey: 'account.paymentMethods', href: '/account?tab=payment' },

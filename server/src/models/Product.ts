@@ -41,6 +41,8 @@ export interface IProduct extends Document {
   location?: string;
   images?: string[];
   variants?: ProductVariant[];
+  sizes?: string[];
+  colors?: string[];
   tiers?: TieredPrice[];
   views?: number;
   reaglexProductId?: string;
@@ -94,6 +96,8 @@ const productSchema = new Schema<IProduct>(
         stock: { type: Number, required: true, default: 0 },
       },
     ],
+    sizes: { type: [String], default: [] },
+    colors: { type: [String], default: [] },
     tiers: [
       {
         minQty: { type: Number, required: true },

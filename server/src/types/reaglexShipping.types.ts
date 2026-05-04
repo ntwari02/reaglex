@@ -1,8 +1,16 @@
-export type ReaglexShippingMethodKey = 'standard' | 'express' | 'pickup';
+export type ReaglexShippingMethodKey =
+  | 'standard'
+  | 'express'
+  | 'overnight'
+  | 'pickup'
+  | 'free'
+  | 'flat_rate'
+  | 'local_delivery';
 
 export interface ReaglexWarehouse {
   warehouseId: string;
   label: string;
+  address?: string;
   street?: string;
   city?: string;
   state?: string;
@@ -33,18 +41,21 @@ export interface ReaglexShippingMethodRule {
   key: ReaglexShippingMethodKey;
   enabled: boolean;
   label?: string;
-  etaDaysMin: number;
-  etaDaysMax: number;
+  description?: string;
+  distanceMultiplier?: number;
+  estimatedDays?: number;
+  flatFee?: number;
+  pickupFee?: number;
+  minOrderValue?: number;
+  maxRadiusKm?: number;
+  etaDaysMin?: number;
+  etaDaysMax?: number;
   baseFee?: number;
   ratePerKm?: number;
   handlingFee?: number;
   minShippingFee?: number;
-  /** If set, free shipping when group subtotal >= this (same currency as product prices). */
   freeShippingThreshold?: number;
-  /** Multiplier applied to distance * rate component for express. */
   expressDistanceMultiplier?: number;
-  /** Flat fee for pickup (usually 0). */
-  pickupFee?: number;
 }
 
 export interface ReaglexSellerShippingConfig {
@@ -60,29 +71,54 @@ export const DEFAULT_REAGLEX_METHODS: ReaglexShippingMethodRule[] = [
   {
     key: 'standard',
     enabled: true,
-    label: 'Standard',
-    etaDaysMin: 3,
-    etaDaysMax: 7,
-    expressDistanceMultiplier: 1,
-    pickupFee: 0,
+    label: 'Standard Delivery',
+    description: 'Regular delivery, distance-based pricing',
+    distanceMultiplier: 1.0,
+    estimatedDays: 3,
   },
   {
     key: 'express',
     enabled: true,
-    label: 'Express',
-    etaDaysMin: 1,
-    etaDaysMax: 3,
-    expressDistanceMultiplier: 1.2,
-    pickupFee: 0,
+    label: 'Express Delivery',
+    description: 'Faster delivery at a higher rate',
+    distanceMultiplier: 1.2,
+    estimatedDays: 1,
+  },
+  {
+    key: 'overnight',
+    enabled: false,
+    label: 'Overnight Delivery',
+    description: 'Next-morning delivery, highest priority',
+    flatFee: 0,
   },
   {
     key: 'pickup',
-    enabled: false,
+    enabled: true,
     label: 'Pickup at seller',
-    etaDaysMin: 0,
-    etaDaysMax: 2,
-    expressDistanceMultiplier: 1,
+    description: 'Buyer collects from your warehouse',
     pickupFee: 0,
+  },
+  {
+    key: 'free',
+    enabled: false,
+    label: 'Free Shipping',
+    description: 'Offer free shipping on orders above a minimum value',
+    minOrderValue: 0,
+  },
+  {
+    key: 'flat_rate',
+    enabled: false,
+    label: 'Flat Rate Shipping',
+    description: 'Charge a fixed fee regardless of distance or weight',
+    flatFee: 0,
+  },
+  {
+    key: 'local_delivery',
+    enabled: false,
+    label: 'Local Delivery',
+    description: 'Available only within a limited radius (km)',
+    maxRadiusKm: 20,
+    flatFee: 0,
   },
 ];
 
@@ -94,6 +130,7 @@ export function defaultReaglexSellerShipping(): ReaglexSellerShippingConfig {
       {
         warehouseId: 'default',
         label: 'Main location',
+        address: '',
         country: 'Rwanda',
         lat: -1.9441,
         lng: 30.0619,

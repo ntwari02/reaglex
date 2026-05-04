@@ -3,7 +3,7 @@ import { shippingAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
 /**
- * Live Reaglex shipping preview for the cart drawer (multi-seller, zone + distance rules).
+ * Live shipping preview for the cart drawer (multi-seller, zone + distance rules).
  * Uses /shipping/estimate when logged out; /shipping/quote with estimate:true when logged in.
  */
 export function useCartShippingPreview(items, shippingPreviewLocation) {

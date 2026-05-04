@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Check, Truck, Home, MapPin, ArrowLeft, MessageSquare, FileText, Cog,
+  Check, Truck, Home, MapPin, ArrowLeft, FileText, Cog,
   Copy, Warehouse, ChevronRight, Download,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
@@ -40,7 +40,6 @@ export default function OrderTracking() {
   const [progressWidth, setProgressWidth] = useState(0);
   const [confirmModal, setConfirmModal] = useState(false);
   const [confirmSuccess, setConfirmSuccess] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
   const [notifications, setNotifications] = useState({ sms: true, email: true, push: false });
 
   const currentStepIndex = 2; // Shipped = index 2 (0-based)
@@ -486,9 +485,6 @@ export default function OrderTracking() {
                 <motion.button type="button" onClick={() => isDelivered && setConfirmModal(true)} disabled={!isDelivered} whileHover={isDelivered ? { scale: 1.02 } : {}} whileTap={isDelivered ? { scale: 0.98 } : {}} className="flex-1 min-w-0 sm:min-w-[140px] py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-lg" style={{ background: isDelivered ? SUCCESS : 'var(--text-faint)' }}>
                   ✓ Confirm Delivery
                 </motion.button>
-                <motion.button type="button" onClick={() => setChatOpen(true)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 min-w-0 sm:min-w-[120px] py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-[var(--card-bg)] border-2 transition-shadow hover:shadow-md" style={{ color: 'var(--text-secondary)', borderColor: 'var(--divider)' }}>
-                  <MessageSquare className="w-4 h-4" /> Message Seller
-                </motion.button>
               </div>
               <div className="flex flex-wrap gap-3 text-sm">
                 <Link to="/returns" className="px-3 py-2 rounded-xl border-2 font-medium hover:scale-[1.02] transition-transform" style={{ borderColor: 'var(--badge-error-text)', color: 'var(--badge-error-text)' }}>Request Return</Link>
@@ -577,21 +573,6 @@ export default function OrderTracking() {
         )}
       </AnimatePresence>
 
-      {/* Chat drawer placeholder - could link to /messages */}
-      <AnimatePresence>
-        {chatOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={() => setChatOpen(false)}>
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-[var(--card-bg)] shadow-2xl rounded-l-2xl p-6" onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Message Seller</h3>
-                <button type="button" onClick={() => setChatOpen(false)} className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)]">✕</button>
-              </div>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Chat with Premium Store about your order.</p>
-              <Link to="/messages" className="inline-block mt-4 px-4 py-2 rounded-xl font-semibold text-white" style={{ background: PRIMARY }}>Open Messages</Link>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </BuyerLayout>
   );
 }

@@ -19,7 +19,6 @@ const GROUPS: { title: string; links: { to: string; label: string }[] }[] = [
     links: [
       { to: '/account', label: 'Dashboard' },
       { to: '/account?tab=orders', label: 'Orders' },
-      { to: '/messages', label: 'Messages' },
       { to: '/returns', label: 'Returns & refunds' },
       { to: '/notifications', label: 'Notifications' },
     ],

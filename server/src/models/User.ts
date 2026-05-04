@@ -219,6 +219,7 @@ const reaglexWarehouseSchema = new Schema(
   {
     warehouseId: { type: String, required: true, trim: true },
     label: { type: String, default: 'Warehouse' },
+    address: { type: String, default: '', trim: true },
     street: { type: String, trim: true },
     city: { type: String, trim: true },
     state: { type: String, trim: true },
@@ -254,9 +255,15 @@ const reaglexZoneSchema = new Schema(
 
 const reaglexMethodSchema = new Schema(
   {
-    key: { type: String, enum: ['standard', 'express', 'pickup'], required: true },
+    key: { type: String, enum: ['standard', 'express', 'overnight', 'pickup', 'free', 'flat_rate', 'local_delivery'], required: true },
     enabled: { type: Boolean, default: true },
     label: { type: String, trim: true },
+    description: { type: String, trim: true },
+    distanceMultiplier: { type: Number, default: 1.0 },
+    flatFee: { type: Number, default: 0 },
+    minOrderValue: { type: Number, default: 0 },
+    maxRadiusKm: { type: Number, default: 20 },
+    estimatedDays: { type: Number, default: 3 },
     etaDaysMin: { type: Number, default: 3 },
     etaDaysMax: { type: Number, default: 7 },
     baseFee: { type: Number },

@@ -53,6 +53,11 @@ function mergeMethodRule(
   handlingFee: number;
   minShippingFee: number;
   expressDistanceMultiplier: number;
+  distanceMultiplier: number;
+  estimatedDays: number;
+  flatFee: number;
+  minOrderValue?: number;
+  maxRadiusKm?: number;
   pickupFee: number;
   etaDaysMin: number;
   etaDaysMax: number;
@@ -62,17 +67,24 @@ function mergeMethodRule(
 } {
   const d = cfg.defaults;
   const m = cfg.methods.find((x) => x.key === key) || { key, enabled: key === 'standard', etaDaysMin: 3, etaDaysMax: 7 };
+  const distanceMultiplier = m.distanceMultiplier ?? m.expressDistanceMultiplier ?? (key === 'express' ? 1.2 : 1);
+  const estimatedDays = m.estimatedDays ?? m.etaDaysMax ?? 3;
   return {
     ...m,
     key,
     enabled: m.enabled !== false,
-    etaDaysMin: m.etaDaysMin ?? 3,
-    etaDaysMax: m.etaDaysMax ?? 7,
+    etaDaysMin: m.etaDaysMin ?? Math.max(0, estimatedDays - 1),
+    etaDaysMax: m.etaDaysMax ?? estimatedDays,
     baseFee: m.baseFee ?? d.baseFee,
     ratePerKm: m.ratePerKm ?? d.ratePerKm,
     handlingFee: m.handlingFee ?? d.handlingFee,
     minShippingFee: m.minShippingFee ?? d.minShippingFee,
-    expressDistanceMultiplier: m.expressDistanceMultiplier ?? (key === 'express' ? 1.2 : 1),
+    expressDistanceMultiplier: distanceMultiplier,
+    distanceMultiplier,
+    estimatedDays,
+    flatFee: m.flatFee ?? 0,
+    minOrderValue: m.minOrderValue,
+    maxRadiusKm: m.maxRadiusKm,
     pickupFee: m.pickupFee ?? 0,
     freeShippingThreshold: m.freeShippingThreshold,
     label: m.label,
@@ -90,6 +102,7 @@ export function resolveSellerShippingConfig(raw: unknown): ReaglexSellerShipping
       ? r.warehouses.map((w) => ({
           warehouseId: String(w.warehouseId || 'default'),
           label: String(w.label || 'Warehouse'),
+          address: w.address,
           street: w.street,
           city: w.city,
           state: w.state,

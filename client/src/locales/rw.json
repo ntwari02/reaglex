@@ -216,7 +216,7 @@
     "backToCart": "Subira mu gitebo",
     "continueToDelivery": "Komeza ku kohereza",
     "multiPayNotice": "Amaduka menshi yatangijwe. Ishyura rya mbere ubu; indi ushyire mu byatumijwe.",
-    "reaglexShippingTitle": "Kohereza Reaglex",
+    "reaglexShippingTitle": "Shipping",
     "reaglexShippingIntro": "Buri mucuruzi ashyiraho amafaranga n'ahantu. Turabihuza n'intera kugeza ku aderesi yawe.",
     "reaglexShippingLoading": "Turabara ubwoko bwo kohereza…",
     "reaglexSellerGroup": "Umucuruzi",
@@ -598,7 +598,7 @@
     }
   },
   "sidebar": {
-    "shippingReaglex": "Kohereza (Reaglex)",
+    "shippingReaglex": "Shipping",
     "disputes": "Impaka",
     "collections": "Icyegeranyo",
     "subscription": "Iyandikishirize",

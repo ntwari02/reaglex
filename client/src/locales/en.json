@@ -218,7 +218,7 @@
     "backToCart": "Back to Cart",
     "continueToDelivery": "Continue to Delivery ->",
     "multiPayNotice": "Multiple seller orders were created. Complete payment for the first order now; pay remaining sellers from your Orders page.",
-    "reaglexShippingTitle": "Reaglex shipping",
+    "reaglexShippingTitle": "Shipping",
     "shippingLockedNotice": "Totals below use your latest delivery quote. Shipping and exchange rate lock when you pay. If you edited your address or methods, go back one step to refresh before confirming.",
     "reaglexShippingIntro": "Each seller sets fees and warehouses. We combine that with driving distance to your address (OpenRouteService when configured). Items from the same warehouse ship as one shipment.",
     "reaglexShippingLoading": "Calculating shipping for each seller…",
@@ -602,7 +602,7 @@
   },
   "sidebar": {
     "disputes": "Disputes",
-    "shippingReaglex": "Shipping (Reaglex)",
+    "shippingReaglex": "Shipping",
     "collections": "Collections",
     "subscription": "Subscription",
     "supportCenter": "Support Center",

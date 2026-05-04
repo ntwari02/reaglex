@@ -2,7 +2,7 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { User } from '../models/User';
-import { defaultReaglexSellerShipping } from '../types/reaglexShipping.types';
+import { DEFAULT_REAGLEX_METHODS, defaultReaglexSellerShipping } from '../types/reaglexShipping.types';
 import { resolveSellerShippingConfig } from '../services/reaglexShipping.service';
 
 export async function getSellerShippingSettings(req: AuthenticatedRequest, res: Response) {
@@ -25,8 +25,8 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
     return res.status(401).json({ message: 'Authentication required' });
   }
   try {
-    const body = req.body as { settings?: unknown };
-    const incoming = body?.settings;
+    const body = req.body as { settings?: unknown } & Record<string, unknown>;
+    const incoming = (body?.settings && typeof body.settings === 'object' ? body.settings : body) as unknown;
     if (!incoming || typeof incoming !== 'object') {
       return res.status(400).json({ message: 'settings object required' });
     }
@@ -37,6 +37,7 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
     const warehouses = warehousesRaw.map((w: any) => ({
       warehouseId: String(w.warehouseId || 'default').slice(0, 64),
       label: String(w.label || 'Warehouse').slice(0, 120),
+      address: w.address ? String(w.address).slice(0, 300) : '',
       street: w.street ? String(w.street).slice(0, 200) : undefined,
       city: w.city ? String(w.city).slice(0, 100) : undefined,
       state: w.state ? String(w.state).slice(0, 100) : undefined,
@@ -44,7 +45,7 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
       country: w.country ? String(w.country).slice(0, 100) : undefined,
       lat: Number(w.lat),
       lng: Number(w.lng),
-      pickupAvailable: Boolean(w.pickupAvailable),
+      pickupAvailable: Boolean(w.pickupAvailable ?? w.pickup),
     }));
 
     for (const w of warehouses) {
@@ -74,11 +75,20 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
         }))
       : [];
 
+    const allowedMethodKeys = new Set<string>(DEFAULT_REAGLEX_METHODS.map((m) => String(m.key)));
     const methods = Array.isArray(inc.methods)
       ? (inc.methods as any[]).map((m) => ({
-          key: m.key,
-          enabled: m.enabled !== false,
+          key: String(m.key),
+          enabled: Boolean(m.enabled),
           label: m.label ? String(m.label).slice(0, 80) : undefined,
+          description: m.description ? String(m.description).slice(0, 200) : undefined,
+          distanceMultiplier:
+            m.distanceMultiplier != null ? Math.max(0, Number(m.distanceMultiplier)) : undefined,
+          flatFee: m.flatFee != null ? Math.max(0, Number(m.flatFee)) : undefined,
+          pickupFee: m.pickupFee != null ? Math.max(0, Number(m.pickupFee)) : undefined,
+          minOrderValue: m.minOrderValue != null ? Math.max(0, Number(m.minOrderValue)) : undefined,
+          maxRadiusKm: m.maxRadiusKm != null ? Math.max(0, Number(m.maxRadiusKm)) : undefined,
+          estimatedDays: m.estimatedDays != null ? Math.max(0, Number(m.estimatedDays)) : undefined,
           etaDaysMin: Math.max(0, Math.min(60, Number(m.etaDaysMin ?? 3))),
           etaDaysMax: Math.max(0, Math.min(90, Number(m.etaDaysMax ?? 7))),
           baseFee: m.baseFee != null ? Number(m.baseFee) : undefined,
@@ -88,12 +98,11 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
           freeShippingThreshold: m.freeShippingThreshold != null ? Number(m.freeShippingThreshold) : undefined,
           expressDistanceMultiplier:
             m.expressDistanceMultiplier != null ? Number(m.expressDistanceMultiplier) : undefined,
-          pickupFee: m.pickupFee != null ? Number(m.pickupFee) : undefined,
         }))
       : base.methods;
 
     for (const m of methods) {
-      if (!['standard', 'express', 'pickup'].includes(String(m.key))) {
+      if (!allowedMethodKeys.has(String(m.key))) {
         return res.status(400).json({ message: `Invalid method key: ${m.key}` });
       }
     }

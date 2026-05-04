@@ -1,24 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Package,
-  User,
   MapPin,
-  CreditCard,
   Truck,
-  Edit,
   Printer,
   Download,
   Mail,
   Phone,
   CheckCircle,
-  XCircle,
-  DollarSign,
   Store,
-  FileText,
-  Send,
   Calendar,
-  AlertTriangle,
   Loader2,
 } from 'lucide-react';
 import { adminOrdersAPI } from '../../../lib/api';
@@ -28,6 +20,14 @@ interface OrderDetailsProps {
   onBack: () => void;
   onOrderUpdated?: () => void;
 }
+
+type OrderItem = {
+  productId?: string;
+  name?: string;
+  variant?: string;
+  price?: number | string;
+  quantity?: number | string;
+};
 
 const BACKEND_STATUSES = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled'];
 
@@ -42,8 +42,11 @@ export default function OrderDetails({ order: initialOrder, onBack, onOrderUpdat
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
 
-  const orderItems = Array.isArray(order.items) ? order.items : [];
-  const computedSubtotal = orderItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
+  const orderItems: OrderItem[] = Array.isArray(order.items) ? (order.items as OrderItem[]) : [];
+  const computedSubtotal = orderItems.reduce(
+    (sum: number, item: OrderItem) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
+    0
+  );
   const subtotal = order.subtotal != null && !isNaN(Number(order.subtotal)) ? Number(order.subtotal) : computedSubtotal;
   const tax = order.tax != null && !isNaN(Number(order.tax)) ? Number(order.tax) : 0;
   const shippingFee = order.shipping != null && !isNaN(Number(order.shipping)) ? Number(order.shipping) : 0;
@@ -157,7 +160,7 @@ export default function OrderDetails({ order: initialOrder, onBack, onOrderUpdat
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
             <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Items in Order</h2>
             <div className="space-y-4">
-              {orderItems.map((item, idx) => {
+              {orderItems.map((item: OrderItem, idx: number) => {
                 const qty = Number(item.quantity) || 0;
                 const price = Number(item.price) || 0;
                 const lineTotal = qty * price;

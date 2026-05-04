@@ -129,10 +129,10 @@ export const shippingAPI = {
   estimate: (body: unknown) => publicApi.post('/shipping/estimate', body).then((r) => r.data),
 };
 
-/** Seller Reaglex shipping rules (warehouses, methods, zones). */
+/** Seller shipping rules (warehouses, methods, zones). */
 export const sellerShippingAPI = {
   get: () => api.get('/seller/shipping-settings').then((r) => r.data),
-  put: (settings: unknown) => api.put('/seller/shipping-settings', { settings }).then((r) => r.data),
+  put: (settings: unknown) => api.put('/seller/shipping-settings', settings).then((r) => r.data),
 };
 
 // ─── Payments & Escrow ────────────────────────────────────────────────────────

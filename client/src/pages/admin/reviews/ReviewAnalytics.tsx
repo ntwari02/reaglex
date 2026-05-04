@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, TrendingDown, Package, Download } from 'lucide-react';
 import { BarChart } from '@/components/charts/BarChart';
 import { adminReviewsAPI } from '@/lib/api';
@@ -44,7 +44,12 @@ export default function ReviewAnalytics() {
   }
 
   const chartData = selectedChart === 'products' ? productRatings : sellerPerformance;
-  const data = chartData.length ? chartData : [{ label: 'No data', value: 0 }];
+  const data = chartData.length
+    ? chartData.map((point, index) => ({
+        date: new Date(2024, 0, index + 1).toISOString(),
+        value: point.value,
+      }))
+    : [{ date: new Date(2024, 0, 1).toISOString(), value: 0 }];
 
   return (
     <div className="space-y-6">

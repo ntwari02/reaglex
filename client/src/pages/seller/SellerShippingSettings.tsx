@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Truck, Plus, Trash2, Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sellerShippingAPI } from '@/services/api';
 import { useToastStore } from '@/stores/toastStore';
+import AddressSearchInput from '@/components/seller/AddressSearchInput';
 
 type Warehouse = {
   warehouseId: string;
   label: string;
+  address?: string;
   street?: string;
   city?: string;
   state?: string;
@@ -18,18 +20,17 @@ type Warehouse = {
 };
 
 type MethodRule = {
-  key: 'standard' | 'express' | 'pickup';
+  key: 'standard' | 'express' | 'overnight' | 'pickup' | 'free' | 'flat_rate' | 'local_delivery';
   enabled: boolean;
-  label?: string;
-  etaDaysMin: number;
-  etaDaysMax: number;
-  baseFee?: number;
-  ratePerKm?: number;
-  handlingFee?: number;
-  minShippingFee?: number;
-  freeShippingThreshold?: number;
-  expressDistanceMultiplier?: number;
+  name: string;
+  description: string;
+  fields: Array<{ key: string; label: string; type: 'number'; default: number; help?: string }>;
+  distanceMultiplier?: number;
+  flatFee?: number;
   pickupFee?: number;
+  minOrderValue?: number;
+  maxRadiusKm?: number;
+  estimatedDays?: number;
 };
 
 type Zone = { id: string; name: string; countryCodes: string[]; surcharge: number };
@@ -56,6 +57,7 @@ const emptySettings = (): SettingsShape => ({
     {
       warehouseId: 'default',
       label: 'Main warehouse',
+      address: '',
       country: 'Rwanda',
       lat: -1.9441,
       lng: 30.0619,
@@ -70,12 +72,79 @@ const emptySettings = (): SettingsShape => ({
     freeShippingThreshold: undefined,
   },
   zones: [],
-  methods: [
-    { key: 'standard', enabled: true, label: 'Standard', etaDaysMin: 3, etaDaysMax: 7 },
-    { key: 'express', enabled: true, label: 'Express', etaDaysMin: 1, etaDaysMax: 3, expressDistanceMultiplier: 1.2 },
-    { key: 'pickup', enabled: false, label: 'Pickup', etaDaysMin: 0, etaDaysMax: 2, pickupFee: 0 },
-  ],
+  methods: [],
 });
+
+const DEFAULT_METHODS: MethodRule[] = [
+  {
+    key: 'standard',
+    name: 'Standard Delivery',
+    description: 'Regular delivery, distance-based pricing',
+    enabled: true,
+    distanceMultiplier: 1.0,
+    estimatedDays: 3,
+    fields: [
+      { key: 'distanceMultiplier', label: 'Distance multiplier', type: 'number', default: 1.0, help: 'Multiplier applied to the base rate per km' },
+      { key: 'estimatedDays', label: 'Estimated delivery (days)', type: 'number', default: 3 },
+    ],
+  },
+  {
+    key: 'express',
+    name: 'Express Delivery',
+    description: 'Faster delivery at a higher rate',
+    enabled: true,
+    distanceMultiplier: 1.2,
+    estimatedDays: 1,
+    fields: [
+      { key: 'distanceMultiplier', label: 'Distance multiplier', type: 'number', default: 1.2, help: '1.2 means 20% more expensive than standard' },
+      { key: 'estimatedDays', label: 'Estimated delivery (days)', type: 'number', default: 1 },
+    ],
+  },
+  {
+    key: 'overnight',
+    name: 'Overnight Delivery',
+    description: 'Next-morning delivery, highest priority',
+    enabled: false,
+    flatFee: 0,
+    fields: [{ key: 'flatFee', label: 'Flat overnight fee', type: 'number', default: 0, help: 'Fixed fee added on top of distance-based cost' }],
+  },
+  {
+    key: 'pickup',
+    name: 'Pickup at seller',
+    description: 'Buyer collects from your warehouse',
+    enabled: true,
+    pickupFee: 0,
+    fields: [{ key: 'pickupFee', label: 'Pickup fee', type: 'number', default: 0, help: 'Set to 0 for free pickup' }],
+  },
+  {
+    key: 'free',
+    name: 'Free Shipping',
+    description: 'Offer free shipping on orders above a minimum value',
+    enabled: false,
+    minOrderValue: 0,
+    fields: [{ key: 'minOrderValue', label: 'Free shipping on orders above', type: 'number', default: 0, help: 'e.g. 10000 RWF - leave 0 to always be free' }],
+  },
+  {
+    key: 'flat_rate',
+    name: 'Flat Rate Shipping',
+    description: 'Charge a fixed fee regardless of distance or weight',
+    enabled: false,
+    flatFee: 0,
+    fields: [{ key: 'flatFee', label: 'Flat rate fee', type: 'number', default: 0 }],
+  },
+  {
+    key: 'local_delivery',
+    name: 'Local Delivery',
+    description: 'Available only within a limited radius (km)',
+    enabled: false,
+    maxRadiusKm: 20,
+    flatFee: 0,
+    fields: [
+      { key: 'maxRadiusKm', label: 'Maximum delivery radius (km)', type: 'number', default: 20 },
+      { key: 'flatFee', label: 'Delivery fee', type: 'number', default: 0 },
+    ],
+  },
+];
 
 const inp =
   'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white';
@@ -85,6 +154,14 @@ const SellerShippingSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsShape>(emptySettings);
+  const loadMethods = useMemo(
+    () => (savedMethods?: MethodRule[]) =>
+      DEFAULT_METHODS.map((def) => {
+        const saved = savedMethods?.find((m) => m.key === def.key);
+        return saved ? { ...def, ...saved } : def;
+      }),
+    []
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -100,22 +177,27 @@ const SellerShippingSettings: React.FC = () => {
             ...base,
             ...incoming,
             warehouses: incoming.warehouses?.length ? incoming.warehouses : base.warehouses,
-            methods: incoming.methods?.length ? incoming.methods : base.methods,
+            methods: loadMethods(incoming.methods),
             zones: Array.isArray(incoming.zones) ? incoming.zones : [],
             defaults: { ...base.defaults, ...incoming.defaults },
           };
           setSettings(merged);
+        } else {
+          setSettings((prev) => ({ ...prev, methods: loadMethods() }));
         }
       } catch {
         if (!cancelled) showToast('Could not load shipping settings.', 'error');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setSettings((prev) => (prev.methods?.length ? prev : { ...prev, methods: loadMethods() }));
+          setLoading(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadMethods]);
 
   const updateWarehouse = (idx: number, patch: Partial<Warehouse>) => {
     setSettings((s) => {
@@ -148,17 +230,51 @@ const SellerShippingSettings: React.FC = () => {
     }));
   };
 
-  const updateMethod = (key: MethodRule['key'], patch: Partial<MethodRule>) => {
+  const toggleMethod = (key: MethodRule['key']) => {
     setSettings((s) => ({
       ...s,
-      methods: s.methods.map((m) => (m.key === key ? { ...m, ...patch } : m)),
+      methods: s.methods.map((m) => (m.key === key ? { ...m, enabled: !m.enabled } : m)),
+    }));
+  };
+
+  const updateMethod = (methodKey: MethodRule['key'], fieldKey: string, value: number | string) => {
+    setSettings((s) => ({
+      ...s,
+      methods: s.methods.map((m) => (m.key === methodKey ? { ...m, [fieldKey]: value } : m)),
     }));
   };
 
   const save = async () => {
+    const invalidWarehouse = settings.warehouses.find((w) => !Number(w.lat) || !Number(w.lng));
+    if (invalidWarehouse) {
+      showToast(`Please select a valid location for warehouse: "${invalidWarehouse.label || invalidWarehouse.warehouseId}"`, 'error');
+      return;
+    }
     setSaving(true);
     try {
-      await sellerShippingAPI.put(settings);
+      await sellerShippingAPI.put({
+        ...settings,
+        warehouses: settings.warehouses.map((w) => ({
+          ...w,
+          lat: parseFloat(String(w.lat)) || 0,
+          lng: parseFloat(String(w.lng)) || 0,
+          address: w.address || '',
+          country: w.country || '',
+          pickup: Boolean(w.pickupAvailable),
+        })),
+        methods: settings.methods.map((m) => ({
+          key: m.key,
+          enabled: Boolean(m.enabled),
+          label: m.name,
+          description: m.description,
+          distanceMultiplier: Number(m.distanceMultiplier) || 0,
+          flatFee: Number(m.flatFee) || 0,
+          pickupFee: Number(m.pickupFee) || 0,
+          minOrderValue: Number(m.minOrderValue) || 0,
+          maxRadiusKm: Number(m.maxRadiusKm) || 0,
+          estimatedDays: Number(m.estimatedDays) || 0,
+        })),
+      });
       showToast('Shipping settings saved.', 'success');
     } catch (e: any) {
       showToast(e?.response?.data?.message || 'Save failed', 'error');
@@ -180,16 +296,10 @@ const SellerShippingSettings: React.FC = () => {
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-white">
           <Truck className="h-7 w-7 text-[var(--brand-primary)]" />
-          Reaglex shipping
+          Shipping
         </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Set origin coordinates for each warehouse, default fees, and optional zones. Buyer checkout uses{' '}
-          <strong>OpenRouteService</strong> when <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">OPENROUTESERVICE_API_KEY</code> is set on
-          the server; otherwise a road-like estimate from straight-line distance is used.
-        </p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
-          Platform-wide free shipping: set env <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">REAGLEX_PLATFORM_FREE_SHIPPING_THRESHOLD</code>{' '}
-          (order subtotal in the same currency as product prices).
+        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, marginTop: 8 }}>
+          Configure your warehouse locations, shipping fees, and delivery methods.
         </p>
       </div>
 
@@ -293,26 +403,21 @@ const SellerShippingSettings: React.FC = () => {
                   Label
                   <input className={inp} value={w.label} onChange={(e) => updateWarehouse(idx, { label: e.target.value })} />
                 </label>
-                <label className="text-xs text-gray-600 dark:text-gray-300">
-                  Latitude
-                  <input
-                    type="number"
-                    step="any"
-                    className={inp}
-                    value={w.lat}
-                    onChange={(e) => updateWarehouse(idx, { lat: Number(e.target.value) })}
+                <div className="text-xs text-gray-600 dark:text-gray-300 sm:col-span-2" style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 13, color: '#374151', marginBottom: 6, fontWeight: 500 }}>Warehouse location</label>
+                  <AddressSearchInput
+                    value={{ lat: w.lat, lng: w.lng, address: w.address || '', country: w.country || '' }}
+                    onChange={({ lat, lng, address, country }) => {
+                      updateWarehouse(idx, { lat: Number(lat) || 0, lng: Number(lng) || 0, address, country });
+                    }}
+                    required
                   />
-                </label>
-                <label className="text-xs text-gray-600 dark:text-gray-300">
-                  Longitude
-                  <input
-                    type="number"
-                    step="any"
-                    className={inp}
-                    value={w.lng}
-                    onChange={(e) => updateWarehouse(idx, { lng: Number(e.target.value) })}
-                  />
-                </label>
+                  {w.lat && w.lng && (
+                    <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>
+                      Coordinates: {Number(w.lat).toFixed(4)}, {Number(w.lng).toFixed(4)}
+                    </div>
+                  )}
+                </div>
                 <label className="text-xs text-gray-600 dark:text-gray-300 sm:col-span-2">
                   Country
                   <input className={inp} value={w.country || ''} onChange={(e) => updateWarehouse(idx, { country: e.target.value })} />
@@ -335,34 +440,57 @@ const SellerShippingSettings: React.FC = () => {
         <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Shipping methods</h2>
         <div className="space-y-3">
           {settings.methods.map((m) => (
-            <div key={m.key} className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-800">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={m.enabled} onChange={(e) => updateMethod(m.key, { enabled: e.target.checked })} />
-                {m.label || m.key}
-              </label>
-              {m.key === 'express' && (
-                <label className="text-xs text-gray-600 dark:text-gray-300">
-                  Distance multiplier
-                  <input
-                    type="number"
-                    step="0.05"
-                    className={`${inp} w-24`}
-                    value={m.expressDistanceMultiplier ?? 1.2}
-                    onChange={(e) => updateMethod(m.key, { expressDistanceMultiplier: Number(e.target.value) || 1 })}
-                  />
+            <div
+              key={m.key}
+              style={{
+                border: '1px solid',
+                borderColor: m.enabled ? 'rgba(255,107,0,0.2)' : '#E5E7EB',
+                borderRadius: 10,
+                padding: '14px 16px',
+                marginBottom: 10,
+                background: m.enabled ? '#FFF9F5' : '#FAFAFA',
+                transition: 'all 200ms',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: m.enabled ? 14 : 0 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: m.enabled ? '#111827' : '#6B7280' }}>{m.name}</div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{m.description}</div>
+                </div>
+                <label style={{ position: 'relative', display: 'inline-block', width: 42, height: 24, flexShrink: 0, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={m.enabled} onChange={() => toggleMethod(m.key)} style={{ opacity: 0, width: 0, height: 0 }} />
+                  <span style={{ position: 'absolute', inset: 0, borderRadius: 99, transition: '.3s', background: m.enabled ? '#FF6B00' : '#D1D5DB' }}>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        height: 18,
+                        width: 18,
+                        borderRadius: '50%',
+                        left: m.enabled ? 20 : 3,
+                        top: 3,
+                        background: 'white',
+                        transition: '.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      }}
+                    />
+                  </span>
                 </label>
-              )}
-              {m.key === 'pickup' && (
-                <label className="text-xs text-gray-600 dark:text-gray-300">
-                  Pickup fee
-                  <input
-                    type="number"
-                    step="0.01"
-                    className={`${inp} w-24`}
-                    value={m.pickupFee ?? 0}
-                    onChange={(e) => updateMethod(m.key, { pickupFee: Number(e.target.value) || 0 })}
-                  />
-                </label>
+              </div>
+              {m.enabled && (
+                <div style={{ display: 'grid', gridTemplateColumns: m.fields.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
+                  {m.fields.map((field) => (
+                    <div key={field.key}>
+                      <label style={{ display: 'block', fontSize: 12, color: '#374151', marginBottom: 5, fontWeight: 500 }}>{field.label}</label>
+                      <input
+                        type={field.type}
+                        value={Number((m as any)[field.key] ?? field.default)}
+                        onChange={(e) => updateMethod(m.key, field.key, parseFloat(e.target.value) || 0)}
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: 7, fontSize: 13, color: '#111827', outline: 'none' }}
+                      />
+                      {field.help && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{field.help}</div>}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           ))}

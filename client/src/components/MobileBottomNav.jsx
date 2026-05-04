@@ -20,7 +20,6 @@ function activeId(pathname) {
     || pathname.startsWith('/notifications')
     || pathname.startsWith('/returns')
     || pathname.startsWith('/track')
-    || pathname.startsWith('/messages')
   ) {
     return 'account';
   }

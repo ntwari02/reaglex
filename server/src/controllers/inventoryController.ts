@@ -13,6 +13,49 @@ import {
 import type { TrustDraftInput } from '../services/trustVerification.engine';
 import { convertListingToUsd, isSupportedDisplayCurrency } from '../services/exchangeRate.service';
 
+const CATEGORY_ATTRIBUTES = {
+  size_and_color: [
+    'clothing', 'fashion', 'apparel', 'shoes', 'footwear',
+    'bags', 'accessories', 'sportswear', 'kids fashion',
+    'men fashion', 'women fashion', 'kids clothing',
+    'traditional wear', 'uniforms', 'swimwear',
+    'jerseys', 'jackets', 'shirts', 'dresses', 'trousers',
+    'suits', 'hoodies', 'sweaters', 'shorts', 'skirts',
+    'coats', 'lingerie', 'underwear', 'socks', 'ties',
+  ],
+  color_only: [
+    'furniture', 'home decor', 'paint', 'car accessories',
+    'phone cases', 'covers', 'curtains', 'bedding',
+    'wall art', 'rugs', 'cushions', 'stationery',
+    'school supplies',
+  ],
+  size_only: [
+    'tires', 'rings', 'belts', 'hats', 'caps',
+    'helmets', 'gloves', 'watches',
+  ],
+} as const;
+
+function categoryNeedsSize(category?: string) {
+  if (!category) return false;
+  const cat = String(category).toLowerCase().trim();
+  const all = [...CATEGORY_ATTRIBUTES.size_and_color, ...CATEGORY_ATTRIBUTES.size_only];
+  return all.some((c) => cat.includes(c) || c.includes(cat));
+}
+
+function categoryNeedsColor(category?: string) {
+  if (!category) return false;
+  const cat = String(category).toLowerCase().trim();
+  const all = [...CATEGORY_ATTRIBUTES.size_and_color, ...CATEGORY_ATTRIBUTES.color_only];
+  return all.some((c) => cat.includes(c) || c.includes(cat));
+}
+
+function normalizeStringArray(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((v) => String(v || '').trim())
+    .filter(Boolean);
+}
+
 function mapVerificationBody(v: unknown): Partial<TrustDraftInput> {
   if (!v || typeof v !== 'object') return {};
   const o = v as Record<string, unknown>;
@@ -172,6 +215,8 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       seoKeywords,
       warehouseId,
       verification: verificationBody,
+      sizes,
+      colors,
     } = req.body;
 
     const hasListingAmount =
@@ -210,6 +255,9 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ message: canonical.message });
     }
 
+    const normalizedSizes = categoryNeedsSize(category) ? normalizeStringArray(sizes) : [];
+    const normalizedColors = categoryNeedsColor(category) ? normalizeStringArray(colors) : [];
+
     const product = await Product.create({
       sellerId,
       name,
@@ -227,6 +275,8 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       status: status || 'in_stock',
       location,
       variants,
+      sizes: normalizedSizes,
+      colors: normalizedColors,
       tiers,
       images,
       seoTitle,
@@ -309,6 +359,8 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       'status',
       'location',
       'variants',
+      'sizes',
+      'colors',
       'tiers',
       'images',
       'warehouseId',
@@ -340,6 +392,17 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       (existing as any).listingCurrency = canonical.listingCurrency;
       (existing as any).listingPriceAmount = canonical.listingPriceAmount;
       (existing as any).listingExchangeRate = canonical.listingExchangeRate;
+    }
+
+    if (!categoryNeedsSize(existing.category || '')) {
+      (existing as any).sizes = [];
+    } else {
+      (existing as any).sizes = normalizeStringArray((existing as any).sizes);
+    }
+    if (!categoryNeedsColor(existing.category || '')) {
+      (existing as any).colors = [];
+    } else {
+      (existing as any).colors = normalizeStringArray((existing as any).colors);
     }
 
     const verificationBody = (req.body as any).verification;

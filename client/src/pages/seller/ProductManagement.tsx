@@ -9,11 +9,16 @@ import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
 import { SERVER_URL, API_BASE_URL } from '@/lib/config';
 import { currencyApi } from '@/services/currencyApi';
 import { formatIntNoDecimals } from '@/lib/currencyFormat';
+import { categoryNeedsColor, categoryNeedsSize } from '@/constants/categoryAttributes';
 
 const API_HOST = SERVER_URL;
 const API_BASE = `${API_BASE_URL}/seller/inventory`;
 
 const LISTING_CURRENCIES = ['USD', 'RWF', 'KES', 'UGX', 'TZS', 'NGN', 'EUR', 'GBP'] as const;
+const SIZE_OPTIONS = [
+  'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL',
+  '36', '37', '38', '39', '40', '41', '42', '43', '44', '45',
+] as const;
 
 type Variant = {
   color?: string;
@@ -42,6 +47,8 @@ interface Product {
   sku?: string;
   weight?: number;
   variants?: Variant[];
+  sizes?: string[];
+  colors?: string[];
    seoTitle?: string;
    seoDescription?: string;
    seoKeywords?: string;
@@ -111,6 +118,8 @@ const ProductManagement: React.FC = () => {
     seoTitle: '',
     seoDescription: '',
     seoKeywords: '',
+    sizes: [] as string[],
+    colors: [] as string[],
   });
   const [verificationInput, setVerificationInput] = useState({
     barcode: '',
@@ -146,6 +155,9 @@ const ProductManagement: React.FC = () => {
   const [trustPreviewLoading, setTrustPreviewLoading] = useState(false);
   const [listingUsdPreview, setListingUsdPreview] = useState<number | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const activeCategory = editingProduct?.category || newProduct.category;
+  const showSizeInputs = categoryNeedsSize(activeCategory);
+  const showColorInputs = categoryNeedsColor(activeCategory);
 
   const resolveImageUrl = (url: string): string => {
     if (!url) return url;
@@ -188,6 +200,8 @@ const ProductManagement: React.FC = () => {
     description: p.description,
     sku: p.sku,
     variants: p.variants,
+    sizes: Array.isArray(p.sizes) ? p.sizes : [],
+    colors: Array.isArray(p.colors) ? p.colors : [],
   seoTitle: p.seoTitle,
   seoDescription: p.seoDescription,
   seoKeywords: p.seoKeywords,
@@ -603,6 +617,8 @@ const ProductManagement: React.FC = () => {
           moq: editingProduct.moq,
           images: editingProduct.images,
           variants: editingProduct.variants,
+          sizes: categoryNeedsSize(editingProduct.category) ? (editingProduct.sizes || []) : [],
+          colors: categoryNeedsColor(editingProduct.category) ? (editingProduct.colors || []) : [],
           verification: verificationPayload,
         };
         const response = await fetch(`${API_BASE}/products/${editingProduct.id}`, {
@@ -641,6 +657,8 @@ const ProductManagement: React.FC = () => {
             : undefined,
           images: newProduct.images,
           variants: newProduct.variants,
+          sizes: categoryNeedsSize(newProduct.category) ? (newProduct.sizes || []) : [],
+          colors: categoryNeedsColor(newProduct.category) ? (newProduct.colors || []) : [],
           verification: verificationPayload,
         };
         const response = await fetch(`${API_BASE}/products`, {
@@ -678,6 +696,8 @@ const ProductManagement: React.FC = () => {
         seoTitle: '',
         seoDescription: '',
         seoKeywords: '',
+        sizes: [],
+        colors: [],
       });
       setVariantDraft({
         color: '',
@@ -1899,7 +1919,24 @@ const ProductManagement: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category *</label>
                   <select
                     value={editingProduct?.category || newProduct.category}
-                    onChange={(e) => editingProduct ? setEditingProduct({...editingProduct, category: e.target.value}) : setNewProduct({...newProduct, category: e.target.value})}
+                    onChange={(e) => {
+                      const categoryValue = e.target.value;
+                      if (editingProduct) {
+                        setEditingProduct({
+                          ...editingProduct,
+                          category: categoryValue,
+                          sizes: categoryNeedsSize(categoryValue) ? (editingProduct.sizes || []) : [],
+                          colors: categoryNeedsColor(categoryValue) ? (editingProduct.colors || []) : [],
+                        });
+                      } else {
+                        setNewProduct({
+                          ...newProduct,
+                          category: categoryValue,
+                          sizes: categoryNeedsSize(categoryValue) ? (newProduct.sizes || []) : [],
+                          colors: categoryNeedsColor(categoryValue) ? (newProduct.colors || []) : [],
+                        });
+                      }
+                    }}
                     className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                   >
                     <option value="">Select category</option>
@@ -1910,6 +1947,132 @@ const ProductManagement: React.FC = () => {
                   </select>
                 </div>
               </div>
+              {showSizeInputs && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Available Sizes</label>
+                  <div className="flex flex-wrap gap-2">
+                    {SIZE_OPTIONS.map((size) => {
+                      const currentSizes = editingProduct?.sizes || newProduct.sizes || [];
+                      const selected = currentSizes.includes(size);
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => {
+                            if (editingProduct) {
+                              const next = selected
+                                ? currentSizes.filter((s) => s !== size)
+                                : [...currentSizes, size];
+                              setEditingProduct({ ...editingProduct, sizes: next });
+                            } else {
+                              const next = selected
+                                ? currentSizes.filter((s) => s !== size)
+                                : [...currentSizes, size];
+                              setNewProduct({ ...newProduct, sizes: next });
+                            }
+                          }}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: 8,
+                            border: selected ? '2px solid #FF6B00' : '1px solid #E5E7EB',
+                            background: selected ? 'rgba(255,107,0,0.1)' : 'transparent',
+                            color: selected ? '#FF6B00' : '#374151',
+                            cursor: 'pointer',
+                            fontWeight: selected ? 600 : 400,
+                          }}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 6 }}>
+                    Click to toggle which sizes are available for this product
+                  </p>
+                </div>
+              )}
+              {showColorInputs && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Available Colors</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                    {(editingProduct?.colors || newProduct.colors || []).map((color, i) => (
+                      <div key={`${color}-${i}`} style={{ position: 'relative' }}>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            background: color,
+                            border: '2px solid #E5E7EB',
+                            cursor: 'pointer',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentColors = editingProduct?.colors || newProduct.colors || [];
+                            const next = currentColors.filter((_, idx) => idx !== i);
+                            if (editingProduct) {
+                              setEditingProduct({ ...editingProduct, colors: next });
+                            } else {
+                              setNewProduct({ ...newProduct, colors: next });
+                            }
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: -4,
+                            right: -4,
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            background: '#EF4444',
+                            color: 'white',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: 10,
+                            lineHeight: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      onChange={(e) => {
+                        const color = e.target.value;
+                        const currentColors = editingProduct?.colors || newProduct.colors || [];
+                        if (!currentColors.includes(color)) {
+                          if (editingProduct) {
+                            setEditingProduct({ ...editingProduct, colors: [...currentColors, color] });
+                          } else {
+                            setNewProduct({ ...newProduct, colors: [...currentColors, color] });
+                          }
+                        }
+                      }}
+                      style={{
+                        width: 44,
+                        height: 36,
+                        cursor: 'pointer',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: 8,
+                        padding: 2,
+                      }}
+                    />
+                    <span style={{ fontSize: 13, color: '#6B7280' }}>
+                      Click the color picker to add a color variant
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
+                    Click × on a color swatch to remove it
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description *</label>
                 <textarea

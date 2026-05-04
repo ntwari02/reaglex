@@ -625,7 +625,7 @@ function NotificationCard({
     if (n.unread) onMarkRead();
     if (n.type === 'order' && n.orderId) navigate(`/track/${n.orderId}`);
     else if (n.type === 'deal') navigate('/search?sort=discount');
-    else if (n.type === 'message') navigate('/messages');
+    else if (n.type === 'message') navigate('/account');
     else if (n.type === 'system') navigate('/account?tab=settings&section=profile');
     else if (n.type === 'review') navigate('/account?tab=reviews');
   };

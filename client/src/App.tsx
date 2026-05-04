@@ -28,6 +28,7 @@ import AssistantChat from './components/AssistantChat';
 import { websocketService } from './services/websocketService';
 // @ts-ignore Zustand JS store without TS types
 import { useBuyerCart } from './stores/buyerCartStore';
+// @ts-ignore JS module without TS typings
 import { isBuyerChromeHidden } from './config/buyerNavVisibility';
 
 /**
@@ -56,7 +57,9 @@ const SearchResults        = lazy(() => import('./pages/SearchResults'));
 const Checkout             = lazy(() => import('./pages/Checkout'));
 // @ts-ignore JSX module without TS typings
 const MomoPaymentWait      = lazy(() => import('./pages/MomoPaymentWait'));
+// @ts-ignore JSX module without TS typings
 const StripeReturn         = lazy(() => import('./pages/StripeReturn'));
+// @ts-ignore JSX module without TS typings
 const PayPalReturn         = lazy(() => import('./pages/PayPalReturn'));
 // @ts-ignore JSX modules without TS typings
 const OrderConfirmation    = lazy(() => import('./pages/OrderConfirmation'));
@@ -67,7 +70,6 @@ const BuyerDashboard       = lazy(() => import('./pages/BuyerDashboard'));
 // @ts-ignore JSX modules without TS typings
 const Returns              = lazy(() => import('./pages/Returns'));
 // @ts-ignore JSX modules without TS typings
-const Messages             = lazy(() => import('./pages/Messages'));
 // @ts-ignore JSX modules without TS typings
 const BuyerNotifications   = lazy(() => import('./pages/BuyerNotifications'));
 // @ts-ignore JSX modules without TS typings
@@ -229,7 +231,6 @@ function App() {
             <Route path="/account"                     element={<AccountRouteGuard />} />
             <Route path="/notifications"               element={<BuyerNotifications />} />
             <Route path="/returns"                     element={<Returns />} />
-            <Route path="/messages"                    element={<Messages />} />
             <Route path="/help"                        element={<BuyerHome />} />
             <Route path="/contact"                     element={<Contact />} />
             <Route path="/report-problem"              element={<ReportProblem />} />

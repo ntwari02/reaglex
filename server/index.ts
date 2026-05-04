@@ -246,7 +246,7 @@ app.use('/api/affiliate', affiliateRoutes);
 app.use('/api/track', trackingRoutes);
 // Buyer order routes
 app.use('/api/orders', buyerOrderRoutes);
-// Reaglex shipping (quotes)
+// Shipping (quotes)
 app.use('/api/shipping', shippingRoutes);
 // Admin routes
 app.use('/api/admin', adminRoutes);

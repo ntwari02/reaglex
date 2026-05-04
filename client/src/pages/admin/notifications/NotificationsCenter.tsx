@@ -237,6 +237,17 @@ export default function NotificationsCenter() {
     return () => clearTimeout(t);
   }, [appliedBodyId]);
 
+  useEffect(() => {
+    const syncAiPanelForMobile = () => {
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        setAiCollapsed(false);
+      }
+    };
+    syncAiPanelForMobile();
+    window.addEventListener('resize', syncAiPanelForMobile);
+    return () => window.removeEventListener('resize', syncAiPanelForMobile);
+  }, []);
+
   const searchDebounce = useRef<number | undefined>(undefined);
   useEffect(() => {
     if (toQuery.trim().length < 2 || targetGroup) {
@@ -526,7 +537,7 @@ export default function NotificationsCenter() {
 
   return (
     <div
-      className="nc-root"
+      className="nc-root notifications-page-root"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -541,7 +552,7 @@ export default function NotificationsCenter() {
       {toast && (
         <div
           role="status"
-          className="nc-toast"
+          className="nc-toast toast-notification"
           style={{
             position: 'fixed',
             bottom: 'max(24px, env(safe-area-inset-bottom, 0px))',
@@ -579,7 +590,7 @@ export default function NotificationsCenter() {
         <div className="nc-surface flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm dark:border-white/[0.07] dark:bg-[var(--card-bg)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
       {/* Top action bar */}
       <div
-        className="nc-topbar"
+        className="nc-topbar top-action-bar"
         style={{
           flexShrink: 0,
           minHeight: 44,
@@ -594,7 +605,7 @@ export default function NotificationsCenter() {
         }}
       >
         <div
-          className="nc-tabs"
+          className="nc-tabs notification-type-tabs"
           style={{
             flex: 1,
             display: 'flex',
@@ -615,7 +626,7 @@ export default function NotificationsCenter() {
               title={`${t.label} notification`}
               aria-label={`${t.label} notification`}
               onClick={() => setNotifType(t.id)}
-              className="nc-tab-btn"
+              className="nc-tab-btn tab-pill"
               style={{
                 padding: '6px 14px',
                 borderRadius: 99,
@@ -638,7 +649,7 @@ export default function NotificationsCenter() {
         </div>
 
         <div className="nc-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <label className="auto-save-toggle" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Auto-save</span>
             <button
               type="button"
@@ -672,7 +683,7 @@ export default function NotificationsCenter() {
 
           <button
             type="button"
-            className="nc-btn-ghost"
+            className="nc-btn-ghost schedule-btn"
             onClick={() => setShowScheduleModal(true)}
             style={{
               display: 'inline-flex',
@@ -698,7 +709,7 @@ export default function NotificationsCenter() {
 
           <button
             type="button"
-            className="nc-btn-ghost"
+            className="nc-btn-ghost save-draft-btn"
             onClick={() => {
               try {
                 localStorage.setItem(
@@ -747,7 +758,7 @@ export default function NotificationsCenter() {
 
           <button
             type="button"
-            className="nc-btn-send"
+            className="nc-btn-send send-now-btn"
             onClick={() => handleSend(false)}
             disabled={sending}
             onMouseEnter={(e) => {
@@ -783,7 +794,7 @@ export default function NotificationsCenter() {
 
       {/* Main row */}
       <div
-        className={`nc-main${aiCollapsed ? ' nc-main--ai-collapsed' : ''}`}
+        className={`nc-main two-panel-container${aiCollapsed ? ' nc-main--ai-collapsed' : ''}`}
         style={{
           flex: 1,
           display: 'flex',
@@ -794,7 +805,7 @@ export default function NotificationsCenter() {
       >
         {/* Left composer */}
         <div
-          className="nc-left nc-composer-glow"
+          className="nc-left nc-composer-glow left-composer-panel"
           style={{
             flex: 1,
             minWidth: 0,
@@ -806,11 +817,11 @@ export default function NotificationsCenter() {
         >
           {/* From */}
           <div
-            className="nc-field-row"
+            className="nc-field-row composer-field-row"
             style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
           >
             <div
-              className="nc-field-label"
+              className="nc-field-label composer-field-label"
               style={{
                 width: 72,
                 flexShrink: 0,
@@ -823,7 +834,7 @@ export default function NotificationsCenter() {
               From
             </div>
             <div
-              className="nc-field-value"
+              className="nc-field-value composer-field-content"
               style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '14px 16px 14px 0' }}
             >
               <span style={{ fontSize: 13, color: 'var(--text-disabled)' }}>
@@ -835,11 +846,11 @@ export default function NotificationsCenter() {
           {/* To */}
           <div
             ref={toRowRef}
-            className="nc-field-row nc-to-row"
+            className="nc-field-row nc-to-row composer-field-row"
             style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
           >
             <div
-              className="nc-field-label"
+              className="nc-field-label composer-field-label"
               style={{
                 width: 72,
                 flexShrink: 0,
@@ -852,7 +863,7 @@ export default function NotificationsCenter() {
               To
             </div>
             <div
-              className="nc-field-value nc-to-inputs"
+              className="nc-field-value nc-to-inputs composer-field-content"
               style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 0', minWidth: 0 }}
             >
               {targetGroup && (
@@ -913,6 +924,7 @@ export default function NotificationsCenter() {
                 }}
                 placeholder="Search users or select target group..."
                 disabled={!!targetGroup}
+                className="target-group-select"
                 style={{
                   flex: 1,
                   minWidth: 120,
@@ -1027,11 +1039,11 @@ export default function NotificationsCenter() {
 
           {/* Cc */}
           <div
-            className="nc-field-row"
+            className="nc-field-row composer-field-row"
             style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
           >
             <div
-              className="nc-field-label"
+              className="nc-field-label composer-field-label"
               style={{
                 width: 72,
                 flexShrink: 0,
@@ -1064,7 +1076,7 @@ export default function NotificationsCenter() {
                 </button>
               )}
             </div>
-            <div className="nc-field-value nc-cc-input-wrap" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+            <div className="nc-field-value nc-cc-input-wrap composer-field-content" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
               <input
                 value={ccInput}
                 onChange={(e) => setCcInput(e.target.value)}
@@ -1084,11 +1096,11 @@ export default function NotificationsCenter() {
 
           {showBcc && (
             <div
-              className="nc-field-row"
+              className="nc-field-row composer-field-row"
               style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
             >
               <div
-                className="nc-field-label"
+                className="nc-field-label composer-field-label"
                 style={{
                   width: 72,
                   flexShrink: 0,
@@ -1100,7 +1112,7 @@ export default function NotificationsCenter() {
               >
                 Bcc
               </div>
-              <div className="nc-field-value" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+              <div className="nc-field-value composer-field-content" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                 <input
                   value={bccInput}
                   onChange={(e) => setBccInput(e.target.value)}
@@ -1121,7 +1133,7 @@ export default function NotificationsCenter() {
 
           {/* Toolbar */}
           <div
-            className="nc-composer-toolbar"
+            className="nc-composer-toolbar composer-toolbar-row"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1159,10 +1171,10 @@ export default function NotificationsCenter() {
           </div>
 
           {/* Subject */}
-          <div className="nc-subject-block">
+          <div className="nc-subject-block subject-field-wrapper">
             <div style={{ padding: '12px 16px 4px', fontSize: 13, color: 'var(--text-muted)' }}>Subject</div>
             <input
-              className="nc-subject-input"
+              className="nc-subject-input subject-input"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Enter notification subject..."
@@ -1184,7 +1196,7 @@ export default function NotificationsCenter() {
           <div className="nc-body-area" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 200, minWidth: 0 }}>
             {notifType === 'email' && (
               <div
-                className="nc-format-bar"
+                className="nc-format-bar rich-text-toolbar"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1231,7 +1243,7 @@ export default function NotificationsCenter() {
 
             <textarea
               ref={bodyRef}
-              className="nc-body-textarea"
+              className="nc-body-textarea message-body-textarea"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder={
@@ -1265,7 +1277,7 @@ export default function NotificationsCenter() {
 
           {/* Bottom toolbar */}
           <div
-            className="nc-bottom-bar"
+            className="nc-bottom-bar composer-bottom-toolbar"
             style={{
               flexShrink: 0,
               display: 'flex',
@@ -1276,6 +1288,7 @@ export default function NotificationsCenter() {
               borderTop: '1px solid var(--divider)',
             }}
           >
+            <div className="bottom-icon-buttons" style={{ display: 'flex', gap: 16 }}>
             {[
               ['📎', () => showToast('Attachments coming soon', 'success')],
               ['🔗', () => wrapSelection('[text](', ')')],
@@ -1369,9 +1382,10 @@ export default function NotificationsCenter() {
                 )}
               </div>
             ))}
+            </div>
 
             {notifType === 'email' && (
-              <div className="nc-bottom-email-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div className="nc-bottom-email-actions test-send-section" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <input
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
@@ -1430,7 +1444,7 @@ export default function NotificationsCenter() {
         {/* Right column */}
         {!aiCollapsed && (
           <div
-            className="nc-right nc-ai-panel"
+            className="nc-right nc-ai-panel right-ai-panel"
             style={{
               width: 340,
               flexShrink: 0,
@@ -1439,6 +1453,10 @@ export default function NotificationsCenter() {
               minHeight: 0,
             }}
           >
+            <div className="ai-panel-mobile-header">
+              <span>✨</span> AI Writing Assistant
+              <span style={{ fontSize: 12, color: '#64748B', marginLeft: 'auto' }}>Scroll down to use ↓</span>
+            </div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
               <div
                 style={{
@@ -1518,6 +1536,7 @@ export default function NotificationsCenter() {
                 </div>
                 {subjects.map((s, i) => (
                   <div
+                    className="ai-suggestion-row"
                     key={s.id}
                     role="button"
                     tabIndex={0}
@@ -1541,7 +1560,7 @@ export default function NotificationsCenter() {
                       marginLeft: selectedSubject === s.id ? -2 : 0,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', padding: '10px 0', gap: 8 }}>
+                    <div className="ai-suggestion-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 0', gap: 8 }}>
                       <div
                         style={{
                           width: 16,
@@ -1621,6 +1640,7 @@ export default function NotificationsCenter() {
                     expandedBodyId === b.id ? b.text : (b.text || '').split('\n').slice(0, 3).join('\n');
                   return (
                     <div
+                      className="ai-suggestion-row"
                       key={b.id}
                       role="button"
                       tabIndex={0}
@@ -1640,7 +1660,7 @@ export default function NotificationsCenter() {
                         marginLeft: selectedBody === b.id ? -2 : 0,
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', padding: '10px 0', gap: 8 }}>
+                      <div className="ai-suggestion-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 0', gap: 8 }}>
                         <div
                           style={{
                             width: 16,
@@ -1722,12 +1742,13 @@ export default function NotificationsCenter() {
 
                 <div style={{ padding: '12px 16px' }}>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Tone</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <div className="tone-pills-row" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {['professional', 'friendly', 'urgent', 'promotional', 'informative'].map((t) => (
                       <button
                         key={t}
                         type="button"
                         onClick={() => setTone(t)}
+                        className="tone-pill"
                         style={{
                           fontSize: 11,
                           padding: '4px 10px',
@@ -1815,7 +1836,7 @@ export default function NotificationsCenter() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, padding: '12px 16px' }}>
+                <div className="ai-generate-buttons" style={{ display: 'flex', gap: 8, padding: '12px 16px' }}>
                   <button
                     type="button"
                     onClick={() => generateAI()}
@@ -1860,6 +1881,7 @@ export default function NotificationsCenter() {
                 </div>
 
                 <div
+                  className="ask-me-anything"
                   style={{
                     padding: '10px 16px',
                     borderTop: '1px solid var(--divider)',
@@ -1907,7 +1929,7 @@ export default function NotificationsCenter() {
             </div>
 
             {/* A/B panel */}
-            <div style={{ borderTop: '1px solid var(--divider)', padding: 16, flexShrink: 0 }}>
+            <div className="ab-testing-panel" style={{ borderTop: '1px solid var(--divider)', padding: 16, flexShrink: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>A/B Testing</div>
               <textarea
                 value={variantA}
@@ -1964,6 +1986,7 @@ export default function NotificationsCenter() {
               <button
                 type="button"
                 onClick={launchAb}
+                className="ab-launch-button"
                 style={{
                   width: '100%',
                   height: 40,
@@ -1991,7 +2014,7 @@ export default function NotificationsCenter() {
         {aiCollapsed && (
           <button
             type="button"
-            className="nc-ai-expand"
+            className="nc-ai-expand ai-panel-trigger-tab floating-ai-tab"
             onClick={() => setAiCollapsed(false)}
             style={{
               width: 36,
@@ -2038,7 +2061,7 @@ export default function NotificationsCenter() {
           <div
             role="dialog"
             aria-modal="true"
-            className="nc-modal-dialog"
+            className="nc-modal-dialog schedule-modal-box"
             style={{
               background: 'var(--modal-bg)',
               border: '1px solid var(--modal-border)',
@@ -2093,7 +2116,7 @@ export default function NotificationsCenter() {
               />
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 20 }}>Timezone: Africa/Kigali (CAT, UTC+2)</div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="schedule-modal-buttons" style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
                 onClick={() => setShowScheduleModal(false)}
@@ -2435,7 +2458,7 @@ export default function NotificationsCenter() {
           transform: scale(0.98);
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 768px) {
           .nc-main {
             flex-direction: column !important;
             overflow-y: auto !important;
@@ -2466,55 +2489,13 @@ export default function NotificationsCenter() {
           }
         }
 
-        @media (max-width: 900px) {
-          .nc-actions {
-            flex: 1 1 100%;
-            justify-content: flex-start;
-            gap: 8px !important;
-          }
-          .nc-actions .nc-btn-send {
-            flex: 1 1 auto;
-            min-width: 0;
-          }
-          .nc-actions .nc-btn-ghost {
-            flex: 1 1 calc(50% - 4px);
-            min-width: 0;
-          }
-        }
-
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .nc-tab-label {
             font-size: 11px;
           }
           .nc-tab-btn {
             padding: 8px 12px !important;
             min-height: 40px !important;
-          }
-          .nc-field-row {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .nc-field-label {
-            width: 100% !important;
-            padding: 12px 16px 4px !important;
-            box-sizing: border-box;
-          }
-          .nc-field-value,
-          .nc-to-inputs {
-            width: 100% !important;
-            padding: 4px 16px 12px !important;
-            box-sizing: border-box;
-          }
-          .nc-cc-input-wrap {
-            padding: 4px 16px 12px !important;
-          }
-          .nc-to-inputs {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .nc-to-inputs button {
-            min-height: 44px;
-            padding: 8px 14px !important;
           }
           .nc-composer-toolbar button {
             min-height: 40px;
@@ -2592,6 +2573,44 @@ export default function NotificationsCenter() {
           .nc-tab-btn {
             padding: 10px 12px !important;
           }
+          .composer-field-row {
+            flex-direction: column;
+            align-items: flex-start !important;
+            padding: 8px 12px !important;
+          }
+          .composer-field-label {
+            width: auto !important;
+            padding: 0 0 4px 0 !important;
+            font-size: 11px !important;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+          }
+          .composer-field-content {
+            width: 100%;
+          }
+          .target-group-select {
+            margin-top: 6px;
+            width: 100%;
+            text-align: left;
+          }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+          .composer-field-label {
+            width: 56px !important;
+            font-size: 12px !important;
+          }
+          .target-group-select {
+            font-size: 11px;
+            padding: 3px 6px !important;
+          }
+        }
+
+        .ai-panel-mobile-header {
+          display: none;
+        }
+        *, *::before, *::after {
+          box-sizing: border-box;
         }
 
         .nc-main.nc-main--ai-collapsed .nc-ai-expand {
@@ -2601,6 +2620,245 @@ export default function NotificationsCenter() {
           display: none;
         }
         @media (max-width: 768px) {
+          .notifications-page-root {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+          }
+          .notifications-page-root * {
+            max-width: 100%;
+            box-sizing: border-box;
+          }
+          .notifications-page-root > * {
+            padding-left: 12px;
+            padding-right: 12px;
+          }
+          .two-panel-container {
+            flex-direction: column !important;
+          }
+          .right-ai-panel {
+            width: 100% !important;
+            min-width: unset !important;
+            max-width: unset !important;
+            border-left: none !important;
+            border-top: 1px solid rgba(255,255,255,0.06) !important;
+          }
+          .left-composer-panel {
+            width: 100% !important;
+            min-width: unset !important;
+          }
+          .top-action-bar {
+            flex-wrap: wrap;
+            height: auto !important;
+            padding: 8px 12px !important;
+            gap: 8px !important;
+          }
+          .auto-save-toggle {
+            order: 1;
+            flex: 0 0 auto;
+          }
+          .schedule-btn {
+            order: 2;
+            flex: 1 !important;
+            justify-content: center;
+          }
+          .save-draft-btn {
+            order: 3;
+            width: 100%;
+            flex: 0 0 100% !important;
+            justify-content: center;
+          }
+          .send-now-btn {
+            order: 4;
+            width: 100%;
+            flex: 0 0 100% !important;
+            height: 48px !important;
+            font-size: 15px !important;
+            justify-content: center;
+          }
+          .notification-type-tabs {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            flex-wrap: nowrap !important;
+            padding-bottom: 4px;
+            -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+            mask-image: linear-gradient(to right, black 85%, transparent 100%);
+          }
+          .notification-type-tabs::-webkit-scrollbar {
+            display: none;
+          }
+          .notification-type-tabs .tab-pill {
+            flex-shrink: 0;
+            white-space: nowrap;
+          }
+          .ai-panel-trigger-tab,
+          .floating-ai-tab,
+          [class*="ai-assistant-tab"],
+          [class*="aiAssistantTab"] {
+            display: none !important;
+          }
+          .right-ai-panel::before {
+            content: '';
+            display: block;
+          }
+          .ai-panel-mobile-header {
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 14px;
+            font-weight: 600;
+            color: #F1F5F9;
+            background: rgba(0,191,165,0.04);
+          }
+          .rich-text-toolbar {
+            padding: 6px 12px !important;
+            gap: 2px !important;
+            overflow-x: auto;
+            scrollbar-width: none;
+            flex-wrap: nowrap !important;
+          }
+          .rich-text-toolbar::-webkit-scrollbar {
+            display: none;
+          }
+          .rich-text-toolbar button {
+            min-width: 32px !important;
+            height: 32px !important;
+            font-size: 12px !important;
+            flex-shrink: 0;
+          }
+          .composer-toolbar-row {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px 12px !important;
+          }
+          .composer-toolbar-row button {
+            width: 100%;
+            justify-content: center;
+            font-size: 11px !important;
+            padding: 7px 8px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .composer-bottom-toolbar {
+            flex-direction: column !important;
+            gap: 12px !important;
+            padding: 12px !important;
+          }
+          .bottom-icon-buttons {
+            display: flex;
+            gap: 16px;
+          }
+          .test-send-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .test-send-section input {
+            width: 100% !important;
+          }
+          .test-send-section button {
+            width: 100%;
+          }
+          .subject-field-wrapper {
+            padding: 12px 12px 4px !important;
+          }
+          .subject-input {
+            padding: 8px 12px 14px !important;
+            font-size: 16px !important;
+          }
+          input, textarea, select {
+            font-size: 16px !important;
+          }
+          .message-body-textarea {
+            min-height: 200px !important;
+            height: 200px !important;
+            resize: vertical;
+          }
+          .ai-suggestion-row {
+            padding: 0 12px !important;
+          }
+          .ai-suggestion-header {
+            padding: 14px 0 !important;
+            min-height: 48px;
+          }
+          .ai-suggestion-header button {
+            min-width: 36px !important;
+            min-height: 36px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .tone-pills-row {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            padding: 12px !important;
+          }
+          .tone-pill {
+            padding: 6px 14px !important;
+            font-size: 12px !important;
+            min-height: 36px;
+          }
+          .ai-generate-buttons {
+            padding: 12px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .ai-generate-buttons button {
+            width: 100% !important;
+            height: 44px !important;
+            font-size: 14px !important;
+          }
+          .ask-me-anything {
+            padding: 12px !important;
+          }
+          .ask-me-anything input {
+            font-size: 16px !important;
+          }
+          .ab-testing-panel {
+            padding: 16px 12px !important;
+          }
+          .ab-testing-panel textarea {
+            font-size: 16px !important;
+            min-height: 88px !important;
+          }
+          .ab-launch-button {
+            height: 44px !important;
+            font-size: 14px !important;
+          }
+          .schedule-modal-box {
+            width: calc(100vw - 32px) !important;
+            max-width: 400px !important;
+            margin: 0 16px;
+            padding: 20px 16px !important;
+          }
+          .schedule-modal-box input[type="date"],
+          .schedule-modal-box input[type="time"] {
+            font-size: 16px !important;
+          }
+          .schedule-modal-buttons {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .schedule-modal-buttons button {
+            width: 100% !important;
+            height: 44px !important;
+          }
+          .toast-notification {
+            bottom: 80px !important;
+            right: 12px !important;
+            left: 12px !important;
+            width: auto !important;
+            max-width: unset !important;
+            text-align: center;
+          }
           .nc-ai-expand-desktop {
             display: none;
           }
