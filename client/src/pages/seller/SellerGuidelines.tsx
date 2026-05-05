@@ -2981,17 +2981,21 @@ export default function SellerGuidelines() {
         <section
           className="rounded-[24px] px-6 py-10 sm:px-10"
           style={{
-            background:
-              'linear-gradient(135deg,#020617 0%,#020617 15%,#0f172a 60%,#020617 100%)',
+            background: 'var(--guidelines-hero-bg)',
+            boxShadow: 'var(--guidelines-hero-shadow)',
+            border: '1px solid var(--guidelines-hero-border)',
           }}
         >
           <div className="mx-auto max-w-4xl text-center space-y-4">
-            <p className="text-3xl sm:text-4xl font-extrabold text-white">
+            <p
+              className="text-3xl sm:text-4xl font-extrabold"
+              style={{ color: 'var(--guidelines-hero-title)' }}
+            >
               📋 Seller Guidelines
             </p>
             <p
               className="text-sm sm:text-base"
-              style={{ color: 'rgba(241,245,249,0.8)' }}
+              style={{ color: 'var(--guidelines-hero-subtitle)' }}
             >
               Everything you need to know to sell successfully on Reaglex.
             </p>
@@ -3006,20 +3010,20 @@ export default function SellerGuidelines() {
               transition={{ duration: 0.35, ease: [0.25, 0.8, 0.4, 1] }}
               className="rounded-2xl px-5 py-4 md:px-6 md:py-5 flex flex-col gap-1 md:flex-row md:items-center md:justify-between"
               style={{
-                background:
-                  'linear-gradient(135deg, rgba(34,197,94,0.25), rgba(21,128,61,0.15))',
+                background: 'var(--guidelines-success-bg)',
+                border: '1px solid var(--guidelines-success-border)',
               }}
             >
               <div>
                 <p
                   className="text-sm md:text-base font-semibold"
-                  style={{ color: '#ecfdf5' }}
+                  style={{ color: 'var(--guidelines-success-title)' }}
                 >
                   🎉 You&apos;ve read all guidelines!
                 </p>
                 <p
                   className="text-xs md:text-sm"
-                  style={{ color: '#bbf7d0' }}
+                  style={{ color: 'var(--guidelines-success-subtitle)' }}
                 >
                   You can now acknowledge below or start applying these best practices in your
                   store.
@@ -3054,13 +3058,14 @@ export default function SellerGuidelines() {
                   <div
                     className="relative flex h-14 w-14 items-center justify-center rounded-full"
                     style={{
-                      background: `conic-gradient(#22c55e ${progressDegrees}deg, rgba(15,23,42,0.9) 0deg)`,
+                      background: `conic-gradient(var(--guidelines-progress-fill) ${progressDegrees}deg, var(--guidelines-progress-track) 0deg)`,
+                      boxShadow: '0 0 0 1px var(--guidelines-progress-ring)',
                     }}
                   >
                     <div
                       className="flex h-11 w-11 items-center justify-center rounded-full"
                       style={{
-                        background: '#020617',
+                        background: 'var(--guidelines-progress-core)',
                       }}
                     >
                       <span
@@ -3110,7 +3115,7 @@ export default function SellerGuidelines() {
                       className="toc-item group flex w-full items-center justify-between rounded-[10px] px-3 py-2 text-left text-xs transition-colors"
                       style={{
                         background:
-                          active || isOpen ? 'rgba(15,23,42,0.85)' : 'transparent',
+                          active || isOpen ? 'var(--guidelines-toc-active-bg)' : 'transparent',
                         color: 'var(--text-secondary)',
                       }}
                     >
@@ -3202,8 +3207,8 @@ export default function SellerGuidelines() {
                           transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
                           className="flex h-7 w-7 items-center justify-center rounded-full"
                           style={{
-                            background: 'rgba(15,23,42,0.9)',
-                            boxShadow: '0 0 0 1px rgba(148,163,184,0.3)',
+                            background: 'var(--guidelines-icon-chip-bg)',
+                            boxShadow: '0 0 0 1px var(--guidelines-icon-chip-border)',
                           }}
                         >
                           <ChevronDown
@@ -3241,8 +3246,7 @@ export default function SellerGuidelines() {
                             right: 0,
                             top: 0,
                             height: 1,
-                            background:
-                              'linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent)',
+                            background: 'var(--guidelines-divider-glow)',
                           }}
                         />
                         <div className="pt-5">
@@ -3366,6 +3370,23 @@ export default function SellerGuidelines() {
           {`
 :root {
   --header-total-height: 264px;
+  --guidelines-hero-bg: linear-gradient(140deg, #f8fbff 0%, #eef4ff 45%, #e8f7ff 100%);
+  --guidelines-hero-title: #0b1325;
+  --guidelines-hero-subtitle: #30405f;
+  --guidelines-hero-border: rgba(37, 99, 235, 0.18);
+  --guidelines-hero-shadow: 0 20px 48px rgba(14, 116, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --guidelines-success-bg: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(16, 185, 129, 0.1));
+  --guidelines-success-border: rgba(22, 163, 74, 0.35);
+  --guidelines-success-title: #065f46;
+  --guidelines-success-subtitle: #065f46;
+  --guidelines-progress-fill: #22c55e;
+  --guidelines-progress-track: rgba(59, 130, 246, 0.22);
+  --guidelines-progress-core: rgba(248, 250, 252, 0.96);
+  --guidelines-progress-ring: rgba(59, 130, 246, 0.35);
+  --guidelines-toc-active-bg: linear-gradient(90deg, rgba(14, 116, 255, 0.14), rgba(6, 182, 212, 0.08));
+  --guidelines-icon-chip-bg: rgba(255, 255, 255, 0.92);
+  --guidelines-icon-chip-border: rgba(59, 130, 246, 0.32);
+  --guidelines-divider-glow: linear-gradient(to right, transparent, rgba(14, 116, 255, 0.28), transparent);
 }
 
 .guidelines-layout {
@@ -3377,6 +3398,17 @@ export default function SellerGuidelines() {
   position: relative;
   gap: 24px;
   padding: 24px 0;
+}
+
+.guidelines-layout::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 16% 14%, rgba(59, 130, 246, 0.12), transparent 38%),
+    radial-gradient(circle at 88% 84%, rgba(6, 182, 212, 0.1), transparent 40%);
 }
 
 .guidelines-sidebar {
@@ -3477,6 +3509,26 @@ export default function SellerGuidelines() {
 [data-theme="dark"] .guidelines-sidebar::-webkit-scrollbar-thumb:hover,
 [data-theme="dark"] .guidelines-content::-webkit-scrollbar-thumb:hover {
   background: #28304a;
+}
+
+[data-theme="dark"] {
+  --guidelines-hero-bg: linear-gradient(135deg, #020617 0%, #020617 15%, #0f172a 60%, #020617 100%);
+  --guidelines-hero-title: #f8fafc;
+  --guidelines-hero-subtitle: rgba(241, 245, 249, 0.82);
+  --guidelines-hero-border: rgba(59, 130, 246, 0.22);
+  --guidelines-hero-shadow: 0 20px 55px rgba(2, 6, 23, 0.6), inset 0 1px 0 rgba(148, 163, 184, 0.12);
+  --guidelines-success-bg: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(21, 128, 61, 0.15));
+  --guidelines-success-border: rgba(52, 211, 153, 0.35);
+  --guidelines-success-title: #ecfdf5;
+  --guidelines-success-subtitle: #bbf7d0;
+  --guidelines-progress-fill: #22c55e;
+  --guidelines-progress-track: rgba(15, 23, 42, 0.9);
+  --guidelines-progress-core: #020617;
+  --guidelines-progress-ring: rgba(148, 163, 184, 0.24);
+  --guidelines-toc-active-bg: rgba(15, 23, 42, 0.85);
+  --guidelines-icon-chip-bg: rgba(15, 23, 42, 0.9);
+  --guidelines-icon-chip-border: rgba(148, 163, 184, 0.3);
+  --guidelines-divider-glow: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.08), transparent);
 }
           `}
         </style>
