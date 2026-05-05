@@ -16,8 +16,10 @@ import {
 import { releaseEscrow } from '../services/escrowService';
 import { raiseDispute, resolveDispute } from '../services/disputeService';
 import { Order } from '../models/Order';
+import { User } from '../models/User';
 import { SellerWallet } from '../models/SellerWallet';
 import { TransactionLog } from '../models/TransactionLog';
+import { SellerSettings } from '../models/SellerSettings';
 import mongoose from 'mongoose';
 
 const router = Router();
@@ -345,6 +347,77 @@ router.get(
 );
 
 // Seller withdrawal request (from available balance)
+router.get(
+  '/seller/wallet',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      const sellerObjectId = new mongoose.Types.ObjectId(req.user.id);
+      const wallet = await SellerWallet.findOne({ sellerId: sellerObjectId }).lean();
+      const orders = await Order.find({ sellerId: sellerObjectId })
+        .select('escrow.status fees')
+        .lean();
+      const recent = await TransactionLog.find({ sellerId: sellerObjectId, type: { $in: ['PAYMENT', 'RELEASE', 'WITHDRAWAL'] } })
+        .sort({ createdAt: -1 })
+        .limit(12)
+        .lean();
+
+      const heldOrderCount = orders.filter((o: any) => ['PENDING', 'ESCROW_HOLD', 'SHIPPED', 'DISPUTED'].includes(String(o?.escrow?.status || ''))).length;
+      const releasedOrderCount = orders.filter((o: any) => ['RELEASED', 'AUTO_RELEASED'].includes(String(o?.escrow?.status || ''))).length;
+      const feeTotals = orders.reduce(
+        (acc: { platform: number; processing: number; sellerNet: number }, o: any) => {
+          acc.platform += Number(o?.fees?.platformFeeAmount || 0);
+          acc.processing += Number(o?.fees?.flutterwaveFee || 0);
+          acc.sellerNet += Number(o?.fees?.sellerAmount || 0);
+          return acc;
+        },
+        { platform: 0, processing: 0, sellerNet: 0 },
+      );
+
+      const summary = {
+        currency: wallet?.currency || 'USD',
+        held: Number(wallet?.balance?.pending || 0),
+        withdrawable: Number(wallet?.balance?.available || 0),
+        withdrawn: Number(wallet?.balance?.withdrawn || 0),
+      };
+      const sellerSettings = await SellerSettings.findOne({ sellerId: sellerObjectId }).lean();
+      const payoutMethods = Array.isArray(sellerSettings?.payoutMethods) ? sellerSettings!.payoutMethods : [];
+      const visiblePayoutMethods = payoutMethods.map((m: any) => ({
+        id: String(m?._id || ''),
+        method: m?.method,
+        isDefault: Boolean(m?.isDefault),
+        mobileMoneyProvider: m?.mobileMoneyProvider,
+        verificationStatus: m?.verificationStatus,
+      }));
+
+      return res.json({
+        wallet: summary,
+        escrow: {
+          heldOrders: heldOrderCount,
+          releasedOrders: releasedOrderCount,
+        },
+        fees: feeTotals,
+        payoutMethods: visiblePayoutMethods,
+        recentTransactions: recent.map((r) => ({
+          id: String(r._id),
+          type: r.type,
+          amount: r.amount,
+          currency: r.currency,
+          status: r.status,
+          createdAt: r.createdAt,
+          orderId: r.orderId ? String(r.orderId) : undefined,
+        })),
+      });
+    } catch (err: any) {
+      console.error('Seller wallet summary error:', err);
+      return res.status(500).json({ message: 'Failed to load wallet summary' });
+    }
+  },
+);
+
 router.post(
   '/seller/withdraw',
   authenticate,
@@ -355,8 +428,23 @@ router.post(
       }
 
       const { amount } = req.body;
+      const payoutMethodId = String((req.body as any)?.payoutMethodId || '');
+      const password = String((req.body as any)?.password || '');
       if (!amount || amount <= 0) {
         return res.status(400).json({ message: 'Invalid amount' });
+      }
+      if (!password.trim()) {
+        return res.status(400).json({ message: 'Password confirmation is required' });
+      }
+
+      const sellerUser = await User.findById(req.user.id).select('passwordHash').lean();
+      if (!sellerUser?.passwordHash) {
+        return res.status(401).json({ message: 'Could not verify seller account password' });
+      }
+      const bcrypt = (await import('bcryptjs')).default;
+      const ok = await bcrypt.compare(password, sellerUser.passwordHash);
+      if (!ok) {
+        return res.status(401).json({ message: 'Invalid password confirmation' });
       }
 
       const sellerObjectId = new mongoose.Types.ObjectId(req.user.id);
@@ -365,8 +453,35 @@ router.post(
         return res.status(400).json({ message: 'Insufficient available balance' });
       }
 
-      // Here you would typically initiate a transfer to seller bank using Flutterwave.
-      // For now we simply move funds from available → withdrawn.
+      const sellerSettings = await SellerSettings.findOne({ sellerId: sellerObjectId }).lean();
+      const payoutMethods = Array.isArray(sellerSettings?.payoutMethods) ? sellerSettings!.payoutMethods : [];
+      const selectedMethod =
+        (payoutMethodId
+          ? payoutMethods.find((m: any) => String(m?._id || '') === payoutMethodId)
+          : undefined) ||
+        payoutMethods.find((m: any) => m?.isDefault) ||
+        payoutMethods[0];
+      if (!selectedMethod) {
+        return res.status(400).json({ message: 'Add and verify a payout method before withdrawing funds' });
+      }
+      if (selectedMethod.verificationStatus && selectedMethod.verificationStatus !== 'verified') {
+        return res.status(400).json({ message: 'Selected payout method must be verified before withdrawal' });
+      }
+
+      if (selectedMethod.method === 'mobile_money') {
+        const provider = String(selectedMethod.mobileMoneyProvider || '').toLowerCase();
+        if (provider.includes('mtn')) {
+          await assertPaymentGatewayEnabled('mtn_momo');
+        } else if (provider.includes('airtel')) {
+          await assertPaymentGatewayEnabled('airtel_money');
+        }
+      } else if (selectedMethod.method === 'paypal') {
+        await assertPaymentGatewayEnabled('paypal');
+      } else if (selectedMethod.method === 'bank_transfer') {
+        await assertPaymentGatewayEnabled('flutterwave');
+      }
+
+      // Move funds from available -> withdrawn once withdrawal is accepted.
       await SellerWallet.updateOne(
         { sellerId: sellerObjectId },
         {
@@ -382,11 +497,26 @@ router.post(
         sellerId: new mongoose.Types.ObjectId(req.user.id),
         amount,
         currency: wallet.currency,
-        status: 'PENDING',
+        status: 'SUCCESS',
+        metadata: {
+          payoutMethodId: String(selectedMethod._id || ''),
+          payoutMethod: selectedMethod.method,
+          mobileMoneyProvider: selectedMethod.mobileMoneyProvider,
+          mobileMoneyNumber: selectedMethod.mobileMoneyNumber
+            ? `****${String(selectedMethod.mobileMoneyNumber).slice(-4)}`
+            : undefined,
+        },
       });
 
-      return res.json({ message: 'Withdrawal requested', pendingAmount: amount });
+      return res.json({ message: 'Withdrawal completed', amount });
     } catch (err: any) {
+      if (err instanceof PaymentGatewayDisabledError) {
+        return res.status(403).json({
+          message: 'Selected withdrawal method is disabled by admin',
+          code: err.code,
+          gatewayKey: err.gatewayKey,
+        });
+      }
       // eslint-disable-next-line no-console
       console.error('Seller withdraw error:', err);
       return res.status(500).json({ message: 'Failed to request withdrawal' });

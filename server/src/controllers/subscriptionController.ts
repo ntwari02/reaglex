@@ -318,7 +318,7 @@ export async function addPaymentMethod(req: AuthenticatedRequest, res: Response)
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { type, cardNumber, expiryMonth, expiryYear, cvv, cardholderName, phoneNumber, accountName, provider } = req.body;
+    const { type, cardNumber, expiryMonth, expiryYear, cvv, cardholderName, phoneNumber, accountName, provider, paypalEmail } = req.body;
 
     // Determine payment method type
     const paymentType = type || (cardNumber ? 'visa' : (provider || 'mtn'));
@@ -398,8 +398,26 @@ export async function addPaymentMethod(req: AuthenticatedRequest, res: Response)
         created_at: new Date(),
         updated_at: new Date(),
       };
+    } else if (paymentType === 'paypal') {
+      if (!paypalEmail || !String(paypalEmail).includes('@')) {
+        return res.status(400).json({ message: 'Valid PayPal email is required' });
+      }
+      const paymentMethodId = `pp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      newPaymentMethod = {
+        payment_method_id: paymentMethodId,
+        type: 'paypal',
+        brand: 'PayPal',
+        last4: String(paypalEmail).slice(-4),
+        paypal_email: String(paypalEmail).trim().toLowerCase(),
+        is_default: true,
+        is_active: true,
+        gateway_payment_method_id: paymentMethodId,
+        gateway_type: 'paypal',
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
     } else {
-      return res.status(400).json({ message: 'Invalid payment method type. Supported: visa, mtn, airtel' });
+      return res.status(400).json({ message: 'Invalid payment method type. Supported: visa, mtn, airtel, paypal' });
     }
 
     // Find or create subscription
@@ -939,7 +957,7 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { tierId } = req.body;
+    const { tierId, paymentMethodId } = req.body;
     
     console.log('Upgrade subscription request:', { 
       userId: req.user.id, 
@@ -1151,10 +1169,14 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
 
     // Get default payment method (only required for paid plans)
     const paymentMethods = ensurePaymentMethodsArray(subscription.payment_methods);
-    const defaultPaymentMethod = paymentMethods.find((m: any) => m && m.is_default && m.is_active);
+    const selectedPaymentMethod =
+      (paymentMethodId
+        ? paymentMethods.find((m: any) => m && m.payment_method_id === paymentMethodId && m.is_active)
+        : undefined) ||
+      paymentMethods.find((m: any) => m && m.is_default && m.is_active);
 
     // If plan requires payment and no payment method exists
-    if (newPlan.price > 0 && !defaultPaymentMethod) {
+    if (newPlan.price > 0 && !selectedPaymentMethod) {
       return res.status(400).json({ 
         message: 'No default payment method found. Please add a payment method first.',
         requiresPaymentMethod: true 
@@ -1163,9 +1185,9 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
 
     // Simulate payment (only if plan costs money)
     let paymentResult = null;
-    if (newPlan.price > 0 && defaultPaymentMethod) {
+    if (newPlan.price > 0 && selectedPaymentMethod) {
       paymentResult = await chargeDefaultPaymentMethodForSubscription(
-        defaultPaymentMethod,
+        selectedPaymentMethod,
         paymentAmount,
         newPlan.currency || 'USD',
         isNewSubscription
@@ -1308,7 +1330,7 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
         subscription_amount: paymentAmount,
         currency: 'USD',
         status: 'paid',
-        payment_method_id: defaultPaymentMethod?.payment_method_id || null,
+        payment_method_id: selectedPaymentMethod?.payment_method_id || null,
         payment_date: invoiceDate,
         transaction_id: paymentResult.transactionId,
         gateway_ref: paymentResult.gatewayRef,

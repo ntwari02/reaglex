@@ -3,6 +3,7 @@ import { getFlutterwaveClient } from '../config/flutterwave';
 import { getClientUrl } from '../config/publicEnv';
 import { Order, IOrder } from '../models/Order';
 import { EscrowWallet } from '../models/EscrowWallet';
+import { SellerWallet } from '../models/SellerWallet';
 import { TransactionLog } from '../models/TransactionLog';
 import { sendNotification } from './notificationService';
 import { scheduleAutoRelease } from './escrowService';
@@ -154,6 +155,20 @@ export async function finalizeSuccessfulEscrowPayment(
       );
 
       await EscrowWallet.updateOne({}, { $inc: { totalHeld: feeBaseAmount } }, { upsert: true, session });
+
+      // Keep seller-facing wallet balances in sync:
+      // funds are held in pending until delivery release moves them to available.
+      await SellerWallet.updateOne(
+        { sellerId: order.sellerId },
+        {
+          $setOnInsert: {
+            sellerId: order.sellerId,
+            currency: ctx.currency || 'USD',
+          },
+          $inc: { 'balance.pending': fees.sellerReceives },
+        },
+        { upsert: true, session },
+      );
 
       await new TransactionLog({
         type: 'PAYMENT',

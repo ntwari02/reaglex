@@ -182,8 +182,9 @@ export const paymentAPI = {
     api.post(`/payments/orders/${orderId}/dispute`, payload).then((r) => r.data),
   getEscrowStatus: (orderId: string) =>
     api.get(`/payments/orders/${orderId}/escrow-status`).then((r) => r.data),
-  sellerWithdraw: (amount: number) =>
-    api.post('/payments/seller/withdraw', { amount }).then((r) => r.data),
+  sellerWallet: () => api.get('/payments/seller/wallet').then((r) => r.data),
+  sellerWithdraw: (amount: number, password: string, payoutMethodId?: string) =>
+    api.post('/payments/seller/withdraw', { amount, password, payoutMethodId }).then((r) => r.data),
   adminResolveDispute: (disputeId: string, resolution: unknown) =>
     api
       .post(`/payments/admin/disputes/${disputeId}/resolve`, { resolution })

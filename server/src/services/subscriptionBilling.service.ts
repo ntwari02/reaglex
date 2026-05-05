@@ -133,6 +133,48 @@ export async function chargeDefaultPaymentMethodForSubscription(
     };
   }
 
+  if (gw === 'airtel_money') {
+    try {
+      await assertPaymentGatewayEnabled('airtel_money');
+    } catch {
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        message: 'Airtel Money is disabled for payments',
+        failureReason: 'gateway_disabled',
+      };
+    }
+  }
+
+  if (gw === 'stripe' || gw === 'card') {
+    try {
+      await assertPaymentGatewayEnabled('stripe');
+    } catch {
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        message: 'Card payments are disabled for subscription upgrades',
+        failureReason: 'gateway_disabled',
+      };
+    }
+  }
+
+  if (gw === 'paypal') {
+    try {
+      await assertPaymentGatewayEnabled('paypal');
+    } catch {
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        message: 'PayPal is disabled for subscription upgrades',
+        failureReason: 'gateway_disabled',
+      };
+    }
+  }
+
   return simulatePayment({
     amount,
     currency: planCurrency || 'USD',

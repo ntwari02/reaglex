@@ -1,22 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { profileAPI } from '../lib/api';
-import { currencyApi } from '../services/currencyApi';
-import { isSupportedCurrency, type SupportedCurrency } from '../lib/currencyFormat';
 
 type Theme = 'dark' | 'light';
 type Language = 'en' | 'fr' | 'rw' | 'sw';
-type Currency = SupportedCurrency;
-
-function normalizeLanguage(raw: string | undefined | null): Language {
-  const lower = String(raw || 'en').toLowerCase();
-  if (lower === 'en' || lower === 'fr' || lower === 'rw' || lower === 'sw') return lower;
-  const upper = String(raw || '').toUpperCase();
-  if (upper === 'EN') return 'en';
-  if (upper === 'FR') return 'fr';
-  if (upper === 'RW') return 'rw';
-  return 'en';
-}
+type Currency = 'USD' | 'EUR' | 'RWF' | 'KES';
 
 interface ThemeContextType {
   theme: Theme;
@@ -90,19 +78,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   const [language, setLanguage] = useState<Language>(() => {
-    try {
-      return normalizeLanguage(localStorage.getItem('language'));
-    } catch {
-      return 'en';
-    }
+    try { return (localStorage.getItem('language') as Language) || 'en'; } catch { return 'en'; }
   });
 
   const [currency, setCurrency] = useState<Currency>(() => {
-    try {
-      const stored = localStorage.getItem('currency');
-      if (stored && isSupportedCurrency(stored)) return stored;
-    } catch {}
-    return 'USD';
+    try { return (localStorage.getItem('currency') as Currency) || 'USD'; } catch { return 'USD'; }
   });
 
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -135,57 +115,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setIsInitialLoad(false);
   }, []);
 
-  useEffect(() => {
-    if (user) return;
-    const hasLocalCurrency = Boolean(localStorage.getItem('currency'));
-    if (hasLocalCurrency) return;
-    currencyApi
-      .getContext()
-      .then((data) => {
-        const raw = String(data?.selectedCurrency || data?.detectedCurrency || 'USD').toUpperCase();
-        const next: Currency = isSupportedCurrency(raw) ? raw : 'USD';
-        setCurrency(next);
-        localStorage.setItem('currency', next);
-      })
-      .catch(() => null);
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) {
-      setDbPreferencesLoaded(false);
-    }
-  }, [user]);
-
-  // Load user preferences from DB when logged in; currency comes from /currency/context (geo vs pinned).
+  // Load user preferences from DB when logged in
   useEffect(() => {
     if (user && !dbPreferencesLoaded) {
       const loadPreferencesFromDB = async () => {
         try {
           const profileData = await profileAPI.getProfile();
-          const prefs = profileData.user?.preferences;
 
-          if (prefs) {
-            if (prefs.theme && prefs.theme !== 'auto') {
-              setThemeState(prefs.theme as Theme);
-              localStorage.setItem('theme', prefs.theme);
+          if (profileData.preferences) {
+            if (profileData.preferences.theme && profileData.preferences.theme !== 'auto') {
+              setThemeState(profileData.preferences.theme as Theme);
+              localStorage.setItem('theme', profileData.preferences.theme);
             }
-            if (prefs.language) {
-              const lang = normalizeLanguage(prefs.language);
-              setLanguage(lang);
-              localStorage.setItem('language', lang);
+            if (profileData.preferences.language) {
+              setLanguage(profileData.preferences.language as Language);
+              localStorage.setItem('language', profileData.preferences.language);
+            }
+            if (profileData.preferences.currency) {
+              setCurrency(profileData.preferences.currency as Currency);
+              localStorage.setItem('currency', profileData.preferences.currency);
             }
           }
-
-          try {
-            const ctx = await currencyApi.getContext();
-            const raw = String(ctx?.selectedCurrency || ctx?.detectedCurrency || 'USD').toUpperCase();
-            const nextCur: Currency = isSupportedCurrency(raw) ? raw : 'USD';
-            setCurrency(nextCur);
-            localStorage.setItem('currency', nextCur);
-          } catch {
-            /* keep existing local currency */
-          }
-
           setDbPreferencesLoaded(true);
         } catch (error) {
           if (isAuthSessionError(error)) {
@@ -223,19 +173,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.documentElement.lang = language;
-  }, [language]);
-
   const handleSetLanguage = (lang: Language) => {
-    const next = normalizeLanguage(lang);
-    setLanguage(next);
-    localStorage.setItem('language', next);
+    setLanguage(lang);
+    localStorage.setItem('language', lang);
     if (user && dbPreferencesLoaded) {
       const saveLanguageToDB = async () => {
         try {
-          await profileAPI.updatePreferences({ language: next });
+          await profileAPI.updatePreferences({ language: lang });
         } catch (error) {
           if (isAuthSessionError(error)) {
             await useAuthStore
@@ -251,9 +195,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSetCurrency = (curr: Currency) => {
-    const next: Currency = isSupportedCurrency(curr) ? curr : 'USD';
-    setCurrency(next);
-    localStorage.setItem('currency', next);
+    setCurrency(curr);
+    localStorage.setItem('currency', curr);
     if (user && dbPreferencesLoaded) {
       const saveCurrencyToDB = async () => {
         try {

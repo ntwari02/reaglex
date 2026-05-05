@@ -15,6 +15,7 @@ import {
   FolderKanban,
   LifeBuoy,
   Truck,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -74,6 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'collections', label: t('sidebar.collections'), icon: FolderKanban },
     { id: 'analytics', label: t('header.analytics'), icon: BarChart3 },
     { id: 'subscription', label: t('sidebar.subscription'), icon: Crown },
+    { id: 'payments', label: 'Payments & Escrow', icon: Wallet },
     { id: 'support', label: t('sidebar.supportCenter'), icon: LifeBuoy },
     { id: 'settings', label: t('account.profileSettings'), icon: Settings },
   ];

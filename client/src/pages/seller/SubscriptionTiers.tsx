@@ -109,9 +109,11 @@ const SubscriptionTiers: React.FC = () => {
   const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+  const [selectedUpgradePaymentMethodId, setSelectedUpgradePaymentMethodId] = useState('');
   const [upgradingPlanKey, setUpgradingPlanKey] = useState<string | null>(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [addingCard, setAddingCard] = useState(false);
+  const [newMethodType, setNewMethodType] = useState<'visa' | 'mtn' | 'airtel' | 'paypal'>('visa');
   const [billingStatusFilter, setBillingStatusFilter] = useState('');
   const [billingSort, setBillingSort] = useState<'newest' | 'oldest'>('newest');
   const [cardData, setCardData] = useState({
@@ -120,6 +122,9 @@ const SubscriptionTiers: React.FC = () => {
     expiryMonth: '',
     expiryYear: '',
     cvv: '',
+    phoneNumber: '',
+    accountName: '',
+    paypalEmail: '',
   });
 
   const fetchPlansAndSubscription = async () => {
@@ -132,6 +137,11 @@ const SubscriptionTiers: React.FC = () => {
       ]);
       setTiers(plansRes.plans || []);
       setCurrentSubscription(subRes.subscription || null);
+      const pmRes = await subscriptionApi.getPaymentMethods().catch(() => ({ paymentMethods: [] as any[] }));
+      const list = pmRes.paymentMethods || [];
+      setPaymentMethods(list);
+      const defaultPm = list.find((m: any) => m?.isDefault) || list[0];
+      setSelectedUpgradePaymentMethodId(defaultPm?.id || '');
     } catch (error: any) {
       showToast(error.message || 'Failed to load subscription data', 'error');
     } finally {
@@ -235,7 +245,11 @@ const SubscriptionTiers: React.FC = () => {
     }
     try {
       setUpgradingPlanKey(planKey);
-      const result = await subscriptionApi.upgradeSubscription(tierId);
+      let methodId = selectedUpgradePaymentMethodId;
+      if (!methodId && paymentMethods.length > 0) {
+        methodId = paymentMethods.find((m: any) => m?.isDefault)?.id || paymentMethods[0]?.id || '';
+      }
+      const result = await subscriptionApi.upgradeSubscription(tierId, methodId || undefined);
       if (!result.success) {
         if (result.error?.requiresPaymentMethod) {
           showToast('Add a payment method first to upgrade to a paid plan.', 'info');
@@ -256,26 +270,52 @@ const SubscriptionTiers: React.FC = () => {
   };
 
   const handleAddCard = async () => {
-    if (
-      !cardData.cardholderName ||
-      !cardData.cardNumber ||
-      !cardData.expiryMonth ||
-      !cardData.expiryYear ||
-      !cardData.cvv
-    ) {
-      showToast('Fill in all card fields.', 'error');
-      return;
+    if (newMethodType === 'visa') {
+      if (
+        !cardData.cardholderName ||
+        !cardData.cardNumber ||
+        !cardData.expiryMonth ||
+        !cardData.expiryYear ||
+        !cardData.cvv
+      ) {
+        showToast('Fill in all card fields.', 'error');
+        return;
+      }
+    } else if (newMethodType === 'paypal') {
+      if (!cardData.paypalEmail || !cardData.paypalEmail.includes('@')) {
+        showToast('Enter a valid PayPal email.', 'error');
+        return;
+      }
+    } else {
+      if (!cardData.phoneNumber || !cardData.accountName) {
+        showToast('Enter mobile money number and account name.', 'error');
+        return;
+      }
     }
     try {
       setAddingCard(true);
-      await subscriptionApi.addPaymentMethod({
-        type: 'visa',
-        cardholderName: cardData.cardholderName,
-        cardNumber: cardData.cardNumber,
-        expiryMonth: cardData.expiryMonth,
-        expiryYear: cardData.expiryYear,
-        cvv: cardData.cvv,
-      });
+      if (newMethodType === 'visa') {
+        await subscriptionApi.addPaymentMethod({
+          type: 'visa',
+          cardholderName: cardData.cardholderName,
+          cardNumber: cardData.cardNumber,
+          expiryMonth: cardData.expiryMonth,
+          expiryYear: cardData.expiryYear,
+          cvv: cardData.cvv,
+        });
+      } else if (newMethodType === 'paypal') {
+        await subscriptionApi.addPaymentMethod({
+          type: 'paypal',
+          paypalEmail: cardData.paypalEmail,
+        });
+      } else {
+        await subscriptionApi.addPaymentMethod({
+          type: newMethodType,
+          phoneNumber: cardData.phoneNumber,
+          accountName: cardData.accountName,
+          provider: newMethodType === 'mtn' ? 'mtn' : 'airtel',
+        });
+      }
       showToast('Payment method added successfully.', 'success');
       setShowAddCard(false);
       setCardData({
@@ -284,6 +324,9 @@ const SubscriptionTiers: React.FC = () => {
         expiryMonth: '',
         expiryYear: '',
         cvv: '',
+        phoneNumber: '',
+        accountName: '',
+        paypalEmail: '',
       });
       const response = await subscriptionApi.getPaymentMethods();
       setPaymentMethods(response.paymentMethods || []);
@@ -420,6 +463,24 @@ const SubscriptionTiers: React.FC = () => {
                     Annual (Save 20%)
                   </button>
                 </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Payment method for upgrade</p>
+                <select
+                  value={selectedUpgradePaymentMethodId}
+                  onChange={(e) => setSelectedUpgradePaymentMethodId(e.target.value)}
+                  className="w-full max-w-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                >
+                  {paymentMethods.length === 0 ? (
+                    <option value="">No payment method available</option>
+                  ) : (
+                    paymentMethods.map((m: any) => (
+                      <option key={m.id} value={m.id}>
+                        {(m.brand || m.type || 'method').toUpperCase()} •••• {m.last4 || '----'} {m.isDefault ? '(default)' : ''}
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
             </div>
           </div>
@@ -748,7 +809,19 @@ const SubscriptionTiers: React.FC = () => {
             <DialogTitle className="text-gray-900 dark:text-white">Add Payment Method</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <input
+            <select
+              value={newMethodType}
+              onChange={(e) => setNewMethodType(e.target.value as 'visa' | 'mtn' | 'airtel' | 'paypal')}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+            >
+              <option value="visa">Card (Stripe)</option>
+              <option value="mtn">MTN MoMo</option>
+              <option value="airtel">Airtel Money</option>
+              <option value="paypal">PayPal</option>
+            </select>
+            {newMethodType === 'visa' ? (
+              <>
+                <input
               value={cardData.cardholderName}
               onChange={(e) => setCardData((p) => ({ ...p, cardholderName: e.target.value }))}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
@@ -780,6 +853,30 @@ const SubscriptionTiers: React.FC = () => {
                 placeholder="CVV"
               />
             </div>
+              </>
+            ) : newMethodType === 'paypal' ? (
+              <input
+                value={cardData.paypalEmail}
+                onChange={(e) => setCardData((p) => ({ ...p, paypalEmail: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                placeholder="PayPal Email"
+              />
+            ) : (
+              <>
+                <input
+                  value={cardData.phoneNumber}
+                  onChange={(e) => setCardData((p) => ({ ...p, phoneNumber: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                  placeholder="Mobile Money Number"
+                />
+                <input
+                  value={cardData.accountName}
+                  onChange={(e) => setCardData((p) => ({ ...p, accountName: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                  placeholder="Account Holder Name"
+                />
+              </>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowAddCard(false)}>Cancel</Button>
               <Button
