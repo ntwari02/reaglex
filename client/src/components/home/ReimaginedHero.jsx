@@ -115,8 +115,8 @@ function ScenePanel({ scene, active, isDark }) {
       ══════════════════════════════════════════════════════ */}
       <div className="md:hidden flex flex-col h-full overflow-hidden">
 
-        {/* Text block — upper ~46% */}
-        <div className="flex flex-col justify-center px-6 pt-14 pb-2 z-10 relative" style={{ flex: '0 0 46%' }}>
+        {/* Text block — slightly smaller on mobile so product appears sooner */}
+        <div className="relative z-10 flex flex-col justify-center px-6 pt-10 pb-2" style={{ flex: '0 0 42%' }}>
           <motion.p
             className="text-[9px] font-bold tracking-[0.22em] uppercase mb-2"
             style={{ color: labelColor }}
@@ -159,8 +159,8 @@ function ScenePanel({ scene, active, isDark }) {
           </motion.div>
         </div>
 
-        {/* Image block — lower ~54% */}
-        <div className="relative flex items-end justify-center overflow-hidden" style={{ flex: '0 0 54%' }}>
+        {/* Image block — larger share on mobile for faster visual product reveal */}
+        <div className="relative flex items-center justify-center overflow-hidden pt-2" style={{ flex: '0 0 58%' }}>
           {/* Glow */}
           <div className="absolute inset-0 pointer-events-none" style={{
             background: `radial-gradient(ellipse 85% 70% at 50% 65%, ${scene.glowColor} 0%, ${scene.glowColor2} 45%, transparent 72%)`,
@@ -173,11 +173,11 @@ function ScenePanel({ scene, active, isDark }) {
             className="relative z-10 select-none"
             style={{
               /* On mobile use viewport-aware widths so nothing overflows */
-              width: isBtm ? '78vw' : isShoe ? '88vw' : '70vw',
+              width: isBtm ? '76vw' : isShoe ? '88vw' : '70vw',
               maxWidth: 320,
-              maxHeight: '48vw',
+              maxHeight: '52vw',
               objectFit: 'contain',
-              objectPosition: isBtm ? 'bottom center' : isShoe ? 'center right' : 'center',
+              objectPosition: isBtm ? 'center center' : isShoe ? 'center right' : 'center',
               filter: `drop-shadow(0 14px 32px rgba(0,0,0,${isDark ? '0.50' : '0.20'}))`,
             }}
             initial={{ scale: 0.84, y: 20 }}

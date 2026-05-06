@@ -405,431 +405,356 @@ export default function CreateSendNotification() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create & Send Notification</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Create and send notifications to users. Sends via backend API.
+    <div className="notifications-page" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <style>{`
+        .notifications-page { background: #f8fafc; }
+        .page-header { padding: 24px 24px 16px; }
+        .page-title { font-size: 22px; font-weight: 700; color: #111827; }
+        .page-subtitle { font-size: 13px; color: #6b7280; margin-top: 4px; max-width: 600px; }
+        .top-bar { margin: 0 24px 12px; display: flex; align-items: center; gap: 12px; }
+        .notif-type-tabs { display: flex; align-items: center; gap: 6px; }
+        .tab-pill { padding: 6px 14px; border-radius: 999px; border: 1px solid #e5e7eb; background: transparent; color: #6b7280; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+        .tab-pill.active { background: rgba(0,191,165,0.08); border-color: #00bfa5; color: #00bfa5; font-weight: 600; }
+        .top-bar-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+        .btn-outline { border: 1px solid #e5e7eb; border-radius: 8px; padding: 7px 14px; font-size: 13px; color: #374151; background: #fff; display: inline-flex; align-items: center; gap: 6px; }
+        .send-now-btn { background: #00bfa5; color: #fff; border: none; border-radius: 8px; padding: 7px 18px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+        .two-panel-container { display: flex; flex-direction: row; flex: 1; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; margin: 0 24px 24px; height: calc(100vh - 180px); }
+        .left-composer-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #e5e7eb; }
+        .right-ai-panel { width: 360px; flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; background: #fff; }
+        .field-row { display: flex; align-items: center; min-height: 46px; border-bottom: 1px solid #f3f4f6; padding: 0 16px; }
+        .field-label { width: 56px; flex-shrink: 0; font-size: 13px; color: #6b7280; font-weight: 500; }
+        .field-content { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .target-pill { background: rgba(0,191,165,0.1); border: 1px solid rgba(0,191,165,0.3); color: #00bfa5; border-radius: 99px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+        .target-group-btn { font-size: 12px; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 10px; background: #fff; }
+        .composer-toolbar { padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid #f3f4f6; }
+        .composer-toolbar button { font-size: 12px; padding: 5px 10px; border-radius: 99px; border: 1px solid #e5e7eb; background: #fafafa; color: #374151; display: inline-flex; align-items: center; gap: 5px; }
+        .message-body-textarea { flex: 1; padding: 16px; border: none; outline: none; font-size: 14px; color: #374151; line-height: 1.7; resize: none; min-height: 200px; }
+        .bottom-toolbar { padding: 10px 16px; border-top: 1px solid #f3f4f6; display: flex; align-items: center; gap: 14px; }
+        .test-send-section { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .ai-section-title { padding: 10px 14px 6px; font-size: 11px; font-weight: 700; color: #9ca3af; letter-spacing: 0.08em; text-transform: uppercase; }
+        .ai-generate-btns { padding: 12px 14px; display: flex; gap: 8px; border-top: 1px solid #f3f4f6; position: sticky; bottom: 0; background: #fff; z-index: 10; }
+        .ab-testing-section { padding: 14px; border-top: 1px solid #f3f4f6; }
+        .ab-launch-btn { width: 100%; height: 40px; border: 1.5px solid #00bfa5; background: transparent; color: #00bfa5; font-size: 13px; font-weight: 600; border-radius: 8px; }
+        .schedule-modal-btns { display: flex; justify-content: flex-end; gap: 8px; }
+        .toast-notification { position: fixed; right: 24px; bottom: 24px; border-radius: 10px; padding: 10px 14px; font-size: 13px; z-index: 70; }
+        .ai-panel-mobile-header { display: none; }
+        @media (max-width: 768px) {
+          .page-header { padding: 16px 14px 12px; }
+          .page-title { font-size: 18px !important; }
+          .page-subtitle { font-size: 12px !important; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+          .top-bar { flex-direction: column !important; gap: 10px !important; margin: 0 12px 10px !important; align-items: stretch !important; }
+          .notif-type-tabs { overflow-x: auto !important; overflow-y: hidden !important; -webkit-overflow-scrolling: touch !important; flex-wrap: nowrap !important; scrollbar-width: none !important; padding-bottom: 2px; -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%); mask-image: linear-gradient(to right, black 80%, transparent 100%); }
+          .notif-type-tabs::-webkit-scrollbar { display: none; }
+          .notif-type-tabs .tab-pill { flex-shrink: 0 !important; }
+          .top-bar-actions { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; margin-left: 0 !important; }
+          .send-now-btn { grid-column: 1 / -1 !important; height: 46px !important; font-size: 15px !important; justify-content: center !important; }
+          .auto-save-wrapper { grid-column: 1 / -1 !important; justify-content: flex-end !important; }
+          .two-panel-container { flex-direction: column !important; overflow: visible !important; margin: 0 12px 16px !important; height: auto !important; }
+          .left-composer-panel { order: 1 !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid #e5e7eb !important; }
+          .right-ai-panel { order: 2 !important; width: 100% !important; max-width: unset !important; flex-shrink: unset !important; border-top: none !important; }
+          .composer-toolbar { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 7px !important; padding: 10px 12px !important; }
+          .composer-toolbar button { width: 100% !important; justify-content: center !important; font-size: 11px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+          .message-body-textarea { min-height: 180px !important; height: 180px !important; font-size: 16px !important; }
+          input, textarea, select { font-size: 16px !important; }
+          .bottom-toolbar { flex-direction: column !important; gap: 10px !important; padding: 12px !important; }
+          .test-send-section { width: 100% !important; flex-direction: column !important; gap: 8px !important; margin-left: 0 !important; }
+          .test-send-section input, .test-send-section button { width: 100% !important; }
+          .ai-panel-mobile-header { display: flex !important; align-items: center; gap: 8px; padding: 12px 14px; background: rgba(0,191,165,0.04); font-size: 13px; font-weight: 600; color: #111827; border-bottom: 1px solid #e5e7eb; }
+          .ai-suggestion-header { padding: 14px 0 !important; min-height: 48px !important; }
+          .ai-suggestion-header button { min-width: 36px !important; min-height: 36px !important; }
+          .tone-pills-wrapper { flex-wrap: wrap !important; gap: 8px !important; padding: 10px 14px !important; }
+          .ai-generate-btns { padding: 12px !important; position: static !important; }
+          .ai-generate-btns button { height: 44px !important; font-size: 14px !important; }
+          .ab-testing-section { padding: 14px 12px !important; }
+          .ab-testing-section textarea { font-size: 16px !important; min-height: 70px !important; }
+          .ab-launch-btn { height: 44px !important; font-size: 14px !important; }
+          .schedule-modal { width: calc(100vw - 32px) !important; padding: 18px 14px !important; }
+          .schedule-modal-btns { flex-direction: column !important; }
+          .schedule-modal-btns button { width: 100% !important; height: 44px !important; }
+          .toast-notification { bottom: 76px !important; left: 12px !important; right: 12px !important; width: auto !important; text-align: center !important; }
+          .notifications-page { overflow-x: hidden !important; max-width: 100vw !important; }
+          .notifications-page * { box-sizing: border-box !important; max-width: 100% !important; }
+        }
+        @media (max-width: 480px) {
+          .field-row { flex-direction: column !important; align-items: flex-start !important; padding: 8px 12px !important; min-height: auto !important; }
+          .field-label { width: auto !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: .05em; padding-bottom: 4px !important; }
+          .field-content { width: 100% !important; }
+          .target-group-btn { margin-top: 6px !important; width: 100% !important; }
+        }
+        @media (min-width: 769px) and (max-width: 1100px) {
+          .right-ai-panel { width: 300px !important; }
+          .left-composer-panel .field-row { padding: 0 12px !important; }
+          .top-bar { flex-wrap: wrap !important; gap: 8px !important; }
+          .notif-type-tabs { flex: 0 0 100% !important; overflow-x: auto !important; scrollbar-width: none !important; }
+          .notif-type-tabs::-webkit-scrollbar { display: none; }
+          .top-bar-actions { margin-left: auto !important; }
+        }
+      `}</style>
+
+      <div className="page-header">
+        <h2 className="page-title">Notifications Center</h2>
+        <p className="page-subtitle">
+          Compose and send campaigns across email, in-app, SMS, push, and system alerts. Use the composer below, then refine copy with the AI assistant.
         </p>
       </div>
-      {sendError && (
-        <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
-          {sendError}
-        </p>
-      )}
-      {sendSuccess && (
-        <p className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
-          Notification sent successfully.
-        </p>
-      )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Form */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Target Group */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Target Group</h3>
-            <div className="grid gap-3 md:grid-cols-2">
-              {[
-                { id: 'all_customers', label: 'All Customers', icon: Users },
-                { id: 'all_sellers', label: 'All Sellers', icon: Users },
-                { id: 'specific_user', label: 'Specific User', icon: User },
-                { id: 'custom_segment', label: 'Custom Segment', icon: Filter },
-              ].map((group) => {
-                const Icon = group.icon;
-                return (
-                  <button
-                    key={group.id}
-                    onClick={() => setTargetGroup(group.id)}
-                    className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-colors ${
-                      targetGroup === group.id
-                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                        : 'border-gray-200 dark:border-gray-800'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    <span className="font-semibold text-gray-900 dark:text-white">{group.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {targetGroup === 'specific_user' && (
-              <div className="mt-4">
-                <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  User ID (Mongo ObjectId)
-                </label>
-                <input
-                  type="text"
-                  value={specificUserId}
-                  onChange={(e) => setSpecificUserId(e.target.value)}
-                  placeholder="e.g. 674a…"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white font-mono"
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Required for in-app delivery to one user. Find ID in User management.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Notification Types */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
-              Notification Types
-            </h3>
-            <div className="grid gap-3 md:grid-cols-2">
-              {[
-                { id: 'inapp', label: 'In-App', icon: Bell },
-                { id: 'email', label: 'Email', icon: Mail },
-                { id: 'sms', label: 'SMS', icon: MessageSquare },
-                { id: 'push', label: 'Push', icon: Smartphone },
-                { id: 'system', label: 'System Alert', icon: AlertTriangle },
-              ].map((type) => {
-                const Icon = type.icon;
-                return (
-                  <button
-                    key={type.id}
-                    onClick={() => handleTypeToggle(type.id)}
-                    className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-colors ${
-                      notificationType.includes(type.id)
-                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                        : 'border-gray-200 dark:border-gray-800'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    <span className="font-semibold text-gray-900 dark:text-white">{type.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Message Content */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Message Content</h3>
-              <button
-                type="button"
-                onClick={handleSaveAsTemplate}
-                disabled={savingTemplate}
-                className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300 disabled:opacity-60"
-              >
-                <Save className="mr-1 inline h-3.5 w-3.5" />
-                {savingTemplate ? 'Saving…' : 'Save as template'}
+      <div className="top-bar">
+        <div className="notif-type-tabs">
+          {[
+            { id: 'email', label: 'Email', icon: Mail },
+            { id: 'inapp', label: 'In-App', icon: Bell },
+            { id: 'sms', label: 'SMS', icon: MessageSquare },
+            { id: 'push', label: 'Push', icon: Smartphone },
+            { id: 'system', label: 'System Alert', icon: AlertTriangle },
+          ].map((type) => {
+            const Icon = type.icon;
+            return (
+              <button key={type.id} type="button" onClick={() => handleTypeToggle(type.id)} className={`tab-pill ${notificationType.includes(type.id) ? 'active' : ''}`}>
+                <Icon className="h-3.5 w-3.5" />
+                {type.label}
               </button>
-            </div>
-            <div className="space-y-4">
-              <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 dark:border-gray-700 dark:bg-gray-800/40 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-emerald-500" />
-                    AI Message Generator
-                  </h4>
-                  <span className="text-[11px] text-gray-500 dark:text-gray-400">Generate or improve copy</span>
-                </div>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe what this notification should say..."
-                  rows={3}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
-                <div className="flex flex-wrap gap-2">
-                  {TONES.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTone(t)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium border ${
-                        tone === t
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
-                          : 'border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  value={eventSearch}
-                  onChange={(e) => setEventSearch(e.target.value)}
-                  placeholder="Search events..."
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
-                <select
-                  value={contextType}
-                  onChange={(e) => {
-                    setCustomEventEnabled(false);
-                    setContextType(e.target.value);
-                  }}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  {eventGroups.map((group) => {
-                    const options = filteredEvents.filter((evt) => evt.group === group.key);
-                    if (!options.length) return null;
-                    return (
-                      <optgroup key={group.key} label={group.label}>
-                        {options.map((evt) => (
-                          <option key={evt.key} value={evt.key}>
-                            {evt.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    );
-                  })}
-                </select>
-                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={customEventEnabled}
-                    onChange={(e) => setCustomEventEnabled(e.target.checked)}
-                  />
-                  Use custom event trigger
-                </label>
-                {customEventEnabled && (
-                  <input
-                    value={customEventKey}
-                    onChange={(e) => setCustomEventKey(e.target.value)}
-                    placeholder="e.g. seller_profile_recheck_due"
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  />
-                )}
-                {selectedEvent && !customEventEnabled && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Event class: {selectedEvent.class}. Suggested tone set to {selectedEvent.defaultTone}.
-                  </p>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={handleGenerateWithAI}
-                    disabled={aiLoading}
-                    className="rounded-xl border border-emerald-400 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 disabled:opacity-60"
-                  >
-                    <Wand2 className="mr-2 inline h-4 w-4" />
-                    {aiLoading ? 'Generating…' : 'Generate with AI'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleImproveWithAI}
-                    disabled={aiLoading}
-                    className="rounded-xl border border-cyan-400 px-4 py-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300 disabled:opacity-60"
-                  >
-                    {aiLoading ? 'Improving…' : 'Improve current text'}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Enter notification subject..."
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  Message
-                </label>
-                <textarea
-                  ref={messageRef}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Enter notification message..."
-                  rows={8}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {variableChips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => insertTextAtCursor(chip)}
-                    className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-              {(aiSubjects.length > 0 || aiMessages.length > 0) && (
-                <div className="space-y-3 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">AI Suggestions</p>
-                  {aiSubjects.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Subject options</p>
-                      {aiSubjects.map((s, i) => (
-                        <div key={`${s}-${i}`} className="rounded-lg border border-gray-200 p-2 dark:border-gray-700">
-                          <p className="text-sm text-gray-900 dark:text-white">{s}</p>
-                          <div className="mt-2 flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSubject(s)}
-                              className="rounded-md border border-emerald-400 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
-                            >
-                              Use subject
-                            </button>
-                            <button
-                              type="button"
-                              onClick={async () => navigator.clipboard?.writeText(s)}
-                              className="rounded-md border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            >
-                              <Copy className="mr-1 inline h-3 w-3" />
-                              Copy
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {aiMessages.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Message options</p>
-                      {aiMessages.map((m, i) => (
-                        <div key={`${i}-${m.slice(0, 20)}`} className="rounded-lg border border-gray-200 p-2 dark:border-gray-700">
-                          <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{m}</p>
-                          <div className="mt-2 flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setMessage(m)}
-                              className="rounded-md border border-emerald-400 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
-                            >
-                              Use message
-                            </button>
-                            <button
-                              type="button"
-                              onClick={async () => navigator.clipboard?.writeText(m)}
-                              className="rounded-md border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            >
-                              <Copy className="mr-1 inline h-3 w-3" />
-                              Copy
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-                  <Paperclip className="mr-2 inline h-4 w-4" />
-                  Attach File
-                </button>
-                <button
-                  onClick={() => setShowPreview(true)}
-                  className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300"
-                >
-                  <Eye className="mr-2 inline h-4 w-4" />
-                  Preview
-                </button>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
-
-        {/* Sidebar Actions */}
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Actions</h3>
-            <div className="space-y-3">
-              <button
-                onClick={handleSendNow}
-                disabled={sending}
-                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-70"
-              >
-                <Send className="mr-2 inline h-4 w-4" />
-                {sending ? 'Sending...' : 'Send Now'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSendError(null);
-                  if (!scheduleAt) {
-                    const d = new Date(Date.now() + 3600000);
-                    d.setMinutes(0, 0, 0);
-                    setScheduleAt(d.toISOString().slice(0, 16));
-                  }
-                  setShowSchedule(true);
-                }}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300"
-              >
-                <CalendarClock className="mr-2 inline h-4 w-4" />
-                Schedule send
-              </button>
+        <div className="top-bar-actions">
+          <div className="auto-save-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: '#6b7280' }}>Auto-save</span>
+            <div style={{ width: 40, height: 22, borderRadius: 999, background: '#00bfa5', padding: 3 }}>
+              <div style={{ width: 16, height: 16, borderRadius: 999, background: '#fff', marginLeft: 'auto' }} />
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">Test send (email only)</label>
+          </div>
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => {
+              setSendError(null);
+              if (!scheduleAt) {
+                const d = new Date(Date.now() + 3600000);
+                d.setMinutes(0, 0, 0);
+                setScheduleAt(d.toISOString().slice(0, 16));
+              }
+              setShowSchedule(true);
+            }}
+          >
+            <CalendarClock className="h-4 w-4" /> Schedule
+          </button>
+          <button type="button" className="btn-outline" onClick={handleSaveAsTemplate} disabled={savingTemplate}>
+            <Save className="h-4 w-4" /> {savingTemplate ? 'Saving…' : 'Save as Draft'}
+          </button>
+          <button type="button" className="send-now-btn" onClick={handleSendNow} disabled={sending}>
+            <Send className="h-4 w-4" /> {sending ? 'Sending…' : 'Send Now'}
+          </button>
+        </div>
+      </div>
+
+      <div className="two-panel-container">
+        <div className="left-composer-panel">
+          <div className="field-row">
+            <div className="field-label">From</div>
+            <div className="field-content" style={{ fontSize: 13, color: '#374151' }}>Admin &lt;email@gmail.com&gt;</div>
+          </div>
+          <div className="field-row">
+            <div className="field-label">To</div>
+            <div className="field-content" style={{ flexWrap: 'wrap' }}>
+              <span className="target-pill">
+                {targetGroup === 'all_sellers' ? 'All Sellers' : targetGroup === 'specific_user' ? 'Specific User' : targetGroup === 'custom_segment' ? 'Custom Segment' : 'All Customers'}
+              </span>
+              <input
+                type="text"
+                value={specificUserId}
+                onChange={(e) => setSpecificUserId(e.target.value)}
+                placeholder={targetGroup === 'specific_user' ? 'Search user ID...' : 'Search products, brands, stores...'}
+                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, color: '#374151', minWidth: 140 }}
+              />
+              <select value={targetGroup} onChange={(e) => setTargetGroup(e.target.value)} className="target-group-btn">
+                <option value="all_customers">Target Group</option>
+                <option value="all_sellers">All Sellers</option>
+                <option value="specific_user">Specific User</option>
+                <option value="custom_segment">Custom Segment</option>
+              </select>
+            </div>
+          </div>
+          <div className="field-row">
+            <div className="field-label">Cc</div>
+            <div className="field-content" style={{ fontSize: 12, color: '#6b7280' }}>
+              None
+              <button type="button" style={{ marginLeft: 8, color: '#00bfa5', fontSize: 12 }}>Bcc</button>
+            </div>
+          </div>
+
+          <div className="composer-toolbar">
+            <button type="button"><Copy className="h-3.5 w-3.5" /> Load existing Templates</button>
+            <button type="button" onClick={handleSaveAsTemplate} disabled={savingTemplate}><Save className="h-3.5 w-3.5" /> Save as new template</button>
+            <button type="button" onClick={handleImproveWithAI} disabled={aiLoading}><Wand2 className="h-3.5 w-3.5" /> Rephrase</button>
+            <button type="button" onClick={handleGenerateWithAI} disabled={aiLoading}><Sparkles className="h-3.5 w-3.5" /> Analyze</button>
+          </div>
+
+          <div style={{ padding: '10px 16px 4px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Subject</div>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Enter notification subject..."
+              style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: '#111827', fontWeight: 500, borderBottom: '1px solid #f3f4f6', paddingBottom: 10, background: 'transparent' }}
+            />
+          </div>
+
+          {notificationType.includes('email') && (
+            <div style={{ padding: '6px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 4 }}>
+              {['B', 'I', 'U', 'Link', '• List', '" Quote'].map((tool) => (
+                <button key={tool} type="button" style={{ width: 28, height: 28, borderRadius: 6, fontSize: 12, color: '#374151' }}>
+                  {tool}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="tone-pills-wrapper" style={{ display: 'flex', gap: 6, padding: '8px 16px', borderBottom: '1px solid #f3f4f6' }}>
+            {TONES.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTone(t)}
+                style={{
+                  borderRadius: 999,
+                  border: `1px solid ${tone === t ? '#00bfa5' : '#e5e7eb'}`,
+                  background: tone === t ? 'rgba(0,191,165,0.08)' : 'transparent',
+                  color: tone === t ? '#00bfa5' : '#6b7280',
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <textarea
+            ref={messageRef}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="message-body-textarea"
+            placeholder="Write your notification message here, or generate with AI →"
+          />
+
+          <div style={{ padding: '0 16px 12px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {variableChips.map((chip) => (
+              <button key={chip} type="button" onClick={() => insertTextAtCursor(chip)} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '4px 8px', fontSize: 11, color: '#6b7280' }}>
+                {chip}
+              </button>
+            ))}
+          </div>
+
+          <div className="bottom-toolbar">
+            <button type="button" style={{ color: '#9ca3af' }}><Paperclip className="h-5 w-5" /></button>
+            <button type="button" style={{ color: '#9ca3af' }}>🔗</button>
+            <button type="button" style={{ color: '#9ca3af' }}>{'{x}'}</button>
+            <button type="button" style={{ color: '#9ca3af' }}>🖨️</button>
+            <button type="button" style={{ color: '#9ca3af' }}>✅</button>
+            <button type="button" onClick={() => setShowPreview(true)} style={{ color: '#9ca3af' }}><Eye className="h-5 w-5" /></button>
+            <div className="test-send-section">
               <input
                 type="email"
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
-                placeholder="you@company.com"
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                placeholder="Test email"
+                style={{ width: 180, fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 6, padding: '5px 10px' }}
               />
-              <button
-                type="button"
-                onClick={handleTestSend}
-                disabled={testing}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:border-cyan-400 dark:border-gray-700 dark:text-gray-300 disabled:opacity-60"
-              >
-                {testing ? 'Sending test…' : 'Send test email'}
+              <button type="button" onClick={handleTestSend} disabled={testing} style={{ fontSize: 12, padding: '5px 10px', border: '1px solid #e5e7eb', borderRadius: 6 }}>
+                {testing ? 'Sending…' : 'Send test'}
               </button>
             </div>
           </div>
+        </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Quick Info</h3>
-            <div className="space-y-2 text-sm">
-              <p className="text-gray-600 dark:text-gray-400">
-                Use variables like <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
-                  {'{{username}}'}
-                </code>{' '}
-                in your message
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                Available: <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
-                  {'{{order_id}}'}
-                </code>
-                , <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
-                  {'{{amount}}'}
-                </code>
-              </p>
+        <div className="right-ai-panel">
+          <div className="ai-panel-mobile-header" style={{ display: 'none' }}>
+            ✨ AI Writing Assistant
+            <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 'auto' }}>
+              Scroll down ↓
+            </span>
+          </div>
+          <div style={{ height: 46, display: 'flex', alignItems: 'center', padding: '0 14px', borderBottom: '1px solid #f3f4f6' }}>
+            <Sparkles className="h-4 w-4" color="#00bfa5" />
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#111827', marginLeft: 8 }}>Write with AI</span>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              <button type="button" style={{ width: 26, height: 26, borderRadius: 999, border: '1px solid #e5e7eb' }}>+</button>
+              <button type="button" style={{ width: 26, height: 26, borderRadius: 999, border: '1px solid #e5e7eb' }}>×</button>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">A/B Testing</h3>
-            <textarea
-              value={abVariantA}
-              onChange={(e) => setAbVariantA(e.target.value)}
-              placeholder="Variant A message..."
-              rows={3}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            />
-            <textarea
-              value={abVariantB}
-              onChange={(e) => setAbVariantB(e.target.value)}
-              placeholder="Variant B message..."
-              rows={3}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            />
-            <button
-              type="button"
-              onClick={handleRunABTest}
-              disabled={runningABTest}
-              className="w-full rounded-xl border border-cyan-400 px-4 py-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300 disabled:opacity-60"
-            >
+          <div className="ai-section-title">CHOOSE SUBJECT LINE</div>
+          {(aiSubjects.length ? aiSubjects : ['']).map((item, i) => {
+            const selected = item && item === subject;
+            return (
+              <div key={`sub-${i}`} style={{ borderBottom: '1px solid #f9fafb', padding: '0 14px', cursor: 'pointer', background: selected ? 'rgba(0,191,165,0.04)' : 'transparent', borderLeft: selected ? '2px solid #00bfa5' : '2px solid transparent' }}>
+                <div className="ai-suggestion-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 0' }}>
+                  <button type="button" onClick={() => item && setSubject(item)} style={{ width: 16, height: 16, borderRadius: 999, border: `1.5px solid ${selected ? '#00bfa5' : '#d1d5db'}`, background: selected ? '#00bfa5' : 'transparent' }} />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: selected ? '#111827' : '#6b7280', marginLeft: 8, flex: 1 }}>Subject {i + 1}</span>
+                  <button type="button" onClick={handleGenerateWithAI}>↺</button>
+                  <button type="button" onClick={() => setAiSubjects((prev) => prev.filter((_, idx) => idx !== i))}>×</button>
+                </div>
+                <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: '#6b7280', lineHeight: 1.5, fontStyle: item ? 'normal' : 'italic' }}>
+                  {item || 'Empty — generate to fill'}
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="ai-section-title">CHOOSE BODY</div>
+          {(aiMessages.length ? aiMessages : ['']).map((item, i) => {
+            const selected = item && item === message;
+            const preview = item ? `${item.split('\n').slice(0, 3).join('\n')}${item.split('\n').length > 3 ? '…' : ''}` : 'Empty — generate to fill';
+            return (
+              <div key={`msg-${i}`} style={{ borderBottom: '1px solid #f9fafb', padding: '0 14px', cursor: 'pointer', background: selected ? 'rgba(0,191,165,0.04)' : 'transparent', borderLeft: selected ? '2px solid #00bfa5' : '2px solid transparent' }}>
+                <div className="ai-suggestion-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 0' }}>
+                  <button type="button" onClick={() => item && setMessage(item)} style={{ width: 16, height: 16, borderRadius: 999, border: `1.5px solid ${selected ? '#00bfa5' : '#d1d5db'}`, background: selected ? '#00bfa5' : 'transparent' }} />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: selected ? '#111827' : '#6b7280', marginLeft: 8, flex: 1 }}>Body {i + 1}</span>
+                  <button type="button" onClick={handleImproveWithAI}>↺</button>
+                  <button type="button" onClick={() => setAiMessages((prev) => prev.filter((_, idx) => idx !== i))}>×</button>
+                </div>
+                <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: '#6b7280', lineHeight: 1.5, fontStyle: item ? 'normal' : 'italic', whiteSpace: 'pre-wrap' }}>
+                  {preview}
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="ab-testing-section">
+            <h3 style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 10 }}>A/B Testing</h3>
+            <textarea value={abVariantA} onChange={(e) => setAbVariantA(e.target.value)} placeholder="Variant A message..." style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', fontSize: 13, minHeight: 80, marginBottom: 8 }} />
+            <textarea value={abVariantB} onChange={(e) => setAbVariantB(e.target.value)} placeholder="Variant B message..." style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', fontSize: 13, minHeight: 80, marginBottom: 8 }} />
+            <button type="button" className="ab-launch-btn" onClick={handleRunABTest} disabled={runningABTest}>
               {runningABTest ? 'Launching A/B test…' : 'Launch 50/50 A/B test'}
             </button>
           </div>
+
+          <div className="ai-generate-btns">
+            <button type="button" onClick={handleImproveWithAI} disabled={aiLoading} style={{ flex: 1, height: 38, borderRadius: 8, border: '1px solid #e5e7eb', color: '#6b7280', background: 'transparent' }}>
+              Try Again
+            </button>
+            <button type="button" onClick={handleGenerateWithAI} disabled={aiLoading} style={{ flex: 1, height: 38, borderRadius: 8, background: '#00bfa5', color: 'white', fontWeight: 600, border: 'none' }}>
+              {aiLoading ? 'Generating…' : 'Generate Now'}
+            </button>
+          </div>
+
+          <div style={{ padding: '10px 14px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Wand2 className="h-3.5 w-3.5" color="#9ca3af" />
+            <input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Ask me anything..."
+              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, color: '#374151' }}
+            />
+            <button type="button" onClick={handleGenerateWithAI} style={{ color: '#9ca3af' }}>→</button>
+          </div>
         </div>
       </div>
+
+      {sendError && <p className="toast-notification" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>{sendError}</p>}
+      {sendSuccess && <p className="toast-notification" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>Operation completed successfully.</p>}
 
       {/* Preview Modal */}
       {showSchedule && (
@@ -837,10 +762,7 @@ export default function CreateSendNotification() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={() => !scheduling && setShowSchedule(false)}
         >
-          <div
-            className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="schedule-modal w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Schedule send</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               In-app and system rows fan out on the worker; email schedules send to the selected audience (batch cap
@@ -853,7 +775,7 @@ export default function CreateSendNotification() {
               onChange={(e) => setScheduleAt(e.target.value)}
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white mb-4"
             />
-            <div className="flex justify-end gap-2">
+            <div className="schedule-modal-btns">
               <button
                 type="button"
                 className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300"

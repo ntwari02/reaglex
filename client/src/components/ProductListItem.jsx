@@ -75,8 +75,8 @@ export default function ProductListItem({ product, index = 0 }) {
 
         {/* ── Image (160 × 160) ── */}
         <div
-          className="flex-shrink-0 relative overflow-hidden bg-gray-50 dark:bg-gray-700"
-          style={{ width: 168, height: 168, borderRadius: '10px 0 0 10px' }}
+          className="relative h-32 w-28 shrink-0 overflow-hidden bg-gray-50 dark:bg-gray-700 sm:h-[168px] sm:w-[168px]"
+          style={{ borderRadius: '10px 0 0 10px' }}
         >
           <motion.img
             src={imgSrc}
@@ -108,7 +108,7 @@ export default function ProductListItem({ product, index = 0 }) {
         </div>
 
         {/* ── Product details ── */}
-        <div className="flex-1 flex flex-col justify-between p-4 min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col justify-between p-3 sm:p-4">
 
           {/* Top row: category + wishlist */}
           <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -158,10 +158,10 @@ export default function ProductListItem({ product, index = 0 }) {
           </p>
 
           {/* Bottom row: rating + price + add to cart */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
 
             {/* Rating + free ship */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               {/* Stars */}
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map(i => (
@@ -186,13 +186,13 @@ export default function ProductListItem({ product, index = 0 }) {
             </div>
 
             {/* Price + button */}
-            <div className="flex items-center gap-3">
-              <div>
-                <span className="font-bold text-gray-900 dark:text-white" style={{ fontSize: '18px' }}>
+            <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start sm:gap-3">
+              <div className="min-w-0">
+                <span className="font-bold text-gray-900 dark:text-white text-base sm:text-[18px]">
                   ${price.toFixed(2)}
                 </span>
                 {oldPrice && (
-                  <span className="ml-1.5 text-xs line-through" style={{ color: '#cbd5e1' }}>
+                  <span className="ml-1.5 hidden text-xs line-through sm:inline" style={{ color: '#cbd5e1' }}>
                     {currencyPricing.formatLocalWithUsd(oldPrice)}
                   </span>
                 )}
@@ -203,17 +203,13 @@ export default function ProductListItem({ product, index = 0 }) {
                 whileTap={{ scale: 0.96 }}
                 onClick={handleAdd}
                 disabled={stock === 0}
-                className="flex items-center gap-2 text-white font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex min-w-[120px] items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[140px] sm:gap-2 sm:px-[18px] sm:text-xs"
                 style={{
                   background:    added
                     ? 'linear-gradient(135deg,#22c55e,#16a34a)'
                     : 'var(--gradient-brand-cta)',
                   transition:    'background 0.3s',
-                  borderRadius:  '9999px',
-                  padding:       '8px 18px',
                   boxShadow:     added ? undefined : 'var(--shadow-cta)',
-                  width:         '140px',
-                  justifyContent: 'center',
                 }}
               >
                 <ShoppingBag style={{ width: 13, height: 13 }} />

@@ -237,7 +237,7 @@ export function SearchProductCard({ product, index = 0 }) {
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); handleWishlist(e); }}
@@ -249,7 +249,7 @@ export function SearchProductCard({ product, index = 0 }) {
               type="button"
               onClick={handleAddToCart}
               disabled={stock === 0 || addState === 'adding'}
-              className="flex-1 py-2 rounded-full text-sm font-semibold text-white flex items-center justify-center gap-2"
+              className="flex-1 py-2 rounded-full text-xs sm:text-sm font-semibold text-white flex items-center justify-center gap-2"
               style={{
                 background: addState === 'added' ? '#10b981' : PRIMARY,
                 transition: 'background 0.3s',

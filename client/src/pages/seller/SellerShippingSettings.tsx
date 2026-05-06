@@ -34,6 +34,7 @@ type MethodRule = {
 };
 
 type Zone = { id: string; name: string; countryCodes: string[]; surcharge: number };
+type AddressSelection = { lat: number | string; lng: number | string; address: string; country: string };
 
 type SettingsShape = {
   enabled: boolean;
@@ -146,14 +147,12 @@ const DEFAULT_METHODS: MethodRule[] = [
   },
 ];
 
-const inp =
-  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white';
-
 const SellerShippingSettings: React.FC = () => {
   const { showToast } = useToastStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsShape>(emptySettings);
+  const [initialSnapshot, setInitialSnapshot] = useState('');
   const loadMethods = useMemo(
     () => (savedMethods?: MethodRule[]) =>
       DEFAULT_METHODS.map((def) => {
@@ -182,8 +181,11 @@ const SellerShippingSettings: React.FC = () => {
             defaults: { ...base.defaults, ...incoming.defaults },
           };
           setSettings(merged);
+          setInitialSnapshot(JSON.stringify(merged));
         } else {
-          setSettings((prev) => ({ ...prev, methods: loadMethods() }));
+          const fallback = { ...emptySettings(), methods: loadMethods() };
+          setSettings(fallback);
+          setInitialSnapshot(JSON.stringify(fallback));
         }
       } catch {
         if (!cancelled) showToast('Could not load shipping settings.', 'error');
@@ -275,6 +277,7 @@ const SellerShippingSettings: React.FC = () => {
           estimatedDays: Number(m.estimatedDays) || 0,
         })),
       });
+      setInitialSnapshot(JSON.stringify(settings));
       showToast('Shipping settings saved.', 'success');
     } catch (e: any) {
       showToast(e?.response?.data?.message || 'Save failed', 'error');
@@ -291,71 +294,131 @@ const SellerShippingSettings: React.FC = () => {
     );
   }
 
+  const hasUnsavedChanges = initialSnapshot !== '' && JSON.stringify(settings) !== initialSnapshot;
+  const discardChanges = () => {
+    if (!initialSnapshot) return;
+    try {
+      setSettings(JSON.parse(initialSnapshot) as SettingsShape);
+      showToast('Changes discarded.', 'success');
+    } catch {
+      showToast('Could not discard changes.', 'error');
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-4 pb-24 sm:p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-white">
-          <Truck className="h-7 w-7 text-[var(--brand-primary)]" />
-          Shipping
-        </h1>
-        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, marginTop: 8 }}>
-          Configure your warehouse locations, shipping fees, and delivery methods.
-        </p>
+    <div className="mx-auto w-full max-w-6xl px-3 pb-32 pt-2 sm:px-6">
+      <style>{`
+        .ship-page { background: #f8fafc; overflow-x: hidden; }
+        .ship-header { border-bottom: 1px solid #e5e7eb; padding: 10px 0 16px; margin-bottom: 18px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .ship-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06); margin-bottom: 16px; }
+        .ship-card-head { padding: 16px 18px 10px; border-bottom: 1px solid #f1f5f9; }
+        .ship-card-body { padding: 16px 18px; }
+        .ship-input { width: 100%; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 10px 12px; font-size: 14px; color: #111827; outline: none; }
+        .ship-input:focus { border-color: #ff6b00; box-shadow: 0 0 0 3px rgba(255,107,0,.14); }
+        .ship-label { display: block; font-size: 12px; font-weight: 600; color: #4b5563; margin-bottom: 6px; }
+        .ship-help { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+        .ship-save-sticky { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 50; border: 1px solid #e5e7eb; background: rgba(255,255,255,.98); border-radius: 12px; box-shadow: 0 10px 26px rgba(2,6,23,.10); padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+        @media (max-width: 768px) {
+          .ship-header { flex-direction: column; align-items: stretch; }
+          .ship-save-top-btn { width: 100%; justify-content: center; }
+          .ship-grid-2 { grid-template-columns: 1fr !important; }
+          .ship-card-head { padding: 14px 14px 9px; }
+          .ship-card-body { padding: 14px; }
+          .ship-save-sticky { flex-direction: column; align-items: stretch; }
+          input, textarea, select { font-size: 16px !important; }
+        }
+      `}</style>
+      <div className="ship-page">
+      <div className="ship-header">
+        <div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-600">
+            <Truck className="h-4 w-4" /> Shipping
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Shipping Settings</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Configure delivery defaults, warehouse origins, methods, and zones in one place.
+          </p>
+        </div>
+        <Button type="button" disabled={saving} onClick={save} className="ship-save-top-btn rounded-lg bg-[var(--brand-primary)] px-5">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          Save settings
+        </Button>
       </div>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/60">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Default fees</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
+      <section className="ship-card">
+        <div className="ship-card-head">
+          <h2 className="text-lg font-semibold text-gray-900">Default Fees</h2>
+          <p className="text-xs text-gray-500">Set your baseline shipping pricing model.</p>
+        </div>
+        <div className="ship-card-body">
+        <div className="ship-grid-2 grid gap-4 sm:grid-cols-2">
+          <label>
+            <span className="ship-label">Base fee</span>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">RWF</span>
             Base fee
             <input
               type="number"
-              className={inp}
+              className="ship-input pl-12"
               value={settings.defaults.baseFee}
               onChange={(e) =>
                 setSettings((s) => ({ ...s, defaults: { ...s.defaults, baseFee: Number(e.target.value) || 0 } }))
               }
             />
+            </div>
+            <div className="ship-help">Base cost applied to every shipment.</div>
           </label>
-          <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
-            Rate per km
+          <label>
+            <span className="ship-label">Rate per km</span>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">RWF</span>
             <input
               type="number"
               step="0.01"
-              className={inp}
+              className="ship-input pl-12"
               value={settings.defaults.ratePerKm}
               onChange={(e) =>
                 setSettings((s) => ({ ...s, defaults: { ...s.defaults, ratePerKm: Number(e.target.value) || 0 } }))
               }
             />
+            </div>
+            <div className="ship-help">Distance multiplier for route-based pricing.</div>
           </label>
-          <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
-            Handling fee
+          <label>
+            <span className="ship-label">Handling fee</span>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">RWF</span>
             <input
               type="number"
-              className={inp}
+              className="ship-input pl-12"
               value={settings.defaults.handlingFee}
               onChange={(e) =>
                 setSettings((s) => ({ ...s, defaults: { ...s.defaults, handlingFee: Number(e.target.value) || 0 } }))
               }
             />
+            </div>
+            <div className="ship-help">Packaging and processing surcharge.</div>
           </label>
-          <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
-            Minimum shipping
+          <label>
+            <span className="ship-label">Minimum shipping</span>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">RWF</span>
             <input
               type="number"
-              className={inp}
+              className="ship-input pl-12"
               value={settings.defaults.minShippingFee}
               onChange={(e) =>
                 setSettings((s) => ({ ...s, defaults: { ...s.defaults, minShippingFee: Number(e.target.value) || 0 } }))
               }
             />
+            </div>
+            <div className="ship-help">Never charge below this amount.</div>
           </label>
-          <label className="text-xs font-medium text-gray-600 dark:text-gray-300 sm:col-span-2">
-            Free shipping over (seller-wide, optional)
+          <label className="sm:col-span-2">
+            <span className="ship-label">Free shipping over (seller-wide, optional)</span>
             <input
               type="number"
-              className={inp}
+              className="ship-input"
               placeholder="Leave empty to disable"
               value={settings.defaults.freeShippingThreshold ?? ''}
               onChange={(e) =>
@@ -368,25 +431,35 @@ const SellerShippingSettings: React.FC = () => {
                 }))
               }
             />
+            <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
+              Orders above this threshold can automatically qualify for free shipping.
+            </div>
           </label>
+        </div>
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/60">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Warehouses / origins</h2>
+      <section className="ship-card">
+        <div className="ship-card-head flex items-center justify-between gap-2">
+          <div>
+          <h2 className="text-lg font-semibold text-gray-900">Warehouses</h2>
+          <p className="text-xs text-gray-500">Set pickup origins and location coordinates.</p>
+          </div>
           <Button type="button" variant="outline" size="sm" onClick={addWarehouse}>
             <Plus className="mr-1 h-4 w-4" /> Add
           </Button>
         </div>
-        <div className="space-y-4">
+        <div className="ship-card-body space-y-4">
           {settings.warehouses.map((w, idx) => (
-            <div key={w.warehouseId + idx} className="rounded-lg border border-gray-100 p-3 dark:border-gray-800">
-              <div className="mb-2 flex justify-end">
+            <div key={w.warehouseId + idx} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="mb-2 flex items-start justify-between">
+                <div className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <Truck className="h-4 w-4 text-orange-500" /> Origin #{idx + 1}
+                </div>
                 {settings.warehouses.length > 1 && (
                   <button
                     type="button"
-                    className="text-red-500 hover:text-red-600"
+                    className="rounded-md p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
                     onClick={() => removeWarehouse(idx)}
                     aria-label="Remove warehouse"
                   >
@@ -394,36 +467,36 @@ const SellerShippingSettings: React.FC = () => {
                   </button>
                 )}
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label className="text-xs text-gray-600 dark:text-gray-300">
-                  Warehouse ID
-                  <input className={inp} value={w.warehouseId} onChange={(e) => updateWarehouse(idx, { warehouseId: e.target.value })} />
+              <div className="ship-grid-2 grid gap-3 sm:grid-cols-2">
+                <label>
+                  <span className="ship-label">Warehouse ID</span>
+                  <input className="ship-input" value={w.warehouseId} onChange={(e) => updateWarehouse(idx, { warehouseId: e.target.value })} />
                 </label>
-                <label className="text-xs text-gray-600 dark:text-gray-300">
-                  Label
-                  <input className={inp} value={w.label} onChange={(e) => updateWarehouse(idx, { label: e.target.value })} />
+                <label>
+                  <span className="ship-label">Display label</span>
+                  <input className="ship-input" value={w.label} onChange={(e) => updateWarehouse(idx, { label: e.target.value })} />
                 </label>
-                <div className="text-xs text-gray-600 dark:text-gray-300 sm:col-span-2" style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', fontSize: 13, color: '#374151', marginBottom: 6, fontWeight: 500 }}>Warehouse location</label>
+                <div className="sm:col-span-2">
+                  <label className="ship-label">Warehouse location</label>
                   <AddressSearchInput
                     value={{ lat: w.lat, lng: w.lng, address: w.address || '', country: w.country || '' }}
-                    onChange={({ lat, lng, address, country }) => {
+                    onChange={({ lat, lng, address, country }: AddressSelection) => {
                       updateWarehouse(idx, { lat: Number(lat) || 0, lng: Number(lng) || 0, address, country });
                     }}
                     required
                   />
                   {w.lat && w.lng && (
-                    <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>
+                    <div className="ship-help">
                       Coordinates: {Number(w.lat).toFixed(4)}, {Number(w.lng).toFixed(4)}
                     </div>
                   )}
                 </div>
-                <label className="text-xs text-gray-600 dark:text-gray-300 sm:col-span-2">
-                  Country
-                  <input className={inp} value={w.country || ''} onChange={(e) => updateWarehouse(idx, { country: e.target.value })} />
+                <label>
+                  <span className="ship-label">Country</span>
+                  <input className="ship-input" value={w.country || ''} onChange={(e) => updateWarehouse(idx, { country: e.target.value })} />
                 </label>
-                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  <input
+                <label className="flex items-center gap-2 pt-7 text-sm text-gray-700">
+                  <input style={{ accentColor: '#ff6b00' }}
                     type="checkbox"
                     checked={Boolean(w.pickupAvailable)}
                     onChange={(e) => updateWarehouse(idx, { pickupAvailable: e.target.checked })}
@@ -436,19 +509,22 @@ const SellerShippingSettings: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/60">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Shipping methods</h2>
-        <div className="space-y-3">
+      <section className="ship-card">
+        <div className="ship-card-head">
+          <h2 className="text-lg font-semibold text-gray-900">Shipping Methods</h2>
+          <p className="text-xs text-gray-500">Enable methods and configure each one only when needed.</p>
+        </div>
+        <div className="ship-card-body space-y-3">
           {settings.methods.map((m) => (
             <div
               key={m.key}
               style={{
                 border: '1px solid',
-                borderColor: m.enabled ? 'rgba(255,107,0,0.2)' : '#E5E7EB',
-                borderRadius: 10,
-                padding: '14px 16px',
+                borderColor: m.enabled ? 'rgba(255,107,0,0.25)' : '#E5E7EB',
+                borderRadius: 12,
+                padding: '14px',
                 marginBottom: 10,
-                background: m.enabled ? '#FFF9F5' : '#FAFAFA',
+                background: m.enabled ? '#fff9f5' : '#fff',
                 transition: 'all 200ms',
               }}
             >
@@ -477,17 +553,17 @@ const SellerShippingSettings: React.FC = () => {
                 </label>
               </div>
               {m.enabled && (
-                <div style={{ display: 'grid', gridTemplateColumns: m.fields.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
+                <div className="ship-grid-2" style={{ display: 'grid', gridTemplateColumns: m.fields.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
                   {m.fields.map((field) => (
                     <div key={field.key}>
-                      <label style={{ display: 'block', fontSize: 12, color: '#374151', marginBottom: 5, fontWeight: 500 }}>{field.label}</label>
+                      <label className="ship-label">{field.label}</label>
                       <input
                         type={field.type}
                         value={Number((m as any)[field.key] ?? field.default)}
                         onChange={(e) => updateMethod(m.key, field.key, parseFloat(e.target.value) || 0)}
-                        style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: 7, fontSize: 13, color: '#111827', outline: 'none' }}
+                        className="ship-input"
                       />
-                      {field.help && <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{field.help}</div>}
+                      {field.help && <div className="ship-help">{field.help}</div>}
                     </div>
                   ))}
                 </div>
@@ -497,14 +573,16 @@ const SellerShippingSettings: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/60">
-        <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Delivery zones (optional)</h2>
-        <p className="mb-3 text-xs text-gray-500">Match buyer country (ISO-2) and add a flat surcharge to the computed shipment.</p>
+      <section className="ship-card">
+        <div className="ship-card-head flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Delivery Zones</h2>
+            <p className="text-xs text-gray-500">Apply country-based surcharges when needed.</p>
+          </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="mb-3"
           onClick={() =>
             setSettings((s) => ({
               ...s,
@@ -514,13 +592,20 @@ const SellerShippingSettings: React.FC = () => {
         >
           <Plus className="mr-1 h-4 w-4" /> Add zone
         </Button>
-        <div className="space-y-2">
+        </div>
+        <div className="ship-card-body">
+        <div className="space-y-3">
+          {settings.zones.length === 0 && (
+            <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+              No delivery zones yet. Add a zone to customize country-level surcharges.
+            </div>
+          )}
           {settings.zones.map((z, zi) => (
-            <div key={z.id} className="flex flex-wrap items-end gap-2">
-              <label className="text-xs text-gray-600 dark:text-gray-300">
-                Name
+            <div key={z.id} className="ship-grid-2 grid items-end gap-3 rounded-lg border border-gray-100 p-3 sm:grid-cols-[1.1fr_1.3fr_.8fr_auto]">
+              <label>
+                <span className="ship-label">Zone name</span>
                 <input
-                  className={inp}
+                  className="ship-input"
                   value={z.name}
                   onChange={(e) => {
                     const zones = [...settings.zones];
@@ -529,10 +614,10 @@ const SellerShippingSettings: React.FC = () => {
                   }}
                 />
               </label>
-              <label className="text-xs text-gray-600 dark:text-gray-300">
-                Countries (comma, ISO2)
+              <label>
+                <span className="ship-label">Countries (comma, ISO2)</span>
                 <input
-                  className={`${inp} min-w-[140px]`}
+                  className="ship-input min-w-[140px]"
                   value={z.countryCodes.join(',')}
                   onChange={(e) => {
                     const zones = [...settings.zones];
@@ -547,11 +632,11 @@ const SellerShippingSettings: React.FC = () => {
                   }}
                 />
               </label>
-              <label className="text-xs text-gray-600 dark:text-gray-300">
-                Surcharge
+              <label>
+                <span className="ship-label">Surcharge</span>
                 <input
                   type="number"
-                  className={`${inp} w-24`}
+                  className="ship-input w-24"
                   value={z.surcharge}
                   onChange={(e) => {
                     const zones = [...settings.zones];
@@ -562,7 +647,7 @@ const SellerShippingSettings: React.FC = () => {
               </label>
               <button
                 type="button"
-                className="mb-0.5 text-red-500"
+                className="mb-0.5 rounded-md border border-gray-200 px-2 py-2 text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
                 onClick={() => setSettings((s) => ({ ...s, zones: s.zones.filter((_, i) => i !== zi) }))}
               >
                 <Trash2 className="h-4 w-4" />
@@ -570,18 +655,23 @@ const SellerShippingSettings: React.FC = () => {
             </div>
           ))}
         </div>
+        </div>
       </section>
 
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          disabled={saving}
-          className="rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] px-8"
-          onClick={save}
-        >
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Save settings
-        </Button>
+      {hasUnsavedChanges && (
+        <div className="ship-save-sticky">
+          <span className="text-sm font-medium text-gray-700">You have unsaved shipping changes.</span>
+          <div className="ml-auto flex gap-2">
+            <Button type="button" variant="outline" onClick={discardChanges}>
+              Discard
+            </Button>
+            <Button type="button" disabled={saving} className="bg-[var(--brand-primary)]" onClick={save}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save
+            </Button>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
