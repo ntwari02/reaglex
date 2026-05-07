@@ -310,55 +310,8 @@ export default function ProductDetail() {
     return () => window.clearInterval(id);
   }, [related.length, relatedPaused]);
 
-  /* ── loading / error ── */
-  if (loading) return (
-    <BuyerLayout>
-      <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4" style={{ background: 'var(--bg-page)' }}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-          className="w-12 h-12 rounded-full border-4 border-[color-mix(in_srgb,var(--brand-primary)_22%,var(--card-bg))] border-t-[var(--brand-primary)]"
-        />
-        <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Loading product…</p>
-      </div>
-    </BuyerLayout>
-  );
-
-  if (error) return (
-    <BuyerLayout>
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)' }}>
-        <span className="text-6xl">😕</span>
-        <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error}</p>
-        <button onClick={() => navigate(-1)}
-          className="px-7 py-3 rounded-full text-white font-bold text-sm"
-          style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
-          Go Back
-        </button>
-      </div>
-    </BuyerLayout>
-  );
-
-  /* ── derived values ── */
-  const price        = product.price || 0;
-  const basePrice    = product?.price || 0;
-  const totalPrice   = basePrice * quantity;
-  const oldPrice     = product.compareAtPrice || product.originalPrice || product?.compare_at_price || null;
-  const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
-  const rating       = Number(product.ratingAverage || product.averageRating || product.rating || 0) || 0;
-  const reviewsCount = Number(product.reviewCount || product.totalReviews || 0) || 0;
-  const soldCount    = Number(product.soldCount || product?.salesCount || 0) || 0;
-  const stock        = product.stockQuantity ?? product.stock ?? 10;
-  const verificationStatus = product.verificationSummary?.status || 'unverified';
-  const verificationScore = Number(product.verificationSummary?.score || 0);
-  const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
-  const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
-  const installment  = currencyPricing.formatLocalWithUsd(totalPrice / 3);
-  const totalLocalPrice = currencyPricing.convertUsdToLocal(totalPrice);
-  const baseLocalPrice = currencyPricing.convertUsdToLocal(basePrice);
-  const totalUsdText = currencyPricing.formatUsd(totalPrice);
-  const showSizeSelector = categoryNeedsSize(product?.category) && Array.isArray(product?.sizes) && product.sizes.length > 0;
-  const showColorSelector = categoryNeedsColor(product?.category) && Array.isArray(product?.colors) && product.colors.length > 0;
-  const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
+  const previewPrice = product?.price || 0;
+  const previewOldPrice = product?.compareAtPrice || product?.originalPrice || product?.compare_at_price || null;
   const productVideoUrl = useMemo(() => {
     const direct =
       product?.videoUrl ||
@@ -391,7 +344,6 @@ export default function ProductDetail() {
 
     return null;
   }, [product]);
-
   const galleryItems = useMemo(() => {
     const items = [];
     if (productVideoUrl) items.push({ type: 'video', src: productVideoUrl });
@@ -400,7 +352,6 @@ export default function ProductDetail() {
     if (!items.length) items.push({ type: 'image', src: resolveImage(null) });
     return items;
   }, [images, productVideoUrl, product?.image]);
-
   useEffect(() => {
     setActiveImage((i) => Math.min(Math.max(0, i), Math.max(0, galleryItems.length - 1)));
   }, [galleryItems.length]);
@@ -409,15 +360,13 @@ export default function ProductDetail() {
   const campaignLabel = String(product?.campaignLabel || product?.campaign || '').trim();
   const offerEndsAt = product?.offerEndsAt ? new Date(product.offerEndsAt) : null;
   const promoActive = offerEndsAt && !Number.isNaN(offerEndsAt.getTime()) ? offerEndsAt.getTime() > countdownNow : false;
-  const savingsAmount = oldPrice && oldPrice > price ? (oldPrice - price) : 0;
-
+  const savingsAmount = previewOldPrice && previewOldPrice > previewPrice ? (previewOldPrice - previewPrice) : 0;
   useEffect(() => {
     if (!offerEndsAt || Number.isNaN(offerEndsAt.getTime())) return;
     if (offerEndsAt.getTime() <= Date.now()) return;
     const t = window.setInterval(() => setCountdownNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, [offerEndsAt?.getTime?.()]);
-
   const offerCountdown = useMemo(() => {
     if (!promoActive || !offerEndsAt) return null;
     const ms = offerEndsAt.getTime() - countdownNow;
@@ -430,6 +379,56 @@ export default function ProductDetail() {
     const pad = (n) => String(n).padStart(2, '0');
     return d > 0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
   }, [promoActive, offerEndsAt, countdownNow]);
+
+  /* ── loading / error ── */
+  if (loading) return (
+    <BuyerLayout>
+      <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4" style={{ background: 'var(--bg-page)' }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+          className="w-12 h-12 rounded-full border-4 border-[color-mix(in_srgb,var(--brand-primary)_22%,var(--card-bg))] border-t-[var(--brand-primary)]"
+        />
+        <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Loading product…</p>
+      </div>
+    </BuyerLayout>
+  );
+
+  if (error) return (
+    <BuyerLayout>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)' }}>
+        <span className="text-6xl">😕</span>
+        <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error}</p>
+        <button onClick={() => navigate(-1)}
+          className="px-7 py-3 rounded-full text-white font-bold text-sm"
+          style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
+          Go Back
+        </button>
+      </div>
+    </BuyerLayout>
+  );
+
+  /* ── derived values ── */
+  const price        = product?.price || 0;
+  const basePrice    = product?.price || 0;
+  const totalPrice   = basePrice * quantity;
+  const oldPrice     = product.compareAtPrice || product.originalPrice || product?.compare_at_price || null;
+  const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
+  const rating       = Number(product.ratingAverage || product.averageRating || product.rating || 0) || 0;
+  const reviewsCount = Number(product.reviewCount || product.totalReviews || 0) || 0;
+  const soldCount    = Number(product.soldCount || product?.salesCount || 0) || 0;
+  const stock        = product.stockQuantity ?? product.stock ?? 10;
+  const verificationStatus = product.verificationSummary?.status || 'unverified';
+  const verificationScore = Number(product.verificationSummary?.score || 0);
+  const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
+  const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
+  const installment  = currencyPricing.formatLocalWithUsd(totalPrice / 3);
+  const totalLocalPrice = currencyPricing.convertUsdToLocal(totalPrice);
+  const baseLocalPrice = currencyPricing.convertUsdToLocal(basePrice);
+  const totalUsdText = currencyPricing.formatUsd(totalPrice);
+  const showSizeSelector = categoryNeedsSize(product?.category) && Array.isArray(product?.sizes) && product.sizes.length > 0;
+  const showColorSelector = categoryNeedsColor(product?.category) && Array.isArray(product?.colors) && product.colors.length > 0;
+  const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
 
   const specs = [
     { prop: 'Brand',          value: product.brand    || 'Reaglex'     },

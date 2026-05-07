@@ -16,6 +16,7 @@ import {
   Settings,
   Activity,
   ShieldCheck,
+  BadgePercent,
   Crown,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/config';
