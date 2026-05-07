@@ -35,6 +35,18 @@ function resolveImage(src) {
   return `${SERVER_URL}${t.startsWith('/') ? t : `/${t}`}`;
 }
 
+function resolveMedia(src) {
+  if (!src) return null;
+  let c = src;
+  if (typeof c === 'object') c = c?.url || c?.src || c?.path || c?.video || c?.videoUrl || c?.videoPath;
+  if (typeof c !== 'string') return null;
+  const t = c.trim();
+  if (!t) return null;
+  if (t.startsWith('http://') || t.startsWith('https://')) return t;
+  if (t.startsWith('//')) return `https:${t}`;
+  return `${SERVER_URL}${t.startsWith('/') ? t : `/${t}`}`;
+}
+
 /* ─── static data ────────────────────────────────────────────────────────── */
 const FALLBACK_SIZES  = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const FALLBACK_COLORS = [
@@ -114,6 +126,7 @@ export default function ProductDetail() {
   const [activeImage,  setActiveImage]  = useState(0);
   const [quantity,     setQuantity]     = useState(1);
   const [wishlisted,   setWishlisted]   = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const [addState,     setAddState]     = useState('idle');
   const [lightbox,     setLightbox]     = useState(false);
   const [tabIndex,     setTabIndex]     = useState(0);
@@ -128,6 +141,7 @@ export default function ProductDetail() {
   const [descExpanded, setDescExpanded] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
   const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
+  const [countdownNow, setCountdownNow] = useState(Date.now());
   /** Mobile stacked sections: which detail accordion is open (null = all collapsed) */
   const [mobileDetailOpen, setMobileDetailOpen] = useState('description');
 
@@ -187,6 +201,8 @@ export default function ProductDetail() {
       .then((data) => {
         const p = data.product || data;
         setProduct(p);
+        setWishlisted(!!p?.wishlisted);
+        setWishlistCount(Number(p?.wishlistCount || 0));
         addRecent(p);
         productAPI.trackView(id).catch(() => null);
       })
@@ -199,6 +215,20 @@ export default function ProductDetail() {
       })
       .catch(() => {});
   }, [id, inventoryRefreshTick]);
+
+  // Wishlist status/count (guest-safe; auth users also get `wishlisted`)
+  useEffect(() => {
+    let alive = true;
+    productAPI
+      .getWishlistStatus(id)
+      .then((r) => {
+        if (!alive) return;
+        setWishlisted(!!r?.wishlisted);
+        setWishlistCount(Number(r?.wishlistCount || 0));
+      })
+      .catch(() => null);
+    return () => { alive = false; };
+  }, [id]);
 
   useEffect(() => {
     if (!product) return;
@@ -232,6 +262,25 @@ export default function ProductDetail() {
     addItem(product, quantity);
     setTimeout(() => setAddState('added'), 500);
     setTimeout(() => setAddState('idle'), 2500);
+  };
+
+  const handleToggleWishlist = async () => {
+    const optimisticNext = !wishlisted;
+    setWishlisted(optimisticNext);
+    setWishlistCount((c) => Math.max(0, c + (optimisticNext ? 1 : -1)));
+    try {
+      const r = await productAPI.toggleWishlist(id);
+      setWishlisted(!!r?.wishlisted);
+      if (r?.wishlistCount != null) setWishlistCount(Number(r.wishlistCount || 0));
+    } catch {
+      try {
+        const r2 = await productAPI.getWishlistStatus(id);
+        setWishlisted(!!r2?.wishlisted);
+        setWishlistCount(Number(r2?.wishlistCount || 0));
+      } catch {
+        setWishlisted((v) => !v);
+      }
+    }
   };
 
   const handleShare = async (method) => {
@@ -293,10 +342,11 @@ export default function ProductDetail() {
   const price        = product.price || 0;
   const basePrice    = product?.price || 0;
   const totalPrice   = basePrice * quantity;
-  const oldPrice     = product.compareAtPrice || product.originalPrice || null;
+  const oldPrice     = product.compareAtPrice || product.originalPrice || product?.compare_at_price || null;
   const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
-  const rating       = Number(product.averageRating || product.rating || 4.8);
-  const reviewsCount = product.totalReviews || product.reviewCount || 124;
+  const rating       = Number(product.ratingAverage || product.averageRating || product.rating || 0) || 0;
+  const reviewsCount = Number(product.reviewCount || product.totalReviews || 0) || 0;
+  const soldCount    = Number(product.soldCount || product?.salesCount || 0) || 0;
   const stock        = product.stockQuantity ?? product.stock ?? 10;
   const verificationStatus = product.verificationSummary?.status || 'unverified';
   const verificationScore = Number(product.verificationSummary?.score || 0);
@@ -309,6 +359,77 @@ export default function ProductDetail() {
   const showSizeSelector = categoryNeedsSize(product?.category) && Array.isArray(product?.sizes) && product.sizes.length > 0;
   const showColorSelector = categoryNeedsColor(product?.category) && Array.isArray(product?.colors) && product.colors.length > 0;
   const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
+  const productVideoUrl = useMemo(() => {
+    const direct =
+      product?.videoUrl ||
+      product?.video ||
+      product?.videoPath ||
+      product?.media?.video ||
+      product?.media?.videoUrl ||
+      product?.media?.videoPath;
+    const directResolved = resolveMedia(direct);
+    if (directResolved) return directResolved;
+
+    if (Array.isArray(product?.videos) && product.videos.length > 0) {
+      const fromVideos = resolveMedia(product.videos[0]);
+      if (fromVideos) return fromVideos;
+    }
+
+    if (Array.isArray(product?.media)) {
+      const videoItem = product.media.find((item) => {
+        const kind = String(item?.type || item?.kind || item?.mediaType || '').toLowerCase();
+        const mime = String(item?.mimeType || item?.mimetype || '').toLowerCase();
+        const url = String(item?.url || item?.src || item?.path || '').toLowerCase();
+        return (
+          kind.includes('video') ||
+          mime.startsWith('video/') ||
+          /\.(mp4|webm|ogg|mov|m4v|m3u8)$/i.test(url)
+        );
+      });
+      return resolveMedia(videoItem);
+    }
+
+    return null;
+  }, [product]);
+
+  const galleryItems = useMemo(() => {
+    const items = [];
+    if (productVideoUrl) items.push({ type: 'video', src: productVideoUrl });
+    for (const img of images || []) items.push({ type: 'image', src: resolveImage(img) });
+    if (!items.length && product?.image) items.push({ type: 'image', src: resolveImage(product.image) });
+    if (!items.length) items.push({ type: 'image', src: resolveImage(null) });
+    return items;
+  }, [images, productVideoUrl, product?.image]);
+
+  useEffect(() => {
+    setActiveImage((i) => Math.min(Math.max(0, i), Math.max(0, galleryItems.length - 1)));
+  }, [galleryItems.length]);
+
+  const couponCode = String(product?.couponCode || product?.coupon || '').trim();
+  const campaignLabel = String(product?.campaignLabel || product?.campaign || '').trim();
+  const offerEndsAt = product?.offerEndsAt ? new Date(product.offerEndsAt) : null;
+  const promoActive = offerEndsAt && !Number.isNaN(offerEndsAt.getTime()) ? offerEndsAt.getTime() > countdownNow : false;
+  const savingsAmount = oldPrice && oldPrice > price ? (oldPrice - price) : 0;
+
+  useEffect(() => {
+    if (!offerEndsAt || Number.isNaN(offerEndsAt.getTime())) return;
+    if (offerEndsAt.getTime() <= Date.now()) return;
+    const t = window.setInterval(() => setCountdownNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [offerEndsAt?.getTime?.()]);
+
+  const offerCountdown = useMemo(() => {
+    if (!promoActive || !offerEndsAt) return null;
+    const ms = offerEndsAt.getTime() - countdownNow;
+    if (ms <= 0) return null;
+    const s = Math.floor(ms / 1000);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return d > 0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  }, [promoActive, offerEndsAt, countdownNow]);
 
   const specs = [
     { prop: 'Brand',          value: product.brand    || 'Reaglex'     },
@@ -377,9 +498,9 @@ export default function ProductDetail() {
           <div className={dense ? 'pt-3 space-y-4' : 'pt-0 space-y-4'} id="reviews-section">
             <div className={`flex flex-col gap-4 p-4 sm:p-6 rounded-2xl ${dense ? '' : 'lg:flex-row lg:items-stretch'}`} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
               <div className={`text-center ${dense ? '' : 'lg:text-left lg:flex-shrink-0'}`}>
-                <p className={`font-black mb-1 ${dense ? 'text-4xl' : 'text-4xl sm:text-5xl'}`} style={{ color: PRIMARY }}>{rating.toFixed(1)}</p>
+                <p className={`font-black mb-1 ${dense ? 'text-4xl' : 'text-4xl sm:text-5xl'}`} style={{ color: PRIMARY }}>{rating ? rating.toFixed(1) : '—'}</p>
                 <Stars rating={rating} />
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{reviewsCount} reviews</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{reviewsCount ? `${reviewsCount} reviews` : 'No reviews yet'}</p>
               </div>
               <div className="flex-1 space-y-2 min-w-0">
                 {reviewBars.map((r, i) => (
@@ -401,6 +522,43 @@ export default function ProductDetail() {
                 </button>
               </div>
             </div>
+
+            {Array.isArray(product?.reviewGallery) && product.reviewGallery.length > 0 && (
+              <div className="p-4 sm:p-5 rounded-2xl"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Customer photos</p>
+                  <button
+                    type="button"
+                    className="text-xs font-bold hover:underline py-2 touch-manipulation"
+                    style={{ color: PRIMARY }}
+                    onClick={() => {
+                      document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    See all reviews →
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {product.reviewGallery
+                    .flatMap((r) => (Array.isArray(r?.images) ? r.images.map((img) => ({ img })) : []))
+                    .slice(0, 12)
+                    .map(({ img }, idx) => (
+                      <button
+                        key={`${img}-${idx}`}
+                        type="button"
+                        className="rounded-xl overflow-hidden min-h-[44px] touch-manipulation"
+                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--divider)' }}
+                        onClick={() => {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        <img src={resolveImage(img)} alt="" className="w-full h-full object-cover aspect-square" />
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
             {[
               { author: 'Alex M.', rating: 5, text: 'Absolutely love this product! Quality exceeded my expectations.', date: '2 days ago' },
               { author: 'Sarah K.', rating: 4, text: 'Great quality, fast shipping. Would definitely buy again.', date: '1 week ago' },
@@ -498,34 +656,51 @@ export default function ProductDetail() {
               initial={{ opacity: 0, x: -28 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, ease }}
             >
-              {/* Main image */}
+              {/* Main media */}
               <div
                 className="pd2-main-img group relative overflow-hidden rounded-3xl cursor-zoom-in mb-2 md:mb-4"
                 style={{
                   background: 'var(--bg-secondary)',
                 }}
-                onClick={() => setLightbox(true)}
+                onClick={() => {
+                  const cur = galleryItems[activeImage];
+                  if (cur?.type !== 'video') setLightbox(true);
+                }}
                 onTouchStart={(e) => setTouchStartX(e.changedTouches?.[0]?.clientX ?? null)}
                 onTouchEnd={(e) => {
                   const endX = e.changedTouches?.[0]?.clientX;
-                  if (touchStartX == null || typeof endX !== 'number' || images.length < 2) return;
+                  if (touchStartX == null || typeof endX !== 'number' || galleryItems.length < 2) return;
                   const delta = endX - touchStartX;
                   if (Math.abs(delta) < 40) return;
-                  if (delta < 0) setActiveImage((i) => (i + 1) % images.length);
-                  else setActiveImage((i) => (i - 1 + images.length) % images.length);
+                  if (delta < 0) setActiveImage((i) => (i + 1) % galleryItems.length);
+                  else setActiveImage((i) => (i - 1 + galleryItems.length) % galleryItems.length);
                 }}
               >
                 <AnimatePresence mode="wait">
-                  <motion.img
-                    key={activeImage}
-                    src={resolveImage(images[activeImage])}
-                    alt={title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    onError={(e) => { e.target.src = resolveImage(null); }}
-                    draggable={false}
-                  />
+                  {galleryItems[activeImage]?.type === 'video' ? (
+                    <motion.video
+                      key={`v-${activeImage}`}
+                      src={galleryItems[activeImage]?.src}
+                      controls
+                      preload="metadata"
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover bg-black"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <motion.img
+                      key={`i-${activeImage}`}
+                      src={galleryItems[activeImage]?.src || resolveImage(images[activeImage])}
+                      alt={title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      onError={(e) => { e.target.src = resolveImage(null); }}
+                      draggable={false}
+                    />
+                  )}
                 </AnimatePresence>
 
                 {/* Floating badges */}
@@ -588,7 +763,7 @@ export default function ProductDetail() {
                   {/* Wishlist */}
                   <motion.button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); setWishlisted(!wishlisted); }}
+                    onClick={(e) => { e.stopPropagation(); handleToggleWishlist(); }}
                     className="pd2-img-btn"
                     whileTap={{ scale: 0.88 }}
                     aria-label="Wishlist"
@@ -598,28 +773,43 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Arrow nav for multi-image */}
-                {images.length > 1 && (
+                {galleryItems.length > 1 && (
                   <>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i - 1 + images.length) % images.length); }}
+                      onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i - 1 + galleryItems.length) % galleryItems.length); }}
                       className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 pd2-arrow-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 touch-manipulation"
                       aria-label="Previous image"
                     ><ChevronLeft size={18} /></button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i + 1) % images.length); }}
+                      onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i + 1) % galleryItems.length); }}
                       className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 pd2-arrow-btn opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 touch-manipulation"
                       aria-label="Next image"
                     ><ChevronRight size={18} /></button>
                   </>
                 )}
+
+                {/* Media counter */}
+                {galleryItems.length > 1 && (
+                  <div
+                    className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                    style={{
+                      background: 'rgba(0,0,0,0.55)',
+                      color: '#fff',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      backdropFilter: 'blur(10px)',
+                    }}
+                  >
+                    {activeImage + 1}/{galleryItems.length}
+                  </div>
+                )}
               </div>
 
               {/* Thumbnails */}
-              {images.length > 1 && (
+              {galleryItems.length > 1 && (
                 <div className="pd2-thumbs-row flex gap-2 md:gap-2.5 overflow-x-auto pb-1 scroll-touch" style={{ scrollSnapType: 'x mandatory' }}>
-                  {images.slice(0, 6).map((img, i) => (
+                  {galleryItems.slice(0, 7).map((m, i) => (
                     <motion.button
                       key={i} type="button"
                       onClick={() => setActiveImage(i)}
@@ -634,7 +824,19 @@ export default function ProductDetail() {
                       }}
                       whileHover={{ scale: 1.07, opacity: 1 }}
                     >
-                      <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" draggable={false} />
+                      {m?.type === 'video' ? (
+                        <div className="w-full h-full relative bg-black">
+                          <video src={m.src} className="w-full h-full object-cover opacity-80" preload="metadata" playsInline muted />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                              style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.22)' }}>
+                              <span className="text-white text-sm" style={{ transform: 'translateX(1px)' }}>▶</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img src={m?.src} alt="" className="w-full h-full object-cover" draggable={false} />
+                      )}
                     </motion.button>
                   ))}
                 </div>
@@ -648,6 +850,48 @@ export default function ProductDetail() {
               transition={{ duration: 0.5, delay: 0.1, ease }}
             >
               <div className="pd2-purchase-flow min-w-0">
+
+                {/* Campaign / coupon / countdown (only when present) */}
+                {(campaignLabel || couponCode || offerCountdown) && (
+                  <div className="order-0 w-full mb-3 space-y-2">
+                    {campaignLabel && (
+                      <div className="px-3 py-2 rounded-2xl text-xs font-bold"
+                        style={{ background: 'var(--brand-tint)', color: PRIMARY, border: '1px solid var(--brand-border-subtle)' }}>
+                        {campaignLabel}
+                      </div>
+                    )}
+                    {couponCode && (
+                      <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-2xl"
+                        style={{ background: '#ecfeff', border: '1px solid #a5f3fc' }}>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black" style={{ color: '#0e7490', letterSpacing: '0.06em' }}>COUPON</p>
+                          <p className="text-sm font-bold truncate" style={{ color: '#0e7490' }}>{couponCode}</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] touch-manipulation"
+                          style={{ background: '#06b6d4', color: '#fff' }}
+                          onClick={async () => {
+                            try { await navigator.clipboard.writeText(couponCode); }
+                            catch {}
+                          }}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    )}
+                    {offerCountdown && (
+                      <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-2xl"
+                        style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black" style={{ color: '#9a3412', letterSpacing: '0.06em' }}>OFFER ENDS IN</p>
+                          <p className="text-sm font-black tabular-nums" style={{ color: '#9a3412' }}>{offerCountdown}</p>
+                        </div>
+                        <span className="text-[11px] font-semibold" style={{ color: '#9a3412' }}>Limited time</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Price + stock — mobile-first scan */}
                 <div className="order-1 lg:order-5 w-full min-w-0 mb-3 lg:mb-0 space-y-2">
@@ -681,6 +925,11 @@ export default function ProductDetail() {
                     <p className="text-[11px] sm:text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
                       ~ {totalUsdText} USD
                     </p>
+                    {savingsAmount > 0 && (
+                      <p className="text-[11px] sm:text-xs leading-snug font-semibold" style={{ color: '#16a34a' }}>
+                        You save {currencyPricing.formatLocalWithUsd(savingsAmount)}
+                      </p>
+                    )}
                     <p className="text-[11px] sm:text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
                       {stock > 0 ? `${stock} available` : 'Unavailable'}
                       {stock > 0 ? ` · 3 × ${installment}` : ''}
@@ -740,7 +989,7 @@ export default function ProductDetail() {
                 {/* Rating row */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 lg:mb-5 pb-3 lg:pb-4 border-b order-5 lg:order-4 w-full min-w-0" style={{ borderColor: 'var(--divider)' }}>
                   <Stars rating={rating} />
-                  <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating.toFixed(1)}</span>
+                  <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating ? rating.toFixed(1) : '—'}</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -750,8 +999,18 @@ export default function ProductDetail() {
                     }}
                     className="text-xs sm:text-sm hover:underline touch-manipulation py-1"
                     style={{ color: 'var(--text-muted)' }}>
-                    {reviewsCount} reviews
+                    {reviewsCount ? `${reviewsCount} reviews` : 'No reviews yet'}
                   </button>
+                  {!!soldCount && (
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
+                      {soldCount.toLocaleString()} sold
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
+                    <Heart size={12} className="inline -mt-0.5 mr-1" /> {wishlistCount.toLocaleString()} saved
+                  </span>
                   <span className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded"
                     style={{ background: '#f0fdf4', color: '#15803d' }}>
                     <BadgeCheck size={12} /> Verified
@@ -919,6 +1178,79 @@ export default function ProductDetail() {
               </div>{/* end pd2-purchase-flow */}
             </motion.div>
           </div>{/* end hero grid */}
+
+          {/* Video (if present) is rendered inside the main media gallery. */}
+
+          {/* Shipping / policies (hide gracefully when missing) */}
+          {(product?.shippingInfo?.costLabel || product?.shippingInfo?.estimatedDeliveryLabel || product?.returnPolicy?.label || product?.securityNote || product?.paymentSafetyNote) && (
+            <motion.section
+              className="mb-6 md:mb-10 grid grid-cols-1 md:grid-cols-2 gap-3"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4 }}
+            >
+              {(product?.shippingInfo?.costLabel || product?.shippingInfo?.estimatedDeliveryLabel) && (
+                <div className="p-4 sm:p-5 rounded-2xl"
+                  style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+                      style={{ background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', border: '1px solid var(--brand-border-subtle)' }}>
+                      <Truck size={18} style={{ color: PRIMARY }} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Shipping</p>
+                      {product?.shippingInfo?.costLabel && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{product.shippingInfo.costLabel}</p>
+                      )}
+                      {product?.shippingInfo?.estimatedDeliveryLabel && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Est. delivery: {product.shippingInfo.estimatedDeliveryLabel}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(product?.returnPolicy?.label || product?.returnPolicy?.details) && (
+                <div className="p-4 sm:p-5 rounded-2xl"
+                  style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+                      style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                      <RefreshCw size={18} className="text-green-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{product?.returnPolicy?.label || 'Returns & refunds'}</p>
+                      {product?.returnPolicy?.details && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{product.returnPolicy.details}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(product?.securityNote || product?.paymentSafetyNote) && (
+                <div className="p-4 sm:p-5 rounded-2xl md:col-span-2"
+                  style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+                      style={{ background: '#eef2ff', border: '1px solid #c7d2fe' }}>
+                      <Shield size={18} className="text-indigo-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Security & payment safety</p>
+                      {product?.securityNote && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{product.securityNote}</p>
+                      )}
+                      {product?.paymentSafetyNote && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{product.paymentSafetyNote}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.section>
+          )}
 
           {/* ════════════════════════════════════════════════
               META STRIP — Seller info + full trust badges
@@ -1247,30 +1579,32 @@ export default function ProductDetail() {
             style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)' }}
             onClick={() => setLightbox(false)}
           >
-            <motion.img
-              initial={{ scale: 0.88, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.88, opacity: 0 }} transition={{ duration: 0.3, ease }}
-              src={resolveImage(images[activeImage])}
-              alt={title}
-              className="max-w-full max-h-full object-contain rounded-2xl"
-              style={{ boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }}
-              onClick={(e) => e.stopPropagation()}
-            />
+            {galleryItems[activeImage]?.type !== 'video' && (
+              <motion.img
+                initial={{ scale: 0.88, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.88, opacity: 0 }} transition={{ duration: 0.3, ease }}
+                src={galleryItems[activeImage]?.src || resolveImage(null)}
+                alt={title}
+                className="max-w-full max-h-full object-contain rounded-2xl"
+                style={{ boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
             <button type="button" onClick={() => setLightbox(false)}
               className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
               style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
               <X size={18} />
             </button>
-            {images.length > 1 && (
+            {galleryItems.length > 1 && (
               <>
                 <button type="button"
-                  onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i - 1 + images.length) % images.length); }}
+                  onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i - 1 + galleryItems.length) % galleryItems.length); }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-colors"
                   style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                   <ChevronLeft size={22} />
                 </button>
                 <button type="button"
-                  onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i + 1) % images.length); }}
+                  onClick={(e) => { e.stopPropagation(); setActiveImage((i) => (i + 1) % galleryItems.length); }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-colors"
                   style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
                   <ChevronRight size={22} />

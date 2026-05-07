@@ -1,22 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Send,
-  Users,
-  User,
-  Filter,
+  AlertTriangle,
+  Bell,
+  CalendarClock,
+  Copy,
+  Eye,
   Mail,
   MessageSquare,
-  Smartphone,
-  Bell,
-  AlertTriangle,
+  Mic,
   Paperclip,
-  Eye,
-  X,
-  CalendarClock,
-  Sparkles,
-  Wand2,
   Save,
-  Copy,
+  Send,
+  Sparkles,
+  Smartphone,
+  Wand2,
+  X,
 } from 'lucide-react';
 import { adminNotificationsAPI } from '@/lib/api';
 
@@ -34,6 +32,23 @@ function scheduledChannelType(types: string[]): string {
 
 type NotificationEventClass = 'transactional' | 'alert' | 'promotional';
 type NotificationTone = 'professional' | 'friendly' | 'urgent' | 'promotional' | 'informative';
+type UiTone = NotificationTone | 'formal' | 'luxury' | 'excited' | 'minimal';
+type AudienceType =
+  | 'all_customers'
+  | 'all_sellers'
+  | 'vendors'
+  | 'all_users'
+  | 'premium_members'
+  | 'specific_group'
+  | 'specific_user';
+type MessageLength = 'short' | 'medium' | 'detailed';
+type DeliveryGoal =
+  | 'high_ctr'
+  | 'readability'
+  | 'mobile'
+  | 'conversion'
+  | 'engagement';
+type CampaignStyle = 'promotion' | 'alert' | 'maintenance' | 'announcement' | 'security';
 
 type EventGroup = { key: string; label: string };
 type EventDefinition = {
@@ -97,21 +112,151 @@ const DEFAULT_EVENTS: EventDefinition[] = [
   { key: 'payout_completed', label: 'Payout completed', group: 'support', class: 'transactional', defaultTone: 'professional', variables: ['{{username}}', '{{amount}}'] },
 ];
 
+const STORAGE_KEY = 'reaglex_admin_notifications_draft_v2';
+const AI_STORAGE_KEY = 'reaglex_admin_notifications_ai_v2';
+
+const CHANNELS = [
+  { id: 'email', label: 'Email', icon: Mail },
+  { id: 'inapp', label: 'In-App', icon: Bell },
+  { id: 'sms', label: 'SMS', icon: MessageSquare },
+  { id: 'push', label: 'Push', icon: Smartphone },
+  { id: 'system', label: 'System Alert', icon: AlertTriangle },
+] as const;
+
+const CHIP_PROMPTS = [
+  'Write promotion',
+  'Maintenance notice',
+  'Urgent seller alert',
+  'Holiday campaign',
+  'Security update',
+];
+
+const SMART_ACTIONS = [
+  'Improve Existing Text',
+  'Rewrite',
+  'Expand',
+  'Shorten',
+  'Translate',
+  'Make More Professional',
+  'Add CTA',
+  'Add Urgency',
+  'Simplify',
+  'Humanize Tone',
+  'Generate 3 Variations',
+  'Generate Subject Line',
+  'Generate Push Version',
+  'Generate SMS Version',
+  'Convert to Email Format',
+  'Convert to Announcement',
+];
+
+function mapToneToApi(tone: UiTone): NotificationTone {
+  if (tone === 'formal' || tone === 'luxury') return 'professional';
+  if (tone === 'excited') return 'promotional';
+  if (tone === 'minimal') return 'informative';
+  return tone;
+}
+
+function estimateReadTime(text: string): string {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const mins = Math.max(1, Math.ceil(words / 220));
+  return `${mins} min read`;
+}
+
+function scoreInsights(text: string, subject: string, tone: UiTone) {
+  const clean = text.trim();
+  const len = clean.length;
+  const readability = Math.max(45, Math.min(98, 96 - Math.floor(len / 14)));
+  const mobile = len < 320 ? 92 : len < 520 ? 78 : 61;
+  const spamRisk = /free|urgent|!!!|act now|guaranteed/gi.test(clean) ? 'Medium' : 'Low';
+  const engagement = Math.max(51, Math.min(94, 60 + Math.floor(subject.length / 2)));
+  const openRate = Math.max(22, Math.min(72, 30 + Math.floor(subject.length / 3)));
+  return { readability, mobile, spamRisk, engagement, openRate, toneLabel: tone };
+}
+
+const ToneSelector = memo(function ToneSelector({
+  tone,
+  onChange,
+}: {
+  tone: UiTone;
+  onChange: (tone: UiTone) => void;
+}) {
+  const tones: UiTone[] = ['professional', 'friendly', 'urgent', 'promotional', 'formal', 'luxury', 'excited', 'minimal'];
+  return (
+    <div className="ai-grid">
+      {tones.map((option) => (
+        <button key={option} type="button" className={`pill ${tone === option ? 'active' : ''}`} onClick={() => onChange(option)}>
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+});
+
+const AudienceSelector = memo(function AudienceSelector({
+  audience,
+  onChange,
+}: {
+  audience: AudienceType;
+  onChange: (audience: AudienceType) => void;
+}) {
+  return (
+    <select className="glass-select" value={audience} onChange={(e) => onChange(e.target.value as AudienceType)} aria-label="Audience selector">
+      <option value="all_customers">Customers</option>
+      <option value="all_sellers">Sellers</option>
+      <option value="vendors">Vendors</option>
+      <option value="all_users">All Users</option>
+      <option value="premium_members">Premium Members</option>
+      <option value="specific_group">Specific Group</option>
+      <option value="specific_user">Specific User</option>
+    </select>
+  );
+});
+
+const PromptSuggestions = memo(function PromptSuggestions({
+  onPick,
+}: {
+  onPick: (value: string) => void;
+}) {
+  return (
+    <div className="chip-wrap">
+      {CHIP_PROMPTS.map((chip) => (
+        <button key={chip} type="button" className="chip" onClick={() => onPick(chip)}>
+          {chip}
+        </button>
+      ))}
+    </div>
+  );
+});
+
+const AiInsightPanel = memo(function AiInsightPanel({
+  message,
+  subject,
+  tone,
+}: {
+  message: string;
+  subject: string;
+  tone: UiTone;
+}) {
+  const metrics = useMemo(() => scoreInsights(message, subject, tone), [message, subject, tone]);
+  return (
+    <div className="insight-card">
+      <h4>Smart Insights</h4>
+      <p>Readability {metrics.readability}% • Open rate {metrics.openRate}% • Mobile {metrics.mobile}%</p>
+      <p>Engagement prediction {metrics.engagement}% • Spam risk {metrics.spamRisk}</p>
+      <p>Tone analysis: {metrics.toneLabel}</p>
+    </div>
+  );
+});
+
 export default function CreateSendNotification() {
-  const TONES: NotificationTone[] = [
-    'professional',
-    'friendly',
-    'urgent',
-    'promotional',
-    'informative',
-  ];
-  const [targetGroup, setTargetGroup] = useState('all_customers');
+  const [targetGroup, setTargetGroup] = useState<AudienceType>('all_customers');
   const [specificUserId, setSpecificUserId] = useState('');
   const [notificationType, setNotificationType] = useState<string[]>(['inapp']);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [prompt, setPrompt] = useState('');
-  const [tone, setTone] = useState<NotificationTone>('professional');
+  const [tone, setTone] = useState<UiTone>('professional');
   const [contextType, setContextType] = useState('order_placed');
   const [customEventEnabled, setCustomEventEnabled] = useState(false);
   const [customEventKey, setCustomEventKey] = useState('');
@@ -134,7 +279,16 @@ export default function CreateSendNotification() {
   const [testEmail, setTestEmail] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState(false);
+  const [saveTick, setSaveTick] = useState('Not synced');
+  const [messageLength, setMessageLength] = useState<MessageLength>('medium');
+  const [deliveryGoal, setDeliveryGoal] = useState<DeliveryGoal>('engagement');
+  const [campaignStyle, setCampaignStyle] = useState<CampaignStyle>('announcement');
+  const [language, setLanguage] = useState('English');
+  const [latestGenerated, setLatestGenerated] = useState('');
+  const [attachHint, setAttachHint] = useState('');
+  const [assistantOpen, setAssistantOpen] = useState(true);
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
+  const promptRef = useRef<HTMLTextAreaElement | null>(null);
 
   const selectedEvent = useMemo(
     () => eventLibrary.find((evt) => evt.key === contextType) || null,
@@ -158,10 +312,13 @@ export default function CreateSendNotification() {
   const filteredEvents = useMemo(() => {
     const q = eventSearch.trim().toLowerCase();
     if (!q) return eventLibrary;
+    if (eventGroups.some((group) => group.key === q)) {
+      return eventLibrary.filter((evt) => evt.group === q);
+    }
     return eventLibrary.filter(
       (evt) => evt.label.toLowerCase().includes(q) || evt.key.toLowerCase().includes(q),
     );
-  }, [eventLibrary, eventSearch]);
+  }, [eventGroups, eventLibrary, eventSearch]);
 
   useEffect(() => {
     let mounted = true;
@@ -183,6 +340,66 @@ export default function CreateSendNotification() {
       setTone(selectedEvent.defaultTone);
     }
   }, [customEventEnabled, selectedEvent]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw) as Partial<{
+          subject: string;
+          message: string;
+          targetGroup: AudienceType;
+          specificUserId: string;
+          notificationType: string[];
+          tone: UiTone;
+          scheduleAt: string;
+        }>;
+        if (data.subject) setSubject(data.subject);
+        if (data.message) setMessage(data.message);
+        if (data.targetGroup) setTargetGroup(data.targetGroup);
+        if (data.specificUserId) setSpecificUserId(data.specificUserId);
+        if (data.notificationType?.length) setNotificationType(data.notificationType);
+        if (data.tone) setTone(data.tone);
+        if (data.scheduleAt) setScheduleAt(data.scheduleAt);
+      }
+      const aiRaw = localStorage.getItem(AI_STORAGE_KEY);
+      if (aiRaw) {
+        const aiData = JSON.parse(aiRaw) as Partial<{ prompt: string; aiSubjects: string[]; aiMessages: string[] }>;
+        if (aiData.prompt) setPrompt(aiData.prompt);
+        if (aiData.aiSubjects?.length) setAiSubjects(aiData.aiSubjects);
+        if (aiData.aiMessages?.length) setAiMessages(aiData.aiMessages);
+      }
+    } catch {
+      null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          subject,
+          message,
+          targetGroup,
+          specificUserId,
+          notificationType,
+          tone,
+          scheduleAt,
+        }),
+      );
+      localStorage.setItem(
+        AI_STORAGE_KEY,
+        JSON.stringify({
+          prompt,
+          aiSubjects,
+          aiMessages,
+        }),
+      );
+      setSaveTick(`Synced ${new Date().toLocaleTimeString()}`);
+    }, 450);
+    return () => window.clearTimeout(handle);
+  }, [subject, message, targetGroup, specificUserId, notificationType, tone, scheduleAt, prompt, aiSubjects, aiMessages]);
 
   const handleTypeToggle = (type: string) => {
     setNotificationType((prev) =>
@@ -229,7 +446,7 @@ export default function CreateSendNotification() {
     });
   };
 
-  const handleGenerateWithAI = async () => {
+  const handleGenerateWithAI = useCallback(async (smartAction?: string) => {
     setSendError(null);
     if (!prompt.trim()) {
       setSendError('Describe what the notification should say.');
@@ -242,20 +459,21 @@ export default function CreateSendNotification() {
     setAiLoading(true);
     try {
       const out = await adminNotificationsAPI.generateNotificationCopy({
-        prompt: prompt.trim(),
-        tone,
+        prompt: `${prompt.trim()}\nAction: ${smartAction || 'Generate with AI'}\nAudience: ${targetGroup}\nLength: ${messageLength}\nCampaign style: ${campaignStyle}\nLanguage: ${language}\nDelivery optimization: ${deliveryGoal}`,
+        tone: mapToneToApi(tone),
         contextType,
         customEventKey: customEventEnabled ? customEventKey.trim() : undefined,
         variables: selectedEvent?.variables || [],
       });
       setAiSubjects(out.subject || []);
       setAiMessages(out.messages || []);
+      setLatestGenerated((out.messages || [])[0] || '');
     } catch (e) {
       setSendError(e instanceof Error ? e.message : 'AI generation failed');
     } finally {
       setAiLoading(false);
     }
-  };
+  }, [prompt, customEventEnabled, customEventKey, targetGroup, messageLength, campaignStyle, language, deliveryGoal, tone, contextType, selectedEvent?.variables]);
 
   const handleImproveWithAI = async () => {
     setSendError(null);
@@ -271,6 +489,7 @@ export default function CreateSendNotification() {
       });
       setAiSubjects(out.subject || []);
       setAiMessages(out.messages || []);
+      setLatestGenerated((out.messages || [])[0] || '');
     } catch (e) {
       setSendError(e instanceof Error ? e.message : 'AI improve failed');
     } finally {
@@ -404,40 +623,87 @@ export default function CreateSendNotification() {
     }
   };
 
+  const handleSmartAction = useCallback(
+    async (action: string) => {
+      const nextPrompt = `${prompt || message || 'Notification draft'}\n${action}`;
+      setPrompt(nextPrompt);
+      await handleGenerateWithAI(action);
+    },
+    [handleGenerateWithAI, message, prompt],
+  );
+
+  const handleInsertIntoEditor = useCallback((next: string, replace: boolean) => {
+    if (!next) return;
+    if (replace) setMessage(next);
+    else setMessage((prev) => (prev ? `${prev}\n\n${next}` : next));
+    setSendSuccess(true);
+    setTimeout(() => setSendSuccess(false), 2800);
+  }, []);
+
+  const readTime = useMemo(() => estimateReadTime(message), [message]);
+  const intentSuggestion = useMemo(() => {
+    const source = `${subject} ${prompt} ${message}`.toLowerCase();
+    if (source.includes('discount') || source.includes('sale')) return { style: 'promotion', channel: 'email', when: '09:00 local time' };
+    if (source.includes('urgent') || source.includes('security') || source.includes('alert')) return { style: 'alert', channel: 'push', when: 'Immediate' };
+    if (source.includes('maintenance') || source.includes('downtime')) return { style: 'maintenance', channel: 'system', when: '30 mins before event' };
+    return { style: 'announcement', channel: 'inapp', when: '13:00 local time' };
+  }, [subject, prompt, message]);
+
+  useEffect(() => {
+    setCampaignStyle(intentSuggestion.style as CampaignStyle);
+  }, [intentSuggestion.style]);
+
   return (
-    <div className="notifications-page" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div className="notifications-page" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', overflow: 'hidden' }}>
       <style>{`
-        .notifications-page { background: #f8fafc; }
+        .notifications-page { background: radial-gradient(circle at top right,#f0f9ff 0%,#f8fafc 44%,#ecfeff 100%); }
         .page-header { padding: 24px 24px 16px; }
-        .page-title { font-size: 22px; font-weight: 700; color: #111827; }
-        .page-subtitle { font-size: 13px; color: #6b7280; margin-top: 4px; max-width: 600px; }
+        .page-title { font-size: 22px; font-weight: 700; color: #0f172a; }
+        .page-subtitle { font-size: 13px; color: #475569; margin-top: 4px; max-width: 720px; }
         .top-bar { margin: 0 24px 12px; display: flex; align-items: center; gap: 12px; }
         .notif-type-tabs { display: flex; align-items: center; gap: 6px; }
-        .tab-pill { padding: 6px 14px; border-radius: 999px; border: 1px solid #e5e7eb; background: transparent; color: #6b7280; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
-        .tab-pill.active { background: rgba(0,191,165,0.08); border-color: #00bfa5; color: #00bfa5; font-weight: 600; }
+        .tab-pill { padding: 7px 14px; border-radius: 999px; border: 1px solid #dbeafe; background: rgba(255,255,255,.7); color: #475569; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; transition: all .2s; }
+        .tab-pill:hover { border-color: #7dd3fc; }
+        .tab-pill.active { background: rgba(34,211,238,.12); border-color: #06b6d4; color: #0891b2; box-shadow: 0 0 0 3px rgba(34,211,238,.15); font-weight: 600; }
         .top-bar-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-        .btn-outline { border: 1px solid #e5e7eb; border-radius: 8px; padding: 7px 14px; font-size: 13px; color: #374151; background: #fff; display: inline-flex; align-items: center; gap: 6px; }
-        .send-now-btn { background: #00bfa5; color: #fff; border: none; border-radius: 8px; padding: 7px 18px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-        .two-panel-container { display: flex; flex-direction: row; flex: 1; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; margin: 0 24px 24px; height: calc(100vh - 180px); }
-        .left-composer-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #e5e7eb; }
-        .right-ai-panel { width: 360px; flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; background: #fff; }
+        .btn-outline { border: 1px solid #dbeafe; border-radius: 10px; padding: 8px 14px; font-size: 13px; color: #0f172a; background: rgba(255,255,255,.85); display: inline-flex; align-items: center; gap: 6px; transition: all .2s; }
+        .btn-outline:hover { box-shadow: 0 4px 16px rgba(15,23,42,.08); transform: translateY(-1px); }
+        .send-now-btn { background: linear-gradient(135deg,#06b6d4,#22d3ee); color: #fff; border: none; border-radius: 10px; padding: 8px 18px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 8px 20px rgba(6,182,212,.35); }
+        .two-panel-container { display: flex; flex-direction: row; flex: 1; overflow: hidden; border: 1px solid rgba(125,211,252,.4); border-radius: 16px; background: rgba(255,255,255,.8); backdrop-filter: blur(10px); margin: 0 24px 24px; min-height: calc(100vh - 180px); }
+        .left-composer-panel { width: 68%; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; border-right: 1px solid #e0f2fe; }
+        .right-ai-panel { width: 32%; min-width: 320px; flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; background: linear-gradient(180deg,rgba(255,255,255,.95),rgba(236,254,255,.95)); position: sticky; top: 0; max-height: calc(100vh - 180px); }
         .field-row { display: flex; align-items: center; min-height: 46px; border-bottom: 1px solid #f3f4f6; padding: 0 16px; }
         .field-label { width: 56px; flex-shrink: 0; font-size: 13px; color: #6b7280; font-weight: 500; }
         .field-content { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
-        .target-pill { background: rgba(0,191,165,0.1); border: 1px solid rgba(0,191,165,0.3); color: #00bfa5; border-radius: 99px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
-        .target-group-btn { font-size: 12px; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 10px; background: #fff; }
-        .composer-toolbar { padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid #f3f4f6; }
+        .target-pill { background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.35); color: #0891b2; border-radius: 99px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+        .target-group-btn { font-size: 12px; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; background: #fff; }
+        .composer-toolbar { padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid #f3f4f6; position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.95); backdrop-filter: blur(8px); }
         .composer-toolbar button { font-size: 12px; padding: 5px 10px; border-radius: 99px; border: 1px solid #e5e7eb; background: #fafafa; color: #374151; display: inline-flex; align-items: center; gap: 5px; }
-        .message-body-textarea { flex: 1; padding: 16px; border: none; outline: none; font-size: 14px; color: #374151; line-height: 1.7; resize: none; min-height: 200px; }
+        .message-body-textarea { flex: 1; padding: 16px; border: none; outline: none; font-size: 14px; color: #334155; line-height: 1.7; resize: vertical; min-height: 320px; width: 100%; background: transparent; }
         .bottom-toolbar { padding: 10px 16px; border-top: 1px solid #f3f4f6; display: flex; align-items: center; gap: 14px; }
         .test-send-section { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-        .ai-section-title { padding: 10px 14px 6px; font-size: 11px; font-weight: 700; color: #9ca3af; letter-spacing: 0.08em; text-transform: uppercase; }
-        .ai-generate-btns { padding: 12px 14px; display: flex; gap: 8px; border-top: 1px solid #f3f4f6; position: sticky; bottom: 0; background: #fff; z-index: 10; }
+        .ai-header { padding: 14px; border-bottom: 1px solid #cffafe; background: linear-gradient(130deg,rgba(8,145,178,.1),rgba(34,211,238,.06)); }
+        .ai-section-title { padding: 8px 14px 6px; font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.08em; text-transform: uppercase; }
+        .ai-generate-btns { padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid #cffafe; position: sticky; bottom: 0; background: rgba(255,255,255,.95); z-index: 10; backdrop-filter: blur(8px); }
         .ab-testing-section { padding: 14px; border-top: 1px solid #f3f4f6; }
-        .ab-launch-btn { width: 100%; height: 40px; border: 1.5px solid #00bfa5; background: transparent; color: #00bfa5; font-size: 13px; font-weight: 600; border-radius: 8px; }
+        .ab-launch-btn { width: 100%; height: 40px; border: 1.5px solid #0891b2; background: transparent; color: #0891b2; font-size: 13px; font-weight: 600; border-radius: 8px; }
         .schedule-modal-btns { display: flex; justify-content: flex-end; gap: 8px; }
-        .toast-notification { position: fixed; right: 24px; bottom: 24px; border-radius: 10px; padding: 10px 14px; font-size: 13px; z-index: 70; }
+        .toast-notification { position: fixed; right: 24px; bottom: 24px; border-radius: 10px; padding: 10px 14px; font-size: 13px; z-index: 70; box-shadow: 0 14px 24px rgba(15,23,42,.18); }
         .ai-panel-mobile-header { display: none; }
+        .floating-label { font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: .06em; margin-bottom: 4px; }
+        .glass-input, .glass-select { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 9px 12px; font-size: 13px; background: rgba(255,255,255,.75); color: #1e293b; }
+        .glass-input:focus, .glass-select:focus, .message-body-textarea:focus { box-shadow: 0 0 0 3px rgba(34,211,238,.2); border-color: #06b6d4; }
+        .chip-wrap { display:flex; flex-wrap:wrap; gap:8px; padding:0 14px 8px; }
+        .chip { border:1px solid #bae6fd; background:#f0f9ff; color:#0369a1; border-radius:999px; padding:5px 10px; font-size:12px; }
+        .ai-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:6px; }
+        .pill { border:1px solid #cbd5e1; border-radius:9px; padding:7px 8px; font-size:12px; text-transform:capitalize; color:#334155; background:#fff; }
+        .pill.active { border-color:#06b6d4; background:#ecfeff; color:#0e7490; }
+        .smart-actions { display:flex; gap:6px; overflow:auto; padding:0 14px 10px; scrollbar-width:none; }
+        .smart-actions button { white-space:nowrap; border:1px solid #cbd5e1; border-radius:999px; background:#fff; padding:6px 10px; font-size:11px; color:#334155; }
+        .output-card { margin:0 14px 12px; border:1px solid #dbeafe; border-radius:12px; background:#fff; box-shadow:0 8px 18px rgba(14,116,144,.08); }
+        .output-scroll { max-height:180px; overflow:auto; font-size:13px; line-height:1.6; color:#334155; padding:12px; white-space:pre-wrap; }
+        .insight-card { margin:0 14px 12px; border:1px dashed #7dd3fc; border-radius:12px; padding:10px; font-size:12px; color:#475569; background:rgba(236,254,255,.55); }
+        .drag-target { border:1px dashed #7dd3fc; border-radius:10px; padding:7px 10px; font-size:12px; color:#0e7490; margin:8px 14px 12px; }
         @media (max-width: 768px) {
           .page-header { padding: 16px 14px 12px; }
           .page-title { font-size: 18px !important; }
@@ -451,7 +717,7 @@ export default function CreateSendNotification() {
           .auto-save-wrapper { grid-column: 1 / -1 !important; justify-content: flex-end !important; }
           .two-panel-container { flex-direction: column !important; overflow: visible !important; margin: 0 12px 16px !important; height: auto !important; }
           .left-composer-panel { order: 1 !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid #e5e7eb !important; }
-          .right-ai-panel { order: 2 !important; width: 100% !important; max-width: unset !important; flex-shrink: unset !important; border-top: none !important; }
+          .right-ai-panel { order: 2 !important; width: 100% !important; max-width: unset !important; min-width: 0 !important; flex-shrink: unset !important; border-top: none !important; max-height: unset !important; position: static !important; }
           .composer-toolbar { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 7px !important; padding: 10px 12px !important; }
           .composer-toolbar button { width: 100% !important; justify-content: center !important; font-size: 11px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
           .message-body-textarea { min-height: 180px !important; height: 180px !important; font-size: 16px !important; }
@@ -482,7 +748,7 @@ export default function CreateSendNotification() {
           .target-group-btn { margin-top: 6px !important; width: 100% !important; }
         }
         @media (min-width: 769px) and (max-width: 1100px) {
-          .right-ai-panel { width: 300px !important; }
+          .right-ai-panel { width: 36% !important; min-width: 280px !important; }
           .left-composer-panel .field-row { padding: 0 12px !important; }
           .top-bar { flex-wrap: wrap !important; gap: 8px !important; }
           .notif-type-tabs { flex: 0 0 100% !important; overflow-x: auto !important; scrollbar-width: none !important; }
@@ -494,19 +760,13 @@ export default function CreateSendNotification() {
       <div className="page-header">
         <h2 className="page-title">Notifications Center</h2>
         <p className="page-subtitle">
-          Compose and send campaigns across email, in-app, SMS, push, and system alerts. Use the composer below, then refine copy with the AI assistant.
+          Compose and send campaigns across email, in-app, SMS, push, and system alerts. The AI Writing Assistant helps draft, optimize, personalize, and format campaigns before sending.
         </p>
       </div>
 
       <div className="top-bar">
         <div className="notif-type-tabs">
-          {[
-            { id: 'email', label: 'Email', icon: Mail },
-            { id: 'inapp', label: 'In-App', icon: Bell },
-            { id: 'sms', label: 'SMS', icon: MessageSquare },
-            { id: 'push', label: 'Push', icon: Smartphone },
-            { id: 'system', label: 'System Alert', icon: AlertTriangle },
-          ].map((type) => {
+          {CHANNELS.map((type) => {
             const Icon = type.icon;
             return (
               <button key={type.id} type="button" onClick={() => handleTypeToggle(type.id)} className={`tab-pill ${notificationType.includes(type.id) ? 'active' : ''}`}>
@@ -518,7 +778,7 @@ export default function CreateSendNotification() {
         </div>
         <div className="top-bar-actions">
           <div className="auto-save-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, color: '#6b7280' }}>Auto-save</span>
+            <span style={{ fontSize: 12, color: '#6b7280' }}>Auto-save • {saveTick}</span>
             <div style={{ width: 40, height: 22, borderRadius: 999, background: '#00bfa5', padding: 3 }}>
               <div style={{ width: 16, height: 16, borderRadius: 999, background: '#fff', marginLeft: 'auto' }} />
             </div>
@@ -531,7 +791,7 @@ export default function CreateSendNotification() {
               if (!scheduleAt) {
                 const d = new Date(Date.now() + 3600000);
                 d.setMinutes(0, 0, 0);
-                setScheduleAt(d.toISOString().slice(0, 16));
+              setScheduleAt(d.toISOString().slice(0, 16));
               }
               setShowSchedule(true);
             }}
@@ -557,7 +817,7 @@ export default function CreateSendNotification() {
             <div className="field-label">To</div>
             <div className="field-content" style={{ flexWrap: 'wrap' }}>
               <span className="target-pill">
-                {targetGroup === 'all_sellers' ? 'All Sellers' : targetGroup === 'specific_user' ? 'Specific User' : targetGroup === 'custom_segment' ? 'Custom Segment' : 'All Customers'}
+                {targetGroup === 'all_sellers' ? 'All Sellers' : targetGroup === 'specific_user' ? 'Specific User' : targetGroup === 'specific_group' ? 'Specific Group' : 'All Customers'}
               </span>
               <input
                 type="text"
@@ -566,7 +826,7 @@ export default function CreateSendNotification() {
                 placeholder={targetGroup === 'specific_user' ? 'Search user ID...' : 'Search products, brands, stores...'}
                 style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, color: '#374151', minWidth: 140 }}
               />
-              <select value={targetGroup} onChange={(e) => setTargetGroup(e.target.value)} className="target-group-btn">
+              <select value={targetGroup} onChange={(e) => setTargetGroup(e.target.value as AudienceType)} className="target-group-btn">
                 <option value="all_customers">Target Group</option>
                 <option value="all_sellers">All Sellers</option>
                 <option value="specific_user">Specific User</option>
@@ -586,7 +846,10 @@ export default function CreateSendNotification() {
             <button type="button"><Copy className="h-3.5 w-3.5" /> Load existing Templates</button>
             <button type="button" onClick={handleSaveAsTemplate} disabled={savingTemplate}><Save className="h-3.5 w-3.5" /> Save as new template</button>
             <button type="button" onClick={handleImproveWithAI} disabled={aiLoading}><Wand2 className="h-3.5 w-3.5" /> Rephrase</button>
-            <button type="button" onClick={handleGenerateWithAI} disabled={aiLoading}><Sparkles className="h-3.5 w-3.5" /> Analyze</button>
+            <button type="button" onClick={() => void handleGenerateWithAI()} disabled={aiLoading}><Sparkles className="h-3.5 w-3.5" /> Analyze</button>
+            <button type="button" onClick={() => insertTextAtCursor('\n/cta ')}>/cta</button>
+            <button type="button" onClick={() => insertTextAtCursor('\n/urgent ')}>/urgent</button>
+            <button type="button" onClick={() => insertTextAtCursor(' 😊')}>Emoji</button>
           </div>
 
           <div style={{ padding: '10px 16px 4px', borderBottom: '1px solid #f3f4f6' }}>
@@ -598,6 +861,10 @@ export default function CreateSendNotification() {
               placeholder="Enter notification subject..."
               style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: '#111827', fontWeight: 500, borderBottom: '1px solid #f3f4f6', paddingBottom: 10, background: 'transparent' }}
             />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12, color: '#64748b' }}>
+              <span>{subject.length} chars</span>
+              <span>{readTime}</span>
+            </div>
           </div>
 
           {notificationType.includes('email') && (
@@ -611,11 +878,11 @@ export default function CreateSendNotification() {
           )}
 
           <div className="tone-pills-wrapper" style={{ display: 'flex', gap: 6, padding: '8px 16px', borderBottom: '1px solid #f3f4f6' }}>
-            {TONES.map((t) => (
+            {(['professional', 'friendly', 'urgent', 'promotional', 'informative'] as NotificationTone[]).map((t) => (
               <button
                 key={t}
                 type="button"
-                onClick={() => setTone(t)}
+                onClick={() => setTone(t as UiTone)}
                 style={{
                   borderRadius: 999,
                   border: `1px solid ${tone === t ? '#00bfa5' : '#e5e7eb'}`,
@@ -654,6 +921,9 @@ export default function CreateSendNotification() {
             <button type="button" style={{ color: '#9ca3af' }}>🖨️</button>
             <button type="button" style={{ color: '#9ca3af' }}>✅</button>
             <button type="button" onClick={() => setShowPreview(true)} style={{ color: '#9ca3af' }}><Eye className="h-5 w-5" /></button>
+            <div style={{ fontSize: 12, color: '#64748b' }}>
+              {message.length} chars • {estimateReadTime(message)}
+            </div>
             <div className="test-send-section">
               <input
                 type="email"
@@ -676,16 +946,169 @@ export default function CreateSendNotification() {
               Scroll down ↓
             </span>
           </div>
-          <div style={{ height: 46, display: 'flex', alignItems: 'center', padding: '0 14px', borderBottom: '1px solid #f3f4f6' }}>
-            <Sparkles className="h-4 w-4" color="#00bfa5" />
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#111827', marginLeft: 8 }}>Write with AI</span>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-              <button type="button" style={{ width: 26, height: 26, borderRadius: 999, border: '1px solid #e5e7eb' }}>+</button>
-              <button type="button" style={{ width: 26, height: 26, borderRadius: 999, border: '1px solid #e5e7eb' }}>×</button>
+          <div className="ai-header">
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Sparkles className="h-4 w-4" color="#06b6d4" />
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginLeft: 8 }}>AI Writing Assistant</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: '#0891b2' }}>● Live</span>
+              <button type="button" className="btn-outline" style={{ marginLeft: 8, padding: '5px 8px' }} onClick={() => setAssistantOpen((v) => !v)}>
+                {assistantOpen ? 'Collapse' : 'Expand'}
+              </button>
+            </div>
+            <p style={{ fontSize: 12, color: '#475569', marginTop: 6 }}>
+              Describe your notification and AI will generate a polished version optimized for engagement.
+            </p>
+          </div>
+
+          {assistantOpen && (
+            <>
+          <div className="ai-section-title">Prompt</div>
+          <div style={{ padding: '0 14px 10px' }}>
+            <textarea
+              ref={promptRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Example: Write a premium maintenance notice for sellers with a clear CTA and mobile-first wording."
+              className="glass-input"
+              style={{ minHeight: 92, resize: 'vertical' }}
+              aria-label="AI prompt input"
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button type="button" className="btn-outline" onClick={() => setPrompt('')}><X className="h-4 w-4" /> Clear</button>
+              <button type="button" className="btn-outline" onClick={() => setPrompt((p) => `${p}${p ? ' ' : ''}[voice note captured]`)}><Mic className="h-4 w-4" /> Voice</button>
+            </div>
+          </div>
+          <div
+            className="drag-target"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const file = e.dataTransfer.files?.[0];
+              if (file) setAttachHint(`Attached context: ${file.name}`);
+            }}
+          >
+            Drag-and-drop context attachment {attachHint ? `• ${attachHint}` : ''}
+          </div>
+          <PromptSuggestions onPick={(value) => setPrompt((prev) => (prev ? `${prev}\n${value}` : value))} />
+
+          <div className="ai-section-title">Generation Controls</div>
+          <div style={{ padding: '0 14px 12px', display: 'grid', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <div className="floating-label">Intent Event</div>
+                <select className="glass-select" value={contextType} onChange={(e) => setContextType(e.target.value)}>
+                  {filteredEvents.slice(0, 50).map((evt) => (
+                    <option key={evt.key} value={evt.key}>
+                      {evt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="floating-label">Event Group</div>
+                <select className="glass-select" value={eventSearch} onChange={(e) => setEventSearch(e.target.value)}>
+                  <option value="">All groups</option>
+                  {eventGroups.map((grp) => (
+                    <option key={grp.key} value={grp.key}>
+                      {grp.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#475569' }}>
+              <input type="checkbox" checked={customEventEnabled} onChange={(e) => setCustomEventEnabled(e.target.checked)} />
+              Use custom event key
+            </label>
+            {customEventEnabled && (
+              <input
+                value={customEventKey}
+                onChange={(e) => setCustomEventKey(e.target.value)}
+                className="glass-input"
+                placeholder="custom_event_key"
+              />
+            )}
+            <div>
+              <div className="floating-label">Tone</div>
+              <ToneSelector tone={tone} onChange={setTone} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <div className="floating-label">Audience</div>
+                <AudienceSelector audience={targetGroup} onChange={setTargetGroup} />
+              </div>
+              <div>
+                <div className="floating-label">Language</div>
+                <select className="glass-select" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                  <option>English</option>
+                  <option>French</option>
+                  <option>Kinyarwanda</option>
+                  <option>Swahili</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <div className="floating-label">Length</div>
+                <select className="glass-select" value={messageLength} onChange={(e) => setMessageLength(e.target.value as MessageLength)}>
+                  <option value="short">Short</option>
+                  <option value="medium">Medium</option>
+                  <option value="detailed">Detailed</option>
+                </select>
+              </div>
+              <div>
+                <div className="floating-label">Campaign style</div>
+                <select className="glass-select" value={campaignStyle} onChange={(e) => setCampaignStyle(e.target.value as CampaignStyle)}>
+                  <option value="promotion">Promotion</option>
+                  <option value="alert">Alert</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="announcement">Announcement</option>
+                  <option value="security">Security</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <div className="floating-label">Delivery Optimization</div>
+              <select className="glass-select" value={deliveryGoal} onChange={(e) => setDeliveryGoal(e.target.value as DeliveryGoal)}>
+                <option value="high_ctr">High CTR</option>
+                <option value="readability">Better readability</option>
+                <option value="mobile">Short mobile format</option>
+                <option value="conversion">Conversion optimized</option>
+                <option value="engagement">Engagement optimized</option>
+              </select>
             </div>
           </div>
 
-          <div className="ai-section-title">CHOOSE SUBJECT LINE</div>
+          <div className="ai-section-title">Smart Actions</div>
+          <div className="smart-actions">
+            {SMART_ACTIONS.map((action) => (
+              <button key={action} type="button" onClick={() => void handleSmartAction(action)}>{action}</button>
+            ))}
+          </div>
+
+          <div className="ai-section-title">AI Output</div>
+          <div className="output-card">
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <strong style={{ fontSize: 13, color: '#0f172a' }}>Generated result</strong>
+              <button type="button" style={{ marginLeft: 'auto', fontSize: 11 }} onClick={() => navigator.clipboard.writeText(latestGenerated || message)}>Copy</button>
+              <button type="button" style={{ fontSize: 11 }} onClick={() => handleInsertIntoEditor(latestGenerated, false)}>Insert</button>
+              <button type="button" style={{ fontSize: 11 }} onClick={() => handleInsertIntoEditor(latestGenerated, true)}>Replace</button>
+            </div>
+            <div
+              className="output-scroll"
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={(e) => setLatestGenerated(e.currentTarget.innerText)}
+            >
+              {latestGenerated || aiMessages[0] || 'Generate content to preview improved copy and compare versions.'}
+            </div>
+          </div>
+          <AiInsightPanel message={latestGenerated || message} subject={subject} tone={tone} />
+          <div style={{ padding: '0 14px 10px', fontSize: 12, color: '#475569' }}>
+            Suggested channel: <strong>{intentSuggestion.channel}</strong> • Suggested send time: <strong>{intentSuggestion.when}</strong>
+          </div>
+
+          <div className="ai-section-title">Choose Subject Line</div>
           {(aiSubjects.length ? aiSubjects : ['']).map((item, i) => {
             const selected = item && item === subject;
             return (
@@ -693,7 +1116,7 @@ export default function CreateSendNotification() {
                 <div className="ai-suggestion-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 0' }}>
                   <button type="button" onClick={() => item && setSubject(item)} style={{ width: 16, height: 16, borderRadius: 999, border: `1.5px solid ${selected ? '#00bfa5' : '#d1d5db'}`, background: selected ? '#00bfa5' : 'transparent' }} />
                   <span style={{ fontSize: 13, fontWeight: 500, color: selected ? '#111827' : '#6b7280', marginLeft: 8, flex: 1 }}>Subject {i + 1}</span>
-                  <button type="button" onClick={handleGenerateWithAI}>↺</button>
+                  <button type="button" onClick={() => void handleGenerateWithAI()}>↺</button>
                   <button type="button" onClick={() => setAiSubjects((prev) => prev.filter((_, idx) => idx !== i))}>×</button>
                 </div>
                 <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: '#6b7280', lineHeight: 1.5, fontStyle: item ? 'normal' : 'italic' }}>
@@ -703,7 +1126,7 @@ export default function CreateSendNotification() {
             );
           })}
 
-          <div className="ai-section-title">CHOOSE BODY</div>
+          <div className="ai-section-title">Choose Body</div>
           {(aiMessages.length ? aiMessages : ['']).map((item, i) => {
             const selected = item && item === message;
             const preview = item ? `${item.split('\n').slice(0, 3).join('\n')}${item.split('\n').length > 3 ? '…' : ''}` : 'Empty — generate to fill';
@@ -732,10 +1155,10 @@ export default function CreateSendNotification() {
           </div>
 
           <div className="ai-generate-btns">
-            <button type="button" onClick={handleImproveWithAI} disabled={aiLoading} style={{ flex: 1, height: 38, borderRadius: 8, border: '1px solid #e5e7eb', color: '#6b7280', background: 'transparent' }}>
+            <button type="button" onClick={handleImproveWithAI} disabled={aiLoading} style={{ height: 38, borderRadius: 8, border: '1px solid #cbd5e1', color: '#6b7280', background: 'transparent' }}>
               Try Again
             </button>
-            <button type="button" onClick={handleGenerateWithAI} disabled={aiLoading} style={{ flex: 1, height: 38, borderRadius: 8, background: '#00bfa5', color: 'white', fontWeight: 600, border: 'none' }}>
+            <button type="button" onClick={() => void handleGenerateWithAI()} disabled={aiLoading} style={{ height: 38, borderRadius: 8, background: 'linear-gradient(135deg,#06b6d4,#22d3ee)', color: 'white', fontWeight: 700, border: 'none' }}>
               {aiLoading ? 'Generating…' : 'Generate Now'}
             </button>
           </div>
@@ -745,16 +1168,18 @@ export default function CreateSendNotification() {
             <input
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ask me anything..."
+              placeholder="Describe desired outcome..."
               style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, color: '#374151' }}
             />
-            <button type="button" onClick={handleGenerateWithAI} style={{ color: '#9ca3af' }}>→</button>
+            <button type="button" onClick={() => void handleGenerateWithAI()} style={{ color: '#9ca3af' }}>→</button>
           </div>
+            </>
+          )}
         </div>
       </div>
 
       {sendError && <p className="toast-notification" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>{sendError}</p>}
-      {sendSuccess && <p className="toast-notification" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>Operation completed successfully.</p>}
+      {sendSuccess && <p className="toast-notification" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>Content inserted successfully.</p>}
 
       {/* Preview Modal */}
       {showSchedule && (

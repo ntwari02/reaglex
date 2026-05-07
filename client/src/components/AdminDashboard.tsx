@@ -26,6 +26,7 @@ import AdminOverview from '@/pages/admin/AdminOverview';
 import UserManagement from '@/pages/admin/UserManagement';
 import SellerStoreManagement from '@/pages/admin/SellerStoreManagement';
 import ProductManagementAdmin from '@/pages/admin/ProductManagementAdmin';
+import ProductMetadataEditor from '@/pages/admin/products/ProductMetadataEditor';
 import OrderManagementAdmin from '@/pages/admin/OrderManagementAdmin';
 import PaymentsFinancial from '@/pages/admin/PaymentsFinancial';
 import SellerSubscriptionsAdmin from '@/pages/admin/SellerSubscriptionsAdmin';
@@ -71,6 +72,7 @@ const AdminDashboard: React.FC = () => {
       'users',
       'sellers',
       'products',
+      'product-metadata',
       'orders',
       'finance',
       'seller-subscriptions',
@@ -158,6 +160,7 @@ const AdminDashboard: React.FC = () => {
           { id: 'users', label: 'Users', icon: Users },
           { id: 'sellers', label: 'Sellers', icon: StoreIcon },
           { id: 'products', label: 'Products', icon: Package },
+          { id: 'product-metadata', label: 'Product metadata', icon: BadgePercent },
           { id: 'orders', label: 'Orders', icon: ShoppingCart },
           { id: 'finance', label: 'Finance', icon: DollarSign },
           { id: 'seller-subscriptions', label: 'Seller subscriptions', icon: Crown },
@@ -190,6 +193,7 @@ const AdminDashboard: React.FC = () => {
             <Route path="users" element={<UserManagement />} />
             <Route path="sellers" element={<SellerStoreManagement />} />
             <Route path="products" element={<ProductManagementAdmin />} />
+            <Route path="product-metadata" element={<ProductMetadataEditor />} />
             <Route path="orders" element={<OrderManagementAdmin />} />
             <Route path="finance" element={<PaymentsFinancial />} />
             <Route path="seller-subscriptions" element={<SellerSubscriptionsAdmin />} />

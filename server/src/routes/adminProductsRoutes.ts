@@ -5,8 +5,10 @@ import {
   getProductFacets,
   getProducts,
   getProduct,
+  getProductMetadata,
   createProduct,
   updateProduct,
+  updateProductMetadata,
   deleteProduct,
   bulkProducts,
   getProductAnalytics,
@@ -23,8 +25,10 @@ router.get('/facets', getProductFacets);
 router.post('/bulk', bulkProducts);
 router.get('/', getProducts);
 router.get('/:productId', getProduct);
+router.get('/:productId/metadata', getProductMetadata);
 router.post('/', createProduct);
 router.patch('/:productId', updateProduct);
+router.patch('/:productId/metadata', updateProductMetadata);
 router.delete('/:productId', deleteProduct);
 router.get('/:productId/analytics', getProductAnalytics);
 router.get('/:productId/logs', getProductLogs);

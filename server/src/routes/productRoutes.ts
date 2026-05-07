@@ -1,7 +1,13 @@
 import { Router } from 'express';
-import { listProducts, trackProductView, getProductById } from '../controllers/productController';
+import {
+  listProducts,
+  trackProductView,
+  getProductById,
+  toggleWishlist,
+  getWishlistStatus,
+} from '../controllers/productController';
 import { cacheMiddleware } from '../middleware/cache';
-import { optionalAuthenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -14,6 +20,10 @@ router.post('/:productId/view', optionalAuthenticate, trackProductView);
 
 // Get product by ID (also tracks view)
 router.get('/:productId', optionalAuthenticate, getProductById);
+
+// Wishlist (like/save)
+router.get('/:productId/wishlist', optionalAuthenticate, getWishlistStatus);
+router.post('/:productId/wishlist', authenticate, toggleWishlist);
 
 export default router;
 

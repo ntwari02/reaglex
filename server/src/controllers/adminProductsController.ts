@@ -218,6 +218,147 @@ export async function getProduct(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+/** GET /api/admin/products/:productId/metadata - isolated promo/shipping/policy fields */
+export async function getProductMetadata(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const productId = String(req.params.productId || '');
+    const p = await Product.findById(productId)
+      .select(
+        [
+          'name',
+          'sku',
+          'couponCode',
+          'campaignLabel',
+          'offerEndsAt',
+          'shippingInfo',
+          'returnPolicy',
+          'securityNote',
+          'paymentSafetyNote',
+        ].join(' ')
+      )
+      .lean();
+    if (!p) return res.status(404).json({ message: 'Product not found' });
+    res.json({
+      productId,
+      product: {
+        id: productId,
+        _id: productId,
+        name: (p as any).name || '',
+        sku: (p as any).sku || '',
+        couponCode: (p as any).couponCode || '',
+        campaignLabel: (p as any).campaignLabel || '',
+        offerEndsAt: (p as any).offerEndsAt || null,
+        shippingInfo: (p as any).shippingInfo || {},
+        returnPolicy: (p as any).returnPolicy || {},
+        securityNote: (p as any).securityNote || '',
+        paymentSafetyNote: (p as any).paymentSafetyNote || '',
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch product metadata' });
+  }
+}
+
+function cleanText(v: unknown, maxLen: number) {
+  if (v == null) return undefined;
+  const s = String(v).trim();
+  if (!s) return '';
+  return s.slice(0, maxLen);
+}
+
+function cleanDate(v: unknown) {
+  if (v == null || v === '') return null;
+  const d = new Date(String(v));
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+/** PATCH /api/admin/products/:productId/metadata - isolated promo/shipping/policy fields */
+export async function updateProductMetadata(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const productId = String(req.params.productId || '');
+    const body = (req.body || {}) as Record<string, unknown>;
+
+    const update: any = {};
+    if (body.couponCode !== undefined) update.couponCode = cleanText(body.couponCode, 48);
+    if (body.campaignLabel !== undefined) update.campaignLabel = cleanText(body.campaignLabel, 64);
+    if (body.offerEndsAt !== undefined) update.offerEndsAt = cleanDate(body.offerEndsAt);
+
+    if (body.shippingInfo !== undefined) {
+      const si = (body.shippingInfo || {}) as Record<string, unknown>;
+      update.shippingInfo = {
+        costLabel: cleanText(si.costLabel, 80),
+        estimatedDeliveryLabel: cleanText(si.estimatedDeliveryLabel, 80),
+        freeShipping: typeof si.freeShipping === 'boolean' ? si.freeShipping : undefined,
+      };
+    }
+
+    if (body.returnPolicy !== undefined) {
+      const rp = (body.returnPolicy || {}) as Record<string, unknown>;
+      update.returnPolicy = {
+        label: cleanText(rp.label, 80),
+        details: cleanText(rp.details, 400),
+      };
+    }
+
+    if (body.securityNote !== undefined) update.securityNote = cleanText(body.securityNote, 240);
+    if (body.paymentSafetyNote !== undefined) update.paymentSafetyNote = cleanText(body.paymentSafetyNote, 240);
+
+    // Only allow updating the isolated keys above.
+    const allowedKeys = [
+      'couponCode',
+      'campaignLabel',
+      'offerEndsAt',
+      'shippingInfo',
+      'returnPolicy',
+      'securityNote',
+      'paymentSafetyNote',
+    ];
+    const payloadKeys = Object.keys(body || {});
+    const hasUnexpected = payloadKeys.some((k) => !allowedKeys.includes(k));
+    if (hasUnexpected) {
+      return res.status(400).json({ message: 'Only marketing/shipping/policy metadata fields are allowed on this endpoint' });
+    }
+
+    const updated = await Product.findByIdAndUpdate(
+      productId,
+      { $set: update },
+      { new: true, runValidators: true },
+    )
+      .select(
+        [
+          'couponCode',
+          'campaignLabel',
+          'offerEndsAt',
+          'shippingInfo',
+          'returnPolicy',
+          'securityNote',
+          'paymentSafetyNote',
+        ].join(' ')
+      )
+      .lean();
+
+    if (!updated) return res.status(404).json({ message: 'Product not found' });
+    return res.json({
+      success: true,
+      productId,
+      product: {
+        couponCode: (updated as any).couponCode || '',
+        campaignLabel: (updated as any).campaignLabel || '',
+        offerEndsAt: (updated as any).offerEndsAt || null,
+        shippingInfo: (updated as any).shippingInfo || {},
+        returnPolicy: (updated as any).returnPolicy || {},
+        securityNote: (updated as any).securityNote || '',
+        paymentSafetyNote: (updated as any).paymentSafetyNote || '',
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to update product metadata' });
+  }
+}
+
 /** POST /api/admin/products */
 export async function createProduct(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;

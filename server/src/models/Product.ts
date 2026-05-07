@@ -7,6 +7,12 @@ export interface ProductVariant {
   size?: string;
   sku: string;
   stock: number;
+  /** Optional commerce-facing metadata (PDP swatches/thumbnails/badges). */
+  label?: string;
+  thumbnailUrl?: string;
+  swatchHex?: string;
+  badge?: string; // e.g. "Trending", "Best seller"
+  sortOrder?: number;
 }
 
 export interface TieredPrice {
@@ -40,11 +46,40 @@ export interface IProduct extends Document {
   status: InventoryStatus;
   location?: string;
   images?: string[];
+  /** Optional product hero video. */
+  videoUrl?: string;
+  /** Legacy single image (older data). */
+  image?: string;
   variants?: ProductVariant[];
   sizes?: string[];
   colors?: string[];
   tiers?: TieredPrice[];
   views?: number;
+  /** Total "saved" count (wishlist/likes). */
+  wishlistCount?: number;
+  /** Total units sold (best-effort counter, updated on paid orders). */
+  soldCount?: number;
+  /** Optional struck-through/original price (USD). */
+  compareAtPrice?: number;
+  /** Optional coupon code shown on PDP (display-only). */
+  couponCode?: string;
+  /** Optional campaign label/badge (e.g. "Spring Sale"). */
+  campaignLabel?: string;
+  /** Optional offer expiry; when in the future, PDP can show countdown. */
+  offerEndsAt?: Date;
+  /** Optional shipping / policy / trust metadata for PDP. */
+  shippingInfo?: {
+    costLabel?: string;
+    estimatedDeliveryLabel?: string;
+    freeShipping?: boolean;
+  };
+  returnPolicy?: {
+    label?: string;
+    details?: string;
+  };
+  securityNote?: string;
+  paymentSafetyNote?: string;
+  serviceCommitments?: Array<{ title: string; description?: string; icon?: string }>;
   reaglexProductId?: string;
   /** Ships from this warehouse for Reaglex grouped shipping (seller-defined). */
   warehouseId?: string;
@@ -88,12 +123,19 @@ const productSchema = new Schema<IProduct>(
     },
     location: { type: String, trim: true },
     images: [{ type: String, trim: true }],
+    videoUrl: { type: String, trim: true },
+    image: { type: String, trim: true },
     variants: [
       {
         color: { type: String, trim: true },
         size: { type: String, trim: true },
         sku: { type: String, required: true, trim: true },
         stock: { type: Number, required: true, default: 0 },
+        label: { type: String, trim: true },
+        thumbnailUrl: { type: String, trim: true },
+        swatchHex: { type: String, trim: true },
+        badge: { type: String, trim: true },
+        sortOrder: { type: Number },
       },
     ],
     sizes: { type: [String], default: [] },
@@ -106,6 +148,30 @@ const productSchema = new Schema<IProduct>(
       },
     ],
     views: { type: Number, default: 0, index: true },
+    wishlistCount: { type: Number, default: 0, index: true },
+    soldCount: { type: Number, default: 0, index: true },
+    compareAtPrice: { type: Number },
+    couponCode: { type: String, trim: true },
+    campaignLabel: { type: String, trim: true },
+    offerEndsAt: { type: Date },
+    shippingInfo: {
+      costLabel: { type: String, trim: true },
+      estimatedDeliveryLabel: { type: String, trim: true },
+      freeShipping: { type: Boolean, default: false },
+    },
+    returnPolicy: {
+      label: { type: String, trim: true },
+      details: { type: String, trim: true },
+    },
+    securityNote: { type: String, trim: true },
+    paymentSafetyNote: { type: String, trim: true },
+    serviceCommitments: [
+      {
+        title: { type: String, required: true, trim: true },
+        description: { type: String, trim: true },
+        icon: { type: String, trim: true },
+      },
+    ],
     reaglexProductId: { type: String, trim: true, unique: true, sparse: true, index: true },
     warehouseId: { type: String, trim: true, default: 'default', index: true },
     verificationSummary: {
@@ -132,6 +198,8 @@ productSchema.index({ category: 1, createdAt: -1 });
 productSchema.index({ status: 1, createdAt: -1 });
 productSchema.index({ 'verificationSummary.status': 1, createdAt: -1 });
 productSchema.index({ name: 'text', description: 'text' });
+productSchema.index({ soldCount: -1, createdAt: -1 });
+productSchema.index({ wishlistCount: -1, createdAt: -1 });
 
 function generateReaglexProductId() {
   const rand = Math.random().toString(36).slice(2, 8).toUpperCase();

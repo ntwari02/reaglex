@@ -289,23 +289,15 @@ export default function SecurityAnalysisPage() {
     () =>
       cn(
         'relative min-h-full rounded-3xl overflow-hidden',
-        isDark
-          ? 'border border-cyan-500/15 bg-[var(--bg-page)] text-[var(--text-secondary)] shadow-[var(--shadow-lg)]'
-          : 'border border-slate-200 bg-gradient-to-b from-slate-50 to-white text-slate-900 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.35)]',
+        // Solid theme tokens only (no gradients) to match admin pages.
+        'bg-[var(--bg-page)] text-[var(--text-secondary)] border border-[var(--border-card)] shadow-[var(--shadow-lg)]',
       ),
-    [isDark],
+    [],
   );
 
   return (
     <div className={cn('min-w-0 max-w-[1800px] mx-auto pb-12', pageShell)}>
-      <div
-        className={cn(
-          'absolute inset-0 pointer-events-none',
-          isDark
-            ? 'bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(56,189,248,0.12),transparent)]'
-            : 'bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(56,189,248,0.16),transparent)]',
-        )}
-      />
+      {/* No decorative gradients on this page. */}
       <div className="relative px-4 sm:px-6 lg:px-8 pt-8 pb-6 space-y-8">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -313,22 +305,20 @@ export default function SecurityAnalysisPage() {
           className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
         >
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
-              <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/30 to-violet-600/30 border border-white/10 shadow-[0_0_30px_-5px_rgba(34,211,238,0.5)]">
-                <ShieldCheck className="w-6 h-6 text-cyan-300" />
-              </span>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
               <span
-                className={cn(
-                  'bg-clip-text text-transparent',
-                  isDark
-                    ? 'bg-gradient-to-r from-white via-cyan-100 to-violet-200'
-                    : 'bg-gradient-to-r from-dark-secondary via-cyan-800 to-violet-900',
-                )}
+                className="relative flex h-10 w-10 items-center justify-center rounded-2xl"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-card)',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
               >
-                Security Intelligence Control Room
+                <ShieldCheck className="w-6 h-6" style={{ color: 'var(--brand-primary)' }} />
               </span>
+              <span>Security Intelligence Control Room</span>
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 max-w-2xl leading-relaxed">
+            <p className="text-sm mt-2 max-w-2xl leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               Live SOC-style monitoring, virtual session reconstruction, risk scoring, and automated alert routing — without exposing credentials or payment data.
             </p>
           </div>
@@ -357,7 +347,12 @@ export default function SecurityAnalysisPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-slate-300/80 dark:border-white/10 bg-white/80 dark:bg-white/5 text-sm text-slate-800 dark:text-slate-100 hover:bg-white dark:hover:bg-white/10 transition-colors"
+              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border text-sm transition-colors"
+              style={{
+                borderColor: 'var(--border-card)',
+                background: 'var(--card-bg)',
+                color: 'var(--text-primary)',
+              }}
             >
               <RefreshCw className="w-4 h-4" />
               Refresh
@@ -366,7 +361,12 @@ export default function SecurityAnalysisPage() {
               type="button"
               disabled={scanning}
               onClick={() => void runScan()}
-              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-800 dark:text-cyan-100 text-sm hover:bg-cyan-500/20 disabled:opacity-50 transition-colors shadow-[0_0_20px_-5px_rgba(34,211,238,0.4)]"
+              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border text-sm disabled:opacity-50 transition-colors"
+              style={{
+                borderColor: 'var(--brand-border-subtle)',
+                background: 'var(--brand-tint)',
+                color: 'var(--text-primary)',
+              }}
             >
               <ScanSearch className="w-4 h-4" />
               {scanning ? 'Scanning…' : 'Run scan'}
@@ -375,7 +375,10 @@ export default function SecurityAnalysisPage() {
         </motion.div>
 
         {loadError && (
-          <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-100 flex flex-wrap items-center justify-between gap-2">
+          <div
+            className="rounded-xl border px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2"
+            style={{ borderColor: '#fecaca', background: '#fef2f2', color: '#991b1b' }}
+          >
             <span className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               {loadError}
@@ -388,12 +391,23 @@ export default function SecurityAnalysisPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="xl:col-span-4 rounded-2xl border border-slate-200 dark:border-[var(--border-card)] bg-white/85 dark:bg-dark-card/90 backdrop-blur-xl p-6 flex flex-col items-center justify-center min-h-[260px] relative overflow-hidden"
+            className="xl:col-span-4 rounded-2xl border p-6 flex flex-col items-center justify-center min-h-[260px] relative overflow-hidden"
+            style={{
+              borderColor: 'var(--border-card)',
+              background: 'var(--card-bg)',
+              boxShadow: 'var(--shadow-card)',
+            }}
           >
-            <div className="absolute inset-0 bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,211,238,0.08),transparent_55%)] opacity-80" />
             <div className="relative w-48 h-48">
               <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
-                <circle cx="100" cy="100" r="78" fill="none" className="stroke-slate-300 dark:stroke-[var(--bg-tertiary)]" strokeWidth="14" />
+                <circle
+                  cx="100"
+                  cy="100"
+                  r="78"
+                  fill="none"
+                  stroke="color-mix(in srgb, var(--text-muted) 40%, transparent)"
+                  strokeWidth="14"
+                />
                 <circle
                   cx="100"
                   cy="100"
@@ -404,20 +418,20 @@ export default function SecurityAnalysisPage() {
                   strokeDasharray={`${(displayScore / 100) * 490} 490`}
                   strokeLinecap="round"
                   className={scoreColor(displayScore)}
-                  style={{ filter: 'drop-shadow(0 0 14px rgba(34,211,238,0.45))' }}
+                  style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.15))' }}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className={cn('text-4xl font-mono font-bold', scoreColor(displayScore))}>
                   {Math.round(displayScore)}
                 </span>
-                <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-slate-500 dark:text-slate-500 mt-1">
+                <span className="text-[10px] font-mono uppercase tracking-[0.25em] mt-1" style={{ color: 'var(--text-muted)' }}>
                   {overview?.grade ?? '—'}
                 </span>
               </div>
             </div>
             {overview && (
-              <p className="relative text-xs text-slate-600 dark:text-slate-500 mt-4 text-center font-mono">
+              <p className="relative text-xs mt-4 text-center font-mono" style={{ color: 'var(--text-muted)' }}>
                 Last scan: {overview.lastScanAt ? new Date(overview.lastScanAt).toLocaleString() : '—'} · MTTD{' '}
                 {overview.mttdHours}h · MTTR {overview.mttrHours}h
               </p>
@@ -465,25 +479,28 @@ export default function SecurityAnalysisPage() {
         <AuditTimeline weekly={intel.weekly} />
 
         {/* Identity & sign-in (existing) */}
-        <div className="rounded-2xl border border-violet-500/25 bg-white/85 dark:bg-dark-card/85 backdrop-blur-md overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-[var(--text-primary)] flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-violet-400" />
+        <div
+          className="rounded-2xl border overflow-hidden"
+          style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
+        >
+          <div className="px-4 py-3 border-b flex flex-wrap items-center justify-between gap-2" style={{ borderColor: 'var(--divider)' }}>
+            <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <KeyRound className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
               Identity &amp; sign-in intelligence
             </h2>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-600 dark:text-slate-500">
+            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
               Buyer · Seller · Admin telemetry
             </span>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x divide-slate-200 dark:divide-white/10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x" style={{ borderColor: 'var(--divider)' }}>
             <div className="p-4 min-w-0">
-              <p className="text-xs text-slate-600 dark:text-slate-500 mb-2 flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+              <p className="text-xs mb-2 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                <Shield className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} />
                 Auth stream
               </p>
               <div className="space-y-2 max-h-[240px] overflow-y-auto font-mono text-[11px] pr-1">
                 {authEvents.length === 0 && (
-                  <p className="text-slate-500 dark:text-slate-500 italic">No sign-in events yet.</p>
+                  <p className="italic" style={{ color: 'var(--text-muted)' }}>No sign-in events yet.</p>
                 )}
                 {authEvents.map((a) => (
                   <motion.div
@@ -499,24 +516,24 @@ export default function SecurityAnalysisPage() {
                     )}
                   >
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span className="text-slate-800 dark:text-slate-300">{a.type}</span>
-                      {a.role && <span className="text-slate-600 dark:text-slate-500">· {a.role}</span>}
-                      <span className="text-slate-600 dark:text-slate-500 ml-auto tabular-nums">{new Date(a.at).toLocaleString()}</span>
+                      <span style={{ color: 'var(--text-primary)' }}>{a.type}</span>
+                      {a.role && <span style={{ color: 'var(--text-muted)' }}>· {a.role}</span>}
+                      <span className="ml-auto tabular-nums" style={{ color: 'var(--text-muted)' }}>{new Date(a.at).toLocaleString()}</span>
                     </div>
-                    <p className="text-slate-800 dark:text-[var(--text-secondary)] mt-1 break-words">{a.detail}</p>
-                    <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">IP {a.ip}</p>
+                    <p className="mt-1 break-words" style={{ color: 'var(--text-secondary)' }}>{a.detail}</p>
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>IP {a.ip}</p>
                   </motion.div>
                 ))}
               </div>
             </div>
             <div className="p-4 min-w-0">
-              <p className="text-xs text-slate-600 dark:text-slate-500 mb-2 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-cyan-400" />
+              <p className="text-xs mb-2 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                <Users className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary)' }} />
                 Behavior signals
               </p>
               <div className="overflow-x-auto max-h-[240px] overflow-y-auto">
                 <table className="w-full text-left text-xs min-w-[400px]">
-                  <thead className="text-slate-600 dark:text-[var(--text-muted)] uppercase sticky top-0 bg-white/95 dark:bg-dark-card">
+                  <thead className="uppercase sticky top-0" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
                     <tr>
                       <th className="py-1.5 pr-2">Role</th>
                       <th className="py-1.5 pr-2">Action</th>
@@ -527,17 +544,17 @@ export default function SecurityAnalysisPage() {
                   <tbody>
                     {behaviorRows.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="py-3 text-slate-500 dark:text-slate-500 italic">
+                        <td colSpan={4} className="py-3 italic" style={{ color: 'var(--text-muted)' }}>
                           No behavior rows yet.
                         </td>
                       </tr>
                     )}
                     {behaviorRows.map((b) => (
-                      <tr key={`${b.userId}-${b.at}-${b.action}`} className="border-t border-slate-200 dark:border-white/5">
-                        <td className="py-2 pr-2 font-mono text-cyan-300">{b.role}</td>
+                      <tr key={`${b.userId}-${b.at}-${b.action}`} className="border-t" style={{ borderColor: 'var(--divider)' }}>
+                        <td className="py-2 pr-2 font-mono" style={{ color: 'var(--brand-primary)' }}>{b.role}</td>
                         <td className="py-2 pr-2 max-w-[140px] truncate">{b.action}</td>
-                        <td className="py-2 pr-2 text-slate-700 dark:text-slate-300">{b.risk}</td>
-                        <td className="py-2 whitespace-nowrap text-slate-500 dark:text-slate-500">{new Date(b.at).toLocaleString()}</td>
+                        <td className="py-2 pr-2" style={{ color: 'var(--text-secondary)' }}>{b.risk}</td>
+                        <td className="py-2 whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{new Date(b.at).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -548,17 +565,21 @@ export default function SecurityAnalysisPage() {
         </div>
 
         {/* Collapsible posture */}
-        <div className="rounded-2xl border border-white/10 dark:border-[var(--border-card)] bg-white dark:bg-dark-secondary/70 overflow-hidden">
+        <div
+          className="rounded-2xl border overflow-hidden"
+          style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
+        >
           <button
             type="button"
             onClick={() => setPostureOpen((o) => !o)}
-            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+            className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors"
+            style={{ color: 'var(--text-primary)' }}
           >
-            <span className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-              <Radar className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <Radar className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
               Security posture &amp; compliance (scan results)
             </span>
-            <ChevronDown className={cn('w-4 h-4 text-slate-500 transition-transform', postureOpen && 'rotate-180')} />
+            <ChevronDown className={cn('w-4 h-4 transition-transform', postureOpen && 'rotate-180')} style={{ color: 'var(--text-muted)' }} />
           </button>
           <AnimatePresence>
             {postureOpen && (
@@ -566,12 +587,13 @@ export default function SecurityAnalysisPage() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="border-t border-white/10 px-4 pb-6 space-y-6"
+                className="border-t px-4 pb-6 space-y-6"
+                style={{ borderColor: 'var(--divider)' }}
               >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4">
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                    <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                      <Radar className="w-4 h-4 text-cyan-400" />
+                  <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)' }}>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                      <Radar className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
                       Attack surface
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -592,14 +614,14 @@ export default function SecurityAnalysisPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                    <h3 className="text-sm font-semibold text-slate-200 mb-3">Sub-scores</h3>
+                  <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)' }}>
+                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Sub-scores</h3>
                     {overview?.subScores && (
                       <div className="space-y-2 text-xs font-mono">
                         {Object.entries(overview.subScores).map(([k, v]) => (
                           <div key={k} className="flex justify-between gap-2">
-                            <span className="text-slate-500 capitalize">{k}</span>
-                            <span className="text-cyan-300">{v}</span>
+                            <span className="capitalize" style={{ color: 'var(--text-muted)' }}>{k}</span>
+                            <span style={{ color: 'var(--text-secondary)' }}>{v}</span>
                           </div>
                         ))}
                       </div>
@@ -607,14 +629,22 @@ export default function SecurityAnalysisPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/10 overflow-hidden">
-                  <div className="px-4 py-2 border-b border-white/10 flex items-center gap-2 bg-black/20">
-                    <AlertTriangle className="w-4 h-4 text-amber-400" />
-                    <h3 className="text-sm font-semibold">Vulnerability findings</h3>
+                <div
+                  className="rounded-xl border overflow-hidden"
+                  style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)' }}
+                >
+                  <div
+                    className="px-4 py-2 border-b flex items-center gap-2"
+                    style={{ borderColor: 'var(--divider)', background: 'var(--bg-secondary)' }}
+                  >
+                    <AlertTriangle className="w-4 h-4" style={{ color: 'var(--brand-orange-text)' }} />
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      Vulnerability findings
+                    </h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm min-w-[640px]">
-                      <thead className="text-slate-500 text-xs uppercase bg-black/30">
+                      <thead className="text-xs uppercase" style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}>
                         <tr>
                           <th className="px-4 py-2">Severity</th>
                           <th className="px-4 py-2">Title</th>
@@ -624,13 +654,13 @@ export default function SecurityAnalysisPage() {
                       </thead>
                       <tbody>
                         {findings.map((f) => (
-                          <tr key={f.id} className="border-t border-white/5 hover:bg-white/5">
-                            <td className="px-4 py-3 font-mono text-xs text-amber-600 dark:text-amber-300 whitespace-nowrap">
+                          <tr key={f.id} className="border-t" style={{ borderColor: 'var(--divider)' }}>
+                            <td className="px-4 py-3 font-mono text-xs whitespace-nowrap" style={{ color: 'var(--brand-orange-text)' }}>
                               {f.severity}
                             </td>
-                            <td className="px-4 py-3 text-slate-200 max-w-xs">{f.title}</td>
-                            <td className="px-4 py-3 text-slate-500 text-xs font-mono">{f.component}</td>
-                            <td className="px-4 py-3 text-xs">{f.status}</td>
+                            <td className="px-4 py-3 max-w-xs" style={{ color: 'var(--text-primary)' }}>{f.title}</td>
+                            <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{f.component}</td>
+                            <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{f.status}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -639,17 +669,21 @@ export default function SecurityAnalysisPage() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-white/10 p-4 bg-black/20">
-                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      Compliance
+                  <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)' }}>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                      <CheckCircle2 className="w-4 h-4" style={{ color: '#16a34a' }} />
+                      <span>Compliance</span>
                     </h3>
                     <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                       {compliance.map((c) => (
-                        <div key={c.id} className="rounded-lg border border-white/5 px-3 py-2 flex justify-between gap-2">
+                        <div
+                          key={c.id}
+                          className="rounded-lg border px-3 py-2 flex justify-between gap-2"
+                          style={{ borderColor: 'var(--divider)', background: 'var(--card-bg)' }}
+                        >
                           <div>
-                            <p className="text-sm text-slate-200">{c.title}</p>
-                            <p className="text-[11px] text-slate-500">{c.description}</p>
+                            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{c.title}</p>
+                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{c.description}</p>
                           </div>
                           <span
                             className={cn(
@@ -666,15 +700,17 @@ export default function SecurityAnalysisPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 p-4 bg-black/20">
-                    <h3 className="text-sm font-semibold mb-3">Security events</h3>
+                  <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)' }}>
+                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+                      Security events
+                    </h3>
                     <div className="space-y-3 max-h-[280px] overflow-y-auto">
                       {events.map((e) => (
-                        <div key={e.id} className="border-l-2 border-cyan-500/50 pl-3">
-                          <p className="text-xs font-mono text-cyan-400">{e.type}</p>
-                          <p className="text-sm text-slate-200">{e.title}</p>
-                          <p className="text-[11px] text-slate-500">{e.description}</p>
-                          <p className="text-[10px] text-slate-600 mt-1">{e.at}</p>
+                        <div key={e.id} className="border-l-2 pl-3" style={{ borderColor: 'var(--brand-border-subtle)' }}>
+                          <p className="text-xs font-mono" style={{ color: 'var(--brand-primary)' }}>{e.type}</p>
+                          <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{e.title}</p>
+                          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{e.description}</p>
+                          <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>{e.at}</p>
                         </div>
                       ))}
                     </div>

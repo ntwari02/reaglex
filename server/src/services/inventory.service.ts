@@ -70,7 +70,7 @@ async function decrementProductStockForItem(
           variants: { $elemMatch: { _id: new mongoose.Types.ObjectId(variantKey), stock: { $gte: qty } } },
         },
         {
-          $inc: { stock: -qty, 'variants.$.stock': -qty },
+          $inc: { stock: -qty, 'variants.$.stock': -qty, soldCount: qty },
         },
         { new: true, session },
       );
@@ -83,7 +83,7 @@ async function decrementProductStockForItem(
           variants: { $elemMatch: { sku: variantKey, stock: { $gte: qty } } },
         },
         {
-          $inc: { stock: -qty, 'variants.$.stock': -qty },
+          $inc: { stock: -qty, 'variants.$.stock': -qty, soldCount: qty },
         },
         { new: true, session },
       );
@@ -91,7 +91,7 @@ async function decrementProductStockForItem(
   } else {
     updated = await Product.findOneAndUpdate(
       baseFilter,
-      { $inc: { stock: -qty } },
+      { $inc: { stock: -qty, soldCount: qty } },
       { new: true, session },
     );
   }

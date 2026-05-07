@@ -2,6 +2,8 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Product } from '../models/Product';
+import { ProductReview } from '../models/ProductReview';
+import { ProductWishlist } from '../models/ProductWishlist';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 
 function normalizeMediaUrl(maybeUrl: unknown): unknown {
@@ -196,6 +198,38 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
+    const userId = req.user?.id ? new mongoose.Types.ObjectId(String(req.user.id)) : null;
+    const pid = new mongoose.Types.ObjectId(String(productId));
+
+    const [reviewAgg, reviewGalleryAgg, wishlistedDoc, wishlistCountFromDb] = await Promise.all([
+      ProductReview.aggregate([
+        { $match: { productId: pid, status: 'approved' } },
+        {
+          $group: {
+            _id: '$productId',
+            avgRating: { $avg: '$rating' },
+            reviewCount: { $sum: 1 },
+          },
+        },
+      ]),
+      ProductReview.aggregate([
+        { $match: { productId: pid, status: 'approved', images: { $exists: true, $ne: [] } } },
+        { $sort: { createdAt: -1 } },
+        { $limit: 18 },
+        { $project: { _id: 1, rating: 1, customerName: 1, createdAt: 1, images: 1, message: 1 } },
+      ]),
+      userId ? ProductWishlist.findOne({ userId, productId: pid }).select('_id').lean() : Promise.resolve(null),
+      // If `wishlistCount` exists on product, trust it; otherwise compute.
+      (product as any)?.wishlistCount == null
+        ? ProductWishlist.countDocuments({ productId: pid })
+        : Promise.resolve(Number((product as any).wishlistCount || 0)),
+    ]);
+
+    const avgRating = Number(reviewAgg?.[0]?.avgRating || 0);
+    const reviewCount = Number(reviewAgg?.[0]?.reviewCount || 0);
+    const wishlistCount = Number(wishlistCountFromDb || 0);
+    const wishlisted = !!wishlistedDoc;
+
     if (req.user?.id) {
       void recordRecommendationActivity({
         userId: req.user.id,
@@ -208,12 +242,98 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
 
     return res.json({
       product: {
-        ...product
+        ...product,
+        // Commerce aggregates / enrichments (optional fields for PDP; safe for existing clients).
+        ratingAverage: avgRating || (product as any)?.averageRating || (product as any)?.rating || 0,
+        reviewCount: reviewCount || (product as any)?.totalReviews || (product as any)?.reviewCount || 0,
+        wishlistCount,
+        wishlisted,
+        soldCount: Number((product as any)?.soldCount || 0),
+        reviewGallery: Array.isArray(reviewGalleryAgg)
+          ? reviewGalleryAgg.map((r: any) => ({
+              id: String(r?._id || ''),
+              rating: Number(r?.rating || 0),
+              customerName: String(r?.customerName || ''),
+              createdAt: r?.createdAt,
+              message: String(r?.message || ''),
+              images: Array.isArray(r?.images) ? r.images : [],
+            }))
+          : [],
       }
     });
   } catch (error: any) {
     console.error('Get product by ID error:', error);
     return res.status(500).json({ message: 'Failed to fetch product' });
+  }
+}
+
+/**
+ * Toggle wishlist (like/save) for the authenticated user.
+ * Returns current wishlisted state and the updated total count.
+ */
+export async function toggleWishlist(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { productId } = req.params;
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+
+    const uid = new mongoose.Types.ObjectId(String(req.user.id));
+    const pid = new mongoose.Types.ObjectId(String(productId));
+
+    const existing = await ProductWishlist.findOne({ userId: uid, productId: pid }).select('_id').lean();
+    let wishlisted = false;
+
+    if (existing) {
+      await ProductWishlist.deleteOne({ _id: existing._id });
+      await Product.updateOne({ _id: pid }, { $inc: { wishlistCount: -1 } });
+      wishlisted = false;
+    } else {
+      await ProductWishlist.create({ userId: uid, productId: pid });
+      await Product.updateOne({ _id: pid }, { $inc: { wishlistCount: 1 } });
+      wishlisted = true;
+    }
+
+    const count = await ProductWishlist.countDocuments({ productId: pid });
+    // Best-effort reconcile the cached counter.
+    await Product.updateOne({ _id: pid }, { $set: { wishlistCount: count } });
+
+    return res.json({ success: true, wishlisted, wishlistCount: count });
+  } catch (error: any) {
+    // Handle duplicate key race gracefully (user double-taps).
+    if (String(error?.code) === '11000') {
+      return res.status(409).json({ message: 'Wishlist update conflict. Please retry.' });
+    }
+    console.error('Toggle wishlist error:', error);
+    return res.status(500).json({ message: 'Failed to update wishlist' });
+  }
+}
+
+/**
+ * Get wishlist status/count for a product.
+ * Guest users receive `{ wishlisted: false }` with the global count.
+ */
+export async function getWishlistStatus(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { productId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+    const pid = new mongoose.Types.ObjectId(String(productId));
+    const userId = req.user?.id ? new mongoose.Types.ObjectId(String(req.user.id)) : null;
+
+    const [count, existing] = await Promise.all([
+      ProductWishlist.countDocuments({ productId: pid }),
+      userId ? ProductWishlist.findOne({ userId, productId: pid }).select('_id').lean() : Promise.resolve(null),
+    ]);
+
+    return res.json({ success: true, wishlistCount: count, wishlisted: !!existing });
+  } catch (error: any) {
+    console.error('Get wishlist status error:', error);
+    return res.status(500).json({ message: 'Failed to fetch wishlist status' });
   }
 }
 

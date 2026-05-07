@@ -102,6 +102,12 @@ export const productAPI = {
 
   /** Track a product view — fire-and-forget, never throws */
   trackView: (id: string) => api.post(`/products/${id}/view`).catch(() => null),
+
+  /** Wishlist status/count (guest-safe) */
+  getWishlistStatus: (id: string) => api.get(`/products/${id}/wishlist`).then((r) => r.data),
+
+  /** Toggle wishlist (auth required) */
+  toggleWishlist: (id: string) => api.post(`/products/${id}/wishlist`).then((r) => r.data),
 };
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
