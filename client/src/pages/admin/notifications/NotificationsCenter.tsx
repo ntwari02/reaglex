@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { API_BASE_URL } from '@/lib/config';
+import { AiAssistantPanel } from './ai/AiAssistantPanel';
 
 const NOTIFICATIONS_API = `${API_BASE_URL}/admin/notifications`;
 const DRAFT_KEY = 'reaglex_admin_notification_composer_draft';
@@ -95,6 +96,10 @@ export default function NotificationsCenter() {
   const [aiCollapsed, setAiCollapsed] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
+  const [aiWorkspaceMode, setAiWorkspaceMode] = useState(false);
   const [appliedBodyId, setAppliedBodyId] = useState<number | null>(null);
   const [expandedBodyId, setExpandedBodyId] = useState<number | null>(null);
 
@@ -239,8 +244,12 @@ export default function NotificationsCenter() {
 
   useEffect(() => {
     const syncAiPanelForMobile = () => {
-      if (window.matchMedia('(max-width: 768px)').matches) {
+      const mobile = window.matchMedia('(max-width: 768px)').matches;
+      setIsMobileViewport(mobile);
+      if (mobile) {
         setAiCollapsed(false);
+      } else {
+        setAiWorkspaceMode(false);
       }
     };
     syncAiPanelForMobile();
@@ -493,36 +502,56 @@ export default function NotificationsCenter() {
     }
   };
 
-  const launchAb = async () => {
-    if (!variantA.trim() || !variantB.trim()) {
-      return showToast('Add both variants first', 'error');
-    }
+  const handleSaveDraft = useCallback(() => {
     try {
-      const n = recipientCount ?? specificEmails.length;
-      const res = await fetch(`${NOTIFICATIONS_API}/ab-test`, {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          notifType,
+          targetGroup,
+          userPills,
+          subject,
+          body,
+          ccInput,
+          bccInput,
+          tone,
+          eventTrigger,
+          variantA,
+          variantB,
+        })
+      );
+    } catch {
+      // ignore
+    }
+    showToast('Draft saved', 'success');
+  }, [notifType, targetGroup, userPills, subject, body, ccInput, bccInput, tone, eventTrigger, variantA, variantB, showToast]);
+
+  const generateAiCopilot = useCallback(
+    async ({ context, tone: aiTone, language, command }: { context: string; tone: string; language: string; command?: string }) => {
+      const prompt = [context, command, `Preferred language: ${language}`].filter(Boolean).join('\n').trim();
+      const res = await fetch(`${NOTIFICATIONS_API}/generate-ai`, {
         method: 'POST',
         headers: getJsonAuthHeaders(),
         credentials: 'include',
         body: JSON.stringify({
-          variantA,
-          variantB,
-          targetGroup: targetGroup || (userPills.length ? 'Specific User' : ''),
-          subject,
-          notificationType: 'email',
-          specificEmails,
-          recipientCount: targetGroup === 'All Customers' || targetGroup === 'All Sellers' ? recipientCount ?? n : n,
+          targetGroup: targetLabelForAi,
+          notificationType: mapTypeForGenerateApi(notifType),
+          tone: aiTone || tone,
+          context: prompt,
+          existingSubject: subject,
+          existingBody: body,
+          eventTrigger,
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showToast((data as { message?: string }).message || 'Failed to launch A/B test', 'error');
-        return;
-      }
-      showToast((data as { message?: string }).message || 'A/B test launched', 'success');
-    } catch {
-      showToast('Failed to launch A/B test', 'error');
-    }
-  };
+      if (!res.ok) throw new Error((data as { message?: string }).message || 'AI generation failed.');
+      return {
+        subject: String(data.subjects?.[0]?.text || data.subject || subject || ''),
+        body: String(data.bodies?.[0]?.text || data.body || body || ''),
+      };
+    },
+    [targetLabelForAi, notifType, tone, subject, body, eventTrigger]
+  );
 
   const smsLen = body.length;
   const smsColor = smsLen > 160 ? '#EF4444' : smsLen > 140 ? '#FB923C' : 'var(--text-muted)';
@@ -706,33 +735,35 @@ export default function NotificationsCenter() {
             </svg>
             Schedule
           </button>
+          <button
+            type="button"
+            className="nc-btn-ghost"
+            onClick={() => {
+              setAiCollapsed(false);
+              setAiWorkspaceMode((v) => (isMobileViewport ? !v : v));
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '8px 14px',
+              borderRadius: 10,
+              fontSize: 13,
+              border: '1px solid var(--divider-strong)',
+              background: aiWorkspaceMode ? 'rgba(0,191,165,0.12)' : 'var(--btn-ghost-hover-bg)',
+              color: aiWorkspaceMode ? '#00BFA5' : 'var(--text-disabled)',
+              cursor: 'pointer',
+              minHeight: 40,
+            }}
+          >
+            {aiWorkspaceMode ? 'Back to Composer' : 'AI Workspace'}
+          </button>
 
           <button
             type="button"
             className="nc-btn-ghost save-draft-btn"
-            onClick={() => {
-              try {
-                localStorage.setItem(
-                  DRAFT_KEY,
-                  JSON.stringify({
-                    notifType,
-                    targetGroup,
-                    userPills,
-                    subject,
-                    body,
-                    ccInput,
-                    bccInput,
-                    tone,
-                    eventTrigger,
-                    variantA,
-                    variantB,
-                  })
-                );
-              } catch {
-                /* ignore */
-              }
-              showToast('Draft saved', 'success');
-            }}
+            onClick={handleSaveDraft}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -794,7 +825,7 @@ export default function NotificationsCenter() {
 
       {/* Main row */}
       <div
-        className={`nc-main two-panel-container${aiCollapsed ? ' nc-main--ai-collapsed' : ''}`}
+        className={`nc-main two-panel-container${aiCollapsed ? ' nc-main--ai-collapsed' : ''}${aiWorkspaceMode ? ' nc-main--ai-workspace' : ''}`}
         style={{
           flex: 1,
           display: 'flex',
@@ -805,7 +836,7 @@ export default function NotificationsCenter() {
       >
         {/* Left composer */}
         <div
-          className="nc-left nc-composer-glow left-composer-panel"
+          className={`nc-left nc-composer-glow left-composer-panel${aiWorkspaceMode && isMobileViewport ? ' left-composer-panel--hidden-mobile' : ''}`}
           style={{
             flex: 1,
             minWidth: 0,
@@ -1443,572 +1474,30 @@ export default function NotificationsCenter() {
 
         {/* Right column */}
         {!aiCollapsed && (
-          <div
-            className="nc-right nc-ai-panel right-ai-panel"
-            style={{
-              width: 340,
-              flexShrink: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: 0,
+          <AiAssistantPanel
+            collapsed={aiCollapsed}
+            isWorkspaceMode={aiWorkspaceMode}
+            isMobileViewport={isMobileViewport}
+            onCollapse={() => {
+              if (aiWorkspaceMode && isMobileViewport) {
+                setAiWorkspaceMode(false);
+              } else {
+                setAiCollapsed(true);
+              }
             }}
-          >
-            <div className="ai-panel-mobile-header">
-              <span>✨</span> AI Writing Assistant
-              <span style={{ fontSize: 12, color: '#64748B', marginLeft: 'auto' }}>Scroll down to use ↓</span>
-            </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-              <div
-                style={{
-                  height: 44,
-                  padding: '0 16px',
-                  borderBottom: '1px solid var(--divider)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 2L14 8h6l-5 4 2 6-5-4-5 4 2-6-5-4h6l2-6z"
-                      stroke="#00BFA5"
-                      strokeWidth="1.2"
-                      fill="rgba(0,191,165,0.15)"
-                    />
-                  </svg>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Write with AI</span>
-                </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                  <button
-                    type="button"
-                    title="Add variant slot"
-                    onClick={() => {
-                      const sid = nextSlotId;
-                      const bid = nextSlotId + 1;
-                      setSubjects((s) => [...s, { id: sid, text: '' }]);
-                      setBodies((b) => [...b, { id: bid, text: '' }]);
-                      setNextSlotId(sid + 2);
-                    }}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      border: '1px solid var(--border-visible)',
-                      background: 'transparent',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    title="Collapse AI panel"
-                    onClick={() => setAiCollapsed(true)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      border: '1px solid var(--border-visible)',
-                      background: 'transparent',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, overflowY: 'auto', padding: 0 }}>
-                <div
-                  style={{
-                    padding: '12px 16px 8px',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--text-secondary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  Choose subject line
-                </div>
-                {subjects.map((s, i) => (
-                  <div
-                    className="ai-suggestion-row"
-                    key={s.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      setSelectedSubject(s.id);
-                      if (s.text) setSubject(s.text);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setSelectedSubject(s.id);
-                        if (s.text) setSubject(s.text);
-                      }
-                    }}
-                    style={{
-                      padding: '0 16px',
-                      borderBottom: '1px solid var(--divider)',
-                      cursor: 'pointer',
-                      background: selectedSubject === s.id ? 'rgba(0,191,165,0.05)' : 'transparent',
-                      borderLeft: selectedSubject === s.id ? '2px solid #00BFA5' : '2px solid transparent',
-                      marginLeft: selectedSubject === s.id ? -2 : 0,
-                    }}
-                  >
-                    <div className="ai-suggestion-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 0', gap: 8 }}>
-                      <div
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: '50%',
-                          border: selectedSubject === s.id ? '1.5px solid #00BFA5' : '1.5px solid #334155',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {selectedSubject === s.id && (
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00BFA5' }} />
-                        )}
-                      </div>
-                      <span
-                        style={{
-                          flex: 1,
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: selectedSubject === s.id ? 'var(--text-primary)' : 'var(--text-muted)',
-                          marginLeft: 8,
-                        }}
-                      >
-                        Subject {i + 1}
-                      </span>
-                      <button
-                        type="button"
-                        title="Regenerate"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          generateAI(`Regenerate only subject line ${i + 1}`);
-                        }}
-                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
-                      >
-                        ↺
-                      </button>
-                      <button
-                        type="button"
-                        title="Remove"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (subjects.length <= 1) return;
-                          setSubjects((prev) => prev.filter((x) => x.id !== s.id));
-                        }}
-                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, maxHeight: 36, overflow: 'hidden' }}>
-                      {aiLoading ? (
-                        <div className="nc-shimmer" style={{ height: 12, borderRadius: 6 }} />
-                      ) : (
-                        s.text || <span style={{ color: '#334155' }}>Empty — generate to fill</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                <div
-                  style={{
-                    padding: '12px 16px 8px',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--text-secondary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  Choose body
-                </div>
-                {bodies.map((b, i) => {
-                  const long = (b.text || '').length > 220;
-                  const preview =
-                    expandedBodyId === b.id ? b.text : (b.text || '').split('\n').slice(0, 3).join('\n');
-                  return (
-                    <div
-                      className="ai-suggestion-row"
-                      key={b.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        setSelectedBody(b.id);
-                        if (b.text) {
-                          setBody(b.text);
-                          setAppliedBodyId(b.id);
-                        }
-                      }}
-                      style={{
-                        padding: '0 16px',
-                        borderBottom: '1px solid var(--divider)',
-                        cursor: 'pointer',
-                        background: selectedBody === b.id ? 'rgba(0,191,165,0.05)' : 'transparent',
-                        borderLeft: selectedBody === b.id ? '2px solid #00BFA5' : '2px solid transparent',
-                        marginLeft: selectedBody === b.id ? -2 : 0,
-                      }}
-                    >
-                      <div className="ai-suggestion-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 0', gap: 8 }}>
-                        <div
-                          style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: '50%',
-                            border: selectedBody === b.id ? '1.5px solid #00BFA5' : '1.5px solid #334155',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {selectedBody === b.id && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00BFA5' }} />}
-                        </div>
-                        <span style={{ flex: 1, marginLeft: 8, fontSize: 13, fontWeight: 500, color: selectedBody === b.id ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                          Body {i + 1}
-                          {appliedBodyId === b.id && (
-                            <span style={{ marginLeft: 8, fontSize: 11, color: '#00BFA5' }}>Applied ✓</span>
-                          )}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            generateAI(`Regenerate only body ${i + 1}`);
-                          }}
-                          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
-                        >
-                          ↺
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (bodies.length <= 1) return;
-                            setBodies((prev) => prev.filter((x) => x.id !== b.id));
-                          }}
-                          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      <div style={{ padding: '0 0 10px 24px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                        {aiLoading ? (
-                          <>
-                            <div className="nc-shimmer" style={{ height: 12, borderRadius: 6, marginBottom: 6 }} />
-                            <div className="nc-shimmer" style={{ height: 12, borderRadius: 6, marginBottom: 6 }} />
-                            <div className="nc-shimmer" style={{ height: 12, borderRadius: 6, width: '60%' }} />
-                          </>
-                        ) : (
-                          <>
-                            {preview || <span style={{ color: '#334155' }}>Empty — generate to fill</span>}
-                            {long && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setExpandedBodyId(expandedBodyId === b.id ? null : b.id);
-                                }}
-                                style={{
-                                  display: 'block',
-                                  marginTop: 4,
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#00BFA5',
-                                  fontSize: 11,
-                                  cursor: 'pointer',
-                                  padding: 0,
-                                }}
-                              >
-                                {expandedBodyId === b.id ? 'Show less' : 'Show more'}
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                <div style={{ padding: '12px 16px' }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Tone</div>
-                  <div className="tone-pills-row" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {['professional', 'friendly', 'urgent', 'promotional', 'informative'].map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setTone(t)}
-                        className="tone-pill"
-                        style={{
-                          fontSize: 11,
-                          padding: '4px 10px',
-                          borderRadius: 99,
-                          cursor: 'pointer',
-                          border: tone === t ? '1.5px solid #00BFA5' : '1px solid var(--border-visible)',
-                          background: tone === t ? 'rgba(0,191,165,0.08)' : 'var(--bg-tertiary)',
-                          color: tone === t ? '#00BFA5' : 'var(--text-muted)',
-                        }}
-                      >
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ padding: '0 16px 12px' }}>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 12, top: 10, fontSize: 13, color: 'var(--text-secondary)' }}>⌕</span>
-                    <input
-                      value={eventSearch}
-                      onChange={(e) => setEventSearch(e.target.value)}
-                      placeholder="Search events..."
-                      style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        height: 36,
-                        padding: '0 12px 0 32px',
-                        background: 'var(--btn-ghost-hover-bg)',
-                        border: '1px solid var(--border-visible)',
-                        borderRadius: 8,
-                        color: 'var(--text-primary)',
-                        fontSize: 13,
-                        outline: 'none',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = 'rgba(0,191,165,0.4)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = 'var(--border-visible)';
-                      }}
-                    />
-                  </div>
-                  {filteredEvents.length > 1 && eventSearch && (
-                    <div style={{ marginTop: 6, maxHeight: 120, overflowY: 'auto', borderRadius: 8, border: '1px solid var(--border-visible)' }}>
-                      {filteredEvents.map((ev) => (
-                        <button
-                          key={ev}
-                          type="button"
-                          onClick={() => {
-                            setEventTrigger(ev);
-                            setEventSearch('');
-                          }}
-                          style={{
-                            display: 'block',
-                            width: '100%',
-                            textAlign: 'left',
-                            padding: '8px 12px',
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-primary)',
-                            fontSize: 12,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {ev}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      marginTop: 10,
-                      background: 'var(--btn-ghost-hover-bg)',
-                      border: '1px solid var(--border-visible)',
-                      borderRadius: 8,
-                      padding: '10px 12px',
-                    }}
-                  >
-                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{eventTrigger}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Use custom event trigger</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                      Event class: transactional. Suggested tone set to professional.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ai-generate-buttons" style={{ display: 'flex', gap: 8, padding: '12px 16px' }}>
-                  <button
-                    type="button"
-                    onClick={() => generateAI()}
-                    disabled={aiLoading}
-                    style={{
-                      flex: 1,
-                      height: 38,
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      border: '1px solid var(--divider-strong)',
-                      background: 'transparent',
-                      color: 'var(--text-disabled)',
-                      cursor: aiLoading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {aiLoading ? '… ' : '↺ '}Try Again
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => generateAI()}
-                    disabled={aiLoading}
-                    style={{
-                      flex: 1,
-                      height: 38,
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      border: 'none',
-                      background: aiLoading ? '#007A68' : '#00BFA5',
-                      color: 'white',
-                      cursor: aiLoading ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <span>✨</span>
-                    {aiLoading ? 'Generating…' : 'Generate Now'}
-                  </button>
-                </div>
-
-                <div
-                  className="ask-me-anything"
-                  style={{
-                    padding: '10px 16px',
-                    borderTop: '1px solid var(--divider)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
-                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                  </svg>
-                  <input
-                    value={aiContext}
-                    onChange={(e) => setAiContext(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && aiContext.trim()) {
-                        generateAI(aiContext.trim());
-                        setAiContext('');
-                      }
-                    }}
-                    placeholder="Ask me anything..."
-                    style={{
-                      flex: 1,
-                      background: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      color: 'var(--text-primary)',
-                      fontSize: 13,
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (aiContext.trim()) {
-                        generateAI(aiContext.trim());
-                        setAiContext('');
-                      }
-                    }}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16 }}
-                  >
-                    →
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* A/B panel */}
-            <div className="ab-testing-panel" style={{ borderTop: '1px solid var(--divider)', padding: 16, flexShrink: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>A/B Testing</div>
-              <textarea
-                value={variantA}
-                onChange={(e) => setVariantA(e.target.value)}
-                placeholder="Variant A message..."
-                style={{
-                  width: '100%',
-                  minHeight: 80,
-                  boxSizing: 'border-box',
-                  background: 'var(--btn-ghost-hover-bg)',
-                  border: '1px solid var(--border-visible)',
-                  borderRadius: 8,
-                  padding: '10px 12px',
-                  color: 'var(--text-primary)',
-                  fontSize: 13,
-                  resize: 'vertical',
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  marginBottom: 8,
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'rgba(0,191,165,0.4)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--border-visible)';
-                }}
-              />
-              <textarea
-                value={variantB}
-                onChange={(e) => setVariantB(e.target.value)}
-                placeholder="Variant B message..."
-                style={{
-                  width: '100%',
-                  minHeight: 80,
-                  boxSizing: 'border-box',
-                  background: 'var(--btn-ghost-hover-bg)',
-                  border: '1px solid var(--border-visible)',
-                  borderRadius: 8,
-                  padding: '10px 12px',
-                  color: 'var(--text-primary)',
-                  fontSize: 13,
-                  resize: 'vertical',
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  marginBottom: 12,
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'rgba(0,191,165,0.4)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--border-visible)';
-                }}
-              />
-              <button
-                type="button"
-                onClick={launchAb}
-                className="ab-launch-button"
-                style={{
-                  width: '100%',
-                  height: 40,
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  border: '1.5px solid #00BFA5',
-                  background: 'transparent',
-                  color: '#00BFA5',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0,191,165,0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                Launch 50/50 A/B test
-              </button>
-            </div>
-          </div>
+            subject={subject}
+            body={body}
+            loading={aiLoading}
+            onApplyToEditor={(nextSubject, nextBody) => {
+              if (nextSubject) setSubject(nextSubject);
+              if (nextBody) setBody(nextBody);
+            }}
+            onSaveDraft={handleSaveDraft}
+            onSchedule={() => setShowScheduleModal(true)}
+            onSend={() => void handleSend(false)}
+            onRewriteEditor={() => void generateAI('Rephrase this notification with better clarity and conversion focus')}
+            generate={generateAiCopilot}
+          />
         )}
 
         {aiCollapsed && (
@@ -2876,6 +2365,14 @@ export default function NotificationsCenter() {
             font-size: 15px !important;
             font-weight: 600;
             letter-spacing: 0.02em;
+          }
+          .nc-main--ai-workspace .left-composer-panel--hidden-mobile {
+            display: none !important;
+          }
+          .nc-main--ai-workspace .right-ai-panel {
+            width: 100% !important;
+            border-left: none !important;
+            border-right: none !important;
           }
         }
       `}</style>

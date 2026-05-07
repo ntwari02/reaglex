@@ -34,6 +34,18 @@ function normalizeProductMedia(product: any) {
   if (typeof product.image === 'string') {
     product.image = normalizeMediaUrl(product.image);
   }
+  if (typeof product.videoUrl === 'string') {
+    product.videoUrl = normalizeMediaUrl(product.videoUrl) as string;
+  }
+  if (Array.isArray(product.variants)) {
+    product.variants = product.variants.map((variant: any) => ({
+      ...variant,
+      thumbnailUrl: normalizeMediaUrl(variant?.thumbnailUrl),
+    }));
+  }
+  if (product?.sizeGuide?.chartImageUrl) {
+    product.sizeGuide.chartImageUrl = normalizeMediaUrl(product.sizeGuide.chartImageUrl);
+  }
 
   return product;
 }

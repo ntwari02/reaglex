@@ -235,6 +235,9 @@ export async function getProductMetadata(req: AuthenticatedRequest, res: Respons
           'returnPolicy',
           'securityNote',
           'paymentSafetyNote',
+          'serviceCommitments',
+          'detailSections',
+          'sizeGuide',
         ].join(' ')
       )
       .lean();
@@ -253,6 +256,9 @@ export async function getProductMetadata(req: AuthenticatedRequest, res: Respons
         returnPolicy: (p as any).returnPolicy || {},
         securityNote: (p as any).securityNote || '',
         paymentSafetyNote: (p as any).paymentSafetyNote || '',
+        serviceCommitments: Array.isArray((p as any).serviceCommitments) ? (p as any).serviceCommitments : [],
+        detailSections: Array.isArray((p as any).detailSections) ? (p as any).detailSections : [],
+        sizeGuide: (p as any).sizeGuide || {},
       },
     });
   } catch (e) {
@@ -272,6 +278,26 @@ function cleanDate(v: unknown) {
   const d = new Date(String(v));
   if (Number.isNaN(d.getTime())) return null;
   return d;
+}
+
+function cleanRows(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((row) => {
+      const item = (row || {}) as Record<string, unknown>;
+      const sizeLabel = cleanText(item.sizeLabel, 24);
+      const circumferenceMmRaw = item.circumferenceMm;
+      const circumferenceMm =
+        circumferenceMmRaw == null || circumferenceMmRaw === ''
+          ? undefined
+          : Number(circumferenceMmRaw);
+      if (!sizeLabel) return null;
+      return {
+        sizeLabel,
+        circumferenceMm: Number.isFinite(circumferenceMm as number) ? circumferenceMm : undefined,
+      };
+    })
+    .filter(Boolean);
 }
 
 /** PATCH /api/admin/products/:productId/metadata - isolated promo/shipping/policy fields */
@@ -305,6 +331,43 @@ export async function updateProductMetadata(req: AuthenticatedRequest, res: Resp
 
     if (body.securityNote !== undefined) update.securityNote = cleanText(body.securityNote, 240);
     if (body.paymentSafetyNote !== undefined) update.paymentSafetyNote = cleanText(body.paymentSafetyNote, 240);
+    if (body.serviceCommitments !== undefined) {
+      const commitments = Array.isArray(body.serviceCommitments) ? body.serviceCommitments : [];
+      update.serviceCommitments = commitments
+        .map((entry) => {
+          const c = (entry || {}) as Record<string, unknown>;
+          const title = cleanText(c.title, 60);
+          if (!title) return null;
+          return {
+            title,
+            description: cleanText(c.description, 180),
+            icon: cleanText(c.icon, 24),
+          };
+        })
+        .filter(Boolean);
+    }
+    if (body.detailSections !== undefined) {
+      const sections = Array.isArray(body.detailSections) ? body.detailSections : [];
+      update.detailSections = sections
+        .map((entry) => {
+          const d = (entry || {}) as Record<string, unknown>;
+          const title = cleanText(d.title, 60);
+          if (!title) return null;
+          return {
+            title,
+            content: cleanText(d.content, 1200),
+          };
+        })
+        .filter(Boolean);
+    }
+    if (body.sizeGuide !== undefined) {
+      const sg = (body.sizeGuide || {}) as Record<string, unknown>;
+      update.sizeGuide = {
+        chartImageUrl: cleanText(sg.chartImageUrl, 500),
+        circumferenceNote: cleanText(sg.circumferenceNote, 240),
+        rows: cleanRows(sg.rows),
+      };
+    }
 
     // Only allow updating the isolated keys above.
     const allowedKeys = [
@@ -315,6 +378,9 @@ export async function updateProductMetadata(req: AuthenticatedRequest, res: Resp
       'returnPolicy',
       'securityNote',
       'paymentSafetyNote',
+      'serviceCommitments',
+      'detailSections',
+      'sizeGuide',
     ];
     const payloadKeys = Object.keys(body || {});
     const hasUnexpected = payloadKeys.some((k) => !allowedKeys.includes(k));
@@ -336,6 +402,9 @@ export async function updateProductMetadata(req: AuthenticatedRequest, res: Resp
           'returnPolicy',
           'securityNote',
           'paymentSafetyNote',
+          'serviceCommitments',
+          'detailSections',
+          'sizeGuide',
         ].join(' ')
       )
       .lean();
@@ -352,6 +421,9 @@ export async function updateProductMetadata(req: AuthenticatedRequest, res: Resp
         returnPolicy: (updated as any).returnPolicy || {},
         securityNote: (updated as any).securityNote || '',
         paymentSafetyNote: (updated as any).paymentSafetyNote || '',
+        serviceCommitments: Array.isArray((updated as any).serviceCommitments) ? (updated as any).serviceCommitments : [],
+        detailSections: Array.isArray((updated as any).detailSections) ? (updated as any).detailSections : [],
+        sizeGuide: (updated as any).sizeGuide || {},
       },
     });
   } catch (e) {

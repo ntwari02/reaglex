@@ -24,6 +24,13 @@ type MetadataResponse = {
     };
     securityNote?: string;
     paymentSafetyNote?: string;
+    serviceCommitments?: Array<{ title?: string; description?: string; icon?: string }>;
+    detailSections?: Array<{ title?: string; content?: string }>;
+    sizeGuide?: {
+      chartImageUrl?: string;
+      circumferenceNote?: string;
+      rows?: Array<{ sizeLabel?: string; circumferenceMm?: number }>;
+    };
   };
 };
 
@@ -99,7 +106,7 @@ export default function ProductMetadataEditor() {
 
   const [productId, setProductId] = useState(qpProductId);
   const [loading, setLoading] = useState(false);
-  const [savingKey, setSavingKey] = useState<null | 'promo' | 'shipping' | 'policy'>(null);
+  const [savingKey, setSavingKey] = useState<null | 'promo' | 'shipping' | 'policy' | 'details'>(null);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
@@ -121,6 +128,11 @@ export default function ProductMetadataEditor() {
   const [returnPolicyDetails, setReturnPolicyDetails] = useState('');
   const [securityNote, setSecurityNote] = useState('');
   const [paymentSafetyNote, setPaymentSafetyNote] = useState('');
+  const [sizeChartImageUrl, setSizeChartImageUrl] = useState('');
+  const [circumferenceNote, setCircumferenceNote] = useState('');
+  const [sizeRowsText, setSizeRowsText] = useState('');
+  const [serviceCommitmentsText, setServiceCommitmentsText] = useState('');
+  const [detailSectionsText, setDetailSectionsText] = useState('');
 
   const normalizedProductId = useMemo(() => productId.trim(), [productId]);
 
@@ -158,6 +170,23 @@ export default function ProductMetadataEditor() {
       setReturnPolicyDetails(String(p?.returnPolicy?.details || ''));
       setSecurityNote(String(p?.securityNote || ''));
       setPaymentSafetyNote(String(p?.paymentSafetyNote || ''));
+      setSizeChartImageUrl(String(p?.sizeGuide?.chartImageUrl || ''));
+      setCircumferenceNote(String(p?.sizeGuide?.circumferenceNote || ''));
+      setSizeRowsText(
+        (Array.isArray(p?.sizeGuide?.rows) ? p.sizeGuide.rows : [])
+          .map((r) => `${String(r?.sizeLabel || '')}|${r?.circumferenceMm ?? ''}`)
+          .join('\n')
+      );
+      setServiceCommitmentsText(
+        (Array.isArray(p?.serviceCommitments) ? p.serviceCommitments : [])
+          .map((c) => `${String(c?.title || '')}|${String(c?.description || '')}`)
+          .join('\n')
+      );
+      setDetailSectionsText(
+        (Array.isArray(p?.detailSections) ? p.detailSections : [])
+          .map((s) => `${String(s?.title || '')}|${String(s?.content || '')}`)
+          .join('\n')
+      );
 
       setOk('Loaded product metadata.');
     } catch (e: any) {
@@ -232,6 +261,56 @@ export default function ProductMetadataEditor() {
       setOk('Policy details saved.');
     } catch (e: any) {
       setError(e?.response?.data?.message || 'Failed to save policy details.');
+    } finally {
+      setSavingKey(null);
+    }
+  };
+  const saveDetails = async () => {
+    const pid = normalizedProductId;
+    if (!pid) return;
+    setSavingKey('details');
+    setError(null);
+    setOk(null);
+    const sizeGuideRows = sizeRowsText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [sizeLabel, circumferenceMm] = line.split('|');
+        return {
+          sizeLabel: (sizeLabel || '').trim(),
+          circumferenceMm: circumferenceMm != null && circumferenceMm.trim() !== '' ? Number(circumferenceMm.trim()) : undefined,
+        };
+      });
+    const serviceCommitments = serviceCommitmentsText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [title, description] = line.split('|');
+        return { title: (title || '').trim(), description: (description || '').trim() };
+      });
+    const detailSections = detailSectionsText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [title, content] = line.split('|');
+        return { title: (title || '').trim(), content: (content || '').trim() };
+      });
+    try {
+      await api.patch(`/admin/products/${encodeURIComponent(pid)}/metadata`, {
+        sizeGuide: {
+          chartImageUrl: sizeChartImageUrl,
+          circumferenceNote,
+          rows: sizeGuideRows,
+        },
+        serviceCommitments,
+        detailSections,
+      });
+      setOk('Size guide and expandable detail sections saved.');
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Failed to save size/details.');
     } finally {
       setSavingKey(null);
     }
@@ -370,6 +449,74 @@ export default function ProductMetadataEditor() {
           >
             {savingKey === 'promo' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save promotion
+          </button>
+        </div>
+      </Card>
+      <Card
+        title="Size guide and expandable sections"
+        helper="Structured support for ring sizing/circumference and dropdown service/detail content on PDP."
+        icon={<ShieldCheck className="h-5 w-5" />}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Size chart image URL" hint="https://.../ring-size-chart.jpg">
+            <input
+              value={sizeChartImageUrl}
+              onChange={(e) => setSizeChartImageUrl(e.target.value)}
+              className={inputBase}
+              style={{ background: 'var(--bg-secondary)', border: '1px solid var(--divider)', color: 'var(--text-primary)' }}
+              placeholder="Optional"
+            />
+          </Field>
+          <Field label="Circumference note" hint="Measure with thread and compare to chart">
+            <input
+              value={circumferenceNote}
+              onChange={(e) => setCircumferenceNote(e.target.value)}
+              className={inputBase}
+              style={{ background: 'var(--bg-secondary)', border: '1px solid var(--divider)', color: 'var(--text-primary)' }}
+              placeholder="Optional"
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Size rows (one per line)" hint="US 7|54.4">
+              <textarea
+                value={sizeRowsText}
+                onChange={(e) => setSizeRowsText(e.target.value)}
+                className={`${inputBase} min-h-[100px]`}
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--divider)', color: 'var(--text-primary)' }}
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Service commitments (one per line)" hint="Fast dispatch|Ships in 24h">
+              <textarea
+                value={serviceCommitmentsText}
+                onChange={(e) => setServiceCommitmentsText(e.target.value)}
+                className={`${inputBase} min-h-[100px]`}
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--divider)', color: 'var(--text-primary)' }}
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Detail sections (one per line)" hint="Materials|925 silver with zircon">
+              <textarea
+                value={detailSectionsText}
+                onChange={(e) => setDetailSectionsText(e.target.value)}
+                className={`${inputBase} min-h-[100px]`}
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--divider)', color: 'var(--text-primary)' }}
+              />
+            </Field>
+          </div>
+        </div>
+        <div className="pt-2 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={() => void saveDetails()}
+            disabled={!normalizedProductId || savingKey != null}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black min-h-[44px] touch-manipulation"
+            style={{ background: 'var(--gradient-brand-cta)', color: '#fff', boxShadow: 'var(--shadow-cta)', opacity: !normalizedProductId ? 0.6 : 1 }}
+          >
+            {savingKey === 'details' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save size/details
           </button>
         </div>
       </Card>

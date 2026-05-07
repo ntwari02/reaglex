@@ -144,6 +144,10 @@ export default function ProductDetail() {
   const [countdownNow, setCountdownNow] = useState(Date.now());
   /** Mobile stacked sections: which detail accordion is open (null = all collapsed) */
   const [mobileDetailOpen, setMobileDetailOpen] = useState('description');
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [selectedVariantSku, setSelectedVariantSku] = useState('');
+  const [openCommitmentIdx, setOpenCommitmentIdx] = useState(null);
+  const [openDetailIdx, setOpenDetailIdx] = useState(null);
 
   /* ── refs ── */
   const ctaRef = useRef(null);
@@ -243,6 +247,10 @@ export default function ProductDetail() {
     const maxAllowed = Math.max(1, product.stockQuantity ?? product.stock ?? 99);
     setQuantity((q) => Math.min(maxAllowed, Math.max(1, q)));
   }, [product?.stockQuantity, product?.stock, product]);
+  useEffect(() => {
+    const variants = Array.isArray(product?.variants) ? product.variants : [];
+    setSelectedVariantSku((prev) => prev || variants[0]?.sku || '');
+  }, [product]);
 
   useEffect(() => {
     const onInventoryUpdated = (e) => {
@@ -379,6 +387,25 @@ export default function ProductDetail() {
     const pad = (n) => String(n).padStart(2, '0');
     return d > 0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
   }, [promoActive, offerEndsAt, countdownNow]);
+  const variantOptions = useMemo(() => {
+    const variants = Array.isArray(product?.variants) ? [...product.variants] : [];
+    return variants
+      .filter((v) => v?.sku)
+      .sort((a, b) => Number(a?.sortOrder || 0) - Number(b?.sortOrder || 0));
+  }, [product?.variants]);
+  const selectedVariant = useMemo(
+    () => variantOptions.find((v) => v?.sku === selectedVariantSku) || variantOptions[0] || null,
+    [variantOptions, selectedVariantSku]
+  );
+  const sizeGuideRows = Array.isArray(product?.sizeGuide?.rows) ? product.sizeGuide.rows : [];
+  const serviceCommitments = Array.isArray(product?.serviceCommitments) && product.serviceCommitments.length
+    ? product.serviceCommitments
+    : [
+        { title: 'Authenticity check', description: 'Products are screened before listing.' },
+        { title: 'Secure payment', description: 'Checkout is encrypted and monitored.' },
+        { title: 'After-sales support', description: 'Quick assistance for delivery and returns.' },
+      ];
+  const detailSections = Array.isArray(product?.detailSections) ? product.detailSections.filter((s) => s?.title) : [];
 
   /* ── loading / error ── */
   if (loading) return (
@@ -1096,6 +1123,89 @@ export default function ProductDetail() {
                   </div>
                 </div>
                 )}
+                {variantOptions.length > 0 && (
+                  <div className="mb-4 lg:mb-5 order-8 lg:order-9">
+                    <p className="text-xs sm:text-sm font-bold mb-2 lg:mb-3" style={{ color: 'var(--text-primary)' }}>
+                      Style
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {variantOptions.map((variant) => {
+                        const isActive = selectedVariant?.sku === variant?.sku;
+                        const thumb = resolveImage(variant?.thumbnailUrl || product?.image);
+                        return (
+                          <button
+                            key={variant.sku}
+                            type="button"
+                            onClick={() => {
+                              setSelectedVariantSku(variant.sku);
+                              if (variant?.size) setSelectedSize(variant.size);
+                              if (variant?.color) setSelectedColor(variant.color);
+                            }}
+                            className="relative rounded-xl overflow-hidden w-14 h-14"
+                            style={{
+                              border: `2px solid ${isActive ? PRIMARY : 'var(--border-card)'}`,
+                              boxShadow: isActive ? 'var(--shadow-cta)' : 'none',
+                            }}
+                          >
+                            <img src={thumb} alt={variant?.label || variant?.sku} className="w-full h-full object-cover" />
+                            {variant?.badge && (
+                              <span className="absolute left-1 right-1 bottom-1 rounded px-1 py-0.5 text-[9px] font-black bg-black/70 text-white truncate">
+                                {variant.badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {(showSizeSelector && (sizeGuideRows.length > 0 || product?.sizeGuide?.circumferenceNote)) && (
+                  <div className="mb-4 lg:mb-5 order-9 lg:order-9">
+                    <button
+                      type="button"
+                      onClick={() => setSizeGuideOpen((v) => !v)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold"
+                      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)', color: 'var(--text-primary)' }}
+                    >
+                      Ring Size Chart & Circumference
+                      <ChevronDown size={15} className={`transition-transform ${sizeGuideOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {sizeGuideOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-2 p-3 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--divider)' }}>
+                            {product?.sizeGuide?.chartImageUrl && (
+                              <img
+                                src={resolveImage(product.sizeGuide.chartImageUrl)}
+                                alt="Ring size chart"
+                                className="w-full rounded-lg mb-2"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            )}
+                            {!!product?.sizeGuide?.circumferenceNote && (
+                              <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>{product.sizeGuide.circumferenceNote}</p>
+                            )}
+                            {sizeGuideRows.length > 0 && (
+                              <div className="grid grid-cols-2 gap-1.5 text-xs">
+                                {sizeGuideRows.map((row) => (
+                                  <div key={`${row?.sizeLabel}-${row?.circumferenceMm || ''}`} className="px-2 py-1.5 rounded-lg" style={{ background: 'var(--card-bg)', border: '1px solid var(--divider)' }}>
+                                    <span className="font-semibold">{row?.sizeLabel}</span>
+                                    {row?.circumferenceMm ? ` - ${row.circumferenceMm}mm` : ''}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
 
                 {/* Divider */}
                 <div className="pd2-divider mb-4 lg:mb-5 order-9 lg:order-10" />
@@ -1250,6 +1360,64 @@ export default function ProductDetail() {
               )}
             </motion.section>
           )}
+          <motion.section
+            className="mb-6 md:mb-10 grid grid-cols-1 md:grid-cols-2 gap-3"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.35 }}
+          >
+            <div className="p-4 sm:p-5 rounded-2xl"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+              <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>Service commitments</p>
+              <div className="space-y-2">
+                {serviceCommitments.map((item, idx) => (
+                  <div key={`${item?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenCommitmentIdx((cur) => (cur === idx ? null : idx))}
+                      className="w-full px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    >
+                      {item?.title || 'Commitment'}
+                      <ChevronDown size={14} className={`transition-transform ${openCommitmentIdx === idx ? 'rotate-180' : ''}`} />
+                    </button>
+                    {openCommitmentIdx === idx && !!item?.description && (
+                      <div className="px-3 py-2.5 text-xs" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
+                        {item.description}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {detailSections.length > 0 && (
+              <div className="p-4 sm:p-5 rounded-2xl"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+                <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>More product details</p>
+                <div className="space-y-2">
+                  {detailSections.map((section, idx) => (
+                    <div key={`${section?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenDetailIdx((cur) => (cur === idx ? null : idx))}
+                        className="w-full px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                      >
+                        {section?.title}
+                        <ChevronDown size={14} className={`transition-transform ${openDetailIdx === idx ? 'rotate-180' : ''}`} />
+                      </button>
+                      {openDetailIdx === idx && !!section?.content && (
+                        <div className="px-3 py-2.5 text-xs whitespace-pre-wrap" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
+                          {section.content}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.section>
 
           {/* ════════════════════════════════════════════════
               META STRIP — Seller info + full trust badges

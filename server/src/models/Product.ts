@@ -53,6 +53,11 @@ export interface IProduct extends Document {
   variants?: ProductVariant[];
   sizes?: string[];
   colors?: string[];
+  sizeGuide?: {
+    chartImageUrl?: string;
+    circumferenceNote?: string;
+    rows?: Array<{ sizeLabel: string; circumferenceMm?: number }>;
+  };
   tiers?: TieredPrice[];
   views?: number;
   /** Total "saved" count (wishlist/likes). */
@@ -80,6 +85,7 @@ export interface IProduct extends Document {
   securityNote?: string;
   paymentSafetyNote?: string;
   serviceCommitments?: Array<{ title: string; description?: string; icon?: string }>;
+  detailSections?: Array<{ title: string; content?: string }>;
   reaglexProductId?: string;
   /** Ships from this warehouse for Reaglex grouped shipping (seller-defined). */
   warehouseId?: string;
@@ -140,6 +146,16 @@ const productSchema = new Schema<IProduct>(
     ],
     sizes: { type: [String], default: [] },
     colors: { type: [String], default: [] },
+    sizeGuide: {
+      chartImageUrl: { type: String, trim: true },
+      circumferenceNote: { type: String, trim: true },
+      rows: [
+        {
+          sizeLabel: { type: String, trim: true, required: true },
+          circumferenceMm: { type: Number },
+        },
+      ],
+    },
     tiers: [
       {
         minQty: { type: Number, required: true },
@@ -170,6 +186,12 @@ const productSchema = new Schema<IProduct>(
         title: { type: String, required: true, trim: true },
         description: { type: String, trim: true },
         icon: { type: String, trim: true },
+      },
+    ],
+    detailSections: [
+      {
+        title: { type: String, required: true, trim: true },
+        content: { type: String, trim: true },
       },
     ],
     reaglexProductId: { type: String, trim: true, unique: true, sparse: true, index: true },
