@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Order, OrderStatus } from '../models/Order';
 import { Product } from '../models/Product';
+import { AbandonedCart } from '../models/AbandonedCart';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 import { restoreInventoryForOrder } from '../services/inventory.service';
 import { convertUsdToCurrency, detectCurrencyFromRequest } from '../services/exchangeRate.service';
@@ -314,6 +315,12 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
         });
       }
     }
+
+    // Best-effort: mark abandoned carts as recovered for this buyer.
+    await AbandonedCart.updateMany(
+      { userId: new mongoose.Types.ObjectId(req.user.id), recovered: false },
+      { $set: { recovered: true } },
+    );
 
     return res.status(201).json({
       success: true,

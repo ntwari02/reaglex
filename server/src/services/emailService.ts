@@ -11,6 +11,7 @@ import {
   getDeviceApprovalEmailHtml,
   getLoginNotificationEmailHtml,
   getRecommendationDealsEmailHtml,
+  getAbandonedCartEmailHtml,
   getNewsletterWelcomeEmailHtml,
 } from '../email/templates';
 import { getClientUrl } from '../config/publicEnv';
@@ -375,6 +376,38 @@ export async function sendRecommendationDealsEmail(options: {
     unsubscribeUrl: options.unsubscribeUrl,
     preferencesUrl: options.preferencesUrl,
     openPixelUrl: options.openPixelUrl,
+  });
+  return sendEmail({
+    to: options.to,
+    subject: options.subject,
+    html,
+  });
+}
+
+export async function sendAbandonedCartEmail(options: {
+  to: string;
+  name: string;
+  subject: string;
+  cartUrl: string;
+  products: Array<{
+    id: string;
+    name: string;
+    imageUrl?: string;
+    price: number;
+    discount?: number;
+    quantity?: number;
+    viewUrl: string;
+  }>;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!isEmailConfigured()) {
+    return { success: false, error: 'Email service not configured' };
+  }
+  const html = getAbandonedCartEmailHtml({
+    appName: APP_NAME,
+    name: options.name,
+    title: 'Abandoned cart',
+    cartUrl: options.cartUrl || `${CLIENT_URL}/cart`,
+    products: options.products,
   });
   return sendEmail({
     to: options.to,

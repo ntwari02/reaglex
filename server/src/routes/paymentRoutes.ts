@@ -357,7 +357,7 @@ router.get(
       }
       const sellerObjectId = new mongoose.Types.ObjectId(req.user.id);
       const wallet = await SellerWallet.findOne({ sellerId: sellerObjectId }).lean();
-      const orders = await Order.find({ sellerId: sellerObjectId })
+      const orders = await Order.find({ sellerId: sellerObjectId } as any)
         .select('escrow.status fees')
         .lean();
       const recent = await TransactionLog.find({ sellerId: sellerObjectId, type: { $in: ['PAYMENT', 'RELEASE', 'WITHDRAWAL'] } })
@@ -499,7 +499,7 @@ router.post(
         currency: wallet.currency,
         status: 'SUCCESS',
         metadata: {
-          payoutMethodId: String(selectedMethod._id || ''),
+          payoutMethodId: String((selectedMethod as any)._id || ''),
           payoutMethod: selectedMethod.method,
           mobileMoneyProvider: selectedMethod.mobileMoneyProvider,
           mobileMoneyNumber: selectedMethod.mobileMoneyNumber

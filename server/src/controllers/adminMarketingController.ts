@@ -15,6 +15,8 @@ import { ReferralSettings } from '../models/ReferralSettings';
 import { MarketingSettings } from '../models/MarketingSettings';
 import { AIMarketingSettings } from '../models/AIMarketingSettings';
 import { MarketingReferralReward } from '../models/MarketingReferralReward';
+import { BuyerInsightProfile } from '../models/BuyerInsightProfile';
+import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -99,6 +101,123 @@ export async function getDashboard(req: AuthenticatedRequest, res: Response) {
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch dashboard' });
+  }
+}
+
+// ---------- Buyer insight dashboard ----------
+export async function getBuyerInsightsOverview(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const [segAgg, confAgg] = await Promise.all([
+      BuyerInsightProfile.aggregate([
+        { $group: { _id: '$segment', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      BuyerInsightProfile.aggregate([
+        {
+          $bucket: {
+            groupBy: '$confidenceScore',
+            boundaries: [0, 25, 50, 75, 90, 101],
+            default: 'unknown',
+            output: { count: { $sum: 1 } },
+          },
+        },
+      ]),
+    ]);
+
+    const segments = (segAgg as any[]).reduce((acc, r) => {
+      acc[String(r._id || 'unknown')] = Number(r.count || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const confidenceBuckets = (confAgg as any[]).map((b) => ({
+      range: String(b._id),
+      count: Number(b.count || 0),
+    }));
+
+    res.json({ segments, confidenceBuckets });
+  } catch (e) {
+    res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch buyer insights overview' });
+  }
+}
+
+export async function getBuyerInsightsList(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { segment, minConfidence = '0', q = '', page = '1', limit = '30' } = req.query as any;
+    const filter: any = {};
+    if (segment) filter.segment = String(segment);
+    const minC = Math.max(0, Math.min(100, Number(minConfidence) || 0));
+    if (minC > 0) filter.confidenceScore = { $gte: minC };
+    if (q) filter.email = new RegExp(String(q).trim(), 'i');
+
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(String(limit), 10) || 30));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [rows, total] = await Promise.all([
+      BuyerInsightProfile.find(filter)
+        .sort({ confidenceScore: -1, score: -1, lastActivityAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      BuyerInsightProfile.countDocuments(filter),
+    ]);
+
+    const users = (rows as any[]).map((p) => ({
+      userId: toId({ _id: p.userId } as any),
+      email: p.email,
+      segment: p.segment,
+      score: p.score,
+      confidenceScore: p.confidenceScore,
+      confidenceReason: p.confidenceReason,
+      lastActivityAt: p.lastActivityAt,
+      lastLoginAt: p.lastLoginAt,
+      orderCount: p.orderCount,
+      totalSpendUsd: p.totalSpendUsd,
+      deviceType: p.deviceType,
+      lastKnownCountry: p.lastKnownCountry,
+    }));
+
+    res.json({
+      users,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
+  } catch (e) {
+    res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch buyer insights list' });
+  }
+}
+
+export async function getBuyerInsightByUser(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ message: 'Invalid user id' });
+    const profile = await BuyerInsightProfile.findOne({ userId: new mongoose.Types.ObjectId(userId) }).lean();
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+    // Recent automation performance for this user (last 30 days)
+    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const emailStats = await RecommendationEmailHistory.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), sentAt: { $gte: since30d } } },
+      {
+        $group: {
+          _id: '$campaign',
+          sent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+          opens: { $sum: '$opens' },
+          clicks: { $sum: '$clicks' },
+        },
+      },
+      { $sort: { sent: -1 } },
+    ]);
+
+    res.json({
+      profile,
+      emailStats,
+    });
+  } catch (e) {
+    res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch buyer insight profile' });
   }
 }
 

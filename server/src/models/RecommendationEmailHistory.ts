@@ -9,6 +9,8 @@ export interface IRecommendationEmailProduct {
 export interface IRecommendationEmailHistory extends Document {
   userId: mongoose.Types.ObjectId;
   email: string;
+  /** Automation lane / campaign key (recommendation, cart_pulse, winback, vip_promo, etc.) */
+  campaign?: string;
   subject: string;
   frequency: 'daily' | 'weekly';
   mode: 'deals_only' | 'mixed';
@@ -40,6 +42,7 @@ const recommendationEmailHistorySchema = new Schema<IRecommendationEmailHistory>
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     email: { type: String, required: true, trim: true, lowercase: true, index: true },
+    campaign: { type: String, trim: true, index: true },
     subject: { type: String, required: true },
     frequency: { type: String, enum: ['daily', 'weekly'], required: true, index: true },
     mode: { type: String, enum: ['deals_only', 'mixed'], required: true },
@@ -60,6 +63,7 @@ const recommendationEmailHistorySchema = new Schema<IRecommendationEmailHistory>
 
 recommendationEmailHistorySchema.index({ userId: 1, sentAt: -1 });
 recommendationEmailHistorySchema.index({ sentAt: -1, status: 1 });
+recommendationEmailHistorySchema.index({ userId: 1, campaign: 1, sentAt: -1 });
 
 export const RecommendationEmailHistory = mongoose.model<IRecommendationEmailHistory>(
   'RecommendationEmailHistory',

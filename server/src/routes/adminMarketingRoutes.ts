@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import {
   getDashboard,
+  getBuyerInsightsOverview,
+  getBuyerInsightsList,
+  getBuyerInsightByUser,
   getCampaigns,
   createCampaign,
   updateCampaign,
@@ -54,6 +57,11 @@ router.use(authorize('admin'));
 
 // Dashboard
 router.get('/dashboard', getDashboard);
+
+// Buyer insights (admin dashboard)
+router.get('/buyer-insights/overview', getBuyerInsightsOverview);
+router.get('/buyer-insights', getBuyerInsightsList);
+router.get('/buyer-insights/:userId', getBuyerInsightByUser);
 
 // Campaigns
 router.get('/campaigns', getCampaigns);

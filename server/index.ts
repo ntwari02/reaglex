@@ -72,6 +72,11 @@ import productVerificationRoutes from './src/routes/productVerificationRoutes';
 import currencyRoutes from './src/routes/currencyRoutes';
 import { startExchangeRateWorker } from './src/services/exchangeRate.service';
 import newsletterRoutes from './src/routes/newsletterRoutes';
+import { startAbandonedCartEmailWorker } from './src/jobs/abandonedCartEmailWorker';
+import { startBuyerInsightWorker } from './src/jobs/buyerInsightWorker';
+import { startLifecycleEmailWorker } from './src/jobs/lifecycleEmailWorker';
+import { startCartPulseEmailWorker } from './src/jobs/cartPulseEmailWorker';
+import { startBrowseAbandonEmailWorker } from './src/jobs/browseAbandonEmailWorker';
 
 const app = express();
 const httpServer = createServer(app);
@@ -361,6 +366,11 @@ const connectDB = async () => {
 
     startScheduledNotificationWorker();
     startRecommendationEmailWorker();
+    startAbandonedCartEmailWorker();
+    startBuyerInsightWorker();
+    startLifecycleEmailWorker();
+    startCartPulseEmailWorker();
+    startBrowseAbandonEmailWorker();
     startExchangeRateWorker();
 
     // Initialize WebSocket server

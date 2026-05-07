@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
+import SellerHubHome from '@/pages/seller/SellerHubHome';
 import DashboardOverview from '@/pages/seller/DashboardOverview';
 import InventoryManagement from '@/pages/seller/InventoryManagement';
 import OrdersPage from '@/pages/seller/OrdersPage';
@@ -19,6 +20,7 @@ import PaymentsFinance from '@/pages/seller/PaymentsFinance';
 import Notifications from '@/components/dashboard/Notifications';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import { useAuthStore } from '../stores/authStore';
+import SellerMobileBottomNav from '@/components/seller/SellerMobileBottomNav';
 
 const SellerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -126,10 +128,10 @@ const SellerDashboard: React.FC = () => {
           accentVariant="orange"
         />
         
-        <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden scroll-smooth p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden scroll-smooth p-4 pb-24 md:p-6 md:pb-6 lg:p-8 lg:pb-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
           <Routes>
-            <Route index element={<DashboardOverview />} />
-            <Route path="dashboard" element={<DashboardOverview />} />
+            <Route index element={<SellerHubHome />} />
+            <Route path="dashboard" element={<SellerHubHome />} />
             <Route path="inventory" element={<InventoryManagement />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="orders/:orderId" element={<OrderDetailsPage />} />
@@ -153,6 +155,8 @@ const SellerDashboard: React.FC = () => {
       />
 
       <DeviceApprovalPopup />
+
+      <SellerMobileBottomNav />
     </div>
   );
 };

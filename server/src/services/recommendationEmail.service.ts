@@ -8,12 +8,22 @@ import { RecommendationEmailPreference } from '../models/RecommendationEmailPref
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
 import { sendRecommendationDealsEmail } from './emailService';
 import { getClientUrl } from '../config/publicEnv';
+import { formatUsdAsCurrency } from '../utils/money';
+import { getPersonalizationGate } from './personalizationGate.service';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
-const MAX_RECOMMENDATIONS = 8;
+function getIntEnv(name: string, fallback: number) {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+const MAX_RECOMMENDATIONS = getIntEnv('RECOMMENDATION_EMAIL_MAX_PRODUCTS', 12);
 const ACTIVITY_LOOKBACK_DAYS = 45;
 const RECENT_PURCHASE_EXCLUDE_DAYS = 30;
+const DEFAULT_DAILY_MARKETING_CAP = 1;
+const RECENCY_HALF_LIFE_DAYS = 10; // smaller = more weight on recent behavior
+const MAX_PER_CATEGORY_IN_EMAIL = 2;
 
 type DealCandidate = {
   productId: mongoose.Types.ObjectId;
@@ -30,9 +40,35 @@ function daysSince(date?: Date | null): number {
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
 }
 
+function recencyMultiplier(eventAt?: Date | null): number {
+  const d = daysSince(eventAt);
+  if (!Number.isFinite(d) || d < 0) return 1;
+  // Exponential decay: 1.0 now → ~0.5 at half-life
+  return Math.pow(0.5, d / RECENCY_HALF_LIFE_DAYS);
+}
+
 function shouldSendByFrequency(pref: { frequency: 'daily' | 'weekly'; lastSentAt?: Date | null }) {
   const minDays = pref.frequency === 'daily' ? 1 : 7;
   return daysSince(pref.lastSentAt) >= minDays;
+}
+
+async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
+  const cap = getIntEnv('DAILY_MARKETING_EMAIL_CAP', DEFAULT_DAILY_MARKETING_CAP);
+  if (cap <= 0) return false;
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const count = await RecommendationEmailHistory.countDocuments({
+    userId: new mongoose.Types.ObjectId(userId),
+    status: 'sent',
+    sentAt: { $gte: since },
+  });
+  return count >= cap;
+}
+
+function sameSet(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const sa = new Set(a);
+  for (const x of b) if (!sa.has(x)) return false;
+  return true;
 }
 
 export async function getOrCreateRecommendationPreference(userId: string) {
@@ -110,12 +146,15 @@ async function buildUserSignals(userId: string) {
   const productScores = new Map<string, number>();
   const categoryScores = new Map<string, number>();
   const tagScores = new Map<string, number>();
+  const lastCartAdds: Array<{ productId: string; at: Date; quantity: number }> = [];
+  const lastViews: Array<{ productId: string; at: Date }> = [];
 
   for (const e of events as any[]) {
     const eventType = String(e.eventType || '');
     const pid = e.productId ? String(e.productId) : '';
     const category = (e.category || '').trim();
     const tags = Array.isArray(e.tags) ? e.tags.map((t: unknown) => String(t).trim()).filter(Boolean) : [];
+    const at = e?.createdAt ? new Date(e.createdAt) : new Date();
     let weight = 0;
     if (eventType === 'wishlist_add') weight = 10;
     else if (eventType === 'cart_add') weight = 8;
@@ -125,12 +164,26 @@ async function buildUserSignals(userId: string) {
     else if (eventType === 'tag_interaction') weight = 3;
     else if (eventType === 'wishlist_remove' || eventType === 'cart_remove') weight = -2;
 
-    if (pid) productScores.set(pid, (productScores.get(pid) || 0) + weight);
-    if (category) categoryScores.set(category, (categoryScores.get(category) || 0) + weight);
-    for (const tag of tags) tagScores.set(tag, (tagScores.get(tag) || 0) + weight);
+    const w = weight * recencyMultiplier(at);
+
+    if (pid) productScores.set(pid, (productScores.get(pid) || 0) + w);
+    if (category) categoryScores.set(category, (categoryScores.get(category) || 0) + w);
+    for (const tag of tags) tagScores.set(tag, (tagScores.get(tag) || 0) + w);
+
+    if (eventType === 'cart_add' && pid) {
+      const qty = Math.max(1, Number(e?.meta?.quantity ?? 1) || 1);
+      lastCartAdds.push({ productId: pid, at, quantity: qty });
+    }
+    if (eventType === 'product_view' && pid) {
+      lastViews.push({ productId: pid, at });
+    }
   }
 
-  return { productScores, categoryScores, tagScores, hasActivity: events.length > 0 };
+  // Keep most recent first (events were already sorted desc, but we defensively sort)
+  lastCartAdds.sort((a, b) => b.at.getTime() - a.at.getTime());
+  lastViews.sort((a, b) => b.at.getTime() - a.at.getTime());
+
+  return { productScores, categoryScores, tagScores, lastCartAdds: lastCartAdds.slice(0, 12), lastViews: lastViews.slice(0, 24), hasActivity: events.length > 0 };
 }
 
 function upsertCandidate(map: Map<string, DealCandidate>, key: string, next: DealCandidate) {
@@ -168,6 +221,32 @@ async function scoreRecommendationsForUser(userId: string, mode: 'deals_only' | 
     if (!mongoose.Types.ObjectId.isValid(pid)) continue;
     const reason = s >= 9 ? 'From wishlist/cart interest' : s >= 5 ? 'From your recent activity' : 'Because you viewed similar items';
     upsertCandidate(candidates, pid, { productId: new mongoose.Types.ObjectId(pid), score: s, reason });
+  }
+
+  // 1b) Strong boost: the last cart adds (these are the most “AliExpress-like” signals)
+  for (const c of (signals as any).lastCartAdds || []) {
+    const pid = String(c?.productId || '');
+    if (!pid || purchasedRecently.has(pid)) continue;
+    if (!mongoose.Types.ObjectId.isValid(pid)) continue;
+    const boost = 8 * recencyMultiplier(c.at);
+    upsertCandidate(candidates, pid, {
+      productId: new mongoose.Types.ObjectId(pid),
+      score: (candidates.get(pid)?.score || 0) + boost,
+      reason: 'In your cart recently',
+    });
+  }
+
+  // 1c) Recency boost: very recent product views
+  for (const v of (signals as any).lastViews || []) {
+    const pid = String(v?.productId || '');
+    if (!pid || purchasedRecently.has(pid)) continue;
+    if (!mongoose.Types.ObjectId.isValid(pid)) continue;
+    const boost = 4 * recencyMultiplier(v.at);
+    upsertCandidate(candidates, pid, {
+      productId: new mongoose.Types.ObjectId(pid),
+      score: (candidates.get(pid)?.score || 0) + boost,
+      reason: 'You viewed this recently',
+    });
   }
 
   // 2) Similar by category/tags
@@ -224,6 +303,19 @@ async function scoreRecommendationsForUser(userId: string, mode: 'deals_only' | 
   return { ranked, hasActivity: signals.hasActivity };
 }
 
+function diversifyProductsForEmail(products: any[]) {
+  const byCategoryCount = new Map<string, number>();
+  const picked: any[] = [];
+  for (const p of products) {
+    const cat = String(p?.category || '').trim() || 'uncategorized';
+    const curr = byCategoryCount.get(cat) || 0;
+    if (curr >= MAX_PER_CATEGORY_IN_EMAIL) continue;
+    byCategoryCount.set(cat, curr + 1);
+    picked.push(p);
+  }
+  return picked;
+}
+
 export async function generateRecommendationsForUser(userId: string) {
   const pref = await getOrCreateRecommendationPreference(userId);
   if (!pref || !pref.enabled || pref.unsubscribed || pref.suppressed) return { pref, products: [] as any[], ranked: [] as DealCandidate[] };
@@ -234,7 +326,7 @@ export async function generateRecommendationsForUser(userId: string) {
   const ids = take.map((r) => r.productId);
   const productsRaw = ids.length
     ? await Product.find({ _id: { $in: ids } })
-        .select('_id name price discount images description')
+        .select('_id name price discount images description category tags')
         .lean()
     : [];
   const byId = new Map(productsRaw.map((p: any) => [String(p._id), p]));
@@ -250,19 +342,21 @@ export async function generateRecommendationsForUser(userId: string) {
     })
     .filter(Boolean);
 
-  if (!products.length && !hasActivity) {
+  const diversified = diversifyProductsForEmail(products).slice(0, MAX_RECOMMENDATIONS);
+
+  if (!diversified.length && !hasActivity) {
     const fallback = await Product.find({ status: { $in: ['in_stock', 'low_stock'] } })
-      .select('_id name price discount images description')
+      .select('_id name price discount images description category tags')
       .sort({ discount: -1, views: -1, createdAt: -1 })
       .limit(MAX_RECOMMENDATIONS)
       .lean();
     return { pref, products: fallback, ranked: [] as DealCandidate[] };
   }
-  return { pref, products, ranked };
+  return { pref, products: diversified, ranked };
 }
 
 export async function sendRecommendationEmailToUser(userId: string) {
-  const user = await User.findById(userId).select('fullName email').lean();
+  const user = await User.findById(userId).select('fullName email preferences').lean();
   if (!user?.email) return { success: false, reason: 'no_email' };
   const { pref, products } = await generateRecommendationsForUser(userId);
   if (!pref) return { success: false, reason: 'no_preference' };
@@ -270,21 +364,56 @@ export async function sendRecommendationEmailToUser(userId: string) {
   if (!shouldSendByFrequency(pref)) return { success: false, reason: 'frequency_not_due' };
   if (!products.length) return { success: false, reason: 'no_products' };
 
+  // Global safety: cap marketing emails per user per 24h (prevents spam across flows).
+  if (await isOverDailyMarketingCap(userId)) {
+    return { success: false, reason: 'daily_cap' };
+  }
+
+  const gate = await getPersonalizationGate(userId);
+
+  // Dedupe: avoid sending the exact same batch repeatedly (common after restarts / limited catalog).
+  const currentIds = products.map((p: any) => String(p._id));
+  const lastIds = Array.isArray(pref.lastRecommendationProductIds) ? pref.lastRecommendationProductIds : [];
+  if (lastIds.length && sameSet(lastIds, currentIds) && daysSince(pref.lastSentAt) < 7) {
+    await RecommendationEmailHistory.create({
+      userId,
+      email: user.email,
+      subject: 'Skipped duplicate recommendation batch',
+      frequency: pref.frequency,
+      mode: pref.mode,
+      productIds: products.map((p: any) => p._id),
+      products: products.map((p: any) => ({
+        productId: p._id,
+        score: Number(p.score || 0),
+        reason: String(p.reason || 'Recommended deal'),
+      })),
+      status: 'skipped',
+      error: 'duplicate_batch',
+    });
+    return { success: false, reason: 'duplicate_batch' };
+  }
+
   const subject = `Special deals just for you, ${String((user as any).fullName || 'shopper').split(' ')[0]}`;
   const history = await RecommendationEmailHistory.create({
     userId,
     email: user.email,
+    campaign: 'recommendation',
     subject,
     frequency: pref.frequency,
     mode: pref.mode,
     productIds: products.map((p: any) => p._id),
     products: products.map((p: any) => ({ productId: p._id, score: Number(p.score || 0), reason: String(p.reason || 'Recommended deal') })),
     status: 'sent',
+    error: gate.allowPersonalized ? undefined : `low_confidence:${gate.confidenceScore}:${gate.confidenceReason}`,
   });
 
   const unsubscribeUrl = `${CLIENT_URL}/recommendations/unsubscribe/${pref.unsubscribeToken}`;
   const preferencesUrl = `${CLIENT_URL}/account?tab=settings&section=notifications`;
   const API_URL = ((process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || CLIENT_URL) || '').replace(/\/$/, '');
+
+  // Display currency (AliExpress-style):
+  // - Prefer user pinned currency; otherwise default USD.
+  const displayCurrency = String((user as any)?.preferences?.currency || 'USD').toUpperCase();
   const emailProducts = products.map((p: any) => ({
     id: String(p._id),
     name: p.name,
@@ -294,16 +423,25 @@ export async function sendRecommendationEmailToUser(userId: string) {
         : `${process.env.SERVER_URL || ''}${String(p.images[0]).startsWith('/') ? p.images[0] : `/${p.images[0]}`}`
       : '',
     price: Number(p.price || 0),
+    priceText: '', // filled below
     discount: Number(p.discount || 0),
     description: String(p.description || '').slice(0, 120),
     viewUrl: `${API_URL}/api/recommendation-emails/track/click/${history._id}/${p._id}`,
   }));
 
+  // Fill formatted price text with conversion (best-effort).
+  for (const ep of emailProducts as any[]) {
+    const conv = await formatUsdAsCurrency(Number(ep.price || 0), displayCurrency);
+    ep.priceText = conv.formatted;
+  }
+
   const sendResult = await sendRecommendationDealsEmail({
     to: user.email,
     name: String((user as any).fullName || 'there').split(' ')[0],
     subject,
-    intro: pref.mode === 'deals_only'
+    intro: !gate.allowPersonalized
+      ? 'Trending picks based on popular items and your recent activity.'
+      : pref.mode === 'deals_only'
       ? 'Hand-picked deal drops you can grab today.'
       : 'We picked these based on your wishlist, views, and shopping activity.',
     products: emailProducts,
@@ -326,9 +464,10 @@ export async function sendRecommendationEmailToUser(userId: string) {
 }
 
 export async function runRecommendationEmailJob() {
+  const maxPerRun = getIntEnv('RECOMMENDATION_EMAIL_RUN_MAX_USERS', 400);
   const users = await User.find({ role: 'buyer', accountStatus: { $ne: 'banned' } })
     .select('_id')
-    .limit(1500)
+    .limit(maxPerRun)
     .lean();
   for (const u of users as any[]) {
     try {

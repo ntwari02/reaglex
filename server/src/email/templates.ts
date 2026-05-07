@@ -263,6 +263,7 @@ export function getRecommendationDealsEmailHtml(options: {
     name: string;
     imageUrl?: string;
     price: number;
+    priceText?: string;
     discount?: number;
     description?: string;
     viewUrl: string;
@@ -272,48 +273,165 @@ export function getRecommendationDealsEmailHtml(options: {
   openPixelUrl?: string;
 }) {
   const appName = options.appName || 'Reaglex';
-  const cards = options.products
-    .map((p) => {
-      const price = Number.isFinite(p.price) ? `$${p.price.toFixed(2)}` : '$0.00';
+  // Table-based responsive grid (email-client safe).
+  // Desktop: 2 columns. Mobile: stacked (via media query + block cells).
+  const productRows: string[] = [];
+  const list = Array.isArray(options.products) ? options.products : [];
+  for (let i = 0; i < list.length; i += 2) {
+    const a = list[i];
+    const b = list[i + 1];
+
+    const renderCard = (p?: (typeof list)[number]) => {
+      if (!p) {
+        return `<td class="col" style="padding:0 0 14px 0;"></td>`;
+      }
+      const price = p.priceText || (Number.isFinite(p.price) ? `$${p.price.toFixed(2)}` : '$0.00');
       const hasDiscount = Number(p.discount || 0) > 0;
       const discountBadge = hasDiscount
-        ? `<span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#fee2e2;color:#b91c1c;">-${Math.round(Number(p.discount || 0))}%</span>`
+        ? `<span style="display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:#fee2e2;color:#b91c1c;">-${Math.round(Number(p.discount || 0))}%</span>`
         : '';
+      const desc = String(p.description || 'Curated pick based on your shopping activity.').slice(0, 90);
       return `
-        <tr>
-          <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-              <tr>
-                <td style="width:88px;vertical-align:top;padding-right:12px;">
-                  <img src="${p.imageUrl || ''}" alt="${p.name}" width="84" height="84" style="display:block;width:84px;height:84px;object-fit:cover;border-radius:10px;background:#f3f4f6;border:1px solid #e5e7eb;" />
-                </td>
-                <td style="vertical-align:top;">
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#111827;">${p.name}</p>
-                  <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">${p.description || 'Limited-time personalized deal selected for you.'}</p>
-                  <p style="margin:0 0 10px;font-size:16px;font-weight:800;color:#111827;">${price} ${discountBadge}</p>
-                  <a href="${p.viewUrl}" style="display:inline-block;padding:9px 14px;border-radius:9px;background:#f97316;color:#fff;font-weight:700;font-size:12px;text-decoration:none;">View Deal</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+        <td class="col" style="width:50%;padding:0 10px 14px 0;vertical-align:top;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="padding:0;">
+                <a href="${p.viewUrl}" style="text-decoration:none;">
+                  <img src="${p.imageUrl || ''}" alt="${p.name}" width="260" style="display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;background:#f3f4f6;" />
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 12px 14px;">
+                <p style="margin:0 0 6px;font-size:14px;font-weight:800;color:#111827;line-height:1.3;">${p.name}</p>
+                <p style="margin:0 0 10px;font-size:12px;color:#6b7280;line-height:1.45;">${desc}</p>
+                <p style="margin:0 0 10px;font-size:15px;font-weight:900;color:#111827;">${price} ${discountBadge}</p>
+                <a href="${p.viewUrl}" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#f97316;color:#fff;font-weight:800;font-size:12px;text-decoration:none;">View</a>
+              </td>
+            </tr>
+          </table>
+        </td>
       `;
-    })
-    .join('');
+    };
+
+    productRows.push(`
+      <tr>
+        ${renderCard(a)}
+        ${renderCard(b)}
+      </tr>
+    `);
+  }
 
   const content = `
     <p style="margin:0 0 12px;font-size:16px;">Hi ${options.name},</p>
     <p style="margin:0 0 20px;font-size:14px;color:#4b5563;">${options.intro || 'We found deal picks that match your interests and recent shopping activity.'}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-      ${cards}
+      ${productRows.join('')}
     </table>
+    <p style="text-align:center;margin: 6px 0 0;">
+      <a href="/search?q=recommended" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#111827;color:#fff;font-weight:800;font-size:13px;text-decoration:none;">View more</a>
+    </p>
     <p style="margin:22px 0 0;font-size:12px;color:#6b7280;">
       Manage your recommendations any time: <a href="${options.preferencesUrl}" style="color:#f97316;">preferences</a> ·
       <a href="${options.unsubscribeUrl}" style="color:#f97316;">unsubscribe</a>
     </p>
     ${options.openPixelUrl ? `<img src="${options.openPixelUrl}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;" />` : ''}
   `;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, options.title)}</body></html>`;
+
+  const responsiveStyle = `
+  <style>
+    @media only screen and (max-width: 620px) {
+      .col { display:block !important; width:100% !important; padding-right:0 !important; }
+      img { height:auto !important; }
+    }
+  </style>`;
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">${responsiveStyle}</head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, options.title)}</body></html>`;
+}
+
+export function getAbandonedCartEmailHtml(options: {
+  appName?: string;
+  name: string;
+  title: string;
+  cartUrl: string;
+  products: Array<{
+    id: string;
+    name: string;
+    imageUrl?: string;
+    price: number;
+    priceText?: string;
+    discount?: number;
+    quantity?: number;
+    viewUrl: string;
+  }>;
+}) {
+  const appName = options.appName || 'Reaglex';
+  const productRows: string[] = [];
+  const list = Array.isArray(options.products) ? options.products : [];
+  for (let i = 0; i < list.length; i += 2) {
+    const a = list[i];
+    const b = list[i + 1];
+
+    const renderCard = (p?: (typeof list)[number]) => {
+      if (!p) return `<td class="col" style="padding:0 0 14px 0;"></td>`;
+      const qty = Math.max(1, Number(p.quantity || 1));
+      const price = p.priceText || (Number.isFinite(p.price) ? `$${p.price.toFixed(2)}` : '$0.00');
+      const hasDiscount = Number(p.discount || 0) > 0;
+      const discountBadge = hasDiscount
+        ? `<span style="display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:#fee2e2;color:#b91c1c;">-${Math.round(Number(p.discount || 0))}%</span>`
+        : '';
+      return `
+        <td class="col" style="width:50%;padding:0 10px 14px 0;vertical-align:top;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="padding:0;">
+                <a href="${p.viewUrl}" style="text-decoration:none;">
+                  <img src="${p.imageUrl || ''}" alt="${p.name}" width="260" style="display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;background:#f3f4f6;" />
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 12px 14px;">
+                <p style="margin:0 0 6px;font-size:14px;font-weight:800;color:#111827;line-height:1.3;">${p.name}</p>
+                <p style="margin:0 0 8px;font-size:12px;color:#6b7280;">Quantity: <strong>${qty}</strong></p>
+                <p style="margin:0 0 10px;font-size:15px;font-weight:900;color:#111827;">${price} ${discountBadge}</p>
+                <a href="${p.viewUrl}" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#f97316;color:#fff;font-weight:800;font-size:12px;text-decoration:none;">View</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      `;
+    };
+
+    productRows.push(`
+      <tr>
+        ${renderCard(a)}
+        ${renderCard(b)}
+      </tr>
+    `);
+  }
+
+  const content = `
+    <p style="margin:0 0 12px;font-size:16px;">Hi ${options.name},</p>
+    <p style="margin:0 0 18px;font-size:14px;color:#4b5563;">Looks like you left a few items in your cart. They may sell out or change price — grab them while they're available.</p>
+    <p style="text-align:center;margin: 16px 0 24px;">
+      <a href="${options.cartUrl}" style="${buttonStyle}">Return to your cart</a>
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      ${productRows.join('')}
+    </table>
+    <div style="${footerStyle}">This is an automated reminder from ${appName}.</div>
+  `;
+
+  const responsiveStyle = `
+  <style>
+    @media only screen and (max-width: 620px) {
+      .col { display:block !important; width:100% !important; padding-right:0 !important; }
+      img { height:auto !important; }
+    }
+  </style>`;
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">${responsiveStyle}</head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, options.title)}</body></html>`;
 }
 
 export function getNewsletterWelcomeEmailHtml(options: { shopUrl: string; appName?: string }) {
