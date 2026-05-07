@@ -41,3 +41,4 @@ client/.vite/
 server/uploads/
 client/uploads/
 
+node_modules/ 
