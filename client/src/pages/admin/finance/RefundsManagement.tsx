@@ -64,6 +64,32 @@ export default function RefundsManagement() {
     );
   };
 
+  const getRefundTypeBadge = (type: RefundType) => {
+    if (type === 'partial') {
+      return (
+        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+          Partial
+        </span>
+      );
+    }
+    return (
+      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700 dark:bg-purple-900/40 dark:text-purple-200">
+        Full
+      </span>
+    );
+  };
+
+  const getOutcomeLabel = (refund: Refund) => {
+    if (refund.status === 'completed') {
+      return refund.type === 'partial'
+        ? `Partial refund processed: $${refund.amount.toFixed(2)}`
+        : `Full refund processed: $${refund.amount.toFixed(2)}`;
+    }
+    if (refund.status === 'rejected') return 'Refund rejected';
+    if (refund.status === 'approved') return 'Approved - pending completion';
+    return 'Pending review';
+  };
+
   return (
     <div className="space-y-6">
       <div className="border-b border-gray-200 dark:border-gray-800">
@@ -125,15 +151,16 @@ export default function RefundsManagement() {
                       <div className="mb-2 flex items-center gap-2">
                         <h3 className="font-semibold text-gray-900 dark:text-white">Refund {refund.id}</h3>
                         {getStatusBadge(refund.status)}
-                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
-                          {refund.type}
-                        </span>
+                        {getRefundTypeBadge(refund.type)}
                       </div>
                       <div className="mb-2 text-sm text-gray-600 dark:text-gray-300">
                         Order: {refund.orderId} • Customer: {refund.customerName} • Seller: {refund.sellerName}
                       </div>
                       <div className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">
                         Amount: ${refund.amount.toFixed(2)}
+                      </div>
+                      <div className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                        {getOutcomeLabel(refund)}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-300">
                         <p className="font-semibold">Reason:</p>
@@ -184,6 +211,7 @@ export default function RefundsManagement() {
                   <th className="px-4 py-3">Customer</th>
                   <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Outcome</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Method</th>
                   <th className="px-4 py-3">Processed Date</th>
@@ -206,7 +234,8 @@ export default function RefundsManagement() {
                       <td className="px-4 py-4 font-semibold text-gray-900 dark:text-white">
                         ${refund.amount.toFixed(2)}
                       </td>
-                      <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{refund.type}</td>
+                      <td className="px-4 py-4">{getRefundTypeBadge(refund.type)}</td>
+                      <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{getOutcomeLabel(refund)}</td>
                       <td className="px-4 py-4">{getStatusBadge(refund.status)}</td>
                       <td className="px-4 py-4 text-gray-600 dark:text-gray-300">{refund.refundMethod}</td>
                       <td className="px-4 py-4 text-gray-600 dark:text-gray-300">

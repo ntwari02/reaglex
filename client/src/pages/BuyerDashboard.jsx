@@ -165,8 +165,8 @@ function ReturnsPolicySection() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 ['⏰ 30-Day Window', 'Return within 30 days of delivery'],
-                ['💰 Full Refund', 'Original payment method within 3-5 days'],
-                ['📦 Free Returns', 'We cover return shipping costs'],
+                ['💰 Refund Decision', 'Approved refunds are returned to your original payment method'],
+                ['📦 Return Shipping', 'Return shipping costs are paid by the buyer'],
                 ['🛡️ Buyer Protection', 'Protected by Reaglex escrow'],
               ].map(([title, desc]) => (
                 <div
@@ -192,8 +192,9 @@ function ReturnsPolicySection() {
                 These items cannot be returned:
               </p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Digital goods, perishables, custom orders, and intimate items are final sale and
-                cannot be returned.
+                Gift cards, downloadable software, some health/personal care items, perishables,
+                intimate/sanitary goods, hazardous materials, and flammable liquids or gases cannot
+                be returned.
               </p>
             </div>
 
@@ -201,7 +202,7 @@ function ReturnsPolicySection() {
               {[
                 ['Request', 'Submit a return request with photos and details.'],
                 ['Ship Back', 'If approved, ship the item back using the provided label.'],
-                ['Get Refund', 'Once received, your refund is processed in 3-5 days.'],
+                ['Get Decision', 'After inspection, we email approval/rejection and process eligible refunds.'],
               ].map(([title, desc], idx) => (
                 <div key={title} className="flex items-start gap-3 flex-1 min-w-[0]">
                   <div
@@ -1493,7 +1494,8 @@ export default function BuyerDashboard() {
       setReturns(raw.map(mapApiDisputeToReturn).filter(Boolean));
     } catch (err) {
       console.error('Failed to submit return request', err);
-      showToast('Failed to submit return request. Please try again.', 'error');
+      const message = err?.response?.data?.message || 'Failed to submit return request. Please try again.';
+      showToast(message, 'error');
     }
   };
 
@@ -3995,14 +3997,14 @@ export default function BuyerDashboard() {
                               className="text-sm"
                               style={{ color: 'rgba(255,255,255,0.6)' }}
                             >
-                              Hassle-free returns within 30 days.
+                              Returns are accepted within 30 days for eligible items.
                             </p>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {[
                             '↩ 30-Day Returns',
-                            '💰 Full Refunds',
+                            '💰 Eligible Refunds',
                             '🛡️ Buyer Protected',
                           ].map((pill) => (
                             <div

@@ -2,29 +2,25 @@ import { motion } from 'framer-motion';
 import { Activity, Crown, ShoppingBag, Shield, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LiveRoleCard } from './securityIntelTypes';
-import { useTheme } from '@/contexts/ThemeContext';
 
 const roleMeta: Record<
   LiveRoleCard['role'],
-  { label: string; icon: typeof Users; accent: string; glow: string }
+  { label: string; icon: typeof Users; iconColor: string }
 > = {
   buyer: {
     label: 'Buyers',
     icon: ShoppingBag,
-    accent: 'from-cyan-500/25 to-blue-600/10',
-    glow: 'shadow-[0_0_40px_-8px_rgba(34,211,238,0.35)]',
+    iconColor: 'var(--link-color)',
   },
   seller: {
     label: 'Sellers',
     icon: Activity,
-    accent: 'from-fuchsia-500/20 to-violet-600/10',
-    glow: 'shadow-[0_0_40px_-8px_rgba(217,70,239,0.3)]',
+    iconColor: 'var(--brand-primary)',
   },
   admin: {
     label: 'Admins',
     icon: Crown,
-    accent: 'from-amber-500/20 to-rose-600/10',
-    glow: 'shadow-[0_0_40px_-8px_rgba(251,191,36,0.25)]',
+    iconColor: 'var(--brand-orange-text)',
   },
 };
 
@@ -36,7 +32,7 @@ function RiskDot({ level }: { level: LiveRoleCard['riskIndicator'] }) {
         ? 'bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.7)]'
         : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.6)]';
   return (
-    <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+    <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
       <span className={cn('h-2 w-2 rounded-full animate-pulse', cls)} />
       {level}
     </span>
@@ -58,8 +54,6 @@ function CountUp({ value }: { value: number }) {
 }
 
 export function LiveRoleCards({ cards }: { cards: LiveRoleCard[] }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((c, i) => {
@@ -72,49 +66,56 @@ export function LiveRoleCards({ cards }: { cards: LiveRoleCard[] }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06, duration: 0.35 }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className={cn(
-              'relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 backdrop-blur-xl',
-              isDark ? 'border-white/10' : 'border-slate-200',
-              m.accent,
-              m.glow,
-            )}
+            className="relative overflow-hidden rounded-2xl border p-5"
+            style={{
+              borderColor: 'var(--border-card)',
+              background: 'var(--card-bg)',
+              boxShadow: 'var(--shadow-card)',
+            }}
           >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08),transparent_55%)] pointer-events-none" />
             <div className="relative flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">{m.label}</p>
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>
+                  {m.label}
+                </p>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-slate-900 dark:text-white tabular-nums">
+                  <span className="text-3xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                     <CountUp value={c.onlineCount} />
                   </span>
-                  <span className="text-xs text-slate-600 dark:text-slate-500">online</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>online</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-700 dark:text-slate-400">
-                  <Shield className="inline w-3 h-3 mr-1 text-slate-600 dark:text-slate-500" />
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  <Shield className="inline w-3 h-3 mr-1" style={{ color: 'var(--text-muted)' }} />
                   <CountUp value={c.activeSessions} /> active sessions
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-black/30 p-2.5">
-                <Icon className="w-6 h-6 text-cyan-300/90" />
+              <div
+                className="rounded-xl border p-2.5"
+                style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)' }}
+              >
+                <Icon className="w-6 h-6" style={{ color: m.iconColor }} />
               </div>
             </div>
-            <div className="relative mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 dark:border-white/5 pt-3">
+            <div className="relative mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3" style={{ borderColor: 'var(--divider)' }}>
               <RiskDot level={c.riskIndicator} />
-              <span className="text-[10px] font-mono text-slate-600 dark:text-slate-500">
+              <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>
                 ~{Number.isFinite(c.avgSessionDurationSec) ? Math.round(c.avgSessionDurationSec) : 0}s avg session
               </span>
             </div>
             <div className="relative mt-3 space-y-1">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-500">Live actions</p>
+              <p className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                Live actions
+              </p>
               {c.currentActions.length === 0 ? (
-                <p className="text-xs text-slate-500 dark:text-slate-600 italic">Awaiting telemetry…</p>
+                <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Awaiting telemetry…</p>
               ) : (
                 c.currentActions.map((a, j) => (
                   <motion.p
                     key={`${a}-${j}`}
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="text-xs text-cyan-700 dark:text-cyan-100/90 truncate"
+                    className="text-xs truncate"
+                    style={{ color: 'var(--text-secondary)' }}
                   >
                     ▸ {a}
                   </motion.p>

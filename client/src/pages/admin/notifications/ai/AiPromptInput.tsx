@@ -14,7 +14,6 @@ export function AiPromptInput({ value, onChange, onSubmit, placeholder }: Props)
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
           border: '1px solid var(--border-visible)',
           borderRadius: 12,
           padding: '8px 10px',
@@ -27,7 +26,7 @@ export function AiPromptInput({ value, onChange, onSubmit, placeholder }: Props)
           onKeyDown={(e) => {
             if (e.key === 'Enter' && value.trim()) onSubmit();
           }}
-          placeholder={placeholder || 'Use /promo, /refund, /shipping...'}
+          placeholder={placeholder || 'Type an instruction…'}
           style={{
             flex: 1,
             border: 'none',
@@ -37,23 +36,6 @@ export function AiPromptInput({ value, onChange, onSubmit, placeholder }: Props)
             fontSize: 16,
           }}
         />
-        <button
-          type="button"
-          onClick={onSubmit}
-          style={{
-            border: 'none',
-            background: '#00BFA5',
-            color: '#fff',
-            borderRadius: 10,
-            minHeight: 40,
-            minWidth: 40,
-            padding: '0 12px',
-            cursor: 'pointer',
-            fontWeight: 700,
-          }}
-        >
-          Go
-        </button>
       </div>
     </div>
   );

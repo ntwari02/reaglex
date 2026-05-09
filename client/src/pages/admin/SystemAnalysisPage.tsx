@@ -17,9 +17,10 @@ import { useSystemAnalysisUiStore } from '@/stores/systemAnalysisUiStore';
 import { cn } from '@/lib/utils';
 
 function toneForMetric(v: number, warn = 70, crit = 85) {
-  if (v < warn) return { bar: 'bg-emerald-500', glow: 'shadow-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-300' };
-  if (v <= crit) return { bar: 'bg-amber-500', glow: 'shadow-amber-500/25', text: 'text-amber-700 dark:text-amber-200' };
-  return { bar: 'bg-red-500', glow: 'shadow-red-500/30', text: 'text-red-600 dark:text-red-300' };
+  // Semantic tones are fine to keep; avoid decorative gradients/glows on cards.
+  if (v < warn) return { bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-300' };
+  if (v <= crit) return { bar: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-200' };
+  return { bar: 'bg-red-500', text: 'text-red-600 dark:text-red-300' };
 }
 
 function formatUptime(sec: unknown) {
@@ -82,7 +83,6 @@ export default function SystemAnalysisPage() {
   } = useSystemAnalysisUiStore();
 
   const [socketConnected, setSocketConnected] = useState(false);
-  const [cursor, setCursor] = useState({ x: 0, y: 0 });
   const activityRef = useRef<HTMLDivElement | null>(null);
   const [pendingAction, setPendingAction] = useState<{
     cardId: string;
@@ -200,12 +200,6 @@ export default function SystemAnalysisPage() {
     el.scrollTop = 0;
   }, [activity]);
 
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY });
-    window.addEventListener('mousemove', onMove);
-    return () => window.removeEventListener('mousemove', onMove);
-  }, []);
-
   const filteredLogs = useMemo(() => {
     if (logFilter === 'all') return logs;
     return logs.filter((l) => l.level === logFilter);
@@ -253,18 +247,9 @@ export default function SystemAnalysisPage() {
 
   return (
     <div
-      className="relative min-w-0 max-w-[1920px] mx-auto pb-12 overflow-hidden"
-      onMouseMove={(e) => setCursor({ x: e.clientX, y: e.clientY })}
+      className="relative min-w-0 max-w-[1920px] mx-auto pb-12"
     >
-      <div
-        className="pointer-events-none fixed w-[420px] h-[420px] rounded-full opacity-[0.12] blur-3xl -z-10 transition-transform duration-700"
-        style={{
-          background: 'radial-gradient(circle at 30% 30%, #22d3ee, transparent 55%, #a855f7)',
-          left: cursor.x - 210,
-          top: cursor.y - 210,
-        }}
-      />
-      <div className="pointer-events-none fixed inset-0 -z-20 bg-[linear-gradient(rgba(15,23,42,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.02)_1px,transparent_1px)] bg-[length:48px_48px] dark:opacity-40" />
+      {/* Decorative backgrounds removed: keep surfaces clean like main dashboard. */}
 
       <AnimatePresence>
         {alerts.filter((a) => a.level === 'critical').slice(0, 2).map((a) => (
@@ -272,10 +257,15 @@ export default function SystemAnalysisPage() {
             key={a.id}
             initial={{ opacity: 0, x: 80 }}
             animate={{ opacity: 1, x: 0, transition: { type: 'spring', damping: 18 } }}
-            className="fixed right-4 top-20 z-50 max-w-sm rounded-xl border border-red-500/50 bg-red-950/90 backdrop-blur-md px-4 py-3 text-sm text-red-100 shadow-[0_0_28px_rgba(239,68,68,0.35)] animate-[pulse_3s_ease-in-out_infinite]"
+            className="fixed right-4 top-20 z-50 max-w-sm rounded-xl border px-4 py-3 text-sm shadow-[var(--shadow-lg)]"
+            style={{
+              borderColor: 'var(--badge-error-border)',
+              background: 'var(--badge-error-bg)',
+              color: 'var(--badge-error-text)',
+            }}
           >
-            <p className="font-bold">{a.title}</p>
-            <p className="text-red-200/90 text-xs mt-1">{a.message}</p>
+            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{a.title}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{a.message}</p>
           </motion.div>
         ))}
       </AnimatePresence>
@@ -286,31 +276,51 @@ export default function SystemAnalysisPage() {
         className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-6"
       >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
-            <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-lg shadow-cyan-500/20">
-              <Activity className="w-6 h-6 text-white" />
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
+            <span
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border"
+              style={{
+                background: 'var(--bg-secondary)',
+                borderColor: 'var(--border-card)',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <Activity className="w-6 h-6" style={{ color: 'var(--brand-primary)' }} />
             </span>
             System Analysis
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 max-w-2xl">
+          <p className="text-sm mt-2 max-w-2xl" style={{ color: 'var(--text-muted)' }}>
             Real-time API intelligence, live kernel metrics, and terminal-grade controls — cyber-ops control surface.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           <span
-            className={cn(
-              'text-xs font-mono px-3 py-1.5 rounded-full border backdrop-blur-sm',
+            className="text-xs font-mono px-3 py-1.5 rounded-full border"
+            style={
               socketConnected
-                ? 'border-emerald-500/50 text-emerald-600 dark:text-emerald-300 bg-emerald-500/10'
-                : 'border-amber-500/40 text-amber-800 dark:text-amber-200 bg-amber-500/10',
-            )}
+                ? {
+                    borderColor: 'var(--badge-success-border)',
+                    background: 'var(--badge-success-bg)',
+                    color: 'var(--badge-success-text)',
+                  }
+                : {
+                    borderColor: 'var(--badge-warning-border)',
+                    background: 'var(--badge-warning-bg)',
+                    color: 'var(--badge-warning-text)',
+                  }
+            }
           >
             {socketConnected ? '● STREAM' : '○ SOCKET'}
           </span>
           <button
             type="button"
             onClick={() => void loadAll()}
-            className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border border-gray-200/80 dark:border-white/10 bg-white/70 dark:bg-dark-card/85 backdrop-blur-md text-sm font-medium hover:bg-white dark:hover:bg-dark-secondary"
+            className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl border text-sm font-medium transition-colors"
+            style={{
+              borderColor: 'var(--border-card)',
+              background: 'var(--card-bg)',
+              color: 'var(--text-primary)',
+            }}
           >
             <RefreshCw className="w-4 h-4" />
             Sync
@@ -323,15 +333,15 @@ export default function SystemAnalysisPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className={cn(
-            'mb-6 rounded-2xl border px-4 py-3 flex flex-wrap items-center gap-3 backdrop-blur-md',
+            'mb-6 rounded-2xl border px-4 py-3 flex flex-wrap items-center gap-3',
             globalStatus.level === 'operational' && 'border-emerald-500/30 bg-emerald-500/5',
             globalStatus.level === 'degraded' && 'border-amber-500/35 bg-amber-500/10',
             globalStatus.level === 'outage' && 'border-red-500/40 bg-red-500/10',
           )}
         >
-          <span className="text-xs font-mono uppercase tracking-widest text-gray-500">Global</span>
-          <span className="font-semibold text-gray-900 dark:text-white">{globalStatus.label}</span>
-          <span className="text-sm text-gray-600 dark:text-gray-400">{globalStatus.detail}</span>
+          <span className="text-xs font-mono uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Global</span>
+          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{globalStatus.label}</span>
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{globalStatus.detail}</span>
         </motion.div>
       )}
 
@@ -347,27 +357,29 @@ export default function SystemAnalysisPage() {
               transition={{ delay: i * 0.04 }}
               whileHover={{ y: -2, transition: { duration: 0.2 } }}
               className={cn(
-                'relative overflow-hidden rounded-2xl border border-white/10 dark:border-white/5 p-4',
-                'bg-white/60 dark:bg-dark-card/75 backdrop-blur-xl shadow-lg',
-                tone.glow,
+                'relative overflow-hidden rounded-2xl border p-4',
               )}
+              style={{
+                borderColor: 'var(--border-card)',
+                background: 'var(--card-bg)',
+                boxShadow: 'var(--shadow-card)',
+              }}
             >
-              <motion.div
-                className="absolute inset-0 opacity-[0.08] bg-gradient-to-br from-cyan-500 via-transparent to-violet-600"
-                animate={{ opacity: [0.06, 0.12, 0.06] }}
-                transition={{ duration: 4, repeat: Infinity }}
-              />
               <div className="relative flex items-center justify-between mb-2">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{card.label}</span>
-                  <p className="text-[10px] text-gray-500 mt-0.5">{card.hint}</p>
+                  <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                    {card.label}
+                  </span>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {card.hint}
+                  </p>
                 </div>
                 <card.icon className={cn('w-5 h-5', tone.text)} />
               </div>
               <p className={cn('relative text-3xl font-mono font-bold', tone.text)}>
                 {Number(card.value).toFixed(1)}%
               </p>
-              <div className="relative mt-2 h-2 rounded-full bg-gray-200/80 dark:bg-dark-secondary overflow-hidden">
+              <div className="relative mt-2 h-2 rounded-full overflow-hidden" style={{ background: 'color-mix(in srgb, var(--text-muted) 22%, transparent)' }}>
                 <motion.div
                   className={cn('h-full rounded-full', tone.bar)}
                   initial={false}
@@ -376,7 +388,7 @@ export default function SystemAnalysisPage() {
                 />
               </div>
               {isCpu && (
-                <div className="relative mt-2 text-cyan-600 dark:text-cyan-400">
+                <div className="relative mt-2" style={{ color: 'var(--brand-primary)' }}>
                   <MiniSparkline values={card.trend ?? []} />
                 </div>
               )}
@@ -386,34 +398,46 @@ export default function SystemAnalysisPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-6">
-        <div className="xl:col-span-1 rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Uptime pulse (24h)</h3>
+        <div
+          className="xl:col-span-1 rounded-2xl border p-4"
+          style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
+        >
+          <h3 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>
+            Uptime pulse (24h)
+          </h3>
           <div className="flex items-end gap-1 h-24">
             {(buckets24h.length ? buckets24h : Array(24).fill(50)).map((h, i) => (
               <motion.div
                 key={i}
                 initial={{ height: 0 }}
                 animate={{ height: `${Math.min(100, h)}%` }}
-                className="flex-1 min-w-0 rounded-t bg-gradient-to-t from-emerald-600/80 to-cyan-400/90 opacity-90 hover:opacity-100"
+                className="flex-1 min-w-0 rounded-t opacity-90 hover:opacity-100"
+                style={{ background: 'color-mix(in srgb, var(--brand-primary) 55%, transparent)' }}
                 title={`Hour ${i + 1}: ${h.toFixed(0)}%`}
               />
             ))}
           </div>
         </div>
-        <div className="xl:col-span-3 rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
+        <div
+          className="xl:col-span-3 rounded-2xl border p-4"
+          style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
+        >
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Server className="w-5 h-5 text-cyan-500" />
+            <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <Server className="w-5 h-5" style={{ color: 'var(--brand-primary)' }} />
               API intelligence
             </h2>
-            <span className="text-[10px] font-mono text-gray-500">
+            <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>
               RPS · latency · errors · codes
             </span>
           </div>
           <div className="overflow-x-auto -mx-2 px-2 max-h-[380px] overflow-y-auto">
             <table className="w-full text-sm min-w-[720px]">
               <thead>
-                <tr className="text-left text-gray-500 text-[10px] uppercase border-b border-gray-200 dark:border-white/10">
+                <tr
+                  className="text-left text-[10px] uppercase border-b"
+                  style={{ color: 'var(--text-muted)', borderColor: 'var(--divider)' }}
+                >
                   <th className="pb-2 pr-2">Route</th>
                   <th className="pb-2 pr-2">RPS</th>
                   <th className="pb-2 pr-2">Avg</th>
@@ -424,8 +448,8 @@ export default function SystemAnalysisPage() {
               <tbody>
                 {endpoints.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-10 text-center text-gray-500">
-                      Send traffic to <code className="font-mono text-cyan-600">/api/*</code> — metrics appear instantly.
+                    <td colSpan={5} className="py-10 text-center" style={{ color: 'var(--text-muted)' }}>
+                      Send traffic to <code className="font-mono" style={{ color: 'var(--brand-primary)' }}>/api/*</code> — metrics appear instantly.
                     </td>
                   </tr>
                 ) : (
@@ -441,21 +465,28 @@ export default function SystemAnalysisPage() {
                         key={row.endpoint}
                         title={`IP: ${row.lastClientIp || '—'}\nUA: ${row.lastUserAgent || '—'}\nPayload: ${row.lastPayloadBytes ?? 0}b\nCodes: ${JSON.stringify(row.statusCodes || {})}`}
                         className={cn(
-                          'border-b border-gray-100 dark:border-white/5',
+                          'border-b',
                           slow === 'critical' && 'bg-red-500/10 shadow-[inset_0_0_12px_rgba(239,68,68,0.15)]',
                           slow === 'warn' && 'bg-amber-500/10',
                           row.lastStatus === 'ERROR' && 'ring-1 ring-red-500/30',
                         )}
+                        style={{ borderColor: 'var(--divider)' }}
                       >
-                        <td className="py-2 pr-2 font-mono text-[11px] break-all max-w-[280px] text-gray-900 dark:text-gray-100">
-                          <span className="text-cyan-600 dark:text-cyan-400 mr-1">{row.method || '—'}</span>
+                        <td className="py-2 pr-2 font-mono text-[11px] break-all max-w-[280px]" style={{ color: 'var(--text-primary)' }}>
+                          <span className="mr-1" style={{ color: 'var(--brand-primary)' }}>{row.method || '—'}</span>
                           {row.endpoint}
                         </td>
-                        <td className="py-2 pr-2 font-mono">{row.rps != null ? row.rps.toFixed(2) : '—'}</td>
-                        <td className="py-2 pr-2 font-mono">{row.avgResponseMs}ms</td>
-                        <td className="py-2 pr-2">{row.errorRatePercent?.toFixed(1) ?? 0}%</td>
+                        <td className="py-2 pr-2 font-mono" style={{ color: 'var(--text-secondary)' }}>
+                          {row.rps != null ? row.rps.toFixed(2) : '—'}
+                        </td>
+                        <td className="py-2 pr-2 font-mono" style={{ color: 'var(--text-secondary)' }}>
+                          {row.avgResponseMs}ms
+                        </td>
+                        <td className="py-2 pr-2" style={{ color: 'var(--text-secondary)' }}>
+                          {row.errorRatePercent?.toFixed(1) ?? 0}%
+                        </td>
                         <td className="py-2 w-32">
-                          <div className="h-2 rounded-full bg-gray-200 dark:bg-dark-secondary overflow-hidden">
+                          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'color-mix(in srgb, var(--text-muted) 22%, transparent)' }}>
                             <div
                               className={cn(
                                 'h-full rounded-full transition-all',
@@ -476,14 +507,22 @@ export default function SystemAnalysisPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-2xl border border-white/10 bg-black/80 dark:bg-black/60 backdrop-blur-xl p-4 font-mono text-[11px] text-emerald-300 min-h-[220px]">
-          <div className="flex items-center gap-2 text-gray-400 mb-2">
+        <div
+          className="rounded-2xl border p-4 font-mono text-[11px] min-h-[220px]"
+          style={{
+            borderColor: 'var(--border-card)',
+            background: 'var(--card-bg)',
+            color: 'var(--text-secondary)',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--text-muted)' }}>
             <Terminal className="w-4 h-4" />
             <span className="uppercase tracking-widest">Activity stream</span>
           </div>
           <div ref={activityRef} className="max-h-[240px] overflow-y-auto space-y-1 pr-1 scroll-smooth">
             {activity.length === 0 ? (
-              <p className="text-gray-600">Waiting for live requests…</p>
+              <p style={{ color: 'var(--text-muted)' }}>Waiting for live requests…</p>
             ) : (
               activity.map((a) => (
                 <motion.div
@@ -496,10 +535,10 @@ export default function SystemAnalysisPage() {
                     a.status < 400 && 'border-emerald-500/60',
                   )}
                 >
-                  <span className="text-gray-500">{a.at.slice(11, 19)}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{a.at.slice(11, 19)}</span>
                   <span>{a.method}</span>
-                  <span className="text-cyan-400">{a.path}</span>
-                  <span className="text-gray-500">{a.ms}ms</span>
+                  <span style={{ color: 'var(--brand-primary)' }}>{a.path}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{a.ms}ms</span>
                   <span>{a.status}</span>
                 </motion.div>
               ))
@@ -507,8 +546,10 @@ export default function SystemAnalysisPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Live alerts</h3>
+        <div className="rounded-2xl border p-4" style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}>
+          <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+            Live alerts
+          </h3>
           <div className="space-y-2 max-h-[240px] overflow-y-auto">
             {alerts.map((a) => (
               <motion.div
@@ -530,8 +571,8 @@ export default function SystemAnalysisPage() {
       </div>
 
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-          <Terminal className="w-5 h-5 text-violet-400" />
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+          <Terminal className="w-5 h-5" style={{ color: 'var(--brand-primary)' }} />
           Terminal intelligence
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -539,14 +580,20 @@ export default function SystemAnalysisPage() {
             <motion.div
               key={tc.id}
               whileHover={{ scale: 1.01 }}
-              className="rounded-2xl border border-violet-500/20 bg-gradient-to-b from-slate-900/90 to-slate-800/90 dark:from-dark-secondary dark:to-dark-primary p-4 text-gray-200 dark:text-[var(--text-primary)] shadow-[0_0_24px_rgba(139,92,246,0.12)] dark:shadow-[var(--shadow-card)]"
+              className="rounded-2xl border p-4"
+              style={{
+                borderColor: 'var(--border-card)',
+                background: 'var(--card-bg)',
+                color: 'var(--text-primary)',
+                boxShadow: 'var(--shadow-card)',
+              }}
             >
-              <div className="flex items-center gap-2 mb-2 text-violet-300 text-xs font-mono">
-                <span>{'>'}</span>_
-                <span className="text-gray-500 ml-auto">{tc.subtitle}</span>
+              <div className="flex items-center gap-2 mb-2 text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                <span style={{ color: 'var(--brand-primary)' }}>{'>'}</span>_
+                <span className="ml-auto">{tc.subtitle}</span>
               </div>
-              <p className="text-sm font-semibold text-white">{tc.title}</p>
-              <div className="mt-3 max-h-[140px] overflow-y-auto font-mono text-[10px] space-y-1 text-emerald-400/90">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{tc.title}</p>
+              <div className="mt-3 max-h-[140px] overflow-y-auto font-mono text-[10px] space-y-1" style={{ color: 'var(--text-secondary)' }}>
                 {(terminals[tc.id] || ['Fetching live intel from server…']).map((line, i) => (
                   <div key={`${i}-${line.slice(0, 12)}`}>{line}</div>
                 ))}
@@ -554,28 +601,43 @@ export default function SystemAnalysisPage() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="text-[10px] px-2 py-1 rounded border border-white/20 hover:bg-white/10"
+                  className="text-[10px] px-2 py-1 rounded border transition-colors"
+                  style={{
+                    borderColor: 'var(--border-card)',
+                    color: 'var(--text-secondary)',
+                    background: 'transparent',
+                  }}
                   onClick={() => setPendingAction({ cardId: tc.id, action: 'simulate_audit_packages', label: 'Run audit (sim)' })}
                 >
                   Audit
                 </button>
                 <button
                   type="button"
-                  className="text-[10px] px-2 py-1 rounded border border-white/20 hover:bg-white/10"
+                  className="text-[10px] px-2 py-1 rounded border transition-colors"
+                  style={{
+                    borderColor: 'var(--border-card)',
+                    color: 'var(--text-secondary)',
+                    background: 'transparent',
+                  }}
                   onClick={() => setPendingAction({ cardId: tc.id, action: 'simulate_restart_monitor', label: 'Restart monitor (sim)' })}
                 >
                   Restart
                 </button>
                 <button
                   type="button"
-                  className="text-[10px] px-2 py-1 rounded border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                  className="text-[10px] px-2 py-1 rounded border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
                   onClick={() => setPendingAction({ cardId: tc.id, action: 'simulate_fix_deps', label: 'Fix deps (sim)' })}
                 >
                   Fix now
                 </button>
                 <button
                   type="button"
-                  className="text-[10px] px-2 py-1 rounded border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+                  className="text-[10px] px-2 py-1 rounded border transition-colors"
+                  style={{
+                    borderColor: 'var(--brand-border-subtle)',
+                    color: 'var(--brand-primary)',
+                    background: 'transparent',
+                  }}
                   onClick={() => setPendingAction({ cardId: tc.id, action: 'simulate_clear_cache', label: 'Clear API windows' })}
                 >
                   Clear cache
@@ -587,9 +649,9 @@ export default function SystemAnalysisPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
+        <div className="lg:col-span-2 rounded-2xl border p-4" style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}>
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Engine logs</h2>
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Engine logs</h2>
             {(['all', 'error', 'warning', 'info'] as const).map((f) => (
               <button
                 key={f}
@@ -599,8 +661,13 @@ export default function SystemAnalysisPage() {
                   'min-h-[36px] px-3 rounded-lg text-xs font-mono border',
                   logFilter === f
                     ? 'border-cyan-500 bg-cyan-500/10 text-cyan-800 dark:text-cyan-200'
-                    : 'border-gray-200 dark:border-white/10 text-gray-600',
+                    : '',
                 )}
+                style={
+                  logFilter === f
+                    ? undefined
+                    : { borderColor: 'var(--border-card)', color: 'var(--text-secondary)', background: 'transparent' }
+                }
               >
                 {f}
               </button>
@@ -616,14 +683,16 @@ export default function SystemAnalysisPage() {
                   l.level === 'warning' && 'bg-amber-500/10',
                 )}
               >
-                <span className="text-gray-500">{l.at}</span> <span className="uppercase text-[9px]">{l.level}</span> {l.message}
+                <span style={{ color: 'var(--text-muted)' }}>{l.at}</span>{' '}
+                <span className="uppercase text-[9px]" style={{ color: 'var(--text-muted)' }}>{l.level}</span>{' '}
+                <span style={{ color: 'var(--text-secondary)' }}>{l.message}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/50 dark:bg-dark-card/80 backdrop-blur-xl p-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Thresholds</h2>
+        <div className="rounded-2xl border p-4" style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}>
+          <h2 className="text-lg font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Thresholds</h2>
           {settings && (
             <form
               className="space-y-2 text-sm"
@@ -645,32 +714,85 @@ export default function SystemAnalysisPage() {
                 void loadAll();
               }}
             >
-              <label className="flex items-center gap-2 min-h-[40px] text-gray-800 dark:text-gray-200">
+              <label className="flex items-center gap-2 min-h-[40px]" style={{ color: 'var(--text-secondary)' }}>
                 <input type="checkbox" name="monitoringEnabled" defaultChecked={settings.monitoringEnabled} />
                 Monitoring on
               </label>
-              <label className="block text-gray-700 dark:text-gray-300">
+              <label className="block" style={{ color: 'var(--text-secondary)' }}>
                 CPU warn
-                <input type="number" name="cpuWarn" defaultValue={settings.cpuWarn} className="mt-1 w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2" />
+                <input
+                  type="number"
+                  name="cpuWarn"
+                  defaultValue={settings.cpuWarn}
+                  className="mt-1 w-full rounded-lg border px-2 py-2"
+                  style={{
+                    background: 'var(--bg-input)',
+                    color: 'var(--input-text)',
+                    borderColor: 'var(--border-input)',
+                  }}
+                />
               </label>
-              <label className="block text-gray-700 dark:text-gray-300">
+              <label className="block" style={{ color: 'var(--text-secondary)' }}>
                 CPU critical
-                <input type="number" name="cpuCritical" defaultValue={settings.cpuCritical} className="mt-1 w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2" />
+                <input
+                  type="number"
+                  name="cpuCritical"
+                  defaultValue={settings.cpuCritical}
+                  className="mt-1 w-full rounded-lg border px-2 py-2"
+                  style={{
+                    background: 'var(--bg-input)',
+                    color: 'var(--input-text)',
+                    borderColor: 'var(--border-input)',
+                  }}
+                />
               </label>
-              <label className="block text-gray-700 dark:text-gray-300">
+              <label className="block" style={{ color: 'var(--text-secondary)' }}>
                 API slow warn (ms)
-                <input type="number" name="apiSlowWarnMs" defaultValue={settings.apiSlowWarnMs ?? 1000} className="mt-1 w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2" />
+                <input
+                  type="number"
+                  name="apiSlowWarnMs"
+                  defaultValue={settings.apiSlowWarnMs ?? 1000}
+                  className="mt-1 w-full rounded-lg border px-2 py-2"
+                  style={{
+                    background: 'var(--bg-input)',
+                    color: 'var(--input-text)',
+                    borderColor: 'var(--border-input)',
+                  }}
+                />
               </label>
-              <label className="block text-gray-700 dark:text-gray-300">
+              <label className="block" style={{ color: 'var(--text-secondary)' }}>
                 API slow critical (ms)
-                <input type="number" name="apiSlowCriticalMs" defaultValue={settings.apiSlowCriticalMs ?? 3000} className="mt-1 w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2" />
+                <input
+                  type="number"
+                  name="apiSlowCriticalMs"
+                  defaultValue={settings.apiSlowCriticalMs ?? 3000}
+                  className="mt-1 w-full rounded-lg border px-2 py-2"
+                  style={{
+                    background: 'var(--bg-input)',
+                    color: 'var(--input-text)',
+                    borderColor: 'var(--border-input)',
+                  }}
+                />
               </label>
-              <select name="sensitivity" defaultValue={settings.sensitivity} className="w-full rounded-lg border dark:bg-[var(--bg-input)] px-2 py-2">
+              <select
+                name="sensitivity"
+                defaultValue={settings.sensitivity}
+                className="w-full rounded-lg border px-2 py-2"
+                style={{
+                  background: 'var(--bg-input)',
+                  color: 'var(--input-text)',
+                  borderColor: 'var(--border-input)',
+                }}
+              >
                 <option value="strict">strict</option>
                 <option value="normal">normal</option>
                 <option value="relaxed">relaxed</option>
               </select>
-              <button type="submit" className="w-full min-h-[44px] rounded-xl bg-gradient-to-r from-cyan-600 to-violet-600 text-white font-semibold">
+              <button
+                type="submit"
+                className="w-full min-h-[44px] rounded-xl font-semibold"
+                style={{ background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)' }}
+              >
                 Save
               </button>
             </form>
@@ -679,14 +801,15 @@ export default function SystemAnalysisPage() {
       </div>
 
       <motion.div
-        className="mt-8 rounded-2xl border border-white/10 bg-white/40 dark:bg-dark-card/60 px-4 py-3 flex flex-wrap justify-between gap-2 text-sm"
+        className="mt-8 rounded-2xl border px-4 py-3 flex flex-wrap justify-between gap-2 text-sm"
         layout
+        style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
       >
-        <span className="text-gray-600 dark:text-gray-400">Process uptime</span>
-        <span className="font-mono font-semibold text-gray-900 dark:text-white">
+        <span style={{ color: 'var(--text-secondary)' }}>Process uptime</span>
+        <span className="font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>
           {formatUptime(health?.uptimeSeconds)}
         </span>
-        <span className="text-gray-500 font-mono text-xs">
+        <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
           Global RPS ~ {health?.globalRequestsPerSecond?.toFixed(2) ?? '—'}
         </span>
       </motion.div>
@@ -704,20 +827,32 @@ export default function SystemAnalysisPage() {
             <motion.div
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
-              className="max-w-md w-full rounded-2xl border border-white/20 bg-slate-900 dark:bg-[var(--modal-bg)] dark:border-[var(--modal-border)] p-6 text-white dark:text-[var(--text-primary)] shadow-2xl dark:shadow-[var(--shadow-modal)]"
+              className="max-w-md w-full rounded-2xl border p-6 shadow-2xl"
+              style={{
+                background: 'var(--modal-bg)',
+                borderColor: 'var(--modal-border)',
+                color: 'var(--text-primary)',
+                boxShadow: 'var(--shadow-modal)',
+              }}
             >
               <p className="text-lg font-bold">Confirm action</p>
-              <p className="text-sm text-gray-400 mt-2">{pendingAction.label}</p>
-              <p className="text-xs font-mono text-amber-300/90 mt-2">
+              <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>{pendingAction.label}</p>
+              <p className="text-xs font-mono mt-2" style={{ color: 'var(--badge-warning-text)' }}>
                 Admin-only · sandbox simulation on this deployment
               </p>
               <div className="mt-4 flex gap-2 justify-end">
-                <button type="button" className="px-4 py-2 rounded-lg border border-white/20" onClick={() => setPendingAction(null)}>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg border"
+                  style={{ borderColor: 'var(--border-card)', color: 'var(--text-primary)', background: 'transparent' }}
+                  onClick={() => setPendingAction(null)}
+                >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-lg bg-emerald-600 font-semibold"
+                  className="px-4 py-2 rounded-lg font-semibold"
+                  style={{ background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)' }}
                   onClick={() => {
                     const p = pendingAction;
                     setPendingAction(null);

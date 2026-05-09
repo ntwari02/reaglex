@@ -15,6 +15,7 @@ import SupportCenter from '@/pages/seller/SupportCenter';
 import NotificationsPage from '@/pages/seller/NotificationsPage';
 import OrderDetailsPage from '@/pages/seller/OrderDetailsPage';
 import SellerShippingSettings from '@/pages/seller/SellerShippingSettings';
+import ReturnsCases from '@/pages/seller/ReturnsCases';
 import Notifications from '@/components/dashboard/Notifications';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import { useAuthStore } from '../stores/authStore';
@@ -57,7 +58,7 @@ const SellerDashboard: React.FC = () => {
 
   // Ensure we're on a valid route
   useEffect(() => {
-    const validRoutes = ['dashboard', 'inventory', 'orders', 'disputes', 'products', 'shipping', 'collections', 'analytics', 'subscription', 'settings', 'support', 'notifications'];
+    const validRoutes = ['dashboard', 'inventory', 'orders', 'disputes', 'returns', 'products', 'shipping', 'collections', 'analytics', 'subscription', 'settings', 'support', 'notifications'];
     if (pathSegments.length === sellerIndex + 1) {
       // We're on /seller, which is fine (index route)
       return;
@@ -133,6 +134,7 @@ const SellerDashboard: React.FC = () => {
             <Route path="orders" element={<OrdersPage />} />
             <Route path="orders/:orderId" element={<OrderDetailsPage />} />
             <Route path="disputes" element={<DisputeResolution />} />
+            <Route path="returns" element={<ReturnsCases />} />
             <Route path="products" element={<ProductManagement />} />
             <Route path="shipping" element={<SellerShippingSettings />} />
             <Route path="collections" element={<CollectionManagement />} />

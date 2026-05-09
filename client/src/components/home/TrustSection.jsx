@@ -37,7 +37,7 @@ const PILLARS = [
   {
     icon: CreditCard,
     title: 'Easy Returns',
-    desc: 'Hassle-free 30-day return policy. No questions asked for eligible products.',
+    desc: 'Returns are available within 30 days for eligible unused items in original packaging.',
     accent: 'var(--notif-type-system)',
   },
 ];

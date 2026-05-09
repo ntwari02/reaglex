@@ -4,6 +4,7 @@ import { Dispute } from '../models/Dispute';
 import { Order } from '../models/Order';
 import mongoose from 'mongoose';
 import { recalculateSellerTrust } from '../services/productVerification.service';
+import { evaluateReturnPolicy } from '../services/returnsPolicy.service';
 
 const getBuyerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null => {
   if (!req.user?.id) return null;
@@ -57,6 +58,28 @@ export async function createDispute(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ message: 'Order not found or access denied' });
     }
 
+    let policyCheck:
+      | {
+          evaluatedAt: Date;
+          daysSincePurchase: number;
+          partialRefundOnly: boolean;
+          blockReasons: string[];
+          notes: string[];
+          nonReturnableItems: string[];
+          saleItems: string[];
+        }
+      | undefined;
+    if (type === 'return' || type === 'refund') {
+      policyCheck = await evaluateReturnPolicy(String(order._id));
+      if (policyCheck.blockReasons.length > 0) {
+        return res.status(400).json({
+          code: 'RETURN_POLICY_VIOLATION',
+          message: policyCheck.blockReasons[0],
+          policyCheck,
+        });
+      }
+    }
+
     // Check if dispute already exists for this order
     const existingDispute = await Dispute.findOne({
       orderId,
@@ -92,6 +115,7 @@ export async function createDispute(req: AuthenticatedRequest, res: Response) {
       status: 'new',
       evidence: [],
       responseDeadline,
+      ...(policyCheck ? { policyCheck } : {}),
     });
 
     await dispute.save();

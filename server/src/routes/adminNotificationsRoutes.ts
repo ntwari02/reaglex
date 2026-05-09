@@ -202,9 +202,13 @@ router.get('/recipient-count', async (_req: AuthenticatedRequest, res: Response)
 
 router.post('/generate-ai', async (req: AuthenticatedRequest, res: Response) => {
   const { targetGroup, notificationType, tone, context, existingSubject, existingBody, eventTrigger } = req.body || {};
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) {
-    return res.status(503).json({ error: 'AI unavailable', message: 'ANTHROPIC_API_KEY is not configured' });
+  const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  if (!geminiApiKey && !anthropicApiKey) {
+    return res.status(503).json({
+      error: 'AI unavailable',
+      message: 'No AI provider configured. Set GEMINI_API_KEY.',
+    });
   }
 
   const userPromptBase = `You are an expert notification copywriter for 
@@ -237,19 +241,57 @@ router.post('/generate-ai', async (req: AuthenticatedRequest, res: Response) => 
         ]
       }`;
 
-  const anthropic = new Anthropic({ apiKey });
-
   const runModel = async (suffix = '') => {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: userPromptBase + suffix }],
-    });
-    const block = message.content.find((c) => c.type === 'text');
-    if (block && block.type === 'text') {
-      return block.text.trim();
+    // Gemini is primary for notifications AI generation.
+    if (geminiApiKey) {
+      const geminiModel = String(process.env.GEMINI_MODEL || 'gemini-1.5-flash-latest').trim();
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            generationConfig: {
+              temperature: 0.5,
+              responseMimeType: 'application/json',
+            },
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: userPromptBase + suffix }],
+              },
+            ],
+          }),
+        },
+      );
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || 'Gemini AI generation failed');
+      }
+      const text =
+        payload?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || '').join('') ||
+        payload?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        '';
+      return String(text).trim();
     }
-    return '';
+
+    // Optional legacy fallback if Gemini key is unavailable in this environment.
+    if (anthropicApiKey) {
+      const anthropic = new Anthropic({ apiKey: anthropicApiKey });
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: userPromptBase + suffix }],
+      });
+      const block = message.content.find((c) => c.type === 'text');
+      if (block && block.type === 'text') {
+        return block.text.trim();
+      }
+      return '';
+    }
+
+    throw new Error('GEMINI_API_KEY is not configured');
   };
 
   try {

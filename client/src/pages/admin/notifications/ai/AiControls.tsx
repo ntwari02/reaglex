@@ -8,12 +8,12 @@ type Props = {
   onQuickCommand: (cmd: string) => void;
 };
 
-const QUICK = ['/promo', '/refund', '/shipping', '/dispute', '/seller-warning'];
+const QUICK: string[] = [];
 
 export function AiControls({ tone, language, onToneChange, onLanguageChange, onQuickCommand }: Props) {
   return (
-    <div style={{ padding: 12, display: 'grid', gap: 10 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+    <div className="ai-assistant-controls" style={{ padding: 12, display: 'grid', gap: 10 }}>
+      <div className="ai-controls-selects" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <select
           value={tone}
           onChange={(e) => onToneChange(e.target.value)}

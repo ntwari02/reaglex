@@ -66,7 +66,7 @@ const TABS = [
 
 const HIGHLIGHTS = [
   { icon: Package,   title: 'Free Shipping',    desc: 'On orders over $35',    color: 'var(--brand-primary)' },
-  { icon: RefreshCw, title: '30-Day Returns',   desc: 'No questions asked',     color: '#10b981' },
+  { icon: RefreshCw, title: '30-Day Returns',   desc: 'Unused items in original packaging', color: '#10b981' },
   { icon: Shield,    title: 'Buyer Protection', desc: 'Your money is safe',     color: '#6366f1' },
   { icon: Zap,       title: 'Fast Dispatch',    desc: 'Ships within 24 hours', color: '#f59e0b' },
 ];
@@ -368,6 +368,10 @@ export default function ProductDetail() {
   const campaignLabel = String(product?.campaignLabel || product?.campaign || '').trim();
   const offerEndsAt = product?.offerEndsAt ? new Date(product.offerEndsAt) : null;
   const promoActive = offerEndsAt && !Number.isNaN(offerEndsAt.getTime()) ? offerEndsAt.getTime() > countdownNow : false;
+  const couponExpiresAt = product?.couponExpiresAt ? new Date(product.couponExpiresAt) : null;
+  const couponIsNotExpired = !couponExpiresAt || (couponExpiresAt.getTime && !Number.isNaN(couponExpiresAt.getTime()) && couponExpiresAt.getTime() > countdownNow);
+  const couponActive = couponCode && couponIsNotExpired && product?.couponActive !== false;
+  const campaignActive = campaignLabel && (product?.campaignActive !== false) && (!offerEndsAt || promoActive);
   const savingsAmount = previewOldPrice && previewOldPrice > previewPrice ? (previewOldPrice - previewPrice) : 0;
   useEffect(() => {
     if (!offerEndsAt || Number.isNaN(offerEndsAt.getTime())) return;
@@ -441,12 +445,13 @@ export default function ProductDetail() {
   const totalPrice   = basePrice * quantity;
   const oldPrice     = product.compareAtPrice || product.originalPrice || product?.compare_at_price || null;
   const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
+  const showDiscount = Number(discount || 0) > 0 && product?.discountActive !== false;
   const rating       = Number(product.ratingAverage || product.averageRating || product.rating || 0) || 0;
   const reviewsCount = Number(product.reviewCount || product.totalReviews || 0) || 0;
+  const reviewThumbs = Array.isArray(product?.reviewGallery) ? product.reviewGallery.slice(0, 4).map((r) => resolveImage(r)).filter(Boolean) : [];
+  const hasReviewData = reviewsCount > 0 || rating > 0 || reviewThumbs.length > 0;
   const soldCount    = Number(product.soldCount || product?.salesCount || 0) || 0;
   const stock        = product.stockQuantity ?? product.stock ?? 10;
-  const verificationStatus = product.verificationSummary?.status || 'unverified';
-  const verificationScore = Number(product.verificationSummary?.score || 0);
   const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
   const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
   const installment  = currencyPricing.formatLocalWithUsd(totalPrice / 3);
@@ -492,7 +497,7 @@ export default function ProductDetail() {
             </p>
             <h4 className="font-bold text-sm mb-3" style={{ color: 'var(--text-primary)' }}>Key Features</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {['Premium quality materials', 'Fast shipping worldwide', '30-day hassle-free returns', 'Verified seller guarantee'].map((f) => (
+              {['Premium quality materials', 'Fast shipping worldwide', '30-day eligible returns', 'Verified seller guarantee'].map((f) => (
                 <div key={f} className="flex items-center gap-2 p-2.5 rounded-xl"
                   style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
                   <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#f0fdf4' }}>
@@ -732,7 +737,7 @@ export default function ProductDetail() {
                 {/* Floating badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
                   <span className="pd2-badge pd2-badge--green">NEW</span>
-                  {discount > 0 && <span className="pd2-badge pd2-badge--red">-{discount}%</span>}
+                  {showDiscount && <span className="pd2-badge pd2-badge--red">-{discount}%</span>}
                   <span className="pd2-badge pd2-badge--blue">FREE SHIP</span>
                 </div>
 
@@ -817,19 +822,17 @@ export default function ProductDetail() {
                 )}
 
                 {/* Media counter */}
-                {galleryItems.length > 1 && (
-                  <div
-                    className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                    style={{
-                      background: 'rgba(0,0,0,0.55)',
-                      color: '#fff',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      backdropFilter: 'blur(10px)',
-                    }}
-                  >
-                    {activeImage + 1}/{galleryItems.length}
-                  </div>
-                )}
+                <div
+                  className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  style={{
+                    background: 'rgba(0,0,0,0.55)',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.18)',
+                    backdropFilter: 'blur(10px)',
+                  }}
+                >
+                  {galleryItems[activeImage]?.type === 'video' ? 'Video' : 'Image'} {activeImage + 1}/{galleryItems.length}
+                </div>
               </div>
 
               {/* Thumbnails */}
@@ -878,15 +881,15 @@ export default function ProductDetail() {
               <div className="pd2-purchase-flow min-w-0">
 
                 {/* Campaign / coupon / countdown (only when present) */}
-                {(campaignLabel || couponCode || offerCountdown) && (
+                {(campaignActive || couponActive || offerCountdown) && (
                   <div className="order-0 w-full mb-3 space-y-2">
-                    {campaignLabel && (
+                    {campaignActive && (
                       <div className="px-3 py-2 rounded-2xl text-xs font-bold"
                         style={{ background: 'var(--brand-tint)', color: PRIMARY, border: '1px solid var(--brand-border-subtle)' }}>
                         {campaignLabel}
                       </div>
                     )}
-                    {couponCode && (
+                    {couponActive && (
                       <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-2xl"
                         style={{ background: '#ecfeff', border: '1px solid #a5f3fc' }}>
                         <div className="min-w-0">
@@ -919,8 +922,37 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {/* Price + stock — mobile-first scan */}
-                <div className="order-1 lg:order-5 w-full min-w-0 mb-3 lg:mb-0 space-y-2">
+                <h1 className="pd2-title mb-2 lg:mb-3 order-1 lg:order-1 w-full min-w-0">{title}</h1>
+
+                {/* Rating row */}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 lg:mb-5 pb-3 lg:pb-4 border-b order-2 lg:order-2 w-full min-w-0" style={{ borderColor: 'var(--divider)' }}>
+                  <Stars rating={rating} />
+                  <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating ? rating.toFixed(1) : '—'}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTabIndex(2);
+                      setMobileDetailOpen('reviews');
+                      document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="text-xs sm:text-sm hover:underline touch-manipulation py-1"
+                    style={{ color: 'var(--text-muted)' }}>
+                    {reviewsCount ? `${reviewsCount} reviews` : 'No reviews yet'}
+                  </button>
+                  {!!soldCount && (
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
+                      {soldCount.toLocaleString()} sold
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
+                    <Heart size={12} className="inline -mt-0.5 mr-1" /> {wishlistCount.toLocaleString()} saved
+                  </span>
+                </div>
+
+                {/* Price + discount block */}
+                <div className="order-3 lg:order-3 w-full min-w-0 mb-3 lg:mb-0 space-y-2">
                   <div>
                     <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-1">
                       <span className="pd2-price-num tabular-nums">
@@ -943,7 +975,7 @@ export default function ProductDetail() {
                         )}
                       </span>
                       {oldPrice && <span className="text-sm sm:text-base line-through" style={{ color: 'var(--text-faint)' }}>{currencyPricing.formatLocalWithUsd(oldPrice)}</span>}
-                      {discount > 0 && (
+                      {showDiscount && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black text-white"
                           style={{ background: '#ef4444' }}>SAVE {discount}%</span>
                       )}
@@ -975,10 +1007,8 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                <h1 className="pd2-title mb-2 lg:mb-3 order-2 lg:order-2 w-full min-w-0">{title}</h1>
-
                 {/* Category + badge */}
-                <div className="flex flex-wrap items-center gap-2 mb-3 lg:mb-4 order-3 lg:order-1 lg:-mt-1">
+                <div className="flex flex-wrap items-center gap-2 mb-3 lg:mb-4 order-4 lg:order-4">
                   <Link
                     to={`/search?category=${encodeURIComponent(category)}`}
                     className="px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all hover:scale-105 touch-manipulation"
@@ -993,7 +1023,7 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Short desc */}
-                <div className="mb-3 lg:mb-4 order-4 lg:order-3">
+                <div className="mb-3 lg:mb-4 order-5 lg:order-5">
                   <p
                     className={`text-xs sm:text-sm leading-relaxed ${!descExpanded ? 'line-clamp-3 lg:line-clamp-none' : ''}`}
                     style={{ color: 'var(--text-secondary)' }}
@@ -1012,60 +1042,39 @@ export default function ProductDetail() {
                   )}
                 </div>
 
-                {/* Rating row */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 lg:mb-5 pb-3 lg:pb-4 border-b order-5 lg:order-4 w-full min-w-0" style={{ borderColor: 'var(--divider)' }}>
-                  <Stars rating={rating} />
-                  <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating ? rating.toFixed(1) : '—'}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTabIndex(2);
-                      setMobileDetailOpen('reviews');
-                      document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="text-xs sm:text-sm hover:underline touch-manipulation py-1"
-                    style={{ color: 'var(--text-muted)' }}>
-                    {reviewsCount ? `${reviewsCount} reviews` : 'No reviews yet'}
-                  </button>
-                  {!!soldCount && (
-                    <span className="text-xs font-semibold px-2 py-1 rounded-full"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
-                      {soldCount.toLocaleString()} sold
-                    </span>
-                  )}
-                  <span className="text-xs font-semibold px-2 py-1 rounded-full"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
-                    <Heart size={12} className="inline -mt-0.5 mr-1" /> {wishlistCount.toLocaleString()} saved
-                  </span>
-                  <span className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded"
-                    style={{ background: '#f0fdf4', color: '#15803d' }}>
-                    <BadgeCheck size={12} /> Verified
-                  </span>
-                  <span
-                    className="hidden lg:inline text-[11px] font-semibold px-2 py-0.5 rounded border"
-                    style={{
-                      color:
-                        verificationStatus === 'verified' ? '#15803d' :
-                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#dc2626' :
-                        '#b45309',
-                      background:
-                        verificationStatus === 'verified' ? '#f0fdf4' :
-                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#fef2f2' :
-                        '#fffbeb',
-                      borderColor:
-                        verificationStatus === 'verified' ? '#bbf7d0' :
-                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#fecaca' :
-                        '#fde68a',
-                    }}
-                  >
-                    {verificationStatus === 'verified' ? 'Verified by Reaglex' : verificationStatus === 'pending' ? 'Verification Pending' : verificationStatus === 'flagged' ? 'Verification Flagged' : 'Unverified Listing'} · {verificationScore}%
-                  </span>
-                  <span className="lg:hidden text-[10px] font-medium w-full sm:w-auto" style={{ color: 'var(--text-muted)' }}>
-                    Listing verification: {verificationScore}%
-                  </span>
-                </div>
+                {hasReviewData && (
+                  <div className="order-6 lg:order-6 mb-4 rounded-2xl p-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-black uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Review Snapshot</p>
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                          {rating ? `${rating.toFixed(1)} average` : 'Customer feedback'}{reviewsCount ? ` · ${reviewsCount} reviews` : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTabIndex(2);
+                          setMobileDetailOpen('reviews');
+                          document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="min-h-[44px] px-3 rounded-xl text-xs font-bold touch-manipulation"
+                        style={{ background: 'var(--brand-tint)', color: PRIMARY, border: '1px solid var(--brand-border-subtle)' }}
+                      >
+                        Full reviews
+                      </button>
+                    </div>
+                    {reviewThumbs.length > 0 && (
+                      <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+                        {reviewThumbs.map((src, idx) => (
+                          <img key={`${src}-${idx}`} src={src} alt={`Review media ${idx + 1}`} className="w-12 h-12 rounded-lg object-cover border" style={{ borderColor: 'var(--divider)' }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                <div className="hidden lg:block pd2-divider mb-5 order-6 lg:order-7" />
+                <div className="hidden lg:block pd2-divider mb-5 order-7 lg:order-7" />
 
                 {/* Size */}
                 {showSizeSelector && (
@@ -1108,7 +1117,7 @@ export default function ProductDetail() {
                       <motion.button key={color} type="button"
                         onClick={() => setSelectedColor(color)}
                         whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }}
-                        className="w-9 h-9 sm:w-8 sm:h-8 rounded-full transition-all touch-manipulation shrink-0"
+                        className="w-11 h-11 sm:w-10 sm:h-10 rounded-full transition-all touch-manipulation shrink-0"
                         style={{
                           background: color,
                           border: `2px solid ${selectedColor === color ? PRIMARY : 'transparent'}`,
@@ -1360,65 +1369,6 @@ export default function ProductDetail() {
               )}
             </motion.section>
           )}
-          <motion.section
-            className="mb-6 md:mb-10 grid grid-cols-1 md:grid-cols-2 gap-3"
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.35 }}
-          >
-            <div className="p-4 sm:p-5 rounded-2xl"
-              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
-              <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>Service commitments</p>
-              <div className="space-y-2">
-                {serviceCommitments.map((item, idx) => (
-                  <div key={`${item?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
-                    <button
-                      type="button"
-                      onClick={() => setOpenCommitmentIdx((cur) => (cur === idx ? null : idx))}
-                      className="w-full px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                    >
-                      {item?.title || 'Commitment'}
-                      <ChevronDown size={14} className={`transition-transform ${openCommitmentIdx === idx ? 'rotate-180' : ''}`} />
-                    </button>
-                    {openCommitmentIdx === idx && !!item?.description && (
-                      <div className="px-3 py-2.5 text-xs" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
-                        {item.description}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            {detailSections.length > 0 && (
-              <div className="p-4 sm:p-5 rounded-2xl"
-                style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
-                <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>More product details</p>
-                <div className="space-y-2">
-                  {detailSections.map((section, idx) => (
-                    <div key={`${section?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
-                      <button
-                        type="button"
-                        onClick={() => setOpenDetailIdx((cur) => (cur === idx ? null : idx))}
-                        className="w-full px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                      >
-                        {section?.title}
-                        <ChevronDown size={14} className={`transition-transform ${openDetailIdx === idx ? 'rotate-180' : ''}`} />
-                      </button>
-                      {openDetailIdx === idx && !!section?.content && (
-                        <div className="px-3 py-2.5 text-xs whitespace-pre-wrap" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
-                          {section.content}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.section>
-
           {/* ════════════════════════════════════════════════
               META STRIP — Seller info + full trust badges
               (moved out of purchase card for a cleaner
@@ -1463,7 +1413,7 @@ export default function ProductDetail() {
               {[
                 { icon: Shield,     label: 'Buyer Protection', sub: 'Your money is safe',     color: PRIMARY      },
                 { icon: Truck,      label: 'Free Shipping',     sub: 'On orders over $35',     color: '#6366f1'    },
-                { icon: RefreshCw,  label: '30-Day Returns',    sub: 'No questions asked',     color: '#10b981'    },
+                { icon: RefreshCw,  label: '30-Day Returns',    sub: 'Eligibility rules apply', color: '#10b981'    },
                 { icon: BadgeCheck, label: 'Verified Seller',   sub: 'Identity confirmed',     color: '#f59e0b'    },
               ].map(({ icon: Icon, label, sub, color }) => (
                 <div key={label}
@@ -1604,6 +1554,65 @@ export default function ProductDetail() {
               </AnimatePresence>
             </div>
           </motion.div>
+
+          <motion.section
+            className="mb-6 md:mb-10 grid grid-cols-1 md:grid-cols-2 gap-3"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.35 }}
+          >
+            <div className="p-4 sm:p-5 rounded-2xl"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+              <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>Service commitments</p>
+              <div className="space-y-2">
+                {serviceCommitments.map((item, idx) => (
+                  <div key={`${item?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenCommitmentIdx((cur) => (cur === idx ? null : idx))}
+                      className="w-full min-h-[44px] px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    >
+                      {item?.title || 'Commitment'}
+                      <ChevronDown size={14} className={`transition-transform ${openCommitmentIdx === idx ? 'rotate-180' : ''}`} />
+                    </button>
+                    {openCommitmentIdx === idx && !!item?.description && (
+                      <div className="px-3 py-2.5 text-xs" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
+                        {item.description}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {detailSections.length > 0 && (
+              <div className="p-4 sm:p-5 rounded-2xl"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+                <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>More product details</p>
+                <div className="space-y-2">
+                  {detailSections.map((section, idx) => (
+                    <div key={`${section?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenDetailIdx((cur) => (cur === idx ? null : idx))}
+                        className="w-full min-h-[44px] px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                      >
+                        {section?.title}
+                        <ChevronDown size={14} className={`transition-transform ${openDetailIdx === idx ? 'rotate-180' : ''}`} />
+                      </button>
+                      {openDetailIdx === idx && !!section?.content && (
+                        <div className="px-3 py-2.5 text-xs whitespace-pre-wrap" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
+                          {section.content}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.section>
 
           {/* ════════════════════════════════════════════════
               RELATED PRODUCTS

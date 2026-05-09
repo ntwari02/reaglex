@@ -31,6 +31,8 @@ import shippingRoutes from './src/routes/shippingRoutes';
 import inboxRoutes from './src/routes/inboxRoutes';
 import buyerInboxRoutes from './src/routes/buyerInboxRoutes';
 import buyerDisputeRoutes from './src/routes/buyerDisputeRoutes';
+import buyerReturnsRoutes from './src/routes/buyerReturnsRoutes';
+import sellerReturnsRoutes from './src/routes/sellerReturnsRoutes';
 import blogRoutes from './src/routes/blogRoutes';
 import affiliateRoutes from './src/routes/affiliateRoutes';
 import trackingRoutes from './src/routes/trackingRoutes';
@@ -44,6 +46,8 @@ import adminReviewsRoutes from './src/routes/adminReviewsRoutes';
 import adminCollectionsRoutes from './src/routes/adminCollectionsRoutes';
 import adminProductsRoutes from './src/routes/adminProductsRoutes';
 import adminOrdersRoutes from './src/routes/adminOrdersRoutes';
+import adminComplianceRoutes from './src/routes/adminComplianceRoutes';
+import adminReturnsRoutes from './src/routes/adminReturnsRoutes';
 import adminSellerSubscriptionRoutes from './src/routes/adminSellerSubscriptionRoutes';
 import publicContentRoutes from './src/routes/publicContentRoutes';
 import adminSiteContentRoutes from './src/routes/adminSiteContentRoutes';
@@ -72,6 +76,7 @@ import productVerificationRoutes from './src/routes/productVerificationRoutes';
 import currencyRoutes from './src/routes/currencyRoutes';
 import { startExchangeRateWorker } from './src/services/exchangeRate.service';
 import newsletterRoutes from './src/routes/newsletterRoutes';
+import { startComplianceCertificateReminderJob } from './src/jobs/complianceCertificateReminderJob';
 
 const app = express();
 const httpServer = createServer(app);
@@ -228,9 +233,11 @@ app.use('/api/buyer/inbox', buyerInboxRoutes);
 app.use('/api/buyer/notifications', buyerNotificationRoutes);
 // Buyer dispute routes
 app.use('/api/buyer/disputes', buyerDisputeRoutes);
+app.use('/api/buyer/returns', buyerReturnsRoutes);
 
 // Seller routes
 app.use('/api/seller', sellerRoutes);
+app.use('/api/seller/returns', sellerReturnsRoutes);
 
 // Subscription routes
 app.use('/api/seller/subscription', subscriptionRoutes);
@@ -259,6 +266,8 @@ app.use('/api/admin/reviews', adminReviewsRoutes);
 app.use('/api/admin/collections', adminCollectionsRoutes);
 app.use('/api/admin/products', adminProductsRoutes);
 app.use('/api/admin/orders', adminOrdersRoutes);
+app.use('/api/admin/compliance', adminComplianceRoutes);
+app.use('/api/admin/returns', adminReturnsRoutes);
 app.use('/api/admin/seller-subscriptions', adminSellerSubscriptionRoutes);
 app.use('/api/admin/site', adminSiteContentRoutes);
 // Payments & escrow routes
@@ -362,6 +371,7 @@ const connectDB = async () => {
     startScheduledNotificationWorker();
     startRecommendationEmailWorker();
     startExchangeRateWorker();
+    startComplianceCertificateReminderJob();
 
     // Initialize WebSocket server
     websocketService.initialize(httpServer);

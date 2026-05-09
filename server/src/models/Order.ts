@@ -56,6 +56,8 @@ export interface IOrderEscrow {
   heldAt?: Date;
   releaseEligibleAt?: Date;
   releasedAt?: Date;
+  refundedAmount?: number;
+  lastRefundAt?: Date;
   disputeRaisedAt?: Date;
   disputeReason?: string;
   disputeResolvedAt?: Date;
@@ -284,6 +286,8 @@ const orderSchema = new Schema<IOrder>(
       heldAt: { type: Date },
       releaseEligibleAt: { type: Date },
       releasedAt: { type: Date },
+      refundedAmount: { type: Number, default: 0 },
+      lastRefundAt: { type: Date },
       disputeRaisedAt: { type: Date },
       disputeReason: { type: String },
       disputeResolvedAt: { type: Date },

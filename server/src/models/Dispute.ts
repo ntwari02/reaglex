@@ -28,6 +28,15 @@ export interface IDispute extends Document {
   resolvedAt?: Date;
   resolution?: string;
   responseDeadline?: Date;
+  policyCheck?: {
+    evaluatedAt: Date;
+    daysSincePurchase: number;
+    partialRefundOnly: boolean;
+    blockReasons: string[];
+    notes: string[];
+    nonReturnableItems: string[];
+    saleItems: string[];
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -101,6 +110,15 @@ const disputeSchema = new Schema<IDispute>(
     resolvedAt: { type: Date },
     resolution: { type: String },
     responseDeadline: { type: Date, index: true },
+    policyCheck: {
+      evaluatedAt: { type: Date },
+      daysSincePurchase: { type: Number },
+      partialRefundOnly: { type: Boolean, default: false },
+      blockReasons: { type: [String], default: [] },
+      notes: { type: [String], default: [] },
+      nonReturnableItems: { type: [String], default: [] },
+      saleItems: { type: [String], default: [] },
+    },
   },
   { timestamps: true }
 );

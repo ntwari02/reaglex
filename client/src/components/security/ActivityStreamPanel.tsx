@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IntelActivityEvent } from './securityIntelTypes';
-import { useTheme } from '@/contexts/ThemeContext';
 
 const severityStyle: Record<
   IntelActivityEvent['severity'],
@@ -24,24 +23,45 @@ function RoleBadge({ role }: { role: string }) {
         ? 'bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-500/25'
         : r === 'buyer'
           ? 'bg-cyan-500/15 text-cyan-200 border-cyan-500/25'
-          : 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+          : '';
   return (
-    <span className={cn('text-[9px] font-mono uppercase px-1.5 py-0.5 rounded-md border', cls)}>{r}</span>
+    <span
+      className={cn('text-[9px] font-mono uppercase px-1.5 py-0.5 rounded-md border', cls)}
+      style={
+        cls
+          ? undefined
+          : {
+              background: 'var(--bg-badge)',
+              color: 'var(--text-muted)',
+              borderColor: 'var(--divider)',
+            }
+      }
+    >
+      {r}
+    </span>
   );
 }
 
 export function ActivityStreamPanel({ events, live }: { events: IntelActivityEvent[]; live: boolean }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const list = events.slice(0, 80);
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-950/60 backdrop-blur-xl overflow-hidden flex flex-col min-h-[420px] max-h-[520px]">
-      <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-2 bg-slate-100/70 dark:bg-black/30">
+    <div
+      className="rounded-2xl border overflow-hidden flex flex-col min-h-[420px] max-h-[520px]"
+      style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
+    >
+      <div
+        className="px-4 py-3 border-b flex items-center justify-between gap-2"
+        style={{ borderColor: 'var(--divider)', background: 'var(--bg-secondary)' }}
+      >
         <div className="flex items-center gap-2">
-          <Radio className={cn('w-4 h-4', live ? 'text-emerald-400 animate-pulse' : 'text-slate-500')} />
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">Live activity stream</h3>
+          <Radio className={cn('w-4 h-4', live ? 'text-emerald-400 animate-pulse' : '')} style={!live ? { color: 'var(--text-muted)' } : undefined} />
+          <h3 className="text-sm font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            Live activity stream
+          </h3>
         </div>
-        <span className="text-[10px] font-mono text-slate-600 dark:text-slate-500">{list.length} events</span>
+        <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>
+          {list.length} events
+        </span>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5 font-mono text-[11px]">
         <AnimatePresence initial={false}>
@@ -57,25 +77,34 @@ export function ActivityStreamPanel({ events, live }: { events: IntelActivityEve
                 transition={{ duration: 0.22 }}
                 className={cn(
                   'rounded-lg border-l-2 border pl-3 pr-2 py-2',
-                  isDark ? 'bg-black/25 border-white/5' : 'bg-white border-slate-200',
                   st.bar,
                 )}
+                style={{
+                  background: 'var(--bg-secondary)',
+                  borderColor: 'var(--divider)',
+                }}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <RoleBadge role={e.role} />
                   <span className={cn('text-[9px] px-1.5 py-0.5 rounded', st.badge)}>{e.severity}</span>
-                  <span className="text-[9px] text-slate-600 dark:text-slate-500 ml-auto tabular-nums">
+                  <span className="text-[9px] ml-auto tabular-nums" style={{ color: 'var(--text-muted)' }}>
                     {new Date(e.at).toLocaleTimeString()}
                   </span>
                 </div>
-                <p className="text-slate-900 dark:text-slate-100 mt-1 font-sans text-[12px] leading-snug">{e.title}</p>
-                <p className="text-slate-600 dark:text-slate-500 text-[10px] mt-0.5 line-clamp-2">{e.detail}</p>
+                <p className="mt-1 font-sans text-[12px] leading-snug" style={{ color: 'var(--text-primary)' }}>
+                  {e.title}
+                </p>
+                <p className="text-[10px] mt-0.5 line-clamp-2" style={{ color: 'var(--text-muted)' }}>
+                  {e.detail}
+                </p>
               </motion.div>
             );
           })}
         </AnimatePresence>
         {list.length === 0 && (
-          <p className="text-slate-500 dark:text-slate-500 text-center py-12 text-sm">No events yet — connect telemetry & traffic.</p>
+          <p className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>
+            No events yet — connect telemetry & traffic.
+          </p>
         )}
       </div>
     </div>

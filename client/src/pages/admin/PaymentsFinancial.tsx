@@ -271,6 +271,9 @@ function DashboardTab({
           <p className="text-xl font-bold text-gray-900 dark:text-white">
             ${(metrics.refundAmount / 1000).toFixed(0)}k
           </p>
+          <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+            Includes full and partial refunds.
+          </p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Transactions</p>

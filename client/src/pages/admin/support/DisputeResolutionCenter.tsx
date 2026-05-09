@@ -54,6 +54,7 @@ export default function DisputeResolutionCenter() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [partialAmount, setPartialAmount] = useState('');
 
   const loadDisputes = useCallback(() => {
     setLoading(true);
@@ -124,16 +125,25 @@ export default function DisputeResolutionCenter() {
     adminSupportAPI.getDispute(dispute.id).then((res) => setDisputeDetail(res.dispute)).catch(() => setDisputeDetail(null));
   };
 
-  const handleResolve = (decision: 'approved' | 'rejected' | 'resolved', resolution?: string) => {
+  const handleResolve = (
+    decision: 'approved' | 'rejected' | 'resolved',
+    resolution?: string,
+    amount?: number
+  ) => {
     if (!selectedDispute) return;
     setResolving(true);
     adminSupportAPI
-      .resolveDispute(selectedDispute.id, { decision, resolution: resolution || '' })
+      .resolveDispute(selectedDispute.id, {
+        decision,
+        resolution: resolution || '',
+        ...(amount && amount > 0 ? { partialAmount: amount } : {}),
+      })
       .then(() => {
         loadDisputes();
         setShowDisputeModal(false);
         setSelectedDispute(null);
         setDisputeDetail(null);
+        setPartialAmount('');
       })
       .catch((err) => alert(err?.message ?? 'Failed to resolve'))
       .finally(() => setResolving(false));
@@ -367,6 +377,24 @@ export default function DisputeResolutionCenter() {
 
               {disputeDetail && (
                 <>
+                  {(disputeDetail.adminDecision || disputeDetail.status === 'approved' || disputeDetail.status === 'rejected' || disputeDetail.status === 'resolved') && (
+                    <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/40 dark:bg-emerald-900/10">
+                      <h3 className="mb-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300">Resolution outcome</h3>
+                      <p className="text-sm text-emerald-900 dark:text-emerald-200">
+                        {disputeDetail.adminDecision ||
+                          (disputeDetail.status === 'approved'
+                            ? 'Full refund processed.'
+                            : disputeDetail.status === 'rejected'
+                              ? 'Claim rejected.'
+                              : 'Case resolved.')}
+                      </p>
+                      {disputeDetail.adminDecisionAt && (
+                        <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300/90">
+                          Processed on {new Date(disputeDetail.adminDecisionAt).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {disputeDetail.description && (
                     <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
                       <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">Description</h3>
@@ -413,6 +441,31 @@ export default function DisputeResolutionCenter() {
                     <CheckCircle className="mr-2 inline h-4 w-4" />
                     Approve (buyer)
                   </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="Partial amount"
+                      value={partialAmount}
+                      onChange={(e) => setPartialAmount(e.target.value)}
+                      className="w-40 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    />
+                    <button
+                      onClick={() => {
+                        const amount = Number(partialAmount);
+                        if (!Number.isFinite(amount) || amount <= 0) {
+                          alert('Enter a valid partial refund amount.');
+                          return;
+                        }
+                        handleResolve('approved', 'Partial refund approved', amount);
+                      }}
+                      disabled={resolving}
+                      className="rounded-xl border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 disabled:opacity-50"
+                    >
+                      Approve partial
+                    </button>
+                  </div>
                   <button
                     onClick={() => handleResolve('rejected')}
                     disabled={resolving}

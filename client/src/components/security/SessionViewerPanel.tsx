@@ -20,7 +20,6 @@ export function SessionViewerPanel({
   onAudit?: (targetUserId: string) => void;
 }) {
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const [selected, setSelected] = useState<string | null>(sessions[0]?.userId ?? null);
   const [detail, setDetail] = useState<SessionSubjectDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -103,18 +102,33 @@ export function SessionViewerPanel({
   const sess = detail?.session;
 
   return (
-    <div className="rounded-2xl border border-violet-500/20 bg-white/85 dark:bg-slate-950/70 backdrop-blur-xl overflow-hidden flex flex-col min-h-[420px] max-h-[640px]">
-      <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center gap-2 bg-gradient-to-r from-violet-200/40 dark:from-violet-950/50 to-transparent">
-        <Ghost className="w-4 h-4 text-violet-400" />
+    <div
+      className="rounded-2xl border overflow-hidden flex flex-col min-h-[420px] max-h-[640px]"
+      style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
+    >
+      <div
+        className="px-4 py-3 border-b flex items-center gap-2"
+        style={{ borderColor: 'var(--divider)', background: 'var(--bg-secondary)' }}
+      >
+        <Ghost className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Virtual session viewer</h3>
-          <p className="text-[10px] text-slate-600 dark:text-slate-500">Event-based UI reconstruction — not screen share</p>
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Virtual session viewer
+          </h3>
+          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+            Event-based UI reconstruction — not screen share
+          </p>
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col lg:flex-row">
-        <div className="lg:w-[140px] border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-white/10 overflow-y-auto max-h-40 lg:max-h-none p-2 space-y-1">
+        <div
+          className="lg:w-[140px] border-b lg:border-b-0 lg:border-r overflow-y-auto max-h-40 lg:max-h-none p-2 space-y-1"
+          style={{ borderColor: 'var(--divider)' }}
+        >
           {sessions.length === 0 ? (
-            <p className="text-[11px] text-slate-500 dark:text-slate-500 p-2">No sessions</p>
+            <p className="text-[11px] p-2" style={{ color: 'var(--text-muted)' }}>
+              No sessions
+            </p>
           ) : (
             sessions.slice(0, 24).map((s) => (
               <button
@@ -124,19 +138,34 @@ export function SessionViewerPanel({
                 className={cn(
                   'w-full text-left rounded-lg px-2 py-2 text-[10px] font-mono transition-colors',
                   selected === s.userId
-                    ? 'bg-violet-500/25 text-white border border-violet-500/40'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent',
+                    ? 'border'
+                    : 'border border-transparent',
                 )}
+                style={
+                  selected === s.userId
+                    ? {
+                        background: 'var(--bg-active)',
+                        color: 'var(--text-primary)',
+                        borderColor: 'var(--brand-border-subtle)',
+                      }
+                    : { color: 'var(--text-secondary)' }
+                }
               >
-                <span className="block truncate text-cyan-300/90">{s.maskedIdentifier}</span>
-                <span className="text-[9px] text-slate-600 dark:text-slate-500">{s.role}</span>
+                <span className="block truncate" style={{ color: 'var(--text-primary)' }}>
+                  {s.maskedIdentifier}
+                </span>
+                <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                  {s.role}
+                </span>
               </button>
             ))
           )}
         </div>
         <div className="flex-1 p-4 overflow-y-auto">
           {!sel ? (
-            <p className="text-slate-500 dark:text-slate-500 text-sm">Select a user to preview reconstructed state.</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Select a user to preview reconstructed state.
+            </p>
           ) : (
             <motion.div
               key={sel.userId}
@@ -146,57 +175,59 @@ export function SessionViewerPanel({
               className="space-y-4"
             >
               {detailLoading && (
-                <div className="flex items-center gap-2 text-[11px] text-violet-300/90">
+                <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Loading account & network context…
                 </div>
               )}
               {detailError && (
-                <p className="text-[11px] text-amber-400/90">{detailError}</p>
+                <p className="text-[11px]" style={{ color: 'var(--badge-warning-text)' }}>
+                  {detailError}
+                </p>
               )}
 
               {acc && (
-                <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/20 p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-400/90">
+                <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--divider)', background: 'var(--bg-secondary)' }}>
+                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     <User className="w-3.5 h-3.5" />
                     Account
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
-                    <p className="text-slate-800 dark:text-slate-300">
-                      <span className="text-slate-600 dark:text-slate-500">Name · </span>
+                    <p style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Name · </span>
                       {acc.fullName || '—'}
                     </p>
-                    <p className="text-slate-800 dark:text-slate-300 break-all">
-                      <span className="text-slate-600 dark:text-slate-500">Email · </span>
+                    <p className="break-all" style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Email · </span>
                       {acc.email}
                     </p>
-                    <p className="text-slate-800 dark:text-slate-300">
-                      <span className="text-slate-600 dark:text-slate-500">Phone · </span>
+                    <p style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Phone · </span>
                       {acc.phoneMasked || '—'}
                     </p>
-                    <p className="text-slate-800 dark:text-slate-300">
-                      <span className="text-slate-600 dark:text-slate-500">Role · </span>
+                    <p style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Role · </span>
                       {acc.role}
                     </p>
-                    <p className="text-slate-800 dark:text-slate-300">
-                      <span className="text-slate-600 dark:text-slate-500">Status · </span>
+                    <p style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Status · </span>
                       {acc.accountStatus || 'active'}
                     </p>
-                    <p className="text-slate-800 dark:text-slate-300">
-                      <span className="text-slate-600 dark:text-slate-500">Email verified · </span>
+                    <p style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Email verified · </span>
                       {acc.emailVerified ? 'Yes' : 'No'}
                     </p>
                     {acc.profileLocation && (
-                      <p className="text-slate-800 dark:text-slate-300 sm:col-span-2">
-                        <span className="text-slate-600 dark:text-slate-500">Profile location · </span>
+                      <p className="sm:col-span-2" style={{ color: 'var(--text-secondary)' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Profile location · </span>
                         {acc.profileLocation}
                       </p>
                     )}
-                    <p className="text-slate-600 dark:text-slate-400 text-[10px] sm:col-span-2">
+                    <p className="text-[10px] sm:col-span-2" style={{ color: 'var(--text-muted)' }}>
                       Member since {acc.memberSince ? new Date(acc.memberSince).toLocaleString() : '—'}
                     </p>
                     {(acc.lastLoginAt || acc.lastLoginIp) && (
-                      <p className="text-slate-600 dark:text-slate-400 text-[10px] sm:col-span-2">
+                      <p className="text-[10px] sm:col-span-2" style={{ color: 'var(--text-muted)' }}>
                         Last sign-in ·{' '}
                         {acc.lastLoginAt ? new Date(acc.lastLoginAt).toLocaleString() : '—'}
                         {acc.lastLoginIp ? ` · IP ${acc.lastLoginIp}` : ''}
@@ -209,28 +240,28 @@ export function SessionViewerPanel({
               )}
 
               {sess && (
-                <div className="rounded-xl border border-violet-500/25 bg-violet-950/15 p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-violet-300/90">
+                <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: 'var(--divider)', background: 'var(--bg-secondary)' }}>
+                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     <Globe className="w-3.5 h-3.5" />
                     Live telemetry
                   </div>
-                  <div className="grid grid-cols-1 gap-1.5 text-[11px] text-slate-800 dark:text-slate-300">
+                  <div className="grid grid-cols-1 gap-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                     <p className="flex items-start gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 shrink-0 text-violet-400 mt-0.5" />
+                      <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--brand-primary)' }} />
                       <span>
-                        <span className="text-slate-600 dark:text-slate-500">Coarse location · </span>
+                        <span style={{ color: 'var(--text-muted)' }}>Coarse location · </span>
                         {sess.geoLabel}
                       </span>
                     </p>
                     <p>
-                      <span className="text-slate-600 dark:text-slate-500">IP · </span>
+                      <span style={{ color: 'var(--text-muted)' }}>IP · </span>
                       <span className="font-mono">{sess.ipAddress || '—'}</span>
                     </p>
                     <p>
-                      <span className="text-slate-600 dark:text-slate-500">Device / browser · </span>
+                      <span style={{ color: 'var(--text-muted)' }}>Device / browser · </span>
                       {sess.deviceSummary}
                     </p>
-                    <p className="text-[10px] text-slate-600 dark:text-slate-500 break-all font-mono leading-snug">
+                    <p className="text-[10px] break-all font-mono leading-snug" style={{ color: 'var(--text-muted)' }}>
                       UA · {sess.userAgentFull || sel.userAgentFull || sel.deviceHint}
                     </p>
                   </div>
@@ -242,64 +273,59 @@ export function SessionViewerPanel({
                   Risk {sel.riskScore} · {sel.riskBand}
                 </span>
                 {sess && (
-                  <span className="text-[10px] text-slate-600 dark:text-slate-500 font-mono flex items-center gap-1">
+                  <span className="text-[10px] font-mono flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                     <Shield className="w-3 h-3" />
                     Telemetry risk aligned
                   </span>
                 )}
-                <span className="text-[10px] text-slate-600 dark:text-slate-500 font-mono">
+                <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>
                   Session {new Date(sel.sessionStartedAt).toLocaleTimeString()} → now
                 </span>
               </div>
 
-              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 dark:bg-black/40 p-4 relative overflow-hidden">
-                <div
-                  className="absolute inset-0 animate-[shimmer_4s_linear_infinite] pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(105deg, transparent 40%, var(--navbar-violet-glow-soft) 50%, transparent 60%)',
-                  }}
-                />
-                <div className="relative flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 mb-3">
-                  <MonitorSmartphone className="w-4 h-4 text-violet-400" />
+              <div className="rounded-xl border p-4 relative overflow-hidden" style={{ borderColor: 'var(--divider)', background: 'var(--bg-secondary)' }}>
+                <div className="relative flex items-center gap-2 text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  <MonitorSmartphone className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
                   <span className="font-mono truncate">{sel.currentRoute || '/'}</span>
                 </div>
-                <p className="relative text-lg font-semibold text-slate-900 dark:text-white">{sel.reconstructedUi.title || sel.routeLabel}</p>
+                <p className="relative text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {sel.reconstructedUi.title || sel.routeLabel}
+                </p>
                 <ul className="relative mt-3 space-y-1.5">
                   {sel.reconstructedUi.sections.map((line, i) => (
-                    <li key={i} className="text-xs text-slate-700 dark:text-slate-400 flex gap-2">
-                      <span className="text-violet-500">▪</span> {line}
+                    <li key={i} className="text-xs flex gap-2" style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ color: 'var(--brand-primary)' }}>▪</span> {line}
                     </li>
                   ))}
                 </ul>
-                <div className="relative mt-4 rounded-lg border border-dashed border-slate-300 dark:border-white/10 p-3 bg-white/70 dark:bg-slate-900/50">
-                  <p className="text-[10px] text-slate-600 dark:text-slate-500 uppercase tracking-wider mb-2">Recent actions</p>
+                <div
+                  className="relative mt-4 rounded-lg border border-dashed p-3"
+                  style={{ borderColor: 'var(--divider-strong)', background: 'var(--card-bg)' }}
+                >
+                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                    Recent actions
+                  </p>
                   <div className="space-y-1 max-h-28 overflow-y-auto">
                     {sel.lastActions.slice(0, 8).map((a, i) => (
-                      <p key={i} className="text-[10px] text-slate-700 dark:text-slate-400 font-mono">
+                      <p key={i} className="text-[10px] font-mono" style={{ color: 'var(--text-secondary)' }}>
                         {new Date(a.at).toLocaleTimeString()} · {a.type}: {a.detail}
                       </p>
                     ))}
                   </div>
                 </div>
-                <p className="relative text-[10px] text-slate-600 dark:text-slate-600 mt-3 flex items-start gap-1">
+                <p className="relative text-[10px] mt-3 flex items-start gap-1" style={{ color: 'var(--text-muted)' }}>
                   <Eye className="w-3 h-3 shrink-0 mt-0.5" />
                   {sel.reconstructedUi.hints.join(' ')}
                 </p>
               </div>
 
-              <p className="text-[10px] text-slate-600 dark:text-slate-600 font-mono break-all">
+              <p className="text-[10px] font-mono break-all" style={{ color: 'var(--text-muted)' }}>
                 Device (short): {sel.deviceHint}
               </p>
             </motion.div>
           )}
         </div>
       </div>
-      <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
     </div>
   );
 }

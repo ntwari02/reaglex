@@ -327,7 +327,7 @@ export default function HelpChatWidget() {
     if (matchAny(['return', 'refund'])) {
       return {
         text:
-          "You can return within 30 days! ↩\n\nGo to Account → Returns\n→ New Return Request\n→ Select order → Submit\n\nRefund in 3-5 business days 💰",
+          "Returns are accepted within 30 days if items are unused, in original condition, and in original packaging. ↩\n\nGo to Account → Returns\n→ New Return Request\n→ Select order → Submit\n\nSale items are not refundable, and return shipping is paid by the buyer.",
         kind: 'return',
       };
     }

@@ -8,6 +8,9 @@ import { SupportSettings } from '../models/SupportSettings';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
+import { Order } from '../models/Order';
+import { RefundRequest } from '../models/RefundRequest';
+import { refundBuyer } from '../services/escrowService';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -441,7 +444,11 @@ export async function resolveDispute(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
     const { disputeId } = req.params;
-    const { decision, resolution } = req.body; // decision: 'approved' | 'rejected' | 'resolved'
+    const { decision, resolution, partialAmount } = req.body as {
+      decision: 'approved' | 'rejected' | 'resolved';
+      resolution?: string;
+      partialAmount?: number;
+    };
     if (!mongoose.Types.ObjectId.isValid(disputeId)) {
       return res.status(400).json({ message: 'Invalid dispute ID' });
     }
@@ -457,7 +464,66 @@ export async function resolveDispute(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ message: 'Invalid decision' });
     }
 
-    dispute.adminDecision = resolution || decision;
+    if (status === 'approved' && dispute.policyCheck?.partialRefundOnly && !partialAmount) {
+      return res.status(400).json({
+        code: 'PARTIAL_REFUND_ONLY',
+        message: 'This request is older than 30 days and is eligible only for partial refund review.',
+        policyCheck: dispute.policyCheck,
+      });
+    }
+
+    let refundAmount = 0;
+    let refundType: 'full' | 'partial' | null = null;
+    if (status === 'approved') {
+      const order = await Order.findById(dispute.orderId).select('total buyerId sellerId').lean();
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found for this dispute' });
+      }
+      const total = Number(order.total || 0);
+      const requestedPartial = Number(partialAmount || 0);
+
+      if (dispute.policyCheck?.partialRefundOnly) {
+        if (!Number.isFinite(requestedPartial) || requestedPartial <= 0 || requestedPartial >= total) {
+          return res.status(400).json({
+            message: 'Partial refund amount must be greater than 0 and less than the order total.',
+          });
+        }
+        refundAmount = requestedPartial;
+        refundType = 'partial';
+      } else if (Number.isFinite(requestedPartial) && requestedPartial > 0 && requestedPartial < total) {
+        refundAmount = requestedPartial;
+        refundType = 'partial';
+      } else {
+        refundAmount = total;
+        refundType = 'full';
+      }
+
+      await refundBuyer(String(dispute.orderId), resolution || dispute.reason, {
+        amount: refundAmount,
+        refundType,
+        disputeId: String(dispute._id),
+      });
+
+      await RefundRequest.create({
+        orderId: dispute.orderId,
+        buyerId: dispute.buyerId,
+        sellerId: dispute.sellerId,
+        amount: refundAmount,
+        type: refundType,
+        status: 'completed',
+        reason: resolution || dispute.reason || 'Dispute approved',
+        requestedDate: dispute.createdAt || new Date(),
+        processedDate: new Date(),
+        refundMethod: 'Original Payment Method',
+        hasEvidence: Array.isArray(dispute.evidence) && dispute.evidence.length > 0,
+      });
+    }
+
+    const decisionText =
+      status === 'approved' && refundType
+        ? `${resolution || decision} (${refundType} refund: ${refundAmount})`
+        : (resolution || decision);
+    dispute.adminDecision = decisionText;
     dispute.adminDecisionAt = new Date();
     dispute.status = status;
     dispute.resolvedAt = new Date();

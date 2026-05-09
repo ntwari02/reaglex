@@ -2,37 +2,15 @@ import React from 'react';
 import type { PreviewMode } from './types';
 
 type Props = {
-  mode: PreviewMode;
-  onModeChange: (next: PreviewMode) => void;
   subject: string;
   body: string;
 };
 
-const MODES: PreviewMode[] = ['email', 'desktop', 'mobile', 'dark', 'push'];
-
-export function NotificationPreviewPanel({ mode, onModeChange, subject, body }: Props) {
+export function NotificationPreviewPanel({ subject, body }: Props) {
+  const mode: PreviewMode = 'email';
   const isDark = mode === 'dark';
   return (
     <div style={{ padding: 12 }}>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-        {MODES.map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => onModeChange(m)}
-            style={{
-              fontSize: 11,
-              borderRadius: 999,
-              padding: '4px 10px',
-              border: mode === m ? '1px solid #00BFA5' : '1px solid var(--border-visible)',
-              background: mode === m ? 'rgba(0,191,165,0.1)' : 'var(--bg-tertiary)',
-              color: mode === m ? '#00BFA5' : 'var(--text-muted)',
-            }}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
       <div
         style={{
           borderRadius: 12,

@@ -627,13 +627,13 @@
   "returns": {
     "selectReasonError": "Please select a reason.",
     "submittedTitle": "Return Submitted!",
-    "submittedMessage": "Your return request has been submitted. Our team will review it within 1-2 business days. You'll receive an email update shortly.",
+    "submittedMessage": "Your return request has been submitted. We will inspect the return and notify you by email once it is approved or rejected.",
     "viewStatus": "View Return Status",
     "continueShopping": "Continue Shopping",
     "requestTitle": "Request a Return",
-    "requestSubtitle": "Fill in the details below. Our team will review your request within 1-2 business days.",
+    "requestSubtitle": "Fill in the details below and make sure your request matches the Refund and Returns Policy.",
     "buyerProtection": "Buyer Protection Applies",
-    "buyerProtectionNote": "All purchases are covered under our Buyer Protection Policy. If your claim is valid, you'll receive a full refund.",
+    "buyerProtectionNote": "Returns are reviewed based on eligibility rules, condition checks, and proof of purchase.",
     "orderId": "Order ID *",
     "orderIdPlaceholder": "e.g. ORD-1001",
     "reason": "Reason for Return *",
@@ -645,7 +645,7 @@
     "refundMethod": "Preferred Refund Method",
     "originalPaymentMethod": "Original Payment Method",
     "reaglexWallet": "Reaglex Wallet",
-    "warning": "False or fraudulent return claims may result in account suspension. Please provide accurate information.",
+    "warning": "Sale items are non-refundable, return shipping is paid by the buyer, and late or ineligible returns may receive partial or no refund.",
     "submitting": "⏳ Submitting…",
     "submitRequest": "Submit Return Request"
   }

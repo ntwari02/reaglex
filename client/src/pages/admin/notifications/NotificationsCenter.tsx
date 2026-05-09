@@ -69,9 +69,6 @@ export default function NotificationsCenter() {
   const targetDdRef = useRef<HTMLDivElement>(null);
   const toRowRef = useRef<HTMLDivElement>(null);
 
-  const [ccInput, setCcInput] = useState('');
-  const [bccInput, setBccInput] = useState('');
-  const [showBcc, setShowBcc] = useState(false);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -112,6 +109,8 @@ export default function NotificationsCenter() {
   const [scheduleTime, setScheduleTime] = useState('');
   const [autoSave, setAutoSave] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [showSendPreview, setShowSendPreview] = useState(false);
+  const [pendingSendIsTest, setPendingSendIsTest] = useState(false);
 
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [templates, setTemplates] = useState<
@@ -197,8 +196,6 @@ export default function NotificationsCenter() {
             userPills,
             subject,
             body,
-            ccInput,
-            bccInput,
             tone,
             eventTrigger,
             variantA,
@@ -210,7 +207,7 @@ export default function NotificationsCenter() {
       }
     }, 3000);
     return () => clearInterval(t);
-  }, [autoSave, notifType, targetGroup, userPills, subject, body, ccInput, bccInput, tone, eventTrigger, variantA, variantB]);
+  }, [autoSave, notifType, targetGroup, userPills, subject, body, tone, eventTrigger, variantA, variantB]);
 
   useEffect(() => {
     try {
@@ -222,11 +219,6 @@ export default function NotificationsCenter() {
       if (Array.isArray(d.userPills)) setUserPills(d.userPills);
       if (d.subject) setSubject(d.subject);
       if (d.body) setBody(d.body);
-      if (d.ccInput) setCcInput(d.ccInput);
-      if (d.bccInput) {
-        setBccInput(d.bccInput);
-        setShowBcc(true);
-      }
       if (d.tone) setTone(d.tone);
       if (d.eventTrigger) setEventTrigger(d.eventTrigger);
       if (d.variantA) setVariantA(d.variantA);
@@ -315,7 +307,7 @@ export default function NotificationsCenter() {
     }
   };
 
-  const handleSend = async (isTest = false) => {
+  const performSend = async (isTest = false) => {
     if (!subject.trim()) return showToast('Subject is required', 'error');
     if (!body.trim()) return showToast('Message body is required', 'error');
     if (isTest) {
@@ -380,6 +372,18 @@ export default function NotificationsCenter() {
     } finally {
       setSending(false);
     }
+  };
+
+  const requestSend = (isTest = false) => {
+    if (!subject.trim()) return showToast('Subject is required', 'error');
+    if (!body.trim()) return showToast('Message body is required', 'error');
+    if (isTest) {
+      // Test sends can go straight through.
+      void performSend(true);
+      return;
+    }
+    setPendingSendIsTest(false);
+    setShowSendPreview(true);
   };
 
   const handleSchedule = async () => {
@@ -512,8 +516,6 @@ export default function NotificationsCenter() {
           userPills,
           subject,
           body,
-          ccInput,
-          bccInput,
           tone,
           eventTrigger,
           variantA,
@@ -524,7 +526,7 @@ export default function NotificationsCenter() {
       // ignore
     }
     showToast('Draft saved', 'success');
-  }, [notifType, targetGroup, userPills, subject, body, ccInput, bccInput, tone, eventTrigger, variantA, variantB, showToast]);
+  }, [notifType, targetGroup, userPills, subject, body, tone, eventTrigger, variantA, variantB, showToast]);
 
   const generateAiCopilot = useCallback(
     async ({ context, tone: aiTone, language, command }: { context: string; tone: string; language: string; command?: string }) => {
@@ -556,12 +558,12 @@ export default function NotificationsCenter() {
   const smsLen = body.length;
   const smsColor = smsLen > 160 ? '#EF4444' : smsLen > 140 ? '#FB923C' : 'var(--text-muted)';
 
-  const tabDefs: { id: NotifTab; label: string; icon: string }[] = [
-    { id: 'email', label: 'Email', icon: '✉' },
-    { id: 'in-app', label: 'In-App', icon: '🔔' },
-    { id: 'sms', label: 'SMS', icon: '💬' },
-    { id: 'push', label: 'Push', icon: '📲' },
-    { id: 'system-alert', label: 'System Alert', icon: '⚠' },
+  const tabDefs: { id: NotifTab; label: string }[] = [
+    { id: 'email', label: 'Email' },
+    { id: 'in-app', label: 'In-App' },
+    { id: 'sms', label: 'SMS' },
+    { id: 'push', label: 'Push' },
+    { id: 'system-alert', label: 'System Alert' },
   ];
 
   return (
@@ -605,18 +607,153 @@ export default function NotificationsCenter() {
         </div>
       )}
 
-      <div className="nc-layout mx-auto flex w-full max-w-[1680px] flex-1 flex-col gap-5 min-h-0">
+      {showSendPreview && (
+        <div
+          role="presentation"
+          className="nc-modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1200,
+            background: 'var(--bg-overlay)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setShowSendPreview(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal
+            aria-label="Preview notification before sending"
+            className="nc-modal-dialog nc-modal-dialog--scroll nc-send-preview-dialog"
+            style={{
+              width: 'min(680px, 96vw)',
+              borderRadius: 16,
+              background: 'var(--modal-bg)',
+              border: '1px solid var(--modal-border)',
+              boxShadow: 'var(--shadow-modal)',
+              overflow: 'hidden',
+              maxHeight: 'min(90dvh, 92vh)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: '14px 16px',
+                borderBottom: '1px solid var(--divider)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Preview
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {notifType === 'system-alert' ? 'System Alert' : notifType.toUpperCase()} will be sent
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSendPreview(false)}
+                style={{
+                  marginLeft: 'auto',
+                  border: '1px solid var(--border-visible)',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  borderRadius: 10,
+                  minWidth: 40,
+                  minHeight: 40,
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  lineHeight: 1,
+                }}
+                aria-label="Close preview"
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="nc-send-preview-body" style={{ padding: 16, display: 'grid', gap: 10 }}>
+              <div style={{ border: '1px solid var(--divider)', borderRadius: 12, background: 'var(--bg-secondary)', padding: 12 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 6 }}>Subject</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                  {subject?.trim() || '—'}
+                </div>
+              </div>
+              <div style={{ border: '1px solid var(--divider)', borderRadius: 12, background: 'var(--bg-secondary)', padding: 12 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 6 }}>Message</div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                  {body?.trim() || '—'}
+                </div>
+              </div>
+              <div className="nc-send-preview-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSendPreview(false)}
+                  style={{
+                    border: '1px solid var(--border-visible)',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    minHeight: 44,
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    flex: '1 1 auto',
+                    minWidth: 'min(100%, 140px)',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={sending}
+                  onClick={() => {
+                    setShowSendPreview(false);
+                    void performSend(pendingSendIsTest);
+                  }}
+                  style={{
+                    border: 'none',
+                    background: sending ? '#007A68' : '#00BFA5',
+                    color: '#fff',
+                    borderRadius: 12,
+                    padding: '10px 16px',
+                    minHeight: 44,
+                    cursor: sending ? 'not-allowed' : 'pointer',
+                    fontWeight: 800,
+                    boxShadow: sending ? 'none' : '0 4px 24px rgba(0,191,165,0.35)',
+                    flex: '1 1 auto',
+                    minWidth: 'min(100%, 160px)',
+                  }}
+                >
+                  {sending ? 'Sending…' : 'Confirm & Send'}
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                Tip: If you need to edit, press Cancel and adjust the subject/body first.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="nc-layout mx-auto flex w-full max-w-[1680px] flex-1 flex-col gap-3 min-h-0 sm:gap-5">
         <header className="nc-page-header shrink-0 space-y-1 px-0.5">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+          <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl md:text-3xl">
             Notifications Center
           </h1>
-          <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+          <p className="max-w-2xl text-xs leading-relaxed text-gray-600 dark:text-gray-400 sm:text-base sm:leading-normal">
             Compose and send campaigns across email, in-app, SMS, push, and system alerts. Use the composer below, then
             refine copy with the AI assistant.
           </p>
         </header>
 
-        <div className="nc-surface flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm dark:border-white/[0.07] dark:bg-[var(--card-bg)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
+        <div className="nc-surface flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm sm:rounded-2xl dark:border-white/[0.07] dark:bg-[var(--card-bg)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
       {/* Top action bar */}
       <div
         className="nc-topbar top-action-bar"
@@ -639,45 +776,35 @@ export default function NotificationsCenter() {
             flex: 1,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            minWidth: 0,
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'thin',
-            paddingBottom: 2,
-            maskImage: 'linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent)',
+            minWidth: 220,
+            maxWidth: 360,
           }}
         >
-          {tabDefs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              title={`${t.label} notification`}
-              aria-label={`${t.label} notification`}
-              onClick={() => setNotifType(t.id)}
-              className="nc-tab-btn tab-pill"
-              style={{
-                padding: '6px 14px',
-                borderRadius: 99,
-                fontSize: 12,
-                cursor: 'pointer',
-                border: '1px solid',
-                borderColor: notifType === t.id ? '#00BFA5' : 'var(--border-visible)',
-                background: notifType === t.id ? 'rgba(0,191,165,0.14)' : 'var(--bg-hover)',
-                color: notifType === t.id ? '#00BFA5' : 'var(--text-muted)',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                minHeight: 36,
-                boxShadow: notifType === t.id ? '0 0 20px rgba(0,191,165,0.15)' : 'none',
-                transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
-              }}
-            >
-              <span aria-hidden>{t.icon}</span> <span className="nc-tab-label">{t.label}</span>
-            </button>
-          ))}
+          <label htmlFor="notification-type-select" className="sr-only">
+            Notification type
+          </label>
+          <select
+            id="notification-type-select"
+            value={notifType}
+            onChange={(e) => setNotifType(e.target.value as NotifTab)}
+            className="w-full rounded-xl border px-3 py-2 text-sm font-semibold outline-none transition"
+            style={{
+              minHeight: 38,
+              borderColor: 'var(--border-visible)',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-primary)',
+            }}
+            aria-label="Notification type"
+          >
+            {tabDefs.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div className="nc-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div className="nc-actions nc-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <label className="auto-save-toggle" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Auto-save</span>
             <button
@@ -742,6 +869,7 @@ export default function NotificationsCenter() {
               setAiCollapsed(false);
               setAiWorkspaceMode((v) => (isMobileViewport ? !v : v));
             }}
+            className="ai-workspace-btn"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -790,7 +918,7 @@ export default function NotificationsCenter() {
           <button
             type="button"
             className="nc-btn-send send-now-btn"
-            onClick={() => handleSend(false)}
+            onClick={() => requestSend(false)}
             disabled={sending}
             onMouseEnter={(e) => {
               if (!sending) e.currentTarget.style.background = '#00A896';
@@ -1032,6 +1160,7 @@ export default function NotificationsCenter() {
 
           {showUserDd && userHits.length > 0 && !targetGroup && (
             <div
+              className="nc-user-hits-popover"
               style={{
                 marginLeft: 88,
                 marginTop: -6,
@@ -1065,100 +1194,6 @@ export default function NotificationsCenter() {
                   <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>{u.email}</span>
                 </button>
               ))}
-            </div>
-          )}
-
-          {/* Cc */}
-          <div
-            className="nc-field-row composer-field-row"
-            style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
-          >
-            <div
-              className="nc-field-label composer-field-label"
-              style={{
-                width: 72,
-                flexShrink: 0,
-                fontSize: 13,
-                color: 'var(--text-muted)',
-                fontWeight: 500,
-                padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              Cc
-              {!showBcc && (
-                <button
-                  type="button"
-                  className="nc-bcc-link"
-                  onClick={() => setShowBcc(true)}
-                  style={{
-                    fontSize: 11,
-                    color: '#00BFA5',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '6px 4px',
-                    minHeight: 36,
-                  }}
-                >
-                  Bcc
-                </button>
-              )}
-            </div>
-            <div className="nc-field-value nc-cc-input-wrap composer-field-content" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
-              <input
-                value={ccInput}
-                onChange={(e) => setCcInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'var(--text-primary)',
-                  fontSize: 13,
-                  padding: '14px 16px 14px 0',
-                }}
-              />
-            </div>
-          </div>
-
-          {showBcc && (
-            <div
-              className="nc-field-row composer-field-row"
-              style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--divider)' }}
-            >
-              <div
-                className="nc-field-label composer-field-label"
-                style={{
-                  width: 72,
-                  flexShrink: 0,
-                  fontSize: 13,
-                  color: 'var(--text-muted)',
-                  fontWeight: 500,
-                  padding: '14px 16px',
-                }}
-              >
-                Bcc
-              </div>
-              <div className="nc-field-value composer-field-content" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
-                <input
-                  value={bccInput}
-                  onChange={(e) => setBccInput(e.target.value)}
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: 'var(--text-primary)',
-                    fontSize: 13,
-                    padding: '14px 16px 14px 0',
-                  }}
-                />
-              </div>
             </div>
           )}
 
@@ -1436,7 +1471,7 @@ export default function NotificationsCenter() {
                 />
                 <button
                   type="button"
-                  onClick={() => handleSend(true)}
+                  onClick={() => requestSend(true)}
                   disabled={sending}
                   style={{
                     padding: '5px 10px',
@@ -1452,7 +1487,7 @@ export default function NotificationsCenter() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSend(false)}
+                  onClick={() => requestSend(false)}
                   disabled={sending}
                   style={{
                     padding: '5px 14px',
@@ -1494,7 +1529,7 @@ export default function NotificationsCenter() {
             }}
             onSaveDraft={handleSaveDraft}
             onSchedule={() => setShowScheduleModal(true)}
-            onSend={() => void handleSend(false)}
+            onSend={() => requestSend(false)}
             onRewriteEditor={() => void generateAI('Rephrase this notification with better clarity and conversion focus')}
             generate={generateAiCopilot}
           />
@@ -2056,6 +2091,9 @@ export default function NotificationsCenter() {
         }
 
         @media (max-width: 480px) {
+          .ai-controls-selects {
+            grid-template-columns: 1fr !important;
+          }
           .nc-tab-btn .nc-tab-label {
             display: none;
           }
@@ -2081,6 +2119,17 @@ export default function NotificationsCenter() {
             margin-top: 6px;
             width: 100%;
             text-align: left;
+          }
+          .nc-to-row > div:last-child {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            padding: 0 12px 10px 12px !important;
+            box-sizing: border-box;
+          }
+          .nc-to-row .nc-to-inputs {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
           }
         }
 
@@ -2110,59 +2159,79 @@ export default function NotificationsCenter() {
         }
         @media (max-width: 768px) {
           .notifications-page-root {
-            overflow-x: hidden;
+            overflow-x: clip;
             width: 100%;
             max-width: 100vw;
           }
-          .notifications-page-root * {
-            max-width: 100%;
-            box-sizing: border-box;
+          .notifications-page-root > .nc-layout {
+            padding-left: max(12px, env(safe-area-inset-left, 0px));
+            padding-right: max(12px, env(safe-area-inset-right, 0px));
+            min-width: 0;
           }
-          .notifications-page-root > * {
-            padding-left: 12px;
-            padding-right: 12px;
+          .nc-layout .nc-surface {
+            min-width: 0;
           }
           .two-panel-container {
             flex-direction: column !important;
+            align-items: stretch !important;
+            min-width: 0;
+          }
+          .nc-main.nc-main--ai-workspace {
+            flex: 1 1 auto;
+            min-height: min(72dvh, 640px);
+            overflow: auto !important;
+            -webkit-overflow-scrolling: touch;
           }
           .right-ai-panel {
             width: 100% !important;
-            min-width: unset !important;
-            max-width: unset !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
             border-left: none !important;
-            border-top: 1px solid rgba(255,255,255,0.06) !important;
+            border-top: 1px solid var(--border-visible) !important;
           }
           .left-composer-panel {
             width: 100% !important;
-            min-width: unset !important;
+            min-width: 0 !important;
           }
-          .top-action-bar {
-            flex-wrap: wrap;
+          .top-action-bar.nc-topbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            flex-wrap: nowrap !important;
             height: auto !important;
-            padding: 8px 12px !important;
+            padding: 10px 12px !important;
+            gap: 10px !important;
+          }
+          .notification-type-tabs.nc-tabs {
+            width: 100% !important;
+            max-width: none !important;
+            min-width: 0 !important;
+            flex: 1 1 auto !important;
+          }
+          .nc-topbar-actions {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
             gap: 8px !important;
+            width: 100% !important;
+            align-items: stretch;
           }
-          .auto-save-toggle {
-            order: 1;
-            flex: 0 0 auto;
+          .nc-topbar-actions .auto-save-toggle {
+            grid-column: 1 / -1;
+            justify-content: space-between;
+            padding: 2px 0;
           }
-          .schedule-btn {
-            order: 2;
-            flex: 1 !important;
+          .nc-topbar-actions .save-draft-btn,
+          .nc-topbar-actions .send-now-btn {
+            grid-column: 1 / -1;
+            width: 100% !important;
             justify-content: center;
           }
-          .save-draft-btn {
-            order: 3;
-            width: 100%;
-            flex: 0 0 100% !important;
-            justify-content: center;
-          }
-          .send-now-btn {
-            order: 4;
-            width: 100%;
-            flex: 0 0 100% !important;
+          .nc-topbar-actions .send-now-btn {
             height: 48px !important;
             font-size: 15px !important;
+          }
+          .nc-topbar-actions .schedule-btn,
+          .nc-topbar-actions .ai-workspace-btn {
+            width: 100%;
             justify-content: center;
           }
           .notification-type-tabs {
@@ -2197,11 +2266,36 @@ export default function NotificationsCenter() {
             align-items: center;
             gap: 8px;
             padding: 14px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid var(--divider);
             font-size: 14px;
             font-weight: 600;
-            color: #F1F5F9;
-            background: rgba(0,191,165,0.04);
+            color: var(--text-primary);
+            background: color-mix(in srgb, var(--card-bg) 92%, rgba(0,191,165,0.08));
+          }
+          .nc-send-preview-dialog {
+            display: flex;
+            flex-direction: column;
+            max-height: min(92dvh, 92vh) !important;
+          }
+          .nc-send-preview-body {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1 1 auto;
+            min-height: 0;
+          }
+          .nc-send-preview-actions {
+            flex-direction: column-reverse !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .nc-send-preview-actions button {
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .nc-user-hits-popover {
+            margin-left: 12px !important;
+            margin-right: 12px !important;
+            max-width: calc(100vw - 32px) !important;
           }
           .rich-text-toolbar {
             padding: 6px 12px !important;

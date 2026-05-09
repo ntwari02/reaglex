@@ -28,6 +28,7 @@ import { SessionViewerPanel } from '@/components/security/SessionViewerPanel';
 import { RiskPanel } from '@/components/security/RiskPanel';
 import { NotificationsPanel } from '@/components/security/NotificationsPanel';
 import { AuditTimeline } from '@/components/security/AuditTimeline';
+import { ConfigurationRoom } from '@/components/security/ConfigurationRoom';
 import type { IntelligenceBundle } from '@/components/security/securityIntelTypes';
 
 function scoreColor(score: number) {
@@ -377,7 +378,11 @@ export default function SecurityAnalysisPage() {
         {loadError && (
           <div
             className="rounded-xl border px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2"
-            style={{ borderColor: '#fecaca', background: '#fef2f2', color: '#991b1b' }}
+            style={{
+              borderColor: 'var(--badge-error-border)',
+              background: 'var(--badge-error-bg)',
+              color: 'var(--badge-error-text)',
+            }}
           >
             <span className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -444,19 +449,25 @@ export default function SecurityAnalysisPage() {
               {overview && (
                 <>
                   <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Open risk</p>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      Open risk
+                    </p>
                     <p className="text-2xl font-mono text-red-400 mt-1">
                       {overview.findingsSummary.critical + overview.findingsSummary.high}
                     </p>
                   </div>
                   <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Medium / low</p>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      Medium / low
+                    </p>
                     <p className="text-2xl font-mono text-amber-300 mt-1">
                       {overview.findingsSummary.medium + overview.findingsSummary.low}
                     </p>
                   </div>
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Passing</p>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      Passing
+                    </p>
                     <p className="text-2xl font-mono text-emerald-400 mt-1">{overview.findingsSummary.pass}</p>
                   </div>
                 </>
@@ -477,6 +488,7 @@ export default function SecurityAnalysisPage() {
         </div>
 
         <AuditTimeline weekly={intel.weekly} />
+        <ConfigurationRoom authHeaders={authHeaders} />
 
         {/* Identity & sign-in (existing) */}
         <div
@@ -605,7 +617,7 @@ export default function SecurityAnalysisPage() {
                             n.severity === 'CRITICAL' && 'border-red-500/50 text-red-300',
                             n.severity === 'HIGH' && 'border-[color-mix(in_srgb,var(--brand-primary)_50%,transparent)] text-[var(--badge-warning-text)]',
                             n.severity === 'MEDIUM' && 'border-amber-500/40 text-amber-200',
-                            n.severity === 'LOW' && 'border-slate-600 text-slate-300',
+                            n.severity === 'LOW' && 'border-[var(--divider-strong)] text-[var(--text-secondary)]',
                             n.severity === 'OK' && 'border-emerald-500/40 text-emerald-200',
                           )}
                         >
@@ -671,7 +683,7 @@ export default function SecurityAnalysisPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)' }}>
                     <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                      <CheckCircle2 className="w-4 h-4" style={{ color: '#16a34a' }} />
+                      <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--text-in-stock)' }} />
                       <span>Compliance</span>
                     </h3>
                     <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
@@ -691,7 +703,7 @@ export default function SecurityAnalysisPage() {
                               c.status === 'PASS' && 'text-emerald-400',
                               c.status === 'FAIL' && 'text-red-400',
                               c.status === 'PARTIAL' && 'text-amber-300',
-                              c.status === 'NEEDS_REVIEW' && 'text-slate-400',
+                              c.status === 'NEEDS_REVIEW' && 'text-[var(--text-muted)]',
                             )}
                           >
                             {c.status}

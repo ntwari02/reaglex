@@ -223,33 +223,23 @@ export default function AssistantChat() {
       }
       .ai-trigger-core {
         width: 54px; height: 54px; border-radius: 50%;
-        /* Same charcoal stack as buyer dark mode: --card-bg / --bg-page */
-        background: linear-gradient(145deg, #1c1c1c 0%, #121212 100%);
-        border: 1.5px solid color-mix(in srgb, var(--brand-primary) 32%, transparent);
-        box-shadow:
-          0 0 18px color-mix(in srgb, var(--brand-primary) 18%, transparent),
-          0 0 36px color-mix(in srgb, var(--brand-primary) 8%, transparent),
-          0 8px 28px rgba(0,0,0,0.45);
+        /* Clean, minimal floating button like dashboard (no decorative glows). */
+        border-radius: 16px;
+        background: var(--card-bg);
+        border: 1px solid color-mix(in srgb, var(--border-card) 90%, transparent);
+        box-shadow: var(--shadow-lg);
         display: flex; align-items: center; justify-content: center;
         transition: transform 0.28s ease, box-shadow 0.28s ease;
       }
       .ai-trigger-core:hover {
         transform: translateY(-3px);
-        box-shadow:
-          0 0 26px color-mix(in srgb, var(--brand-primary) 26%, transparent),
-          0 0 48px color-mix(in srgb, var(--brand-primary) 12%, transparent),
-          0 10px 36px rgba(0,0,0,0.5);
+        box-shadow: var(--shadow-xl);
       }
       .ai-ring {
-        position: absolute; border-radius: 50%;
-        border: 1.5px solid color-mix(in srgb, var(--brand-primary) 22%, transparent);
-        animation: aiRingPulse 2.6s ease-out infinite; pointer-events: none;
-        top: -5px; left: -5px; right: -5px; bottom: -5px;
+        display: none;
       }
       .ai-ring-2 {
-        top: -10px; left: -10px; right: -10px; bottom: -10px;
-        border: 1px solid color-mix(in srgb, var(--brand-primary) 12%, transparent);
-        animation-delay: 0.9s;
+        display: none;
       }
       @keyframes aiRingPulse {
         0%   { opacity: 0.75; transform: scale(1); }
@@ -544,10 +534,8 @@ export default function AssistantChat() {
           transition={{ type: 'spring', stiffness: 340, damping: 20 }}
           whileTap={{ scale: 0.92 }}
         >
-          <span className="ai-ring" />
-          <span className="ai-ring ai-ring-2" />
           <span className="ai-trigger-core">
-            <GeminiIcon size={26} className="gemini-animated-icon" />
+            <GeminiIcon size={24} className="gemini-animated-icon" />
           </span>
         </motion.button>
       )}

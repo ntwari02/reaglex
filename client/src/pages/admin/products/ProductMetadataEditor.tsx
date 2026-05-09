@@ -597,7 +597,7 @@ export default function ProductMetadataEditor() {
             />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Return policy details" hint="No questions asked within 30 days. Item must be unused.">
+            <Field label="Return policy details" hint="30-day window. Item must be unused in original packaging.">
               <textarea
                 value={returnPolicyDetails}
                 onChange={(e) => setReturnPolicyDetails(e.target.value)}

@@ -1290,6 +1290,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
                   <div className="text-right">
                     <p className="text-xs text-gray-400">Gross: ${metrics.grossRevenue.toLocaleString()}</p>
                     <p className="text-xs text-red-400">Refunds: -${metrics.refundsTotal.toLocaleString()}</p>
+                    <p className="text-[10px] text-gray-400">Includes full + partial refund outcomes</p>
                     <p className="text-xs text-emerald-500 font-medium">Net: ${metrics.netRevenue.toLocaleString()}</p>
               </div>
         </div>
@@ -1429,6 +1430,7 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
               <span className="text-red-100 text-sm">Active Disputes</span>
               <span className="font-bold text-2xl">{metrics.activeDisputes}</span>
             </div>
+            <p className="text-[11px] text-red-100/90">Resolution logs show full refund, partial refund, or rejected claim outcomes.</p>
             <div className="flex items-center justify-between">
               <span className="text-red-100 text-sm">Chargeback Alerts</span>
               <span className="font-semibold">{metrics.chargebackAlerts}</span>

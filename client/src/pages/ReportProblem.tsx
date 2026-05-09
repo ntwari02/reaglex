@@ -253,6 +253,9 @@ const ReportProblem = () => {
       setReports((listRes.data?.disputes || []).map(mapDisputeToReport));
     } catch (err) {
       console.error('Failed to submit report', err);
+      const fallback = 'Failed to submit report. Please review your request and try again.';
+      const message = (err as any)?.response?.data?.message || fallback;
+      alert(message);
     } finally {
       setSubmitting(false);
     }

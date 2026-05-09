@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { AiControls } from './AiControls';
 import { AiInsightPanel } from './AiInsightPanel';
 import { AiOutputCard } from './AiOutputCard';
 import { AiPromptInput } from './AiPromptInput';
 import { ModerationWarnings } from './ModerationWarnings';
-import { NotificationPreviewPanel } from './NotificationPreviewPanel';
 import { SmartActionsToolbar } from './SmartActionsToolbar';
-import type { AiInsight, ModerationItem, PreviewMode } from './types';
+import type { AiInsight, ModerationItem } from './types';
 
 const MEMORY_KEY = 'reaglex_notifications_ai_memory_v2';
 
@@ -62,12 +61,12 @@ export function AiAssistantPanel(props: Props) {
   const [prompt, setPrompt] = useState('');
   const [tone, setTone] = useState('professional');
   const [language, setLanguage] = useState('English');
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('email');
   const [generatedSubject, setGeneratedSubject] = useState(subject);
   const [generatedBody, setGeneratedBody] = useState(body);
   const [originalBody, setOriginalBody] = useState(body);
   const [thinking, setThinking] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [compare, setCompare] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
 
@@ -119,6 +118,7 @@ export function AiAssistantPanel(props: Props) {
   async function runGenerate(command?: string) {
     setThinking(true);
     setStreaming(true);
+    setAiError(null);
     setOriginalBody(body);
     try {
       const result = await generate({ context: prompt.trim(), tone, language, command });
@@ -134,6 +134,10 @@ export function AiAssistantPanel(props: Props) {
           setStreaming(false);
         }
       }, 25);
+    } catch (error) {
+      setStreaming(false);
+      const message = error instanceof Error ? error.message : 'AI generation failed.';
+      setAiError(message);
     } finally {
       setThinking(false);
     }
@@ -141,8 +145,27 @@ export function AiAssistantPanel(props: Props) {
 
   if (collapsed) return null;
 
+  const panelStyle: CSSProperties = isMobileViewport
+    ? {
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        flex: '1 1 auto',
+        flexShrink: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+      }
+    : {
+        width: 380,
+        flexShrink: 0,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+      };
+
   return (
-    <div className="nc-right nc-ai-panel right-ai-panel" style={{ width: 380, flexShrink: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+    <div className="nc-right nc-ai-panel right-ai-panel" style={panelStyle}>
       {isWorkspaceMode && isMobileViewport && (
         <div
           style={{
@@ -230,8 +253,24 @@ export function AiAssistantPanel(props: Props) {
         <button type="button" onClick={onCollapse} style={{ marginLeft: 'auto', border: '1px solid var(--border-visible)', borderRadius: 999, background: 'transparent', minHeight: 30, minWidth: 30, cursor: 'pointer' }}>×</button>
       </div>
       <div style={{ overflowY: 'auto', minHeight: 0 }}>
+        <AiInsightPanel insights={insights} />
         <AiControls tone={tone} language={language} onToneChange={setTone} onLanguageChange={setLanguage} onQuickCommand={(cmd) => void runGenerate(cmd)} />
         <AiPromptInput value={prompt} onChange={setPrompt} onSubmit={() => void runGenerate()} />
+        {aiError && (
+          <div
+            style={{
+              margin: '8px 12px 0',
+              border: '1px solid var(--badge-error-border)',
+              background: 'var(--badge-error-bg)',
+              color: 'var(--badge-error-text)',
+              borderRadius: 10,
+              padding: '8px 10px',
+              fontSize: 12,
+            }}
+          >
+            {aiError}
+          </div>
+        )}
         <SmartActionsToolbar
           onGenerate={() => void runGenerate()}
           onRewrite={() => {
@@ -240,7 +279,6 @@ export function AiAssistantPanel(props: Props) {
           }}
           onSaveDraft={onSaveDraft}
           onSchedule={onSchedule}
-          onSend={onSend}
           disabled={loading}
         />
         <AiOutputCard
@@ -257,15 +295,13 @@ export function AiAssistantPanel(props: Props) {
           onSendToEditor={() => onApplyToEditor(generatedSubject, generatedBody)}
           onCompareToggle={() => setCompare((v) => !v)}
         />
-        <NotificationPreviewPanel mode={previewMode} onModeChange={setPreviewMode} subject={generatedSubject || subject} body={generatedBody || body} />
         <ModerationWarnings items={warnings} />
-        <AiInsightPanel insights={insights} />
       </div>
 
       {showPalette && (
         <div style={{ position: 'absolute', right: 20, top: 80, width: 260, border: '1px solid var(--border-visible)', borderRadius: 12, background: 'var(--card-bg)', boxShadow: 'var(--shadow-lg)', padding: 10, zIndex: 30 }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Command Palette</div>
-          {['Generate (Ctrl+Enter to send)', 'Rewrite', 'Schedule', 'Save Draft', '/promo /refund /shipping'].map((line) => (
+          {['Generate (Ctrl+Enter to send)', 'Rewrite', 'Schedule', 'Save Draft'].map((line) => (
             <div key={line} style={{ padding: '6px 4px', fontSize: 12 }}>{line}</div>
           ))}
         </div>

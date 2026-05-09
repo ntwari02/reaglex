@@ -1216,7 +1216,10 @@ export const adminSupportAPI = {
       credentials: 'include',
     }).then(handleResponse<{ dispute: any }>),
 
-  resolveDispute: (disputeId: string, body: { decision: 'approved' | 'rejected' | 'resolved'; resolution?: string }) =>
+  resolveDispute: (
+    disputeId: string,
+    body: { decision: 'approved' | 'rejected' | 'resolved'; resolution?: string; partialAmount?: number }
+  ) =>
     fetch(`${SUPPORT_BASE}/disputes/${disputeId}/resolve`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -2648,5 +2651,234 @@ export const adminReviewsAPI = {
       credentials: 'include',
       body: JSON.stringify(body),
     }).then(handleResponse<Record<string, unknown>>),
+};
+
+const COMPLIANCE_BASE = `${API_BASE_URL}/admin/compliance`;
+
+export const adminComplianceAPI = {
+  getDefinitions: () =>
+    fetch(`${COMPLIANCE_BASE}/definitions`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{
+      definitions: Array<{ key: string; title: string; description: string }>;
+      classificationQuestions: Array<{ key: string; question: string }>;
+      registrationRequiredDocuments: Array<{ key: string; name: string }>;
+      policyRequiredDocuments: Array<{ key: string; title: string }>;
+    }>),
+  getProfile: () =>
+    fetch(`${COMPLIANCE_BASE}/profile`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ profile: any; checklist: any }>),
+  updateProfile: (body: Record<string, unknown>) =>
+    fetch(`${COMPLIANCE_BASE}/profile`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; profile: any; checklist: any }>),
+  evaluateClassification: (body: { answers: Record<string, boolean> }) =>
+    fetch(`${COMPLIANCE_BASE}/classification/evaluate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ summary: any; profile: any }>),
+  getReadiness: () =>
+    fetch(`${COMPLIANCE_BASE}/readiness`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ checklist: any; profile: any }>),
+  exportPack: () =>
+    fetch(`${COMPLIANCE_BASE}/export-pack`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ pack: any }>),
+  exportPackPdf: async (options?: { strict?: boolean }) => {
+    const params = new URLSearchParams();
+    if (options?.strict) params.set('strict', 'true');
+    const suffix = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${COMPLIANCE_BASE}/export-pack/pdf${suffix}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      const err = new Error((error as any)?.message || 'Failed to export PDF') as ApiError;
+      err.status = response.status;
+      if (error && typeof error === 'object') {
+        err.code = (error as any).code;
+        err.payload = error;
+      }
+      throw err;
+    }
+    return response.blob();
+  },
+  uploadDocument: async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const token = localStorage.getItem('auth_token');
+    const headers: HeadersInit = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${COMPLIANCE_BASE}/upload`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: form,
+    });
+    return handleResponse<{ url: string; filename: string; mimeType: string; size: number }>(response);
+  },
+};
+
+const BUYER_RETURNS_BASE = `${API_BASE_URL}/buyer/returns`;
+
+export const buyerReturnsAPI = {
+  getOrderPreview: (orderId: string) =>
+    fetch(`${BUYER_RETURNS_BASE}/order/${encodeURIComponent(orderId)}/preview`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{
+      order: any;
+      items: any[];
+      policy: any;
+      reasons: Array<{ code: string; label: string }>;
+      returnTypes: Array<{ code: string; label: string }>;
+      timelineTemplate: string[];
+      analytics: any;
+    }>),
+  listCases: (params?: { orderId?: string }) => {
+    const sp = new URLSearchParams();
+    if (params?.orderId) sp.append('orderId', params.orderId);
+    const q = sp.toString() ? `?${sp.toString()}` : '';
+    return fetch(`${BUYER_RETURNS_BASE}/cases${q}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ cases: any[] }>);
+  },
+  getCase: (caseId: string) =>
+    fetch(`${BUYER_RETURNS_BASE}/cases/${encodeURIComponent(caseId)}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ case: any }>),
+  createCase: (body: Record<string, unknown>) =>
+    fetch(`${BUYER_RETURNS_BASE}/cases`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; cases: any[]; splitBySeller: boolean }>),
+  aiAssistDescription: (description: string) =>
+    fetch(`${BUYER_RETURNS_BASE}/ai/assist-description`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ description }),
+    }).then(handleResponse<{ summary: string; rewritten: string }>),
+  uploadEvidence: async (caseId: string, files: File[], linkedOrderItemId?: string) => {
+    const form = new FormData();
+    files.forEach((file) => form.append('files', file));
+    if (linkedOrderItemId) form.append('linkedOrderItemId', linkedOrderItemId);
+    const token = localStorage.getItem('auth_token');
+    const headers: HeadersInit = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${BUYER_RETURNS_BASE}/cases/${encodeURIComponent(caseId)}/evidence`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: form,
+    });
+    return handleResponse<{ message: string; evidence: any[] }>(response);
+  },
+  sendMessage: (caseId: string, body: { text: string; attachments?: string[] }) =>
+    fetch(`${BUYER_RETURNS_BASE}/cases/${encodeURIComponent(caseId)}/messages`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; chat: any[] }>),
+};
+
+const SELLER_RETURNS_BASE = `${API_BASE_URL}/seller/returns`;
+const ADMIN_RETURNS_BASE = `${API_BASE_URL}/admin/returns`;
+
+export const sellerReturnsAPI = {
+  listCases: (params?: { status?: string; page?: number; limit?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.status) sp.set('status', params.status);
+    if (params?.page) sp.set('page', String(params.page));
+    if (params?.limit) sp.set('limit', String(params.limit));
+    const q = sp.toString() ? `?${sp.toString()}` : '';
+    return fetch(`${SELLER_RETURNS_BASE}${q}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ cases: any[]; pagination: any }>);
+  },
+  updateStatus: (
+    caseId: string,
+    body: { status: string; note?: string; refundAmount?: number; refundEtaLabel?: string },
+  ) =>
+    fetch(`${SELLER_RETURNS_BASE}/${encodeURIComponent(caseId)}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; case: any }>),
+  sendMessage: (caseId: string, body: { text: string; attachments?: string[] }) =>
+    fetch(`${SELLER_RETURNS_BASE}/${encodeURIComponent(caseId)}/messages`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; chat: any[] }>),
+};
+
+export const adminReturnsAPI = {
+  listCases: (params?: { status?: string; search?: string; page?: number; limit?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.status) sp.set('status', params.status);
+    if (params?.search) sp.set('search', params.search);
+    if (params?.page) sp.set('page', String(params.page));
+    if (params?.limit) sp.set('limit', String(params.limit));
+    const q = sp.toString() ? `?${sp.toString()}` : '';
+    return fetch(`${ADMIN_RETURNS_BASE}${q}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ cases: any[]; pagination: any }>);
+  },
+  updateStatus: (
+    caseId: string,
+    body: { status: string; note?: string; refundAmount?: number; refundEtaLabel?: string },
+  ) =>
+    fetch(`${ADMIN_RETURNS_BASE}/${encodeURIComponent(caseId)}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; case: any }>),
+  bulkUpdateStatus: (body: { caseIds: string[]; status: string; note?: string; refundEtaLabel?: string }) =>
+    fetch(`${ADMIN_RETURNS_BASE}/bulk-status`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; updatedCount: number; updated: string[]; skipped: Array<{ caseId: string; reason: string }> }>),
+  sendMessage: (caseId: string, body: { text: string; attachments?: string[] }) =>
+    fetch(`${ADMIN_RETURNS_BASE}/${encodeURIComponent(caseId)}/messages`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ message: string; chat: any[] }>),
 };
 

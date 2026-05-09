@@ -5,7 +5,6 @@ type Props = {
   onRewrite: () => void;
   onSaveDraft: () => void;
   onSchedule: () => void;
-  onSend: () => void;
   disabled?: boolean;
 };
 
@@ -14,7 +13,6 @@ export function SmartActionsToolbar({
   onRewrite,
   onSaveDraft,
   onSchedule,
-  onSend,
   disabled,
 }: Props) {
   const btn: React.CSSProperties = {
@@ -35,13 +33,6 @@ export function SmartActionsToolbar({
       <button type="button" onClick={onRewrite} style={btn} disabled={disabled}>Rewrite</button>
       <button type="button" onClick={onSaveDraft} style={btn}>Save Draft</button>
       <button type="button" onClick={onSchedule} style={btn}>Schedule</button>
-      <button
-        type="button"
-        onClick={onSend}
-        style={{ ...btn, gridColumn: '1 / -1', background: '#00BFA5', color: '#fff', border: 'none' }}
-      >
-        Send Notification
-      </button>
     </div>
   );
 }
