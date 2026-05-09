@@ -43,7 +43,10 @@ export async function resolveSystemInboxRecipientUserIds(doc: CreatedSystemInbox
     return pickIds({ role: 'admin' });
   }
   if (aud === 'verified_sellers') {
-    return pickIds({ role: 'seller', isSellerVerified: true });
+    return pickIds({
+      role: 'seller',
+      $or: [{ sellerVerificationStatus: 'approved' }, { isSellerVerified: true }],
+    });
   }
   if (aud === 'pending_sellers') {
     return pickIds({

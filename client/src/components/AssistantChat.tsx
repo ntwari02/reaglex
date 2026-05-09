@@ -219,21 +219,21 @@ export default function AssistantChat() {
       .ai-trigger-btn {
         position: relative; background: none; border: none; padding: 0; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
-        width: 58px; height: 58px;
+        width: 44px; height: 112px;
       }
       .ai-trigger-core {
-        width: 54px; height: 54px; border-radius: 50%;
-        /* Clean, minimal floating button like dashboard (no decorative glows). */
-        border-radius: 16px;
+        width: 44px; height: 104px;
+        /* Browser-like side tab: round on left side only. */
+        border-radius: 14px 0 0 14px;
         background: var(--card-bg);
         border: 1px solid color-mix(in srgb, var(--border-card) 90%, transparent);
-        box-shadow: var(--shadow-lg);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.22);
         display: flex; align-items: center; justify-content: center;
-        transition: transform 0.28s ease, box-shadow 0.28s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
       .ai-trigger-core:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-xl);
+        transform: translateX(-2px);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.28);
       }
       .ai-ring {
         display: none;
@@ -512,8 +512,10 @@ export default function AssistantChat() {
     <div
       style={{
         position: 'fixed',
-        bottom: isMobileViewport ? 'calc(82px + env(safe-area-inset-bottom))' : 20,
-        right: isMobileViewport ? 12 : 20,
+        top: isMobileViewport ? 'auto' : '50%',
+        transform: isMobileViewport ? 'none' : 'translateY(-50%)',
+        bottom: isMobileViewport ? 'calc(82px + env(safe-area-inset-bottom))' : 'auto',
+        right: 'max(0px, env(safe-area-inset-right))',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',

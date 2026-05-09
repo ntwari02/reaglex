@@ -71,10 +71,7 @@ export default function SystemAnalysisPage() {
     setEndpoints,
     setActivity,
     setAlerts,
-    setGlobalStatus,
-    setBuckets24h,
     setTerminals,
-    setLogs,
     prependLog,
     prependActivity,
     setSettings,
@@ -531,7 +528,7 @@ export default function SystemAnalysisPage() {
                   animate={{ opacity: 1, x: 0 }}
                   className={cn(
                     'flex flex-wrap gap-x-2 border-l-2 border-transparent pl-2',
-                    a.status >= 500 && 'border-red-500 text-red-300',
+                    a.status >= 500 && 'border-red-500 text-red-700 dark:text-red-300',
                     a.status < 400 && 'border-emerald-500/60',
                   )}
                 >
@@ -557,9 +554,12 @@ export default function SystemAnalysisPage() {
                 layout
                 className={cn(
                   'rounded-lg px-3 py-2 text-xs border',
-                  a.level === 'critical' && 'border-red-500/40 bg-red-500/10 text-red-200',
-                  a.level === 'warning' && 'border-amber-500/40 bg-amber-500/10 text-amber-100',
-                  a.level === 'info' && 'border-emerald-500/30 bg-emerald-500/5 text-emerald-100',
+                  a.level === 'critical' &&
+                    'border-red-500/40 bg-red-500/10 text-red-800 dark:text-red-200',
+                  a.level === 'warning' &&
+                    'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100',
+                  a.level === 'info' &&
+                    'border-emerald-500/30 bg-emerald-500/5 text-emerald-900 dark:text-emerald-100',
                 )}
               >
                 <span className="font-bold">{a.title}</span>

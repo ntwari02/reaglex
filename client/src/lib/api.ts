@@ -1586,6 +1586,130 @@ export const adminNotificationsAPI = {
       recentNotifications: any[];
     }>),
 
+  recipientCount: (params: {
+    targetGroup: string;
+    country?: string;
+    language?: string;
+    activeWithinDays?: number;
+  }) => {
+    const sp = new URLSearchParams({ targetGroup: params.targetGroup });
+    if (params.country) sp.append('country', params.country);
+    if (params.language) sp.append('language', params.language);
+    if (params.activeWithinDays != null) sp.append('activeWithinDays', String(params.activeWithinDays));
+    return fetch(`${NOTIFICATIONS_BASE}/recipient-count?${sp}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ count: number }>);
+  },
+
+  /** Broadcast composer (email bulk, schedule, test) — matches server POST /admin/notifications/send */
+  sendComposerBroadcast: (body: {
+    targetGroup?: string;
+    specificEmails?: string[];
+    notificationType?: string;
+    subject?: string;
+    body?: string;
+    scheduledAt?: string;
+    recurring?: boolean;
+    isTestSend?: boolean;
+    testEmail?: string;
+    audienceFilter?: { country?: string; language?: string; activeWithinDays?: number };
+  }) =>
+    fetch(`${NOTIFICATIONS_BASE}/send`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(
+      handleResponse<{
+        success?: boolean;
+        message?: string;
+        recipientCount?: number;
+        error?: string;
+      }>,
+    ),
+
+  studioAccess: () =>
+    fetch(`${NOTIFICATIONS_BASE}/studio-access`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ role: 'super_admin' | 'support_admin' | 'marketing_admin' }>),
+
+  studioTransform: (body: {
+    action: string;
+    channel: string;
+    subject?: string;
+    body: string;
+    tone?: string;
+    targetLanguage?: string;
+    extraInstruction?: string;
+  }) =>
+    fetch(`${NOTIFICATIONS_BASE}/ai/studio-transform`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(
+      handleResponse<{
+        subject: string;
+        body: string;
+        moderation: { safe: boolean; warnings: string[]; blockedPatterns: string[] };
+        scores: { clarity: number; engagement: number; spamRisk: number; readability: number };
+        access?: { role: string };
+      }>,
+    ),
+
+  /** Server streams plain text body chunks */
+  studioStream: async (
+    body: {
+      action: string;
+      channel: string;
+      subject?: string;
+      body: string;
+      tone?: string;
+      targetLanguage?: string;
+      extraInstruction?: string;
+    },
+    onChunk: (text: string) => void,
+  ): Promise<void> => {
+    const res = await fetch(`${NOTIFICATIONS_BASE}/ai/studio-stream`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { message?: string })?.message || 'Stream failed');
+    }
+    const reader = res.body?.getReader();
+    if (!reader) return;
+    const dec = new TextDecoder();
+    let done = false;
+    while (!done) {
+      const r = await reader.read();
+      done = r.done;
+      if (r.value) onChunk(dec.decode(r.value, { stream: true }));
+    }
+  },
+
+  inAppBroadcast: (body: {
+    title: string;
+    message: string;
+    targetAudience: string;
+    type?: string;
+    priority?: string;
+    targetUserId?: string;
+  }) =>
+    fetch(`${NOTIFICATIONS_BASE}/in-app`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ ok: boolean; id?: string }>),
+
   sendNotification: (body: {
     targetGroup?: string;
     types?: string[];

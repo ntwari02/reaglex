@@ -1049,14 +1049,6 @@ function CategoryNav({ t }) {
       className="hidden md:flex items-center w-full px-4 sm:px-6 lg:px-8 xl:px-12"
       style={{ height: 44, background: 'var(--navbar-bg)', boxShadow: 'var(--shadow-navbar)', position: 'relative', zIndex: 101 }}
     >
-      <Link
-        to="/search"
-        className="flex items-center gap-2 h-full px-4 rounded-lg text-sm font-semibold transition flex-shrink-0"
-        style={{ color: 'white', background: PRIMARY }}
-      >
-        <Menu className="w-4 h-4" /> {t('nav.categories')}
-      </Link>
-
       <nav className="flex-1 flex items-center gap-6 overflow-x-auto scrollbar-hide px-4">
         {NAV_LINKS.map(({ to, labelKey, badge }) => {
           const isActive = location.pathname === to || (to === '/search' && location.pathname === '/search');

@@ -100,6 +100,10 @@ function Field({
 const inputBase =
   'w-full rounded-2xl px-4 py-3 text-sm min-h-[44px] outline-none transition-shadow';
 
+/** Matches primary actions on other admin pages (e.g. Product Management, Compliance export). */
+const adminPrimaryButtonClass =
+  'inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/40 min-h-[44px] touch-manipulation disabled:pointer-events-none disabled:opacity-60';
+
 export default function ProductMetadataEditor() {
   const [searchParams, setSearchParams] = useSearchParams();
   const qpProductId = searchParams.get('productId') || '';
@@ -364,8 +368,7 @@ export default function ProductMetadataEditor() {
               setSearchParams({ productId: pid });
               void load(pid);
             }}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold min-h-[44px] touch-manipulation"
-            style={{ background: 'var(--gradient-brand-cta)', color: '#fff', boxShadow: 'var(--shadow-cta)' }}
+            className={adminPrimaryButtonClass}
             disabled={loading || !normalizedProductId}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -444,8 +447,7 @@ export default function ProductMetadataEditor() {
             type="button"
             onClick={() => void savePromo()}
             disabled={!normalizedProductId || savingKey != null}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black min-h-[44px] touch-manipulation"
-            style={{ background: 'var(--gradient-brand-cta)', color: '#fff', boxShadow: 'var(--shadow-cta)', opacity: !normalizedProductId ? 0.6 : 1 }}
+            className={adminPrimaryButtonClass}
           >
             {savingKey === 'promo' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save promotion
@@ -512,8 +514,7 @@ export default function ProductMetadataEditor() {
             type="button"
             onClick={() => void saveDetails()}
             disabled={!normalizedProductId || savingKey != null}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black min-h-[44px] touch-manipulation"
-            style={{ background: 'var(--gradient-brand-cta)', color: '#fff', boxShadow: 'var(--shadow-cta)', opacity: !normalizedProductId ? 0.6 : 1 }}
+            className={adminPrimaryButtonClass}
           >
             {savingKey === 'details' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save size/details
@@ -563,8 +564,7 @@ export default function ProductMetadataEditor() {
             type="button"
             onClick={() => void saveShipping()}
             disabled={!normalizedProductId || savingKey != null}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black min-h-[44px] touch-manipulation"
-            style={{ background: 'var(--gradient-brand-cta)', color: '#fff', boxShadow: 'var(--shadow-cta)', opacity: !normalizedProductId ? 0.6 : 1 }}
+            className={adminPrimaryButtonClass}
           >
             {savingKey === 'shipping' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save shipping
@@ -624,8 +624,7 @@ export default function ProductMetadataEditor() {
             type="button"
             onClick={() => void savePolicy()}
             disabled={!normalizedProductId || savingKey != null}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black min-h-[44px] touch-manipulation"
-            style={{ background: 'var(--gradient-brand-cta)', color: '#fff', boxShadow: 'var(--shadow-cta)', opacity: !normalizedProductId ? 0.6 : 1 }}
+            className={adminPrimaryButtonClass}
           >
             {savingKey === 'policy' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save policy

@@ -39,6 +39,7 @@ import {
   runNotificationABTest,
   getNotificationEventLibrary,
 } from '../controllers/adminNotificationsController';
+import { getStudioAccessHint, postStudioTransform, postStudioStream } from '../controllers/notificationStudioController';
 
 const EMAIL_PROVIDER = String(process.env.EMAIL_PROVIDER || 'smtp').toLowerCase();
 
@@ -80,19 +81,72 @@ function parseAiJsonFromText(raw: string): { subjects?: { id: number; text: stri
   return JSON.parse(t) as { subjects?: { id: number; text: string }[]; bodies?: { id: number; text: string }[] };
 }
 
+type AudienceFilterPayload = {
+  country?: string;
+  language?: string;
+  activeWithinDays?: number;
+};
+
+function audienceMatchQuery(base: Record<string, unknown>, filter?: AudienceFilterPayload): Record<string, unknown> {
+  const q: Record<string, unknown> = { ...base };
+  const country = String(filter?.country || '').trim();
+  if (country) {
+    q['addresses.country'] = country;
+  }
+  const language = String(filter?.language || '').trim();
+  if (language) {
+    q['preferences.language'] = language;
+  }
+  const days = Number(filter?.activeWithinDays);
+  if (Number.isFinite(days) && days > 0 && days < 3650) {
+    q.updatedAt = { $gte: new Date(Date.now() - days * 86400000) };
+  }
+  return q;
+}
+
 async function resolveBroadcastEmails(
   targetGroup: string | undefined,
-  specificEmails: string[] | undefined
+  specificEmails: string[] | undefined,
+  audienceFilter?: AudienceFilterPayload,
 ): Promise<string[]> {
   const extras = Array.isArray(specificEmails)
     ? specificEmails.map((e) => String(e).trim().toLowerCase()).filter(Boolean)
     : [];
+  const active = { accountStatus: 'active' as const };
+
   if (targetGroup === 'All Customers') {
-    const users = await User.find({ role: 'buyer', accountStatus: 'active' }).select('email').lean();
+    const users = await User.find(audienceMatchQuery({ role: 'buyer', ...active }, audienceFilter))
+      .select('email')
+      .lean();
     return users.map((u: { email?: string }) => u.email).filter(Boolean) as string[];
   }
   if (targetGroup === 'All Sellers') {
-    const users = await User.find({ role: 'seller', accountStatus: 'active' }).select('email').lean();
+    const users = await User.find(audienceMatchQuery({ role: 'seller', ...active }, audienceFilter))
+      .select('email')
+      .lean();
+    return users.map((u: { email?: string }) => u.email).filter(Boolean) as string[];
+  }
+  if (targetGroup === 'All Users') {
+    const users = await User.find(
+      audienceMatchQuery({ role: { $in: ['buyer', 'seller'] }, ...active }, audienceFilter),
+    )
+      .select('email')
+      .lean();
+    return users.map((u: { email?: string }) => u.email).filter(Boolean) as string[];
+  }
+  if (targetGroup === 'Verified Sellers') {
+    const users = await User.find(
+      audienceMatchQuery(
+        {
+          role: 'seller',
+          ...active,
+          $or: [{ sellerVerificationStatus: 'approved' }, { isSellerVerified: true }],
+        },
+        audienceFilter,
+      ),
+    )
+      .select('email')
+      .lean();
     return users.map((u: { email?: string }) => u.email).filter(Boolean) as string[];
   }
   if (targetGroup === 'Specific User' || targetGroup === 'Custom Segment') {
@@ -185,13 +239,38 @@ router.get('/user-search', async (req: AuthenticatedRequest, res: Response) => {
 
 router.get('/recipient-count', async (_req: AuthenticatedRequest, res: Response) => {
   const targetGroup = String(_req.query.targetGroup || '').trim();
+  const audienceFilter: AudienceFilterPayload = {
+    country: String(_req.query.country || '').trim() || undefined,
+    language: String(_req.query.language || '').trim() || undefined,
+    activeWithinDays: _req.query.activeWithinDays ? Number(_req.query.activeWithinDays) : undefined,
+  };
+  const active = { accountStatus: 'active' as const };
   try {
     if (targetGroup === 'All Customers') {
-      const count = await User.countDocuments({ role: 'buyer', accountStatus: 'active' });
+      const count = await User.countDocuments(audienceMatchQuery({ role: 'buyer', ...active }, audienceFilter));
       return res.json({ count });
     }
     if (targetGroup === 'All Sellers') {
-      const count = await User.countDocuments({ role: 'seller', accountStatus: 'active' });
+      const count = await User.countDocuments(audienceMatchQuery({ role: 'seller', ...active }, audienceFilter));
+      return res.json({ count });
+    }
+    if (targetGroup === 'All Users') {
+      const count = await User.countDocuments(
+        audienceMatchQuery({ role: { $in: ['buyer', 'seller'] }, ...active }, audienceFilter),
+      );
+      return res.json({ count });
+    }
+    if (targetGroup === 'Verified Sellers') {
+      const count = await User.countDocuments(
+        audienceMatchQuery(
+          {
+            role: 'seller',
+            ...active,
+            $or: [{ sellerVerificationStatus: 'approved' }, { isSellerVerified: true }],
+          },
+          audienceFilter,
+        ),
+      );
       return res.json({ count });
     }
     return res.json({ count: 0 });
@@ -331,6 +410,8 @@ router.post('/send', async (req: AuthenticatedRequest, res: Response) => {
     scheduledAt,
     isTestSend,
     testEmail,
+    audienceFilter,
+    recurring,
   } = req.body || {};
 
   const subj = String(subject || '').trim();
@@ -364,7 +445,7 @@ router.post('/send', async (req: AuthenticatedRequest, res: Response) => {
         name: subj.slice(0, 80) || 'Scheduled broadcast',
         target: String(targetGroup || 'custom'),
         scheduledFor: new Date(scheduledAt),
-        recurring: false,
+        recurring: Boolean(recurring),
         status: 'active',
         type: String(notificationType || 'email'),
         subject: subj,
@@ -377,9 +458,14 @@ router.post('/send', async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    const filterPayload =
+      audienceFilter && typeof audienceFilter === 'object'
+        ? (audienceFilter as AudienceFilterPayload)
+        : undefined;
     const emails = await resolveBroadcastEmails(
       typeof targetGroup === 'string' ? targetGroup : undefined,
-      Array.isArray(specificEmails) ? specificEmails : undefined
+      Array.isArray(specificEmails) ? specificEmails : undefined,
+      filterPayload,
     );
 
     if (typeStr === 'email' && emails.length > 0) {
@@ -482,6 +568,14 @@ router.post('/ai/generate-copy', generateNotificationCopy);
 router.post('/ai/improve-copy', improveNotificationCopy);
 router.post('/ai/ab-test', runNotificationABTest);
 router.get('/ai/events', getNotificationEventLibrary);
+router.post('/ai/studio-transform', postStudioTransform);
+router.post('/ai/studio-stream', postStudioStream);
+router.get('/studio-access', (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+  return res.json(getStudioAccessHint(req));
+});
 
 /** In-app system inbox row (visible to buyers/sellers/admins per audience) */
 router.post('/in-app', adminCreateSystemInboxBroadcast);

@@ -9,7 +9,6 @@ import {
   DollarSign,
   AlertTriangle,
   Truck,
-  Bell,
   Megaphone,
   Star,
   FolderKanban,
@@ -19,6 +18,7 @@ import {
   BadgePercent,
   Crown,
   RotateCcw,
+  Bell,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/config';
 import Sidebar from '@/components/dashboard/Sidebar';
@@ -34,7 +34,6 @@ import PaymentsFinancial from '@/pages/admin/PaymentsFinancial';
 import SellerSubscriptionsAdmin from '@/pages/admin/SellerSubscriptionsAdmin';
 import SupportCenter from '@/pages/admin/support/SupportCenter';
 import LogisticsCenter from '@/pages/admin/logistics/LogisticsCenter';
-import NotificationsCenter from '@/pages/admin/NotificationsCenter';
 import MarketingCenter from '@/pages/admin/marketing/MarketingCenter';
 import ReviewsCenter from '@/pages/admin/reviews/ReviewsCenter';
 import CollectionsCenter from '@/pages/admin/collections/CollectionsCenter';
@@ -43,6 +42,7 @@ import ReturnsControlCenter from '@/pages/admin/support/ReturnsControlCenter';
 import { AdminProfile } from '@/pages/admin/AdminProfile';
 import SystemAnalysisPage from '@/pages/admin/SystemAnalysisPage';
 import SecurityAnalysisPage from '@/pages/admin/SecurityAnalysisPage';
+import NotificationStudio from '@/pages/admin/notifications/NotificationStudio';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import type { MenuItem } from '@/components/dashboard/Sidebar';
 
@@ -208,7 +208,7 @@ const AdminDashboard: React.FC = () => {
             <Route path="support" element={<SupportCenter />} />
             <Route path="returns" element={<ReturnsControlCenter />} />
             <Route path="logistics" element={<LogisticsCenter />} />
-            <Route path="notifications" element={<NotificationsCenter />} />
+            <Route path="notifications" element={<NotificationStudio />} />
             <Route path="marketing" element={<MarketingCenter />} />
             <Route path="reviews" element={<ReviewsCenter />} />
             <Route path="collections" element={<CollectionsCenter />} />

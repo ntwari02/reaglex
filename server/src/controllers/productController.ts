@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { Product } from '../models/Product';
 import { ProductReview } from '../models/ProductReview';
 import { ProductWishlist } from '../models/ProductWishlist';
+import { ProductVerification } from '../models/ProductVerification';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 
 function normalizeMediaUrl(maybeUrl: unknown): unknown {
@@ -213,7 +214,7 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
     const userId = req.user?.id ? new mongoose.Types.ObjectId(String(req.user.id)) : null;
     const pid = new mongoose.Types.ObjectId(String(productId));
 
-    const [reviewAgg, reviewGalleryAgg, wishlistedDoc, wishlistCountFromDb] = await Promise.all([
+    const [reviewAgg, reviewGalleryAgg, wishlistedDoc, wishlistCountFromDb, verificationDoc] = await Promise.all([
       ProductReview.aggregate([
         { $match: { productId: pid, status: 'approved' } },
         {
@@ -235,6 +236,7 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
       (product as any)?.wishlistCount == null
         ? ProductWishlist.countDocuments({ productId: pid })
         : Promise.resolve(Number((product as any).wishlistCount || 0)),
+      ProductVerification.findOne({ productId: pid }).select('aiChecks.videoProofUploaded aiChecks.videoProofUrl').lean(),
     ]);
 
     const avgRating = Number(reviewAgg?.[0]?.avgRating || 0);
@@ -252,9 +254,17 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
       });
     }
 
+    const verificationVideoUrl =
+      typeof verificationDoc?.aiChecks?.videoProofUrl === 'string' ? normalizeMediaUrl(verificationDoc.aiChecks.videoProofUrl) : undefined;
+    const hasDirectVideo =
+      typeof (product as any)?.videoUrl === 'string' && String((product as any).videoUrl).trim().length > 0;
+
     return res.json({
       product: {
         ...product,
+        ...(hasDirectVideo ? {} : verificationVideoUrl ? { videoUrl: verificationVideoUrl } : {}),
+        verificationVideoUrl,
+        verificationVideoUploaded: Boolean(verificationDoc?.aiChecks?.videoProofUploaded),
         // Commerce aggregates / enrichments (optional fields for PDP; safe for existing clients).
         ratingAverage: avgRating || (product as any)?.averageRating || (product as any)?.rating || 0,
         reviewCount: reviewCount || (product as any)?.totalReviews || (product as any)?.reviewCount || 0,

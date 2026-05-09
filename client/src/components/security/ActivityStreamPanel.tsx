@@ -7,22 +7,22 @@ const severityStyle: Record<
   IntelActivityEvent['severity'],
   { bar: string; badge: string }
 > = {
-  info: { bar: 'border-l-cyan-500/60', badge: 'bg-cyan-500/15 text-cyan-200' },
-  low: { bar: 'border-l-emerald-500/50', badge: 'bg-emerald-500/15 text-emerald-200' },
-  medium: { bar: 'border-l-amber-500/60', badge: 'bg-amber-500/15 text-amber-200' },
+  info: { bar: 'border-l-cyan-500/60', badge: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200' },
+  low: { bar: 'border-l-emerald-500/50', badge: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200' },
+  medium: { bar: 'border-l-amber-500/60', badge: 'bg-amber-500/15 text-amber-700 dark:text-amber-200' },
   high: { bar: 'border-l-[color-mix(in_srgb,var(--brand-primary)_70%,transparent)]', badge: 'bg-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)] text-[var(--text-on-accent)]' },
-  critical: { bar: 'border-l-red-500', badge: 'bg-red-500/25 text-red-100' },
+  critical: { bar: 'border-l-red-500', badge: 'bg-red-500/25 text-red-700 dark:text-red-100' },
 };
 
 function RoleBadge({ role }: { role: string }) {
   const r = role?.toLowerCase() || '—';
   const cls =
     r === 'admin'
-      ? 'bg-amber-500/20 text-amber-200 border-amber-500/30'
+      ? 'bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/30'
       : r === 'seller'
-        ? 'bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-500/25'
+        ? 'bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-200 border-fuchsia-500/25'
         : r === 'buyer'
-          ? 'bg-cyan-500/15 text-cyan-200 border-cyan-500/25'
+          ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200 border-cyan-500/25'
           : '';
   return (
     <span

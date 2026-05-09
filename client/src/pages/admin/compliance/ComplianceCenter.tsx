@@ -620,8 +620,11 @@ export default function ComplianceCenter() {
             Official NCSA strict mode (block export when required docs are missing)
           </label>
         </div>
-        <button onClick={exportPack} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
-          <Download className="mr-2 inline h-4 w-4" />
+        <button
+          onClick={exportPack}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/40"
+        >
+          <Download className="h-4 w-4" />
           Export JSON pack
         </button>
         {(() => {
@@ -632,10 +635,10 @@ export default function ComplianceCenter() {
               <button
                 onClick={exportPackPdf}
                 disabled={pdfBlocked}
-                className="ml-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="ml-2 inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-emerald-900/20"
                 title={pdfBlocked ? 'Complete checklist requirements to enable strict NCSA PDF export.' : 'Export PDF pack'}
               >
-                <FileText className="mr-2 inline h-4 w-4" />
+                <FileText className="h-4 w-4" />
                 Export PDF pack
               </button>
               {pdfBlocked && (

@@ -499,8 +499,12 @@ export function ConfigurationRoom({ authHeaders }: Props) {
                       <button
                         type="button"
                         onClick={() => void openDetails(entry)}
-                        className="inline-flex items-center gap-1 rounded-2xl px-4 py-2 text-xs font-bold min-h-[36px]"
-                        style={ctaStyle}
+                        className="inline-flex items-center gap-1 rounded-2xl border px-4 py-2 text-xs font-bold min-h-[36px] transition-colors hover:opacity-95"
+                        style={{
+                          borderColor: 'var(--brand-border-subtle)',
+                          background: 'var(--brand-tint)',
+                          color: 'var(--text-primary)',
+                        }}
                       >
                         Inspect <ChevronRight className="h-3.5 w-3.5" />
                       </button>

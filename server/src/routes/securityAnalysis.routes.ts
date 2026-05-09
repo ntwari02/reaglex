@@ -17,6 +17,7 @@ import {
   type UserRole,
 } from '../services/securityIntelligence.service';
 import { ApiConfiguration } from '../models/ApiConfiguration';
+import { getServerUrl, isProductionNodeEnv } from '../config/publicEnv';
 
 const router = Router();
 
@@ -72,6 +73,19 @@ type ConfigSavePayload = Partial<
 >;
 
 const nowIso = () => new Date().toISOString();
+
+/** If an old save pointed at localhost but defaults now use a public API host (e.g. Render), prefer the canonical URL. */
+function resolvePersistedPublicUrl(persisted: string | undefined, canonical: string | undefined): string | undefined {
+  if (persisted === undefined || persisted === '') return canonical;
+  if (!canonical) return persisted;
+  const p = persisted.toLowerCase();
+  const isLocal = p.includes('localhost') || p.includes('127.0.0.1');
+  const c = canonical.toLowerCase();
+  const canonicalIsLocal = c.includes('localhost') || c.includes('127.0.0.1');
+  if (isProductionNodeEnv() && isLocal && !canonicalIsLocal) return canonical;
+  return persisted;
+}
+
 const toMasked = (raw?: string) => {
   const v = String(raw || '').trim();
   if (!v) return undefined;
@@ -93,11 +107,11 @@ function defaultConfigApis(): ConfigApiEntry[] {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  const serverUrl = String(process.env.SERVER_URL || '').trim();
+  const serverUrl = getServerUrl().replace(/\/$/, '');
   const exchangeRateUrl = String(process.env.EXCHANGE_RATE_API_URL || '').trim();
   const momoUrl = String(process.env.MOMO_BASE_URL || '').trim();
   const momoCallback = String(process.env.MOMO_CALLBACK_URL || '').trim();
-  const apiBase = `${(serverUrl || 'http://localhost:5000').replace(/\/$/, '')}/api`;
+  const apiBase = `${serverUrl}/api`;
 
   const externalApis: ConfigApiEntry[] = [
     {
@@ -344,9 +358,14 @@ async function getConfigApisFromStore(): Promise<ConfigApiEntry[]> {
   return defaults.map((entry) => {
     const persisted = byId.get(entry.id);
     const override = (persisted?.config || {}) as ConfigSavePayload;
+    const endpoint = resolvePersistedPublicUrl(override.endpoint, entry.endpoint) ?? entry.endpoint;
+    const callbackUrl = resolvePersistedPublicUrl(override.callbackUrl, entry.callbackUrl) ?? entry.callbackUrl;
+
     const merged: ConfigApiEntry = {
       ...entry,
       ...override,
+      endpoint,
+      ...(callbackUrl !== undefined ? { callbackUrl } : {}),
       headers: override.headers || entry.headers,
       allowedOrigins: override.allowedOrigins || entry.allowedOrigins,
       roleAccess: override.roleAccess || entry.roleAccess,
