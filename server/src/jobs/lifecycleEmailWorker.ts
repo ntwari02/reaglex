@@ -6,6 +6,12 @@ import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory
 import { sendRecommendationDealsEmail, isEmailConfigured } from '../services/emailService';
 import { getClientUrl } from '../config/publicEnv';
 import { formatUsdAsCurrency } from '../utils/money';
+import {
+  isMarketingFlowEnabled,
+  isMarketingFlowPushEnabled,
+  recordFlowRun,
+} from '../models/MarketingAutomationSettings';
+import { safeSendPushToUser } from '../services/pushNotificationService';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -32,23 +38,22 @@ async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
   return count >= cap;
 }
 
-async function sendWinback(profile: any) {
+async function sendWinback(profile: any): Promise<'sent' | 'skipped' | 'failed'> {
   const userId = String(profile.userId || '');
-  if (!mongoose.Types.ObjectId.isValid(userId)) return;
-  if (await isOverDailyMarketingCap(userId)) return;
+  if (!mongoose.Types.ObjectId.isValid(userId)) return 'skipped';
+  if (await isOverDailyMarketingCap(userId)) return 'skipped';
 
-  // Only send win-back if no activity for 30+ days and we didn't send recently.
-  if (daysSince(profile.lastActivityAt) < 30) return;
-  if (daysSince(profile.lastWinbackSentAt) < 14) return;
+  if (daysSince(profile.lastActivityAt) < 30) return 'skipped';
+  if (daysSince(profile.lastWinbackSentAt) < 14) return 'skipped';
 
   const user = await User.findById(userId).select('fullName email notifications accountStatus preferences').lean();
-  if (!user?.email) return;
-  if ((user as any).accountStatus === 'banned') return;
+  if (!user?.email) return 'skipped';
+  if ((user as any).accountStatus === 'banned') return 'skipped';
   const promoAllowed = Boolean((user as any)?.notifications?.email?.promotions ?? true);
-  if (!promoAllowed) return;
+  if (!promoAllowed) return 'skipped';
 
   const { products } = await generateRecommendationsForUser(userId);
-  if (!products?.length) return;
+  if (!products?.length) return 'skipped';
 
   const subject = `We miss you — picks you’ll like, ${String((user as any).fullName || 'shopper').split(' ')[0]}`;
   const history = await RecommendationEmailHistory.create({
@@ -99,20 +104,33 @@ async function sendWinback(profile: any) {
     history.status = 'failed';
     history.error = sendResult.error || 'send_failed';
     await history.save();
-    return;
+    return 'failed';
   }
 
   await BuyerInsightProfile.updateOne(
     { userId: new mongoose.Types.ObjectId(userId) },
     { $set: { lastWinbackSentAt: new Date() } },
   );
+
+  if (await isMarketingFlowPushEnabled('winback')) {
+    void safeSendPushToUser(userId, {
+      title: 'We miss you',
+      body: `Fresh picks just for you${(user as any).fullName ? ', ' + String((user as any).fullName).split(' ')[0] : ''}.`,
+      category: 'winback',
+      data: { campaign: 'winback', historyId: String(history._id) },
+      url: `/recommendations`,
+    });
+  }
+
+  return 'sent';
 }
 
-async function tick() {
-  if (!isEmailConfigured()) return;
+async function tick(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = { sent: 0, skipped: 0, failed: 0 };
+  if (!isEmailConfigured()) return stats;
+  if (!(await isMarketingFlowEnabled('winback'))) return stats;
   const batch = getIntEnv('LIFECYCLE_EMAIL_BATCH', 120);
 
-  // Dormant first (highest ROI)
   const dormant = await BuyerInsightProfile.find({
     segment: 'dormant',
   })
@@ -122,19 +140,30 @@ async function tick() {
 
   for (const p of dormant as any[]) {
     try {
-      await sendWinback(p);
+      const outcome = await sendWinback(p);
+      if (outcome === 'sent') stats.sent += 1;
+      else if (outcome === 'failed') stats.failed += 1;
+      else stats.skipped += 1;
     } catch (e) {
+      stats.failed += 1;
       console.error('[lifecycle-email] winback failed', String(p?.userId || ''), e);
     }
   }
+  return stats;
+}
+
+export async function runWinbackOnce(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = await tick();
+  await recordFlowRun('winback', stats);
+  return stats;
 }
 
 let started = false;
 export function startLifecycleEmailWorker() {
   if (started) return;
   started = true;
-  void tick();
-  setInterval(() => void tick(), 6 * 60 * 60 * 1000); // every 6h
+  void runWinbackOnce();
+  setInterval(() => void runWinbackOnce(), 6 * 60 * 60 * 1000);
   console.log(`[lifecycle-email] worker started (${APP_NAME})`);
 }
 

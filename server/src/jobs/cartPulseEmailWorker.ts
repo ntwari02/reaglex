@@ -8,6 +8,12 @@ import { isEmailConfigured, sendRecommendationDealsEmail } from '../services/ema
 import { getClientUrl } from '../config/publicEnv';
 import { formatUsdAsCurrency } from '../utils/money';
 import { getPersonalizationGate } from '../services/personalizationGate.service';
+import {
+  isMarketingFlowEnabled,
+  isMarketingFlowPushEnabled,
+  recordFlowRun,
+} from '../models/MarketingAutomationSettings';
+import { safeSendPushToUser } from '../services/pushNotificationService';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -151,30 +157,30 @@ async function buildCartPulseProducts(userId: mongoose.Types.ObjectId, maxProduc
   return pickedIds.map((id) => byId.get(String(id))).filter(Boolean) as any[];
 }
 
-async function sendCartPulse(userId: string, lastCartAddAt: Date) {
-  if (!mongoose.Types.ObjectId.isValid(userId)) return;
+async function sendCartPulse(userId: string, lastCartAddAt: Date): Promise<'sent' | 'skipped' | 'failed'> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return 'skipped';
   const uid = new mongoose.Types.ObjectId(userId);
 
-  if (!isEmailConfigured()) return;
-  if (await isOverDailyMarketingCap(userId)) return;
+  if (!isEmailConfigured()) return 'skipped';
+  if (await isOverDailyMarketingCap(userId)) return 'skipped';
 
   // Cooldown per user for this lane (AliExpress sends often, but not every minute)
   const cooldownHours = getIntEnv('CART_PULSE_COOLDOWN_HOURS', 3);
   const profile = await BuyerInsightProfile.findOne({ userId: uid }).select('lastCartPulseSentAt').lean();
-  if (profile?.lastCartPulseSentAt && hoursSince(profile.lastCartPulseSentAt) < cooldownHours) return;
+  if (profile?.lastCartPulseSentAt && hoursSince(profile.lastCartPulseSentAt) < cooldownHours) return 'skipped';
 
   // If purchased after the cart add, skip.
-  if (await purchasedAfter(uid, lastCartAddAt)) return;
+  if (await purchasedAfter(uid, lastCartAddAt)) return 'skipped';
 
   const user = await User.findById(uid).select('fullName email notifications accountStatus preferences').lean();
-  if (!user?.email) return;
-  if ((user as any).accountStatus === 'banned') return;
+  if (!user?.email) return 'skipped';
+  if ((user as any).accountStatus === 'banned') return 'skipped';
   const promoAllowed = Boolean((user as any)?.notifications?.email?.promotions ?? true);
-  if (!promoAllowed) return;
+  if (!promoAllowed) return 'skipped';
 
   const maxProducts = getIntEnv('CART_PULSE_MAX_PRODUCTS', 16);
   const products = await buildCartPulseProducts(uid, maxProducts);
-  if (!products.length) return;
+  if (!products.length) return 'skipped';
   const gate = await getPersonalizationGate(userId);
 
   const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
@@ -231,7 +237,7 @@ async function sendCartPulse(userId: string, lastCartAddAt: Date) {
     history.status = 'failed';
     history.error = sendResult.error || 'send_failed';
     await history.save();
-    return;
+    return 'failed';
   }
 
   await BuyerInsightProfile.updateOne(
@@ -239,15 +245,28 @@ async function sendCartPulse(userId: string, lastCartAddAt: Date) {
     { $set: { lastCartPulseSentAt: new Date() } },
     { upsert: true },
   );
+
+  if (await isMarketingFlowPushEnabled('cart_pulse')) {
+    void safeSendPushToUser(uid, {
+      title: 'Your cart is waiting',
+      body: `${firstName}, ${products.length} more picks just for you. Tap to view.`,
+      category: 'cart_pulse',
+      data: { campaign: 'cart_pulse', historyId: String(history._id) },
+      url: `/cart`,
+    });
+  }
+
+  return 'sent';
 }
 
-async function tick() {
-  if (!isEmailConfigured()) return;
+async function tick(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = { sent: 0, skipped: 0, failed: 0 };
+  if (!isEmailConfigured()) return stats;
+  if (!(await isMarketingFlowEnabled('cart_pulse'))) return stats;
 
   const windowMinutes = getIntEnv('CART_PULSE_WINDOW_MINUTES', 90);
   const since = new Date(Date.now() - windowMinutes * 60 * 1000);
 
-  // Find buyers who recently added to cart
   const rows = await RecommendationActivity.aggregate([
     { $match: { eventType: 'cart_add', createdAt: { $gte: since } } },
     { $sort: { createdAt: -1 } },
@@ -259,19 +278,30 @@ async function tick() {
     const uid = String(r?._id || '');
     if (!mongoose.Types.ObjectId.isValid(uid)) continue;
     try {
-      await sendCartPulse(uid, new Date(r.lastCartAddAt || Date.now()));
+      const outcome = await sendCartPulse(uid, new Date(r.lastCartAddAt || Date.now()));
+      if (outcome === 'sent') stats.sent += 1;
+      else if (outcome === 'failed') stats.failed += 1;
+      else stats.skipped += 1;
     } catch (e) {
+      stats.failed += 1;
       console.error('[cart-pulse] failed', uid, e);
     }
   }
+  return stats;
+}
+
+export async function runCartPulseOnce(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = await tick();
+  await recordFlowRun('cart_pulse', stats);
+  return stats;
 }
 
 let started = false;
 export function startCartPulseEmailWorker() {
   if (started) return;
   started = true;
-  void tick();
-  setInterval(() => void tick(), 20 * 60 * 1000); // every 20 min
+  void runCartPulseOnce();
+  setInterval(() => void runCartPulseOnce(), 20 * 60 * 1000);
   console.log(`[cart-pulse] worker started (${APP_NAME})`);
 }
 

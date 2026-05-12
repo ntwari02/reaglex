@@ -11,6 +11,7 @@ import './ProductDetail.css';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import ProductCard from '../components/ProductCard';
 import { productAPI } from '../services/api';
+import { homeFeedApi } from '../services/homeFeedApi';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
@@ -375,7 +376,11 @@ export default function ProductDetail() {
         setWishlistCount(Number(p?.wishlistCount || 0));
         addRecent(p);
         const rid = String(p._id || p.id || '');
-        if (rid) productAPI.trackView(rid).catch(() => null);
+        if (rid) {
+          productAPI.trackView(rid).catch(() => null);
+          // Marketplace AI: drive personalised home feed + recommendations.
+          homeFeedApi.track({ type: 'view', productId: rid });
+        }
         if (legacyId && p.slug && location.pathname.startsWith('/products/')) {
           navigate(`/product/${encodeURIComponent(String(p.slug).trim())}`, { replace: true });
         }

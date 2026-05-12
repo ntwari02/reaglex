@@ -74,6 +74,8 @@ import systemMonitorRoutes from './src/routes/systemMonitor.routes';
 import securityAnalysisRoutes from './src/routes/securityAnalysis.routes';
 import recommendationEmailRoutes from './src/routes/recommendationEmailRoutes';
 import { startRecommendationEmailWorker } from './src/services/recommendationEmail.service';
+import { publicHomeRouter, adminAIRouter } from './src/routes/marketplaceAIRoutes';
+import { startMarketplaceAIWorker } from './src/jobs/marketplaceAIWorker';
 import productVerificationRoutes from './src/routes/productVerificationRoutes';
 import currencyRoutes from './src/routes/currencyRoutes';
 import { startExchangeRateWorker } from './src/services/exchangeRate.service';
@@ -84,6 +86,7 @@ import { startLifecycleEmailWorker } from './src/jobs/lifecycleEmailWorker';
 import { startCartPulseEmailWorker } from './src/jobs/cartPulseEmailWorker';
 import { startBrowseAbandonEmailWorker } from './src/jobs/browseAbandonEmailWorker';
 import { startComplianceCertificateReminderJob } from './src/jobs/complianceCertificateReminderJob';
+import pushDeviceRoutes from './src/routes/pushDeviceRoutes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -295,8 +298,11 @@ app.use('/api/ai', aiAgentRoutes);
 app.use('/api/system', systemMonitorRoutes);
 app.use('/api/security-analysis', securityAnalysisRoutes);
 app.use('/api/recommendation-emails', recommendationEmailRoutes);
+app.use('/api/home', publicHomeRouter);
+app.use('/api/admin/marketplace-ai', adminAIRouter);
 app.use('/api/verification', productVerificationRoutes);
 app.use('/api/currency', currencyRoutes);
+app.use('/api/push', pushDeviceRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);
@@ -392,6 +398,7 @@ const connectDB = async () => {
     startBrowseAbandonEmailWorker();
     startExchangeRateWorker();
     startComplianceCertificateReminderJob();
+    startMarketplaceAIWorker();
 
     // Initialize WebSocket server
     websocketService.initialize(httpServer);

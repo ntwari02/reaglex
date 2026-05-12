@@ -11,6 +11,7 @@ import {
   getRecommendationEmailPreference,
   updateRecommendationEmailPreference,
 } from '../services/recommendationEmailApi';
+import WebPushOptInCard from './notifications/WebPushOptInCard';
 
 const PRIMARY = 'var(--brand-primary)';
 const SUCCESS = '#10b981';
@@ -989,6 +990,9 @@ export default function AccountSettingsDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Browser (PWA) push opt-in */}
+            <WebPushOptInCard />
 
             {/* Notification groups */}
             <div className="grid gap-4">

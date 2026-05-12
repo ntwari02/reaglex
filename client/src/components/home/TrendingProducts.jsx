@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { Star, ShoppingCart, Heart, TrendingUp, Zap } from 'lucide-react';
 import { productAPI } from '../../services/api';
+import { homeFeedApi } from '../../services/homeFeedApi';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
@@ -188,18 +189,32 @@ export default function TrendingProducts() {
       return;
     }
 
-    productAPI
-      .getProducts({ limit: 8, sort: '-rating' })
-      .then(res => {
-        const list = Array.isArray(res) ? res : (res?.products || res?.data || []);
+    // Marketplace AI: prefer the personalised "trending" section so every
+    // buyer sees a slightly different list. Falls back to the legacy
+    // product list when the AI endpoint is unavailable (e.g. fresh DB).
+    homeFeedApi
+      .getSection('trending', { limit: 8 })
+      .then((section) => {
+        const list = Array.isArray(section?.products) ? section.products : [];
+        if (!list.length) throw new Error('empty');
         const next = list.slice(0, 8);
         setProducts(next);
         trendingCache = { data: next, ts: Date.now() };
       })
-      .catch(() => {
-        setProducts(FALLBACK_PRODUCTS);
-        trendingCache = { data: FALLBACK_PRODUCTS, ts: Date.now() };
-      })
+      .catch(() =>
+        productAPI
+          .getProducts({ limit: 8, sort: '-rating' })
+          .then((res) => {
+            const list = Array.isArray(res) ? res : res?.products || res?.data || [];
+            const next = list.slice(0, 8);
+            setProducts(next);
+            trendingCache = { data: next, ts: Date.now() };
+          })
+          .catch(() => {
+            setProducts(FALLBACK_PRODUCTS);
+            trendingCache = { data: FALLBACK_PRODUCTS, ts: Date.now() };
+          }),
+      )
       .finally(() => setLoading(false));
   }, []);
 

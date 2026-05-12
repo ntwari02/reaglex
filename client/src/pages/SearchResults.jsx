@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
+import { homeFeedApi } from '../services/homeFeedApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   SlidersHorizontal, Star, ChevronDown, X,
@@ -329,6 +330,16 @@ export default function SearchResults() {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const q = params.get('q') || params.get('search') || '';
+
+  // Marketplace AI: feed the buyer's live search intent so the next home
+  // load reacts within seconds (e.g. searching "gaming keyboard" pivots
+  // the feed to gaming products on the very next request).
+  useEffect(() => {
+    const query = (q || '').trim();
+    if (query.length >= 2) {
+      homeFeedApi.track({ type: 'search', query });
+    }
+  }, [q]);
 
   const origin = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
   const seoPolicy = computeSearchListingSeo({

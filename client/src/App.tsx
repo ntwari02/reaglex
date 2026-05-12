@@ -26,6 +26,7 @@ import Navbar from './components/Navbar';
 // @ts-ignore JSX module without TS typings
 import MobileBottomNav from './components/MobileBottomNav';
 import AssistantChat from './components/AssistantChat';
+import { PwaRoot, ShareTargetHandler, DeepLinkHandler } from './pwa';
 import { websocketService } from './services/websocketService';
 // @ts-ignore Zustand JS store without TS types
 import { useBuyerCart } from './stores/buyerCartStore';
@@ -198,6 +199,7 @@ function App() {
         <GlobalRealtimeBridge />
         <SecurityTelemetryProbe />
         <ToastNotification />
+        <PwaRoot />
         {/* CartDrawer, GlobalNavbar and MobileBottomNav stay fixed to the real viewport. */}
         <CartDrawer />
         <GlobalNavbar />
@@ -264,6 +266,10 @@ function App() {
             <Route path="/seller/pending"              element={<SellerPending />} />
             <Route path="/become-seller"               element={<BecomeSeller />} />
             <Route path="/cart"                        element={<Navigate to="/" replace />} />
+
+            {/* ── PWA system routes ── */}
+            <Route path="/share"                       element={<ShareTargetHandler />} />
+            <Route path="/deep"                        element={<DeepLinkHandler />} />
 
             {/* ── Auth (single page: login / signup / forgot) ── */}
             <Route path="/auth"            element={<AuthPage />} />

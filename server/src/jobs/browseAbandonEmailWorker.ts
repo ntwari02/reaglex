@@ -8,6 +8,12 @@ import { isEmailConfigured, sendRecommendationDealsEmail } from '../services/ema
 import { getClientUrl } from '../config/publicEnv';
 import { formatUsdAsCurrency } from '../utils/money';
 import { getPersonalizationGate } from '../services/personalizationGate.service';
+import {
+  isMarketingFlowEnabled,
+  isMarketingFlowPushEnabled,
+  recordFlowRun,
+} from '../models/MarketingAutomationSettings';
+import { safeSendPushToUser } from '../services/pushNotificationService';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -113,24 +119,23 @@ async function buildBrowseAbandonProducts(
   return picked.slice(0, maxProducts);
 }
 
-async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectId[], lastViewedAt: Date) {
-  if (!mongoose.Types.ObjectId.isValid(userId)) return;
+async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectId[], lastViewedAt: Date): Promise<'sent' | 'skipped' | 'failed'> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return 'skipped';
   const uid = new mongoose.Types.ObjectId(userId);
-  if (!isEmailConfigured()) return;
-  if (await isOverDailyMarketingCap(userId)) return;
+  if (!isEmailConfigured()) return 'skipped';
+  if (await isOverDailyMarketingCap(userId)) return 'skipped';
 
   const cooldownHours = getIntEnv('BROWSE_ABANDON_COOLDOWN_HOURS', 6);
   const profile = await BuyerInsightProfile.findOne({ userId: uid }).select('lastBrowseAbandonSentAt').lean();
-  if (profile?.lastBrowseAbandonSentAt && hoursSince(profile.lastBrowseAbandonSentAt) < cooldownHours) return;
+  if (profile?.lastBrowseAbandonSentAt && hoursSince(profile.lastBrowseAbandonSentAt) < cooldownHours) return 'skipped';
 
-  // If they purchased or added these items to cart after last view, skip.
-  if (await hasIntentAfter(uid, lastViewedAt, seedIds)) return;
+  if (await hasIntentAfter(uid, lastViewedAt, seedIds)) return 'skipped';
 
   const user = await User.findById(uid).select('fullName email notifications accountStatus preferences').lean();
-  if (!user?.email) return;
-  if ((user as any).accountStatus === 'banned') return;
+  if (!user?.email) return 'skipped';
+  if ((user as any).accountStatus === 'banned') return 'skipped';
   const promoAllowed = Boolean((user as any)?.notifications?.email?.promotions ?? true);
-  if (!promoAllowed) return;
+  if (!promoAllowed) return 'skipped';
 
   const gate = await getPersonalizationGate(userId);
   const maxProducts = getIntEnv('BROWSE_ABANDON_MAX_PRODUCTS', 14);
@@ -138,10 +143,10 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
   const seedProducts = await Product.find({ _id: { $in: seedIds }, status: { $in: ['in_stock', 'low_stock'] } })
     .select('_id name price discount images description category tags')
     .lean();
-  if (!seedProducts.length) return;
+  if (!seedProducts.length) return 'skipped';
 
   const products = await buildBrowseAbandonProducts(seedProducts, maxProducts);
-  if (!products.length) return;
+  if (!products.length) return 'skipped';
 
   const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
   const subject = `Take another look, ${firstName}`;
@@ -197,7 +202,7 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
     history.status = 'failed';
     history.error = sendResult.error || 'send_failed';
     await history.save();
-    return;
+    return 'failed';
   }
 
   await BuyerInsightProfile.updateOne(
@@ -205,16 +210,32 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
     { $set: { lastBrowseAbandonSentAt: new Date() } },
     { upsert: true },
   );
+
+  if (await isMarketingFlowPushEnabled('browse_abandon')) {
+    const firstSeed = (seedProducts as any[])[0];
+    void safeSendPushToUser(uid, {
+      title: 'Still thinking about it?',
+      body: firstSeed?.name
+        ? `${String(firstSeed.name).slice(0, 80)} — your size & deal are still available.`
+        : `Take another look at items you viewed recently.`,
+      category: 'browse_abandon',
+      data: { campaign: 'browse_abandon', historyId: String(history._id) },
+      url: firstSeed?._id ? `/products/${String(firstSeed._id)}` : `/`,
+    });
+  }
+
+  return 'sent';
 }
 
-async function tick() {
-  if (!isEmailConfigured()) return;
+async function tick(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = { sent: 0, skipped: 0, failed: 0 };
+  if (!isEmailConfigured()) return stats;
+  if (!(await isMarketingFlowEnabled('browse_abandon'))) return stats;
 
   const windowHours = getIntEnv('BROWSE_ABANDON_WINDOW_HOURS', 24);
   const minViews = getIntEnv('BROWSE_ABANDON_MIN_VIEWS', 3);
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
 
-  // Find users who viewed the same product multiple times recently (high intent).
   const rows = await RecommendationActivity.aggregate([
     { $match: { eventType: 'product_view', createdAt: { $gte: since } } },
     { $group: { _id: { userId: '$userId', productId: '$productId' }, views: { $sum: 1 }, lastViewedAt: { $max: '$createdAt' } } },
@@ -233,22 +254,36 @@ async function tick() {
       .filter(mongoose.Types.ObjectId.isValid)
       .slice(0, 3)
       .map((id: string) => new mongoose.Types.ObjectId(id));
-    if (!seedIds.length) continue;
+    if (!seedIds.length) {
+      stats.skipped += 1;
+      continue;
+    }
     const lastViewedAt = seeds[0]?.lastViewedAt ? new Date(seeds[0].lastViewedAt) : new Date();
     try {
-      await sendBrowseAbandon(uid, seedIds, lastViewedAt);
+      const outcome = await sendBrowseAbandon(uid, seedIds, lastViewedAt);
+      if (outcome === 'sent') stats.sent += 1;
+      else if (outcome === 'failed') stats.failed += 1;
+      else stats.skipped += 1;
     } catch (e) {
+      stats.failed += 1;
       console.error('[browse-abandon] failed', uid, e);
     }
   }
+  return stats;
+}
+
+export async function runBrowseAbandonOnce(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = await tick();
+  await recordFlowRun('browse_abandon', stats);
+  return stats;
 }
 
 let started = false;
 export function startBrowseAbandonEmailWorker() {
   if (started) return;
   started = true;
-  void tick();
-  setInterval(() => void tick(), 30 * 60 * 1000); // every 30 min
+  void runBrowseAbandonOnce();
+  setInterval(() => void runBrowseAbandonOnce(), 30 * 60 * 1000);
   console.log(`[browse-abandon] worker started (${APP_NAME})`);
 }
 

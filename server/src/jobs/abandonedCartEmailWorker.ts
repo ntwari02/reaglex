@@ -7,6 +7,12 @@ import { User } from '../models/User';
 import { isEmailConfigured, sendAbandonedCartEmail } from '../services/emailService';
 import { getClientUrl } from '../config/publicEnv';
 import { formatUsdAsCurrency } from '../utils/money';
+import {
+  isMarketingFlowEnabled,
+  isMarketingFlowPushEnabled,
+  recordFlowRun,
+} from '../models/MarketingAutomationSettings';
+import { safeSendPushToUser } from '../services/pushNotificationService';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -96,20 +102,18 @@ async function userPurchasedAfter(userId: string, after: Date): Promise<boolean>
   return Boolean(row?._id);
 }
 
-async function processOneUser(userId: string, cutoff: Date) {
+async function processOneUser(userId: string, cutoff: Date): Promise<'sent' | 'skipped' | 'failed'> {
   const user = await User.findById(userId).select('email fullName accountStatus notifications preferences').lean();
-  if (!user?.email) return;
-  if ((user as any).accountStatus === 'banned') return;
+  if (!user?.email) return 'skipped';
+  if ((user as any).accountStatus === 'banned') return 'skipped';
 
-  // Respect high-level email opt-out if present.
-  // Cart reminders are closer to lifecycle, but we still skip if user disabled email promotions entirely.
   const promoAllowed = Boolean((user as any)?.notifications?.email?.promotions ?? true);
-  if (!promoAllowed) return;
+  if (!promoAllowed) return 'skipped';
 
   const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const { lines, lastCartAddAt } = await buildCartLinesFromActivity(String(userId), lookback);
-  if (!lines.length || !lastCartAddAt) return;
-  if (lastCartAddAt > cutoff) return; // not abandoned yet
+  if (!lines.length || !lastCartAddAt) return 'skipped';
+  if (lastCartAddAt > cutoff) return 'skipped';
 
   const purchased = await userPurchasedAfter(String(userId), lastCartAddAt);
   if (purchased) {
@@ -117,15 +121,14 @@ async function processOneUser(userId: string, cutoff: Date) {
       { userId: new mongoose.Types.ObjectId(userId), recovered: false },
       { $set: { recovered: true } },
     );
-    return;
+    return 'skipped';
   }
 
-  // Avoid spamming: if we already sent a reminder for this user recently, skip.
   const existing = await AbandonedCart.findOne({ userId: new mongoose.Types.ObjectId(userId), recovered: false })
     .sort({ abandonedAt: -1 })
     .lean();
   if (existing?.abandonedAt && (Date.now() - new Date(existing.abandonedAt).getTime()) < 12 * 60 * 60 * 1000) {
-    return;
+    return 'skipped';
   }
 
   const ids = lines.map((l) => l.productId).filter(mongoose.Types.ObjectId.isValid).map((id) => new mongoose.Types.ObjectId(id));
@@ -158,7 +161,7 @@ async function processOneUser(userId: string, cutoff: Date) {
     })
     .filter(Boolean) as any[];
 
-  if (!emailProducts.length) return;
+  if (!emailProducts.length) return 'skipped';
   for (const ep of emailProducts as any[]) {
     const conv = await formatUsdAsCurrency(Number(ep.price || 0), displayCurrency);
     ep.priceText = conv.formatted;
@@ -183,21 +186,34 @@ async function processOneUser(userId: string, cutoff: Date) {
     products: emailProducts,
     cartUrl: `${CLIENT_URL}/cart`,
   });
+
+  if (await isMarketingFlowPushEnabled('abandoned_cart')) {
+    void safeSendPushToUser(userId, {
+      title: 'Your cart is waiting',
+      body: `${emailProducts.length} item${emailProducts.length > 1 ? 's' : ''} still in your cart — tap to checkout.`,
+      category: 'abandoned_cart',
+      data: { campaign: 'abandoned_cart' },
+      url: `/cart`,
+    });
+  }
+
+  return 'sent';
 }
 
-async function tick() {
+async function tick(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = { sent: 0, skipped: 0, failed: 0 };
   const enabledByEnv = getBoolEnv('SEND_ABANDONED_CART_EMAIL', true);
-  if (!enabledByEnv) return;
-  if (!isEmailConfigured()) return;
+  if (!enabledByEnv) return stats;
+  if (!isEmailConfigured()) return stats;
+  if (!(await isMarketingFlowEnabled('abandoned_cart'))) return stats;
 
   const settings = await getSettings();
-  if (!settings.enabled) return;
+  if (!settings.enabled) return stats;
 
   const ageMs = timingToMs(settings.reminderTiming);
   const cutoff = new Date(Date.now() - ageMs);
   const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-  // Find candidate users who have cart_add older than cutoff.
   const candidates = await RecommendationActivity.aggregate([
     {
       $match: {
@@ -214,19 +230,30 @@ async function tick() {
     const userId = String(c._id || '');
     if (!mongoose.Types.ObjectId.isValid(userId)) continue;
     try {
-      await processOneUser(userId, cutoff);
+      const outcome = await processOneUser(userId, cutoff);
+      if (outcome === 'sent') stats.sent += 1;
+      else if (outcome === 'failed') stats.failed += 1;
+      else stats.skipped += 1;
     } catch (e) {
+      stats.failed += 1;
       console.error('[abandoned-cart-email] user failed', userId, e);
     }
   }
+  return stats;
+}
+
+export async function runAbandonedCartOnce(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = await tick();
+  await recordFlowRun('abandoned_cart', stats);
+  return stats;
 }
 
 let started = false;
 export function startAbandonedCartEmailWorker() {
   if (started) return;
   started = true;
-  void tick();
-  setInterval(() => void tick(), 10 * 60 * 1000);
+  void runAbandonedCartOnce();
+  setInterval(() => void runAbandonedCartOnce(), 10 * 60 * 1000);
   console.log(`[abandoned-cart-email] worker started (${APP_NAME})`);
 }
 

@@ -48,6 +48,13 @@ import {
   updateAISettings,
   getMarketingSettings,
   updateMarketingSettings,
+  getAutomationOverview,
+  updateAutomationFlow,
+  updateAutomationGlobals,
+  runAutomationFlow,
+  testAutomationEmail,
+  sendAutomationPush,
+  getAutomationRecentSends,
 } from '../controllers/adminMarketingController';
 
 const router = Router();
@@ -131,5 +138,14 @@ router.put('/ai-settings', updateAISettings);
 // Marketing settings
 router.get('/settings', getMarketingSettings);
 router.put('/settings', updateMarketingSettings);
+
+// Marketing automation engine
+router.get('/automation/overview', getAutomationOverview);
+router.put('/automation/globals', updateAutomationGlobals);
+router.patch('/automation/flows/:flow', updateAutomationFlow);
+router.post('/automation/flows/:flow/run', runAutomationFlow);
+router.post('/automation/test-email', testAutomationEmail);
+router.post('/automation/push', sendAutomationPush);
+router.get('/automation/recent', getAutomationRecentSends);
 
 export default router;

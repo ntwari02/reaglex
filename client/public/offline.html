@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>You're offline — Reaglex</title>
+    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; height: 100%; font-family: 'DM Sans', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+      body {
+        background: radial-gradient(120% 80% at 10% -10%, #1e293b 0%, #0b1220 60%, #050813 100%);
+        color: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100dvh;
+        padding: 24px;
+      }
+      .card {
+        max-width: 460px;
+        width: 100%;
+        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        border: 1px solid rgba(148,163,184,0.18);
+        border-radius: 24px;
+        backdrop-filter: blur(20px);
+        padding: 36px 30px;
+        text-align: center;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.45);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(248,113,113,0.12);
+        color: #fca5a5;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #f87171;
+        box-shadow: 0 0 12px #f87171;
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.25); }
+      }
+      h1 {
+        font-size: 26px;
+        margin: 18px 0 8px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      p { color: rgba(241,245,249,0.72); line-height: 1.6; font-size: 15px; }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 22px;
+        padding: 12px 22px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #10b981, #06b6d4);
+        color: white;
+        font-weight: 700;
+        font-size: 14px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: transform 200ms ease;
+      }
+      .btn:hover { transform: translateY(-1px); }
+      .meta {
+        margin-top: 22px;
+        font-size: 12px;
+        color: rgba(241,245,249,0.45);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <span class="badge"><span class="dot"></span> You&rsquo;re offline</span>
+      <h1>No connection right now</h1>
+      <p>
+        Reaglex saved this page so you can keep browsing what you already opened.
+        Anything you do here will sync automatically when you&rsquo;re back online.
+      </p>
+      <button class="btn" onclick="location.reload()">Try again</button>
+      <div class="meta">Tip: pull-to-refresh on mobile to reconnect faster.</div>
+    </div>
+    <script>
+      // Auto-refresh once connection comes back.
+      window.addEventListener('online', () => {
+        setTimeout(() => location.reload(), 300);
+      });
+    </script>
+  </body>
+</html>

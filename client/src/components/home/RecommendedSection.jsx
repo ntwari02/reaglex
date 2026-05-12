@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { Star, ShoppingCart, Sparkles, Heart } from 'lucide-react';
 import { productAPI } from '../../services/api';
+import { homeFeedApi } from '../../services/homeFeedApi';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
@@ -169,18 +170,40 @@ export default function RecommendedSection() {
       return;
     }
 
-    productAPI
-      .getProducts(params)
-      .then(res => {
-        const list = Array.isArray(res) ? res : (res?.products || res?.data || []);
+    // Personalised: map the legacy sort buckets onto AI feed sections so
+    // every shopper sees a different recommendation list driven by their
+    // affinity / session intent.
+    const aiSectionByTab = {
+      'just-for-you': 'foryou',
+      'trending':     'trending',
+      'best-deals':   'deals',
+      'new-arrivals': 'fresh',
+    };
+    const aiSection = aiSectionByTab[activeTab] || 'foryou';
+
+    homeFeedApi
+      .getSection(aiSection, { limit: params.limit })
+      .then((section) => {
+        const list = Array.isArray(section?.products) ? section.products : [];
+        if (!list.length) throw new Error('empty');
         const next = list.slice(0, 8);
         setProducts(next);
         recommendedCache.set(key, { data: next, ts: Date.now() });
       })
-      .catch(() => {
-        setProducts(FALLBACK);
-        recommendedCache.set(key, { data: FALLBACK, ts: Date.now() });
-      })
+      .catch(() =>
+        productAPI
+          .getProducts(params)
+          .then((res) => {
+            const list = Array.isArray(res) ? res : res?.products || res?.data || [];
+            const next = list.slice(0, 8);
+            setProducts(next);
+            recommendedCache.set(key, { data: next, ts: Date.now() });
+          })
+          .catch(() => {
+            setProducts(FALLBACK);
+            recommendedCache.set(key, { data: FALLBACK, ts: Date.now() });
+          }),
+      )
       .finally(() => setLoading(false));
   }, [activeTab, sortParam]);
 

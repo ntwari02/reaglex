@@ -14,6 +14,7 @@
     "@types/nodemailer": "^6.4.23",
     "@types/qrcode": "^1.5.6",
     "@types/socket.io": "^3.0.1",
+    "@types/web-push": "^3.6.4",
     "async-mutex": "^0.5.0",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
@@ -38,13 +39,14 @@
     "pino": "^9.6.0",
     "qrcode": "^1.5.4",
     "resend": "^6.9.4",
-    "socket.io": "^4.8.3",
     "sharp": "^0.34.3",
+    "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "speakeasy": "^2.0.0",
     "streamifier": "^0.1.1",
     "stripe": "^17.7.0",
     "typescript": "^5.9.3",
+    "web-push": "^3.6.7",
     "zod": "^4.2.1"
   },
   "devDependencies": {
@@ -64,7 +66,8 @@
     "seo:ssr": "node dist/src/seo/seoSsrServer.js",
     "seed:disputes": "ts-node src/scripts/seedDisputes.ts",
     "seed:inbox": "ts-node src/scripts/seedInboxData.ts",
-    "migrate:images": "node scripts/migrateImages.js"
+    "migrate:images": "node scripts/migrateImages.js",
+    "vapid:generate": "node scripts/generateVapidKeys.js"
   },
   "keywords": [],
   "author": "",

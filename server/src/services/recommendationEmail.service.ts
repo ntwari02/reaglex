@@ -10,6 +10,12 @@ import { sendRecommendationDealsEmail } from './emailService';
 import { getClientUrl } from '../config/publicEnv';
 import { formatUsdAsCurrency } from '../utils/money';
 import { getPersonalizationGate } from './personalizationGate.service';
+import {
+  isMarketingFlowEnabled,
+  isMarketingFlowPushEnabled,
+  recordFlowRun,
+} from '../models/MarketingAutomationSettings';
+import { safeSendPushToUser } from './pushNotificationService';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -460,10 +466,24 @@ export async function sendRecommendationEmailToUser(userId: string) {
   pref.lastSentAt = new Date();
   pref.lastRecommendationProductIds = products.map((p: any) => String(p._id));
   await pref.save();
+
+  if (await isMarketingFlowPushEnabled('recommendation')) {
+    const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
+    void safeSendPushToUser(userId, {
+      title: 'Deals picked for you',
+      body: `${firstName}, ${emailProducts.length} fresh recommendations are ready.`,
+      category: 'recommendation',
+      data: { campaign: 'recommendation', historyId: String(history._id) },
+      url: `/recommendations`,
+    });
+  }
+
   return { success: true, historyId: String(history._id) };
 }
 
-export async function runRecommendationEmailJob() {
+export async function runRecommendationEmailJob(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = { sent: 0, skipped: 0, failed: 0 };
+  if (!(await isMarketingFlowEnabled('recommendation'))) return stats;
   const maxPerRun = getIntEnv('RECOMMENDATION_EMAIL_RUN_MAX_USERS', 400);
   const users = await User.find({ role: 'buyer', accountStatus: { $ne: 'banned' } })
     .select('_id')
@@ -471,12 +491,21 @@ export async function runRecommendationEmailJob() {
     .lean();
   for (const u of users as any[]) {
     try {
-      await sendRecommendationEmailToUser(String(u._id));
+      const result = await sendRecommendationEmailToUser(String(u._id));
+      if (result?.success) stats.sent += 1;
+      else stats.skipped += 1;
     } catch (err) {
-      // keep batch running
+      stats.failed += 1;
       console.error('[recommendation-email] user failed', String(u._id), err);
     }
   }
+  return stats;
+}
+
+export async function runRecommendationOnce(): Promise<{ sent: number; skipped: number; failed: number }> {
+  const stats = await runRecommendationEmailJob();
+  await recordFlowRun('recommendation', stats);
+  return stats;
 }
 
 let recommendationWorkerStarted = false;
@@ -484,9 +513,9 @@ export function startRecommendationEmailWorker() {
   if (recommendationWorkerStarted) return;
   recommendationWorkerStarted = true;
   const hourly = 60 * 60 * 1000;
-  void runRecommendationEmailJob();
+  void runRecommendationOnce();
   setInterval(() => {
-    void runRecommendationEmailJob();
+    void runRecommendationOnce();
   }, hourly);
   console.log(`[recommendation-email] worker started (${APP_NAME})`);
 }
