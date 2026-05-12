@@ -5,6 +5,7 @@ import { Star, ShoppingCart, Sparkles, Heart } from 'lucide-react';
 import { productAPI } from '../../services/api';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { SERVER_URL } from '../../lib/config';
+import { buyerProductPath } from '../../lib/productUrl';
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -49,7 +50,7 @@ function RecCard({ product, index, onAdd }) {
       transition={{ duration: 0.5, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link
-        to={`/products/${product._id}`}
+        to={buyerProductPath(product)}
         className="block rounded-2xl overflow-hidden transition-all duration-300 group-hover:-translate-y-1"
         style={{
           background: 'var(--card-bg)',

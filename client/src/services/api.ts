@@ -98,7 +98,11 @@ export const productAPI = {
     api.get('/products', { params }).then((r) => r.data),
 
   /** Single product by ID — retries on timeout/network errors */
-  getProductById: (id: string) => api.get(`/products/${id}`).then((r) => r.data),
+  getProductById: (id: string) => api.get(`/products/${encodeURIComponent(id)}`).then((r) => r.data),
+
+  /** PDP by SEO slug (canonical URL) */
+  getProductBySlug: (slug: string) =>
+    api.get(`/products/by-slug/${encodeURIComponent(slug)}`).then((r) => r.data),
 
   /** Track a product view — fire-and-forget, never throws */
   trackView: (id: string) => api.post(`/products/${id}/view`).catch(() => null),
@@ -108,6 +112,13 @@ export const productAPI = {
 
   /** Toggle wishlist (auth required) */
   toggleWishlist: (id: string) => api.post(`/products/${id}/wishlist`).then((r) => r.data),
+};
+
+/** Public category taxonomy + hub metadata (guest-safe, cached on API). */
+export const categoriesAPI = {
+  list: () => publicApi.get('/categories').then((r) => r.data),
+  getBySlug: (slug: string) =>
+    publicApi.get(`/categories/slug/${encodeURIComponent(slug)}`).then((r) => r.data),
 };
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import { EscrowWallet } from '../models/EscrowWallet';
 import { TransactionLog } from '../models/TransactionLog';
 import { sendNotification } from './notificationService';
 import { restoreInventoryForOrder } from './inventory.service';
+import mongoose from 'mongoose';
 
 export async function scheduleAutoRelease(orderId: string) {
   await Order.findByIdAndUpdate(orderId, {
@@ -126,31 +127,66 @@ export async function autoReleaseEscrow(orderId: string) {
   }
 }
 
-export async function refundBuyer(orderId: string, reason: string) {
+export async function refundBuyer(
+  orderId: string,
+  reason: string,
+  options?: {
+    amount?: number;
+    refundType?: 'full' | 'partial';
+    disputeId?: string;
+  }
+) {
   const order = await Order.findById(orderId);
   if (!order || !order.payment?.flutterwaveTransactionId) {
     throw new Error('Order / payment not found');
   }
 
+  const refundedAgg = await TransactionLog.aggregate([
+    {
+      $match: {
+        type: 'REFUND',
+        orderId: new mongoose.Types.ObjectId(orderId),
+        status: 'REFUNDED',
+      },
+    },
+    { $group: { _id: null, total: { $sum: '$amount' } } },
+  ]);
+  const alreadyRefunded = Number(refundedAgg[0]?.total || 0);
+  const maxRefundable = Math.max(0, Number(order.total || 0) - alreadyRefunded);
+  const requestedAmount = Number(options?.amount ?? order.total);
+  const amount = Number.isFinite(requestedAmount) ? Number(requestedAmount.toFixed(2)) : NaN;
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Invalid refund amount');
+  }
+  if (amount > maxRefundable) {
+    throw new Error(`Refund exceeds remaining refundable amount (${maxRefundable.toFixed(2)})`);
+  }
+
   const refundPayload: any = {
     id: order.payment.flutterwaveTransactionId,
-    amount: order.total,
+    amount,
   };
 
   const flw = await getFlutterwaveClient();
   const response = await flw.Transaction.refund(refundPayload);
 
   if (response.status === 'success') {
+    const cumulativeRefunded = alreadyRefunded + amount;
+    const isFullyRefunded = cumulativeRefunded >= Number(order.total || 0);
+
     await Order.findByIdAndUpdate(orderId, {
-      'escrow.status': 'REFUNDED',
+      ...(isFullyRefunded ? { 'escrow.status': 'REFUNDED' } : {}),
+      'escrow.refundedAmount': cumulativeRefunded,
+      'escrow.lastRefundAt': new Date(),
     });
 
     await EscrowWallet.updateOne(
       {},
       {
         $inc: {
-          totalHeld: -order.total,
-          totalRefunded: order.total,
+          totalHeld: -amount,
+          totalRefunded: amount,
         },
       }
     );
@@ -160,20 +196,28 @@ export async function refundBuyer(orderId: string, reason: string) {
       orderId: order._id,
       buyerId: order.buyerId,
       sellerId: order.sellerId,
-      amount: order.total,
+      amount,
       currency: order.payment.currency || 'USD',
       status: 'REFUNDED',
       flutterwaveRef: String(order.payment.flutterwaveTransactionId),
-      metadata: { reason },
+      metadata: {
+        reason,
+        refundType: options?.refundType || (isFullyRefunded ? 'full' : 'partial'),
+        disputeId: options?.disputeId,
+        refundedAmount: amount,
+        cumulativeRefunded,
+      },
     }).save();
 
     await sendNotification(order.buyerId.toString(), 'REFUND_INITIATED', {
-      amount: order.total,
+      amount,
       reason,
     });
     await sendNotification(order.sellerId.toString(), 'ORDER_REFUNDED', { reason });
 
-    await restoreInventoryForOrder(orderId, 'order_refunded');
+    if (isFullyRefunded) {
+      await restoreInventoryForOrder(orderId, 'order_refunded');
+    }
   } else {
     throw new Error(response.message || 'Failed to refund buyer');
   }

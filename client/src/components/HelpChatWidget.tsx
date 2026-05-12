@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/config';
+import { buyerProductPath } from '@/lib/productUrl';
 
 type Sender = 'bot' | 'user';
 
@@ -327,7 +328,7 @@ export default function HelpChatWidget() {
     if (matchAny(['return', 'refund'])) {
       return {
         text:
-          "You can return within 30 days! ↩\n\nGo to Account → Returns\n→ New Return Request\n→ Select order → Submit\n\nRefund in 3-5 business days 💰",
+          "Returns are accepted within 30 days if items are unused, in original condition, and in original packaging. ↩\n\nGo to Account → Returns\n→ New Return Request\n→ Select order → Submit\n\nSale items are not refundable, and return shipping is paid by the buyer.",
         kind: 'return',
       };
     }
@@ -970,7 +971,7 @@ export default function HelpChatWidget() {
                             <button
                               key={p.id}
                               type="button"
-                              onClick={() => navigate(`/products/${p.id}`)}
+                              onClick={() => navigate(buyerProductPath({ id: p.id }))}
                               style={{
                                 width: 120,
                                 padding: 0,

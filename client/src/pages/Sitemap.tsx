@@ -1,14 +1,23 @@
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Map, ChevronRight } from 'lucide-react';
 // @ts-ignore
 import BuyerLayout from '../components/buyer/BuyerLayout';
+import { PageSeo } from '../components/seo/PageSeo';
+import { getPreferredSiteOrigin } from '../lib/siteOrigin';
+import { buildLocaleAlternates } from '../utils/localeAlternateLinks';
+import { STOREFRONT_CATEGORIES, categoryPathFromSlug } from '../constants/storefrontCategories';
+import { categoriesAPI } from '../services/api';
+
+type CategoryEntry = { slug: string; name: string };
 
 const GROUPS: { title: string; links: { to: string; label: string }[] }[] = [
   {
     title: 'Shop',
     links: [
       { to: '/', label: 'Home' },
+      { to: '/products', label: 'All products' },
       { to: '/search', label: 'Browse & search' },
       { to: '/checkout', label: 'Checkout' },
       { to: '/track', label: 'Track order' },
@@ -54,10 +63,59 @@ const GROUPS: { title: string; links: { to: string; label: string }[] }[] = [
 ];
 
 export default function Sitemap() {
+  const [dynamicCats, setDynamicCats] = useState<CategoryEntry[] | null>(null);
+  const origin = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
+  const canonicalUrl = origin ? `${origin}/sitemap` : '/sitemap';
+  const hreflangAlternates = useMemo(
+    () => (origin ? buildLocaleAlternates(origin, '/sitemap') : undefined),
+    [origin],
+  );
+
+  useEffect(() => {
+    let alive = true;
+    categoriesAPI
+      .list()
+      .then((r: any) => {
+        if (!alive) return;
+        const cats = Array.isArray(r?.categories) ? r.categories : [];
+        setDynamicCats(cats.map((c: any) => ({ slug: c.slug, name: c.name })));
+      })
+      .catch(() => {
+        if (alive) {
+          setDynamicCats(
+            STOREFRONT_CATEGORIES.map((c) => ({ slug: c.slug, name: c.displayName })),
+          );
+        }
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const cats = dynamicCats ?? STOREFRONT_CATEGORIES.map((c) => ({ slug: c.slug, name: c.displayName }));
+
+  const sitemapJsonLd = useMemo(
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Reaglex sitemap',
+      url: canonicalUrl,
+    }),
+    [canonicalUrl],
+  );
+
   return (
     <BuyerLayout>
+      <PageSeo
+        title="Sitemap | Reaglex marketplace"
+        description="Reaglex HTML sitemap — quick links to categories, account areas, help center, seller resources, and legal pages."
+        canonicalUrl={canonicalUrl}
+        ogType="website"
+        jsonLd={sitemapJsonLd}
+        hreflangAlternates={hreflangAlternates}
+      />
       <div className="min-h-screen pb-16">
-        <div
+        <header
           className="relative overflow-hidden rounded-b-3xl px-4 sm:px-6 py-12 sm:py-16 mb-10"
           style={{
             background:
@@ -82,19 +140,59 @@ export default function Sitemap() {
               <Map size={16} />
               Site map
             </motion.div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
-              Sitemap
-            </h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Sitemap</h1>
             <p className="text-base sm:text-lg" style={{ color: 'var(--text-secondary)' }}>
-              Quick links to main areas of Reaglex.
+              Quick links to main areas of Reaglex. Crawlers can also fetch the machine sitemap at{' '}
+              <a
+                href="/sitemap.xml"
+                className="underline"
+                style={{ color: 'var(--link-color)' }}
+              >
+                /sitemap.xml
+              </a>
+              .
             </p>
           </div>
-        </div>
+        </header>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 grid gap-6 sm:grid-cols-2">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <nav
+            aria-label="Categories"
+            className="rounded-2xl p-6 sm:col-span-2 lg:col-span-1"
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--divider)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <h2
+              className="text-sm font-bold uppercase tracking-wider mb-4"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Categories
+            </h2>
+            <ul className="space-y-0.5">
+              {cats.map((cat) => (
+                <li key={cat.slug}>
+                  <Link
+                    to={categoryPathFromSlug(cat.slug)}
+                    className="flex items-center gap-2 py-2.5 px-2 -mx-2 rounded-lg text-sm font-medium"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-50" />
+                    <span className="hover:underline" style={{ color: 'var(--link-color)' }}>
+                      {cat.name}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
           {GROUPS.map((group) => (
-            <section
+            <nav
               key={group.title}
+              aria-label={group.title}
               className="rounded-2xl p-6"
               style={{
                 background: 'var(--bg-secondary)',
@@ -102,7 +200,10 @@ export default function Sitemap() {
                 boxShadow: 'var(--shadow-sm)',
               }}
             >
-              <h2 className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: 'var(--text-muted)' }}>
+              <h2
+                className="text-sm font-bold uppercase tracking-wider mb-4"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 {group.title}
               </h2>
               <ul className="space-y-0.5">
@@ -110,7 +211,7 @@ export default function Sitemap() {
                   <li key={item.to + item.label}>
                     <Link
                       to={item.to}
-                      className="flex items-center gap-2 py-2.5 px-2 -mx-2 rounded-lg text-sm font-medium transition-colors"
+                      className="flex items-center gap-2 py-2.5 px-2 -mx-2 rounded-lg text-sm font-medium"
                       style={{ color: 'var(--text-primary)' }}
                     >
                       <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-50" />
@@ -121,7 +222,7 @@ export default function Sitemap() {
                   </li>
                 ))}
               </ul>
-            </section>
+            </nav>
           ))}
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/config';
+import { buyerProductPath } from '@/lib/productUrl';
 
 type Sender = 'bot' | 'user';
 
@@ -219,37 +220,27 @@ export default function AssistantChat() {
       .ai-trigger-btn {
         position: relative; background: none; border: none; padding: 0; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
-        width: 58px; height: 58px;
+        width: 44px; height: 112px;
       }
       .ai-trigger-core {
-        width: 54px; height: 54px; border-radius: 50%;
-        /* Same charcoal stack as buyer dark mode: --card-bg / --bg-page */
-        background: linear-gradient(145deg, #1c1c1c 0%, #121212 100%);
-        border: 1.5px solid color-mix(in srgb, var(--brand-primary) 32%, transparent);
-        box-shadow:
-          0 0 18px color-mix(in srgb, var(--brand-primary) 18%, transparent),
-          0 0 36px color-mix(in srgb, var(--brand-primary) 8%, transparent),
-          0 8px 28px rgba(0,0,0,0.45);
+        width: 44px; height: 104px;
+        /* Browser-like side tab: round on left side only. */
+        border-radius: 14px 0 0 14px;
+        background: var(--card-bg);
+        border: 1px solid color-mix(in srgb, var(--border-card) 90%, transparent);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.22);
         display: flex; align-items: center; justify-content: center;
-        transition: transform 0.28s ease, box-shadow 0.28s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
       .ai-trigger-core:hover {
-        transform: translateY(-3px);
-        box-shadow:
-          0 0 26px color-mix(in srgb, var(--brand-primary) 26%, transparent),
-          0 0 48px color-mix(in srgb, var(--brand-primary) 12%, transparent),
-          0 10px 36px rgba(0,0,0,0.5);
+        transform: translateX(-2px);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.28);
       }
       .ai-ring {
-        position: absolute; border-radius: 50%;
-        border: 1.5px solid color-mix(in srgb, var(--brand-primary) 22%, transparent);
-        animation: aiRingPulse 2.6s ease-out infinite; pointer-events: none;
-        top: -5px; left: -5px; right: -5px; bottom: -5px;
+        display: none;
       }
       .ai-ring-2 {
-        top: -10px; left: -10px; right: -10px; bottom: -10px;
-        border: 1px solid color-mix(in srgb, var(--brand-primary) 12%, transparent);
-        animation-delay: 0.9s;
+        display: none;
       }
       @keyframes aiRingPulse {
         0%   { opacity: 0.75; transform: scale(1); }
@@ -522,8 +513,10 @@ export default function AssistantChat() {
     <div
       style={{
         position: 'fixed',
-        bottom: isMobileViewport ? 'calc(82px + env(safe-area-inset-bottom))' : 20,
-        right: isMobileViewport ? 12 : 20,
+        top: isMobileViewport ? 'auto' : '50%',
+        transform: isMobileViewport ? 'none' : 'translateY(-50%)',
+        bottom: isMobileViewport ? 'calc(82px + env(safe-area-inset-bottom))' : 'auto',
+        right: 'max(0px, env(safe-area-inset-right))',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
@@ -544,10 +537,8 @@ export default function AssistantChat() {
           transition={{ type: 'spring', stiffness: 340, damping: 20 }}
           whileTap={{ scale: 0.92 }}
         >
-          <span className="ai-ring" />
-          <span className="ai-ring ai-ring-2" />
           <span className="ai-trigger-core">
-            <GeminiIcon size={26} className="gemini-animated-icon" />
+            <GeminiIcon size={24} className="gemini-animated-icon" />
           </span>
         </motion.button>
       )}
@@ -714,7 +705,7 @@ export default function AssistantChat() {
                                 transition: 'transform 0.2s, box-shadow 0.2s',
                               }}>
                                 {/* Image */}
-                                <button type="button" onClick={() => navigate(`/products/${p.id}`)}
+                                <button type="button" onClick={() => navigate(buyerProductPath({ id: p.id }))}
                                   style={{ width: '100%', border: 'none', padding: 0, cursor: 'pointer', background: 'none', display: 'block', textAlign: 'left' }}>
                                   <div style={{ height: single ? 150 : 80, background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden' }}>
                                     {p.imageUrls?.[0]
@@ -745,7 +736,7 @@ export default function AssistantChat() {
                                     Buy now
                                   </button>
                                   <button type="button"
-                                    onClick={() => navigate(`/products/${p.id}`)}
+                                    onClick={() => navigate(buyerProductPath({ id: p.id }))}
                                     style={{ flex: 1, minWidth: 80, padding: '7px 8px', borderRadius: 10, border: '1px solid var(--border-card)', cursor: 'pointer', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 11 }}>
                                     View
                                   </button>

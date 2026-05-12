@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { useSeo } from '../utils/useSeo';
+import { PageSeo } from '../components/seo/PageSeo';
+import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 
 // ── Critical first paint ─────────────────────────────────────────────────────
@@ -57,10 +58,7 @@ function DeferredSection({ children, fallbackHeight = 420, rootMargin = '400px 0
 }
 
 export default function Home() {
-  useSeo({
-    title: 'Reaglex – Shop the Future',
-    description: 'Discover premium products from verified sellers. Secure payments, fast delivery, and buyer protection built in.',
-  });
+  const origin = getPreferredSiteOrigin();
 
   // Preload only critical first-view hero assets.
   useEffect(() => {
@@ -78,6 +76,13 @@ export default function Home() {
 
   return (
     <BuyerLayout>
+      <PageSeo
+        title="Reaglex – Shop with escrow protection"
+        description="Discover premium products from verified sellers. Secure payments, fast delivery, and buyer protection built in."
+        canonicalUrl={origin ? `${origin}/` : undefined}
+        ogImage={origin ? `${origin}/logo.jpg` : undefined}
+        ogType="website"
+      />
       {/* Hero extends to top of viewport, cancelling BuyerLayout's navbar padding */}
       <div className="-mt-[calc(134px+env(safe-area-inset-top,0px))] md:-mt-[calc(158px+env(safe-area-inset-top,0px))]">
         <ReimaginedHero />

@@ -16,6 +16,7 @@ import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { buyerProductPath } from '../lib/productUrl';
 
 const PRIMARY = 'var(--brand-primary)';
 const PRIMARY_HOVER = 'var(--brand-primary-hover)';
@@ -63,16 +64,16 @@ const SEARCH_CATEGORIES = [
 ];
 
 const MEGA_CATEGORIES = [
-  { icon: '📱', name: 'Electronics' },
-  { icon: '👗', name: 'Clothing' },
-  { icon: '👜', name: 'Accessories' },
-  { icon: '🏠', name: 'Home & Garden' },
-  { icon: '⚽', name: 'Sports' },
-  { icon: '💄', name: 'Beauty' },
-  { icon: '📚', name: 'Books' },
-  { icon: '🧸', name: 'Toys' },
-  { icon: '🚗', name: 'Automotive' },
-  { icon: '🍔', name: 'Food & Grocery' },
+  { icon: '📱', name: 'Electronics', slug: 'electronics' },
+  { icon: '👗', name: 'Clothing', slug: 'clothing' },
+  { icon: '👜', name: 'Accessories', slug: 'accessories' },
+  { icon: '🏠', name: 'Home & Garden', slug: 'home-garden' },
+  { icon: '⚽', name: 'Sports', slug: 'sports' },
+  { icon: '💄', name: 'Beauty', slug: 'beauty' },
+  { icon: '📚', name: 'Books', slug: 'books' },
+  { icon: '🧸', name: 'Toys', slug: 'toys' },
+  { icon: '🚗', name: 'Automotive', slug: 'automotive' },
+  { icon: '🍔', name: 'Food & Grocery', slug: 'food-grocery' },
 ];
 
 const ANNOUNCEMENT_KEYS = ['topbar.announcement1', 'topbar.announcement2', 'topbar.announcement3'];
@@ -84,6 +85,7 @@ const LANG_OPTIONS = [
 
 const NAV_LINKS = [
   { to: '/', labelKey: 'nav.home' },
+  { to: '/products', labelKey: 'footer.links.shop.allProducts' },
   { to: '/search?sort=newest', labelKey: 'nav.newArrivals' },
   { to: '/search?sort=discount', labelKey: 'nav.deals', badge: 'HOT' },
   { to: '/search?sort=rating', labelKey: 'nav.topSellers' },
@@ -342,7 +344,7 @@ function MainHeader({
       actions.push({ type: 'noResult', label: t('search.noMatches'), onClick: () => { navigate('/search'); setSuggestionsOpen(false); } });
     } else {
       if (products.length > 0) products.slice(0, 5).forEach((p) => {
-        actions.push({ type: 'product', data: p, onClick: () => { navigate(`/products/${p._id || p.id}`); setSuggestionsOpen(false); } });
+        actions.push({ type: 'product', data: p, onClick: () => { navigate(buyerProductPath(p)); setSuggestionsOpen(false); } });
       });
       recent.forEach((r) => {
         actions.push({ type: 'recent', label: r, onClick: () => { setSearchQuery(r); addRecentSearch(r); navigate(`/search?q=${encodeURIComponent(r)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`); setSuggestionsOpen(false); } });
@@ -732,7 +734,7 @@ function MainHeader({
                     return (
                       <Link
                         key={p._id || p.id}
-                        to={`/products/${p._id || p.id}`}
+                        to={buyerProductPath(p)}
                         onClick={() => setSuggestionsOpen(false)}
                         data-suggestion-index={rowIndex >= 0 ? rowIndex : idx}
                         className="flex items-center gap-3 px-4 py-2.5 transition-colors duration-100"
@@ -1049,14 +1051,6 @@ function CategoryNav({ t }) {
       className="hidden md:flex items-center w-full px-4 sm:px-6 lg:px-8 xl:px-12"
       style={{ height: 44, background: 'var(--navbar-bg)', boxShadow: 'var(--shadow-navbar)', position: 'relative', zIndex: 101 }}
     >
-      <Link
-        to="/search"
-        className="flex items-center gap-2 h-full px-4 rounded-lg text-sm font-semibold transition flex-shrink-0"
-        style={{ color: 'white', background: PRIMARY }}
-      >
-        <Menu className="w-4 h-4" /> {t('nav.categories')}
-      </Link>
-
       <nav className="flex-1 flex items-center gap-6 overflow-x-auto scrollbar-hide px-4">
         {NAV_LINKS.map(({ to, labelKey, badge }) => {
           const isActive = location.pathname === to || (to === '/search' && location.pathname === '/search');
@@ -1205,10 +1199,10 @@ function MobileDrawer({
 
             <div className="flex-1 overflow-y-auto py-4">
               <p className="px-4 text-xs font-semibold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">{t('nav.shop')}</p>
-              {MEGA_CATEGORIES.map(({ icon, name }) => (
+              {MEGA_CATEGORIES.map(({ icon, name, slug }) => (
                 <Link
                   key={name}
-                  to={`/search?category=${encodeURIComponent(name)}`}
+                  to={`/category/${slug}`}
                   onClick={onClose}
                   className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] transition"
                 >

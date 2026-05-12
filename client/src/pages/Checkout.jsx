@@ -6,6 +6,7 @@ import {
   Truck,
   CreditCard,
   CheckCircle,
+  Check,
   Lock,
   ShoppingBag,
   ArrowLeft,
@@ -1027,18 +1028,52 @@ export default function Checkout() {
                         </div>
                       ))}
                     </div>
-                    <label className="flex cursor-pointer items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={agreedTerms}
-                        onChange={(e) => setAgreedTerms(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 rounded accent-[var(--brand-primary)]"
-                      />
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {t('checkout.agreePrefix')} <span style={{ color: 'var(--brand-primary)' }}>{t('checkout.termsOfService')}</span>{' '}
-                        {t('checkout.agreeMiddle')} <span style={{ color: 'var(--brand-primary)' }}>{t('checkout.refundPolicy')}</span>
-                      </span>
-                    </label>
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={agreedTerms}
+                      onClick={() => setAgreedTerms((v) => !v)}
+                      className="w-full rounded-xl border p-3 text-left transition-colors"
+                      style={{
+                        borderColor: agreedTerms ? 'var(--brand-border-subtle)' : 'var(--divider)',
+                        background: agreedTerms ? 'var(--brand-tint)' : 'var(--bg-tertiary)',
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <motion.span
+                          initial={false}
+                          animate={
+                            agreedTerms
+                              ? { scale: 1, boxShadow: '0 0 0 0 color-mix(in srgb, var(--brand-primary) 0%, transparent)' }
+                              : { scale: [1, 1.08, 1], boxShadow: '0 0 0 8px color-mix(in srgb, var(--brand-primary) 0%, transparent)' }
+                          }
+                          transition={agreedTerms ? { duration: 0.2 } : { duration: 1.2, repeat: Infinity, repeatDelay: 0.7 }}
+                          className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border"
+                          style={{
+                            borderColor: agreedTerms ? 'var(--brand-primary)' : 'var(--divider-strong)',
+                            background: agreedTerms ? 'var(--brand-primary)' : 'var(--card-bg)',
+                          }}
+                        >
+                          <AnimatePresence initial={false}>
+                            {agreedTerms && (
+                              <motion.span
+                                key="agree-check"
+                                initial={{ opacity: 0, scale: 0.4, rotate: -20 }}
+                                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                exit={{ opacity: 0, scale: 0.4, rotate: 20 }}
+                                transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                              >
+                                <Check className="h-4 w-4" style={{ color: 'var(--text-on-accent)' }} />
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </motion.span>
+                        <span className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                          {t('checkout.agreePrefix')} <span style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>{t('checkout.termsOfService')}</span>{' '}
+                          {t('checkout.agreeMiddle')} <span style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>{t('checkout.refundPolicy')}</span>
+                        </span>
+                      </div>
+                    </button>
                     <div
                       className="flex items-center gap-2 rounded-xl p-3"
                       style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)' }}

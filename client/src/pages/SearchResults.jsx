@@ -10,7 +10,10 @@ import SearchProductCard from '../components/SearchProductCard';
 import ProductListItem from '../components/ProductListItem';
 import { productAPI } from '../services/api';
 import { getSavedViewMode, setSavedViewMode } from '../utils/filterProducts';
-import { useSeo } from '../utils/useSeo';
+import { PageSeo } from '../components/seo/PageSeo';
+import { computeSearchListingSeo } from '../utils/searchSeoPolicy';
+import { buildLocaleAlternates } from '../utils/localeAlternateLinks';
+import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { useTranslation } from '../i18n/useTranslation';
 
 const PRICE_RANGES = [
@@ -327,35 +330,30 @@ export default function SearchResults() {
   const location = useLocation();
   const q = params.get('q') || params.get('search') || '';
 
-  const canonicalUrl = `${window.location.origin}${location.pathname}${location.search}`;
-  useSeo({
-    title: q ? `Search results for "${q}" | REAGLE-X` : 'Search | REAGLE-X',
-    description: q
-      ? `Browse products matching "${q}" on REAGLE-X.`
-      : 'Browse products on REAGLE-X.',
-    canonicalUrl,
-    noIndex: true, // Avoid duplicate indexing from filter/search URLs
-    openGraph: {
-      title: q ? `Search results for "${q}" | REAGLE-X` : 'Search | REAGLE-X',
-      description: q
-        ? `Browse products matching "${q}" on REAGLE-X.`
-        : 'Browse products on REAGLE-X.',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: q ? `Search results for "${q}" | REAGLE-X` : 'Search | REAGLE-X',
-      description: q
-        ? `Browse products matching "${q}" on REAGLE-X.`
-        : 'Browse products on REAGLE-X.',
-    },
-    jsonLdScriptId: 'reaglex-jsonld-search',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'CollectionPage',
-      name: q ? `Search results for "${q}"` : 'Search',
-      url: canonicalUrl,
-    },
+  const origin = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
+  const seoPolicy = computeSearchListingSeo({
+    origin,
+    pathname: location.pathname,
+    searchParams: params,
+    allProductsTitle: 'All products | Reaglex',
+    allProductsDescription:
+      'Browse Reaglex products from verified sellers — escrow-protected checkout and buyer protection.',
   });
+  const hreflangAlternates = (() => {
+    if (!origin || seoPolicy.noIndexFlag) return undefined;
+    const canonicalPath = seoPolicy.canonicalUrl.replace(origin, '') || '/products';
+    return buildLocaleAlternates(origin, canonicalPath);
+  })();
+  const listingJsonLd = !seoPolicy.noIndexFlag
+    ? [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: seoPolicy.title.replace(/\s\|\sReaglex$/, ''),
+          url: seoPolicy.canonicalUrl,
+        },
+      ]
+    : undefined;
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -547,6 +545,15 @@ export default function SearchResults() {
 
   return (
     <BuyerLayout>
+      <PageSeo
+        title={seoPolicy.title}
+        description={seoPolicy.description}
+        canonicalUrl={seoPolicy.canonicalUrl}
+        robotsContent={seoPolicy.robotsContent}
+        ogType="website"
+        jsonLd={listingJsonLd}
+        hreflangAlternates={hreflangAlternates}
+      />
       <div
         className="flex flex-col w-full relative min-h-0 overflow-hidden h-[calc(100dvh-74px-60px-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-150px)]"
         style={{

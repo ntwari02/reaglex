@@ -31,6 +31,8 @@ import shippingRoutes from './src/routes/shippingRoutes';
 import inboxRoutes from './src/routes/inboxRoutes';
 import buyerInboxRoutes from './src/routes/buyerInboxRoutes';
 import buyerDisputeRoutes from './src/routes/buyerDisputeRoutes';
+import buyerReturnsRoutes from './src/routes/buyerReturnsRoutes';
+import sellerReturnsRoutes from './src/routes/sellerReturnsRoutes';
 import blogRoutes from './src/routes/blogRoutes';
 import affiliateRoutes from './src/routes/affiliateRoutes';
 import trackingRoutes from './src/routes/trackingRoutes';
@@ -44,6 +46,8 @@ import adminReviewsRoutes from './src/routes/adminReviewsRoutes';
 import adminCollectionsRoutes from './src/routes/adminCollectionsRoutes';
 import adminProductsRoutes from './src/routes/adminProductsRoutes';
 import adminOrdersRoutes from './src/routes/adminOrdersRoutes';
+import adminComplianceRoutes from './src/routes/adminComplianceRoutes';
+import adminReturnsRoutes from './src/routes/adminReturnsRoutes';
 import adminSellerSubscriptionRoutes from './src/routes/adminSellerSubscriptionRoutes';
 import publicContentRoutes from './src/routes/publicContentRoutes';
 import adminSiteContentRoutes from './src/routes/adminSiteContentRoutes';
@@ -52,6 +56,8 @@ import paymentRoutes from './src/routes/paymentRoutes';
 import stripeWebhookRoutes from './src/routes/stripeWebhookRoutes';
 import webhookRoutes from './src/routes/webhookRoutes';
 import seoRoutes from './src/routes/seoRoutes';
+import categoryRoutes from './src/routes/categoryRoutes';
+import publicOgRoutes from './src/routes/publicOgRoutes';
 import assistantRoutes from './src/routes/assistantRoutes';
 import aiChatRoutes from './src/routes/aiChatRoutes';
 import aiAgentRoutes from './src/routes/aiAgentRoutes';
@@ -77,6 +83,7 @@ import { startBuyerInsightWorker } from './src/jobs/buyerInsightWorker';
 import { startLifecycleEmailWorker } from './src/jobs/lifecycleEmailWorker';
 import { startCartPulseEmailWorker } from './src/jobs/cartPulseEmailWorker';
 import { startBrowseAbandonEmailWorker } from './src/jobs/browseAbandonEmailWorker';
+import { startComplianceCertificateReminderJob } from './src/jobs/complianceCertificateReminderJob';
 
 const app = express();
 const httpServer = createServer(app);
@@ -176,8 +183,14 @@ app.use((req, res, next) => {
   });
   next();
 });
-app.use(helmet());
-app.use(compression());
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+);
+app.use(compression({ threshold: 1024 }));
 
 // Rate limiting (protects against abuse and reduces load under concurrency)
 const apiLimiter = rateLimit({
@@ -233,9 +246,11 @@ app.use('/api/buyer/inbox', buyerInboxRoutes);
 app.use('/api/buyer/notifications', buyerNotificationRoutes);
 // Buyer dispute routes
 app.use('/api/buyer/disputes', buyerDisputeRoutes);
+app.use('/api/buyer/returns', buyerReturnsRoutes);
 
 // Seller routes
 app.use('/api/seller', sellerRoutes);
+app.use('/api/seller/returns', sellerReturnsRoutes);
 
 // Subscription routes
 app.use('/api/seller/subscription', subscriptionRoutes);
@@ -243,6 +258,8 @@ app.use('/api/seller/subscription', subscriptionRoutes);
 app.use('/api/seller/analytics', analyticsRoutes);
 // Product routes (public - for buyers to view products)
 app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/public/og', publicOgRoutes);
 // Blog routes (public - for blog posts)
 app.use('/api/blog', blogRoutes);
 // Affiliate routes
@@ -264,6 +281,8 @@ app.use('/api/admin/reviews', adminReviewsRoutes);
 app.use('/api/admin/collections', adminCollectionsRoutes);
 app.use('/api/admin/products', adminProductsRoutes);
 app.use('/api/admin/orders', adminOrdersRoutes);
+app.use('/api/admin/compliance', adminComplianceRoutes);
+app.use('/api/admin/returns', adminReturnsRoutes);
 app.use('/api/admin/seller-subscriptions', adminSellerSubscriptionRoutes);
 app.use('/api/admin/site', adminSiteContentRoutes);
 // Payments & escrow routes
@@ -372,6 +391,7 @@ const connectDB = async () => {
     startCartPulseEmailWorker();
     startBrowseAbandonEmailWorker();
     startExchangeRateWorker();
+    startComplianceCertificateReminderJob();
 
     // Initialize WebSocket server
     websocketService.initialize(httpServer);

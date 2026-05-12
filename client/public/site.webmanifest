@@ -1,0 +1,27 @@
+{
+  "name": "Reaglex — Escrow-protected marketplace",
+  "short_name": "Reaglex",
+  "description": "Shop on Reaglex: verified sellers, escrow-protected payments, global delivery, and buyer protection.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#111827",
+  "lang": "en",
+  "categories": ["shopping", "lifestyle", "business"],
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

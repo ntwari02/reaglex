@@ -100,6 +100,12 @@
 
 /* Mobile: cap gallery height so price/title stay above the fold */
 @media (max-width: 639px) {
+  .pd2-img-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
   .pd2-main-img {
     flex: none;
     width: 100%;
@@ -127,8 +133,8 @@
   /* Gallery arrows visible on touch devices (no hover) */
   .pd2-main-img .pd2-arrow-btn {
     opacity: 0.92;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 
   .pd2-thumbs-row {

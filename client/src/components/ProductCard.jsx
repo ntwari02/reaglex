@@ -6,6 +6,7 @@ import { useBuyerCart } from '../stores/buyerCartStore';
 import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
+import { buyerProductPath } from '../lib/productUrl';
 
 function extractImageSrc(src) {
   if (!src) return null;
@@ -69,7 +70,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
       onClick={onViewProduct ? handleViewProduct : undefined}
     >
       <Link
-        to={`/products/${id}`}
+        to={buyerProductPath(product)}
         className="block"
         onClick={onViewProduct ? (e) => { e.preventDefault(); handleViewProduct(); } : undefined}
       >

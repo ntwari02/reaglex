@@ -309,7 +309,7 @@ function BuyerProtection() {
             </motion.div>
 
             <div className="mt-6 flex flex-wrap justify-center gap-3 text-[13px]">
-              {['✓ Escrow Protected', '✓ Full Refund Guarantee', '✓ 30-Day Returns'].map(
+              {['✓ Escrow Protected', '✓ Eligible Refund Review', '✓ 30-Day Returns'].map(
                 (label) => (
                   <span
                     key={label}

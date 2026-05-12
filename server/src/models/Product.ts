@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, HydratedDocument } from 'mongoose';
 
 export type InventoryStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 
@@ -24,7 +24,13 @@ export interface TieredPrice {
 export interface IProduct extends Document {
   sellerId: mongoose.Types.ObjectId;
   name: string;
+  /** SEO URL segment; unique when set (e.g. `nike-air-max-9a3f2c1d`). */
+  slug?: string;
   category?: string;
+  /** Denormalized storefront category slug (e.g. `home-garden`) for SEO URLs + filters */
+  categorySlug?: string;
+  /** GTIN / EAN / UPC when available — Google Merchant / Shopping */
+  gtin?: string;
   description?: string;
   weight?: number;
   seoTitle?: string;
@@ -106,7 +112,10 @@ const productSchema = new Schema<IProduct>(
   {
     sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     name: { type: String, required: true, trim: true },
+    slug: { type: String, trim: true, lowercase: true, unique: true, sparse: true, index: true },
     category: { type: String, trim: true },
+    categorySlug: { type: String, trim: true, lowercase: true, index: true, sparse: true },
+    gtin: { type: String, trim: true, sparse: true },
     description: { type: String, trim: true },
     weight: { type: Number },
     seoTitle: { type: String, trim: true },
@@ -222,6 +231,7 @@ productSchema.index({ 'verificationSummary.status': 1, createdAt: -1 });
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ soldCount: -1, createdAt: -1 });
 productSchema.index({ wishlistCount: -1, createdAt: -1 });
+productSchema.index({ categorySlug: 1, status: 1, createdAt: -1 });
 
 function generateReaglexProductId() {
   const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -231,6 +241,30 @@ function generateReaglexProductId() {
 productSchema.pre('validate', function assignReaglexProductId() {
   if (!this.reaglexProductId) this.reaglexProductId = generateReaglexProductId();
 });
+
+productSchema.pre('validate', async function ensureSlug() {
+  const doc = this as HydratedDocument<IProduct>;
+  const name = String(doc.name || '').trim();
+  if (!name) return;
+  const slugExisting = String(doc.slug || '').trim().toLowerCase();
+  if (slugExisting) return;
+  const idStr = doc._id ? String(doc._id) : new mongoose.Types.ObjectId().toString();
+  const { defaultSlugBaseFromNameAndId, ensureUniqueProductSlug } = await import('../utils/productSlug');
+  const base = defaultSlugBaseFromNameAndId(name, idStr);
+  doc.slug = await ensureUniqueProductSlug(base, doc._id);
+});
+
+productSchema.pre('validate', async function syncCategorySlug() {
+  const doc = this as HydratedDocument<IProduct>;
+  const { resolveCategorySlugFromProductLabel } = await import('../constants/storefrontCategories');
+  const cat = String(doc.category || '').trim();
+  if (!cat) {
+    doc.categorySlug = undefined;
+    return;
+  }
+  doc.categorySlug = resolveCategorySlugFromProductLabel(cat);
+});
+
 
 export const Product = mongoose.model<IProduct>('Product', productSchema);
 

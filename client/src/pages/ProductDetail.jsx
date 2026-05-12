@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Heart, Star, ChevronLeft, ChevronRight, ChevronDown,
@@ -14,8 +14,9 @@ import { productAPI } from '../services/api';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
-import { useSeo } from '../utils/useSeo';
+import { PageSeo } from '../components/seo/PageSeo';
 import { SERVER_URL } from '../lib/config';
+import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 
 const PRIMARY = 'var(--brand-primary)';
@@ -66,7 +67,7 @@ const TABS = [
 
 const HIGHLIGHTS = [
   { icon: Package,   title: 'Free Shipping',    desc: 'On orders over $35',    color: 'var(--brand-primary)' },
-  { icon: RefreshCw, title: '30-Day Returns',   desc: 'No questions asked',     color: '#10b981' },
+  { icon: RefreshCw, title: '30-Day Returns',   desc: 'Unused items in original packaging', color: '#10b981' },
   { icon: Shield,    title: 'Buyer Protection', desc: 'Your money is safe',     color: '#6366f1' },
   { icon: Zap,       title: 'Fast Dispatch',    desc: 'Ships within 24 hours', color: '#f59e0b' },
 ];
@@ -111,8 +112,9 @@ function Stars({ rating, size = 16 }) {
    Main component
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function ProductDetail() {
-  const { id }       = useParams();
+  const { id: legacyId, slug: slugParam } = useParams();
   const navigate     = useNavigate();
+  const location       = useLocation();
   const addItem      = useBuyerCart((s) => s.addItem);
   const currencyPricing = useCurrencyPricing();
   const addRecent    = useRecentlyViewed((s) => s.addProduct);
@@ -154,77 +156,257 @@ export default function ProductDetail() {
   const relatedScrollRef = useRef(null);
 
   /* ── SEO ── */
-  const productId   = product?._id || product?.id || id;
-  const title       = product?.title || product?.name || 'Product';
-  const category    = product?.category || 'General';
-  const images      = useMemo(() => {
+  const resolvedId   = product?._id || product?.id || legacyId || null;
+  const title        = product?.title || product?.name || 'Product';
+  const category     = product?.category || 'General';
+  const images       = useMemo(() => {
     const list = (product?.images?.length ? product.images : [product?.image]).filter(Boolean);
     return list;
   }, [product?.images, product?.image]);
-  const canonicalUrl = useMemo(() => {
-    try { return `${window.location.origin}/products/${productId}`; }
-    catch { return `/products/${productId}`; }
-  }, [productId]);
+  const origin       = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
+  const canonicalPath = useMemo(() => {
+    if (product?.slug) return `/product/${encodeURIComponent(product.slug)}`;
+    if (product && (product._id || product.id))
+      return `/products/${encodeURIComponent(product._id || product.id)}`;
+    if (slugParam) return `/product/${encodeURIComponent(slugParam)}`;
+    if (legacyId) return `/products/${encodeURIComponent(legacyId)}`;
+    return '/products';
+  }, [product, slugParam, legacyId]);
+  const canonicalUrl = origin ? `${origin}${canonicalPath}` : canonicalPath;
   const primaryImage = useMemo(() => (images?.[0] ? resolveImage(images[0]) : undefined), [images]);
-  const seoConfig = useMemo(() => {
-    if (!product) return { title: 'Product | Reaglex', description: 'View product on Reaglex.', canonicalUrl };
+  /**
+   * Prefer the server-rendered dynamic OG image for richer social shares; fall back to first product image.
+   * `SERVER_URL` is the API origin (matches `/api/public/og/product/:slug`).
+   */
+  const dynamicOgImage = useMemo(() => {
+    if (!product?.slug) return undefined;
+    const base = String(SERVER_URL || '').replace(/\/$/, '');
+    return base ? `${base}/api/public/og/product/${encodeURIComponent(product.slug)}` : undefined;
+  }, [product?.slug]);
+  const socialImage = dynamicOgImage || primaryImage;
+  const seoBundle = useMemo(() => {
+    if (!product) {
+      return {
+        title: slugParam ? `${slugParam.replace(/-/g, ' ')} | Reaglex` : 'Product | Reaglex',
+        description: 'View product details on Reaglex marketplace.',
+        keywords: undefined,
+        jsonLd: undefined,
+      };
+    }
     const price = product?.price || 0;
     const stock = product?.stockQuantity ?? product?.stock ?? 0;
-    const rating = Number(product?.averageRating || product?.rating || 0);
-    const reviewsCount = Number(product?.totalReviews || product?.reviewCount || 0);
-    return {
-      title: product?.seoTitle || `${title} | Reaglex`,
-      description: product?.seoDescription || product?.description || `Buy ${title} on Reaglex.`,
-      keywords: product?.seoKeywords,
-      canonicalUrl,
-      openGraph: { title: `${title} | Reaglex`, description: product?.description || '', image: primaryImage },
-      noIndex: false,
-      jsonLdScriptId: 'reaglex-jsonld-product',
-      jsonLd: {
-        '@context': 'https://schema.org', '@type': 'Product',
-        name: title, description: product?.description || '',
-        sku: product?.sku || id, category,
-        image: images.slice(0, 6).map(resolveImage),
-        brand: { '@type': 'Brand', name: product?.brand || 'Reaglex' },
-        offers: {
-          '@type': 'Offer', price, priceCurrency: product?.currency || 'USD',
-          availability: stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-          url: canonicalUrl,
+    const rating = Number(product?.ratingAverage || product?.averageRating || product?.rating || 0);
+    const reviewsCount = Number(product?.reviewCount || product?.totalReviews || 0);
+    const breadcrumbs = {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: origin ? `${origin}/` : '/',
         },
-        ...(rating || reviewsCount ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: rating, reviewCount: reviewsCount } } : {}),
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Products',
+          item: origin ? `${origin}/products` : '/products',
+        },
+        ...(category
+          ? [
+              {
+                '@type': 'ListItem',
+                position: 3,
+                name: category,
+                item: (() => {
+                  const slug = product?.categorySlug;
+                  const path = slug ? `/category/${encodeURIComponent(slug)}` : `/products?category=${encodeURIComponent(category)}`;
+                  return origin ? `${origin}${path}` : path;
+                })(),
+              },
+            ]
+          : []),
+        {
+          '@type': 'ListItem',
+          position: category ? 4 : 3,
+          name: title,
+          item: canonicalUrl,
+        },
+      ],
+    };
+    const currency = product?.currency || product?.listingCurrency || 'USD';
+    const shippingDetails = {
+      '@type': 'OfferShippingDetails',
+      shippingRate: {
+        '@type': 'MonetaryAmount',
+        value: product?.flatShippingRate ?? 0,
+        currency,
+      },
+      shippingDestination: {
+        '@type': 'DefinedRegion',
+        addressCountry: product?.shipsToCountry || product?.country || 'RW',
+      },
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 0,
+          maxValue: Number(product?.handlingDays || 1),
+          unitCode: 'DAY',
+        },
+        transitTime: {
+          '@type': 'QuantitativeValue',
+          minValue: Number(product?.transitDaysMin || 2),
+          maxValue: Number(product?.transitDaysMax || 7),
+          unitCode: 'DAY',
+        },
       },
     };
-  }, [product, title, category, images, primaryImage, canonicalUrl, id]);
-  useSeo(seoConfig);
+    const returnPolicy = {
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: product?.shipsToCountry || 'RW',
+      returnPolicyCategory:
+        product?.returnPolicy === 'no-returns'
+          ? 'https://schema.org/MerchantReturnNotPermitted'
+          : 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      merchantReturnDays: Number(product?.returnWindowDays || 30),
+      returnMethod: 'https://schema.org/ReturnByMail',
+      returnFees: 'https://schema.org/FreeReturn',
+    };
+    const reviewList = Array.isArray(product?.reviews)
+      ? product.reviews.slice(0, 5).map((r) => ({
+          '@type': 'Review',
+          author: { '@type': 'Person', name: r?.author || r?.userName || 'Reaglex shopper' },
+          datePublished: r?.createdAt || undefined,
+          reviewRating: {
+            '@type': 'Rating',
+            ratingValue: Number(r?.rating || 5),
+            bestRating: 5,
+          },
+          reviewBody: String(r?.comment || r?.body || '').slice(0, 500),
+        }))
+      : [];
+    const productLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: title,
+      description: (product?.description || '').replace(/<[^>]+>/g, '').slice(0, 500),
+      sku: product?.sku || String(resolvedId || ''),
+      ...(product?.gtin
+        ? { gtin: String(product.gtin), gtin13: String(product.gtin) }
+        : {}),
+      ...(product?.mpn ? { mpn: String(product.mpn) } : {}),
+      image: images.slice(0, 6).map(resolveImage),
+      brand: { '@type': 'Brand', name: product?.brand || 'Reaglex' },
+      category,
+      itemCondition:
+        product?.condition === 'used'
+          ? 'https://schema.org/UsedCondition'
+          : product?.condition === 'refurbished'
+            ? 'https://schema.org/RefurbishedCondition'
+            : 'https://schema.org/NewCondition',
+      offers: {
+        '@type': 'Offer',
+        price,
+        priceCurrency: currency,
+        availability:
+          stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        url: canonicalUrl,
+        priceValidUntil:
+          product?.priceValidUntil ||
+          new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString().slice(0, 10),
+        seller: {
+          '@type': 'Organization',
+          name: product?.sellerName || product?.brand || 'Reaglex',
+        },
+        shippingDetails,
+        hasMerchantReturnPolicy: returnPolicy,
+      },
+      ...(rating || reviewsCount
+        ? {
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: rating,
+              reviewCount: reviewsCount,
+              bestRating: 5,
+            },
+          }
+        : {}),
+      ...(reviewList.length ? { review: reviewList } : {}),
+    };
+
+    return {
+      title: product?.seoTitle || `${title} | Reaglex`,
+      description:
+        product?.seoDescription ||
+        product?.description?.replace?.(/<[^>]+>/g, '')?.slice?.(0, 160) ||
+        `Buy ${title} on Reaglex.`,
+      keywords: product?.seoKeywords,
+      jsonLd: [breadcrumbs, productLd],
+    };
+  }, [product, canonicalUrl, title, category, images, primaryImage, origin, slugParam, resolvedId]);
+
+  const pdpSeo = (
+    <PageSeo
+      title={seoBundle.title}
+      description={seoBundle.description}
+      canonicalUrl={canonicalUrl}
+      ogImage={socialImage}
+      twitterImage={socialImage}
+      ogType={product ? 'product' : 'website'}
+      keywords={seoBundle.keywords}
+      jsonLd={seoBundle.jsonLd}
+    />
+  );
 
   /* ── data fetch ── */
   useEffect(() => {
+    if (!slugParam && !legacyId) return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setLoading(true); setError(null); setActiveImage(0);
-    productAPI.getProductById(id)
-      .then((data) => {
+    setLoading(true); setError(null); setActiveImage(0); setProduct(null);
+    const load = async () => {
+      try {
+        const data = slugParam
+          ? await productAPI.getProductBySlug(slugParam)
+          : await productAPI.getProductById(legacyId);
         const p = data.product || data;
         setProduct(p);
         setWishlisted(!!p?.wishlisted);
         setWishlistCount(Number(p?.wishlistCount || 0));
         addRecent(p);
-        productAPI.trackView(id).catch(() => null);
-      })
-      .catch(() => setError('Product not found.'))
-      .finally(() => setLoading(false));
-    productAPI.getProducts({ limit: 8 })
+        const rid = String(p._id || p.id || '');
+        if (rid) productAPI.trackView(rid).catch(() => null);
+        if (legacyId && p.slug && location.pathname.startsWith('/products/')) {
+          navigate(`/product/${encodeURIComponent(String(p.slug).trim())}`, { replace: true });
+        }
+      } catch {
+        setError('Product not found.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, [slugParam, legacyId, inventoryRefreshTick, location.pathname, navigate, addRecent]);
+
+  useEffect(() => {
+    const excludeId = String(product?._id || product?.id || legacyId || '');
+    if (!excludeId) return;
+    productAPI
+      .getProducts({ limit: 12 })
       .then((data) => {
         const items = Array.isArray(data) ? data : data.products || data.items || [];
-        setRelated(items.filter((p) => (p._id || p.id) !== id).slice(0, 8));
+        setRelated(items.filter((p) => String(p._id || p.id) !== excludeId).slice(0, 8));
       })
       .catch(() => {});
-  }, [id, inventoryRefreshTick]);
+  }, [product?._id, product?.id, legacyId]);
 
   // Wishlist status/count (guest-safe; auth users also get `wishlisted`)
   useEffect(() => {
+    const apiId = product?._id || product?.id || legacyId;
+    if (!apiId) return undefined;
     let alive = true;
     productAPI
-      .getWishlistStatus(id)
+      .getWishlistStatus(String(apiId))
       .then((r) => {
         if (!alive) return;
         setWishlisted(!!r?.wishlisted);
@@ -232,7 +414,7 @@ export default function ProductDetail() {
       })
       .catch(() => null);
     return () => { alive = false; };
-  }, [id]);
+  }, [product?._id, product?.id, legacyId]);
 
   useEffect(() => {
     if (!product) return;
@@ -255,13 +437,14 @@ export default function ProductDetail() {
   useEffect(() => {
     const onInventoryUpdated = (e) => {
       const updatedId = e?.detail?.productId;
-      if (updatedId && String(updatedId) === String(id)) {
+      const cmp = resolvedId ? String(resolvedId) : legacyId ? String(legacyId) : '';
+      if (updatedId && cmp && String(updatedId) === cmp) {
         setInventoryRefreshTick((v) => v + 1);
       }
     };
     window.addEventListener('inventoryUpdated', onInventoryUpdated);
     return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
-  }, [id]);
+  }, [resolvedId, legacyId]);
 
   /* ── actions ── */
   const handleAddToCart = () => {
@@ -276,13 +459,15 @@ export default function ProductDetail() {
     const optimisticNext = !wishlisted;
     setWishlisted(optimisticNext);
     setWishlistCount((c) => Math.max(0, c + (optimisticNext ? 1 : -1)));
+    const wid = product?._id || product?.id || legacyId;
+    if (!wid) return;
     try {
-      const r = await productAPI.toggleWishlist(id);
+      const r = await productAPI.toggleWishlist(String(wid));
       setWishlisted(!!r?.wishlisted);
       if (r?.wishlistCount != null) setWishlistCount(Number(r.wishlistCount || 0));
     } catch {
       try {
-        const r2 = await productAPI.getWishlistStatus(id);
+        const r2 = await productAPI.getWishlistStatus(String(wid));
         setWishlisted(!!r2?.wishlisted);
         setWishlistCount(Number(r2?.wishlistCount || 0));
       } catch {
@@ -368,6 +553,10 @@ export default function ProductDetail() {
   const campaignLabel = String(product?.campaignLabel || product?.campaign || '').trim();
   const offerEndsAt = product?.offerEndsAt ? new Date(product.offerEndsAt) : null;
   const promoActive = offerEndsAt && !Number.isNaN(offerEndsAt.getTime()) ? offerEndsAt.getTime() > countdownNow : false;
+  const couponExpiresAt = product?.couponExpiresAt ? new Date(product.couponExpiresAt) : null;
+  const couponIsNotExpired = !couponExpiresAt || (couponExpiresAt.getTime && !Number.isNaN(couponExpiresAt.getTime()) && couponExpiresAt.getTime() > countdownNow);
+  const couponActive = couponCode && couponIsNotExpired && product?.couponActive !== false;
+  const campaignActive = campaignLabel && (product?.campaignActive !== false) && (!offerEndsAt || promoActive);
   const savingsAmount = previewOldPrice && previewOldPrice > previewPrice ? (previewOldPrice - previewPrice) : 0;
   useEffect(() => {
     if (!offerEndsAt || Number.isNaN(offerEndsAt.getTime())) return;
@@ -410,6 +599,7 @@ export default function ProductDetail() {
   /* ── loading / error ── */
   if (loading) return (
     <BuyerLayout>
+      {pdpSeo}
       <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4" style={{ background: 'var(--bg-page)' }}>
         <motion.div
           animate={{ rotate: 360 }}
@@ -423,6 +613,7 @@ export default function ProductDetail() {
 
   if (error) return (
     <BuyerLayout>
+      <PageSeo title="Product not found | Reaglex" description={error} canonicalUrl={canonicalUrl} noIndex />
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)' }}>
         <span className="text-6xl">😕</span>
         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error}</p>
@@ -441,12 +632,13 @@ export default function ProductDetail() {
   const totalPrice   = basePrice * quantity;
   const oldPrice     = product.compareAtPrice || product.originalPrice || product?.compare_at_price || null;
   const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
+  const showDiscount = Number(discount || 0) > 0 && product?.discountActive !== false;
   const rating       = Number(product.ratingAverage || product.averageRating || product.rating || 0) || 0;
   const reviewsCount = Number(product.reviewCount || product.totalReviews || 0) || 0;
+  const reviewThumbs = Array.isArray(product?.reviewGallery) ? product.reviewGallery.slice(0, 4).map((r) => resolveImage(r)).filter(Boolean) : [];
+  const hasReviewData = reviewsCount > 0 || rating > 0 || reviewThumbs.length > 0;
   const soldCount    = Number(product.soldCount || product?.salesCount || 0) || 0;
   const stock        = product.stockQuantity ?? product.stock ?? 10;
-  const verificationStatus = product.verificationSummary?.status || 'unverified';
-  const verificationScore = Number(product.verificationSummary?.score || 0);
   const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
   const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
   const installment  = currencyPricing.formatLocalWithUsd(totalPrice / 3);
@@ -459,7 +651,7 @@ export default function ProductDetail() {
 
   const specs = [
     { prop: 'Brand',          value: product.brand    || 'Reaglex'     },
-    { prop: 'SKU',            value: product.sku      || id            },
+    { prop: 'SKU',            value: product.sku      || resolvedId    },
     { prop: 'Category',       value: category                          },
     { prop: 'Material',       value: product.material || 'Cotton blend'},
     { prop: 'Sizes',          value: (Array.isArray(product?.sizes) && product.sizes.length ? product.sizes : FALLBACK_SIZES).join(', ') },
@@ -479,7 +671,7 @@ export default function ProductDetail() {
     { q: 'Is international shipping available?', a: 'Yes! We ship to 180+ countries via tracked courier services.' },
   ];
 
-  const recentFiltered = recentItems.filter((p) => (p._id || p.id) !== id).slice(0, 6);
+  const recentFiltered = recentItems.filter((p) => (p._id || p.id) !== resolvedId).slice(0, 6);
 
   const renderDetailPanel = (panelIndex, opts = { dense: false }) => {
     const { dense } = opts;
@@ -492,7 +684,7 @@ export default function ProductDetail() {
             </p>
             <h4 className="font-bold text-sm mb-3" style={{ color: 'var(--text-primary)' }}>Key Features</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {['Premium quality materials', 'Fast shipping worldwide', '30-day hassle-free returns', 'Verified seller guarantee'].map((f) => (
+              {['Premium quality materials', 'Fast shipping worldwide', '30-day eligible returns', 'Verified seller guarantee'].map((f) => (
                 <div key={f} className="flex items-center gap-2 p-2.5 rounded-xl"
                   style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
                   <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#f0fdf4' }}>
@@ -638,6 +830,7 @@ export default function ProductDetail() {
   ════════════════════════════════════════════════════════════════════ */
   return (
     <BuyerLayout>
+      {pdpSeo}
       <div className="pd2-page relative min-h-screen" style={{ background: 'var(--bg-page)', fontFamily: 'Inter, system-ui, sans-serif' }}>
 
         {/* ── Background decoration ── */}
@@ -660,7 +853,12 @@ export default function ProductDetail() {
             <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0 flex-1" style={{ color: 'var(--text-muted)' }}>
               <Link to="/" className="hover:text-[var(--brand-primary)] transition-colors shrink-0">Home</Link>
               <span className="shrink-0">›</span>
-              <Link to="/search" className="hover:text-[var(--brand-primary)] transition-colors truncate">{category}</Link>
+              <Link
+                to={`/products?category=${encodeURIComponent(category)}`}
+                className="hover:text-[var(--brand-primary)] transition-colors truncate"
+              >
+                {category}
+              </Link>
               <span className="shrink-0">›</span>
               <span className="font-semibold truncate min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</span>
             </div>
@@ -732,7 +930,7 @@ export default function ProductDetail() {
                 {/* Floating badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
                   <span className="pd2-badge pd2-badge--green">NEW</span>
-                  {discount > 0 && <span className="pd2-badge pd2-badge--red">-{discount}%</span>}
+                  {showDiscount && <span className="pd2-badge pd2-badge--red">-{discount}%</span>}
                   <span className="pd2-badge pd2-badge--blue">FREE SHIP</span>
                 </div>
 
@@ -817,19 +1015,17 @@ export default function ProductDetail() {
                 )}
 
                 {/* Media counter */}
-                {galleryItems.length > 1 && (
-                  <div
-                    className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                    style={{
-                      background: 'rgba(0,0,0,0.55)',
-                      color: '#fff',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      backdropFilter: 'blur(10px)',
-                    }}
-                  >
-                    {activeImage + 1}/{galleryItems.length}
-                  </div>
-                )}
+                <div
+                  className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  style={{
+                    background: 'rgba(0,0,0,0.55)',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.18)',
+                    backdropFilter: 'blur(10px)',
+                  }}
+                >
+                  {galleryItems[activeImage]?.type === 'video' ? 'Video' : 'Image'} {activeImage + 1}/{galleryItems.length}
+                </div>
               </div>
 
               {/* Thumbnails */}
@@ -878,15 +1074,15 @@ export default function ProductDetail() {
               <div className="pd2-purchase-flow min-w-0">
 
                 {/* Campaign / coupon / countdown (only when present) */}
-                {(campaignLabel || couponCode || offerCountdown) && (
+                {(campaignActive || couponActive || offerCountdown) && (
                   <div className="order-0 w-full mb-3 space-y-2">
-                    {campaignLabel && (
+                    {campaignActive && (
                       <div className="px-3 py-2 rounded-2xl text-xs font-bold"
                         style={{ background: 'var(--brand-tint)', color: PRIMARY, border: '1px solid var(--brand-border-subtle)' }}>
                         {campaignLabel}
                       </div>
                     )}
-                    {couponCode && (
+                    {couponActive && (
                       <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-2xl"
                         style={{ background: '#ecfeff', border: '1px solid #a5f3fc' }}>
                         <div className="min-w-0">
@@ -919,8 +1115,37 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {/* Price + stock — mobile-first scan */}
-                <div className="order-1 lg:order-5 w-full min-w-0 mb-3 lg:mb-0 space-y-2">
+                <h1 className="pd2-title mb-2 lg:mb-3 order-1 lg:order-1 w-full min-w-0">{title}</h1>
+
+                {/* Rating row */}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 lg:mb-5 pb-3 lg:pb-4 border-b order-2 lg:order-2 w-full min-w-0" style={{ borderColor: 'var(--divider)' }}>
+                  <Stars rating={rating} />
+                  <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating ? rating.toFixed(1) : '—'}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTabIndex(2);
+                      setMobileDetailOpen('reviews');
+                      document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="text-xs sm:text-sm hover:underline touch-manipulation py-1"
+                    style={{ color: 'var(--text-muted)' }}>
+                    {reviewsCount ? `${reviewsCount} reviews` : 'No reviews yet'}
+                  </button>
+                  {!!soldCount && (
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
+                      {soldCount.toLocaleString()} sold
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
+                    <Heart size={12} className="inline -mt-0.5 mr-1" /> {wishlistCount.toLocaleString()} saved
+                  </span>
+                </div>
+
+                {/* Price + discount block */}
+                <div className="order-3 lg:order-3 w-full min-w-0 mb-3 lg:mb-0 space-y-2">
                   <div>
                     <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-1">
                       <span className="pd2-price-num tabular-nums">
@@ -943,7 +1168,7 @@ export default function ProductDetail() {
                         )}
                       </span>
                       {oldPrice && <span className="text-sm sm:text-base line-through" style={{ color: 'var(--text-faint)' }}>{currencyPricing.formatLocalWithUsd(oldPrice)}</span>}
-                      {discount > 0 && (
+                      {showDiscount && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black text-white"
                           style={{ background: '#ef4444' }}>SAVE {discount}%</span>
                       )}
@@ -975,10 +1200,8 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                <h1 className="pd2-title mb-2 lg:mb-3 order-2 lg:order-2 w-full min-w-0">{title}</h1>
-
                 {/* Category + badge */}
-                <div className="flex flex-wrap items-center gap-2 mb-3 lg:mb-4 order-3 lg:order-1 lg:-mt-1">
+                <div className="flex flex-wrap items-center gap-2 mb-3 lg:mb-4 order-4 lg:order-4">
                   <Link
                     to={`/search?category=${encodeURIComponent(category)}`}
                     className="px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all hover:scale-105 touch-manipulation"
@@ -993,7 +1216,7 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Short desc */}
-                <div className="mb-3 lg:mb-4 order-4 lg:order-3">
+                <div className="mb-3 lg:mb-4 order-5 lg:order-5">
                   <p
                     className={`text-xs sm:text-sm leading-relaxed ${!descExpanded ? 'line-clamp-3 lg:line-clamp-none' : ''}`}
                     style={{ color: 'var(--text-secondary)' }}
@@ -1012,60 +1235,39 @@ export default function ProductDetail() {
                   )}
                 </div>
 
-                {/* Rating row */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 lg:mb-5 pb-3 lg:pb-4 border-b order-5 lg:order-4 w-full min-w-0" style={{ borderColor: 'var(--divider)' }}>
-                  <Stars rating={rating} />
-                  <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating ? rating.toFixed(1) : '—'}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTabIndex(2);
-                      setMobileDetailOpen('reviews');
-                      document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="text-xs sm:text-sm hover:underline touch-manipulation py-1"
-                    style={{ color: 'var(--text-muted)' }}>
-                    {reviewsCount ? `${reviewsCount} reviews` : 'No reviews yet'}
-                  </button>
-                  {!!soldCount && (
-                    <span className="text-xs font-semibold px-2 py-1 rounded-full"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
-                      {soldCount.toLocaleString()} sold
-                    </span>
-                  )}
-                  <span className="text-xs font-semibold px-2 py-1 rounded-full"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--divider)' }}>
-                    <Heart size={12} className="inline -mt-0.5 mr-1" /> {wishlistCount.toLocaleString()} saved
-                  </span>
-                  <span className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded"
-                    style={{ background: '#f0fdf4', color: '#15803d' }}>
-                    <BadgeCheck size={12} /> Verified
-                  </span>
-                  <span
-                    className="hidden lg:inline text-[11px] font-semibold px-2 py-0.5 rounded border"
-                    style={{
-                      color:
-                        verificationStatus === 'verified' ? '#15803d' :
-                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#dc2626' :
-                        '#b45309',
-                      background:
-                        verificationStatus === 'verified' ? '#f0fdf4' :
-                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#fef2f2' :
-                        '#fffbeb',
-                      borderColor:
-                        verificationStatus === 'verified' ? '#bbf7d0' :
-                        verificationStatus === 'flagged' || verificationStatus === 'rejected' ? '#fecaca' :
-                        '#fde68a',
-                    }}
-                  >
-                    {verificationStatus === 'verified' ? 'Verified by Reaglex' : verificationStatus === 'pending' ? 'Verification Pending' : verificationStatus === 'flagged' ? 'Verification Flagged' : 'Unverified Listing'} · {verificationScore}%
-                  </span>
-                  <span className="lg:hidden text-[10px] font-medium w-full sm:w-auto" style={{ color: 'var(--text-muted)' }}>
-                    Listing verification: {verificationScore}%
-                  </span>
-                </div>
+                {hasReviewData && (
+                  <div className="order-6 lg:order-6 mb-4 rounded-2xl p-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-black uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Review Snapshot</p>
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                          {rating ? `${rating.toFixed(1)} average` : 'Customer feedback'}{reviewsCount ? ` · ${reviewsCount} reviews` : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTabIndex(2);
+                          setMobileDetailOpen('reviews');
+                          document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="min-h-[44px] px-3 rounded-xl text-xs font-bold touch-manipulation"
+                        style={{ background: 'var(--brand-tint)', color: PRIMARY, border: '1px solid var(--brand-border-subtle)' }}
+                      >
+                        Full reviews
+                      </button>
+                    </div>
+                    {reviewThumbs.length > 0 && (
+                      <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+                        {reviewThumbs.map((src, idx) => (
+                          <img key={`${src}-${idx}`} src={src} alt={`Review media ${idx + 1}`} className="w-12 h-12 rounded-lg object-cover border" style={{ borderColor: 'var(--divider)' }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                <div className="hidden lg:block pd2-divider mb-5 order-6 lg:order-7" />
+                <div className="hidden lg:block pd2-divider mb-5 order-7 lg:order-7" />
 
                 {/* Size */}
                 {showSizeSelector && (
@@ -1108,7 +1310,7 @@ export default function ProductDetail() {
                       <motion.button key={color} type="button"
                         onClick={() => setSelectedColor(color)}
                         whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }}
-                        className="w-9 h-9 sm:w-8 sm:h-8 rounded-full transition-all touch-manipulation shrink-0"
+                        className="w-11 h-11 sm:w-10 sm:h-10 rounded-full transition-all touch-manipulation shrink-0"
                         style={{
                           background: color,
                           border: `2px solid ${selectedColor === color ? PRIMARY : 'transparent'}`,
@@ -1360,65 +1562,6 @@ export default function ProductDetail() {
               )}
             </motion.section>
           )}
-          <motion.section
-            className="mb-6 md:mb-10 grid grid-cols-1 md:grid-cols-2 gap-3"
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.35 }}
-          >
-            <div className="p-4 sm:p-5 rounded-2xl"
-              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
-              <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>Service commitments</p>
-              <div className="space-y-2">
-                {serviceCommitments.map((item, idx) => (
-                  <div key={`${item?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
-                    <button
-                      type="button"
-                      onClick={() => setOpenCommitmentIdx((cur) => (cur === idx ? null : idx))}
-                      className="w-full px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                    >
-                      {item?.title || 'Commitment'}
-                      <ChevronDown size={14} className={`transition-transform ${openCommitmentIdx === idx ? 'rotate-180' : ''}`} />
-                    </button>
-                    {openCommitmentIdx === idx && !!item?.description && (
-                      <div className="px-3 py-2.5 text-xs" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
-                        {item.description}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            {detailSections.length > 0 && (
-              <div className="p-4 sm:p-5 rounded-2xl"
-                style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
-                <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>More product details</p>
-                <div className="space-y-2">
-                  {detailSections.map((section, idx) => (
-                    <div key={`${section?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
-                      <button
-                        type="button"
-                        onClick={() => setOpenDetailIdx((cur) => (cur === idx ? null : idx))}
-                        className="w-full px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                      >
-                        {section?.title}
-                        <ChevronDown size={14} className={`transition-transform ${openDetailIdx === idx ? 'rotate-180' : ''}`} />
-                      </button>
-                      {openDetailIdx === idx && !!section?.content && (
-                        <div className="px-3 py-2.5 text-xs whitespace-pre-wrap" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
-                          {section.content}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.section>
-
           {/* ════════════════════════════════════════════════
               META STRIP — Seller info + full trust badges
               (moved out of purchase card for a cleaner
@@ -1463,7 +1606,7 @@ export default function ProductDetail() {
               {[
                 { icon: Shield,     label: 'Buyer Protection', sub: 'Your money is safe',     color: PRIMARY      },
                 { icon: Truck,      label: 'Free Shipping',     sub: 'On orders over $35',     color: '#6366f1'    },
-                { icon: RefreshCw,  label: '30-Day Returns',    sub: 'No questions asked',     color: '#10b981'    },
+                { icon: RefreshCw,  label: '30-Day Returns',    sub: 'Eligibility rules apply', color: '#10b981'    },
                 { icon: BadgeCheck, label: 'Verified Seller',   sub: 'Identity confirmed',     color: '#f59e0b'    },
               ].map(({ icon: Icon, label, sub, color }) => (
                 <div key={label}
@@ -1604,6 +1747,65 @@ export default function ProductDetail() {
               </AnimatePresence>
             </div>
           </motion.div>
+
+          <motion.section
+            className="mb-6 md:mb-10 grid grid-cols-1 md:grid-cols-2 gap-3"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.35 }}
+          >
+            <div className="p-4 sm:p-5 rounded-2xl"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+              <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>Service commitments</p>
+              <div className="space-y-2">
+                {serviceCommitments.map((item, idx) => (
+                  <div key={`${item?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenCommitmentIdx((cur) => (cur === idx ? null : idx))}
+                      className="w-full min-h-[44px] px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    >
+                      {item?.title || 'Commitment'}
+                      <ChevronDown size={14} className={`transition-transform ${openCommitmentIdx === idx ? 'rotate-180' : ''}`} />
+                    </button>
+                    {openCommitmentIdx === idx && !!item?.description && (
+                      <div className="px-3 py-2.5 text-xs" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
+                        {item.description}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {detailSections.length > 0 && (
+              <div className="p-4 sm:p-5 rounded-2xl"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
+                <p className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>More product details</p>
+                <div className="space-y-2">
+                  {detailSections.map((section, idx) => (
+                    <div key={`${section?.title}-${idx}`} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--divider)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenDetailIdx((cur) => (cur === idx ? null : idx))}
+                        className="w-full min-h-[44px] px-3 py-2.5 text-left text-sm font-semibold flex items-center justify-between"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                      >
+                        {section?.title}
+                        <ChevronDown size={14} className={`transition-transform ${openDetailIdx === idx ? 'rotate-180' : ''}`} />
+                      </button>
+                      {openDetailIdx === idx && !!section?.content && (
+                        <div className="px-3 py-2.5 text-xs whitespace-pre-wrap" style={{ color: 'var(--text-muted)', background: 'var(--card-bg)' }}>
+                          {section.content}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.section>
 
           {/* ════════════════════════════════════════════════
               RELATED PRODUCTS

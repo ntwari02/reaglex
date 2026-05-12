@@ -16,6 +16,7 @@ import {
   LifeBuoy,
   Truck,
   Wallet,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -70,6 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'inventory', label: t('header.inventory'), icon: Package },
     { id: 'orders', label: t('nav.orders'), icon: ShoppingCart },
     { id: 'disputes', label: t('sidebar.disputes'), icon: AlertTriangle },
+    { id: 'returns', label: 'Returns', icon: RotateCcw },
     { id: 'products', label: t('header.products'), icon: Box },
     { id: 'shipping', label: t('sidebar.shippingReaglex'), icon: Truck },
     { id: 'collections', label: t('sidebar.collections'), icon: FolderKanban },
