@@ -69,15 +69,91 @@ export function resolveMicroblinkRegion(raw?: string): MicroblinkRegion {
   return 'eu';
 }
 
-export function getMicroblinkRegionConfig(): MicroblinkRegionConfig {
+export interface MicroblinkDiagnostics {
+  region: MicroblinkRegion;
+  envValue: string;
+  baseUrl: string;
+  configured: boolean;
+  licenseKeyLength: number;
+  secretLength: number;
+  /** True when whitespace appears inside the secret (common Render `+` → space bug). */
+  secretMayBeCorrupted: boolean;
+  secretLooksTruncated: boolean;
+  usingBase64Secret: boolean;
+}
+
+/** Read secret from MICROBLINK_SECRET or MICROBLINK_SECRET_B64 (recommended on Render when secret contains + or =). */
+export function resolveMicroblinkSecret(): string | null {
+  const b64 =
+    process.env.MICROBLINK_SECRET_B64?.trim() || process.env.MICROBLINK_SECRET_BASE64?.trim();
+  if (b64) {
+    try {
+      const decoded = Buffer.from(b64, 'base64').toString('utf8').trim();
+      return decoded || null;
+    } catch {
+      console.error('[microblink] MICROBLINK_SECRET_B64 is not valid base64');
+      return null;
+    }
+  }
+  const plain = process.env.MICROBLINK_SECRET?.trim();
+  return plain || null;
+}
+
+export function getMicroblinkDiagnostics(): MicroblinkDiagnostics {
   const envValue = (process.env.MICROBLINK_REGION ?? 'eu').trim();
   const region = resolveMicroblinkRegion(envValue);
+  const licenseKey = process.env.MICROBLINK_LICENSE_KEY?.trim() ?? '';
+  const secret = resolveMicroblinkSecret() ?? '';
+  const usingBase64Secret = Boolean(
+    process.env.MICROBLINK_SECRET_B64?.trim() || process.env.MICROBLINK_SECRET_BASE64?.trim(),
+  );
+  const secretMayBeCorrupted = Boolean(secret && /\s/.test(secret));
+  const secretLooksTruncated =
+    Boolean(secret) && !usingBase64Secret && !secretMayBeCorrupted && secret.length < 40;
+
   return {
     region,
     envValue: envValue || 'eu',
     baseUrl: `https://${region}.verify.microblink.com`,
-    configured: Boolean(getAuthHeader()),
+    configured: Boolean(licenseKey && secret && getAuthHeader()),
+    licenseKeyLength: licenseKey.length,
+    secretLength: secret.length,
+    secretMayBeCorrupted,
+    secretLooksTruncated,
+    usingBase64Secret,
   };
+}
+
+export function getMicroblinkRegionConfig(): MicroblinkRegionConfig {
+  const d = getMicroblinkDiagnostics();
+  return {
+    region: d.region,
+    envValue: d.envValue,
+    baseUrl: d.baseUrl,
+    configured: d.configured,
+  };
+}
+
+export function logMicroblinkStartupCheck(): void {
+  const d = getMicroblinkDiagnostics();
+  if (!d.configured) {
+    console.warn('[microblink] Identity verification disabled (missing MICROBLINK_LICENSE_KEY or secret)');
+    return;
+  }
+  console.log(
+    `[microblink] region=${d.region} host=${d.baseUrl} secretLen=${d.secretLength} b64=${d.usingBase64Secret}`,
+  );
+  if (d.secretMayBeCorrupted) {
+    console.error(
+      '[microblink] Secret contains whitespace — often caused by unquoted + in Render env. ' +
+        'Re-paste the secret in quotes or set MICROBLINK_SECRET_B64 instead.',
+    );
+  }
+  if (d.secretLooksTruncated) {
+    console.warn(
+      `[microblink] Secret length ${d.secretLength} looks short; confirm the full value including trailing == is set.`,
+    );
+  }
 }
 
 function getBaseUrl(): string {
@@ -86,7 +162,7 @@ function getBaseUrl(): string {
 
 function getAuthHeader(): string | null {
   const licenseKey = process.env.MICROBLINK_LICENSE_KEY?.trim();
-  const secret = process.env.MICROBLINK_SECRET?.trim();
+  const secret = resolveMicroblinkSecret();
   if (!licenseKey || !secret) return null;
   const token = Buffer.from(`${licenseKey}:${secret}`).toString('base64');
   return `Basic ${token}`;
@@ -94,6 +170,19 @@ function getAuthHeader(): string | null {
 
 export function isMicroblinkConfigured(): boolean {
   return Boolean(getAuthHeader());
+}
+
+export function microblinkUpstreamHint(httpStatus: number): string | undefined {
+  if (httpStatus === 401 || httpStatus === 403) {
+    return (
+      'Microblink rejected credentials. Confirm MICROBLINK_REGION matches your license (EU → eu, US → us-east), ' +
+      'and on Render set MICROBLINK_SECRET in quotes or use MICROBLINK_SECRET_B64 if the secret contains + or =.'
+    );
+  }
+  if (httpStatus === 404) {
+    return 'Microblink API host not found for this region. Try MICROBLINK_REGION=us-east or eu.';
+  }
+  return undefined;
 }
 
 function pickString(...values: unknown[]): string | undefined {

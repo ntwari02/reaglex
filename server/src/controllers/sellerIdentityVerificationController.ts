@@ -11,6 +11,8 @@ import {
   isAcceptableFaceOutcome,
   buildMicroblinkKycMeta,
   MicroblinkApiError,
+  getMicroblinkDiagnostics,
+  microblinkUpstreamHint,
 } from '../services/microblink.service';
 import { uploadAnyBufferToCloudinary } from '../utils/uploadToCloudinary';
 import { recalculateSellerTrust } from '../services/productVerification.service';
@@ -84,13 +86,24 @@ async function persistIdentityImage(file?: Express.Multer.File): Promise<string 
   }
 }
 
-function identityErrorStatus(error: unknown): number {
+function identityErrorPayload(error: unknown): { status: number; message: string; hint?: string; upstreamStatus?: number } {
   if (error instanceof MicroblinkApiError) {
-    if (error.httpStatus === 401 || error.httpStatus === 403) return 502;
-    if (error.httpStatus >= 400 && error.httpStatus < 500) return error.httpStatus;
-    return 502;
+    const hint = microblinkUpstreamHint(error.httpStatus);
+    const status =
+      error.httpStatus === 401 || error.httpStatus === 403
+        ? 502
+        : error.httpStatus >= 400 && error.httpStatus < 500
+          ? error.httpStatus
+          : 502;
+    return {
+      status,
+      message: error.message,
+      hint,
+      upstreamStatus: error.httpStatus,
+    };
   }
-  return 500;
+  const message = error instanceof Error ? error.message : 'Request failed';
+  return { status: 500, message };
 }
 
 function trustBonusPoints(bonuses: IIdentityKyc['trustBonuses']): number {
@@ -116,8 +129,11 @@ export async function getIdentityVerificationStatus(req: AuthenticatedRequest, r
     const identityKyc = settings?.identityKyc || defaultIdentityKyc();
     const trustBonuses = computeTrustBonuses(settings || {}, user);
 
+    const microblink = getMicroblinkDiagnostics();
+
     return res.json({
-      configured: isMicroblinkConfigured(),
+      configured: microblink.configured,
+      microblink,
       identityKyc: {
         ...identityKyc,
         trustBonuses,
@@ -141,9 +157,17 @@ export async function scanIdentityDocument(req: AuthenticatedRequest, res: Respo
     const sellerId = getSellerId(req);
     if (!sellerId) return res.status(401).json({ message: 'Authentication required' });
 
-    if (!isMicroblinkConfigured()) {
+    const microblinkDiag = getMicroblinkDiagnostics();
+    if (!microblinkDiag.configured) {
       return res.status(503).json({
         message: 'Identity verification is not configured. Contact support.',
+      });
+    }
+    if (microblinkDiag.secretMayBeCorrupted) {
+      return res.status(503).json({
+        message: 'Identity verification is misconfigured on the server (invalid Microblink secret).',
+        hint:
+          'The API secret appears corrupted (often + turned into space on Render). Set MICROBLINK_SECRET in quotes or use MICROBLINK_SECRET_B64.',
       });
     }
 
@@ -256,8 +280,8 @@ export async function scanIdentityDocument(req: AuthenticatedRequest, res: Respo
     });
   } catch (error: unknown) {
     console.error('scanIdentityDocument error:', error);
-    const message = error instanceof Error ? error.message : 'Document scan failed';
-    return res.status(identityErrorStatus(error)).json({ message });
+    const { status, message, hint, upstreamStatus } = identityErrorPayload(error);
+    return res.status(status).json({ message, hint, upstreamStatus });
   }
 }
 
@@ -361,8 +385,8 @@ export async function matchIdentityFace(req: AuthenticatedRequest, res: Response
     });
   } catch (error: unknown) {
     console.error('matchIdentityFace error:', error);
-    const message = error instanceof Error ? error.message : 'Face verification failed';
-    return res.status(identityErrorStatus(error)).json({ message });
+    const { status, message, hint, upstreamStatus } = identityErrorPayload(error);
+    return res.status(status).json({ message, hint, upstreamStatus });
   }
 }
 

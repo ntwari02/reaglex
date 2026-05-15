@@ -89,6 +89,7 @@ import { startCartPulseEmailWorker } from './src/jobs/cartPulseEmailWorker';
 import { startBrowseAbandonEmailWorker } from './src/jobs/browseAbandonEmailWorker';
 import { startComplianceCertificateReminderJob } from './src/jobs/complianceCertificateReminderJob';
 import pushDeviceRoutes from './src/routes/pushDeviceRoutes';
+import { logMicroblinkStartupCheck } from './src/services/microblink.service';
 
 const app = express();
 const httpServer = createServer(app);
@@ -121,6 +122,8 @@ if (emailProvider === 'resend') {
     '[email] SMTP_USER or SMTP_PASS not set; password reset and verification emails will not be sent. See server/EMAIL_SETUP.md.',
   );
 }
+
+logMicroblinkStartupCheck();
 
 // Global middlewares - CORS: from CLIENT_URL + ALLOWED_ORIGINS (see publicEnv)
 const allowedCorsOrigins = getAllowedCorsOrigins();

@@ -57,5 +57,5 @@ OPENROUTESERVICE_API_KEY=eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijc
 ## Region: EU | us-east | ca  (also accepts US, EU, europe, canada)
 ## API hosts: https://eu.verify.microblink.com | us-east | ca
 MICROBLINK_LICENSE_KEY=10f4a2d3dd194e6e9e76ce23f071a12e
-MICROBLINK_SECRET=v0t4/1T2xQmlNOImx0FACBvPqefRJ9dACfyHFuvACwiI0D5h55UT0s4B0dp8hzaVYe1ZR7js2b8pg87goE+gIA==
+MICROBLINK_SECRET="v0t4/1T2xQmlNOImx0FACBvPqefRJ9dACfyHFuvACwiI0D5h55UT0s4B0dp8hzaVYe1ZR7js2b8pg87goE+gIA=="
 MICROBLINK_REGION=EU

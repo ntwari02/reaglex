@@ -176,7 +176,10 @@ const SellerIdentityVerification: React.FC = () => {
         credentials: 'include',
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Document scan failed');
+      if (!res.ok) {
+        const detail = [data.message, data.hint].filter(Boolean).join(' ');
+        throw new Error(detail || 'Document scan failed');
+      }
       showToast(data.message, data.accepted ? 'success' : 'error');
       setFrontFile(null);
       setBackFile(null);
@@ -204,7 +207,10 @@ const SellerIdentityVerification: React.FC = () => {
         credentials: 'include',
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Face verification failed');
+      if (!res.ok) {
+        const detail = [data.message, data.hint].filter(Boolean).join(' ');
+        throw new Error(detail || 'Face verification failed');
+      }
       showToast(data.message, data.accepted ? 'success' : 'error');
       setSelfieFile(null);
       if (selfiePreview) URL.revokeObjectURL(selfiePreview);
