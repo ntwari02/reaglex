@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Command as CmdIcon } from 'lucide-react';
 import { haptic } from '../haptics';
@@ -11,11 +12,29 @@ const STORAGE_KEY = 'reaglex-fab-coachmark-dismissed';
  * command palette + AI assistant from anywhere in the app, mimicking the
  * native experience of apps like Linear or Raycast.
  */
+function shouldHideFab(pathname: string): boolean {
+  if (pathname.startsWith('/admin') || pathname.startsWith('/seller')) return true;
+  if (
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/auth' ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/verify-otp')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export default function AssistantFab() {
+  const { pathname } = useLocation();
   const [expanded, setExpanded] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const hidden = shouldHideFab(pathname);
 
   useEffect(() => {
+    if (hidden) return;
     try {
       if (localStorage.getItem(STORAGE_KEY) === '1') return;
     } catch {
@@ -34,7 +53,9 @@ export default function AssistantFab() {
       clearTimeout(t);
       clearTimeout(hide);
     };
-  }, []);
+  }, [hidden]);
+
+  if (hidden) return null;
 
   return (
     <div
@@ -79,9 +100,9 @@ export default function AssistantFab() {
         }}
         className="overflow-hidden flex items-center gap-2 h-[52px] pl-[14px] pr-[14px] rounded-full text-white"
         style={{
-          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-          boxShadow: '0 18px 40px rgba(6,182,212,0.45)',
-          border: '1px solid rgba(255,255,255,0.18)',
+          background: 'var(--commerce-gradient-cta)',
+          boxShadow: 'var(--commerce-shadow-cta)',
+          border: '1px solid color-mix(in srgb, var(--text-on-accent) 22%, transparent)',
         }}
       >
         <Sparkles className="h-5 w-5 flex-shrink-0" />

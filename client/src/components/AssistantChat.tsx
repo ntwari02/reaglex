@@ -513,29 +513,29 @@ export default function AssistantChat() {
 
   if (isHidden) return null;
 
+  /* No floating FAB — PwaRoot AssistantFab is the single entry; chat opens via events */
+  if (!open) return null;
+
   const isSellerHub =
     path.startsWith('/seller') &&
     path !== '/seller/pending' &&
     !isSellerPathWithBuyerNav(path);
-  const fabBottom = isMobileViewport
+  const panelBottom = isMobileViewport
     ? isSellerHub
       ? 'calc(5.75rem + env(safe-area-inset-bottom, 0px))'
       : 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
     : 'max(1.25rem, env(safe-area-inset-bottom, 0px))';
-  const fabRight = isMobileViewport
+  const panelRight = isMobileViewport
     ? 'max(1rem, env(safe-area-inset-right, 0px))'
     : 'max(1.25rem, env(safe-area-inset-right, 0px))';
 
-  /* ─────────────────────────────────────────────────────────────────────────
-     RENDER
-  ───────────────────────────────────────────────────────────────────────── */
   return (
     <motion.div
       className="ai-assistant-commerce"
       style={{
         position: 'fixed',
-        bottom: fabBottom,
-        right: fabRight,
+        bottom: panelBottom,
+        right: panelRight,
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
@@ -543,23 +543,6 @@ export default function AssistantChat() {
         gap: 12,
       }}
     >
-
-      {!open && (
-        <motion.button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="ai-trigger-fab"
-          aria-label="Open AI assistant"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 340, damping: 20 }}
-          whileTap={{ scale: 0.94 }}
-        >
-          <Sparkles size={28} strokeWidth={2} aria-hidden />
-        </motion.button>
-      )}
-
-      {/* ── Chat window ── */}
       <AnimatePresence>
         {open && (
           <motion.div
