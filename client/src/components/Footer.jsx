@@ -500,7 +500,7 @@ export default function Footer() {
                       <button
                         key={labelKey}
                         type="button"
-                        onClick={() => window.dispatchEvent(new Event('reaglex-open-help-chat'))}
+                        onClick={() => window.dispatchEvent(new Event('reaglex:assistant:open'))}
                         className="text-sm mb-1 text-left"
                         style={{ color: 'var(--footer-on-dark-body)', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
                       >

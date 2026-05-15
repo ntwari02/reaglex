@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/config';
+import { isSellerPathWithBuyerNav } from '@/config/buyerNavVisibility';
 
 type Sender = 'bot' | 'user';
 
@@ -38,9 +40,12 @@ interface ChatMessage {
 const STORAGE_KEY = 'reaglex_unified_assistant_chat';
 const MAX_MESSAGES = 50;
 const SEND_COOLDOWN_MS = 10_000;
-const PRIMARY = 'var(--brand-primary)';
-const CYAN = '#22d3ee';
-const INDIGO = '#6366f1';
+const PRIMARY = 'var(--commerce-brand-primary)';
+const PRIMARY_HOVER = 'var(--commerce-brand-primary-hover)';
+const ORANGE_GLOW = 'rgba(249, 115, 22, 0.18)';
+const ORANGE_GLOW_SOFT = 'rgba(249, 115, 22, 0.1)';
+const ORANGE_ICON_BG = 'linear-gradient(145deg, rgba(249, 115, 22, 0.14) 0%, rgba(234, 88, 12, 0.1) 100%)';
+const ORANGE_ICON_BORDER = 'rgba(249, 115, 22, 0.28)';
 
 const QUICK_ACTIONS = [
   { emoji: '🔍', label: 'Find product', query: 'Show me popular products' },
@@ -67,21 +72,21 @@ function GeminiIcon({ size = 22, className = '' }: { size?: number; className?: 
       <defs>
         <radialGradient id="gemini-core-assistant" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(12 12) rotate(90) scale(2.2)">
           <stop stopColor="#ffffff" />
-          <stop offset="1" stopColor="#67e8f9" />
+          <stop offset="1" stopColor="#fdba74" />
         </radialGradient>
         <linearGradient id="gemini-ring-assistant" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#22d3ee" />
-          <stop offset="0.5" stopColor="#a78bfa" />
-          <stop offset="1" stopColor="#6366f1" />
+          <stop stopColor="#fb923c" />
+          <stop offset="0.5" stopColor="#f97316" />
+          <stop offset="1" stopColor="#ea580c" />
         </linearGradient>
         <linearGradient id="gemini-gradient-assistant" x1="1.5" y1="1.5" x2="22.5" y2="22.5" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#22d3ee" />
-          <stop offset="0.55" stopColor="#8b5cf6" />
-          <stop offset="1" stopColor="#6366f1" />
+          <stop stopColor="#fdba74" />
+          <stop offset="0.55" stopColor="#f97316" />
+          <stop offset="1" stopColor="#ea580c" />
         </linearGradient>
         <linearGradient id="gemini-lines-assistant" x1="5.3" y1="5.3" x2="18.7" y2="18.7" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#67e8f9" />
-          <stop offset="1" stopColor="#c4b5fd" />
+          <stop stopColor="#fed7aa" />
+          <stop offset="1" stopColor="#fb923c" />
         </linearGradient>
       </defs>
     </svg>
@@ -106,7 +111,8 @@ export default function AssistantChat() {
   const isHidden =
     path === '/login' || path === '/signup' ||
     path === '/forgot-password' || path === '/reset-password' ||
-    path === '/verify-otp';
+    path === '/verify-otp' ||
+    path.startsWith('/admin');
 
   const [open,              setOpen]              = useState(false);
   const [typing,            setTyping]            = useState(false);
@@ -176,11 +182,15 @@ export default function AssistantChat() {
     if (open) setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 60);
   }, [open, messages.length]);
 
-  /* ── External open event ── */
+  /* ── External open events (unified assistant — legacy help-chat alias) ── */
   useEffect(() => {
     const h = () => setOpen(true);
     window.addEventListener('reaglex:assistant:open', h as EventListener);
-    return () => window.removeEventListener('reaglex:assistant:open', h as EventListener);
+    window.addEventListener('reaglex-open-help-chat', h as EventListener);
+    return () => {
+      window.removeEventListener('reaglex:assistant:open', h as EventListener);
+      window.removeEventListener('reaglex-open-help-chat', h as EventListener);
+    };
   }, []);
 
   /* ── Close on outside click ── */
@@ -215,39 +225,37 @@ export default function AssistantChat() {
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
-      /* Trigger button */
-      .ai-trigger-btn {
-        position: relative; background: none; border: none; padding: 0; cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        width: 44px; height: 112px;
-      }
-      .ai-trigger-core {
-        width: 44px; height: 104px;
-        /* Browser-like side tab: round on left side only. */
-        border-radius: 14px 0 0 14px;
-        background: var(--card-bg);
-        border: 1px solid color-mix(in srgb, var(--border-card) 90%, transparent);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.22);
-        display: flex; align-items: center; justify-content: center;
+      /* Floating trigger — single rounded brand FAB (no side-tab duplicate) */
+      .ai-trigger-fab {
+        position: relative;
+        width: 3.75rem;
+        height: 3.75rem;
+        border-radius: 9999px;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-on-accent);
+        background: var(--commerce-gradient-cta);
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--text-on-accent) 22%, transparent),
+          0 12px 40px color-mix(in srgb, var(--commerce-brand-primary) 48%, transparent);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
-      .ai-trigger-core:hover {
-        transform: translateX(-2px);
-        box-shadow: 0 12px 28px rgba(0,0,0,0.28);
+      .ai-trigger-fab:hover {
+        transform: translateY(-2px) scale(1.04);
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--text-on-accent) 28%, transparent),
+          0 16px 48px color-mix(in srgb, var(--commerce-brand-primary) 55%, transparent);
       }
-      .ai-ring {
-        display: none;
-      }
-      .ai-ring-2 {
-        display: none;
-      }
-      @keyframes aiRingPulse {
-        0%   { opacity: 0.75; transform: scale(1); }
-        100% { opacity: 0;    transform: scale(1.45); }
+      .ai-trigger-fab:active {
+        transform: scale(0.96);
       }
 
       /* Typing dots */
-      .ai-dot { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--brand-primary) 65%, transparent); animation: aiDot 1.3s ease-in-out infinite; }
+      .ai-dot { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--commerce-brand-primary) 65%, transparent); animation: aiDot 1.3s ease-in-out infinite; }
       .ai-dot:nth-child(2) { animation-delay: 0.22s; }
       .ai-dot:nth-child(3) { animation-delay: 0.44s; }
       @keyframes aiDot {
@@ -265,8 +273,8 @@ export default function AssistantChat() {
         cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
       }
       .ai-chip:hover {
-        background: var(--brand-tint-strong); border-color: var(--brand-border-subtle);
-        color: var(--brand-primary); transform: translateY(-1px);
+        background: var(--commerce-brand-tint-strong); border-color: var(--commerce-brand-border-subtle);
+        color: var(--commerce-brand-primary); transform: translateY(-1px);
       }
 
       /* Input textarea */
@@ -278,20 +286,20 @@ export default function AssistantChat() {
         min-height: 42px; max-height: 110px; font-family: inherit;
         transition: border-color 0.2s, box-shadow 0.2s; line-height: 1.45;
       }
-      .ai-textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--brand-tint); }
+      .ai-textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--commerce-brand-tint); }
       .ai-textarea::placeholder { color: var(--text-faint); }
       .ai-textarea::-webkit-scrollbar { width: 2px; }
-      .ai-textarea::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--brand-primary) 28%, transparent); border-radius: 4px; }
+      .ai-textarea::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--commerce-brand-primary) 28%, transparent); border-radius: 4px; }
 
       /* Send button */
       .ai-send {
         width: 42px; height: 42px; flex-shrink: 0; border-radius: 13px; border: none;
         cursor: pointer; display: flex; align-items: center; justify-content: center;
-        background: var(--gradient-brand-cta); color: var(--text-on-accent);
-        box-shadow: var(--shadow-cta);
+        background: var(--commerce-gradient-cta); color: var(--text-on-accent);
+        box-shadow: var(--commerce-shadow-cta);
         transition: all 0.22s ease;
       }
-      .ai-send:hover:not(:disabled) { box-shadow: var(--shadow-cta-hover); transform: translateY(-1px); }
+      .ai-send:hover:not(:disabled) { box-shadow: var(--commerce-shadow-cta-hover); transform: translateY(-1px); }
       .ai-send:disabled { background: var(--bg-tertiary, #e5e7eb); color: var(--text-faint); box-shadow: none; cursor: not-allowed; }
 
       /* Header action buttons */
@@ -317,14 +325,14 @@ export default function AssistantChat() {
       /* Scrollbar for messages area */
       .ai-msgs::-webkit-scrollbar { width: 3px; }
       .ai-msgs::-webkit-scrollbar-track { background: transparent; }
-      .ai-msgs::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--brand-primary) 24%, transparent); border-radius: 99px; }
-      .ai-msgs::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--brand-primary) 42%, transparent); }
+      .ai-msgs::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--commerce-brand-primary) 24%, transparent); border-radius: 99px; }
+      .ai-msgs::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--commerce-brand-primary) 42%, transparent); }
 
       /* Animated icon (kept for GeminiIcon) */
       .gemini-animated-icon {
         animation: geminiFloatSpin 3.2s ease-in-out infinite, geminiPulseGlow 2.4s ease-in-out infinite;
-        filter: drop-shadow(0 0 10px color-mix(in srgb, var(--brand-primary) 40%, transparent))
-          drop-shadow(0 0 16px color-mix(in srgb, var(--brand-primary) 22%, transparent));
+        filter: drop-shadow(0 0 10px color-mix(in srgb, var(--commerce-brand-primary) 40%, transparent))
+          drop-shadow(0 0 16px color-mix(in srgb, var(--commerce-brand-primary) 22%, transparent));
         transform-origin: 50% 50%;
       }
       @keyframes geminiFloatSpin {
@@ -505,17 +513,29 @@ export default function AssistantChat() {
 
   if (isHidden) return null;
 
+  const isSellerHub =
+    path.startsWith('/seller') &&
+    path !== '/seller/pending' &&
+    !isSellerPathWithBuyerNav(path);
+  const fabBottom = isMobileViewport
+    ? isSellerHub
+      ? 'calc(5.75rem + env(safe-area-inset-bottom, 0px))'
+      : 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
+    : 'max(1.25rem, env(safe-area-inset-bottom, 0px))';
+  const fabRight = isMobileViewport
+    ? 'max(1rem, env(safe-area-inset-right, 0px))'
+    : 'max(1.25rem, env(safe-area-inset-right, 0px))';
+
   /* ─────────────────────────────────────────────────────────────────────────
      RENDER
   ───────────────────────────────────────────────────────────────────────── */
   return (
-    <div
+    <motion.div
+      className="ai-assistant-commerce"
       style={{
         position: 'fixed',
-        top: isMobileViewport ? 'auto' : '50%',
-        transform: isMobileViewport ? 'none' : 'translateY(-50%)',
-        bottom: isMobileViewport ? 'calc(82px + env(safe-area-inset-bottom))' : 'auto',
-        right: 'max(0px, env(safe-area-inset-right))',
+        bottom: fabBottom,
+        right: fabRight,
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
@@ -524,21 +544,18 @@ export default function AssistantChat() {
       }}
     >
 
-      {/* ── Trigger orb ── */}
       {!open && (
         <motion.button
           type="button"
           onClick={() => setOpen(true)}
-          className="ai-trigger-btn"
+          className="ai-trigger-fab"
           aria-label="Open AI assistant"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 340, damping: 20 }}
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.94 }}
         >
-          <span className="ai-trigger-core">
-            <GeminiIcon size={24} className="gemini-animated-icon" />
-          </span>
+          <Sparkles size={28} strokeWidth={2} aria-hidden />
         </motion.button>
       )}
 
@@ -558,20 +575,20 @@ export default function AssistantChat() {
               borderRadius: 22,
               overflow: 'hidden',
               background: 'var(--card-bg)',
-              border: `1px solid rgba(34,211,238,0.18)`,
-              boxShadow: '0 28px 80px rgba(0,0,0,0.38), 0 0 0 1px rgba(34,211,238,0.07), 0 0 60px rgba(99,102,241,0.06)',
+              border: `1px solid ${ORANGE_GLOW}`,
+              boxShadow: '0 28px 80px rgba(0,0,0,0.38), 0 0 0 1px rgba(249,115,22,0.07), 0 0 60px rgba(249,115,22,0.06)',
               position: 'relative',
             }}
           >
             {/* Top accent line */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent 0%, ${CYAN} 30%, ${PRIMARY} 70%, transparent 100%)`, zIndex: 10 }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent 0%, ${PRIMARY_HOVER} 30%, ${PRIMARY} 70%, transparent 100%)`, zIndex: 10 }} />
 
             {/* ── Header ── */}
             <div style={{
               padding: '13px 16px',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
               background: 'linear-gradient(135deg, rgba(10,10,22,0.98) 0%, rgba(13,15,28,0.97) 100%)',
-              borderBottom: `1px solid rgba(34,211,238,0.1)`,
+              borderBottom: `1px solid ${ORANGE_GLOW_SOFT}`,
               position: 'relative', zIndex: 2,
             }}>
               {/* Left: icon + name */}
@@ -579,8 +596,8 @@ export default function AssistantChat() {
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: 13,
-                    background: `linear-gradient(145deg, rgba(34,211,238,0.14) 0%, rgba(99,102,241,0.1) 100%)`,
-                    border: `1px solid rgba(34,211,238,0.28)`,
+                    background: ORANGE_ICON_BG,
+                    border: `1px solid ${ORANGE_ICON_BORDER}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <GeminiIcon size={21} className="gemini-animated-icon" />
@@ -602,7 +619,7 @@ export default function AssistantChat() {
                     {poweredByModel && (
                       <>
                         <span style={{ fontSize: 10, color: 'rgba(148,163,184,0.4)' }}>·</span>
-                        <span style={{ fontSize: 10, color: `rgba(34,211,238,0.72)`, fontWeight: 600, letterSpacing: '0.02em' }}>{poweredByModel}</span>
+                        <span style={{ fontSize: 10, color: 'rgba(251, 146, 60, 0.85)', fontWeight: 600, letterSpacing: '0.02em' }}>{poweredByModel}</span>
                       </>
                     )}
                   </div>
@@ -661,7 +678,7 @@ export default function AssistantChat() {
                     {/* Bubble row */}
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, maxWidth: '88%', justifyContent: isUser ? 'flex-end' : 'flex-start', width: '100%' }}>
                       {!isUser && (
-                        <div style={{ width: 26, height: 26, borderRadius: 9, background: `linear-gradient(145deg, rgba(34,211,238,0.14) 0%, rgba(99,102,241,0.1) 100%)`, border: '1px solid rgba(34,211,238,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 2 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 9, background: `${ORANGE_ICON_BG}`, border: `1px solid ${ORANGE_ICON_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 2 }}>
                           <GeminiIcon size={13} className="gemini-animated-icon" />
                         </div>
                       )}
@@ -669,13 +686,13 @@ export default function AssistantChat() {
                         padding: isUser ? '9px 13px' : '10px 13px',
                         borderRadius: isUser ? '17px 4px 17px 17px' : '4px 17px 17px 17px',
                         background: isUser
-                          ? 'var(--gradient-brand-cta)'
+                          ? 'var(--commerce-gradient-cta)'
                           : 'var(--card-bg)',
                         color: isUser ? 'var(--text-on-accent)' : 'var(--text-primary)',
                         fontSize: 13, lineHeight: 1.5,
                         whiteSpace: 'pre-wrap',
                         boxShadow: isUser
-                          ? 'var(--shadow-cta)'
+                          ? 'var(--commerce-shadow-cta)'
                           : '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px var(--border-card)',
                         maxWidth: '100%',
                       }}>
@@ -731,7 +748,7 @@ export default function AssistantChat() {
                                 <div style={{ display: 'flex', gap: 6, padding: '0 10px 10px', flexWrap: 'wrap' }}>
                                   <button type="button"
                                     onClick={() => { setCheckoutTarget(p); setOpen(true); }}
-                                    style={{ flex: 1, minWidth: 80, padding: '7px 8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: 11, boxShadow: 'var(--shadow-cta)' }}>
+                                    style={{ flex: 1, minWidth: 80, padding: '7px 8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'var(--commerce-gradient-cta)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: 11, boxShadow: 'var(--commerce-shadow-cta)' }}>
                                     Buy now
                                   </button>
                                   <button type="button"
@@ -758,7 +775,7 @@ export default function AssistantChat() {
                     {!isUser && m.paymentLink && (
                       <div style={{ marginTop: 8, paddingLeft: 34 }}>
                         <a href={m.paymentLink} target="_blank" rel="noopener noreferrer"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', fontWeight: 800, textDecoration: 'none', fontSize: 12.5, boxShadow: 'var(--shadow-cta)' }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, background: 'var(--commerce-gradient-cta)', color: 'var(--text-on-accent)', fontWeight: 800, textDecoration: 'none', fontSize: 12.5, boxShadow: 'var(--commerce-shadow-cta)' }}
                         >
                           🔒 Pay now{m.paymentAmount != null ? ` (${m.paymentCurrency === 'RWF' ? `RWF ${Math.round(Number(m.paymentAmount)).toLocaleString()}` : `${m.paymentCurrency || ''} ${Number(m.paymentAmount).toFixed(2)}`})` : ''}
                         </a>
@@ -769,7 +786,7 @@ export default function AssistantChat() {
                     {!isUser && !m.paymentLink && m.paymentReferenceId && m.orderIdForPayment && (m.paymentProvider === 'momo' || m.paymentProvider === 'airtel') && (
                       <div style={{ marginTop: 8, paddingLeft: 34 }}>
                         <Link to={`/checkout/momo-wait?ref=${encodeURIComponent(m.paymentReferenceId)}&orderId=${encodeURIComponent(m.orderIdForPayment)}&provider=${m.paymentProvider === 'airtel' ? 'airtel' : 'momo'}`}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', fontWeight: 800, textDecoration: 'none', fontSize: 12.5, boxShadow: 'var(--shadow-cta)' }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, background: 'var(--commerce-gradient-cta)', color: 'var(--text-on-accent)', fontWeight: 800, textDecoration: 'none', fontSize: 12.5, boxShadow: 'var(--commerce-shadow-cta)' }}
                         >
                           📱 Payment status{m.paymentAmount != null ? ` (${m.paymentCurrency === 'RWF' ? `RWF ${Math.round(Number(m.paymentAmount)).toLocaleString()}` : `${m.paymentCurrency || ''} ${Number(m.paymentAmount).toFixed(2)}`})` : ''}
                         </Link>
@@ -782,7 +799,7 @@ export default function AssistantChat() {
               {/* Typing indicator */}
               {typing && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, paddingLeft: 2 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: 9, background: `linear-gradient(145deg, rgba(34,211,238,0.14) 0%, rgba(99,102,241,0.1) 100%)`, border: '1px solid rgba(34,211,238,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 9, background: `${ORANGE_ICON_BG}`, border: `1px solid ${ORANGE_ICON_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <GeminiIcon size={13} className="gemini-animated-icon" />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '10px 13px', borderRadius: '4px 17px 17px 17px', background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -871,7 +888,7 @@ export default function AssistantChat() {
                 </div>
                 {/* Submit */}
                 <button type="button" disabled={checkoutBusy} onClick={() => void submitInlineCheckout()}
-                  style={{ marginTop: 12, width: '100%', padding: '11px 14px', borderRadius: 13, border: 'none', cursor: checkoutBusy ? 'not-allowed' : 'pointer', background: checkoutBusy ? 'var(--bg-tertiary)' : 'var(--gradient-brand-cta)', color: checkoutBusy ? 'var(--text-faint)' : 'var(--text-on-accent)', fontWeight: 800, fontSize: 13, boxShadow: checkoutBusy ? 'none' : 'var(--shadow-cta)', transition: 'all 0.2s' }}>
+                  style={{ marginTop: 12, width: '100%', padding: '11px 14px', borderRadius: 13, border: 'none', cursor: checkoutBusy ? 'not-allowed' : 'pointer', background: checkoutBusy ? 'var(--bg-tertiary)' : 'var(--commerce-gradient-cta)', color: checkoutBusy ? 'var(--text-faint)' : 'var(--text-on-accent)', fontWeight: 800, fontSize: 13, boxShadow: checkoutBusy ? 'none' : 'var(--commerce-shadow-cta)', transition: 'all 0.2s' }}>
                   {checkoutBusy ? 'Creating order…' : '🔒 Create order & start payment'}
                 </button>
               </div>
@@ -917,7 +934,6 @@ export default function AssistantChat() {
                   </button>
                 ) : <span />}
                 <span style={{ fontSize: 9.5, color: 'var(--text-faint)', letterSpacing: '0.05em', textAlign: 'right' }}>
-                  {CYAN && INDIGO ? 'Shift+Enter for new line' : ''}
                   Shift+Enter for new line
                 </span>
               </div>
@@ -926,6 +942,6 @@ export default function AssistantChat() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }

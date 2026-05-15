@@ -19,11 +19,24 @@ import ReturnsCases from '@/pages/seller/ReturnsCases';
 import Notifications from '@/components/dashboard/Notifications';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import { useAuthStore } from '../stores/authStore';
+import { useSellerKycStatus, sellerVerificationBadgeLabel } from '@/hooks/useSellerKycStatus';
+import SellerKycOnboardingModal from '@/components/seller/SellerKycOnboardingModal';
+import SellerKycBanner from '@/components/seller/SellerKycBanner';
+import SellerMobileBottomNav from '@/components/seller/SellerMobileBottomNav';
 
 const SellerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading, initialized } = useAuthStore();
+  const {
+    status: kycStatus,
+    verificationStatus,
+    showModal: showKycModal,
+    showBanner: showKycBanner,
+    startOnboarding,
+    completeLater,
+    refresh: refreshKyc,
+  } = useSellerKycStatus(user?.role === 'seller', user?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   
@@ -116,17 +129,12 @@ const SellerDashboard: React.FC = () => {
           notificationsOpen={notificationsOpen}
           setNotificationsOpen={setNotificationsOpen}
           userName={user?.full_name || user?.email || 'Seller'}
-          userRole={
-            user?.seller_status === 'approved'
-              ? 'Verified Seller'
-              : user?.seller_status === 'rejected'
-              ? 'Seller (Verification Rejected)'
-              : 'Seller (Pending Government & Admin Approval)'
-          }
+          userRole={sellerVerificationBadgeLabel(verificationStatus, user?.seller_status)}
           accentVariant="orange"
         />
         
-        <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden scroll-smooth p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden scroll-smooth p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-6 lg:p-8 lg:pb-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
+          {showKycBanner && <SellerKycBanner status={kycStatus} />}
           <Routes>
             <Route index element={<DashboardOverview />} />
             <Route path="dashboard" element={<DashboardOverview />} />
@@ -153,6 +161,21 @@ const SellerDashboard: React.FC = () => {
       />
 
       <DeviceApprovalPopup />
+
+      <SellerKycOnboardingModal
+        open={showKycModal}
+        status={kycStatus}
+        onStart={async () => {
+          await startOnboarding();
+          await refreshKyc();
+        }}
+        onCompleteLater={async () => {
+          await completeLater();
+          await refreshKyc();
+        }}
+      />
+
+      <SellerMobileBottomNav />
     </div>
   );
 };

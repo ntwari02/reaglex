@@ -96,6 +96,11 @@ export async function performCheckoutSingleProduct(
       return { ok: false, error: 'Product is not available' };
     }
 
+    const { isProductBuyerVisible } = await import('../utils/publicProductQuery');
+    if (!isProductBuyerVisible(product)) {
+      return { ok: false, error: 'Product is not available for purchase' };
+    }
+
     const qty = Math.max(1, Math.min(99, Math.floor(Number(input.quantity) || 1)));
     if (product.stock < qty) {
       return { ok: false, error: 'Insufficient stock for the requested quantity' };

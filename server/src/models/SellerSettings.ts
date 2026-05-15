@@ -72,6 +72,83 @@ export interface IVerificationStatus {
   lastReviewedAt?: Date;
 }
 
+export type IdentityKycStep =
+  | 'not_started'
+  | 'document_pending'
+  | 'document_verified'
+  | 'face_pending'
+  | 'completed'
+  | 'failed';
+
+export interface IMicroblinkFraudFlag {
+  name: string;
+  result: string;
+  message?: string;
+  severity: 'fail' | 'warn' | 'pass' | 'unknown';
+}
+
+export interface IMicroblinkKycMeta {
+  processingStatus?: string;
+  recommendedOutcome?: string;
+  verificationResult?: string;
+  certaintyLevel?: string;
+  confidenceScore?: number;
+  performedChecks?: number;
+  fraudFlags?: IMicroblinkFraudFlag[];
+  checkSummary?: {
+    passed: number;
+    failed: number;
+    messages: string[];
+  };
+}
+
+export interface IIdentityKycDocument extends IMicroblinkKycMeta {
+  type?: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  idNumber?: string;
+  dateOfBirth?: Date;
+  expiryDate?: Date;
+  country?: string;
+  nationality?: string;
+  verified: boolean;
+  verifiedAt?: Date;
+  frontImageUrl?: string;
+  backImageUrl?: string;
+  rejectionReason?: string;
+}
+
+export interface IIdentityKycFace extends IMicroblinkKycMeta {
+  verified: boolean;
+  verifiedAt?: Date;
+  matchScore?: number;
+  livenessScore?: number;
+  selfieImageUrl?: string;
+  rejectionReason?: string;
+}
+
+export interface IIdentityKycTrustBonuses {
+  documentVerified: boolean;
+  faceVerified: boolean;
+  phoneVerified: boolean;
+  businessVerified: boolean;
+}
+
+export interface IIdentityKyc {
+  step: IdentityKycStep;
+  document?: IIdentityKycDocument;
+  face?: IIdentityKycFace;
+  trustBonuses?: IIdentityKycTrustBonuses;
+  lastAttemptAt?: Date;
+}
+
+export interface ISellerKycOnboarding {
+  modalAcknowledgedAt?: Date;
+  completeLaterAt?: Date;
+  startedAt?: Date;
+}
+
 export interface IPayoutSchedule {
   frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   dayOfWeek?: number; // 0-6 (Sunday-Saturday) for weekly/biweekly
@@ -176,6 +253,9 @@ export interface ISellerSettings extends Document {
   verificationDocuments?: IVerificationDocuments;
   // Verification Status (for admin/government review)
   verificationStatus?: IVerificationStatus;
+  /** Microblink-powered seller identity (KYC) */
+  identityKyc?: IIdentityKyc;
+  kycOnboarding?: ISellerKycOnboarding;
   // Payout Schedule
   payoutSchedule?: IPayoutSchedule;
   // Notification Preferences
@@ -381,6 +461,86 @@ const storeSettingsSchema = new Schema<IStoreSettings>(
   { _id: false }
 );
 
+const identityKycSchema = new Schema<IIdentityKyc>(
+  {
+    step: {
+      type: String,
+      enum: ['not_started', 'document_pending', 'document_verified', 'face_pending', 'completed', 'failed'],
+      default: 'not_started',
+    },
+    document: {
+      type: { type: String },
+      fullName: { type: String },
+      firstName: { type: String },
+      lastName: { type: String },
+      idNumber: { type: String },
+      dateOfBirth: { type: Date },
+      expiryDate: { type: Date },
+      country: { type: String },
+      nationality: { type: String },
+      verified: { type: Boolean, default: false },
+      verifiedAt: { type: Date },
+      processingStatus: { type: String },
+      recommendedOutcome: { type: String },
+      verificationResult: { type: String },
+      certaintyLevel: { type: String },
+      confidenceScore: { type: Number },
+      performedChecks: { type: Number },
+      frontImageUrl: { type: String },
+      backImageUrl: { type: String },
+      fraudFlags: [
+        {
+          name: { type: String },
+          result: { type: String },
+          message: { type: String },
+          severity: { type: String },
+        },
+      ],
+      checkSummary: {
+        passed: { type: Number },
+        failed: { type: Number },
+        messages: { type: [String] },
+      },
+      rejectionReason: { type: String },
+    },
+    face: {
+      verified: { type: Boolean, default: false },
+      verifiedAt: { type: Date },
+      matchScore: { type: Number },
+      livenessScore: { type: Number },
+      selfieImageUrl: { type: String },
+      processingStatus: { type: String },
+      recommendedOutcome: { type: String },
+      verificationResult: { type: String },
+      certaintyLevel: { type: String },
+      confidenceScore: { type: Number },
+      performedChecks: { type: Number },
+      fraudFlags: [
+        {
+          name: { type: String },
+          result: { type: String },
+          message: { type: String },
+          severity: { type: String },
+        },
+      ],
+      checkSummary: {
+        passed: { type: Number },
+        failed: { type: Number },
+        messages: { type: [String] },
+      },
+      rejectionReason: { type: String },
+    },
+    trustBonuses: {
+      documentVerified: { type: Boolean, default: false },
+      faceVerified: { type: Boolean, default: false },
+      phoneVerified: { type: Boolean, default: false },
+      businessVerified: { type: Boolean, default: false },
+    },
+    lastAttemptAt: { type: Date },
+  },
+  { _id: false },
+);
+
 const sellerSettingsSchema = new Schema<ISellerSettings>(
   {
     sellerId: {
@@ -432,6 +592,16 @@ const sellerSettingsSchema = new Schema<ISellerSettings>(
     },
     // Payout Schedule
     payoutSchedule: { type: payoutScheduleSchema },
+    // Microblink identity KYC
+    identityKyc: { type: identityKycSchema },
+    kycOnboarding: {
+      modalAcknowledgedAt: { type: Date },
+      completeLaterAt: { type: Date },
+      startedAt: { type: Date },
+    },
+    notificationPreferences: { type: notificationPreferencesSchema },
+    storeContact: { type: storeContactSchema },
+    storeSettings: { type: storeSettingsSchema },
   },
   { timestamps: true }
 );

@@ -101,12 +101,14 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
     }
 
     await ensureReferralCodeForUser(req.user.id);
-    const user = await User.findById(req.user.id).select('-passwordHash');
+    const user = await User.findById(req.user.id).select('-passwordHash').lean();
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    return res.json({ user });
+    const { enrichUserWithSellerKyc } = await import('../utils/sellerKycEnrichment');
+    const enriched = await enrichUserWithSellerKyc(user);
+    return res.json({ user: enriched });
   } catch (err: any) {
     console.error('Get profile error:', err);
     return res.status(500).json({ message: 'Failed to fetch profile' });

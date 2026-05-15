@@ -126,6 +126,27 @@ class WebSocketService {
       },
     );
 
+    this.socket.on(
+      'seller_kyc_updated',
+      (data: {
+        sellerId: string;
+        phase: 'document' | 'face' | 'platform';
+        verificationStatus?: string;
+        kyc?: unknown;
+        productsPublished?: number;
+        identityKyc: unknown;
+        microblink: {
+          region: string;
+          envValue: string;
+          baseUrl: string;
+          configured: boolean;
+        };
+        updatedAt: string;
+      }) => {
+        this.onSellerKycUpdated?.(data);
+      },
+    );
+
     this.socket.on('joined_thread', (data: { threadId: string }) => {
       console.log('Joined thread:', data.threadId);
     });
@@ -220,6 +241,21 @@ class WebSocketService {
     stock: number;
     status: string;
     variants?: Array<{ id: string; sku: string; stock: number }>;
+  }) => void;
+  onSellerKycUpdated?: (data: {
+    sellerId: string;
+    phase: 'document' | 'face' | 'platform';
+    verificationStatus?: string;
+    kyc?: unknown;
+    productsPublished?: number;
+    identityKyc: unknown;
+    microblink: {
+      region: string;
+      envValue: string;
+      baseUrl: string;
+      configured: boolean;
+    };
+    updatedAt: string;
   }) => void;
 }
 

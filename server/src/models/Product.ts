@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export type InventoryStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
+export type PublicationStatus = 'published' | 'pending_verification' | 'draft';
 
 export interface ProductVariant {
   color?: string;
@@ -44,6 +45,8 @@ export interface IProduct extends Document {
   discount?: number;
   moq?: number;
   status: InventoryStatus;
+  /** Buyer storefront visibility — pending_verification when seller KYC is incomplete. */
+  publicationStatus?: PublicationStatus;
   location?: string;
   images?: string[];
   /** Optional product hero video. */
@@ -125,6 +128,12 @@ const productSchema = new Schema<IProduct>(
       type: String,
       enum: ['in_stock', 'low_stock', 'out_of_stock'],
       default: 'in_stock',
+      index: true,
+    },
+    publicationStatus: {
+      type: String,
+      enum: ['published', 'pending_verification', 'draft'],
+      default: 'published',
       index: true,
     },
     location: { type: String, trim: true },
@@ -218,6 +227,8 @@ const productSchema = new Schema<IProduct>(
 productSchema.index({ createdAt: -1 });
 productSchema.index({ category: 1, createdAt: -1 });
 productSchema.index({ status: 1, createdAt: -1 });
+productSchema.index({ publicationStatus: 1, createdAt: -1 });
+productSchema.index({ sellerId: 1, publicationStatus: 1 });
 productSchema.index({ 'verificationSummary.status': 1, createdAt: -1 });
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ soldCount: -1, createdAt: -1 });

@@ -12,6 +12,10 @@ import {
 } from '../services/productVerification.service';
 import type { TrustDraftInput } from '../services/trustVerification.engine';
 import { convertListingToUsd, isSupportedDisplayCurrency } from '../services/exchangeRate.service';
+import {
+  isSellerKycVerified,
+  resolvePublicationStatusForSeller,
+} from '../services/sellerKyc.service';
 
 const CATEGORY_ATTRIBUTES = {
   size_and_color: [
@@ -270,6 +274,9 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
     const normalizedSizes = categoryNeedsSize(category) ? normalizeStringArray(sizes) : [];
     const normalizedColors = categoryNeedsColor(category) ? normalizeStringArray(colors) : [];
 
+    const kycVerified = await isSellerKycVerified(sellerId);
+    const publicationStatus = resolvePublicationStatusForSeller(kycVerified);
+
     const product = await Product.create({
       sellerId,
       name,
@@ -285,6 +292,7 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       discount,
       moq,
       status: status || 'in_stock',
+      publicationStatus,
       location,
       variants,
       sizes: normalizedSizes,
@@ -345,7 +353,14 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
     });
 
     const productOut = await Product.findById(product._id).lean();
-    return res.status(201).json({ product: productOut });
+    return res.status(201).json({
+      product: productOut,
+      kycVerified,
+      publicationStatus,
+      visibilityWarning: !kycVerified
+        ? 'Product saved as PENDING VERIFICATION. It is hidden from buyers until you complete identity verification (Settings → Profile).'
+        : undefined,
+    });
   } catch (err: any) {
     console.error('Create product error:', err);
     return res.status(500).json({ message: 'Failed to create product' });
@@ -462,6 +477,13 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       }
     }
 
+    const kycVerified = await isSellerKycVerified(sellerId);
+    if (!kycVerified) {
+      (existing as any).publicationStatus = 'pending_verification';
+    } else if ((existing as any).publicationStatus === 'pending_verification') {
+      (existing as any).publicationStatus = 'published';
+    }
+
     await existing.save();
 
     if (verificationBody !== undefined) {
@@ -504,7 +526,14 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
     }
 
     const out = await Product.findById(existing._id).lean();
-    return res.json({ product: out });
+    return res.json({
+      product: out,
+      kycVerified,
+      publicationStatus: out?.publicationStatus,
+      visibilityWarning: !kycVerified
+        ? 'Product remains PENDING VERIFICATION and hidden from buyers until identity verification is complete.'
+        : undefined,
+    });
   } catch (err: any) {
     console.error('Update product error:', err);
     return res.status(500).json({ message: 'Failed to update product' });

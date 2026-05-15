@@ -6,6 +6,7 @@ import { ProductReview } from '../models/ProductReview';
 import { ProductWishlist } from '../models/ProductWishlist';
 import { ProductVerification } from '../models/ProductVerification';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
+import { buyerVisibleProductFilter, isProductBuyerVisible } from '../utils/publicProductQuery';
 
 function normalizeMediaUrl(maybeUrl: unknown): unknown {
   if (typeof maybeUrl !== 'string') return maybeUrl;
@@ -75,30 +76,27 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
       order?: 'asc' | 'desc';
     };
 
-    // Build filter
-    const filter: any = {};
-    
-    // Only show in_stock products by default (buyers shouldn't see out_of_stock)
-    if (status === 'in_stock' || status === 'low_stock') {
-      filter.status = { $in: ['in_stock', 'low_stock'] };
-    } else if (status) {
-      filter.status = status;
+    const extra: Record<string, unknown> = {};
+
+    if (status && status !== 'in_stock' && status !== 'low_stock') {
+      extra.status = status;
     }
 
     if (category) {
-      filter.category = category;
+      extra.category = category;
     }
 
     if (search) {
       const regex = new RegExp(search, 'i');
-      filter.$or = [
+      extra.$or = [
         { name: regex },
         { description: regex },
         { sku: regex },
-        // `tags` is an array of strings; matching the regex against any element.
-        { tags: regex }
+        { tags: regex },
       ];
     }
+
+    const filter = buyerVisibleProductFilter(extra);
 
     // Pagination
     const pageNum = parseInt(page, 10) || 1;
@@ -157,10 +155,15 @@ export async function trackProductView(req: AuthenticatedRequest, res: Response)
     }
 
     // Increment view count and return the updated view count in one round-trip.
+    const existing = await Product.findById(productId).select('views publicationStatus').lean();
+    if (!existing || !isProductBuyerVisible(existing)) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
     const product = await Product.findByIdAndUpdate(
       productId,
       { $inc: { views: 1 } },
-      { new: true }
+      { new: true },
     )
       .select('views')
       .lean();
@@ -205,11 +208,11 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
       { new: true }
     ).lean();
 
-    const product = normalizeProductMedia(updatedProduct);
-
-    if (!product) {
+    if (!updatedProduct || !isProductBuyerVisible(updatedProduct)) {
       return res.status(404).json({ message: 'Product not found' });
     }
+
+    const product = normalizeProductMedia(updatedProduct);
 
     const userId = req.user?.id ? new mongoose.Types.ObjectId(String(req.user.id)) : null;
     const pid = new mongoose.Types.ObjectId(String(productId));

@@ -353,7 +353,7 @@ export default function Contact() {
                     background: 'var(--gradient-brand-cta)',
                     boxShadow: 'var(--shadow-cta)',
                   }}
-                  onClick={() => window.dispatchEvent(new Event('reaglex-open-help-chat'))}
+                  onClick={() => window.dispatchEvent(new Event('reaglex:assistant:open'))}
                 >
                   Start Chatting →
                 </motion.button>

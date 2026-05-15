@@ -838,6 +838,25 @@ export const adminAPI = {
         disputes: number;
         tickets: number;
         lastOrder: string;
+        identityKyc?: Record<string, unknown> | null;
+        microblink?: {
+          region: string;
+          envValue: string;
+          baseUrl: string;
+          configured: boolean;
+        };
+        verificationDocuments?: {
+          businessLicense?: string | null;
+          isoCert?: string | null;
+          auditReport?: string | null;
+          uploadedAt?: string | null;
+        };
+        verificationStatusDetails?: Record<string, unknown>;
+        businessName?: string;
+        businessType?: string;
+        taxId?: string;
+        registrationNumber?: string;
+        businessAddress?: Record<string, string> | null;
       };
     }>(response);
   },

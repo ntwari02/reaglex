@@ -1,6 +1,7 @@
 import { Product } from '../models/Product';
 import { ProductVerification } from '../models/ProductVerification';
 import { SellerTrustProfile } from '../models/SellerTrustProfile';
+import { SellerSettings } from '../models/SellerSettings';
 import { Order } from '../models/Order';
 import { Dispute } from '../models/Dispute';
 import mongoose from 'mongoose';
@@ -308,7 +309,8 @@ export async function runProductVerification(input: {
 
 export async function recalculateSellerTrust(sellerId: string) {
   const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
-  const [verifiedListings, suspiciousListings, successfulOrders, disputesOpened, highRiskFraudFlags, avgAi] = await Promise.all([
+  const [verifiedListings, suspiciousListings, successfulOrders, disputesOpened, highRiskFraudFlags, avgAi, sellerSettings] =
+    await Promise.all([
     ProductVerification.countDocuments({ sellerId: sellerObjectId, status: 'verified' } as any),
     ProductVerification.countDocuments({ sellerId: sellerObjectId, status: { $in: ['flagged', 'rejected'] } } as any),
     Order.countDocuments({ sellerId: sellerObjectId, status: { $in: ['delivered'] } } as any),
@@ -321,6 +323,7 @@ export async function recalculateSellerTrust(sellerId: string) {
       { $match: { sellerId: new mongoose.Types.ObjectId(sellerId) } },
       { $group: { _id: null, avgScore: { $avg: '$aiChecks.imageSimilarityScore' } } },
     ]),
+    SellerSettings.findOne({ sellerId: sellerObjectId }).select('identityKyc').lean(),
   ]);
 
   let trustScore = 50;
@@ -329,6 +332,13 @@ export async function recalculateSellerTrust(sellerId: string) {
   trustScore -= Math.min(20, suspiciousListings * 3);
   trustScore -= Math.min(15, disputesOpened * 1.2);
   trustScore -= Math.min(25, highRiskFraudFlags * 5);
+
+  const bonuses = sellerSettings?.identityKyc?.trustBonuses;
+  if (bonuses?.documentVerified) trustScore += 25;
+  if (bonuses?.faceVerified) trustScore += 25;
+  if (bonuses?.phoneVerified) trustScore += 15;
+  if (bonuses?.businessVerified) trustScore += 35;
+
   trustScore = Math.max(0, Math.min(100, Math.round(trustScore)));
   const badge = trustScore >= 85 ? 'elite' : trustScore >= 70 ? 'trusted' : trustScore >= 50 ? 'improving' : 'new';
   const avgImageVideoConfidence = Math.round(Number(avgAi?.[0]?.avgScore || 0));

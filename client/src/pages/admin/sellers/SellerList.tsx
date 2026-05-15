@@ -46,6 +46,8 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { resolveAssetUrl } from '@/lib/config';
+import AdminMicroblinkKycPanel from '@/components/admin/AdminMicroblinkKycPanel';
+import { useAdminSellerKycRealtime } from '@/hooks/useAdminSellerKycRealtime';
 
 type SellerStatus = 'active' | 'pending' | 'suspended' | 'rejected' | 'banned' | 'warned' | 'inactive';
 type KycStatus = 'verified' | 'pending' | 'rejected';
@@ -205,6 +207,27 @@ export default function SellerList({ onViewSeller }: SellerListProps) {
     open: false,
     sellerData: null,
   });
+  const [kycLiveUpdatedAt, setKycLiveUpdatedAt] = useState<string | null>(null);
+
+  useAdminSellerKycRealtime(
+    viewSellerModal.open ? viewSellerModal.sellerData?.id : undefined,
+    viewSellerModal.open,
+    (detail) => {
+      setViewSellerModal((prev) =>
+        prev.sellerData
+          ? {
+              ...prev,
+              sellerData: {
+                ...prev.sellerData,
+                identityKyc: detail.identityKyc,
+                microblink: detail.microblink,
+              },
+            }
+          : prev,
+      );
+      setKycLiveUpdatedAt(detail.updatedAt);
+    },
+  );
   const [editSellerModal, setEditSellerModal] = useState<{ open: boolean; seller: Seller | null }>({
     open: false,
     seller: null,
@@ -335,6 +358,7 @@ export default function SellerList({ onViewSeller }: SellerListProps) {
     try {
       setActionLoading(seller.id);
       const response = await adminAPI.getSellerDetails(seller.userId);
+      setKycLiveUpdatedAt(null);
       setViewSellerModal({ open: true, sellerData: response.seller });
     } catch (err: any) {
       console.error('Failed to load seller details:', err);
@@ -1102,6 +1126,13 @@ export default function SellerList({ onViewSeller }: SellerListProps) {
                   </div>
                 </div>
               )}
+
+              {/* Microblink identity KYC */}
+              <AdminMicroblinkKycPanel
+                identityKyc={viewSellerModal.sellerData.identityKyc}
+                microblink={viewSellerModal.sellerData.microblink}
+                liveUpdatedAt={kycLiveUpdatedAt}
+              />
 
               {/* Verification Documents */}
               <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">

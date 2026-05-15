@@ -8,6 +8,7 @@ import { Product } from '../models/Product';
 import { Dispute } from '../models/Dispute';
 import { SupportTicket } from '../models/SupportTicket';
 import { SellerSettings } from '../models/SellerSettings';
+import { getMicroblinkRegionConfig } from '../services/microblink.service';
 
 /**
  * Get user statistics for dashboard
@@ -852,6 +853,8 @@ export async function getSellerDetails(req: AuthenticatedRequest, res: Response)
           reviewedBy: null,
           lastReviewedAt: null,
         },
+        identityKyc: sellerSettings?.identityKyc || null,
+        microblink: getMicroblinkRegionConfig(),
       },
     });
   } catch (error: any) {
@@ -938,6 +941,13 @@ export async function updateSellerStatus(req: AuthenticatedRequest, res: Respons
     }
 
     await seller.save();
+
+    if (verificationStatus) {
+      const { emitSellerKycUpdated } = await import('../services/sellerKycRealtime.service');
+      void emitSellerKycUpdated(String(sellerId), 'platform').catch((err) =>
+        console.error('emitSellerKycUpdated platform:', err),
+      );
+    }
 
     return res.json({
       message: 'Seller status updated successfully',
@@ -1065,6 +1075,13 @@ export async function updateSeller(req: AuthenticatedRequest, res: Response) {
     }
 
     await seller.save();
+
+    if (sellerVerificationStatus !== undefined) {
+      const { emitSellerKycUpdated } = await import('../services/sellerKycRealtime.service');
+      void emitSellerKycUpdated(String(sellerId), 'platform').catch((err) =>
+        console.error('emitSellerKycUpdated platform:', err),
+      );
+    }
 
     return res.json({
       message: 'Seller updated successfully',

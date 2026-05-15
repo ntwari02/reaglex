@@ -60,6 +60,16 @@
   --shadow-cta:          0 6px 20px rgba(249, 115, 22, 0.28);
   --shadow-cta-hover:    0 14px 36px rgba(249, 115, 22, 0.32);
 
+  /* Storefront / AI assistant — always buyer–seller orange (not admin emerald) */
+  --commerce-brand-primary:       #f97316;
+  --commerce-brand-primary-hover: #ea580c;
+  --commerce-brand-tint:          rgba(249, 115, 22, 0.08);
+  --commerce-brand-tint-strong:   rgba(249, 115, 22, 0.15);
+  --commerce-brand-border-subtle: rgba(249, 115, 22, 0.25);
+  --commerce-gradient-cta:          linear-gradient(135deg, #f97316, #ea580c);
+  --commerce-shadow-cta:          0 6px 20px rgba(249, 115, 22, 0.28);
+  --commerce-shadow-cta-hover:    0 14px 36px rgba(249, 115, 22, 0.32);
+
   /* ── Product / browse specifics ───────────────────────────────────────────── */
   --text-price:          #0f172a;
   --text-in-stock:       #16a34a;
@@ -272,6 +282,15 @@
   --gradient-brand-bar:  linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover));
   --shadow-cta:          0 6px 20px rgba(217, 119, 54, 0.22);
   --shadow-cta-hover:    0 14px 36px rgba(217, 119, 54, 0.28);
+
+  --commerce-brand-primary:       #d97736;
+  --commerce-brand-primary-hover: #e08a4a;
+  --commerce-brand-tint:          rgba(217, 119, 54, 0.14);
+  --commerce-brand-tint-strong:   rgba(217, 119, 54, 0.22);
+  --commerce-brand-border-subtle: rgba(217, 119, 54, 0.35);
+  --commerce-gradient-cta:        linear-gradient(135deg, #d97736, #e08a4a);
+  --commerce-shadow-cta:          0 6px 20px rgba(217, 119, 54, 0.22);
+  --commerce-shadow-cta-hover:    0 14px 36px rgba(217, 119, 54, 0.28);
 
   /* ── Product / browse — price uses same soft white as body (no pure white) ─ */
   --text-price:          #F2F2F2;

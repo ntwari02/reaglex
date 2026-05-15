@@ -14,6 +14,7 @@ function mapBackendUserToProfile(data: any): Profile {
     role: data.role,
     seller_status: data.sellerVerificationStatus,
     seller_verified: data.isSellerVerified,
+    kyc_verified: data.kycVerified ?? false,
     phone: data.phone,
     avatar_url: data.avatarUrl,
     created_at: data.createdAt || new Date().toISOString(),

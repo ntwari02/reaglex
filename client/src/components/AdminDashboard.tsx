@@ -43,6 +43,7 @@ import { AdminProfile } from '@/pages/admin/AdminProfile';
 import SystemAnalysisPage from '@/pages/admin/SystemAnalysisPage';
 import SecurityAnalysisPage from '@/pages/admin/SecurityAnalysisPage';
 import NotificationStudio from '@/pages/admin/notifications/NotificationStudio';
+import KycVerificationQueues from '@/pages/admin/kyc/KycVerificationQueues';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import type { MenuItem } from '@/components/dashboard/Sidebar';
 
@@ -75,6 +76,7 @@ const AdminDashboard: React.FC = () => {
       'security-analysis',
       'users',
       'sellers',
+      'kyc-queues',
       'products',
       'product-metadata',
       'orders',
@@ -136,6 +138,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div
+      data-hub="admin"
       className="dashboard-app flex h-screen overflow-hidden transition-colors duration-300"
       style={{ background: 'var(--bg-page)', color: 'var(--text-primary)' }}
     >
@@ -165,6 +168,7 @@ const AdminDashboard: React.FC = () => {
           },
           { id: 'users', label: 'Users', icon: Users },
           { id: 'sellers', label: 'Sellers', icon: StoreIcon },
+          { id: 'kyc-queues', label: 'KYC queues', icon: ShieldCheck },
           { id: 'products', label: 'Products', icon: Package },
           { id: 'product-metadata', label: 'Product metadata', icon: BadgePercent },
           { id: 'orders', label: 'Orders', icon: ShoppingCart },
@@ -200,6 +204,7 @@ const AdminDashboard: React.FC = () => {
             <Route path="security-analysis" element={<SecurityAnalysisPage />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="sellers" element={<SellerStoreManagement />} />
+            <Route path="kyc-queues" element={<KycVerificationQueues />} />
             <Route path="products" element={<ProductManagementAdmin />} />
             <Route path="product-metadata" element={<ProductMetadataEditor />} />
             <Route path="orders" element={<OrderManagementAdmin />} />

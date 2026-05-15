@@ -217,10 +217,10 @@ async function executeTool(
 
       const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 
-      const filter: Record<string, unknown> = {
+      const { buyerVisibleProductFilter } = await import('../utils/publicProductQuery');
+      const filter: Record<string, unknown> = buyerVisibleProductFilter({
         stock: { $gt: 0 },
-        status: { $in: ['in_stock', 'low_stock'] },
-      };
+      });
       if (maxPrice !== undefined) {
         filter.price = { $lte: maxPrice };
       }

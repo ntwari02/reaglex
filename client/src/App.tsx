@@ -172,9 +172,13 @@ function GlobalRealtimeBridge() {
     websocketService.onInventoryUpdated = (payload) => {
       window.dispatchEvent(new CustomEvent('inventoryUpdated', { detail: payload }));
     };
+    websocketService.onSellerKycUpdated = (payload) => {
+      window.dispatchEvent(new CustomEvent('sellerKycUpdated', { detail: payload }));
+    };
     return () => {
       websocketService.onSystemInboxNotification = undefined;
       websocketService.onInventoryUpdated = undefined;
+      websocketService.onSellerKycUpdated = undefined;
     };
   }, [user?.id]);
   return null;

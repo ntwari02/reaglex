@@ -48,10 +48,8 @@ router.get('/sitemap.xml', async (req: Request, res: Response) => {
 
     const baseUrl = getBaseUrl(req);
 
-    const products = await Product.find(
-      { status: { $in: ['in_stock', 'low_stock'] } },
-      { _id: 1 },
-    )
+    const { buyerVisibleProductFilter } = await import('../utils/publicProductQuery');
+    const products = await Product.find(buyerVisibleProductFilter(), { _id: 1 })
       .lean()
       .exec();
 

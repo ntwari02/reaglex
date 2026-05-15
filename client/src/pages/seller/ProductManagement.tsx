@@ -39,6 +39,7 @@ interface Product {
   moq?: number;
   // UI status for display/filtering, derived from inventory state
   status: 'active' | 'draft' | 'out_of_stock' | 'hidden';
+  publicationStatus?: 'published' | 'pending_verification' | 'draft';
   sales: number;
   views: number;
   rating: number;
@@ -191,8 +192,13 @@ const ProductManagement: React.FC = () => {
     stock: p.stock,
     moq: p.moq,
     weight: p.weight,
-    // Derive a simple UI status from stock level
-    status: p.stock === 0 ? 'out_of_stock' : 'active',
+    publicationStatus: p.publicationStatus,
+    status:
+      p.publicationStatus === 'pending_verification'
+        ? 'hidden'
+        : p.stock === 0
+          ? 'out_of_stock'
+          : 'active',
     sales: 0,
     views: 0,
     rating: 0,
@@ -236,6 +242,18 @@ const ProductManagement: React.FC = () => {
 
   useEffect(() => {
     loadProducts();
+  }, []);
+
+  useEffect(() => {
+    const reload = () => {
+      void loadProducts();
+    };
+    window.addEventListener('sellerKycUpdated', reload);
+    window.addEventListener('sellerProductsPublished', reload);
+    return () => {
+      window.removeEventListener('sellerKycUpdated', reload);
+      window.removeEventListener('sellerProductsPublished', reload);
+    };
   }, []);
 
   useEffect(() => {
@@ -674,7 +692,11 @@ const ProductManagement: React.FC = () => {
           showToast(data.message || 'Failed to create product.', 'error');
           return;
         }
-        showToast('Product created successfully.', 'success');
+        if (data.visibilityWarning) {
+          showToast(data.visibilityWarning, 'warning', 8000);
+        } else {
+          showToast('Product created successfully.', 'success');
+        }
       }
 
       await loadProducts();

@@ -18,6 +18,8 @@ import sellerRoutes from './src/routes/sellerRoutes';
 import inventoryRoutes from './src/routes/inventoryRoutes';
 import profileRoutes from './src/routes/profileRoutes';
 import sellerSettingsRoutes from './src/routes/sellerSettingsRoutes';
+import sellerKycRoutes from './src/routes/sellerKycRoutes';
+import adminKycQueueRoutes from './src/routes/adminKycQueueRoutes';
 import supportTicketRoutes from './src/routes/supportTicketRoutes';
 import knowledgeBaseRoutes from './src/routes/knowledgeBaseRoutes';
 import disputeRoutes from './src/routes/disputeRoutes';
@@ -212,6 +214,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/seller/inventory', inventoryRoutes);
 // Seller settings routes
 app.use('/api/seller/settings', sellerSettingsRoutes);
+app.use('/api/seller/kyc', sellerKycRoutes);
 // Seller support ticket routes
 app.use('/api/seller/support', supportTicketRoutes);
 // Seller knowledge base routes
@@ -257,6 +260,7 @@ app.use('/api/orders', buyerOrderRoutes);
 app.use('/api/shipping', shippingRoutes);
 // Admin routes
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/kyc-queues', adminKycQueueRoutes);
 app.use('/api/admin/finance', adminFinanceRoutes);
 app.use('/api/admin/support', adminSupportRoutes);
 app.use('/api/admin/logistics', adminLogisticsRoutes);

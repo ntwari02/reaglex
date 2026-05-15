@@ -36,6 +36,12 @@ import {
   getStoreSettings,
   updateStoreSettings,
 } from '../controllers/sellerSettingsController';
+import {
+  getIdentityVerificationStatus,
+  scanIdentityDocument,
+  matchIdentityFace,
+  applyIdentityProfile,
+} from '../controllers/sellerIdentityVerificationController';
 
 // Helper to get seller ID from request
 const getSellerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null => {
@@ -64,6 +70,18 @@ const uploadVerificationDoc = multer({
     } else {
       cb(new Error('Only PDF and image files are allowed for verification documents'));
     }
+  },
+});
+
+const uploadIdentityImages = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req: any, file: any, cb: any) => {
+    const allowedTypes = /jpeg|jpg|png|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (mimetype && extname) return cb(null, true);
+    cb(new Error('Only JPEG, PNG, or WebP images are allowed for identity verification'));
   },
 });
 
@@ -260,6 +278,35 @@ router.get('/team/permissions', getAvailablePermissions);
 // Verification documents
 router.get('/verification-documents', getVerificationDocuments);
 router.put('/verification-documents', updateVerificationDocuments);
+
+// Microblink identity KYC (seller personal ID + selfie)
+router.get('/identity-verification', getIdentityVerificationStatus);
+router.post(
+  '/identity-verification/scan-document',
+  (req: AuthenticatedRequest, res: Response, next: any) => {
+    uploadIdentityImages.fields([
+      { name: 'imageFront', maxCount: 1 },
+      { name: 'imageBack', maxCount: 1 },
+    ])(req, res, (err: any) => {
+      if (err) return handleMulterError(err, req, res, next);
+      next();
+    });
+  },
+  cloudinaryUploadBuffers('reaglex/sellers/identity-kyc'),
+  scanIdentityDocument,
+);
+router.post(
+  '/identity-verification/match-face',
+  (req: AuthenticatedRequest, res: Response, next: any) => {
+    uploadIdentityImages.single('imageSelfie')(req, res, (err: any) => {
+      if (err) return handleMulterError(err, req, res, next);
+      next();
+    });
+  },
+  cloudinaryUploadBuffers('reaglex/sellers/identity-kyc'),
+  matchIdentityFace,
+);
+router.post('/identity-verification/apply-profile', applyIdentityProfile);
 
 // Notification preferences
 router.get('/notification-preferences', getNotificationPreferences);

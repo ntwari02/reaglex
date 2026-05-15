@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { adminAPI } from '@/lib/api';
+import AdminMicroblinkKycPanel, { type AdminIdentityKyc, type MicroblinkRegionInfo } from '@/components/admin/AdminMicroblinkKycPanel';
+import { useAdminSellerKycRealtime } from '@/hooks/useAdminSellerKycRealtime';
 import {
   FileText,
   CheckCircle,
@@ -130,6 +133,35 @@ export default function SellerKYC({ sellerId }: SellerKYCProps) {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [identityKyc, setIdentityKyc] = useState<AdminIdentityKyc | null>(null);
+  const [microblink, setMicroblink] = useState<MicroblinkRegionInfo | null>(null);
+  const [platformVerification, setPlatformVerification] = useState<string>('pending');
+  const [liveUpdatedAt, setLiveUpdatedAt] = useState<string | null>(null);
+
+  const loadKyc = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await adminAPI.getSellerDetails(sellerId);
+      setIdentityKyc((res.seller as { identityKyc?: AdminIdentityKyc }).identityKyc ?? null);
+      setMicroblink((res.seller as { microblink?: MicroblinkRegionInfo }).microblink ?? null);
+      setPlatformVerification(res.seller.verificationStatus || 'pending');
+    } catch (e) {
+      console.error('Failed to load seller KYC:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [sellerId]);
+
+  useEffect(() => {
+    loadKyc();
+  }, [loadKyc]);
+
+  useAdminSellerKycRealtime(sellerId, true, (detail) => {
+    setIdentityKyc((detail.identityKyc as AdminIdentityKyc) ?? null);
+    setMicroblink(detail.microblink);
+    setLiveUpdatedAt(detail.updatedAt);
+  });
 
   const getDocumentTypeLabel = (type: DocumentType) => {
     const labels = {
@@ -184,23 +216,23 @@ export default function SellerKYC({ sellerId }: SellerKYCProps) {
         <p className="text-sm text-gray-500 dark:text-gray-400">Identity and document verification</p>
       </div>
 
-      {/* Verification Status */}
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+        </div>
+      ) : (
+        <AdminMicroblinkKycPanel identityKyc={identityKyc} microblink={microblink} liveUpdatedAt={liveUpdatedAt} />
+      )}
+
+      {/* Platform approval (admin) */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-4 flex items-center gap-2">
           <Shield className="h-5 w-5 text-emerald-500" />
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Verification Status</h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Platform seller status</h3>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 text-white">
-            <CheckCircle className="h-8 w-8" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">Verified</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              KYC verification completed on {new Date('2024-01-16').toLocaleDateString()}
-            </p>
-          </div>
-        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Admin approval: <span className="font-semibold capitalize">{platformVerification}</span>
+        </p>
       </div>
 
       {/* Checklist */}

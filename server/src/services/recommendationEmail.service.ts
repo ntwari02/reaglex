@@ -8,6 +8,7 @@ import { RecommendationEmailPreference } from '../models/RecommendationEmailPref
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
 import { sendRecommendationDealsEmail } from './emailService';
 import { getClientUrl } from '../config/publicEnv';
+import { buyerVisibleProductFilter } from '../utils/publicProductQuery';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -171,10 +172,9 @@ async function scoreRecommendationsForUser(userId: string, mode: 'deals_only' | 
   }
 
   // 2) Similar by category/tags
-  const similarFilter: Record<string, unknown> = {
-    status: { $in: ['in_stock', 'low_stock'] },
+  const similarFilter = buyerVisibleProductFilter({
     _id: { $nin: [...purchasedRecently].filter(mongoose.Types.ObjectId.isValid).map((id) => new mongoose.Types.ObjectId(id)) },
-  };
+  });
   const similarOr: Record<string, unknown>[] = [];
   if (seedCategories.size) similarOr.push({ category: { $in: [...seedCategories] } });
   if (seedTags.size) similarOr.push({ tags: { $in: [...seedTags] } });
@@ -195,11 +195,12 @@ async function scoreRecommendationsForUser(userId: string, mode: 'deals_only' | 
   }
 
   // 3) Trending + discounts boosts
-  const trending = await Product.find({
-    status: { $in: ['in_stock', 'low_stock'] },
-    _id: { $nin: [...purchasedRecently].filter(mongoose.Types.ObjectId.isValid).map((id) => new mongoose.Types.ObjectId(id)) },
-    ...(mode === 'deals_only' ? { discount: { $gt: 0 } } : {}),
-  })
+  const trending = await Product.find(
+    buyerVisibleProductFilter({
+      _id: { $nin: [...purchasedRecently].filter(mongoose.Types.ObjectId.isValid).map((id) => new mongoose.Types.ObjectId(id)) },
+      ...(mode === 'deals_only' ? { discount: { $gt: 0 } } : {}),
+    }),
+  )
     .select('_id discount views createdAt')
     .sort({ discount: -1, views: -1, createdAt: -1 })
     .limit(80)
@@ -251,7 +252,7 @@ export async function generateRecommendationsForUser(userId: string) {
     .filter(Boolean);
 
   if (!products.length && !hasActivity) {
-    const fallback = await Product.find({ status: { $in: ['in_stock', 'low_stock'] } })
+    const fallback = await Product.find(buyerVisibleProductFilter())
       .select('_id name price discount images description')
       .sort({ discount: -1, views: -1, createdAt: -1 })
       .limit(MAX_RECOMMENDATIONS)

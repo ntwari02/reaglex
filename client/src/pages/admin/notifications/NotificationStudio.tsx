@@ -490,7 +490,7 @@ export default function NotificationStudio() {
   const renderAiPanel = (compact: boolean) => (
     <div
       className={cn(
-        'ns-ai-panel flex flex-col rounded-2xl border min-h-[280px]',
+        'ns-ai-commerce ns-ai-panel flex flex-col rounded-2xl border min-h-[280px]',
         compact ? 'gap-3 p-3' : 'gap-4 p-4 md:p-5 min-h-[320px]',
         'border-[color-mix(in_srgb,var(--brand-primary)_35%,var(--border-card))]',
         'bg-[color-mix(in_srgb,var(--card-bg)_75%,transparent)]',
@@ -1275,10 +1275,10 @@ export default function NotificationStudio() {
         </div>
       </div>
 
-      {/* Mobile AI FAB */}
+      {/* Mobile AI FAB — single assistant on admin (global AssistantChat hidden on /admin) */}
       <button
         type="button"
-        className="lg:hidden fixed z-[85] flex h-[3.75rem] w-[3.75rem] items-center justify-center rounded-2xl text-[var(--text-on-accent)] touch-manipulation active:scale-95 transition-transform"
+        className="ns-ai-commerce lg:hidden fixed z-[85] flex h-[3.75rem] w-[3.75rem] items-center justify-center rounded-2xl text-[var(--text-on-accent)] touch-manipulation active:scale-95 transition-transform"
         style={{
           right: 'max(1rem, env(safe-area-inset-right, 0px))',
           bottom: 'calc(5.75rem + env(safe-area-inset-bottom, 0px))',
@@ -1307,7 +1307,7 @@ export default function NotificationStudio() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="max-h-[min(92dvh,900px)] overflow-y-auto rounded-t-[1.75rem] border-t px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
+              className="ns-ai-commerce max-h-[min(92dvh,900px)] overflow-y-auto rounded-t-[1.75rem] border-t px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
               style={{
                 background: 'color-mix(in srgb, var(--card-bg) 92%, transparent)',
                 borderColor: 'color-mix(in srgb, var(--brand-primary) 35%, var(--border-card))',

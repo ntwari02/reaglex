@@ -9,6 +9,7 @@ export interface Profile {
   // Seller-specific fields (for MongoDB-backed auth)
   seller_status?: 'pending' | 'approved' | 'rejected';
   seller_verified?: boolean;
+  kyc_verified?: boolean;
   created_at: string;
   updated_at: string;
 }

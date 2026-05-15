@@ -81,6 +81,10 @@ class WebSocketService {
       // Join user's personal room
       socket.join(`user:${socket.userId}`);
 
+      if (socket.userRole === 'admin') {
+        socket.join('admin:kyc');
+      }
+
       // Handle inbox events
       this.setupInboxHandlers(socket);
 
@@ -348,6 +352,29 @@ class WebSocketService {
   }) {
     if (!this.io) return;
     this.io.emit('inventory_updated', payload);
+  }
+
+  /**
+   * Notify admins viewing seller KYC that Microblink verification data changed.
+   */
+  emitSellerKycUpdated(payload: {
+    sellerId: string;
+    phase: 'document' | 'face' | 'platform';
+    verificationStatus?: string;
+    kyc?: unknown;
+    productsPublished?: number;
+    identityKyc: unknown;
+    microblink: {
+      region: string;
+      envValue: string;
+      baseUrl: string;
+      configured: boolean;
+    };
+    updatedAt: string;
+  }) {
+    if (!this.io) return;
+    this.io.to('admin:kyc').emit('seller_kyc_updated', payload);
+    this.io.to(`user:${payload.sellerId}`).emit('seller_kyc_updated', payload);
   }
 
   /**

@@ -12,6 +12,7 @@ import imageCompression from 'browser-image-compression';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import InputDialog from '@/components/ui/InputDialog';
 import { API_BASE_URL, SERVER_URL, resolveAssetUrl } from '@/lib/config';
+import SellerIdentityVerification from '@/components/seller/SellerIdentityVerification';
 
 const ProfilePage: React.FC = () => {
   const { showToast } = useToastStore();
@@ -1887,6 +1888,8 @@ const ProfilePage: React.FC = () => {
             </>
           )}
         </div>
+
+        <SellerIdentityVerification />
 
         {/* Verification Documents - Full Width */}
         <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700/30 transition-colors duration-300">

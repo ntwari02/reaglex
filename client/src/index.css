@@ -435,6 +435,61 @@
   color: var(--text-primary);
 }
 
+/* Admin hub — emerald/teal accent (matches sidebar); overrides seller orange brand tokens */
+.dashboard-app[data-hub="admin"] {
+  --brand-primary: #10b981;
+  --brand-primary-hover: #059669;
+  --brand-orange-text: #059669;
+  --brand-tint: rgba(16, 185, 129, 0.08);
+  --brand-tint-strong: rgba(16, 185, 129, 0.15);
+  --brand-border-subtle: rgba(16, 185, 129, 0.28);
+  --gradient-brand-cta: linear-gradient(135deg, #10b981, #14b8a6, #06b6d4);
+  --gradient-brand-bar: linear-gradient(90deg, #10b981, #14b8a6, #06b6d4);
+  --shadow-cta: 0 6px 20px rgba(16, 185, 129, 0.28);
+  --shadow-cta-hover: 0 14px 36px rgba(16, 185, 129, 0.32);
+  --bg-active: rgba(16, 185, 129, 0.08);
+  --tab-active-bg: rgba(16, 185, 129, 0.1);
+  --tab-active-text: #059669;
+  --link-color: #10b981;
+  --link-hover: #059669;
+  --loading-spinner: #10b981;
+  --loading-spinner-track: rgba(16, 185, 129, 0.2);
+}
+
+.dark .dashboard-app[data-hub="admin"],
+[data-theme='dark'] .dashboard-app[data-hub="admin"] {
+  --brand-primary: #34d399;
+  --brand-primary-hover: #10b981;
+  --brand-orange-text: #6ee7b7;
+  --brand-tint: rgba(52, 211, 153, 0.14);
+  --brand-tint-strong: rgba(52, 211, 153, 0.22);
+  --brand-border-subtle: rgba(52, 211, 153, 0.35);
+  --gradient-brand-cta: linear-gradient(135deg, #10b981, #14b8a6, #06b6d4);
+  --gradient-brand-bar: linear-gradient(90deg, #10b981, #14b8a6, #06b6d4);
+  --shadow-cta: 0 6px 20px rgba(16, 185, 129, 0.22);
+  --shadow-cta-hover: 0 14px 36px rgba(16, 185, 129, 0.28);
+  --bg-active: rgba(52, 211, 153, 0.12);
+  --tab-active-bg: rgba(52, 211, 153, 0.14);
+  --tab-active-text: #34d399;
+  --link-color: #34d399;
+  --link-hover: #6ee7b7;
+  --loading-spinner: #34d399;
+  --loading-spinner-track: rgba(52, 211, 153, 0.22);
+}
+
+/* AI surfaces — buyer/seller orange even inside admin emerald shell */
+.ns-ai-commerce,
+.ai-assistant-commerce {
+  --brand-primary: var(--commerce-brand-primary);
+  --brand-primary-hover: var(--commerce-brand-primary-hover);
+  --brand-tint: var(--commerce-brand-tint);
+  --brand-tint-strong: var(--commerce-brand-tint-strong);
+  --brand-border-subtle: var(--commerce-brand-border-subtle);
+  --gradient-brand-cta: var(--commerce-gradient-cta);
+  --shadow-cta: var(--commerce-shadow-cta);
+  --shadow-cta-hover: var(--commerce-shadow-cta-hover);
+}
+
 .dashboard-main {
   background: var(--bg-secondary);
   color: var(--text-primary);
@@ -1688,8 +1743,12 @@ html {
 
 /* Bottom-nav glass border glow for dark mode */
 .dark nav[class*="MobileBottomNav"],
-nav[data-mobile-nav] {
+nav[data-mobile-nav="buyer"] {
   border-top-color: rgba(217, 119, 54, 0.1);
+}
+
+nav[data-mobile-nav="seller"] > div {
+  border-top-color: color-mix(in srgb, var(--brand-primary) 28%, var(--divider, rgba(0, 0, 0, 0.08)));
 }
 
 /* Ensure minimum 44px touch targets on mobile */
