@@ -1,4 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
+import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -25,11 +26,13 @@ import Navbar from './components/Navbar';
 // @ts-ignore JSX module without TS typings
 import MobileBottomNav from './components/MobileBottomNav';
 import AssistantChat from './components/AssistantChat';
+import { PwaRoot, ShareTargetHandler, DeepLinkHandler } from './pwa';
 import { websocketService } from './services/websocketService';
 // @ts-ignore Zustand JS store without TS types
 import { useBuyerCart } from './stores/buyerCartStore';
 // @ts-ignore JS module without TS typings
 import { isBuyerChromeHidden } from './config/buyerNavVisibility';
+import { SiteWideSchemas } from './components/seo/SiteWideSchemas';
 
 /**
  * Renders the buyer Navbar OUTSIDE the cart-push motion.div so that
@@ -88,6 +91,8 @@ const SellerProtection     = lazy(() => import('./pages/seller/SellerProtection'
 const SellerGuidelines     = lazy(() => import('./pages/seller/SellerGuidelines'));
 const SellerAdvertise      = lazy(() => import('./pages/seller/AdvertiseWithUs'));
 const SellerPending        = lazy(() => import('./pages/seller/SellerPending'));
+const About                = lazy(() => import('./pages/About'));
+const CategoryBrowse       = lazy(() => import('./pages/CategoryBrowse'));
 
 /** Redirects /login and /signup to /auth?tab=... while preserving query (e.g. redirect=) */
 function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
@@ -190,12 +195,15 @@ function App() {
   useEffect(() => { initialize(); }, [initialize]);
 
   return (
+    <HelmetProvider>
     <ThemeProvider>
       <BrowserRouter>
+        <SiteWideSchemas />
         <ScrollToTop />
         <GlobalRealtimeBridge />
         <SecurityTelemetryProbe />
         <ToastNotification />
+        <PwaRoot />
         {/* CartDrawer, GlobalNavbar and MobileBottomNav stay fixed to the real viewport. */}
         <CartDrawer />
         <GlobalNavbar />
@@ -224,6 +232,8 @@ function App() {
             <Route path="/"                            element={<HomeRouteGuard />} />
             <Route path="/search"                      element={<SearchResults />} />
             <Route path="/products"                     element={<SearchResults />} />
+            <Route path="/category/:slug"               element={<CategoryBrowse />} />
+            <Route path="/product/:slug"                element={<BuyerProductDetail />} />
             <Route path="/products/:id"                element={<BuyerProductDetail />} />
             <Route path="/checkout"                    element={<Checkout />} />
             <Route path="/checkout/momo-wait"          element={<MomoPaymentWait />} />
@@ -237,6 +247,8 @@ function App() {
             <Route path="/returns"                     element={<Returns />} />
             <Route path="/help"                        element={<BuyerHome />} />
             <Route path="/contact"                     element={<Contact />} />
+            <Route path="/about"                       element={<About />} />
+            <Route path="/profile"                     element={<Navigate to="/account" replace />} />
             <Route path="/report-problem"              element={<ReportProblem />} />
             <Route path="/report-problem/:ticketId"    element={<ReportProblem />} />
             <Route path="/seller/fees"                 element={<SellerFees />} />
@@ -258,6 +270,10 @@ function App() {
             <Route path="/seller/pending"              element={<SellerPending />} />
             <Route path="/become-seller"               element={<BecomeSeller />} />
             <Route path="/cart"                        element={<Navigate to="/" replace />} />
+
+            {/* ── PWA system routes ── */}
+            <Route path="/share"                       element={<ShareTargetHandler />} />
+            <Route path="/deep"                        element={<DeepLinkHandler />} />
 
             {/* ── Auth (single page: login / signup / forgot) ── */}
             <Route path="/auth"            element={<AuthPage />} />
@@ -293,6 +309,7 @@ function App() {
         </div>
       </BrowserRouter>
     </ThemeProvider>
+    </HelmetProvider>
   );
 }
 

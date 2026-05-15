@@ -58,6 +58,8 @@ import paymentRoutes from './src/routes/paymentRoutes';
 import stripeWebhookRoutes from './src/routes/stripeWebhookRoutes';
 import webhookRoutes from './src/routes/webhookRoutes';
 import seoRoutes from './src/routes/seoRoutes';
+import categoryRoutes from './src/routes/categoryRoutes';
+import publicOgRoutes from './src/routes/publicOgRoutes';
 import assistantRoutes from './src/routes/assistantRoutes';
 import aiChatRoutes from './src/routes/aiChatRoutes';
 import aiAgentRoutes from './src/routes/aiAgentRoutes';
@@ -74,11 +76,19 @@ import systemMonitorRoutes from './src/routes/systemMonitor.routes';
 import securityAnalysisRoutes from './src/routes/securityAnalysis.routes';
 import recommendationEmailRoutes from './src/routes/recommendationEmailRoutes';
 import { startRecommendationEmailWorker } from './src/services/recommendationEmail.service';
+import { publicHomeRouter, adminAIRouter } from './src/routes/marketplaceAIRoutes';
+import { startMarketplaceAIWorker } from './src/jobs/marketplaceAIWorker';
 import productVerificationRoutes from './src/routes/productVerificationRoutes';
 import currencyRoutes from './src/routes/currencyRoutes';
 import { startExchangeRateWorker } from './src/services/exchangeRate.service';
 import newsletterRoutes from './src/routes/newsletterRoutes';
+import { startAbandonedCartEmailWorker } from './src/jobs/abandonedCartEmailWorker';
+import { startBuyerInsightWorker } from './src/jobs/buyerInsightWorker';
+import { startLifecycleEmailWorker } from './src/jobs/lifecycleEmailWorker';
+import { startCartPulseEmailWorker } from './src/jobs/cartPulseEmailWorker';
+import { startBrowseAbandonEmailWorker } from './src/jobs/browseAbandonEmailWorker';
 import { startComplianceCertificateReminderJob } from './src/jobs/complianceCertificateReminderJob';
+import pushDeviceRoutes from './src/routes/pushDeviceRoutes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -178,8 +188,14 @@ app.use((req, res, next) => {
   });
   next();
 });
-app.use(helmet());
-app.use(compression());
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+);
+app.use(compression({ threshold: 1024 }));
 
 // Rate limiting (protects against abuse and reduces load under concurrency)
 const apiLimiter = rateLimit({
@@ -248,6 +264,8 @@ app.use('/api/seller/subscription', subscriptionRoutes);
 app.use('/api/seller/analytics', analyticsRoutes);
 // Product routes (public - for buyers to view products)
 app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/public/og', publicOgRoutes);
 // Blog routes (public - for blog posts)
 app.use('/api/blog', blogRoutes);
 // Affiliate routes
@@ -284,8 +302,11 @@ app.use('/api/ai', aiAgentRoutes);
 app.use('/api/system', systemMonitorRoutes);
 app.use('/api/security-analysis', securityAnalysisRoutes);
 app.use('/api/recommendation-emails', recommendationEmailRoutes);
+app.use('/api/home', publicHomeRouter);
+app.use('/api/admin/marketplace-ai', adminAIRouter);
 app.use('/api/verification', productVerificationRoutes);
 app.use('/api/currency', currencyRoutes);
+app.use('/api/push', pushDeviceRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);
@@ -374,8 +395,14 @@ const connectDB = async () => {
 
     startScheduledNotificationWorker();
     startRecommendationEmailWorker();
+    startAbandonedCartEmailWorker();
+    startBuyerInsightWorker();
+    startLifecycleEmailWorker();
+    startCartPulseEmailWorker();
+    startBrowseAbandonEmailWorker();
     startExchangeRateWorker();
     startComplianceCertificateReminderJob();
+    startMarketplaceAIWorker();
 
     // Initialize WebSocket server
     websocketService.initialize(httpServer);

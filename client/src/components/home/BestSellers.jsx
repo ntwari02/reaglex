@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { Star, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { productAPI } from '../../services/api';
+import { homeFeedApi } from '../../services/homeFeedApi';
 import { SERVER_URL } from '../../lib/config';
+import { buyerProductPath } from '../../lib/productUrl';
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -45,7 +47,7 @@ function BestCard({ product, rank }) {
       transition={{ duration: 0.25 }}
     >
       <Link
-        to={`/products/${product._id}`}
+        to={buyerProductPath(product)}
         className="block rounded-2xl overflow-hidden"
         style={{
           background: 'var(--card-bg)',
@@ -158,18 +160,31 @@ export default function BestSellers() {
       return;
     }
 
-    productAPI
-      .getProducts({ limit: 8, sort: '-reviewCount' })
-      .then(res => {
-        const list = Array.isArray(res) ? res : (res?.products || res?.data || []);
+    // Marketplace AI: pull the buyer-specific "bestsellers" section so
+    // every shopper sees a list that\u2019s already re-ranked for them.
+    homeFeedApi
+      .getSection('bestsellers', { limit: 8 })
+      .then((section) => {
+        const list = Array.isArray(section?.products) ? section.products : [];
+        if (!list.length) throw new Error('empty');
         const next = list.slice(0, 8);
         setProducts(next);
         bestCache = { data: next, ts: Date.now() };
       })
-      .catch(() => {
-        setProducts(FALLBACK);
-        bestCache = { data: FALLBACK, ts: Date.now() };
-      })
+      .catch(() =>
+        productAPI
+          .getProducts({ limit: 8, sort: '-reviewCount' })
+          .then((res) => {
+            const list = Array.isArray(res) ? res : res?.products || res?.data || [];
+            const next = list.slice(0, 8);
+            setProducts(next);
+            bestCache = { data: next, ts: Date.now() };
+          })
+          .catch(() => {
+            setProducts(FALLBACK);
+            bestCache = { data: FALLBACK, ts: Date.now() };
+          }),
+      )
       .finally(() => setLoading(false));
   }, []);
 

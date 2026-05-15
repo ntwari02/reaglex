@@ -13,14 +13,14 @@ const TABS = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', to: '/seller' },
   { id: 'orders', icon: ShoppingCart, label: 'Orders', to: '/seller/orders' },
   { id: 'products', icon: Package, label: 'Products', to: '/seller/products' },
-  { id: 'finance', icon: DollarSign, label: 'Finance', to: '/seller/analytics' },
+  { id: 'finance', icon: DollarSign, label: 'Finance', to: '/seller/payments' },
 ] as const;
 
 function activeTabId(pathname: string): string | null {
   if (pathname === '/seller' || pathname === '/seller/dashboard') return 'dashboard';
   if (pathname.startsWith('/seller/orders')) return 'orders';
   if (pathname.startsWith('/seller/products') || pathname.startsWith('/seller/inventory')) return 'products';
-  if (pathname.startsWith('/seller/analytics') || pathname.startsWith('/seller/subscription')) return 'finance';
+  if (pathname.startsWith('/seller/payments') || pathname.startsWith('/seller/analytics')) return 'finance';
   return null;
 }
 
@@ -28,6 +28,8 @@ export default function SellerMobileBottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const current = activeTabId(location.pathname);
+
+  if (!location.pathname.startsWith('/seller')) return null;
 
   const sellerAccent = 'var(--brand-primary)';
   const sellerAccentHover = 'var(--brand-primary-hover)';
@@ -42,7 +44,7 @@ export default function SellerMobileBottomNav() {
       }}
       aria-label="Seller navigation"
     >
-      <div
+      <motion.div
         className="pointer-events-auto mx-auto max-w-lg"
         style={{
           background: 'var(--header-bg, rgba(255,255,255,0.97))',
@@ -93,7 +95,7 @@ export default function SellerMobileBottomNav() {
             <motion.button
               type="button"
               whileTap={{ scale: 0.94 }}
-              onClick={() => navigate('/seller/products')}
+              onClick={() => navigate('/seller/products?create=1')}
               className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg"
               style={{
                 background: fabGradient,
@@ -131,7 +133,7 @@ export default function SellerMobileBottomNav() {
             );
           })}
         </div>
-      </div>
+      </motion.div>
     </nav>
   );
 }

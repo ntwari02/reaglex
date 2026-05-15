@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
+import SellerHubHome from '@/pages/seller/SellerHubHome';
 import DashboardOverview from '@/pages/seller/DashboardOverview';
 import InventoryManagement from '@/pages/seller/InventoryManagement';
 import OrdersPage from '@/pages/seller/OrdersPage';
@@ -15,6 +16,7 @@ import SupportCenter from '@/pages/seller/SupportCenter';
 import NotificationsPage from '@/pages/seller/NotificationsPage';
 import OrderDetailsPage from '@/pages/seller/OrderDetailsPage';
 import SellerShippingSettings from '@/pages/seller/SellerShippingSettings';
+import PaymentsFinance from '@/pages/seller/PaymentsFinance';
 import ReturnsCases from '@/pages/seller/ReturnsCases';
 import Notifications from '@/components/dashboard/Notifications';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
@@ -71,7 +73,7 @@ const SellerDashboard: React.FC = () => {
 
   // Ensure we're on a valid route
   useEffect(() => {
-    const validRoutes = ['dashboard', 'inventory', 'orders', 'disputes', 'returns', 'products', 'shipping', 'collections', 'analytics', 'subscription', 'settings', 'support', 'notifications'];
+    const validRoutes = ['dashboard', 'inventory', 'orders', 'disputes', 'returns', 'products', 'shipping', 'collections', 'analytics', 'subscription', 'payments', 'settings', 'support', 'notifications'];
     if (pathSegments.length === sellerIndex + 1) {
       // We're on /seller, which is fine (index route)
       return;
@@ -136,8 +138,8 @@ const SellerDashboard: React.FC = () => {
         <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden scroll-smooth p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-6 lg:p-8 lg:pb-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
           {showKycBanner && <SellerKycBanner status={kycStatus} />}
           <Routes>
-            <Route index element={<DashboardOverview />} />
-            <Route path="dashboard" element={<DashboardOverview />} />
+            <Route index element={<SellerHubHome />} />
+            <Route path="dashboard" element={<SellerHubHome />} />
             <Route path="inventory" element={<InventoryManagement />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="orders/:orderId" element={<OrderDetailsPage />} />
@@ -148,6 +150,7 @@ const SellerDashboard: React.FC = () => {
             <Route path="collections" element={<CollectionManagement />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="subscription" element={<SubscriptionTiers />} />
+            <Route path="payments" element={<PaymentsFinance />} />
             <Route path="settings" element={<ProfilePage />} />
             <Route path="support" element={<SupportCenter />} />
             <Route path="notifications" element={<NotificationsPage />} />

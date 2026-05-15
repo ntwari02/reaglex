@@ -7,9 +7,81 @@ import {
   normalizeMomoMsisdn,
   requestToPay,
 } from './momoService';
+import { getMomoResolvedConfig } from './paymentGatewayCredentials.service';
+import { getRateForCurrency } from './exchangeRate.service';
 import { simulatePayment, type PaymentResponse } from './paymentSimulator';
 
-/** Convert plan amount to RWF minor units for MTN Collections (Rwanda). */
+/** ISO 4217 zero-decimal currencies (MTN MoMo expects integer strings for these). */
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  'RWF',
+  'UGX',
+  'TZS',
+  'BIF',
+  'DJF',
+  'GNF',
+  'JPY',
+  'KRW',
+  'PYG',
+  'VND',
+  'XAF',
+  'XOF',
+  'XPF',
+  'KMF',
+  'CLP',
+  'VUV',
+]);
+
+function isZeroDecimalCurrency(code: string): boolean {
+  return ZERO_DECIMAL_CURRENCIES.has(String(code || '').trim().toUpperCase());
+}
+
+/**
+ * Convert a plan amount (USD-quoted by default) into the currency MTN MoMo is configured for
+ * in Admin → Payment Gateways. Uses the live exchange-rate service (USD-base) for cross-currency
+ * conversions and respects zero-decimal currencies (RWF, UGX, JPY, …).
+ *
+ * Exported (legacy name retained) so existing callers keep compiling; new callers should prefer
+ * `convertSubscriptionAmountForMomo`.
+ */
+export async function convertSubscriptionAmountForMomo(
+  amount: number,
+  planCurrency: string,
+  targetCurrency: string,
+): Promise<string> {
+  const from = String(planCurrency || 'USD').trim().toUpperCase() || 'USD';
+  const to = String(targetCurrency || 'USD').trim().toUpperCase() || 'USD';
+  const safeAmount = Math.max(0, Number(amount) || 0);
+
+  let converted: number;
+  if (from === to) {
+    converted = safeAmount;
+  } else {
+    let usdAmount: number;
+    if (from === 'USD') {
+      usdAmount = safeAmount;
+    } else {
+      const fromRate = await getRateForCurrency(from);
+      usdAmount = fromRate > 0 ? safeAmount / fromRate : safeAmount;
+    }
+    if (to === 'USD') {
+      converted = usdAmount;
+    } else {
+      const toRate = await getRateForCurrency(to);
+      converted = usdAmount * (toRate > 0 ? toRate : 1);
+    }
+  }
+
+  if (isZeroDecimalCurrency(to)) {
+    return String(Math.max(1, Math.round(converted)));
+  }
+  const rounded = Math.max(0.01, Math.round(converted * 100) / 100);
+  return rounded.toFixed(2);
+}
+
+/**
+ * @deprecated Use {@link convertSubscriptionAmountForMomo} which honours the admin-configured currency.
+ * Kept for backward compatibility with older callers.
+ */
 export function subscriptionAmountToRwfMinor(amount: number, planCurrency: string): number {
   const c = String(planCurrency || 'USD').toUpperCase();
   if (c === 'RWF') return Math.max(1, Math.round(amount));
@@ -47,7 +119,8 @@ export async function chargeDefaultPaymentMethodForSubscription(
       };
     }
 
-    if (!(await isMomoConfigured())) {
+    const momoCfg = await getMomoResolvedConfig();
+    if (!momoCfg || !(await isMomoConfigured())) {
       return {
         success: false,
         transactionId: '',
@@ -81,15 +154,28 @@ export async function chargeDefaultPaymentMethodForSubscription(
       };
     }
 
-    const rwf = subscriptionAmountToRwfMinor(amount, planCurrency);
+    const momoCurrency = String(momoCfg.currency || 'RWF').trim().toUpperCase();
+    let momoAmount: string;
+    try {
+      momoAmount = await convertSubscriptionAmountForMomo(amount, planCurrency, momoCurrency);
+    } catch (e) {
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        message: `MoMo amount conversion failed: ${(e as Error).message}`,
+        failureReason: 'currency_conversion',
+      };
+    }
+
     const referenceId = newMomoReferenceId();
     const uid = String(metadata?.subscriptionUserId || 'unknown');
     const externalId = `sub_${uid}_${Date.now()}`;
 
     await requestToPay({
       referenceId,
-      amount: String(rwf),
-      currency: 'RWF',
+      amount: momoAmount,
+      currency: momoCurrency,
       externalId,
       payerMsisdn: msisdn,
       payerMessage: description.slice(0, 135),
@@ -131,6 +217,48 @@ export async function chargeDefaultPaymentMethodForSubscription(
       message: `MoMo payment still pending (${lastStatus}). Approve on your phone and try again.`,
       failureReason: 'pending_timeout',
     };
+  }
+
+  if (gw === 'airtel_money') {
+    try {
+      await assertPaymentGatewayEnabled('airtel_money');
+    } catch {
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        message: 'Airtel Money is disabled for payments',
+        failureReason: 'gateway_disabled',
+      };
+    }
+  }
+
+  if (gw === 'stripe' || gw === 'card') {
+    try {
+      await assertPaymentGatewayEnabled('stripe');
+    } catch {
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        message: 'Card payments are disabled for subscription upgrades',
+        failureReason: 'gateway_disabled',
+      };
+    }
+  }
+
+  if (gw === 'paypal') {
+    try {
+      await assertPaymentGatewayEnabled('paypal');
+    } catch {
+      return {
+        success: false,
+        transactionId: '',
+        status: 'failed',
+        message: 'PayPal is disabled for subscription upgrades',
+        failureReason: 'gateway_disabled',
+      };
+    }
   }
 
   return simulatePayment({

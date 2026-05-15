@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { HelpCircle, ChevronDown, Mail } from 'lucide-react';
 // @ts-ignore
 import BuyerLayout from '../components/buyer/BuyerLayout';
+import { PageSeo } from '../components/seo/PageSeo';
+import { getPreferredSiteOrigin } from '../lib/siteOrigin';
+import { buildLocaleAlternates } from '../utils/localeAlternateLinks';
 
 const ITEMS: { id: string; q: string; a: string }[] = [
   {
@@ -40,9 +43,38 @@ const ITEMS: { id: string; q: string; a: string }[] = [
 
 export default function Faq() {
   const [openId, setOpenId] = useState<string | null>(ITEMS[0]?.id ?? null);
+  const origin = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
+  const canonicalUrl = origin ? `${origin}/faq` : '/faq';
+  const hreflangAlternates = useMemo(
+    () => (origin ? buildLocaleAlternates(origin, '/faq') : undefined),
+    [origin],
+  );
+  const faqJsonLd = useMemo(
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: ITEMS.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.a,
+        },
+      })),
+    }),
+    [],
+  );
 
   return (
     <BuyerLayout>
+      <PageSeo
+        title="FAQ — Reaglex help center"
+        description="Frequently asked questions about Reaglex orders, returns, payments, escrow protection, and seller onboarding."
+        canonicalUrl={canonicalUrl}
+        ogType="website"
+        jsonLd={faqJsonLd}
+        hreflangAlternates={hreflangAlternates}
+      />
       <div className="min-h-screen pb-16">
         <div
           className="relative overflow-hidden rounded-b-3xl px-4 sm:px-6 py-12 sm:py-16 mb-10"

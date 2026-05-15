@@ -7,6 +7,7 @@ import ProductInfoCard from './ProductInfoCard';
 import { useTranslation } from '../i18n/useTranslation';
 
 import { SERVER_URL } from '../lib/config';
+import { buyerProductPath } from '../lib/productUrl';
 
 function extractImageSrc(src) {
   if (!src) return null;
@@ -284,7 +285,7 @@ export default function HeroProduct({ product }) {
 
           {/* View detail */}
           <Link
-            to={`/products/${product._id || product.id}`}
+            to={buyerProductPath(product)}
             className="text-xs font-semibold underline underline-offset-2"
             style={{ color: '#6c63ff' }}
           >

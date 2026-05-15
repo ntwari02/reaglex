@@ -17,6 +17,7 @@ import { useToastStore } from '../stores/toastStore';
 import api, { paymentAPI } from '../services/api';
 
 import { SERVER_URL } from '../lib/config';
+import { buyerProductPath } from '../lib/productUrl';
 const PRIMARY = 'var(--brand-primary)';
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -2521,7 +2522,7 @@ export default function BuyerDashboard() {
                                     <Heart className="w-4 h-4 fill-red-500 text-red-500" />
                                   </button>
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                    <Link to={`/products/${pid}`}>
+                                    <Link to={buyerProductPath({ _id: pid, id: pid })}>
                                       <button className="px-3 py-2 rounded-lg text-white text-xs font-semibold bg-white/20 hover:bg-white/30 transition">Quick View</button>
                                     </Link>
                                     <button
@@ -2591,7 +2592,7 @@ export default function BuyerDashboard() {
                             <p className="text-sm py-4" style={{ color: 'var(--text-faint)' }}>No recently viewed items.</p>
                           ) : (
                             recentItems.map((p, i) => (
-                              <Link key={i} to={`/products/${p._id || p.id}`} className="flex-shrink-0 w-[160px] rounded-xl overflow-hidden" style={{ background: 'var(--card-bg)', boxShadow: 'var(--card-shadow)' }}>
+                              <Link key={i} to={buyerProductPath(p)} className="flex-shrink-0 w-[160px] rounded-xl overflow-hidden" style={{ background: 'var(--card-bg)', boxShadow: 'var(--card-shadow)' }}>
                                 <div style={{ height: 120, background: 'var(--bg-tertiary)' }}>
                                   <img src={resolveImg(p.image)} alt={p.title} className="w-full h-full object-cover" />
                                 </div>

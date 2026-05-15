@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Order, OrderStatus } from '../models/Order';
 import { Product } from '../models/Product';
+import { AbandonedCart } from '../models/AbandonedCart';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 import { restoreInventoryForOrder } from '../services/inventory.service';
 import { convertUsdToCurrency, detectCurrencyFromRequest } from '../services/exchangeRate.service';
@@ -313,6 +314,29 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
           },
         });
       }
+    }
+
+    // Best-effort: mark abandoned carts as recovered for this buyer.
+    await AbandonedCart.updateMany(
+      { userId: new mongoose.Types.ObjectId(req.user.id), recovered: false },
+      { $set: { recovered: true } },
+    );
+
+    // Marketplace AI: record every cross-seller co-purchase pair so the
+    // co-occurrence engine can power "Frequently bought together" without
+    // any ML. Fire-and-forget — never block checkout completion.
+    try {
+      const allProductIds = planned
+        .flatMap((p) => p.orderItems.map((i: any) => String(i.productId)))
+        .filter(Boolean);
+      if (allProductIds.length >= 2) {
+        // Dynamic import keeps the marketplace AI module optional at runtime
+        // — if the file is missing the checkout still succeeds.
+        const mod = await import('../services/ai/coOccurrenceEngine');
+        void mod.recordBasketPurchase(allProductIds).catch(() => undefined);
+      }
+    } catch {
+      /* ignore */
     }
 
     return res.status(201).json({

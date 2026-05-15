@@ -126,7 +126,7 @@ export const subscriptionApi = {
    * Add a new payment method
    */
   async addPaymentMethod(data: {
-    type?: 'visa' | 'mtn' | 'airtel';
+    type?: 'visa' | 'mtn' | 'airtel' | 'paypal';
     cardNumber?: string;
     expiryMonth?: string;
     expiryYear?: string;
@@ -135,6 +135,7 @@ export const subscriptionApi = {
     phoneNumber?: string;
     accountName?: string;
     provider?: 'mtn' | 'airtel';
+    paypalEmail?: string;
   }) {
     const response = await fetch(`${API_BASE}/payment-methods`, {
       method: 'POST',
@@ -233,7 +234,7 @@ export const subscriptionApi = {
    * Upgrade subscription plan
    * Returns a result object instead of throwing errors for expected cases
    */
-  async upgradeSubscription(tierId: string): Promise<{
+  async upgradeSubscription(tierId: string, paymentMethodId?: string): Promise<{
     success: boolean;
     data?: any;
     error?: {
@@ -247,7 +248,7 @@ export const subscriptionApi = {
         method: 'POST',
         headers: getAuthHeaders(),
         credentials: 'include',
-        body: JSON.stringify({ tierId }),
+        body: JSON.stringify({ tierId, paymentMethodId }),
       });
 
       if (!response.ok) {

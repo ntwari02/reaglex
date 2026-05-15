@@ -15,6 +15,28 @@ import { ReferralSettings } from '../models/ReferralSettings';
 import { MarketingSettings } from '../models/MarketingSettings';
 import { AIMarketingSettings } from '../models/AIMarketingSettings';
 import { MarketingReferralReward } from '../models/MarketingReferralReward';
+import { BuyerInsightProfile } from '../models/BuyerInsightProfile';
+import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
+import {
+  MarketingAutomationSettings,
+  MarketingFlowKey,
+  getMarketingAutomationSettings,
+  invalidateMarketingAutomationSettingsCache,
+} from '../models/MarketingAutomationSettings';
+import { PushDevice } from '../models/PushDevice';
+import { User } from '../models/User';
+import {
+  runRecommendationOnce,
+  sendRecommendationEmailToUser,
+} from '../services/recommendationEmail.service';
+import { runCartPulseOnce } from '../jobs/cartPulseEmailWorker';
+import { runBrowseAbandonOnce } from '../jobs/browseAbandonEmailWorker';
+import { runWinbackOnce } from '../jobs/lifecycleEmailWorker';
+import { runAbandonedCartOnce } from '../jobs/abandonedCartEmailWorker';
+import {
+  broadcastPushToBuyers,
+  sendPushToUser,
+} from '../services/pushNotificationService';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -99,6 +121,123 @@ export async function getDashboard(req: AuthenticatedRequest, res: Response) {
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch dashboard' });
+  }
+}
+
+// ---------- Buyer insight dashboard ----------
+export async function getBuyerInsightsOverview(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const [segAgg, confAgg] = await Promise.all([
+      BuyerInsightProfile.aggregate([
+        { $group: { _id: '$segment', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      BuyerInsightProfile.aggregate([
+        {
+          $bucket: {
+            groupBy: '$confidenceScore',
+            boundaries: [0, 25, 50, 75, 90, 101],
+            default: 'unknown',
+            output: { count: { $sum: 1 } },
+          },
+        },
+      ]),
+    ]);
+
+    const segments = (segAgg as any[]).reduce((acc, r) => {
+      acc[String(r._id || 'unknown')] = Number(r.count || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const confidenceBuckets = (confAgg as any[]).map((b) => ({
+      range: String(b._id),
+      count: Number(b.count || 0),
+    }));
+
+    res.json({ segments, confidenceBuckets });
+  } catch (e) {
+    res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch buyer insights overview' });
+  }
+}
+
+export async function getBuyerInsightsList(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { segment, minConfidence = '0', q = '', page = '1', limit = '30' } = req.query as any;
+    const filter: any = {};
+    if (segment) filter.segment = String(segment);
+    const minC = Math.max(0, Math.min(100, Number(minConfidence) || 0));
+    if (minC > 0) filter.confidenceScore = { $gte: minC };
+    if (q) filter.email = new RegExp(String(q).trim(), 'i');
+
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(String(limit), 10) || 30));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [rows, total] = await Promise.all([
+      BuyerInsightProfile.find(filter)
+        .sort({ confidenceScore: -1, score: -1, lastActivityAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      BuyerInsightProfile.countDocuments(filter),
+    ]);
+
+    const users = (rows as any[]).map((p) => ({
+      userId: toId({ _id: p.userId } as any),
+      email: p.email,
+      segment: p.segment,
+      score: p.score,
+      confidenceScore: p.confidenceScore,
+      confidenceReason: p.confidenceReason,
+      lastActivityAt: p.lastActivityAt,
+      lastLoginAt: p.lastLoginAt,
+      orderCount: p.orderCount,
+      totalSpendUsd: p.totalSpendUsd,
+      deviceType: p.deviceType,
+      lastKnownCountry: p.lastKnownCountry,
+    }));
+
+    res.json({
+      users,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
+  } catch (e) {
+    res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch buyer insights list' });
+  }
+}
+
+export async function getBuyerInsightByUser(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ message: 'Invalid user id' });
+    const profile = await BuyerInsightProfile.findOne({ userId: new mongoose.Types.ObjectId(userId) }).lean();
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+    // Recent automation performance for this user (last 30 days)
+    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const emailStats = await RecommendationEmailHistory.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), sentAt: { $gte: since30d } } },
+      {
+        $group: {
+          _id: '$campaign',
+          sent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+          failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+          opens: { $sum: '$opens' },
+          clicks: { $sum: '$clicks' },
+        },
+      },
+      { $sort: { sent: -1 } },
+    ]);
+
+    res.json({
+      profile,
+      emailStats,
+    });
+  } catch (e) {
+    res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch buyer insight profile' });
   }
 }
 
@@ -1121,5 +1260,293 @@ export async function updateMarketingSettings(req: AuthenticatedRequest, res: Re
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to update marketing settings' });
+  }
+}
+
+// ---------- Marketing automation (recommendation, cart pulse, browse abandon, winback, abandoned cart) ----------
+
+const ALL_FLOWS: MarketingFlowKey[] = [
+  'recommendation',
+  'cart_pulse',
+  'browse_abandon',
+  'winback',
+  'abandoned_cart',
+];
+
+const FLOW_LABELS: Record<MarketingFlowKey, { label: string; description: string }> = {
+  recommendation: {
+    label: 'Recommendation deals',
+    description: 'Personalized product picks emailed and pushed based on each buyer\u2019s wishlist, views, cart and purchase history.',
+  },
+  cart_pulse: {
+    label: 'Cart Pulse',
+    description: 'Sends extra recommendations within hours of a cart_add so buyers see related deals while intent is high.',
+  },
+  browse_abandon: {
+    label: 'Browse Abandon',
+    description: 'Reminds buyers about products they viewed multiple times but never added to cart.',
+  },
+  winback: {
+    label: 'Win-back',
+    description: 'Re-engages dormant buyers (30+ days inactive) with fresh personalized picks.',
+  },
+  abandoned_cart: {
+    label: 'Abandoned Cart',
+    description: 'Recovers abandoned shopping carts with reminder emails and pushes.',
+  },
+};
+
+async function getFlowStats(flow: MarketingFlowKey, sinceDays: number) {
+  const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
+  const agg = await RecommendationEmailHistory.aggregate([
+    { $match: { campaign: flow, sentAt: { $gte: since } } },
+    {
+      $group: {
+        _id: null,
+        sent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
+        skipped: { $sum: { $cond: [{ $eq: ['$status', 'skipped'] }, 1, 0] } },
+        failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+        opens: { $sum: { $ifNull: ['$opens', 0] } },
+        clicks: { $sum: { $ifNull: ['$clicks', 0] } },
+      },
+    },
+  ]);
+  const row = (agg[0] as any) || { sent: 0, skipped: 0, failed: 0, opens: 0, clicks: 0 };
+  return {
+    sent: Number(row.sent || 0),
+    skipped: Number(row.skipped || 0),
+    failed: Number(row.failed || 0),
+    opens: Number(row.opens || 0),
+    clicks: Number(row.clicks || 0),
+  };
+}
+
+export async function getAutomationOverview(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const settings = await getMarketingAutomationSettings();
+    const [pushDeviceCount, pushEnabledUsers] = await Promise.all([
+      PushDevice.countDocuments({ enabled: true }),
+      PushDevice.distinct('userId', { enabled: true }),
+    ]);
+
+    const flows = await Promise.all(
+      ALL_FLOWS.map(async (key) => {
+        const f = (settings.flows as any)?.[key] || {};
+        const [d7, d30] = await Promise.all([
+          getFlowStats(key, 7),
+          getFlowStats(key, 30),
+        ]);
+        return {
+          key,
+          label: FLOW_LABELS[key].label,
+          description: FLOW_LABELS[key].description,
+          enabled: Boolean(f.enabled ?? true),
+          pushEnabled: Boolean(f.pushEnabled ?? true),
+          lastRunAt: f.lastRunAt || null,
+          lastRunSent: Number(f.lastRunSent ?? 0),
+          lastRunSkipped: Number(f.lastRunSkipped ?? 0),
+          lastRunFailed: Number(f.lastRunFailed ?? 0),
+          lastError: f.lastError || '',
+          stats7d: d7,
+          stats30d: d30,
+        };
+      }),
+    );
+
+    res.json({
+      globalEnabled: Boolean(settings.globalEnabled),
+      dailyEmailCap: Number(settings.dailyEmailCap ?? 8),
+      pushDeviceCount,
+      pushEnabledUserCount: pushEnabledUsers.length,
+      flows,
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ message: e instanceof Error ? e.message : 'Failed to fetch automation overview' });
+  }
+}
+
+export async function updateAutomationFlow(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { flow } = req.params as { flow: MarketingFlowKey };
+    if (!ALL_FLOWS.includes(flow)) {
+      return res.status(400).json({ message: 'Unknown flow' });
+    }
+    const body = (req.body || {}) as { enabled?: boolean; pushEnabled?: boolean };
+    let doc = await MarketingAutomationSettings.findOne();
+    if (!doc) doc = await MarketingAutomationSettings.create({});
+    const current = (doc.flows as any)[flow] || { enabled: true, pushEnabled: true };
+    if (body.enabled != null) current.enabled = Boolean(body.enabled);
+    if (body.pushEnabled != null) current.pushEnabled = Boolean(body.pushEnabled);
+    (doc.flows as any)[flow] = current;
+    doc.markModified('flows');
+    await doc.save();
+    invalidateMarketingAutomationSettingsCache();
+    res.json({
+      flow,
+      enabled: Boolean(current.enabled),
+      pushEnabled: Boolean(current.pushEnabled),
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ message: e instanceof Error ? e.message : 'Failed to update automation flow' });
+  }
+}
+
+export async function updateAutomationGlobals(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const body = (req.body || {}) as { globalEnabled?: boolean; dailyEmailCap?: number };
+    let doc = await MarketingAutomationSettings.findOne();
+    if (!doc) doc = await MarketingAutomationSettings.create({});
+    if (body.globalEnabled != null) doc.globalEnabled = Boolean(body.globalEnabled);
+    if (body.dailyEmailCap != null) {
+      const cap = Math.max(0, Math.min(50, Math.floor(Number(body.dailyEmailCap) || 0)));
+      doc.dailyEmailCap = cap;
+    }
+    await doc.save();
+    invalidateMarketingAutomationSettingsCache();
+    res.json({
+      globalEnabled: doc.globalEnabled,
+      dailyEmailCap: doc.dailyEmailCap,
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ message: e instanceof Error ? e.message : 'Failed to update automation globals' });
+  }
+}
+
+export async function runAutomationFlow(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { flow } = req.params as { flow: MarketingFlowKey };
+    let result: { sent: number; skipped: number; failed: number };
+    switch (flow) {
+      case 'recommendation':
+        result = await runRecommendationOnce();
+        break;
+      case 'cart_pulse':
+        result = await runCartPulseOnce();
+        break;
+      case 'browse_abandon':
+        result = await runBrowseAbandonOnce();
+        break;
+      case 'winback':
+        result = await runWinbackOnce();
+        break;
+      case 'abandoned_cart':
+        result = await runAbandonedCartOnce();
+        break;
+      default:
+        return res.status(400).json({ message: 'Unknown flow' });
+    }
+    res.json({ flow, result });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ message: e instanceof Error ? e.message : 'Failed to run automation flow' });
+  }
+}
+
+export async function testAutomationEmail(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { email } = (req.body || {}) as { email?: string };
+    if (!email) return res.status(400).json({ message: 'email is required' });
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() })
+      .select('_id email fullName')
+      .lean();
+    if (!user) return res.status(404).json({ message: 'User not found for that email' });
+    const result = await sendRecommendationEmailToUser(String(user._id));
+    res.json({ result, user: { id: String(user._id), email: user.email } });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ message: e instanceof Error ? e.message : 'Failed to send test email' });
+  }
+}
+
+export async function sendAutomationPush(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const body = (req.body || {}) as {
+      title?: string;
+      body?: string;
+      url?: string;
+      target?: 'all_buyers' | 'specific_user';
+      email?: string;
+      category?: string;
+    };
+    const title = String(body.title || '').trim();
+    const message = String(body.body || '').trim();
+    if (!title || !message) {
+      return res.status(400).json({ message: 'title and body are required' });
+    }
+    const target = body.target === 'specific_user' ? 'specific_user' : 'all_buyers';
+
+    if (target === 'specific_user') {
+      if (!body.email) return res.status(400).json({ message: 'email required for specific_user target' });
+      const user = await User.findOne({ email: String(body.email).toLowerCase().trim() })
+        .select('_id email')
+        .lean();
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      const result = await sendPushToUser(String(user._id), {
+        title,
+        body: message,
+        url: body.url || '',
+        category: body.category || 'admin',
+      });
+      return res.json({ target: 'specific_user', user: user.email, result });
+    }
+
+    const result = await broadcastPushToBuyers({
+      title,
+      body: message,
+      url: body.url || '',
+      category: body.category || 'admin',
+    });
+    res.json({ target: 'all_buyers', result });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ message: e instanceof Error ? e.message : 'Failed to send push' });
+  }
+}
+
+export async function getAutomationRecentSends(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { flow, limit = '30' } = req.query as any;
+    const filter: any = {};
+    if (flow && ALL_FLOWS.includes(flow as MarketingFlowKey)) filter.campaign = flow;
+    const lim = Math.max(1, Math.min(200, parseInt(String(limit), 10) || 30));
+    const rows = await RecommendationEmailHistory.find(filter)
+      .sort({ sentAt: -1 })
+      .limit(lim)
+      .select('userId email campaign subject status error opens clicks sentAt')
+      .lean();
+    res.json({
+      items: (rows as any[]).map((r) => ({
+        id: String(r._id),
+        userId: r.userId ? String(r.userId) : '',
+        email: r.email || '',
+        campaign: r.campaign || '',
+        subject: r.subject || '',
+        status: r.status || '',
+        error: r.error || '',
+        opens: Number(r.opens || 0),
+        clicks: Number(r.clicks || 0),
+        sentAt: r.sentAt,
+      })),
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ message: e instanceof Error ? e.message : 'Failed to load recent sends' });
   }
 }

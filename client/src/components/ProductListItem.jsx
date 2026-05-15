@@ -6,6 +6,7 @@ import { useBuyerCart } from '../stores/buyerCartStore';
 import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
+import { buyerProductPath } from '../lib/productUrl';
 
 function extractImageSrc(src) {
   if (!src) return null;
@@ -71,7 +72,7 @@ export default function ProductListItem({ product, index = 0 }) {
         transition:    'box-shadow 0.22s, border-color 0.22s, background 0.3s',
       }}
     >
-      <Link to={`/products/${id}`} className="flex gap-0">
+      <Link to={buyerProductPath(product)} className="flex gap-0">
 
         {/* ── Image (160 × 160) ── */}
         <div

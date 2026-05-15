@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Heart, Star, ChevronLeft, ChevronRight, ChevronDown,
@@ -11,11 +11,13 @@ import './ProductDetail.css';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import ProductCard from '../components/ProductCard';
 import { productAPI } from '../services/api';
+import { homeFeedApi } from '../services/homeFeedApi';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
-import { useSeo } from '../utils/useSeo';
+import { PageSeo } from '../components/seo/PageSeo';
 import { SERVER_URL } from '../lib/config';
+import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 
 const PRIMARY = 'var(--brand-primary)';
@@ -111,8 +113,9 @@ function Stars({ rating, size = 16 }) {
    Main component
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function ProductDetail() {
-  const { id }       = useParams();
+  const { id: legacyId, slug: slugParam } = useParams();
   const navigate     = useNavigate();
+  const location       = useLocation();
   const addItem      = useBuyerCart((s) => s.addItem);
   const currencyPricing = useCurrencyPricing();
   const addRecent    = useRecentlyViewed((s) => s.addProduct);
@@ -154,77 +157,261 @@ export default function ProductDetail() {
   const relatedScrollRef = useRef(null);
 
   /* ── SEO ── */
-  const productId   = product?._id || product?.id || id;
-  const title       = product?.title || product?.name || 'Product';
-  const category    = product?.category || 'General';
-  const images      = useMemo(() => {
+  const resolvedId   = product?._id || product?.id || legacyId || null;
+  const title        = product?.title || product?.name || 'Product';
+  const category     = product?.category || 'General';
+  const images       = useMemo(() => {
     const list = (product?.images?.length ? product.images : [product?.image]).filter(Boolean);
     return list;
   }, [product?.images, product?.image]);
-  const canonicalUrl = useMemo(() => {
-    try { return `${window.location.origin}/products/${productId}`; }
-    catch { return `/products/${productId}`; }
-  }, [productId]);
+  const origin       = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
+  const canonicalPath = useMemo(() => {
+    if (product?.slug) return `/product/${encodeURIComponent(product.slug)}`;
+    if (product && (product._id || product.id))
+      return `/products/${encodeURIComponent(product._id || product.id)}`;
+    if (slugParam) return `/product/${encodeURIComponent(slugParam)}`;
+    if (legacyId) return `/products/${encodeURIComponent(legacyId)}`;
+    return '/products';
+  }, [product, slugParam, legacyId]);
+  const canonicalUrl = origin ? `${origin}${canonicalPath}` : canonicalPath;
   const primaryImage = useMemo(() => (images?.[0] ? resolveImage(images[0]) : undefined), [images]);
-  const seoConfig = useMemo(() => {
-    if (!product) return { title: 'Product | Reaglex', description: 'View product on Reaglex.', canonicalUrl };
+  /**
+   * Prefer the server-rendered dynamic OG image for richer social shares; fall back to first product image.
+   * `SERVER_URL` is the API origin (matches `/api/public/og/product/:slug`).
+   */
+  const dynamicOgImage = useMemo(() => {
+    if (!product?.slug) return undefined;
+    const base = String(SERVER_URL || '').replace(/\/$/, '');
+    return base ? `${base}/api/public/og/product/${encodeURIComponent(product.slug)}` : undefined;
+  }, [product?.slug]);
+  const socialImage = dynamicOgImage || primaryImage;
+  const seoBundle = useMemo(() => {
+    if (!product) {
+      return {
+        title: slugParam ? `${slugParam.replace(/-/g, ' ')} | Reaglex` : 'Product | Reaglex',
+        description: 'View product details on Reaglex marketplace.',
+        keywords: undefined,
+        jsonLd: undefined,
+      };
+    }
     const price = product?.price || 0;
     const stock = product?.stockQuantity ?? product?.stock ?? 0;
-    const rating = Number(product?.averageRating || product?.rating || 0);
-    const reviewsCount = Number(product?.totalReviews || product?.reviewCount || 0);
-    return {
-      title: product?.seoTitle || `${title} | Reaglex`,
-      description: product?.seoDescription || product?.description || `Buy ${title} on Reaglex.`,
-      keywords: product?.seoKeywords,
-      canonicalUrl,
-      openGraph: { title: `${title} | Reaglex`, description: product?.description || '', image: primaryImage },
-      noIndex: false,
-      jsonLdScriptId: 'reaglex-jsonld-product',
-      jsonLd: {
-        '@context': 'https://schema.org', '@type': 'Product',
-        name: title, description: product?.description || '',
-        sku: product?.sku || id, category,
-        image: images.slice(0, 6).map(resolveImage),
-        brand: { '@type': 'Brand', name: product?.brand || 'Reaglex' },
-        offers: {
-          '@type': 'Offer', price, priceCurrency: product?.currency || 'USD',
-          availability: stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-          url: canonicalUrl,
+    const rating = Number(product?.ratingAverage || product?.averageRating || product?.rating || 0);
+    const reviewsCount = Number(product?.reviewCount || product?.totalReviews || 0);
+    const breadcrumbs = {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: origin ? `${origin}/` : '/',
         },
-        ...(rating || reviewsCount ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: rating, reviewCount: reviewsCount } } : {}),
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Products',
+          item: origin ? `${origin}/products` : '/products',
+        },
+        ...(category
+          ? [
+              {
+                '@type': 'ListItem',
+                position: 3,
+                name: category,
+                item: (() => {
+                  const slug = product?.categorySlug;
+                  const path = slug ? `/category/${encodeURIComponent(slug)}` : `/products?category=${encodeURIComponent(category)}`;
+                  return origin ? `${origin}${path}` : path;
+                })(),
+              },
+            ]
+          : []),
+        {
+          '@type': 'ListItem',
+          position: category ? 4 : 3,
+          name: title,
+          item: canonicalUrl,
+        },
+      ],
+    };
+    const currency = product?.currency || product?.listingCurrency || 'USD';
+    const shippingDetails = {
+      '@type': 'OfferShippingDetails',
+      shippingRate: {
+        '@type': 'MonetaryAmount',
+        value: product?.flatShippingRate ?? 0,
+        currency,
+      },
+      shippingDestination: {
+        '@type': 'DefinedRegion',
+        addressCountry: product?.shipsToCountry || product?.country || 'RW',
+      },
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 0,
+          maxValue: Number(product?.handlingDays || 1),
+          unitCode: 'DAY',
+        },
+        transitTime: {
+          '@type': 'QuantitativeValue',
+          minValue: Number(product?.transitDaysMin || 2),
+          maxValue: Number(product?.transitDaysMax || 7),
+          unitCode: 'DAY',
+        },
       },
     };
-  }, [product, title, category, images, primaryImage, canonicalUrl, id]);
-  useSeo(seoConfig);
+    const returnPolicy = {
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: product?.shipsToCountry || 'RW',
+      returnPolicyCategory:
+        product?.returnPolicy === 'no-returns'
+          ? 'https://schema.org/MerchantReturnNotPermitted'
+          : 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      merchantReturnDays: Number(product?.returnWindowDays || 30),
+      returnMethod: 'https://schema.org/ReturnByMail',
+      returnFees: 'https://schema.org/FreeReturn',
+    };
+    const reviewList = Array.isArray(product?.reviews)
+      ? product.reviews.slice(0, 5).map((r) => ({
+          '@type': 'Review',
+          author: { '@type': 'Person', name: r?.author || r?.userName || 'Reaglex shopper' },
+          datePublished: r?.createdAt || undefined,
+          reviewRating: {
+            '@type': 'Rating',
+            ratingValue: Number(r?.rating || 5),
+            bestRating: 5,
+          },
+          reviewBody: String(r?.comment || r?.body || '').slice(0, 500),
+        }))
+      : [];
+    const productLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: title,
+      description: (product?.description || '').replace(/<[^>]+>/g, '').slice(0, 500),
+      sku: product?.sku || String(resolvedId || ''),
+      ...(product?.gtin
+        ? { gtin: String(product.gtin), gtin13: String(product.gtin) }
+        : {}),
+      ...(product?.mpn ? { mpn: String(product.mpn) } : {}),
+      image: images.slice(0, 6).map(resolveImage),
+      brand: { '@type': 'Brand', name: product?.brand || 'Reaglex' },
+      category,
+      itemCondition:
+        product?.condition === 'used'
+          ? 'https://schema.org/UsedCondition'
+          : product?.condition === 'refurbished'
+            ? 'https://schema.org/RefurbishedCondition'
+            : 'https://schema.org/NewCondition',
+      offers: {
+        '@type': 'Offer',
+        price,
+        priceCurrency: currency,
+        availability:
+          stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        url: canonicalUrl,
+        priceValidUntil:
+          product?.priceValidUntil ||
+          new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString().slice(0, 10),
+        seller: {
+          '@type': 'Organization',
+          name: product?.sellerName || product?.brand || 'Reaglex',
+        },
+        shippingDetails,
+        hasMerchantReturnPolicy: returnPolicy,
+      },
+      ...(rating || reviewsCount
+        ? {
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: rating,
+              reviewCount: reviewsCount,
+              bestRating: 5,
+            },
+          }
+        : {}),
+      ...(reviewList.length ? { review: reviewList } : {}),
+    };
+
+    return {
+      title: product?.seoTitle || `${title} | Reaglex`,
+      description:
+        product?.seoDescription ||
+        product?.description?.replace?.(/<[^>]+>/g, '')?.slice?.(0, 160) ||
+        `Buy ${title} on Reaglex.`,
+      keywords: product?.seoKeywords,
+      jsonLd: [breadcrumbs, productLd],
+    };
+  }, [product, canonicalUrl, title, category, images, primaryImage, origin, slugParam, resolvedId]);
+
+  const pdpSeo = (
+    <PageSeo
+      title={seoBundle.title}
+      description={seoBundle.description}
+      canonicalUrl={canonicalUrl}
+      ogImage={socialImage}
+      twitterImage={socialImage}
+      ogType={product ? 'product' : 'website'}
+      keywords={seoBundle.keywords}
+      jsonLd={seoBundle.jsonLd}
+    />
+  );
 
   /* ── data fetch ── */
   useEffect(() => {
+    if (!slugParam && !legacyId) return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setLoading(true); setError(null); setActiveImage(0);
-    productAPI.getProductById(id)
-      .then((data) => {
+    setLoading(true); setError(null); setActiveImage(0); setProduct(null);
+    const load = async () => {
+      try {
+        const data = slugParam
+          ? await productAPI.getProductBySlug(slugParam)
+          : await productAPI.getProductById(legacyId);
         const p = data.product || data;
         setProduct(p);
         setWishlisted(!!p?.wishlisted);
         setWishlistCount(Number(p?.wishlistCount || 0));
         addRecent(p);
-        productAPI.trackView(id).catch(() => null);
-      })
-      .catch(() => setError('Product not found.'))
-      .finally(() => setLoading(false));
-    productAPI.getProducts({ limit: 8 })
+        const rid = String(p._id || p.id || '');
+        if (rid) {
+          productAPI.trackView(rid).catch(() => null);
+          // Marketplace AI: drive personalised home feed + recommendations.
+          homeFeedApi.track({ type: 'view', productId: rid });
+        }
+        if (legacyId && p.slug && location.pathname.startsWith('/products/')) {
+          navigate(`/product/${encodeURIComponent(String(p.slug).trim())}`, { replace: true });
+        }
+      } catch {
+        setError('Product not found.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, [slugParam, legacyId, inventoryRefreshTick, location.pathname, navigate, addRecent]);
+
+  useEffect(() => {
+    const excludeId = String(product?._id || product?.id || legacyId || '');
+    if (!excludeId) return;
+    productAPI
+      .getProducts({ limit: 12 })
       .then((data) => {
         const items = Array.isArray(data) ? data : data.products || data.items || [];
-        setRelated(items.filter((p) => (p._id || p.id) !== id).slice(0, 8));
+        setRelated(items.filter((p) => String(p._id || p.id) !== excludeId).slice(0, 8));
       })
       .catch(() => {});
-  }, [id, inventoryRefreshTick]);
+  }, [product?._id, product?.id, legacyId]);
 
   // Wishlist status/count (guest-safe; auth users also get `wishlisted`)
   useEffect(() => {
+    const apiId = product?._id || product?.id || legacyId;
+    if (!apiId) return undefined;
     let alive = true;
     productAPI
-      .getWishlistStatus(id)
+      .getWishlistStatus(String(apiId))
       .then((r) => {
         if (!alive) return;
         setWishlisted(!!r?.wishlisted);
@@ -232,7 +419,7 @@ export default function ProductDetail() {
       })
       .catch(() => null);
     return () => { alive = false; };
-  }, [id]);
+  }, [product?._id, product?.id, legacyId]);
 
   useEffect(() => {
     if (!product) return;
@@ -255,13 +442,14 @@ export default function ProductDetail() {
   useEffect(() => {
     const onInventoryUpdated = (e) => {
       const updatedId = e?.detail?.productId;
-      if (updatedId && String(updatedId) === String(id)) {
+      const cmp = resolvedId ? String(resolvedId) : legacyId ? String(legacyId) : '';
+      if (updatedId && cmp && String(updatedId) === cmp) {
         setInventoryRefreshTick((v) => v + 1);
       }
     };
     window.addEventListener('inventoryUpdated', onInventoryUpdated);
     return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
-  }, [id]);
+  }, [resolvedId, legacyId]);
 
   /* ── actions ── */
   const handleAddToCart = () => {
@@ -276,13 +464,15 @@ export default function ProductDetail() {
     const optimisticNext = !wishlisted;
     setWishlisted(optimisticNext);
     setWishlistCount((c) => Math.max(0, c + (optimisticNext ? 1 : -1)));
+    const wid = product?._id || product?.id || legacyId;
+    if (!wid) return;
     try {
-      const r = await productAPI.toggleWishlist(id);
+      const r = await productAPI.toggleWishlist(String(wid));
       setWishlisted(!!r?.wishlisted);
       if (r?.wishlistCount != null) setWishlistCount(Number(r.wishlistCount || 0));
     } catch {
       try {
-        const r2 = await productAPI.getWishlistStatus(id);
+        const r2 = await productAPI.getWishlistStatus(String(wid));
         setWishlisted(!!r2?.wishlisted);
         setWishlistCount(Number(r2?.wishlistCount || 0));
       } catch {
@@ -414,6 +604,7 @@ export default function ProductDetail() {
   /* ── loading / error ── */
   if (loading) return (
     <BuyerLayout>
+      {pdpSeo}
       <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4" style={{ background: 'var(--bg-page)' }}>
         <motion.div
           animate={{ rotate: 360 }}
@@ -427,6 +618,7 @@ export default function ProductDetail() {
 
   if (error) return (
     <BuyerLayout>
+      <PageSeo title="Product not found | Reaglex" description={error} canonicalUrl={canonicalUrl} noIndex />
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)' }}>
         <span className="text-6xl">😕</span>
         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error}</p>
@@ -464,7 +656,7 @@ export default function ProductDetail() {
 
   const specs = [
     { prop: 'Brand',          value: product.brand    || 'Reaglex'     },
-    { prop: 'SKU',            value: product.sku      || id            },
+    { prop: 'SKU',            value: product.sku      || resolvedId    },
     { prop: 'Category',       value: category                          },
     { prop: 'Material',       value: product.material || 'Cotton blend'},
     { prop: 'Sizes',          value: (Array.isArray(product?.sizes) && product.sizes.length ? product.sizes : FALLBACK_SIZES).join(', ') },
@@ -484,7 +676,7 @@ export default function ProductDetail() {
     { q: 'Is international shipping available?', a: 'Yes! We ship to 180+ countries via tracked courier services.' },
   ];
 
-  const recentFiltered = recentItems.filter((p) => (p._id || p.id) !== id).slice(0, 6);
+  const recentFiltered = recentItems.filter((p) => (p._id || p.id) !== resolvedId).slice(0, 6);
 
   const renderDetailPanel = (panelIndex, opts = { dense: false }) => {
     const { dense } = opts;
@@ -643,6 +835,7 @@ export default function ProductDetail() {
   ════════════════════════════════════════════════════════════════════ */
   return (
     <BuyerLayout>
+      {pdpSeo}
       <div className="pd2-page relative min-h-screen" style={{ background: 'var(--bg-page)', fontFamily: 'Inter, system-ui, sans-serif' }}>
 
         {/* ── Background decoration ── */}
@@ -665,7 +858,12 @@ export default function ProductDetail() {
             <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0 flex-1" style={{ color: 'var(--text-muted)' }}>
               <Link to="/" className="hover:text-[var(--brand-primary)] transition-colors shrink-0">Home</Link>
               <span className="shrink-0">›</span>
-              <Link to="/search" className="hover:text-[var(--brand-primary)] transition-colors truncate">{category}</Link>
+              <Link
+                to={`/products?category=${encodeURIComponent(category)}`}
+                className="hover:text-[var(--brand-primary)] transition-colors truncate"
+              >
+                {category}
+              </Link>
               <span className="shrink-0">›</span>
               <span className="font-semibold truncate min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</span>
             </div>

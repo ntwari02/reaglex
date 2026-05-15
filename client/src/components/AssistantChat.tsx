@@ -721,7 +721,7 @@ export default function AssistantChat() {
                                 transition: 'transform 0.2s, box-shadow 0.2s',
                               }}>
                                 {/* Image */}
-                                <button type="button" onClick={() => navigate(`/products/${p.id}`)}
+                                <button type="button" onClick={() => navigate(buyerProductPath({ id: p.id }))}
                                   style={{ width: '100%', border: 'none', padding: 0, cursor: 'pointer', background: 'none', display: 'block', textAlign: 'left' }}>
                                   <div style={{ height: single ? 150 : 80, background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden' }}>
                                     {p.imageUrls?.[0]
@@ -752,7 +752,7 @@ export default function AssistantChat() {
                                     Buy now
                                   </button>
                                   <button type="button"
-                                    onClick={() => navigate(`/products/${p.id}`)}
+                                    onClick={() => navigate(buyerProductPath({ id: p.id }))}
                                     style={{ flex: 1, minWidth: 80, padding: '7px 8px', borderRadius: 10, border: '1px solid var(--border-card)', cursor: 'pointer', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 11 }}>
                                     View
                                   </button>

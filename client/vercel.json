@@ -1,3 +1,86 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=900, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap-:name.xml",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=900, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=900, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/robots.txt",
+      "destination": "https://reaglex.onrender.com/robots.txt"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://reaglex.onrender.com/sitemap.xml"
+    },
+    {
+      "source": "/sitemap-:name.xml",
+      "destination": "https://reaglex.onrender.com/sitemap-:name.xml"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://reaglex.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/og/product/:slug",
+      "destination": "https://reaglex.onrender.com/api/public/og/product/:slug"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

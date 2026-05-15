@@ -7,6 +7,10 @@ import { ProductWishlist } from '../models/ProductWishlist';
 import { ProductVerification } from '../models/ProductVerification';
 import { recordRecommendationActivity } from '../services/recommendationEmail.service';
 import { buyerVisibleProductFilter, isProductBuyerVisible } from '../utils/publicProductQuery';
+import { ensureProductHasSlug } from '../utils/productSlug';
+import { buildCategorySlugFilter } from '../constants/storefrontCategories';
+
+/** Public product listing & detail (buyer-visible + SEO slugs). */
 
 function normalizeMediaUrl(maybeUrl: unknown): unknown {
   if (typeof maybeUrl !== 'string') return maybeUrl;
@@ -60,6 +64,7 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
   try {
     const { 
       category, 
+      categorySlug,
       search, 
       status = 'in_stock',
       page = '1', 
@@ -68,6 +73,7 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
       order = 'desc'
     } = req.query as {
       category?: string;
+      categorySlug?: string;
       search?: string;
       status?: string;
       page?: string;
@@ -82,7 +88,10 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
       extra.status = status;
     }
 
-    if (category) {
+    const slugFilter = categorySlug ? buildCategorySlugFilter(String(categorySlug)) : null;
+    if (slugFilter) {
+      Object.assign(extra, slugFilter);
+    } else if (category) {
       extra.category = category;
     }
 
@@ -190,6 +199,92 @@ export async function trackProductView(req: AuthenticatedRequest, res: Response)
   }
 }
 
+async function enrichAndSendProduct(
+  req: AuthenticatedRequest,
+  res: Response,
+  leanProduct: Record<string, unknown> | null,
+  productIdForAnalytics: string,
+) {
+  const product = normalizeProductMedia(leanProduct) as Record<string, unknown> | null;
+
+  if (!product) {
+    return res.status(404).json({ message: 'Product not found' });
+  }
+
+  const userId = req.user?.id ? new mongoose.Types.ObjectId(String(req.user.id)) : null;
+  const pid = new mongoose.Types.ObjectId(String(productIdForAnalytics));
+
+  const [reviewAgg, reviewGalleryAgg, wishlistedDoc, wishlistCountFromDb, verificationDoc] = await Promise.all([
+    ProductReview.aggregate([
+      { $match: { productId: pid, status: 'approved' } },
+      {
+        $group: {
+          _id: '$productId',
+          avgRating: { $avg: '$rating' },
+          reviewCount: { $sum: 1 },
+        },
+      },
+    ]),
+    ProductReview.aggregate([
+      { $match: { productId: pid, status: 'approved', images: { $exists: true, $ne: [] } } },
+      { $sort: { createdAt: -1 } },
+      { $limit: 18 },
+      { $project: { _id: 1, rating: 1, customerName: 1, createdAt: 1, images: 1, message: 1 } },
+    ]),
+    userId ? ProductWishlist.findOne({ userId, productId: pid }).select('_id').lean() : Promise.resolve(null),
+    (product as any)?.wishlistCount == null
+      ? ProductWishlist.countDocuments({ productId: pid })
+      : Promise.resolve(Number((product as any).wishlistCount || 0)),
+    ProductVerification.findOne({ productId: pid }).select('aiChecks.videoProofUploaded aiChecks.videoProofUrl').lean(),
+  ]);
+
+  const avgRating = Number(reviewAgg?.[0]?.avgRating || 0);
+  const reviewCount = Number(reviewAgg?.[0]?.reviewCount || 0);
+  const wishlistCount = Number(wishlistCountFromDb || 0);
+  const wishlisted = !!wishlistedDoc;
+
+  if (req.user?.id) {
+    void recordRecommendationActivity({
+      userId: req.user.id,
+      eventType: 'product_view',
+      productId: productIdForAnalytics,
+      category: String((product as any)?.category || ''),
+      tags: Array.isArray((product as any)?.tags) ? (product as any).tags : [],
+    });
+  }
+
+  const verificationVideoUrl =
+    typeof verificationDoc?.aiChecks?.videoProofUrl === 'string'
+      ? normalizeMediaUrl(verificationDoc.aiChecks.videoProofUrl)
+      : undefined;
+  const hasDirectVideo =
+    typeof (product as any)?.videoUrl === 'string' && String((product as any).videoUrl).trim().length > 0;
+
+  return res.json({
+    product: {
+      ...product,
+      ...(hasDirectVideo ? {} : verificationVideoUrl ? { videoUrl: verificationVideoUrl } : {}),
+      verificationVideoUrl,
+      verificationVideoUploaded: Boolean(verificationDoc?.aiChecks?.videoProofUploaded),
+      ratingAverage: avgRating || (product as any)?.averageRating || (product as any)?.rating || 0,
+      reviewCount: reviewCount || (product as any)?.totalReviews || (product as any)?.reviewCount || 0,
+      wishlistCount,
+      wishlisted,
+      soldCount: Number((product as any)?.soldCount || 0),
+      reviewGallery: Array.isArray(reviewGalleryAgg)
+        ? reviewGalleryAgg.map((r: any) => ({
+            id: String(r?._id || ''),
+            rating: Number(r?.rating || 0),
+            customerName: String(r?.customerName || ''),
+            createdAt: r?.createdAt,
+            message: String(r?.message || ''),
+            images: Array.isArray(r?.images) ? r.images : [],
+          }))
+        : [],
+    },
+  });
+}
+
 /**
  * Get product by ID (public endpoint for buyers)
  */
@@ -201,93 +296,59 @@ export async function getProductById(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ message: 'Invalid product ID' });
     }
 
-    // Fetch + increment views in one round-trip.
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       { $inc: { views: 1 } },
-      { new: true }
+      { new: true },
     ).lean();
 
     if (!updatedProduct || !isProductBuyerVisible(updatedProduct)) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    const product = normalizeProductMedia(updatedProduct);
+    const slug = await ensureProductHasSlug(updatedProduct as any);
+    if (slug) (updatedProduct as any).slug = slug;
 
-    const userId = req.user?.id ? new mongoose.Types.ObjectId(String(req.user.id)) : null;
-    const pid = new mongoose.Types.ObjectId(String(productId));
-
-    const [reviewAgg, reviewGalleryAgg, wishlistedDoc, wishlistCountFromDb, verificationDoc] = await Promise.all([
-      ProductReview.aggregate([
-        { $match: { productId: pid, status: 'approved' } },
-        {
-          $group: {
-            _id: '$productId',
-            avgRating: { $avg: '$rating' },
-            reviewCount: { $sum: 1 },
-          },
-        },
-      ]),
-      ProductReview.aggregate([
-        { $match: { productId: pid, status: 'approved', images: { $exists: true, $ne: [] } } },
-        { $sort: { createdAt: -1 } },
-        { $limit: 18 },
-        { $project: { _id: 1, rating: 1, customerName: 1, createdAt: 1, images: 1, message: 1 } },
-      ]),
-      userId ? ProductWishlist.findOne({ userId, productId: pid }).select('_id').lean() : Promise.resolve(null),
-      // If `wishlistCount` exists on product, trust it; otherwise compute.
-      (product as any)?.wishlistCount == null
-        ? ProductWishlist.countDocuments({ productId: pid })
-        : Promise.resolve(Number((product as any).wishlistCount || 0)),
-      ProductVerification.findOne({ productId: pid }).select('aiChecks.videoProofUploaded aiChecks.videoProofUrl').lean(),
-    ]);
-
-    const avgRating = Number(reviewAgg?.[0]?.avgRating || 0);
-    const reviewCount = Number(reviewAgg?.[0]?.reviewCount || 0);
-    const wishlistCount = Number(wishlistCountFromDb || 0);
-    const wishlisted = !!wishlistedDoc;
-
-    if (req.user?.id) {
-      void recordRecommendationActivity({
-        userId: req.user.id,
-        eventType: 'product_view',
-        productId,
-        category: String((product as any)?.category || ''),
-        tags: Array.isArray((product as any)?.tags) ? (product as any).tags : [],
-      });
-    }
-
-    const verificationVideoUrl =
-      typeof verificationDoc?.aiChecks?.videoProofUrl === 'string' ? normalizeMediaUrl(verificationDoc.aiChecks.videoProofUrl) : undefined;
-    const hasDirectVideo =
-      typeof (product as any)?.videoUrl === 'string' && String((product as any).videoUrl).trim().length > 0;
-
-    return res.json({
-      product: {
-        ...product,
-        ...(hasDirectVideo ? {} : verificationVideoUrl ? { videoUrl: verificationVideoUrl } : {}),
-        verificationVideoUrl,
-        verificationVideoUploaded: Boolean(verificationDoc?.aiChecks?.videoProofUploaded),
-        // Commerce aggregates / enrichments (optional fields for PDP; safe for existing clients).
-        ratingAverage: avgRating || (product as any)?.averageRating || (product as any)?.rating || 0,
-        reviewCount: reviewCount || (product as any)?.totalReviews || (product as any)?.reviewCount || 0,
-        wishlistCount,
-        wishlisted,
-        soldCount: Number((product as any)?.soldCount || 0),
-        reviewGallery: Array.isArray(reviewGalleryAgg)
-          ? reviewGalleryAgg.map((r: any) => ({
-              id: String(r?._id || ''),
-              rating: Number(r?.rating || 0),
-              customerName: String(r?.customerName || ''),
-              createdAt: r?.createdAt,
-              message: String(r?.message || ''),
-              images: Array.isArray(r?.images) ? r.images : [],
-            }))
-          : [],
-      }
-    });
+    return await enrichAndSendProduct(req, res, updatedProduct as any, productId);
   } catch (error: any) {
     console.error('Get product by ID error:', error);
+    return res.status(500).json({ message: 'Failed to fetch product' });
+  }
+}
+
+/**
+ * Get product by SEO slug (/product/:slug)
+ */
+export async function getProductBySlug(req: AuthenticatedRequest, res: Response) {
+  try {
+    const slug = String(req.params.slug || '')
+      .trim()
+      .toLowerCase();
+    if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 140) {
+      return res.status(400).json({ message: 'Invalid slug' });
+    }
+
+    const updatedProduct = await Product.findOneAndUpdate(
+      { slug },
+      { $inc: { views: 1 } },
+      { new: true },
+    ).lean();
+
+    if (!updatedProduct && mongoose.Types.ObjectId.isValid(slug)) {
+      return await getProductById({ ...req, params: { productId: slug } } as AuthenticatedRequest, res);
+    }
+
+    if (!updatedProduct || !isProductBuyerVisible(updatedProduct)) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const idStr = String((updatedProduct as any)._id);
+    const ensured = await ensureProductHasSlug(updatedProduct as any);
+    if (ensured) (updatedProduct as any).slug = ensured;
+
+    return await enrichAndSendProduct(req, res, updatedProduct as any, idStr);
+  } catch (error: any) {
+    console.error('Get product by slug error:', error);
     return res.status(500).json({ message: 'Failed to fetch product' });
   }
 }

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/write-vercel-json.mjs && vite build",
+    "postinstall": "node scripts/ensure-react-helmet-async.mjs",
     "vercel:rewrites": "node scripts/write-vercel-json.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -33,6 +34,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-globe.gl": "^2.37.0",
+    "react-helmet-async": "^2.0.5",
     "react-hook-form": "^7.69.0",
     "react-quill": "^2.0.0",
     "react-router-dom": "^7.9.6",

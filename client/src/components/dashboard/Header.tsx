@@ -89,6 +89,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const isSeller = location.pathname.startsWith('/seller');
   const isAdmin = location.pathname.startsWith('/admin');
+  const mobileSubtitle = isSeller ? 'Seller Hub' : isAdmin ? 'Admin' : '';
 
   const refreshSystemInboxUnread = useCallback(() => {
     if (!isSeller && !isAdmin) {
@@ -208,6 +209,14 @@ const Header: React.FC<HeaderProps> = ({
         >
           <Menu className="w-6 h-6" />
         </Button>
+
+        {/* Mobile title (matches screenshot vibe) */}
+        <div className="md:hidden flex flex-col leading-tight">
+          <span className="text-[15px] font-extrabold text-gray-900 dark:text-white">{mobileSubtitle || 'Dashboard'}</span>
+          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 truncate max-w-[190px]">
+            {userName}
+          </span>
+        </div>
 
         <div className="hidden md:flex items-center flex-1 max-w-md">
           <div className="relative w-full">

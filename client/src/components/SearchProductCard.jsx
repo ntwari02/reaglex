@@ -6,6 +6,7 @@ import { useBuyerCart } from '../stores/buyerCartStore';
 import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
+import { buyerProductPath } from '../lib/productUrl';
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
 
@@ -86,7 +87,7 @@ export function SearchProductCard({ product, index = 0 }) {
         willChange: 'transform',
       }}
     >
-      <Link to={`/products/${id}`} className="block">
+      <Link to={buyerProductPath(product)} className="block">
         {/* Image container: 220px height, no padding */}
         <div
           className="relative overflow-hidden bg-[var(--bg-tertiary)]"
@@ -112,7 +113,7 @@ export function SearchProductCard({ product, index = 0 }) {
             >
               <ShoppingBag className="w-4 h-4" /> Add to Cart
             </motion.button>
-            <Link to={`/products/${id}`} onClick={(e) => e.stopPropagation()} className="translate-y-5 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white font-bold text-sm text-gray-800 shadow-lg" style={{ transitionDelay: '100ms' }}>
+            <Link to={buyerProductPath(product)} onClick={(e) => e.stopPropagation()} className="translate-y-5 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white font-bold text-sm text-gray-800 shadow-lg" style={{ transitionDelay: '100ms' }}>
               <Eye className="w-4 h-4" /> Quick View
             </Link>
           </div>

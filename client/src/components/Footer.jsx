@@ -146,7 +146,7 @@ function TrustBadge({ icon: Icon, label }) {
 }
 
 const SHOP_LINKS = [
-  { labelKey: 'footer.links.shop.allProducts', href: '/search' },
+  { labelKey: 'footer.links.shop.allProducts', href: '/products' },
   { labelKey: 'nav.deals', href: '/search?sort=discount' },
   { labelKey: 'nav.newArrivals', href: '/search?sort=newest' },
   { labelKey: 'footer.links.shop.topRated', href: '/search?sort=rating' },
@@ -175,6 +175,7 @@ const SELL_LINKS = [
 ];
 
 const SUPPORT_LINKS = [
+  { labelKey: 'footer.links.shop.aboutReaglex', href: '/about' },
   { labelKey: 'header.helpCenter', href: '/help' },
   { labelKey: 'footer.links.support.contactUs', href: '/contact' },
   { labelKey: 'nav.trackOrder', href: '/track' },

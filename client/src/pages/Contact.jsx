@@ -14,6 +14,9 @@ import {
   Linkedin,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
+import { PageSeo } from '../components/seo/PageSeo';
+import { getPreferredSiteOrigin } from '../lib/siteOrigin';
+import { buildLocaleAlternates } from '../utils/localeAlternateLinks';
 
 const TOPIC_PILLS = [
   { id: 'order', label: '📦 Order Issue' },
@@ -94,6 +97,30 @@ function computeReplyTimeLabel() {
 }
 
 export default function Contact() {
+  const origin = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
+  const canonicalUrl = origin ? `${origin}/contact` : '/contact';
+  const contactHreflangAlternates = origin ? buildLocaleAlternates(origin, '/contact') : undefined;
+  const contactJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    name: 'Contact Reaglex',
+    url: canonicalUrl,
+    description:
+      'Reach Reaglex support for order, payment, escrow, return, and seller inquiries — typical email response within 24 hours.',
+    ...(origin
+      ? {
+          isPartOf: { '@id': `${origin}/#website` },
+          mainEntity: { '@id': `${origin}/#organization` },
+          breadcrumb: {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: `${origin}/` },
+              { '@type': 'ListItem', position: 2, name: 'Contact', item: canonicalUrl },
+            ],
+          },
+        }
+      : {}),
+  };
   const [topic, setTopic] = useState('order');
   const [priority, setPriority] = useState('normal');
   const [form, setForm] = useState({
@@ -262,6 +289,15 @@ export default function Contact() {
 
   return (
     <BuyerLayout>
+      <PageSeo
+        title="Contact Reaglex — buyer & seller support"
+        description="Reach Reaglex for order, payment, escrow, return, and seller inquiries. Typical email reply within 24 hours; live chat in under 2 minutes."
+        canonicalUrl={canonicalUrl}
+        ogImage={origin ? `${origin}/logo.jpg` : undefined}
+        ogType="website"
+        hreflangAlternates={contactHreflangAlternates}
+        jsonLd={contactJsonLd}
+      />
       <div className="contact-page">
         {/* HERO */}
         <motion.section
