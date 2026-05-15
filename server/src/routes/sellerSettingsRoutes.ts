@@ -77,10 +77,11 @@ const uploadIdentityImages = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req: any, file: any, cb: any) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (mimetype && extname) return cb(null, true);
+    const allowedTypes = /jpeg|jpg|png|webp/i;
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const extOk = !ext || allowedTypes.test(ext);
+    const mimeOk = allowedTypes.test(String(file.mimetype || ''));
+    if (extOk && mimeOk) return cb(null, true);
     cb(new Error('Only JPEG, PNG, or WebP images are allowed for identity verification'));
   },
 });
@@ -292,7 +293,6 @@ router.post(
       next();
     });
   },
-  cloudinaryUploadBuffers('reaglex/sellers/identity-kyc'),
   scanIdentityDocument,
 );
 router.post(
@@ -303,7 +303,6 @@ router.post(
       next();
     });
   },
-  cloudinaryUploadBuffers('reaglex/sellers/identity-kyc'),
   matchIdentityFace,
 );
 router.post('/identity-verification/apply-profile', applyIdentityProfile);

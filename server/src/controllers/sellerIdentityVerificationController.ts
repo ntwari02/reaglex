@@ -10,7 +10,9 @@ import {
   isAcceptableDocumentOutcome,
   isAcceptableFaceOutcome,
   buildMicroblinkKycMeta,
+  MicroblinkApiError,
 } from '../services/microblink.service';
+import { uploadAnyBufferToCloudinary } from '../utils/uploadToCloudinary';
 import { recalculateSellerTrust } from '../services/productVerification.service';
 import { emitSellerKycUpdated } from '../services/sellerKycRealtime.service';
 import { publishEligibleProductsAfterKyc } from '../services/sellerKyc.service';
@@ -68,6 +70,27 @@ function computeTrustBonuses(settings: {
         (settings.businessName && settings.businessName.trim().length > 2),
     ),
   };
+}
+
+const IDENTITY_KYC_FOLDER = 'reaglex/sellers/identity-kyc';
+
+async function persistIdentityImage(file?: Express.Multer.File): Promise<string | undefined> {
+  if (!file?.buffer?.length) return undefined;
+  try {
+    return await uploadAnyBufferToCloudinary(file.buffer, IDENTITY_KYC_FOLDER);
+  } catch (err) {
+    console.warn('[identity-kyc] Cloudinary upload failed:', err);
+    return undefined;
+  }
+}
+
+function identityErrorStatus(error: unknown): number {
+  if (error instanceof MicroblinkApiError) {
+    if (error.httpStatus === 401 || error.httpStatus === 403) return 502;
+    if (error.httpStatus >= 400 && error.httpStatus < 500) return error.httpStatus;
+    return 502;
+  }
+  return 500;
 }
 
 function trustBonusPoints(bonuses: IIdentityKyc['trustBonuses']): number {
@@ -234,7 +257,7 @@ export async function scanIdentityDocument(req: AuthenticatedRequest, res: Respo
   } catch (error: unknown) {
     console.error('scanIdentityDocument error:', error);
     const message = error instanceof Error ? error.message : 'Document scan failed';
-    return res.status(500).json({ message });
+    return res.status(identityErrorStatus(error)).json({ message });
   }
 }
 
@@ -281,6 +304,7 @@ export async function matchIdentityFace(req: AuthenticatedRequest, res: Response
     });
 
     const accepted = isAcceptableFaceOutcome(result);
+    const selfieImageUrl = await persistIdentityImage(selfie);
     settings.identityKyc = {
       ...(settings.identityKyc || defaultIdentityKyc()),
       step: accepted ? 'completed' : 'failed',
@@ -289,7 +313,7 @@ export async function matchIdentityFace(req: AuthenticatedRequest, res: Response
         verifiedAt: accepted ? new Date() : undefined,
         matchScore: result.faceMatchScore,
         livenessScore: result.livenessScore,
-        selfieImageUrl: (selfie as Express.Multer.File & { path?: string }).path,
+        selfieImageUrl,
         ...buildMicroblinkKycMeta(result),
         rejectionReason: accepted
           ? undefined
@@ -338,7 +362,7 @@ export async function matchIdentityFace(req: AuthenticatedRequest, res: Response
   } catch (error: unknown) {
     console.error('matchIdentityFace error:', error);
     const message = error instanceof Error ? error.message : 'Face verification failed';
-    return res.status(500).json({ message });
+    return res.status(identityErrorStatus(error)).json({ message });
   }
 }
 

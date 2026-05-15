@@ -1,5 +1,20 @@
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import FormData from 'form-data';
+
+const MICROBLINK_TIMEOUT_MS = 60_000;
+
+/** Thrown when Microblink HTTP API returns an error or an invalid payload. */
+export class MicroblinkApiError extends Error {
+  readonly httpStatus: number;
+  readonly upstreamBody?: unknown;
+
+  constructor(message: string, httpStatus: number, upstreamBody?: unknown) {
+    super(message);
+    this.name = 'MicroblinkApiError';
+    this.httpStatus = httpStatus;
+    this.upstreamBody = upstreamBody;
+  }
+}
 
 /** Host subdomain values for BlinkID Verify API (see Microblink regional endpoints). */
 export type MicroblinkRegion = 'us-east' | 'eu' | 'ca';
@@ -313,6 +328,76 @@ export function isAcceptableFaceOutcome(result: MicroblinkVerifyResult): boolean
 
 type ImageInput = { buffer: Buffer; filename: string; mimetype: string };
 
+function parseMicroblinkErrorBody(data: unknown, status: number): string {
+  if (!data || typeof data !== 'object') {
+    return `Microblink API error (${status})`;
+  }
+  const obj = data as Record<string, unknown>;
+  const direct =
+    pickString(obj.message, obj.error, obj.detail, obj.title) ||
+    (typeof obj.error === 'object' && obj.error
+      ? pickString((obj.error as Record<string, unknown>).message)
+      : undefined);
+  if (direct) return direct;
+
+  const errors = obj.errors;
+  if (Array.isArray(errors) && errors.length > 0) {
+    const parts = errors
+      .map((e) => {
+        if (typeof e === 'string') return e;
+        if (e && typeof e === 'object') {
+          return pickString((e as Record<string, unknown>).message, (e as Record<string, unknown>).detail);
+        }
+        return undefined;
+      })
+      .filter(Boolean);
+    if (parts.length) return parts.join('; ');
+  }
+
+  return `Microblink API error (${status})`;
+}
+
+async function postMicroblinkDocver(form: FormData, auth: string): Promise<Record<string, unknown>> {
+  const url = `${getBaseUrl()}/api/v2/docver`;
+  try {
+    const { data, status } = await axios.post<unknown>(url, form, {
+      headers: {
+        ...form.getHeaders(),
+        Authorization: auth,
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: MICROBLINK_TIMEOUT_MS,
+      validateStatus: () => true,
+    });
+
+    if (status < 200 || status >= 300) {
+      throw new MicroblinkApiError(parseMicroblinkErrorBody(data, status), status, data);
+    }
+
+    if (!data || typeof data !== 'object') {
+      throw new MicroblinkApiError('Microblink returned an empty or invalid response', 502);
+    }
+
+    return data as Record<string, unknown>;
+  } catch (error) {
+    if (error instanceof MicroblinkApiError) throw error;
+    if (isAxiosError(error)) {
+      if (error.code === 'ECONNABORTED') {
+        throw new MicroblinkApiError('Identity verification timed out. Please try again.', 504);
+      }
+      const status = error.response?.status ?? 502;
+      const body = error.response?.data;
+      throw new MicroblinkApiError(
+        body ? parseMicroblinkErrorBody(body, status) : error.message || 'Microblink request failed',
+        status,
+        body,
+      );
+    }
+    throw error;
+  }
+}
+
 export async function verifyDocumentImages(images: {
   imageFront: ImageInput;
   imageBack?: ImageInput;
@@ -341,25 +426,7 @@ export async function verifyDocumentImages(images: {
     });
   }
 
-  const url = `${getBaseUrl()}/api/v2/docver`;
-  const { data, status } = await axios.post<Record<string, unknown>>(url, form, {
-    headers: {
-      ...form.getHeaders(),
-      Authorization: auth,
-    },
-    maxBodyLength: Infinity,
-    maxContentLength: Infinity,
-    validateStatus: () => true,
-  });
-
-  if (status < 200 || status >= 300) {
-    const message =
-      (data as { message?: string })?.message ||
-      (data as { error?: string })?.error ||
-      `Microblink API error (${status})`;
-    throw new Error(message);
-  }
-
+  const data = await postMicroblinkDocver(form, auth);
   return mapMicroblinkResponse(data);
 }
 
