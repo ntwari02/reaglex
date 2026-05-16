@@ -46,6 +46,7 @@ import { useBuyerCart } from './stores/buyerCartStore';
 // @ts-ignore JS module without TS typings
 import { isBuyerChromeHidden } from './config/buyerNavVisibility';
 import { SiteWideSchemas } from './components/seo/SiteWideSchemas';
+import { ClientOnly } from './components/ClientOnly';
 
 /**
  * Renders the buyer Navbar OUTSIDE the cart-push motion.div so that
@@ -222,9 +223,11 @@ function App() {
         <GlobalNavbar />
         <MobileBottomNav />
         <ImmersiveSearchLayer />
-        <VisualSearchLayer />
+        <ClientOnly>
+          <VisualSearchLayer />
+          <ArTryOnLayer />
+        </ClientOnly>
         <ProductQuickPreviewSheet />
-        <ArTryOnLayer />
         <FlyToCartBurst />
 
         {/*

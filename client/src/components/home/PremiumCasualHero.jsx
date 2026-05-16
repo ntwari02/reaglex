@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Parallax } from 'swiper/modules';
 import { useReducedMotion } from 'framer-motion';
+import { publicSiteContentAPI } from '../../lib/api';
 
 import 'swiper/css';
 
-const CASUAL_SLIDES = [
+const FALLBACK_SLIDES = [
   {
     id: 'hello-casual',
     eyebrow: 'Hello casual',
@@ -15,7 +16,7 @@ const CASUAL_SLIDES = [
     detail: 'On selected items.',
     cta: 'Shop now',
     href: '/search?sort=discount',
-    image:
+    imageUrl:
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1400&q=88',
     imgPosition: '92% center',
   },
@@ -27,7 +28,7 @@ const CASUAL_SLIDES = [
     detail: 'Layered textures & confident silhouettes.',
     cta: 'Explore',
     href: '/category/clothing',
-    image:
+    imageUrl:
       'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1400&q=88',
     imgPosition: '80% center',
   },
@@ -39,7 +40,7 @@ const CASUAL_SLIDES = [
     detail: 'Curated audio, wearables & essentials.',
     cta: 'Shop tech',
     href: '/category/electronics',
-    image:
+    imageUrl:
       'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1400&q=88',
     imgPosition: '75% center',
   },
@@ -52,13 +53,43 @@ function slideOverlay(isDark) {
   return 'linear-gradient(100deg, rgba(247,247,248,0.94) 0%, rgba(247,247,248,0.45) 40%, rgba(17,17,17,0.08) 58%, rgba(17,17,17,0.38) 100%)';
 }
 
+function mapApiSlides(slides) {
+  return slides.map((s, i) => ({
+    id: `hero-${i}-${s.line1}`,
+    eyebrow: s.eyebrow,
+    line1: s.line1,
+    line2: s.line2,
+    detail: s.detail,
+    cta: s.cta,
+    href: s.href,
+    image: s.imageUrl,
+    videoUrl: s.videoUrl,
+    imgPosition: s.imgPosition || 'center center',
+  }));
+}
+
 export default function PremiumCasualHero({ isDark, className = '' }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
+  const [slides, setSlides] = useState(FALLBACK_SLIDES);
   const overlay = slideOverlay(isDark);
   const textPrimary = isDark ? '#ffffff' : '#111111';
   const textMuted = isDark ? 'rgba(255,255,255,0.72)' : '#777777';
   const eyebrow = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(17,17,17,0.45)';
+
+  useEffect(() => {
+    let cancelled = false;
+    publicSiteContentAPI
+      .getHeroCarousel()
+      .then((res) => {
+        if (cancelled || !res?.slides?.length) return;
+        setSlides(mapApiSlides(res.slides));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section
@@ -86,20 +117,32 @@ export default function PremiumCasualHero({ isDark, className = '' }) {
           className="premium-casual-swiper !overflow-hidden rounded-[24px]"
           style={{ minHeight: 248 }}
         >
-          {CASUAL_SLIDES.map((slide, i) => (
+          {slides.map((slide, i) => (
             <SwiperSlide key={slide.id} className="!h-auto">
               <article className="relative min-h-[248px] overflow-hidden">
-                <img
-                  src={slide.image}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover select-none scale-[1.06]"
-                  loading={i === 0 ? 'eager' : 'lazy'}
-                  decoding="async"
-                  draggable={false}
-                  data-swiper-parallax="-18%"
-                  data-swiper-parallax-scale="1.08"
-                  style={{ objectPosition: slide.imgPosition }}
-                />
+                {slide.videoUrl ? (
+                  <video
+                    src={slide.videoUrl}
+                    className="absolute inset-0 h-full w-full object-cover scale-[1.06]"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    poster={slide.image}
+                  />
+                ) : (
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover select-none scale-[1.06]"
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    draggable={false}
+                    data-swiper-parallax="-18%"
+                    data-swiper-parallax-scale="1.08"
+                    style={{ objectPosition: slide.imgPosition }}
+                  />
+                )}
                 <div
                   className="absolute inset-0"
                   style={{ background: overlay }}
@@ -154,7 +197,7 @@ export default function PremiumCasualHero({ isDark, className = '' }) {
         </Swiper>
 
         <div className="pointer-events-none absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5">
-          {CASUAL_SLIDES.map((s, i) => (
+          {slides.map((s, i) => (
             <span
               key={s.id}
               className="h-1.5 rounded-full transition-all duration-300"

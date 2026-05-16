@@ -2001,6 +2001,32 @@ export const adminSiteContentAPI = {
       credentials: 'include',
       body: JSON.stringify({ banners }),
     }).then(handleResponse<{ ok: boolean; banners: any[] }>),
+  getHeroCarousel: () =>
+    fetch(`${ADMIN_SITE_BASE}/hero-carousel`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ slides: any[] }>),
+  putHeroCarousel: (slides: unknown[]) =>
+    fetch(`${ADMIN_SITE_BASE}/hero-carousel`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ slides }),
+    }).then(handleResponse<{ ok: boolean; slides: any[] }>),
+};
+
+const PUBLIC_CONTENT_BASE = `${API_BASE_URL}/public`;
+
+export const publicSiteContentAPI = {
+  getHeroCarousel: () =>
+    fetch(`${PUBLIC_CONTENT_BASE}/hero-carousel`, { credentials: 'include' }).then(
+      handleResponse<{ slides: any[] }>,
+    ),
+  getHomePromoBanners: () =>
+    fetch(`${PUBLIC_CONTENT_BASE}/home-promo-banners`, { credentials: 'include' }).then(
+      handleResponse<{ banners: any[] }>,
+    ),
 };
 
 /**

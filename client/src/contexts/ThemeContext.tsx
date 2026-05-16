@@ -125,8 +125,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
           if (profileData.preferences) {
             if (profileData.preferences.theme && profileData.preferences.theme !== 'auto') {
-              setThemeState(profileData.preferences.theme as Theme);
-              localStorage.setItem('theme', profileData.preferences.theme);
+              const dbTheme = profileData.preferences.theme as Theme;
+              setThemeState(dbTheme);
+              try {
+                localStorage.setItem('reaglex-theme', dbTheme);
+              } catch {}
             }
             if (profileData.preferences.language) {
               setLanguage(profileData.preferences.language as Language);

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ShoppingBag, Heart, Bell, X, ChevronDown, ChevronRight,
   Package, MapPin, CreditCard, Star, RotateCcw, Settings, LogOut, Clock, Flame,
-  Globe, DollarSign, HelpCircle, Sun, Moon, Shield, User, SlidersHorizontal,
+  Globe, DollarSign, HelpCircle, Sun, Moon, Shield, User, SlidersHorizontal, Camera,
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { buyerProductPath } from '../lib/productUrl';
 import { useImmersiveSearch } from '../stores/immersiveSearchStore';
 import { useScrollChrome } from '../stores/scrollChromeStore';
+import { useMotionUi } from '../stores/motionUiStore';
 
 const PRIMARY = 'var(--brand-primary)';
 const PRIMARY_HOVER = 'var(--brand-primary-hover)';
@@ -289,6 +290,7 @@ function MainHeader({
   t,
 }) {
   const { theme, toggleTheme } = useTheme();
+  const openVisualSearch = useMotionUi((s) => s.openVisualSearch);
   const navigate = useNavigate();
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState({ recent: [], trending: TRENDING, products: [] });
@@ -524,17 +526,19 @@ function MainHeader({
           }}
         />
 
-        <div
+        <motion.div
           className="flex items-center overflow-hidden h-11 relative"
           style={{
-            borderRadius: 999,
-            background: 'var(--search-bg)',
+            borderRadius: 20,
+            background: 'color-mix(in srgb, var(--card-bg) 72%, var(--search-bg))',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             border: searchFocus
-              ? '1.5px solid color-mix(in srgb, var(--brand-primary) 70%, transparent)'
-              : '1px solid var(--search-border)',
+              ? '1.5px solid color-mix(in srgb, var(--brand-primary) 65%, transparent)'
+              : '1px solid color-mix(in srgb, var(--border-card) 80%, transparent)',
             boxShadow: searchFocus
-              ? '0 0 0 3px color-mix(in srgb, var(--brand-primary) 12%, transparent), 0 4px 20px rgba(0,0,0,0.08)'
-              : '0 1px 4px rgba(0,0,0,0.06)',
+              ? '0 0 0 3px color-mix(in srgb, var(--brand-primary) 14%, transparent), 0 0 28px color-mix(in srgb, var(--brand-primary) 12%, transparent), 0 8px 24px rgba(0,0,0,0.1)'
+              : 'var(--shadow-sm)',
             transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
             zIndex: 1,
           }}
@@ -653,27 +657,41 @@ function MainHeader({
             </AnimatePresence>
           </div>
 
-          {/* Submit button */}
-          <motion.button
-            type="submit"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            className="flex-shrink-0 w-12 h-full flex items-center justify-center rounded-r-full relative overflow-hidden"
-            style={{ background: 'var(--gradient-brand-cta)' }}
+          {/* Camera visual search */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              openVisualSearch();
+            }}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl mx-1 transition active:scale-[0.94]"
+            style={{
+              background: searchFocus
+                ? 'color-mix(in srgb, var(--brand-primary) 18%, transparent)'
+                : 'color-mix(in srgb, var(--brand-primary) 8%, transparent)',
+              color: 'var(--brand-primary)',
+              boxShadow: searchFocus
+                ? '0 0 16px color-mix(in srgb, var(--brand-primary) 35%, transparent)'
+                : 'none',
+            }}
+            aria-label="Visual search"
           >
-            {/* Shimmer */}
-            <motion.div
-              animate={{ x: ['-120%', '200%'] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: 'linear', repeatDelay: 1.5 }}
-              style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)',
-                pointerEvents: 'none',
-              }}
-            />
-            <Search className="w-4.5 h-4.5 text-white relative z-10" style={{ width: 18, height: 18 }} />
-          </motion.button>
-        </div>
+            <Camera className="h-[18px] w-[18px]" strokeWidth={2} />
+          </button>
+
+          {/* Filter / browse */}
+          <Link
+            to="/products"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl mr-1.5 transition active:scale-[0.94]"
+            style={{
+              background: 'color-mix(in srgb, var(--bg-tertiary) 65%, transparent)',
+              color: 'var(--text-secondary)',
+            }}
+            aria-label={t('footer.links.shop.allProducts')}
+          >
+            <SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={1.85} />
+          </Link>
+        </motion.div>
 
         {/* ── Futuristic suggestions panel ── */}
         <AnimatePresence>
@@ -1141,6 +1159,7 @@ export default function Navbar() {
   const { language, setLanguage, currency, setCurrency } = useTheme();
   const { t } = useTranslation();
   const openImmersiveSearch = useImmersiveSearch((s) => s.openSearch);
+  const openVisualSearch = useMotionUi((s) => s.openVisualSearch);
   const headerHidden = useScrollChrome((s) => s.headerHidden);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
@@ -1244,13 +1263,13 @@ export default function Navbar() {
                 openImmersiveSearch(searchQuery);
               }
             }}
-            className="flex items-center gap-2 min-h-[52px] rounded-[999px] px-2 pl-3 pr-2 transition-[box-shadow,border-color] duration-200 cursor-text"
+            className="flex items-center gap-1.5 min-h-[52px] rounded-[20px] px-2 pl-3 pr-2 transition-[box-shadow,border-color] duration-200 cursor-text"
             style={{
               background: 'color-mix(in srgb, var(--card-bg) 78%, var(--search-bg))',
               border: '1px solid color-mix(in srgb, var(--border-card) 85%, transparent)',
               boxShadow: 'var(--shadow-sm)',
-              backdropFilter: 'blur(14px)',
-              WebkitBackdropFilter: 'blur(14px)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
             }}
           >
             <Search className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
@@ -1264,9 +1283,26 @@ export default function Navbar() {
               className="flex-1 min-w-0 h-[44px] bg-transparent outline-none text-[15px] search-input pointer-events-none"
               style={{ color: searchQuery ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: '-0.01em' }}
             />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openVisualSearch();
+              }}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
+              style={{
+                background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
+                color: 'var(--brand-primary)',
+                boxShadow: '0 0 18px color-mix(in srgb, var(--brand-primary) 22%, transparent)',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              aria-label="Visual search"
+            >
+              <Camera className="w-[18px] h-[18px]" strokeWidth={2} />
+            </button>
             <Link
               to="/products"
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition active:scale-[0.96]"
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
               style={{
                 background: 'color-mix(in srgb, var(--brand-primary) 9%, transparent)',
                 color: 'var(--text-secondary)',

@@ -24,6 +24,7 @@ import AbandonedCartRecovery from './AbandonedCartRecovery';
 import ProductPromotionTools from './ProductPromotionTools';
 import AdsSocialMediaIntegration from './AdsSocialMediaIntegration';
 import CreativesBannerManager from './CreativesBannerManager';
+import HeroCarouselManager from './HeroCarouselManager';
 import ReferralProgramManager from './ReferralProgramManager';
 import AffiliateProgramManagement from './AffiliateProgramManagement';
 import MarketingAnalyticsSuite from './MarketingAnalyticsSuite';
@@ -40,6 +41,7 @@ type TabId =
   | 'promotions'
   | 'ads'
   | 'creatives'
+  | 'hero-carousel'
   | 'referral'
   | 'affiliate'
   | 'analytics'
@@ -59,6 +61,7 @@ export default function MarketingCenter() {
     { id: 'promotions' as TabId, label: 'Promotions', icon: Star },
     { id: 'ads' as TabId, label: 'Ads & Social', icon: Share2 },
     { id: 'creatives' as TabId, label: 'Creatives', icon: Image },
+    { id: 'hero-carousel' as TabId, label: 'Hero Carousel', icon: Image },
     { id: 'referral' as TabId, label: 'Referral', icon: UserPlus },
     { id: 'affiliate' as TabId, label: 'Affiliate', icon: TrendingUp },
     { id: 'analytics' as TabId, label: 'Analytics', icon: BarChart3 },
@@ -86,6 +89,8 @@ export default function MarketingCenter() {
         return <AdsSocialMediaIntegration />;
       case 'creatives':
         return <CreativesBannerManager />;
+      case 'hero-carousel':
+        return <HeroCarouselManager />;
       case 'referral':
         return <ReferralProgramManager />;
       case 'affiliate':

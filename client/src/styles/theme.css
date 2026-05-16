@@ -419,3 +419,11 @@
   --notif-type-message: #a78bfa;
   --notif-type-review: #fbbf24;
 }
+
+/* Prevent flash when toggling theme (used by ThemeContext) */
+html.no-transition,
+html.no-transition *,
+html.no-transition *::before,
+html.no-transition *::after {
+  transition: none !important;
+}
