@@ -8,9 +8,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // One React instance for the app + framer-motion (avoids createContext undefined in split chunks)
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['framer-motion', 'xlsx'],
+    include: ['react', 'react-dom', 'framer-motion', 'xlsx'],
     exclude: ['lucide-react'],
   },
   build: {
@@ -21,8 +23,16 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
 
+          // React must load before framer-motion — keep both in vendor (do not split framer-motion)
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/scheduler/')
+          ) {
+            return 'react-vendor';
+          }
+
           // Large UI/utility libs
-          if (id.includes('node_modules/framer-motion/')) return 'framer-motion';
           if (id.includes('node_modules/lucide-react/')) return 'lucide-react';
           if (id.includes('node_modules/xlsx/')) return 'xlsx';
           if (id.includes('node_modules/zustand/')) return 'zustand';
