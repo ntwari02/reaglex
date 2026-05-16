@@ -9,6 +9,7 @@ type Currency = 'USD' | 'EUR' | 'RWF' | 'KES';
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  setTheme: (next: Theme) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
   currency: Currency;
@@ -173,6 +174,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  const setTheme = (next: Theme) => {
+    setThemeState(next);
+    try {
+      localStorage.setItem('reaglex-theme', next);
+    } catch {}
+  };
+
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
     localStorage.setItem('language', lang);
@@ -219,6 +227,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     <ThemeContext.Provider value={{
       theme,
       toggleTheme,
+      setTheme,
       language,
       setLanguage: handleSetLanguage,
       currency,

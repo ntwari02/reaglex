@@ -1838,3 +1838,42 @@ html.pwa-standalone body {
   animation: skeleton-shimmer 1.6s linear infinite;
   border-radius: 12px;
 }
+
+/* Premium Hello Casual hero — custom pill indicators only */
+.premium-casual-swiper .swiper-pagination {
+  display: none !important;
+}
+
+.premium-casual-swiper .swiper-slide {
+  height: auto;
+}
+
+/* Auto-scrolling product carousel — center card focus */
+.premium-auto-product-slide {
+  width: min(82vw, 300px);
+  height: auto;
+  box-sizing: border-box;
+}
+
+.premium-auto-product-swiper .swiper-slide {
+  transition: opacity 0.45s ease;
+}
+
+.premium-auto-product-swiper .swiper-slide:not(.swiper-slide-active) {
+  opacity: 0.72;
+}
+
+.premium-auto-product-swiper .swiper-slide-active {
+  opacity: 1;
+  z-index: 2;
+}
+
+.premium-auto-product-swiper .swiper-slide:not(.swiper-slide-active) .premium-carousel-card-inner {
+  transform: scale(0.9);
+  opacity: 0.78;
+}
+
+.premium-auto-product-swiper .swiper-slide-active .premium-carousel-card-inner {
+  transform: scale(1);
+  opacity: 1;
+}

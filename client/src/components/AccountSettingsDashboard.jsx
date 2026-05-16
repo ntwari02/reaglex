@@ -3,9 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Lock, Bell, Palette, AlertTriangle, Edit3, Camera, Mail, Phone, MapPin, Calendar,
-  Eye, EyeOff, Shield, Smartphone, Monitor, Loader2, Check, X, ChevronRight,
+  Eye, EyeOff, Shield, Loader2, Check, X, ChevronRight, Moon, Sun,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import { useTheme } from '../contexts/ThemeContext';
 import { useToastStore } from '../stores/toastStore';
 import {
   getRecommendationEmailPreference,
@@ -24,6 +25,7 @@ const SETTINGS_TABS = [
   { id: 'profile', label: 'Profile', icon: '👤' },
   { id: 'security', label: 'Security', icon: '🔒' },
   { id: 'notifications', label: 'Notifications', icon: '🔔' },
+  { id: 'appearance', label: 'Appearance', icon: '🌓' },
   { id: 'preferences', label: 'Preferences', icon: '🎨' },
   { id: 'danger', label: 'Danger Zone', icon: '🗑️' },
 ];
@@ -39,6 +41,7 @@ export default function AccountSettingsDashboard() {
   const [sp, setSp] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const showToast = useToastStore((s) => s.showToast);
+  const { theme, setTheme } = useTheme();
 
   const section = sp.get('section') || 'profile';
   const settingsTabsScrollRef = useRef(null);
@@ -180,6 +183,7 @@ export default function AccountSettingsDashboard() {
     profile: profileDirty,
     security: false,
     notifications: notifDirty,
+    appearance: false,
     preferences: prefsDirty,
     danger: false,
   };
@@ -1244,6 +1248,82 @@ export default function AccountSettingsDashboard() {
           </motion.div>
         )}
 
+        {section === 'appearance' && (
+          <motion.div
+            key="appearance"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="rounded-2xl p-7 border"
+            style={{
+              ...CARD_STYLE,
+              background: 'var(--card-bg)',
+              borderColor: 'var(--border-card)',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            <div className="flex items-start gap-3 mb-6">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                style={{ background: 'var(--brand-tint)', color: 'var(--brand-primary)' }}
+              >
+                <Palette className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Appearance</h3>
+                <p className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                  Choose light or dark mode for Reaglex. Your selection stays on this device and syncs when you&apos;re signed in.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-3" style={{ color: 'var(--text-muted)' }}>
+              Theme
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setTheme('light')}
+                className="flex flex-col items-start gap-2 rounded-[18px] border px-4 py-4 text-left transition-all duration-200 active:scale-[0.99]"
+                style={{
+                  borderColor: theme === 'light' ? 'var(--brand-primary)' : 'var(--border-card)',
+                  background:
+                    theme === 'light'
+                      ? 'color-mix(in srgb, var(--brand-primary) 10%, var(--card-bg))'
+                      : 'var(--bg-secondary)',
+                  boxShadow: theme === 'light' ? 'var(--shadow-cta)' : 'none',
+                }}
+              >
+                <Sun className="h-5 w-5" style={{ color: theme === 'light' ? 'var(--brand-primary)' : 'var(--text-muted)' }} strokeWidth={1.75} />
+                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Light</span>
+                <span className="text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
+                  Bright backgrounds with crisp contrast for daytime shopping.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('dark')}
+                className="flex flex-col items-start gap-2 rounded-[18px] border px-4 py-4 text-left transition-all duration-200 active:scale-[0.99]"
+                style={{
+                  borderColor: theme === 'dark' ? 'var(--brand-primary)' : 'var(--border-card)',
+                  background:
+                    theme === 'dark'
+                      ? 'color-mix(in srgb, var(--brand-primary) 12%, var(--card-bg))'
+                      : 'var(--bg-secondary)',
+                  boxShadow: theme === 'dark' ? 'var(--shadow-cta)' : 'none',
+                }}
+              >
+                <Moon className="h-5 w-5" style={{ color: theme === 'dark' ? 'var(--brand-primary)' : 'var(--text-muted)' }} strokeWidth={1.75} />
+                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Dark</span>
+                <span className="text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
+                  Cinematic charcoal tones designed for low-light viewing.
+                </span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {section === 'preferences' && (
           <motion.div key="preferences" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="rounded-2xl bg-white p-7" style={CARD_STYLE}>
             <h3 className="font-bold text-lg mb-6" style={{ color: '#0f172a' }}>Display Preferences</h3>
@@ -1264,14 +1344,9 @@ export default function AccountSettingsDashboard() {
                   <option value="EUR">€ EUR</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>Theme</label>
-                <div className="flex gap-2">
-                  {['light', 'dark', 'system'].map((t) => (
-                    <button key={t} type="button" onClick={() => { setPrefs((p) => ({ ...p, theme: t })); setPrefsDirty(true); }} className={`px-4 py-2 rounded-xl text-sm font-medium ${prefs.theme === t ? 'text-white' : ''}`} style={{ background: prefs.theme === t ? PRIMARY : '#f1f5f9', color: prefs.theme === t ? 'white' : '#64748b' }}>{t === 'light' ? '☀️ Light' : t === 'dark' ? '🌙 Dark' : '💻 System'}</button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-xs rounded-xl px-3 py-2.5" style={{ background: 'var(--brand-tint)', color: 'var(--text-secondary)' }}>
+                Theme is controlled from the <strong style={{ color: 'var(--text-primary)' }}>Appearance</strong> tab for a consistent experience across Reaglex.
+              </p>
             </div>
             <h3 className="font-bold text-lg mt-8 mb-4" style={{ color: '#0f172a' }}>Privacy</h3>
             {[

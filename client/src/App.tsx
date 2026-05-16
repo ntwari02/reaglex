@@ -1,4 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
+import { LayoutGroup } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -25,6 +26,18 @@ import CartDrawer from './components/CartDrawer';
 import Navbar from './components/Navbar';
 // @ts-ignore JSX module without TS typings
 import MobileBottomNav from './components/MobileBottomNav';
+// @ts-ignore JSX module without TS typings
+import ImmersiveSearchLayer from './components/search/ImmersiveSearchLayer';
+// @ts-ignore JSX modules without TS typings
+import VisualSearchLayer from './components/search/VisualSearchLayer';
+// @ts-ignore JSX modules without TS typings
+import ProductQuickPreviewSheet from './components/product/ProductQuickPreviewSheet';
+// @ts-ignore JSX modules without TS typings
+import ArTryOnLayer from './components/ar/ArTryOnLayer';
+// @ts-ignore JSX modules without TS typings
+import FlyToCartBurst from './components/motion/FlyToCartBurst';
+// @ts-ignore JSX modules without TS typings
+import BuyerGestureShell from './components/motion/BuyerGestureShell';
 import AssistantChat from './components/AssistantChat';
 import { PwaRoot, ShareTargetHandler, DeepLinkHandler } from './pwa';
 import { websocketService } from './services/websocketService';
@@ -208,6 +221,11 @@ function App() {
         <CartDrawer />
         <GlobalNavbar />
         <MobileBottomNav />
+        <ImmersiveSearchLayer />
+        <VisualSearchLayer />
+        <ProductQuickPreviewSheet />
+        <ArTryOnLayer />
+        <FlyToCartBurst />
 
         {/*
           The cart drawer used to push the page with transform: translateX(...).
@@ -226,6 +244,8 @@ function App() {
             }}
           >
           <AssistantChat />
+          <BuyerGestureShell>
+          <LayoutGroup id="buyer-product-transitions">
           <Suspense fallback={<PageLoader />}>
             <Routes>
             {/* ── Buyer / Storefront ── */}
@@ -305,6 +325,8 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+          </LayoutGroup>
+          </BuyerGestureShell>
           </div>
         </div>
       </BrowserRouter>

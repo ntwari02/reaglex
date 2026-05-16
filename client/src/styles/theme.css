@@ -5,11 +5,11 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Page & surface backgrounds ───────────────────────────────────────────── */
-  --bg-page:        #f3f4f6;  /* outermost page */
-  --bg-secondary:   #ffffff;  /* card / panel layer */
-  --bg-tertiary:    #f9fafb;  /* nested surface, image placeholders */
-  --bg-elevated:    #ffffff;  /* modals, dropdowns, tooltips */
+  /* ── Page & surface backgrounds — premium light storefront ──────────────────── */
+  --bg-page:        #f7f7f8;
+  --bg-secondary:   #ffffff;
+  --bg-tertiary:    #f0f1f3;
+  --bg-elevated:    #ffffff;
   --card-bg:        #ffffff;
   --dropdown-bg:    #ffffff;
   --dropdown-border: #e5e7eb;
@@ -34,10 +34,10 @@
   --search-border:  transparent;
   --shadow-header:  0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
 
-  /* ── Text ──────────────────────────────────────────────────────────────────── */
-  --text-primary:     #0f172a;  /* headings, primary body */
-  --text-secondary:   #374151;  /* secondary body, labels */
-  --text-muted:       #6b7280;  /* helper text, captions */
+  /* ── Text — storefront hierarchy ───────────────────────────────────────────── */
+  --text-primary:     #111111;
+  --text-secondary:   #777777;
+  --text-muted:       #777777;
   --text-faint:       #9ca3af;  /* placeholders, very subtle */
   --text-disabled:    #94a3b8;
   --text-emphasis:    #0f172a;  /* pricing / key emphasis (light) */
@@ -45,42 +45,41 @@
   --dropdown-text:    #111827;
   --input-text:       #0f172a;
   --input-placeholder: #9ca3af;
-  --link-color:       #f97316;
-  --link-hover:       #ea580c;
+  --link-color:       #ff7a1a;
+  --link-hover:       #e86812;
 
-  /* ── Brand (accent) — light: unchanged ───────────────────────────────────────── */
-  --brand-primary:       #f97316;
-  --brand-primary-hover: #ea580c;
-  --brand-orange-text:   #ea580c;
-  --brand-tint:          rgba(249,115,22,0.08);
-  --brand-tint-strong:   rgba(249,115,22,0.15);
-  --brand-border-subtle: rgba(249,115,22,0.25);
+  /* ── Brand accent — use sparingly (CTA, active, price emphasis) ─────────────── */
+  --brand-primary:       #ff7a1a;
+  --brand-primary-hover: #e86812;
+  --brand-orange-text:   #e86812;
+  --brand-tint:          rgba(255,122,26,0.1);
+  --brand-tint-strong:   rgba(255,122,26,0.18);
+  --brand-border-subtle: rgba(255,122,26,0.28);
   --gradient-brand-cta:  linear-gradient(135deg, var(--brand-primary), var(--brand-primary-hover));
   --gradient-brand-bar:  linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover));
-  --shadow-cta:          0 6px 20px rgba(249, 115, 22, 0.28);
-  --shadow-cta-hover:    0 14px 36px rgba(249, 115, 22, 0.32);
+  --shadow-cta:          0 8px 24px rgba(255, 122, 26, 0.22);
+  --shadow-cta-hover:    0 14px 40px rgba(255, 122, 26, 0.28);
 
-  /* Storefront / AI assistant — always buyer–seller orange (not admin emerald) */
-  --commerce-brand-primary:       #f97316;
-  --commerce-brand-primary-hover: #ea580c;
-  --commerce-brand-tint:          rgba(249, 115, 22, 0.08);
-  --commerce-brand-tint-strong:   rgba(249, 115, 22, 0.15);
-  --commerce-brand-border-subtle: rgba(249, 115, 22, 0.25);
-  --commerce-gradient-cta:          linear-gradient(135deg, #f97316, #ea580c);
-  --commerce-shadow-cta:          0 6px 20px rgba(249, 115, 22, 0.28);
-  --commerce-shadow-cta-hover:    0 14px 36px rgba(249, 115, 22, 0.32);
+  --commerce-brand-primary:       #ff7a1a;
+  --commerce-brand-primary-hover: #e86812;
+  --commerce-brand-tint:          rgba(255, 122, 26, 0.1);
+  --commerce-brand-tint-strong:   rgba(255, 122, 26, 0.18);
+  --commerce-brand-border-subtle: rgba(255, 122, 26, 0.28);
+  --commerce-gradient-cta:        linear-gradient(135deg, #ff7a1a, #e86812);
+  --commerce-shadow-cta:          0 8px 24px rgba(255, 122, 26, 0.22);
+  --commerce-shadow-cta-hover:    0 14px 40px rgba(255, 122, 26, 0.28);
 
   /* ── Product / browse specifics ───────────────────────────────────────────── */
-  --text-price:          #0f172a;
+  --text-price:          #111111;
   --text-in-stock:       #16a34a;
   --text-breadcrumb:     #64748b;
   --text-breadcrumb-active: #334155;
   --size-selector-bg:    #f1f5f9;
-  --size-selector-selected: #f97316;
+  --size-selector-selected: #ff7a1a;
 
   /* ── Panel tabs ────────────────────────────────────────────────────────────── */
-  --tab-active-bg:       #fef3ea;
-  --tab-active-text:     #f97316;
+  --tab-active-bg:       rgba(255,122,26,0.12);
+  --tab-active-text:     #ff7a1a;
   --tab-inactive-text:   #64748b;
 
   /* ── Semantic badges (light — slightly muted) ─────────────────────────────── */
@@ -105,8 +104,8 @@
 
   /* ── Loading (buyer shell) ───────────────────────────────────────────────── */
   --buyer-page-loader-bg: linear-gradient(135deg, #f5f7fa, #e4e7eb);
-  --loading-spinner:         #f97316;
-  --loading-spinner-track:   rgba(249,115,22,0.2);
+  --loading-spinner:         #ff7a1a;
+  --loading-spinner-track:   rgba(255,122,26,0.2);
   --loading-text:            #64748b;
 
   /* ── Borders & Dividers ───────────────────────────────────────────────────── */
@@ -117,7 +116,7 @@
   --border-strong:    rgba(0,0,0,0.15);
   --border-card:      #e5e7eb;
   --border-input:     #d1d5db;
-  --border-focus:     #f97316;
+  --border-focus:     #ff7a1a;
 
   /* ── Secondary button (dark rules mainly; light uses neutrals) ────────────── */
   --btn-secondary-bg:        #f1f5f9;
@@ -136,7 +135,7 @@
   --shadow-lg:        0 10px 40px rgba(0,0,0,0.10);
   --shadow-xl:        0 20px 50px rgba(0,0,0,0.12);
   --shadow-hover:     0 8px 24px rgba(0,0,0,0.12);
-  --shadow-card:      0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-card:      0 4px 20px rgba(17,17,17,0.06), 0 0 0 1px rgba(17,17,17,0.04);
   --shadow-navbar:    0 1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
 
   /* Marketing / hero icon circles — warm; dark theme overrides below */
@@ -227,39 +226,39 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 .dark,
 [data-theme='dark'] {
-  /* ── Page & surface backgrounds (#121212 floor + subtle gray lifts) ──────── */
-  --bg-page:        #121212;
-  --bg-secondary:   #1C1C1C;
-  --bg-tertiary:    #242424;
-  --bg-elevated:    #242424;
-  --card-bg:        #1C1C1C;
-  --dropdown-bg:    #242424;
+  /* ── Page & surfaces — charcoal storefront (#0F1115 / #171A20) ─────────────── */
+  --bg-page:        #0f1115;
+  --bg-secondary:   #171a20;
+  --bg-tertiary:    #1c2129;
+  --bg-elevated:    #222831;
+  --card-bg:        #171a20;
+  --dropdown-bg:    #1c2129;
   --dropdown-border: rgba(255,255,255,0.07);
   --dropdown-shadow: var(--shadow-lg);
-  --bg-hover:       #2E2E2E;
-  --bg-active:      #383838;
-  --bg-input:       #242424;
-  --bg-skeleton:    #2E2E2E;
+  --bg-hover:       #252b34;
+  --bg-active:      rgba(255,122,26,0.12);
+  --bg-input:       #1c2129;
+  --bg-skeleton:    #252b34;
   --bg-badge:       #2E2E2E;
   --bg-tag:         rgba(125, 160, 200, 0.12);
   --bg-overlay:     rgba(0,0,0,0.65);
 
   /* ── Header / Navbar (minimal lift from page, still near #121212 family) ─── */
-  --header-bg:      #161616;
-  --navbar-bg:      #161616;
-  --topbar-bg:      #141414;
-  --topbar-text:    #B0B0B0;
-  --announcement-bg: #141414;
-  --announcement-text: #B0B0B0;
-  --header-border:  rgba(255,255,255,0.05);
-  --search-bg:      #242424;
-  --search-border:  rgba(255,255,255,0.07);
-  --shadow-header:  0 1px 0 rgba(255,255,255,0.04), 0 6px 24px rgba(0,0,0,0.4);
+  --header-bg:      #13161c;
+  --navbar-bg:      #13161c;
+  --topbar-bg:      #0f1115;
+  --topbar-text:    #a8aeb8;
+  --announcement-bg: #0f1115;
+  --announcement-text: #a8aeb8;
+  --header-border:  rgba(255,255,255,0.06);
+  --search-bg:      rgba(255,255,255,0.06);
+  --search-border:  rgba(255,255,255,0.08);
+  --shadow-header:  0 1px 0 rgba(255,255,255,0.04), 0 12px 40px rgba(0,0,0,0.45);
 
-  /* ── Text — softened whites, clear hierarchy, no #FFFFFF on large copy ─── */
-  --text-primary:     #F2F2F2;
-  --text-secondary:   #BDBDBD;
-  --text-muted:       #9E9E9E;
+  /* ── Text — readable off-white / muted gray ─────────────────────────────── */
+  --text-primary:     #f2f3f5;
+  --text-secondary:   #a8aeb8;
+  --text-muted:       #8b929e;
   --text-faint:       #8A8A8A;
   --text-disabled:    #757575;
   --text-emphasis:    #F2F2F2;
@@ -272,37 +271,37 @@
   --link-hover:       #9BC4E5;
 
   /* ── Brand — accent only (desaturated orange vs neon #FF6B00) ───────────── */
-  --brand-primary:       #D97736;
-  --brand-primary-hover: #E08A4A;
-  --brand-orange-text:   #E0A078;
-  --brand-tint:          rgba(217,119,54,0.14);
-  --brand-tint-strong:   rgba(217,119,54,0.22);
-  --brand-border-subtle: rgba(217,119,54,0.35);
+  --brand-primary:       #ff7a1a;
+  --brand-primary-hover: #ff9640;
+  --brand-orange-text:   #ffb347;
+  --brand-tint:          rgba(255,122,26,0.14);
+  --brand-tint-strong:   rgba(255,122,26,0.22);
+  --brand-border-subtle: rgba(255,122,26,0.35);
   --gradient-brand-cta:  linear-gradient(135deg, var(--brand-primary), var(--brand-primary-hover));
   --gradient-brand-bar:  linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover));
-  --shadow-cta:          0 6px 20px rgba(217, 119, 54, 0.22);
-  --shadow-cta-hover:    0 14px 36px rgba(217, 119, 54, 0.28);
+  --shadow-cta:          0 8px 28px rgba(255, 122, 26, 0.25), 0 0 40px rgba(255, 122, 26, 0.08);
+  --shadow-cta-hover:    0 14px 44px rgba(255, 122, 26, 0.32);
 
-  --commerce-brand-primary:       #d97736;
-  --commerce-brand-primary-hover: #e08a4a;
-  --commerce-brand-tint:          rgba(217, 119, 54, 0.14);
-  --commerce-brand-tint-strong:   rgba(217, 119, 54, 0.22);
-  --commerce-brand-border-subtle: rgba(217, 119, 54, 0.35);
-  --commerce-gradient-cta:        linear-gradient(135deg, #d97736, #e08a4a);
-  --commerce-shadow-cta:          0 6px 20px rgba(217, 119, 54, 0.22);
-  --commerce-shadow-cta-hover:    0 14px 36px rgba(217, 119, 54, 0.28);
+  --commerce-brand-primary:       #ff7a1a;
+  --commerce-brand-primary-hover: #ff9640;
+  --commerce-brand-tint:          rgba(255, 122, 26, 0.14);
+  --commerce-brand-tint-strong:   rgba(255, 122, 26, 0.22);
+  --commerce-brand-border-subtle: rgba(255, 122, 26, 0.35);
+  --commerce-gradient-cta:        linear-gradient(135deg, #ff7a1a, #ff9640);
+  --commerce-shadow-cta:          0 8px 28px rgba(255, 122, 26, 0.25);
+  --commerce-shadow-cta-hover:    0 14px 44px rgba(255, 122, 26, 0.32);
 
   /* ── Product / browse — price uses same soft white as body (no pure white) ─ */
-  --text-price:          #F2F2F2;
-  --text-in-stock:       #7BC99C;
-  --text-breadcrumb:     #9E9E9E;
-  --text-breadcrumb-active: #CFCFCF;
-  --size-selector-bg:    #242424;
-  --size-selector-selected: #D97736;
+  --text-price:          #f7f8fa;
+  --text-in-stock:       #7bc99c;
+  --text-breadcrumb:     #8b929e;
+  --text-breadcrumb-active: #c9cdd4;
+  --size-selector-bg:    #1c2129;
+  --size-selector-selected: #ff7a1a;
 
   /* ── Panel tabs ────────────────────────────────────────────────────────────── */
-  --tab-active-bg:       #2E2E2E;
-  --tab-active-text:     #E0A078;
+  --tab-active-bg:       rgba(255,122,26,0.14);
+  --tab-active-text:     #ffb347;
   --tab-inactive-text:   #9E9E9E;
 
   /* ── Semantic badges — low saturation text on tinted fills ──────────────── */
@@ -320,14 +319,14 @@
   --badge-error-text:    #E8B0B0;
 
   /* ── Modal ───────────────────────────────────────────────────────────────── */
-  --modal-bg:            #1C1C1C;
+  --modal-bg:            #171a20;
   --modal-border:        rgba(255,255,255,0.07);
   --shadow-modal:        0 20px 56px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
 
   /* ── Loading — page matches floor; spinner uses brand accent only ───────── */
-  --buyer-page-loader-bg: #121212;
-  --loading-spinner:         #D97736;
-  --loading-spinner-track:   rgba(217,119,54,0.2);
+  --buyer-page-loader-bg: #0f1115;
+  --loading-spinner:         #ff7a1a;
+  --loading-spinner-track:   rgba(255,122,26,0.2);
   --loading-text:            #9E9E9E;
 
   /* ── Borders & Dividers — low contrast ──────────────────────────────────── */
@@ -357,13 +356,13 @@
   --shadow-lg:        0 14px 40px rgba(0,0,0,0.45);
   --shadow-xl:        0 22px 56px rgba(0,0,0,0.5);
   --shadow-hover:     0 10px 32px rgba(0,0,0,0.42);
-  --shadow-card:      0 4px 20px rgba(0,0,0,0.34), 0 0 0 1px rgba(255,255,255,0.05);
+  --shadow-card:      0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06), 0 0 48px rgba(255,122,26,0.04);
   --shadow-navbar:    0 1px 0 rgba(255,255,255,0.04), 0 6px 24px rgba(0,0,0,0.4);
 
   /* ── Scrollbar — low contrast against #121212 ───────────────────────────── */
   --scrollbar-thumb:       #4A4A4A;
   --scrollbar-thumb-hover: #5C5C5C;
-  --scrollbar-track:       #121212;
+  --scrollbar-track:       #0f1115;
 
   /* ── Footer — newsletter strip lifts slightly from #121212 floor ─────────── */
   --footer-newsletter-bg:    #161616;

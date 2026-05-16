@@ -10,7 +10,7 @@ export default {
         'dark-secondary': 'var(--bg-secondary)',
         'dark-card': 'var(--card-bg)',
         'dark-border': 'var(--divider-strong)',
-        accent: '#ff8c42',
+        accent: '#ff7a1a',
         'accent-purple': '#6c63ff',
       },
     },

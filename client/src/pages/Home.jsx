@@ -2,11 +2,10 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { PageSeo } from '../components/seo/PageSeo';
 import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import BuyerLayout from '../components/buyer/BuyerLayout';
+import PremiumMobileHome from '../components/home/PremiumMobileHome';
+import PremiumCasualHero from '../components/home/PremiumCasualHero';
+import { useTheme } from '../contexts/ThemeContext';
 
-// ── Critical first paint ─────────────────────────────────────────────────────
-import ReimaginedHero from '../components/home/ReimaginedHero';
-
-// ── Deferred / code-split homepage sections ─────────────────────────────────
 const FeaturedCategories = lazy(() => import('../components/home/FeaturedCategories'));
 const TrendingProducts = lazy(() => import('../components/home/TrendingProducts'));
 const PromoBanner = lazy(() => import('../components/home/PromoBanner'));
@@ -59,20 +58,8 @@ function DeferredSection({ children, fallbackHeight = 420, rootMargin = '400px 0
 
 export default function Home() {
   const origin = getPreferredSiteOrigin();
-
-  // Preload only critical first-view hero assets.
-  useEffect(() => {
-    const assets = ['/hero-headphones.png'];
-    const nodes = assets.map((href) => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'image';
-      link.href = href;
-      document.head.appendChild(link);
-      return link;
-    });
-    return () => nodes.forEach((n) => n.remove());
-  }, []);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   return (
     <BuyerLayout>
@@ -83,42 +70,46 @@ export default function Home() {
         ogImage={origin ? `${origin}/logo.jpg` : undefined}
         ogType="website"
       />
-      {/* Hero extends to top of viewport, cancelling BuyerLayout's navbar padding */}
-      <div className="-mt-[calc(134px+env(safe-area-inset-top,0px))] md:-mt-[calc(158px+env(safe-area-inset-top,0px))]">
-        <ReimaginedHero />
+      <div className="md:hidden">
+        <PremiumMobileHome />
       </div>
 
-      {/* Progressive, below-the-fold loading */}
-      <DeferredSection fallbackHeight={500} rootMargin="520px 0px">
-        <Suspense fallback={<HomeSectionSkeleton height={500} />}>
-          <FeaturedCategories />
-        </Suspense>
-      </DeferredSection>
-      <DeferredSection fallbackHeight={520}>
-        <Suspense fallback={<HomeSectionSkeleton height={520} />}>
-          <TrendingProducts />
-        </Suspense>
-      </DeferredSection>
-      <DeferredSection fallbackHeight={380}>
-        <Suspense fallback={<HomeSectionSkeleton height={380} />}>
-          <PromoBanner />
-        </Suspense>
-      </DeferredSection>
-      <DeferredSection fallbackHeight={440}>
-        <Suspense fallback={<HomeSectionSkeleton height={440} />}>
-          <BestSellers />
-        </Suspense>
-      </DeferredSection>
-      <DeferredSection fallbackHeight={560}>
-        <Suspense fallback={<HomeSectionSkeleton height={560} />}>
-          <TrustSection />
-        </Suspense>
-      </DeferredSection>
-      <DeferredSection fallbackHeight={540}>
-        <Suspense fallback={<HomeSectionSkeleton height={540} />}>
-          <RecommendedSection />
-        </Suspense>
-      </DeferredSection>
+      <div className="hidden md:block pt-2">
+        <PremiumCasualHero isDark={isDark} className="max-w-6xl mx-auto" />
+      </div>
+
+      <div className="hidden md:block">
+        <DeferredSection fallbackHeight={500} rootMargin="520px 0px">
+          <Suspense fallback={<HomeSectionSkeleton height={500} />}>
+            <FeaturedCategories />
+          </Suspense>
+        </DeferredSection>
+        <DeferredSection fallbackHeight={520}>
+          <Suspense fallback={<HomeSectionSkeleton height={520} />}>
+            <TrendingProducts />
+          </Suspense>
+        </DeferredSection>
+        <DeferredSection fallbackHeight={380}>
+          <Suspense fallback={<HomeSectionSkeleton height={380} />}>
+            <PromoBanner />
+          </Suspense>
+        </DeferredSection>
+        <DeferredSection fallbackHeight={440}>
+          <Suspense fallback={<HomeSectionSkeleton height={440} />}>
+            <BestSellers />
+          </Suspense>
+        </DeferredSection>
+        <DeferredSection fallbackHeight={560}>
+          <Suspense fallback={<HomeSectionSkeleton height={560} />}>
+            <TrustSection />
+          </Suspense>
+        </DeferredSection>
+        <DeferredSection fallbackHeight={540}>
+          <Suspense fallback={<HomeSectionSkeleton height={540} />}>
+            <RecommendedSection />
+          </Suspense>
+        </DeferredSection>
+      </div>
     </BuyerLayout>
   );
 }

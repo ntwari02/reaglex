@@ -10,6 +10,7 @@ import {
 import './ProductDetail.css';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import ProductCard from '../components/ProductCard';
+import PremiumAutoProductCarousel from '../components/home/PremiumAutoProductCarousel';
 import { productAPI } from '../services/api';
 import { homeFeedApi } from '../services/homeFeedApi';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -19,6 +20,7 @@ import { PageSeo } from '../components/seo/PageSeo';
 import { SERVER_URL } from '../lib/config';
 import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
+import { productImageLayoutId } from '../motion/presets';
 
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
@@ -116,6 +118,7 @@ export default function ProductDetail() {
   const { id: legacyId, slug: slugParam } = useParams();
   const navigate     = useNavigate();
   const location       = useLocation();
+  const productPreview = location.state?.productPreview;
   const addItem      = useBuyerCart((s) => s.addItem);
   const currencyPricing = useCurrencyPricing();
   const addRecent    = useRecentlyViewed((s) => s.addProduct);
@@ -140,7 +143,6 @@ export default function ProductDetail() {
   const [expandedQa,   setExpandedQa]   = useState(null);
   const [reviewPage,   setReviewPage]   = useState(0);
   const [voteUp,       setVoteUp]       = useState(187);
-  const [relatedPaused, setRelatedPaused] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
   const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
@@ -155,6 +157,7 @@ export default function ProductDetail() {
   /* ── refs ── */
   const ctaRef = useRef(null);
   const relatedScrollRef = useRef(null);
+  const [relatedPaused, setRelatedPaused] = useState(false);
 
   /* ── SEO ── */
   const resolvedId   = product?._id || product?.id || legacyId || null;
@@ -175,6 +178,7 @@ export default function ProductDetail() {
   }, [product, slugParam, legacyId]);
   const canonicalUrl = origin ? `${origin}${canonicalPath}` : canonicalPath;
   const primaryImage = useMemo(() => (images?.[0] ? resolveImage(images[0]) : undefined), [images]);
+  const imageLayoutId = productImageLayoutId(product);
   /**
    * Prefer the server-rendered dynamic OG image for richer social shares; fall back to first product image.
    * `SERVER_URL` is the API origin (matches `/api/public/og/product/:slug`).
@@ -494,20 +498,6 @@ export default function ProductDetail() {
     setShareOpen(false);
   };
 
-  /* ── related products auto-slide strip ── */
-  useEffect(() => {
-    if (related.length < 2) return;
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const id = window.setInterval(() => {
-      const el = relatedScrollRef.current;
-      if (!el || relatedPaused) return;
-      el.scrollLeft += 0.7;
-      const half = el.scrollWidth / 2;
-      if (el.scrollLeft >= half) el.scrollLeft -= half;
-    }, 16);
-    return () => window.clearInterval(id);
-  }, [related.length, relatedPaused]);
-
   const previewPrice = product?.price || 0;
   const previewOldPrice = product?.compareAtPrice || product?.originalPrice || product?.compare_at_price || null;
   const productVideoUrl = useMemo(() => {
@@ -605,14 +595,42 @@ export default function ProductDetail() {
   if (loading) return (
     <BuyerLayout>
       {pdpSeo}
-      <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4" style={{ background: 'var(--bg-page)' }}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-          className="w-12 h-12 rounded-full border-4 border-[color-mix(in_srgb,var(--brand-primary)_22%,var(--card-bg))] border-t-[var(--brand-primary)]"
-        />
-        <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Loading product…</p>
-      </div>
+      <motion.div className="px-4 py-4 md:px-8" style={{ background: 'var(--bg-page)' }}>
+        <div className="pd2-hero-grid gap-4 md:gap-6 max-w-6xl mx-auto">
+          <motion.div className="overflow-hidden rounded-3xl" style={{ aspectRatio: '1 / 1', background: 'var(--bg-secondary)' }}>
+            {productPreview?.image ? (
+              <motion.img
+                layoutId={productPreview?.id ? `product-image-${productPreview.id}` : undefined}
+                src={productPreview.image}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full pwa-skeleton" />
+            )}
+          </motion.div>
+          <div className="space-y-4 pt-2">
+            {productPreview?.title ? (
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{productPreview.title}</h1>
+            ) : (
+              <div className="h-8 w-3/4 rounded-xl pwa-skeleton" />
+            )}
+            {productPreview?.price != null ? (
+              <p className="text-xl font-bold" style={{ color: 'var(--brand-primary)' }}>
+                {currencyPricing.formatLocalWithUsd(productPreview.price)}
+              </p>
+            ) : (
+              <div className="h-7 w-28 rounded-lg pwa-skeleton" />
+            )}
+            {['Reviews', 'Seller', 'Recommendations'].map((label) => (
+              <div key={label}>
+                <div className="mb-2 h-4 w-24 rounded pwa-skeleton" />
+                <div className="h-20 rounded-2xl pwa-skeleton" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
     </BuyerLayout>
   );
 
@@ -921,11 +939,13 @@ export default function ProductDetail() {
                   ) : (
                     <motion.img
                       key={`i-${activeImage}`}
+                      layoutId={activeImage === 0 ? imageLayoutId : undefined}
+                      layout={activeImage === 0}
                       src={galleryItems[activeImage]?.src || resolveImage(images[activeImage])}
                       alt={title}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 34 }}
                       onError={(e) => { e.target.src = resolveImage(null); }}
                       draggable={false}
                     />
@@ -1816,20 +1836,18 @@ export default function ProductDetail() {
               RELATED PRODUCTS
           ════════════════════════════════════════════════ */}
           {related.length > 0 && (
-            <section className="mb-14 pd2-homeish-block">
-              <div className="flex items-end justify-between mb-6">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: 'var(--text-faint)' }}>
-                    Recommended For You
-                  </p>
-                  <h2 className="text-2xl sm:text-[2rem] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                    YOU MIGHT ALSO LIKE
-                  </h2>
-                </div>
-                <Link to="/search" className="text-xs font-semibold tracking-wide hidden sm:inline-flex" style={{ color: PRIMARY }}>
-                  View all →
-                </Link>
-              </div>
+            <section className="mb-14">
+              <PremiumAutoProductCarousel
+                products={related.slice(0, 8)}
+                title="You might also like"
+                subtitle="Recommended for you"
+                viewAllHref="/search"
+              />
+            </section>
+          )}
+
+          {false && (
+            <section className="mb-14 pd2-homeish-block REMOVED">
               <div className="relative">
                 <div
                   aria-hidden

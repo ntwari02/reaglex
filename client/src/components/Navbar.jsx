@@ -2,9 +2,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, ShoppingBag, Heart, Bell, Menu, X, ChevronDown, ChevronRight,
+  Search, ShoppingBag, Heart, Bell, X, ChevronDown, ChevronRight,
   Package, MapPin, CreditCard, Star, RotateCcw, Settings, LogOut, Clock, Flame,
-  Globe, DollarSign, HelpCircle, Sun, Moon, Shield,
+  Globe, DollarSign, HelpCircle, Sun, Moon, Shield, User, SlidersHorizontal,
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -17,6 +17,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { buyerProductPath } from '../lib/productUrl';
+import { useImmersiveSearch } from '../stores/immersiveSearchStore';
+import { useScrollChrome } from '../stores/scrollChromeStore';
 
 const PRIMARY = 'var(--brand-primary)';
 const PRIMARY_HOVER = 'var(--brand-primary-hover)';
@@ -284,7 +286,6 @@ function resolveAvatar(src) {
 function MainHeader({
   searchQuery, setSearchQuery, searchFocus, setSearchFocus, category, setCategory,
   language, currency, openAuth, user, signOut, onLogoutClick, cartCount, openCart, cartItems, wishlistCount,
-  onMobileMenuOpen,
   t,
 }) {
   const { theme, toggleTheme } = useTheme();
@@ -468,8 +469,7 @@ function MainHeader({
 
   return (
     <div
-      className="flex items-center justify-between gap-4 w-full px-4 sm:px-6 lg:px-8 xl:px-12"
-      style={{ height: 70 }}
+      className="flex items-center justify-between gap-3 md:gap-4 w-full px-4 sm:px-6 lg:px-8 xl:px-12 min-h-[52px] md:h-[70px] md:min-h-0 py-2 md:py-0"
     >
       {/* Logo */}
       <Link
@@ -484,7 +484,7 @@ function MainHeader({
           <img
             src="/logo.jpg"
             alt="Reaglex"
-            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+            className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover flex-shrink-0"
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
           />
           <div className="hidden sm:block">
@@ -848,12 +848,12 @@ function MainHeader({
       </form>
 
       {/* Right actions */}
-      <div className="flex items-center gap-5 flex-shrink-0">
-        {/* Theme toggle */}
+      <div className="flex items-center gap-2 md:gap-5 flex-shrink-0">
+        {/* Theme toggle — desktop only (Appearance lives under Account → Settings) */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full border border-gray-200 dark:border-gray-700 p-0 leading-none hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="hidden md:flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full border border-gray-200 dark:border-gray-700 p-0 leading-none hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
           title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
         >
@@ -912,12 +912,14 @@ function MainHeader({
         <div className="relative" ref={cartRef}>
           <button
             type="button"
+            data-cart-target="badge"
             onClick={openCart}
             className="relative p-2 rounded-lg hover:bg-gray-100 transition"
           >
             <ShoppingBag className="w-[22px] h-[22px]" style={{ color: 'var(--text-muted)' }} />
             {cartCount > 0 && (
               <span
+                data-cart-target="badge"
                 className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full text-white text-xs font-bold flex items-center justify-center"
                 style={{ background: PRIMARY }}
               >
@@ -929,8 +931,8 @@ function MainHeader({
 
         <div className="hidden md:block w-px h-6" style={{ background: 'var(--divider-strong)' }} />
 
-        {/* Profile / Login */}
-        <div className="relative" ref={profileRef}>
+        {/* Profile / Login — desktop dropdown */}
+        <div className="relative hidden md:block" ref={profileRef}>
           {user ? (
             <>
               <button
@@ -990,7 +992,7 @@ function MainHeader({
                         { icon: Star, labelKey: 'nav.messages', to: '/account?tab=reviews' },
                         { icon: RotateCcw, labelKey: 'header.returns', to: '/returns' },
                         { icon: Shield, labelKey: 'header.buyerProtection', to: '/buyer-protection' },
-                        { icon: Settings, labelKey: 'account.profileSettings', to: '/account' },
+                        { icon: Settings, labelKey: 'account.profileSettings', to: '/account?tab=settings&section=appearance' },
                       ].map(({ icon: Icon, labelKey, to }) => (
                         <Link
                           key={labelKey}
@@ -1019,7 +1021,7 @@ function MainHeader({
             <button
               type="button"
               onClick={() => openAuth('login')}
-              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
               style={{ background: PRIMARY }}
             >
               {t('header.loginRegister')}
@@ -1027,14 +1029,41 @@ function MainHeader({
           )}
         </div>
 
-        {/* Mobile: hamburger */}
-        <button
-          type="button"
-          onClick={onMobileMenuOpen}
-          className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
-        >
-          <Menu className="w-6 h-6" style={{ color: 'var(--text-secondary)' }} />
-        </button>
+        {/* Mobile: account avatar shortcut */}
+        {user ? (
+          <Link
+            to="/account"
+            className="md:hidden flex items-center justify-center w-9 h-9 min-w-[36px] rounded-full overflow-hidden flex-shrink-0 transition-opacity hover:opacity-90 active:opacity-95"
+            style={{ background: PRIMARY }}
+            aria-label={t('nav.profile')}
+          >
+            {resolveAvatar(user.avatar_url) ? (
+              <img
+                src={resolveAvatar(user.avatar_url)}
+                alt=""
+                className="block w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            ) : (
+              <span className="text-white font-bold text-sm">
+                {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </Link>
+        ) : (
+          <Link
+            to="/auth?tab=login"
+            className="md:hidden flex items-center justify-center w-9 h-9 min-w-[36px] rounded-full border transition active:scale-[0.97]"
+            style={{
+              borderColor: 'var(--border-card)',
+              background: 'var(--bg-secondary)',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+            aria-label={t('header.loginRegister')}
+          >
+            <User className="w-[18px] h-[18px]" strokeWidth={1.85} style={{ color: 'var(--text-muted)' }} />
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -1106,188 +1135,16 @@ function CategoryNav({ t }) {
   );
 }
 
-// ── Mobile drawer ─────────────────────────────────────────────────────────────
-function MobileDrawer({
-  open, onClose, user, signOut, onLogoutClick, openAuth, cartCount, openCart, wishlistCount,
-  language, setLanguage, currency, setCurrency, searchQuery, setSearchQuery, onSearchSubmit,
-  t,
-}) {
-  const { theme, toggleTheme } = useTheme();
-  const location = useLocation();
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[150] bg-black/40 md:hidden"
-          />
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed top-0 right-0 bottom-0 w-full max-w-sm bg-white dark:bg-gray-900 z-[160] flex flex-col shadow-2xl md:hidden transition-colors duration-300"
-          >
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
-              <span className="font-bold text-lg text-gray-900 dark:text-white">{t('nav.menu')}</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full border border-gray-200 dark:border-gray-700 p-0 leading-none hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
-                  aria-label={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
-                  title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
-                >
-                  {theme === 'dark' ? (
-                    <Sun className="w-5 h-5 text-yellow-400" />
-                  ) : (
-                    <Moon className="w-5 h-5" />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {user ? (
-              <div className="p-4 flex items-center gap-3 border-b border-gray-100 dark:border-gray-800">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" style={{ background: PRIMARY }}>
-                  {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate text-gray-900 dark:text-white">{user.full_name || t('nav.profile')}</p>
-                  <p className="text-xs truncate text-gray-500 dark:text-gray-400">{user.email}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4">
-                <button
-                  type="button"
-                  onClick={() => { onClose(); openAuth('login'); }}
-                  className="w-full py-3 rounded-xl text-white font-semibold"
-                  style={{ background: PRIMARY }}
-                >
-                  {t('header.loginRegister')}
-                </button>
-              </div>
-            )}
-
-            {/* Mobile search */}
-            <form onSubmit={onSearchSubmit} className="p-4 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 focus-within:border-[var(--brand-primary)]">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('search.placeholderShort')}
-                  className="flex-1 px-4 py-2.5 text-sm outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                />
-                <button type="submit" className="p-2.5" style={{ background: PRIMARY }}>
-                  <Search className="w-5 h-5 text-white" />
-                </button>
-              </div>
-            </form>
-
-            <div className="flex-1 overflow-y-auto py-4">
-              <p className="px-4 text-xs font-semibold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">{t('nav.shop')}</p>
-              {MEGA_CATEGORIES.map(({ icon, name, slug }) => (
-                <Link
-                  key={name}
-                  to={`/category/${slug}`}
-                  onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] transition"
-                >
-                  <span>{icon}</span> {name}
-                </Link>
-              ))}
-              <p className="px-4 text-xs font-semibold uppercase tracking-wider mt-4 mb-2 text-gray-400 dark:text-gray-500">{t('nav.menu')}</p>
-              {NAV_LINKS.filter((l) => l.to !== '/').map(({ to, labelKey }) => (
-                <Link
-                  key={labelKey}
-                  to={to}
-                  onClick={onClose}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm transition ${location.pathname === to ? 'text-[var(--brand-primary)]' : 'text-gray-700 dark:text-gray-300 hover:text-[var(--brand-primary)] dark:hover:text-[var(--brand-orange-text)]'}`}
-                >
-                  {t(labelKey)}
-                </Link>
-              ))}
-              <Link to="/" onClick={onClose} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{t('nav.home')}</Link>
-
-              <div className="mt-6 px-4 flex flex-col gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('header.language')}</p>
-                <div className="flex flex-wrap gap-2">
-                  {LANG_OPTIONS.map((l) => (
-                    <button
-                      key={l.code}
-                      type="button"
-                      onClick={() => setLanguage(l.code)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                        language === l.code
-                          ? 'border-[var(--brand-primary)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] bg-[var(--brand-tint)] dark:bg-[var(--brand-tint)]'
-                          : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400'
-                      }`}
-                    >
-                      {String(l.code).toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{currency}</span>
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex gap-2">
-              <button
-                type="button"
-                onClick={() => { onClose(); openCart(); }}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-              >
-                <ShoppingBag className="w-4 h-4" /> {t('nav.cart')} {cartCount > 0 && `(${cartCount})`}
-              </button>
-              <Link
-                to="/account?tab=wishlist"
-                onClick={onClose}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-              >
-                <Heart className="w-4 h-4" /> {t('nav.wishlist')} {wishlistCount > 0 && `(${wishlistCount})`}
-              </Link>
-            </div>
-
-            {user && (
-              <div className="p-4 border-t border-gray-100 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => { onLogoutClick(); onClose(); }}
-                  className="w-full py-2 text-sm font-medium flex items-center justify-center gap-2 text-red-600 dark:text-red-400"
-                >
-                  <LogOut className="w-4 h-4" /> {t('buttons.logout')}
-                </button>
-              </div>
-            )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
 // ── Main Navbar export ───────────────────────────────────────────────────────
 export default function Navbar() {
   const navigate = useNavigate();
   const { language, setLanguage, currency, setCurrency } = useTheme();
   const { t } = useTranslation();
+  const openImmersiveSearch = useImmersiveSearch((s) => s.openSearch);
+  const headerHidden = useScrollChrome((s) => s.headerHidden);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
   const [category, setCategory] = useState(ALL_CATEGORIES);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const selectedCurrency = CURRENCIES.find((c) => c.code === currency) || CURRENCIES[0];
 
   const user = useAuthStore((s) => s.user);
@@ -1312,14 +1169,20 @@ export default function Navbar() {
     if (q) {
       addRecentSearch(q);
       navigate(`/search?q=${encodeURIComponent(q)}${category && category !== ALL_CATEGORIES ? `&category=${encodeURIComponent(category)}` : ''}`);
-      setMobileMenuOpen(false);
     }
   };
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-[100] flex flex-col transition-colors duration-300"
-      style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--header-bg)' }}
+      className="fixed top-0 left-0 right-0 z-[100] flex flex-col transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:translate-y-0"
+      style={{
+        fontFamily: 'Inter, system-ui, sans-serif',
+        background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)',
+        backdropFilter: 'blur(18px)',
+        WebkitBackdropFilter: 'blur(18px)',
+        transform: headerHidden ? 'translateY(calc(-100% + 52px))' : 'translateY(0)',
+        boxShadow: headerHidden ? 'none' : 'var(--shadow-header)',
+      }}
     >
       {/* Tier 1 */}
       <div style={{ position: 'relative', zIndex: 103 }}>
@@ -1360,27 +1223,60 @@ export default function Navbar() {
           openCart={openCart}
           cartItems={cartItems}
           wishlistCount={wishlistCount}
-          onMobileMenuOpen={() => setMobileMenuOpen(true)}
           t={t}
         />
 
-        {/* Mobile: search bar full width below logo row */}
-        <form onSubmit={handleSearchSubmit} className="md:hidden px-4 pb-3">
-          <div
-            className="flex rounded-full overflow-hidden border-2 h-11"
-            style={{ background: 'var(--search-bg)', borderColor: 'var(--search-border)' }}
+        {/* Mobile: premium sticky search row (~52px) — primary exploration surface */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            openImmersiveSearch(searchQuery);
+          }}
+          className="md:hidden px-4 pb-4"
+        >
+          <motion.div
+            role="button"
+            tabIndex={0}
+            onClick={() => openImmersiveSearch(searchQuery)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openImmersiveSearch(searchQuery);
+              }
+            }}
+            className="flex items-center gap-2 min-h-[52px] rounded-[999px] px-2 pl-3 pr-2 transition-[box-shadow,border-color] duration-200 cursor-text"
+            style={{
+              background: 'color-mix(in srgb, var(--card-bg) 78%, var(--search-bg))',
+              border: '1px solid color-mix(in srgb, var(--border-card) 85%, transparent)',
+              boxShadow: 'var(--shadow-sm)',
+              backdropFilter: 'blur(14px)',
+              WebkitBackdropFilter: 'blur(14px)',
+            }}
           >
+            <Search className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
             <input
-              type="text"
+              type="search"
+              enterKeyHint="search"
+              readOnly
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('search.placeholder')}
-              className="flex-1 px-4 text-sm outline-none min-w-0 bg-transparent search-input"
+              onFocus={() => openImmersiveSearch(searchQuery)}
+              className="flex-1 min-w-0 h-[44px] bg-transparent outline-none text-[15px] search-input pointer-events-none"
+              style={{ color: searchQuery ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: '-0.01em' }}
             />
-            <button type="submit" className="px-4 flex-shrink-0" style={{ background: PRIMARY }} aria-label={t('buttons.search')}>
-              <Search className="w-5 h-5 text-white" />
-            </button>
-          </div>
+            <Link
+              to="/products"
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition active:scale-[0.96]"
+              style={{
+                background: 'color-mix(in srgb, var(--brand-primary) 9%, transparent)',
+                color: 'var(--text-secondary)',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              aria-label={t('footer.links.shop.allProducts')}
+            >
+              <SlidersHorizontal className="w-[18px] h-[18px]" strokeWidth={1.85} />
+            </Link>
+          </motion.div>
         </form>
       </div>
 
@@ -1388,27 +1284,6 @@ export default function Navbar() {
       <div style={{ position: 'relative', zIndex: 101 }}>
         <CategoryNav t={t} />
       </div>
-
-      {/* Mobile drawer */}
-      <MobileDrawer
-        open={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        user={user}
-        signOut={signOut}
-        onLogoutClick={() => setShowLogoutConfirm(true)}
-        openAuth={openAuth}
-        cartCount={cartCount}
-        openCart={openCart}
-        wishlistCount={wishlistCount}
-        language={language}
-        setLanguage={setLanguage}
-        currency={selectedCurrency.symbol + ' ' + selectedCurrency.code}
-        setCurrency={() => {}}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onSearchSubmit={handleSearchSubmit}
-        t={t}
-      />
 
       {/* Logout confirmation modal */}
       <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
