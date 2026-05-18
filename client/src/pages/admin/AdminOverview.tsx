@@ -40,7 +40,12 @@ import {
   UserPlus,
   Zap,
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import {
+  adminAPI,
+  adminFinanceAPI,
+  adminOrdersAPI,
+  adminProductsAPI,
+} from '@/lib/api';
 import { TrendLineChart } from '@/components/charts/TrendLineChart';
 import Globe, { type GlobeInstance } from 'react-globe.gl';
 
@@ -536,13 +541,6 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
 
   useEffect(() => {
     loadDashboardData();
-    // Simulate live order feed
-    const mockLiveOrders = [
-      { id: 1, customer: 'Alice K.', amount: 125.00, time: 'Just now', location: 'Kigali' },
-      { id: 2, customer: 'Bob M.', amount: 89.50, time: '2 min ago', location: 'Huye' },
-      { id: 3, customer: 'Carol N.', amount: 234.00, time: '5 min ago', location: 'Musanze' },
-    ];
-    setLiveOrderFeed(mockLiveOrders);
   }, []);
 
   useEffect(() => {
@@ -593,116 +591,44 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const { count: sellerCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'seller');
+      const [ordersDash, financeDash, userStats, sellerStats, productsDash, recentOrders] =
+        await Promise.all([
+          adminOrdersAPI.getDashboard().catch(() => null),
+          adminFinanceAPI.getDashboard({ timeRange: 'monthly' }).catch(() => null),
+          adminAPI.getUserStats().catch(() => null),
+          adminAPI.getSellerStats().catch(() => null),
+          adminProductsAPI.getDashboard().catch(() => null),
+          adminOrdersAPI.getOrders({ limit: 5, page: 1 }).catch(() => null),
+        ]);
 
-      const { count: buyerCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'buyer');
+      const financeMetrics = financeDash?.metrics ?? {};
+      const monthRevenue = Number(financeMetrics.totalPlatformRevenue || 0);
+      const refundsTotal = Number(financeMetrics.refundAmount || 0);
+      const grossRevenue = monthRevenue;
+      const netRevenue = Math.max(0, monthRevenue - refundsTotal);
 
-      const { data: ordersData } = await supabase.from('orders').select('*');
+      const revenueSeries = financeDash?.revenueData ?? [];
+      const weekRevenue =
+        revenueSeries.slice(-7).reduce((sum, row) => sum + (row.value || 0), 0) || monthRevenue * 0.25;
+      const previousWeekRevenue =
+        revenueSeries.slice(-14, -7).reduce((sum, row) => sum + (row.value || 0), 0) || weekRevenue * 0.9;
+      const previousMonthRevenue = monthRevenue * 0.88;
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const weekAgo = new Date(today);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      const twoWeeksAgo = new Date(today);
-      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-      const monthAgo = new Date(today);
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      const twoMonthsAgo = new Date(today);
-      twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+      if (recentOrders?.orders?.length) {
+        setLiveOrderFeed(
+          recentOrders.orders.slice(0, 5).map((o: any, idx: number) => ({
+            id: idx + 1,
+            customer: o.buyerName || o.customerName || 'Customer',
+            amount: Number(o.total || o.amount || 0),
+            time: o.createdAt ? new Date(o.createdAt).toLocaleTimeString() : 'Recent',
+            location: o.shippingAddress?.city || o.city || '—',
+          })),
+        );
+      }
 
-      type OrderRecord = {
-        created_at?: string;
-        total?: number;
-        status?: string;
-        payment_status?: string;
-      };
-
-      const allOrders: OrderRecord[] = Array.isArray(ordersData) ? (ordersData as OrderRecord[]) : [];
-      const completedOrders = allOrders.filter(order => order.payment_status === 'completed');
-      const ordersTodayCount = allOrders.filter(
-        order => order.created_at && new Date(order.created_at) >= today
-      ).length;
-
-      const todayRevenue = completedOrders
-        .filter(order => order.created_at && new Date(order.created_at) >= today)
-        .reduce((sum, order) => sum + (order.total || 0), 0);
-
-      const weekRevenue = completedOrders
-        .filter(order => order.created_at && new Date(order.created_at) >= weekAgo)
-        .reduce((sum, order) => sum + (order.total || 0), 0);
-
-      const previousWeekRevenue = completedOrders
-        .filter(order => {
-          if (!order.created_at) return false;
-          const createdAt = new Date(order.created_at);
-          return createdAt >= twoWeeksAgo && createdAt < weekAgo;
-        })
-        .reduce((sum, order) => sum + (order.total || 0), 0);
-
-      const monthRevenue = completedOrders
-        .filter(order => order.created_at && new Date(order.created_at) >= monthAgo)
-        .reduce((sum, order) => sum + (order.total || 0), 0);
-
-      const previousMonthRevenue = completedOrders
-        .filter(order => {
-          if (!order.created_at) return false;
-          const createdAt = new Date(order.created_at);
-          return createdAt >= twoMonthsAgo && createdAt < monthAgo;
-        })
-        .reduce((sum, order) => sum + (order.total || 0), 0);
-
-      // Order status counts
-      const pendingOrders = allOrders.filter(order => order.status === 'pending').length;
-      const processingOrders = allOrders.filter(order => order.status === 'processing').length;
-      const shippedOrders = allOrders.filter(order => order.status === 'shipped').length;
-      const deliveredOrders = allOrders.filter(order => order.status === 'delivered').length;
-      const cancelledOrders = allOrders.filter(order => order.status === 'cancelled').length;
-
-      const { count: pendingSellerCount } = await supabase
-        .from('seller_applications')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      const { data: lowStockProducts } = await supabase
-        .from('products')
-        .select('id, stock_quantity, low_stock_threshold')
-        .eq('status', 'active');
-      
-      type LowStockProduct = {
-        stock_quantity: number | null;
-        low_stock_threshold?: number | null;
-      };
-
-      const normalizedLowStock: LowStockProduct[] = Array.isArray(lowStockProducts)
-        ? (lowStockProducts as LowStockProduct[])
-        : [];
-
-      const lowStockCount =
-        normalizedLowStock.filter(
-          product => (product.stock_quantity ?? 0) <= (product.low_stock_threshold ?? 5)
-      ).length || 0;
-
-      const criticalCount =
-        normalizedLowStock.filter(product => (product.stock_quantity ?? 0) <= 2).length || 0;
-
-      const { count: disputesCount } = await supabase
-        .from('disputes')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'open');
-
-      // Calculate operational KPIs (mock for demo)
-      const grossRevenue = monthRevenue * 1.15;
-      const refundsTotal = monthRevenue * 0.03;
-      const netRevenue = monthRevenue - refundsTotal;
-
-      setMetrics({
-        todayRevenue,
+      setMetrics((prev) => ({
+        ...prev,
+        todayRevenue: Number(ordersDash?.revenueToday || 0),
         weekRevenue,
         monthRevenue,
         previousWeekRevenue,
@@ -710,32 +636,22 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
         grossRevenue,
         netRevenue,
         refundsTotal,
-        ordersToday: ordersTodayCount,
-        totalOrders: allOrders.length,
-        pendingOrders,
-        processingOrders,
-        shippedOrders,
-        deliveredOrders,
-        cancelledOrders,
-        lateShipments: Math.floor(shippedOrders * 0.08),
-        totalSellers: sellerCount || 0,
-        activeSellers: Math.floor((sellerCount || 0) * 0.85),
-        pendingSellerApprovals: pendingSellerCount || 0,
-        totalCustomers: buyerCount || 0,
-        activeCustomers: Math.floor((buyerCount || 0) * 0.65),
-        newCustomersToday: Math.floor(Math.random() * 20) + 5,
-        activeDisputes: disputesCount || 0,
-        chargebackAlerts: Math.floor(Math.random() * 3),
-        fraudAlerts: Math.floor(Math.random() * 5),
-        lowStockAlerts: lowStockCount,
-        criticalStockItems: criticalCount,
-        avgProcessingTime: 2.4,
-        fulfillmentRate: 94.5,
-        deliverySuccessRate: 97.2,
-        returnRate: 3.8,
-        cancelRate: 2.1,
-      });
-
+        ordersToday: Number(ordersDash?.totalOrdersToday || 0),
+        pendingOrders: Number(ordersDash?.pendingOrders || 0),
+        cancelledOrders: Number(ordersDash?.cancelledOrders || 0),
+        totalSellers: Number(sellerStats?.totalSellers || 0),
+        activeSellers: Math.max(
+          0,
+          Number(sellerStats?.totalSellers || 0) - Number(sellerStats?.pendingSellers || 0),
+        ),
+        pendingSellerApprovals: Number(sellerStats?.pendingSellers || 0),
+        totalCustomers: Number(userStats?.totalCustomers || 0),
+        activeCustomers: Number(userStats?.verifiedKYC || 0),
+        lowStockAlerts: Number(productsDash?.lowStock || 0),
+        criticalStockItems: Number(productsDash?.outOfStock || 0),
+        chargebackAlerts: Number(financeMetrics.chargebacksCount || 0),
+        fraudAlerts: Number(financeMetrics.failedTransactions || 0),
+      }));
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {

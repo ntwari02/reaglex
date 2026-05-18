@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { productKeys } from '../hooks/queries/productKeys';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Heart, Star, ChevronLeft, ChevronRight, ChevronDown,
@@ -118,6 +120,7 @@ export default function ProductDetail() {
   const { id: legacyId, slug: slugParam } = useParams();
   const navigate     = useNavigate();
   const location       = useLocation();
+  const navigationType = useNavigationType();
   const productPreview = location.state?.productPreview;
   const addItem      = useBuyerCart((s) => s.addItem);
   const currencyPricing = useCurrencyPricing();
@@ -125,9 +128,8 @@ export default function ProductDetail() {
   const recentItems  = useRecentlyViewed((s) => s.items);
 
   /* ── state ── */
-  const [product,      setProduct]      = useState(null);
+  const [product,      setProduct]      = useState(productPreview || null);
   const [related,      setRelated]      = useState([]);
-  const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
   const [activeImage,  setActiveImage]  = useState(0);
   const [quantity,     setQuantity]     = useState(1);
@@ -364,38 +366,59 @@ export default function ProductDetail() {
     />
   );
 
-  /* ── data fetch ── */
+  const productQueryKey = slugParam
+    ? productKeys.detailBySlug(slugParam)
+    : legacyId
+      ? productKeys.detailById(String(legacyId))
+      : ['product', 'none'];
+
+  const {
+    data: fetchedProduct,
+    isPending: productPending,
+    isError: productQueryError,
+  } = useQuery({
+    queryKey: [...productQueryKey, inventoryRefreshTick],
+    queryFn: async () => {
+      const data = slugParam
+        ? await productAPI.getProductBySlug(slugParam)
+        : await productAPI.getProductById(String(legacyId));
+      return data.product || data;
+    },
+    enabled: Boolean(slugParam || legacyId),
+    staleTime: 5 * 60 * 1000,
+    initialData: productPreview || undefined,
+  });
+
+  const loading = productPending && !product;
+
   useEffect(() => {
     if (!slugParam && !legacyId) return;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setLoading(true); setError(null); setActiveImage(0); setProduct(null);
-    const load = async () => {
-      try {
-        const data = slugParam
-          ? await productAPI.getProductBySlug(slugParam)
-          : await productAPI.getProductById(legacyId);
-        const p = data.product || data;
-        setProduct(p);
-        setWishlisted(!!p?.wishlisted);
-        setWishlistCount(Number(p?.wishlistCount || 0));
-        addRecent(p);
-        const rid = String(p._id || p.id || '');
-        if (rid) {
-          productAPI.trackView(rid).catch(() => null);
-          // Marketplace AI: drive personalised home feed + recommendations.
-          homeFeedApi.track({ type: 'view', productId: rid });
-        }
-        if (legacyId && p.slug && location.pathname.startsWith('/products/')) {
-          navigate(`/product/${encodeURIComponent(String(p.slug).trim())}`, { replace: true });
-        }
-      } catch {
-        setError('Product not found.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    void load();
-  }, [slugParam, legacyId, inventoryRefreshTick, location.pathname, navigate, addRecent]);
+    if (navigationType === 'POP') return;
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    setActiveImage(0);
+  }, [slugParam, legacyId, navigationType]);
+
+  useEffect(() => {
+    if (!fetchedProduct) return;
+    const p = fetchedProduct;
+    setProduct(p);
+    setError(null);
+    setWishlisted(!!p?.wishlisted);
+    setWishlistCount(Number(p?.wishlistCount || 0));
+    addRecent(p);
+    const rid = String(p._id || p.id || '');
+    if (rid) {
+      productAPI.trackView(rid).catch(() => null);
+      homeFeedApi.track({ type: 'view', productId: rid });
+    }
+    if (legacyId && p.slug && location.pathname.startsWith('/products/')) {
+      navigate(`/product/${encodeURIComponent(String(p.slug).trim())}`, { replace: true });
+    }
+  }, [fetchedProduct, legacyId, location.pathname, navigate, addRecent]);
+
+  useEffect(() => {
+    if (productQueryError) setError('Product not found.');
+  }, [productQueryError]);
 
   useEffect(() => {
     const excludeId = String(product?._id || product?.id || legacyId || '');

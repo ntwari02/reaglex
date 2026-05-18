@@ -59,26 +59,6 @@
   ],
   "rewrites": [
     {
-      "source": "/robots.txt",
-      "destination": "https://reaglex.onrender.com/robots.txt"
-    },
-    {
-      "source": "/sitemap.xml",
-      "destination": "https://reaglex.onrender.com/sitemap.xml"
-    },
-    {
-      "source": "/sitemap-:name.xml",
-      "destination": "https://reaglex.onrender.com/sitemap-:name.xml"
-    },
-    {
-      "source": "/uploads/:path*",
-      "destination": "https://reaglex.onrender.com/uploads/:path*"
-    },
-    {
-      "source": "/og/product/:slug",
-      "destination": "https://reaglex.onrender.com/api/public/og/product/:slug"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

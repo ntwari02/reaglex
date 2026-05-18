@@ -1,5 +1,7 @@
 /* Import CSS variable theme system (must be first) */
 @import './styles/theme.css';
+@import './styles/mobile-commerce.css';
+@import './styles/mobile-assistant.css';
 
 /* Mea Culpa – auth brand panel */
 @font-face {

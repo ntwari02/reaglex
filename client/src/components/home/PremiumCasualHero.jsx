@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Parallax } from 'swiper/modules';
 import { useReducedMotion } from 'framer-motion';
-import { publicSiteContentAPI } from '../../lib/api';
+import { ArrowRight } from 'lucide-react';
+import { useHeroCarousel } from '../../hooks/useBuyerSiteContent';
 
 import 'swiper/css';
 
@@ -16,7 +17,7 @@ const FALLBACK_SLIDES = [
     detail: 'On selected items.',
     cta: 'Shop now',
     href: '/search?sort=discount',
-    imageUrl:
+    image:
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1400&q=88',
     imgPosition: '92% center',
   },
@@ -28,7 +29,7 @@ const FALLBACK_SLIDES = [
     detail: 'Layered textures & confident silhouettes.',
     cta: 'Explore',
     href: '/category/clothing',
-    imageUrl:
+    image:
       'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1400&q=88',
     imgPosition: '80% center',
   },
@@ -40,7 +41,7 @@ const FALLBACK_SLIDES = [
     detail: 'Curated audio, wearables & essentials.',
     cta: 'Shop tech',
     href: '/category/electronics',
-    imageUrl:
+    image:
       'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1400&q=88',
     imgPosition: '75% center',
   },
@@ -54,52 +55,47 @@ function slideOverlay(isDark) {
 }
 
 function mapApiSlides(slides) {
-  return slides.map((s, i) => ({
-    id: `hero-${i}-${s.line1}`,
-    eyebrow: s.eyebrow,
-    line1: s.line1,
-    line2: s.line2,
-    detail: s.detail,
-    cta: s.cta,
-    href: s.href,
-    image: s.imageUrl,
-    videoUrl: s.videoUrl,
-    imgPosition: s.imgPosition || 'center center',
-  }));
+  return slides
+    .filter((s) => s && s.enabled !== false)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map((s, i) => ({
+      id: `hero-${i}-${s.line1}`,
+      eyebrow: s.eyebrow,
+      line1: s.line1,
+      line2: s.line2,
+      detail: s.detail,
+      cta: s.cta,
+      href: s.href || '/',
+      image: s.imageUrl || s.image,
+      videoUrl: s.videoUrl,
+      imgPosition: s.imgPosition || 'center center',
+    }));
 }
 
-export default function PremiumCasualHero({ isDark, className = '' }) {
+export default function PremiumCasualHero({ isDark, className = '', compact = false }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
-  const [slides, setSlides] = useState(FALLBACK_SLIDES);
+  const { data: heroData } = useHeroCarousel();
+  const slides =
+    heroData?.slides?.length > 0 ? mapApiSlides(heroData.slides) : FALLBACK_SLIDES;
   const overlay = slideOverlay(isDark);
   const textPrimary = isDark ? '#ffffff' : '#111111';
   const textMuted = isDark ? 'rgba(255,255,255,0.72)' : '#777777';
   const eyebrow = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(17,17,17,0.45)';
 
-  useEffect(() => {
-    let cancelled = false;
-    publicSiteContentAPI
-      .getHeroCarousel()
-      .then((res) => {
-        if (cancelled || !res?.slides?.length) return;
-        setSlides(mapApiSlides(res.slides));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const slideMinH = compact ? 160 : 248;
+  const radius = compact ? 16 : 24;
 
   return (
     <section
-      className={`premium-casual-hero px-4 pb-6 ${className}`.trim()}
+      className={`premium-casual-hero px-4 ${compact ? 'pb-3' : 'pb-6'} ${className}`.trim()}
       aria-label="Featured collections"
     >
       <div
-        className="relative overflow-hidden rounded-[24px]"
+        className="relative overflow-hidden"
         style={{
-          boxShadow: 'var(--shadow-md)',
+          borderRadius: radius,
+          boxShadow: compact ? 'var(--shadow-sm)' : 'var(--shadow-md)',
           border: '1px solid color-mix(in srgb, var(--border-card) 55%, transparent)',
         }}
       >
@@ -114,12 +110,12 @@ export default function PremiumCasualHero({ isDark, className = '' }) {
           }
           pagination={false}
           onSlideChange={(s) => setActive(s.realIndex)}
-          className="premium-casual-swiper !overflow-hidden rounded-[24px]"
-          style={{ minHeight: 248 }}
+          className="premium-casual-swiper !overflow-hidden"
+          style={{ minHeight: slideMinH, borderRadius: radius }}
         >
           {slides.map((slide, i) => (
             <SwiperSlide key={slide.id} className="!h-auto">
-              <article className="relative min-h-[248px] overflow-hidden">
+              <article className="relative overflow-hidden" style={{ minHeight: slideMinH }}>
                 {slide.videoUrl ? (
                   <video
                     src={slide.videoUrl}
@@ -149,43 +145,49 @@ export default function PremiumCasualHero({ isDark, className = '' }) {
                   data-swiper-parallax-opacity="0.35"
                 />
 
-                <div className="relative z-[1] flex min-h-[248px] w-full flex-row items-stretch">
+                <div
+                  className="relative z-[1] flex w-full flex-row items-stretch"
+                  style={{ minHeight: slideMinH }}
+                >
                   <div
-                    className="flex max-w-[58%] flex-col justify-center px-5 py-7 pr-2"
+                    className={`flex max-w-[58%] flex-col justify-center pr-2 ${compact ? 'px-3.5 py-4' : 'px-5 py-7'}`}
                     data-swiper-parallax="-120"
                   >
                     <p
-                      className="text-[10px] font-semibold uppercase tracking-[0.22em]"
+                      className={`font-semibold uppercase tracking-[0.18em] ${compact ? 'text-[9px]' : 'text-[10px]'}`}
                       style={{ color: eyebrow }}
                     >
                       {slide.eyebrow}
                     </p>
                     <h2
-                      className="mt-2 font-bold leading-[1.05] tracking-tight"
+                      className={`mt-1 font-bold leading-[1.08] tracking-tight ${compact ? 'text-lg' : ''}`}
                       style={{
                         color: textPrimary,
-                        fontFamily: "'Poppins', 'Inter', system-ui, sans-serif",
-                        fontSize: 'clamp(1.75rem, 7vw, 2.15rem)',
+                        fontFamily: "'Inter', system-ui, sans-serif",
+                        fontSize: compact ? undefined : 'clamp(1.75rem, 7vw, 2.15rem)',
                       }}
                     >
                       {slide.line1}
                       <br />
                       <span style={{ color: 'var(--brand-primary)' }}>{slide.line2}</span>
                     </h2>
-                    <p className="mt-2 text-[13px] leading-relaxed" style={{ color: textMuted }}>
-                      {slide.detail}
-                    </p>
-                    <div className="mt-5" data-swiper-parallax="-60">
+                    {!compact && (
+                      <p className="mt-2 text-[13px] leading-relaxed" style={{ color: textMuted }}>
+                        {slide.detail}
+                      </p>
+                    )}
+                    <div className={compact ? 'mt-2.5' : 'mt-5'} data-swiper-parallax="-60">
                       <Link
                         to={slide.href}
-                        className="inline-flex min-h-[44px] items-center justify-center rounded-full px-6 py-2.5 text-[13px] font-semibold transition-transform active:scale-[0.97]"
+                        className={`inline-flex items-center justify-center gap-1 rounded-full font-semibold transition-transform active:scale-[0.97] ${compact ? 'min-h-8 px-3.5 py-1 text-[11px]' : 'min-h-[44px] px-6 py-2.5 text-[13px]'}`}
                         style={{
                           background: 'var(--brand-primary)',
                           color: '#ffffff',
                           boxShadow: 'var(--shadow-cta)',
                         }}
                       >
-                        {slide.cta}
+                        {slide.cta === 'Shop now' || slide.cta === 'Shop Now' ? 'Shop Now' : slide.cta}
+                        <ArrowRight size={compact ? 12 : 14} strokeWidth={2.25} />
                       </Link>
                     </div>
                   </div>
@@ -196,7 +198,7 @@ export default function PremiumCasualHero({ isDark, className = '' }) {
           ))}
         </Swiper>
 
-        <div className="pointer-events-none absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5">
+        <div className={`pointer-events-none absolute left-0 right-0 z-10 flex justify-center gap-1 ${compact ? 'bottom-2' : 'bottom-3'}`}>
           {slides.map((s, i) => (
             <span
               key={s.id}

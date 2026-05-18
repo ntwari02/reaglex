@@ -20,36 +20,19 @@ import { buyerProductPath } from '../lib/productUrl';
 import { useImmersiveSearch } from '../stores/immersiveSearchStore';
 import { useScrollChrome } from '../stores/scrollChromeStore';
 import { useMotionUi } from '../stores/motionUiStore';
+import MobileBuyerTopBar from './buyer/MobileBuyerTopBar';
+import {
+  getRecentSearches,
+  addRecentSearch,
+  removeRecentSearch,
+  clearRecentSearches,
+} from '../lib/recentSearches';
 
 const PRIMARY = 'var(--brand-primary)';
 const PRIMARY_HOVER = 'var(--brand-primary-hover)';
 const DROPDOWN_SHADOW = '0 8px 24px rgba(0,0,0,0.12)';
 const ALL_CATEGORIES = 'All Categories';
 
-// ── Recent searches (localStorage, max 8) ───────────────────────────────────────
-const RECENT_KEY = 'reaglex_recent_searches';
-const MAX_RECENT = 8;
-function getRecentSearches() {
-  try {
-    const s = localStorage.getItem(RECENT_KEY);
-    return s ? JSON.parse(s) : [];
-  } catch {
-    return [];
-  }
-}
-function addRecentSearch(q) {
-  if (!q?.trim()) return;
-  const recent = getRecentSearches().filter((r) => r !== q.trim());
-  recent.unshift(q.trim());
-  localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
-}
-function removeRecentSearch(q) {
-  const recent = getRecentSearches().filter((r) => r !== q);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
-}
-function clearRecentSearches() {
-  localStorage.setItem(RECENT_KEY, JSON.stringify([]));
-}
 function highlightMatch(text, query) {
   if (!query?.trim() || !text) return text;
   const q = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -471,7 +454,7 @@ function MainHeader({
 
   return (
     <div
-      className="flex items-center justify-between gap-3 md:gap-4 w-full px-4 sm:px-6 lg:px-8 xl:px-12 min-h-[52px] md:h-[70px] md:min-h-0 py-2 md:py-0"
+      className="hidden md:flex items-center justify-between gap-2 md:gap-4 w-full px-3 sm:px-6 lg:px-8 xl:px-12 min-h-[48px] md:h-[70px] md:min-h-0 py-1.5 md:py-0"
     >
       {/* Logo */}
       <Link
@@ -486,7 +469,7 @@ function MainHeader({
           <img
             src="/logo.jpg"
             alt="Reaglex"
-            className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover flex-shrink-0"
+            className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover flex-shrink-0"
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
           />
           <div className="hidden sm:block">
@@ -934,7 +917,7 @@ function MainHeader({
             onClick={openCart}
             className="relative p-2 rounded-lg hover:bg-gray-100 transition"
           >
-            <ShoppingBag className="w-[22px] h-[22px]" style={{ color: 'var(--text-muted)' }} />
+            <ShoppingBag className="w-5 h-5 md:w-[22px] md:h-[22px]" style={{ color: 'var(--text-muted)' }} />
             {cartCount > 0 && (
               <span
                 data-cart-target="badge"
@@ -1051,7 +1034,7 @@ function MainHeader({
         {user ? (
           <Link
             to="/account"
-            className="md:hidden flex items-center justify-center w-9 h-9 min-w-[36px] rounded-full overflow-hidden flex-shrink-0 transition-opacity hover:opacity-90 active:opacity-95"
+            className="md:hidden flex items-center justify-center w-8 h-8 min-w-[32px] rounded-full overflow-hidden flex-shrink-0 transition-opacity hover:opacity-90 active:opacity-95"
             style={{ background: PRIMARY }}
             aria-label={t('nav.profile')}
           >
@@ -1071,7 +1054,7 @@ function MainHeader({
         ) : (
           <Link
             to="/auth?tab=login"
-            className="md:hidden flex items-center justify-center w-9 h-9 min-w-[36px] rounded-full border transition active:scale-[0.97]"
+            className="md:hidden flex items-center justify-center w-8 h-8 min-w-[32px] rounded-full border transition active:scale-[0.97]"
             style={{
               borderColor: 'var(--border-card)',
               background: 'var(--bg-secondary)',
@@ -1079,7 +1062,7 @@ function MainHeader({
             }}
             aria-label={t('header.loginRegister')}
           >
-            <User className="w-[18px] h-[18px]" strokeWidth={1.85} style={{ color: 'var(--text-muted)' }} />
+            <User className="w-4 h-4" strokeWidth={1.85} style={{ color: 'var(--text-muted)' }} />
           </Link>
         )}
       </div>
@@ -1199,7 +1182,7 @@ export default function Navbar() {
         background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
-        transform: headerHidden ? 'translateY(calc(-100% + 52px))' : 'translateY(0)',
+        transform: headerHidden ? 'translateY(calc(-100% + 44px))' : 'translateY(0)',
         boxShadow: headerHidden ? 'none' : 'var(--shadow-header)',
       }}
     >
@@ -1245,13 +1228,15 @@ export default function Navbar() {
           t={t}
         />
 
-        {/* Mobile: premium sticky search row (~52px) — primary exploration surface */}
+        <MobileBuyerTopBar />
+
+        {/* Mobile: compact search — AI commerce style */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             openImmersiveSearch(searchQuery);
           }}
-          className="md:hidden px-4 pb-4"
+          className="md:hidden px-3 pb-2"
         >
           <motion.div
             role="button"
@@ -1263,24 +1248,22 @@ export default function Navbar() {
                 openImmersiveSearch(searchQuery);
               }
             }}
-            className="flex items-center gap-1.5 min-h-[52px] rounded-[20px] px-2 pl-3 pr-2 transition-[box-shadow,border-color] duration-200 cursor-text"
+            className="mob-search-bar flex items-center gap-1 min-h-[44px] max-h-[48px] rounded-xl px-1.5 pl-3 pr-1.5 transition-[box-shadow,border-color] duration-200 cursor-text"
             style={{
-              background: 'color-mix(in srgb, var(--card-bg) 78%, var(--search-bg))',
-              border: '1px solid color-mix(in srgb, var(--border-card) 85%, transparent)',
-              boxShadow: 'var(--shadow-sm)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
+              background: 'var(--bg-secondary, #f1f3f5)',
+              border: '1px solid color-mix(in srgb, var(--border-card) 70%, transparent)',
+              boxShadow: '0 1px 6px rgba(15,23,42,0.04)',
             }}
           >
-            <Search className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
+            <Search className="w-4 h-4 flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
             <input
               type="search"
               enterKeyHint="search"
               readOnly
               value={searchQuery}
-              placeholder={t('search.placeholder')}
+              placeholder="Search products, brands, stores..."
               onFocus={() => openImmersiveSearch(searchQuery)}
-              className="flex-1 min-w-0 h-[44px] bg-transparent outline-none text-[15px] search-input pointer-events-none"
+              className="flex-1 min-w-0 h-10 bg-transparent outline-none text-[14px] search-input pointer-events-none"
               style={{ color: searchQuery ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: '-0.01em' }}
             />
             <button
@@ -1289,20 +1272,19 @@ export default function Navbar() {
                 e.stopPropagation();
                 openVisualSearch();
               }}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
               style={{
-                background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
+                background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
                 color: 'var(--brand-primary)',
-                boxShadow: '0 0 18px color-mix(in srgb, var(--brand-primary) 22%, transparent)',
                 WebkitTapHighlightColor: 'transparent',
               }}
               aria-label="Visual search"
             >
-              <Camera className="w-[18px] h-[18px]" strokeWidth={2} />
+              <Camera className="w-4 h-4" strokeWidth={2} />
             </button>
             <Link
               to="/products"
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
               style={{
                 background: 'color-mix(in srgb, var(--brand-primary) 9%, transparent)',
                 color: 'var(--text-secondary)',
@@ -1310,7 +1292,7 @@ export default function Navbar() {
               }}
               aria-label={t('footer.links.shop.allProducts')}
             >
-              <SlidersHorizontal className="w-[18px] h-[18px]" strokeWidth={1.85} />
+              <SlidersHorizontal className="w-4 h-4" strokeWidth={1.85} />
             </Link>
           </motion.div>
         </form>

@@ -1623,7 +1623,7 @@ export default function BuyerDashboard() {
   return (
     <BuyerLayout>
       <div
-        className="min-h-screen"
+        className="buyer-account-mobile min-h-screen"
         style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)', color: 'var(--text-primary)', position: 'relative' }}
       >
         {/* Subtle full-page dot grid */}
@@ -1639,7 +1639,7 @@ export default function BuyerDashboard() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="relative w-full flex items-center justify-between px-6 sm:px-8 lg:px-[32px] py-7"
+          className="account-hero-banner relative w-full flex items-center justify-between px-4 sm:px-8 lg:px-[32px] py-4 lg:py-7"
           style={{
             minHeight: 156,
             background: 'var(--card-bg)',
@@ -1665,7 +1665,7 @@ export default function BuyerDashboard() {
                       {isAddressesTab ? 'Addresses' : 'Dashboard'}
                     </span>
                   </div>
-                  <h1 className="font-black" style={{ fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--text-primary)' }}>
+                  <h1 className="font-bold lg:font-black text-2xl lg:text-[30px]" style={{ letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--text-primary)' }}>
                     {isAddressesTab ? 'My Addresses' : 'My Account'}
                   </h1>
                   {isAddressesTab && (
@@ -1692,7 +1692,7 @@ export default function BuyerDashboard() {
                   </div>
                   <motion.div
                     whileHover={{ scale: 1.06 }}
-                    className="w-14 h-14 sm:w-[62px] sm:h-[62px] rounded-full flex items-center justify-center text-white font-black flex-shrink-0 relative overflow-hidden"
+                    className="account-hero-avatar w-10 h-10 sm:w-[62px] sm:h-[62px] rounded-full flex items-center justify-center text-white font-bold sm:font-black flex-shrink-0 relative overflow-hidden"
                     style={{
                       background: hasAvatar ? 'var(--bg-tertiary)' : PRIMARY,
                       fontSize: 22,
@@ -1766,7 +1766,7 @@ export default function BuyerDashboard() {
         </motion.div>
 
         {/* ═══ TIER 2: Main layout — sidebar + content ═══ */}
-        <div className="w-full" style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 22, paddingBottom: 40 }}>
+        <div className="account-main-pad w-full" style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 22, paddingBottom: 40 }}>
           {/* Mobile: horizontal tab bar */}
           <div className="mb-5 lg:hidden">
             <div className="flex items-center justify-between mb-2 px-0.5">
