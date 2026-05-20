@@ -7,6 +7,7 @@ import { homeFeedApi } from '../../services/homeFeedApi';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
+import { explorePath } from '../explore/exploreConfig';
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -294,7 +295,7 @@ export default function TrendingProducts() {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <Link
-              to="/search"
+              to={explorePath('trending')}
               className="flex sm:justify-end items-center gap-2 text-xs font-semibold tracking-wide self-start sm:self-auto"
               style={{ color: 'var(--link-color)' }}
             >

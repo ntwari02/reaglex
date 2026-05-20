@@ -2,6 +2,8 @@ import type { NavigateFunction } from 'react-router-dom';
 import { SERVER_URL } from './config';
 import { buyerProductPath } from './productUrl';
 import { prefetchProduct } from '../hooks/queries/prefetchProduct';
+// @ts-expect-error JS zustand store
+import { useProductOverlay } from '../stores/productOverlayStore';
 
 function resolvePreviewImage(product: Record<string, unknown>) {
   const primary = Array.isArray(product.images)
@@ -37,12 +39,36 @@ export function warmProductRoute(product: Record<string, unknown>) {
   prefetchProduct(product as { slug?: string; _id?: string; id?: string });
 }
 
-export function navigateToProduct(
+export function shouldUseProductOverlay() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 767px)').matches;
+}
+
+/** Mobile: floating overlay. Desktop: full product route. */
+export function openProductExperience(
   navigate: NavigateFunction,
   product: Record<string, unknown>,
 ) {
   warmProductRoute(product);
+
+  if ((product as { _isUpcoming?: boolean })._isUpcoming) {
+    navigate('/upcoming', { state: { focusId: product.id } });
+    return;
+  }
+
+  if (shouldUseProductOverlay()) {
+    useProductOverlay.getState().open(product);
+    return;
+  }
+
   navigate(buyerProductPath(product as Parameters<typeof buyerProductPath>[0]), {
     state: { productPreview: buildProductPreview(product) },
   });
+}
+
+export function navigateToProduct(
+  navigate: NavigateFunction,
+  product: Record<string, unknown>,
+) {
+  openProductExperience(navigate, product);
 }

@@ -4,6 +4,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { fetchProductSearch } from '../hooks/queries/fetchProductSearch';
 import { productKeys } from '../hooks/queries/productKeys';
 import { useScrollContainer } from '../spa/useScrollContainer';
+import { useRouteUiMemory } from '../spa/useRouteUiMemory';
 import { homeFeedApi } from '../services/homeFeedApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,6 +14,8 @@ import {
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import SearchProductCard from '../components/SearchProductCard';
 import ProductListItem from '../components/ProductListItem';
+import SearchResultRow from '../components/search/SearchResultRow';
+import { useImmersiveSearch } from '../stores/immersiveSearchStore';
 import { productAPI } from '../services/api';
 import { getSavedViewMode, setSavedViewMode } from '../utils/filterProducts';
 import { PageSeo } from '../components/seo/PageSeo';
@@ -328,6 +331,31 @@ function buildSearchParams({ q, category, minPrice, maxPrice, minRating, sort, f
   return sp;
 }
 
+const SEARCH_UI_DEFAULT = {
+  page: 1,
+  viewMode: 'grid',
+  activeSort: 'newest',
+  priceRange: null,
+  customMinPrice: '',
+  customMaxPrice: '',
+  minRating: null,
+  category: 'All Categories',
+  categories: [],
+  freeShipping: false,
+  sellers: [],
+};
+
+function priceRangeFromParams(p) {
+  const min = p.get('minPrice');
+  const max = p.get('maxPrice');
+  if (min == null && max == null) return null;
+  return {
+    min: min ? Number(min) : 0,
+    max: max ? Number(max) : 999999,
+    label: `$${min || 0} – $${max || '∞'}`,
+  };
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function SearchResults() {
   const { t } = useTranslation();
@@ -370,30 +398,78 @@ export default function SearchResults() {
       ]
     : undefined;
 
-  const [page, setPage] = useState(() => Math.max(1, parseInt(params.get('page') || '1', 10)));
-  const [viewMode, setViewMode] = useState(getSavedViewMode);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeSort, setActiveSort] = useState(() => params.get('sort') || 'newest');
-  const [sortOpen, setSortOpen] = useState(false);
-  const [priceRange, setPriceRange] = useState(() => {
-    const min = params.get('minPrice');
-    const max = params.get('maxPrice');
-    if (min != null || max != null) return { min: min ? Number(min) : 0, max: max ? Number(max) : 999999, label: `$${min || 0} – $${max || '∞'}` };
-    return null;
+  const [routeUi, setRouteUi] = useRouteUiMemory(SEARCH_UI_DEFAULT);
+
+  const [page, setPage] = useState(() => {
+    const fromUrl = params.get('page');
+    if (fromUrl) return Math.max(1, parseInt(fromUrl, 10));
+    return Math.max(1, Number(routeUi.page) || 1);
   });
-  const [customMinPrice, setCustomMinPrice] = useState(params.get('minPrice') || '');
-  const [customMaxPrice, setCustomMaxPrice] = useState(params.get('maxPrice') || '');
-  const [minRating, setMinRating] = useState(() => { const r = params.get('minRating'); return r ? Number(r) : null; });
-  const [category, setCategory] = useState(() => params.get('category') || 'All Categories');
-  const [categories, setCategories] = useState(() => { const c = params.get('categories'); return c ? c.split(',').filter(Boolean) : []; });
-  const [freeShipping, setFreeShipping] = useState(() => params.get('freeShipping') === 'true');
-  const [sellers, setSellers] = useState(() => { const s = params.get('sellers'); return s ? s.split(',').filter(Boolean) : []; });
+  const [viewMode, setViewMode] = useState(() => {
+    if (routeUi.viewMode) return routeUi.viewMode;
+    return getSavedViewMode();
+  });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeSort, setActiveSort] = useState(() => params.get('sort') || routeUi.activeSort || 'newest');
+  const [sortOpen, setSortOpen] = useState(false);
+  const [priceRange, setPriceRange] = useState(() => priceRangeFromParams(params) ?? routeUi.priceRange ?? null);
+  const [customMinPrice, setCustomMinPrice] = useState(() => params.get('minPrice') || routeUi.customMinPrice || '');
+  const [customMaxPrice, setCustomMaxPrice] = useState(() => params.get('maxPrice') || routeUi.customMaxPrice || '');
+  const [minRating, setMinRating] = useState(() => {
+    const r = params.get('minRating');
+    if (r) return Number(r);
+    return routeUi.minRating ?? null;
+  });
+  const [category, setCategory] = useState(() => params.get('category') || routeUi.category || 'All Categories');
+  const [categories, setCategories] = useState(() => {
+    const c = params.get('categories');
+    if (c) return c.split(',').filter(Boolean);
+    return Array.isArray(routeUi.categories) ? routeUi.categories : [];
+  });
+  const [freeShipping, setFreeShipping] = useState(() => {
+    if (params.get('freeShipping') === 'true') return true;
+    return Boolean(routeUi.freeShipping);
+  });
+  const [sellers, setSellers] = useState(() => {
+    const s = params.get('sellers');
+    if (s) return s.split(',').filter(Boolean);
+    return Array.isArray(routeUi.sellers) ? routeUi.sellers : [];
+  });
   const [searchInput, setSearchInput] = useState(q);
   const [scrollPast100, setScrollPast100] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const productListRef = useRef(null);
   const initialMount = useRef(true);
   useScrollContainer('search-product-list', productListRef);
+
+  useEffect(() => {
+    setRouteUi({
+      page,
+      viewMode,
+      activeSort,
+      priceRange,
+      customMinPrice,
+      customMaxPrice,
+      minRating,
+      category,
+      categories,
+      freeShipping,
+      sellers,
+    });
+  }, [
+    page,
+    viewMode,
+    activeSort,
+    priceRange,
+    customMinPrice,
+    customMaxPrice,
+    minRating,
+    category,
+    categories,
+    freeShipping,
+    sellers,
+    setRouteUi,
+  ]);
 
   const searchFilters = useMemo(
     () => ({
@@ -718,16 +794,26 @@ export default function SearchResults() {
                 </div>
 
                 {/* In-page search bar */}
-                <form onSubmit={handlePageSearchSubmit} className="search-page-bar flex w-full min-w-0 items-center gap-2 rounded-lg border border-[var(--divider-strong)] overflow-hidden bg-[var(--bg-secondary)] dark:bg-gray-700 lg:max-w-sm lg:flex-1">
-                  <Search className="w-4 h-4 flex-shrink-0 ml-3 text-[var(--text-muted)]" />
+                <form
+                  onSubmit={handlePageSearchSubmit}
+                  className="search-page-bar search-page-bar-premium w-full min-w-0 lg:max-w-sm lg:flex-1"
+                >
+                  <Search className="w-[18px] h-[18px] flex-shrink-0 text-[var(--text-muted)]" aria-hidden />
                   <input
-                    type="text"
+                    type="search"
+                    enterKeyHint="search"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
+                    onFocus={() => {
+                      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                        useImmersiveSearch.getState().openSearch(searchInput);
+                      }
+                    }}
                     placeholder={t('search.placeholder')}
-                    className="flex-1 py-2 px-1 text-sm outline-none bg-transparent min-w-0 text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500"
                   />
-                  <button type="submit" className="px-3 py-2 text-xs font-semibold text-[var(--brand-primary)] shrink-0 touch-manipulation">{t('buttons.search')}</button>
+                  <button type="submit" className="search-page-submit touch-manipulation">
+                    {t('buttons.search')}
+                  </button>
                 </form>
 
                 {/* Title + count — desktop */}
@@ -931,13 +1017,26 @@ export default function SearchResults() {
               {/* Products */}
               {!loading && !error && products.length > 0 && (
                 <>
+                  {/* Mobile: premium list rows (matches immersive search) */}
+                  <motion.div
+                    key="mobile-list"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.28 }}
+                    className="search-page-mobile-list md:hidden"
+                  >
+                    {products.map((p, i) => (
+                      <SearchResultRow key={p._id || p.id || i} product={p} index={i} />
+                    ))}
+                  </motion.div>
+
                   {viewMode === 'grid' ? (
                     <motion.div
                       key="grid"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                      className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                      className="hidden md:grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                     >
                       {products.map((p, i) => (
                         <SearchProductCard key={p._id || p.id || i} product={p} index={i} />
@@ -949,7 +1048,7 @@ export default function SearchResults() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                      className="flex flex-col gap-4"
+                      className="hidden md:flex flex-col gap-4"
                     >
                       {products.map((p, i) => (
                         <ProductListItem key={p._id || p.id || i} product={p} index={i} />

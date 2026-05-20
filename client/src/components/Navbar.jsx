@@ -13,6 +13,7 @@ import { useWishlistStore } from '../stores/wishlistStore';
 import { productAPI } from '../services/api';
 import NotificationsDropdown from './NotificationsDropdown';
 import { buyerNotificationsApi } from '../services/buyerNotificationsApi';
+import { prefetchNotificationHub } from '../notifications/useNotificationHub';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -20,7 +21,11 @@ import { buyerProductPath } from '../lib/productUrl';
 import { useImmersiveSearch } from '../stores/immersiveSearchStore';
 import { useScrollChrome } from '../stores/scrollChromeStore';
 import { useMotionUi } from '../stores/motionUiStore';
+import AccountAvatarButton from './account/AccountAvatarButton';
+import { openAccountExperience } from '../lib/accountNavigation';
 import MobileBuyerTopBar from './buyer/MobileBuyerTopBar';
+import MobileNavbarSearchBar from './search/MobileNavbarSearchBar';
+import { explorePath } from './explore/exploreConfig';
 import {
   getRecentSearches,
   addRecentSearch,
@@ -72,9 +77,9 @@ const LANG_OPTIONS = [
 const NAV_LINKS = [
   { to: '/', labelKey: 'nav.home' },
   { to: '/products', labelKey: 'footer.links.shop.allProducts' },
-  { to: '/search?sort=newest', labelKey: 'nav.newArrivals' },
+  { to: explorePath('new'), labelKey: 'nav.newArrivals' },
   { to: '/search?sort=discount', labelKey: 'nav.deals', badge: 'HOT' },
-  { to: '/search?sort=rating', labelKey: 'nav.topSellers' },
+  { to: explorePath('bestseller'), labelKey: 'nav.topSellers' },
   { to: '/search', labelKey: 'nav.stores' },
   { to: '/track', labelKey: 'nav.trackOrder' },
   { to: '#', labelKey: 'nav.blog' },
@@ -411,6 +416,7 @@ function MainHeader({
       .catch(() => {
         if (mounted) setNotifUnreadCount(0);
       });
+    prefetchNotificationHub();
     return () => {
       mounted = false;
     };
@@ -1030,27 +1036,11 @@ function MainHeader({
           )}
         </div>
 
-        {/* Mobile: account avatar shortcut */}
+        {/* Mobile: account avatar → layered account OS */}
         {user ? (
-          <Link
-            to="/account"
-            className="md:hidden flex items-center justify-center w-8 h-8 min-w-[32px] rounded-full overflow-hidden flex-shrink-0 transition-opacity hover:opacity-90 active:opacity-95"
-            style={{ background: PRIMARY }}
-            aria-label={t('nav.profile')}
-          >
-            {resolveAvatar(user.avatar_url) ? (
-              <img
-                src={resolveAvatar(user.avatar_url)}
-                alt=""
-                className="block w-full h-full object-cover"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            ) : (
-              <span className="text-white font-bold text-sm">
-                {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-              </span>
-            )}
-          </Link>
+          <AccountAvatarButton
+            onOpen={() => openAccountExperience(navigate)}
+          />
         ) : (
           <Link
             to="/auth?tab=login"
@@ -1083,7 +1073,14 @@ function CategoryNav({ t }) {
     >
       <nav className="flex-1 flex items-center gap-6 overflow-x-auto scrollbar-hide px-4">
         {NAV_LINKS.map(({ to, labelKey, badge }) => {
-          const isActive = location.pathname === to || (to === '/search' && location.pathname === '/search');
+          const exploreTab = to.startsWith('/explore')
+            ? new URLSearchParams(to.split('?')[1] || '').get('tab')
+            : null;
+          const isActive = exploreTab
+            ? location.pathname === '/explore' &&
+              new URLSearchParams(location.search).get('tab') === exploreTab
+            : location.pathname === to.split('?')[0] &&
+              (!to.includes('?') || location.search === to.slice(to.indexOf('?')));
           return (
             <Link
               key={labelKey}
@@ -1141,8 +1138,6 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { language, setLanguage, currency, setCurrency } = useTheme();
   const { t } = useTranslation();
-  const openImmersiveSearch = useImmersiveSearch((s) => s.openSearch);
-  const openVisualSearch = useMotionUi((s) => s.openVisualSearch);
   const headerHidden = useScrollChrome((s) => s.headerHidden);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
@@ -1230,72 +1225,7 @@ export default function Navbar() {
 
         <MobileBuyerTopBar />
 
-        {/* Mobile: compact search — AI commerce style */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            openImmersiveSearch(searchQuery);
-          }}
-          className="md:hidden px-3 pb-2"
-        >
-          <motion.div
-            role="button"
-            tabIndex={0}
-            onClick={() => openImmersiveSearch(searchQuery)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                openImmersiveSearch(searchQuery);
-              }
-            }}
-            className="mob-search-bar flex items-center gap-1 min-h-[44px] max-h-[48px] rounded-xl px-1.5 pl-3 pr-1.5 transition-[box-shadow,border-color] duration-200 cursor-text"
-            style={{
-              background: 'var(--bg-secondary, #f1f3f5)',
-              border: '1px solid color-mix(in srgb, var(--border-card) 70%, transparent)',
-              boxShadow: '0 1px 6px rgba(15,23,42,0.04)',
-            }}
-          >
-            <Search className="w-4 h-4 flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
-            <input
-              type="search"
-              enterKeyHint="search"
-              readOnly
-              value={searchQuery}
-              placeholder="Search products, brands, stores..."
-              onFocus={() => openImmersiveSearch(searchQuery)}
-              className="flex-1 min-w-0 h-10 bg-transparent outline-none text-[14px] search-input pointer-events-none"
-              style={{ color: searchQuery ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: '-0.01em' }}
-            />
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openVisualSearch();
-              }}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
-              style={{
-                background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
-                color: 'var(--brand-primary)',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label="Visual search"
-            >
-              <Camera className="w-4 h-4" strokeWidth={2} />
-            </button>
-            <Link
-              to="/products"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
-              style={{
-                background: 'color-mix(in srgb, var(--brand-primary) 9%, transparent)',
-                color: 'var(--text-secondary)',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label={t('footer.links.shop.allProducts')}
-            >
-              <SlidersHorizontal className="w-4 h-4" strokeWidth={1.85} />
-            </Link>
-          </motion.div>
-        </form>
+        <MobileNavbarSearchBar searchQuery={searchQuery} t={t} />
       </div>
 
       {/* Tier 3 */}

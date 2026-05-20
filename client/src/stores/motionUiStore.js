@@ -1,9 +1,16 @@
 import { create } from 'zustand';
+import { useProductOverlay } from './productOverlayStore';
 
 export const useMotionUi = create((set) => ({
   quickPreviewProduct: null,
-  openQuickPreview: (product) => set({ quickPreviewProduct: product || null }),
-  closeQuickPreview: () => set({ quickPreviewProduct: null }),
+  openQuickPreview: (product) => {
+    if (product) useProductOverlay.getState().open(product);
+    set({ quickPreviewProduct: product || null });
+  },
+  closeQuickPreview: () => {
+    useProductOverlay.getState().close();
+    set({ quickPreviewProduct: null });
+  },
 
   visualSearchOpen: false,
   openVisualSearch: () => set({ visualSearchOpen: true }),

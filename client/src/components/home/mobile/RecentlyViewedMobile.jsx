@@ -3,6 +3,8 @@ import { useRecentlyViewed } from '../../../stores/recentlyViewedStore';
 import { useCurrencyPricing } from '../../../hooks/useCurrencyPricing';
 import { SERVER_URL } from '../../../lib/config';
 import MobileSectionHeader from './MobileSectionHeader';
+import { explorePath } from '../../explore/exploreConfig';
+import HorizontalScrollRail from '../../../spa/HorizontalScrollRail';
 
 function resolveThumb(src) {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80';
@@ -19,8 +21,8 @@ export default function RecentlyViewedMobile() {
 
   return (
     <section className="mob-section" aria-labelledby="mob-recent">
-      <MobileSectionHeader id="mob-recent" title="Recently viewed" href="/search" />
-      <div className="mob-horizontal-scroll">
+      <MobileSectionHeader id="mob-recent" title="Recently viewed" href={explorePath('viewed')} />
+      <HorizontalScrollRail railId="home-recently-viewed-rail" className="mob-horizontal-scroll">
         {items.slice(0, 8).map((p) => (
           <button
             key={p._id || p.id}
@@ -49,7 +51,7 @@ export default function RecentlyViewedMobile() {
             </div>
           </button>
         ))}
-      </div>
+      </HorizontalScrollRail>
     </section>
   );
 }

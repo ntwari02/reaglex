@@ -4,7 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { QueryProvider } from './providers/QueryProvider';
-import { ScrollToTop } from './components/ScrollToTop';
+import { NavigationMemoryBridge } from './spa/NavigationMemoryBridge';
 import SpaBuyerShell from './spa/SpaBuyerShell';
 import { ResetPassword } from './pages/ResetPassword';
 import { VerifyOTP } from './pages/VerifyOTP';
@@ -33,7 +33,9 @@ import ImmersiveSearchLayer from './components/search/ImmersiveSearchLayer';
 // @ts-ignore JSX modules without TS typings
 import VisualSearchLayer from './components/search/VisualSearchLayer';
 // @ts-ignore JSX modules without TS typings
-import ProductQuickPreviewSheet from './components/product/ProductQuickPreviewSheet';
+import ProductViewOverlay from './components/product/ProductViewOverlay';
+import AccountOverlaySystem from './components/account/AccountOverlaySystem';
+import AccountMobileGate from './components/account/AccountMobileGate';
 // @ts-ignore JSX modules without TS typings
 import ArTryOnLayer from './components/ar/ArTryOnLayer';
 // @ts-ignore JSX modules without TS typings
@@ -91,6 +93,8 @@ const Returns              = lazy(() => import('./pages/Returns'));
 // @ts-ignore JSX modules without TS typings
 // @ts-ignore JSX modules without TS typings
 const BuyerNotifications   = lazy(() => import('./pages/BuyerNotifications'));
+const UpcomingProducts     = lazy(() => import('./pages/UpcomingProducts'));
+const ExploreAll           = lazy(() => import('./pages/ExploreAll'));
 // @ts-ignore JSX modules without TS typings
 const Contact              = lazy(() => import('./pages/Contact'));
 const ReportProblem        = lazy(() => import('./pages/ReportProblem'));
@@ -158,7 +162,11 @@ function AccountRouteGuard() {
       />
     );
   }
-  return <BuyerDashboard />;
+  return (
+    <AccountMobileGate>
+      <BuyerDashboard />
+    </AccountMobileGate>
+  );
 }
 
 const PageLoader = () => (
@@ -216,7 +224,7 @@ function App() {
     <QueryProvider>
       <BrowserRouter>
         <SiteWideSchemas />
-        <ScrollToTop />
+        <NavigationMemoryBridge />
         <GlobalRealtimeBridge />
         <SecurityTelemetryProbe />
         <ToastNotification />
@@ -230,7 +238,6 @@ function App() {
           <VisualSearchLayer />
           <ArTryOnLayer />
         </ClientOnly>
-        <ProductQuickPreviewSheet />
         <FlyToCartBurst />
 
         {/*
@@ -242,6 +249,7 @@ function App() {
         */}
         <div style={{ overflowX: 'clip', minHeight: '100vh' }}>
           <div
+            data-buyer-page-root
             style={{
               minHeight: '100vh',
               width: cartOpen ? 'calc(100% - min(100vw, 480px))' : '100%',
@@ -252,6 +260,8 @@ function App() {
           <AssistantChat />
           <BuyerGestureShell>
           <LayoutGroup id="buyer-product-transitions">
+          <ProductViewOverlay />
+          <AccountOverlaySystem />
           <Suspense fallback={<PageLoader />}>
             <Routes>
             {/* ── Buyer / Storefront (SPA keep-alive + scroll cache) ── */}
@@ -271,6 +281,8 @@ function App() {
               <Route path="/track" element={<OrderTracking />} />
               <Route path="/account" element={<AccountRouteGuard />} />
               <Route path="/notifications" element={<BuyerNotifications />} />
+              <Route path="/upcoming" element={<UpcomingProducts />} />
+              <Route path="/explore" element={<ExploreAll />} />
               <Route path="/returns" element={<Returns />} />
               <Route path="/help" element={<BuyerHome />} />
               <Route path="/contact" element={<Contact />} />

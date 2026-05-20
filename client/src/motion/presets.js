@@ -29,3 +29,8 @@ export function productImageLayoutId(product) {
   const id = product?._id || product?.id;
   return id ? `product-image-${id}` : undefined;
 }
+
+export function accountAvatarLayoutId(user) {
+  const id = user?.id || user?._id;
+  return id ? `account-avatar-${id}` : undefined;
+}

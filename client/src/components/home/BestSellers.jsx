@@ -6,6 +6,8 @@ import { productAPI } from '../../services/api';
 import { homeFeedApi } from '../../services/homeFeedApi';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
+import { explorePath } from '../explore/exploreConfig';
+import { useHorizontalScrollMemory } from '../../spa/useHorizontalScrollMemory';
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -149,6 +151,7 @@ export default function BestSellers() {
   const [loading, setLoading] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
   const scrollRef = useRef(null);
+  useHorizontalScrollMemory('home-bestsellers-rail', scrollRef);
   const headerRef = useRef(null);
   const inView = useInView(headerRef, { once: true, margin: '-80px' });
 
@@ -274,6 +277,14 @@ export default function BestSellers() {
             </motion.h2>
           </div>
 
+          <div className="flex items-center gap-4 self-start sm:self-auto">
+            <Link
+              to={explorePath('bestseller')}
+              className="text-xs font-semibold tracking-wide whitespace-nowrap"
+              style={{ color: 'var(--link-color)' }}
+            >
+              View all <span>→</span>
+            </Link>
           {/* Scroll arrows */}
           <div className="hidden md:flex items-center gap-2">
             <button
@@ -300,6 +311,7 @@ export default function BestSellers() {
             >
               <ChevronRight size={16} />
             </button>
+          </div>
           </div>
         </div>
       </div>

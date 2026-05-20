@@ -1,25 +1,21 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, Bell, ShoppingBag } from 'lucide-react';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { buyerNotificationsApi } from '../../services/buyerNotificationsApi';
-import NotificationsDropdown from '../NotificationsDropdown';
-import MobileBuyerMenu from './MobileBuyerMenu';
+import { prefetchNotificationHub } from '../../notifications/useNotificationHub';
+import { useMobileMenuOverlay } from '../../stores/mobileMenuOverlayStore';
+import MobileMenuOverlay from '../menu/MobileMenuOverlay';
 
 export default function MobileBuyerTopBar() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
+  const openMenu = useMobileMenuOverlay((s) => s.open);
   const [notifCount, setNotifCount] = useState(0);
-  const notifRef = useRef(null);
+  const navigate = useNavigate();
   const openCart = useBuyerCart((s) => s.openCart);
   const cartItems = useBuyerCart((s) => s.items);
   const user = useAuthStore((s) => s.user);
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
-
-  const handleNotifUnread = useCallback((count) => {
-    setNotifCount(Number(count) || 0);
-  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -33,6 +29,7 @@ export default function MobileBuyerTopBar() {
         if (mounted) setNotifCount(Number(data?.count || 0));
       })
       .catch(() => {});
+    prefetchNotificationHub();
     return () => {
       mounted = false;
     };
@@ -43,7 +40,7 @@ export default function MobileBuyerTopBar() {
       <div className="md:hidden relative flex items-center justify-between gap-2 w-full px-3 min-h-[44px] max-h-[48px] py-1">
         <button
           type="button"
-          onClick={() => setMenuOpen(true)}
+          onClick={openMenu}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg active:scale-95 transition-transform"
           style={{ WebkitTapHighlightColor: 'transparent' }}
           aria-label="Open menu"
@@ -67,29 +64,22 @@ export default function MobileBuyerTopBar() {
         </Link>
 
         <div className="flex items-center gap-0.5 shrink-0">
-          <div className="relative" ref={notifRef}>
-            <button
-              type="button"
-              onClick={() => setNotifOpen(!notifOpen)}
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg active:scale-95 transition-transform"
-              aria-label="Notifications"
-            >
-              <Bell size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
-              {notifCount > 0 && (
-                <span
-                  className="absolute top-1 right-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-0.5 text-[9px] font-bold text-white"
-                  style={{ background: 'var(--brand-primary)' }}
-                >
-                  {notifCount > 9 ? '9+' : notifCount}
-                </span>
-              )}
-            </button>
-            <NotificationsDropdown
-              isOpen={notifOpen}
-              onClose={() => setNotifOpen(false)}
-              onUnreadChange={handleNotifUnread}
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/notifications')}
+            className="relative flex h-9 w-9 items-center justify-center rounded-lg active:scale-95 transition-transform"
+            aria-label="Notifications"
+          >
+            <Bell size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
+            {notifCount > 0 && (
+              <span
+                className="absolute top-1 right-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-0.5 text-[9px] font-bold text-white"
+                style={{ background: 'var(--brand-primary)' }}
+              >
+                {notifCount > 9 ? '9+' : notifCount}
+              </span>
+            )}
+          </button>
 
           <button
             type="button"
@@ -112,7 +102,7 @@ export default function MobileBuyerTopBar() {
         </div>
       </div>
 
-      <MobileBuyerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <MobileMenuOverlay />
     </>
   );
 }

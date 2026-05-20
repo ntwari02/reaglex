@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Parallax } from 'swiper/modules';
 import { useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useHeroCarousel } from '../../hooks/useBuyerSiteContent';
+import HelloUpcomingSlide from './mobile/HelloUpcomingSlide';
 
 import 'swiper/css';
 
@@ -76,8 +77,18 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
   const { data: heroData } = useHeroCarousel();
-  const slides =
+  const baseSlides =
     heroData?.slides?.length > 0 ? mapApiSlides(heroData.slides) : FALLBACK_SLIDES;
+
+  const slides = useMemo(() => {
+    if (!compact) return baseSlides;
+    const next = [...baseSlides];
+    const hasUpcoming = next.some((s) => s.type === 'upcoming');
+    if (!hasUpcoming) {
+      next.splice(1, 0, { id: 'hello-upcoming', type: 'upcoming' });
+    }
+    return next;
+  }, [baseSlides, compact]);
   const overlay = slideOverlay(isDark);
   const textPrimary = isDark ? '#ffffff' : '#111111';
   const textMuted = isDark ? 'rgba(255,255,255,0.72)' : '#777777';
@@ -113,7 +124,17 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
           className="premium-casual-swiper !overflow-hidden"
           style={{ minHeight: slideMinH, borderRadius: radius }}
         >
-          {slides.map((slide, i) => (
+          {slides.map((slide, i) => {
+            if (slide.type === 'upcoming') {
+              return (
+                <SwiperSlide key={slide.id} className="!h-auto">
+                  <div style={{ minHeight: 142 }}>
+                    <HelloUpcomingSlide />
+                  </div>
+                </SwiperSlide>
+              );
+            }
+            return (
             <SwiperSlide key={slide.id} className="!h-auto">
               <article className="relative overflow-hidden" style={{ minHeight: slideMinH }}>
                 {slide.videoUrl ? (
@@ -195,7 +216,8 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
                 </div>
               </article>
             </SwiperSlide>
-          ))}
+            );
+          })}
         </Swiper>
 
         <div className={`pointer-events-none absolute left-0 right-0 z-10 flex justify-center gap-1 ${compact ? 'bottom-2' : 'bottom-3'}`}>

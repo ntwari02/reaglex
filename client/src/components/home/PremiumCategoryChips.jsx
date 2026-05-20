@@ -1,5 +1,7 @@
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useHorizontalScrollMemory } from '../../spa/useHorizontalScrollMemory';
 import {
   Cpu, Shirt, Home, Dumbbell, Sparkles, Gamepad2, BookOpen, Car, Layers, Footprints,
 } from 'lucide-react';
@@ -45,6 +47,8 @@ function buildChipsFromApi(categories) {
 }
 
 export default function PremiumCategoryChips({ activeId = 'all', onSelect }) {
+  const chipsRef = useRef(null);
+  useHorizontalScrollMemory('home-category-chips', chipsRef);
   const { data: categories = [] } = useStorefrontCategories();
   const chips =
     categories.length > 0 ? buildChipsFromApi(categories) : FALLBACK_CHIPS;
@@ -52,6 +56,7 @@ export default function PremiumCategoryChips({ activeId = 'all', onSelect }) {
   return (
     <section className="px-4 pb-1 pt-0 md:pb-2" aria-label="Categories">
       <motion.div
+        ref={chipsRef}
         className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >

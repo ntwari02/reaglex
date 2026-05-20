@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import PremiumMobileFooter from './footer/PremiumMobileFooter';
 import {
   Facebook, Twitter, Instagram, Linkedin, Youtube, Music2, Mail, Phone, Clock,
   ChevronRight, Lock, CheckCircle, Building2, Send,
@@ -281,16 +282,20 @@ export default function Footer() {
 
   return (
     <motion.footer
-      className="footer"
+      className="footer footer--legacy-mobile-hidden"
       style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
+      <div className="md:hidden w-full">
+        <PremiumMobileFooter />
+      </div>
+
       {/* ═══ TIER 2: Newsletter (above main footer) ═══ */}
       <div
-        className="relative w-full flex flex-col md:flex-row md:items-center md:justify-between gap-6 px-4 sm:px-6 lg:px-20 py-10"
+        className="footer-newsletter-tier relative w-full hidden md:flex flex-col md:flex-row md:items-center md:justify-between gap-6 px-4 sm:px-6 lg:px-20 py-10"
         style={{
           background: 'var(--footer-newsletter-bg)',
           borderTop: `1px solid var(--footer-newsletter-edge)`,
@@ -371,7 +376,7 @@ export default function Footer() {
 
       {/* ═══ TIER 1: Main footer body ═══ */}
       <div
-        className="footer-main w-full px-4 sm:px-6 lg:px-20"
+        className="footer-main hidden md:block w-full px-4 sm:px-6 lg:px-20"
         style={{
           background: 'var(--footer-main-bg)',
           paddingTop: 72,
@@ -553,7 +558,7 @@ export default function Footer() {
 
       {/* ═══ TIER 3: Bottom bar ═══ */}
       <div
-        className="footer-bottom w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 sm:px-6 lg:px-20 py-3 min-h-[52px]"
+        className="footer-bottom hidden md:flex w-full flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 sm:px-6 lg:px-20 py-3 min-h-[52px]"
         style={{
           background: 'var(--footer-bottom-bg)',
           boxShadow: 'inset 0 1px 0 var(--footer-inset-line)',

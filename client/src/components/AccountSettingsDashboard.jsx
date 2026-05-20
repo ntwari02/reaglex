@@ -6,6 +6,7 @@ import {
   Eye, EyeOff, Shield, Loader2, Check, X, ChevronRight, Moon, Sun,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import { useAccountOverlay } from '../stores/accountOverlayStore';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToastStore } from '../stores/toastStore';
 import {
@@ -13,6 +14,7 @@ import {
   updateRecommendationEmailPreference,
 } from '../services/recommendationEmailApi';
 import WebPushOptInCard from './notifications/WebPushOptInCard';
+import AccountAppearancePanel from './account/AccountAppearancePanel';
 
 const PRIMARY = 'var(--brand-primary)';
 const SUCCESS = '#10b981';
@@ -37,13 +39,19 @@ const COUNTRIES = [
   { code: 'FR', flag: '🇫🇷', name: 'France' },
 ];
 
-export default function AccountSettingsDashboard() {
+export default function AccountSettingsDashboard({
+  embedded = false,
+  forcedSection,
+} = {}) {
   const [sp, setSp] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const showToast = useToastStore((s) => s.showToast);
   const { theme, setTheme } = useTheme();
 
-  const section = sp.get('section') || 'profile';
+  const overlaySection = useAccountOverlay((s) => s.settingsSection);
+  const section = embedded
+    ? overlaySection || forcedSection || 'profile'
+    : forcedSection || sp.get('section') || 'profile';
   const settingsTabsScrollRef = useRef(null);
   const [showTabsLeftFade, setShowTabsLeftFade] = useState(false);
   const [showTabsRightFade, setShowTabsRightFade] = useState(false);
@@ -51,14 +59,21 @@ export default function AccountSettingsDashboard() {
   useEffect(() => {
     if (sp.get('tab') === 'settings' && !sp.get('section')) setSp((prev) => { const n = new URLSearchParams(prev); n.set('section', 'profile'); return n; });
   }, []);
-  const setSection = useCallback((s) => {
-    setSp((prev) => {
-      const n = new URLSearchParams(prev);
-      n.set('tab', 'settings');
-      n.set('section', s);
-      return n;
-    });
-  }, [setSp]);
+  const setSection = useCallback(
+    (s) => {
+      if (embedded) {
+        useAccountOverlay.setState({ settingsSection: s });
+        return;
+      }
+      setSp((prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('tab', 'settings');
+        n.set('section', s);
+        return n;
+      });
+    },
+    [embedded, setSp],
+  );
 
   useEffect(() => {
     const el = settingsTabsScrollRef.current;
@@ -310,8 +325,8 @@ export default function AccountSettingsDashboard() {
 
   return (
     <div
-      className="min-h-[520px]"
-      style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)' }}
+      className={`account-settings-os min-h-[520px]${embedded ? ' account-settings-os--embed' : ''}`}
+      style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
     >
       <div className="max-w-[1300px] mx-auto px-4 sm:px-5 lg:px-7 py-6 space-y-6">
         {/* Tabs */}
@@ -1255,72 +1270,31 @@ export default function AccountSettingsDashboard() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="rounded-2xl p-7 border"
-            style={{
-              ...CARD_STYLE,
-              background: 'var(--card-bg)',
-              borderColor: 'var(--border-card)',
-              boxShadow: 'var(--shadow-card)',
-            }}
+            className="rounded-2xl p-7 border aos-card"
           >
-            <div className="flex items-start gap-3 mb-6">
+            <div className="flex items-start gap-3 mb-2">
               <div
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                style={{ background: 'var(--brand-tint)', color: 'var(--brand-primary)' }}
+                style={{ background: 'rgba(255,106,0,0.12)', color: '#ff6a00' }}
               >
                 <Palette className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Appearance</h3>
-                <p className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                  Choose light or dark mode for Reaglex. Your selection stays on this device and syncs when you&apos;re signed in.
+                <h3 className="font-bold text-lg m-0">Appearance</h3>
+                <p className="mt-1 text-sm leading-relaxed m-0" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  2030 adaptive dark themes — Cinema & Ambient. Tailwind dark mode stays on for compatibility.
                 </p>
               </div>
             </div>
-
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-3" style={{ color: 'var(--text-muted)' }}>
-              Theme
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setTheme('light')}
-                className="flex flex-col items-start gap-2 rounded-[18px] border px-4 py-4 text-left transition-all duration-200 active:scale-[0.99]"
-                style={{
-                  borderColor: theme === 'light' ? 'var(--brand-primary)' : 'var(--border-card)',
-                  background:
-                    theme === 'light'
-                      ? 'color-mix(in srgb, var(--brand-primary) 10%, var(--card-bg))'
-                      : 'var(--bg-secondary)',
-                  boxShadow: theme === 'light' ? 'var(--shadow-cta)' : 'none',
-                }}
-              >
-                <Sun className="h-5 w-5" style={{ color: theme === 'light' ? 'var(--brand-primary)' : 'var(--text-muted)' }} strokeWidth={1.75} />
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Light</span>
-                <span className="text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  Bright backgrounds with crisp contrast for daytime shopping.
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTheme('dark')}
-                className="flex flex-col items-start gap-2 rounded-[18px] border px-4 py-4 text-left transition-all duration-200 active:scale-[0.99]"
-                style={{
-                  borderColor: theme === 'dark' ? 'var(--brand-primary)' : 'var(--border-card)',
-                  background:
-                    theme === 'dark'
-                      ? 'color-mix(in srgb, var(--brand-primary) 12%, var(--card-bg))'
-                      : 'var(--bg-secondary)',
-                  boxShadow: theme === 'dark' ? 'var(--shadow-cta)' : 'none',
-                }}
-              >
-                <Moon className="h-5 w-5" style={{ color: theme === 'dark' ? 'var(--brand-primary)' : 'var(--text-muted)' }} strokeWidth={1.75} />
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Dark</span>
-                <span className="text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  Cinematic charcoal tones designed for low-light viewing.
-                </span>
-              </button>
-            </div>
+            <AccountAppearancePanel compact />
+            <button
+              type="button"
+              className="mt-4 text-xs font-semibold"
+              style={{ color: 'rgba(255,255,255,0.45)' }}
+              onClick={() => setTheme('dark')}
+            >
+              Sync legacy dark class for older components
+            </button>
           </motion.div>
         )}
 

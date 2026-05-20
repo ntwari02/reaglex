@@ -1623,7 +1623,7 @@ export default function BuyerDashboard() {
   return (
     <BuyerLayout>
       <div
-        className="buyer-account-mobile min-h-screen"
+        className="buyer-account-mobile account-os-page min-h-screen"
         style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)', color: 'var(--text-primary)', position: 'relative' }}
       >
         {/* Subtle full-page dot grid */}

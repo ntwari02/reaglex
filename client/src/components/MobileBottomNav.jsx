@@ -4,6 +4,8 @@ import { Home, LayoutGrid, ShoppingBag, Heart, User } from 'lucide-react';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useAuthStore } from '../stores/authStore';
 import { isBuyerChromeHidden } from '../config/buyerNavVisibility';
+import { openAccountExperience } from '../lib/accountNavigation';
+import { useNavigationMemory } from '../stores/navigationMemoryStore';
 import { useScrollChrome } from '../stores/scrollChromeStore';
 
 const TABS = [
@@ -52,7 +54,11 @@ export default function MobileBottomNav() {
 
   if (isBuyerChromeHidden(location.pathname)) return null;
 
+  const saveScroll = useNavigationMemory((s) => s.saveActiveScroll);
+
   const handlePress = (tab) => {
+    saveScroll(location.pathname, location.search);
+
     if (tab.id === 'cart') {
       openCart();
       return;
@@ -63,6 +69,14 @@ export default function MobileBottomNav() {
     }
     if (tab.id === 'wishlist' && !user) {
       navigate('/auth?tab=login');
+      return;
+    }
+    if (tab.id === 'account') {
+      openAccountExperience(navigate);
+      return;
+    }
+    if (tab.id === 'wishlist') {
+      openAccountExperience(navigate, 'wishlist');
       return;
     }
     navigate(tab.to);

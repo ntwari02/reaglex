@@ -7,6 +7,7 @@ import { homeFeedApi } from '../../services/homeFeedApi';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
+import { explorePath } from '../explore/exploreConfig';
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -145,6 +146,7 @@ function RecCard({ product, index, onAdd }) {
 
 /* ─── Filter tabs ────────────────────────────────────────────────────────── */
 const TABS = ['For You', 'New Arrivals', 'Popular', 'Deals'];
+const EXPLORE_TAB_IDS = ['ai', 'new', 'viewed', 'all'];
 
 /* ─── Section ────────────────────────────────────────────────────────────── */
 export default function RecommendedSection() {
@@ -353,7 +355,7 @@ export default function RecommendedSection() {
         transition={{ duration: 0.5 }}
       >
         <Link
-          to="/search"
+          to={explorePath(EXPLORE_TAB_IDS[activeTab] || 'ai')}
           className="inline-flex items-center gap-3 px-8 py-3.5 rounded-full text-xs font-bold tracking-[0.15em] uppercase transition-all duration-300"
           style={{
             background: 'var(--btn-ghost-hover-bg)',

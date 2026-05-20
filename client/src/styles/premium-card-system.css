@@ -1,0 +1,600 @@
+/* ═══════════════════════════════════════════════════════════════
+   Reaglex Premium Card System · 2026–2030
+   Shared tokens + section-specific modifiers
+   ═══════════════════════════════════════════════════════════════ */
+
+.rx-card {
+  font-family: 'Inter', system-ui, -apple-system, 'SF Pro Display', sans-serif;
+  min-width: 0;
+}
+
+.rx-card__surface {
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--card-bg, #1a1d24) 94%, var(--brand-primary) 6%) 0%,
+    var(--card-bg, #16161a) 48%,
+    color-mix(in srgb, var(--card-bg) 98%, #000) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--border-card, #fff) 12%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 4%, transparent) inset,
+    0 10px 28px rgba(0, 0, 0, 0.16);
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.24s ease;
+}
+
+.rx-card__surface--lux {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--brand-primary) 8%, transparent) inset,
+    0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.rx-card__surface--fresh {
+  background: var(--card-bg);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+}
+
+.rx-card__surface--compact {
+  border-radius: 20px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.rx-card__media-btn {
+  display: block;
+  width: 100%;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rx-card__media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: #0c0c10;
+  overflow: hidden;
+}
+
+.rx-card__media--tall {
+  aspect-ratio: 1 / 1.05;
+}
+
+.rx-card__media--compact {
+  aspect-ratio: 1 / 0.92;
+}
+
+.rx-card__media img,
+.rx-card__media .rx-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rx-card:hover .rx-card__media img,
+.rx-card:hover .rx-card__media .rx-card__img {
+  transform: scale(1.03);
+}
+
+/* Badges */
+.rx-card__badge {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.rx-card__badge--pos-bl {
+  left: 8px;
+  bottom: 8px;
+  top: auto;
+}
+
+.rx-card__badge--pos-tl {
+  left: 8px;
+  top: 8px;
+}
+
+.rx-card__badge--trending {
+  background: color-mix(in srgb, var(--brand-primary) 92%, #000);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+
+.rx-card__badge--bestseller {
+  background: color-mix(in srgb, var(--brand-primary) 88%, #1a1008);
+}
+
+.rx-card__badge--viewed {
+  background: color-mix(in srgb, #6366f1 75%, #0f0f12);
+}
+
+.rx-card__badge--new {
+  background: color-mix(in srgb, #22c55e 70%, #0f172a);
+}
+
+.rx-card__badge--glow {
+  box-shadow: 0 0 14px color-mix(in srgb, #22c55e 45%, transparent);
+}
+
+.rx-card__badge--ai {
+  background: linear-gradient(90deg, #6366f1, color-mix(in srgb, var(--brand-primary) 55%, #6366f1));
+}
+
+/* Wish + cart */
+.rx-card__wish {
+  position: absolute;
+  z-index: 3;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  background: color-mix(in srgb, #000 42%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.rx-card__wish--md {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.rx-card__wish--sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  position: relative;
+  top: auto;
+  right: auto;
+  background: color-mix(in srgb, var(--card-bg) 88%, transparent);
+  color: var(--text-muted);
+  border: 1px solid color-mix(in srgb, var(--border-card) 50%, transparent);
+}
+
+.rx-card__fab {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  background: var(--brand-primary);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 38%, transparent);
+}
+
+.rx-card__fab--md {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
+.rx-card__fab--sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+.rx-card__fab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Body */
+.rx-card__body {
+  padding: 10px 12px 12px;
+}
+
+.rx-card__body--rail {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.rx-card__body--minimal {
+  padding: 12px;
+}
+
+.rx-card__body--compact {
+  padding: 8px 10px 10px;
+}
+
+.rx-card__text-btn {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rx-card__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rx-card__title--sm {
+  font-size: 14px;
+  -webkit-line-clamp: 2;
+}
+
+.rx-card__title--xs {
+  font-size: 13px;
+  -webkit-line-clamp: 2;
+}
+
+.rx-card__price {
+  margin: 6px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.rx-card__price--sm {
+  font-size: 16px;
+  margin-top: 4px;
+}
+
+.rx-card__price--xs {
+  font-size: 15px;
+  margin-top: 2px;
+}
+
+.rx-card__store {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rx-card__insight {
+  margin: 3px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.rx-card__insight--views {
+  color: color-mix(in srgb, #818cf8 80%, var(--text-muted));
+}
+
+.rx-card__insight--ai {
+  font-size: 10px;
+  line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rx-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rx-card__rating--compact {
+  margin-top: 2px;
+}
+
+.rx-card__rating-val {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rx-card__rating-meta {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.rx-card__action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rx-card__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.rx-card__foot--tight {
+  margin-top: 4px;
+}
+
+.rx-card__add-pill {
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-primary);
+  cursor: pointer;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+
+.rx-card__add-pill:disabled {
+  opacity: 0.45;
+}
+
+.rx-card__details-cta {
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+/* ── Trending rail ── */
+.rx-card--trending-rail {
+  flex: 0 0 78vw;
+  width: 78vw;
+  max-width: 340px;
+  scroll-snap-align: center;
+}
+
+.rx-card--trending-rail .rx-card__surface {
+  border-radius: 22px;
+}
+
+/* ── Trending grid ── */
+.rx-card--trending-grid .rx-card__surface {
+  border-radius: 22px;
+}
+
+/* ── Best seller ── */
+.rx-card--bestseller .rx-card__surface--lux {
+  border-color: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+}
+
+/* ── Most viewed ── */
+.rx-card--viewed .rx-card__surface {
+  border-color: color-mix(in srgb, #6366f1 14%, transparent);
+}
+
+/* ── New ── */
+.rx-card--new .rx-card__surface--fresh {
+  border-color: color-mix(in srgb, #22c55e 12%, transparent);
+}
+
+/* ── AI hero ── */
+.rx-card--ai-hero {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.rx-card__surface--ai-hero {
+  display: flex;
+  min-height: 168px;
+  border-radius: 26px;
+  background: linear-gradient(
+    125deg,
+    color-mix(in srgb, #6366f1 14%, var(--card-bg)) 0%,
+    var(--card-bg) 42%,
+    color-mix(in srgb, var(--brand-primary) 10%, transparent) 100%
+  );
+  border: 1px solid color-mix(in srgb, #6366f1 22%, var(--border-card));
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 5%, transparent) inset,
+    0 14px 36px rgba(0, 0, 0, 0.22);
+}
+
+.rx-card__ai-media {
+  position: relative;
+  flex: 0 0 42%;
+  border: none;
+  padding: 0;
+  background: #0c0c10;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.rx-card__ai-media img {
+  width: 100%;
+  height: 100%;
+  min-height: 168px;
+  object-fit: cover;
+}
+
+.rx-card__ai-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.rx-card__ai-reason {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, #a78bfa 90%, var(--text-muted));
+}
+
+.rx-card__ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rx-card__ai-actions .rx-card__wish {
+  position: relative;
+  top: auto;
+  right: auto;
+  background: color-mix(in srgb, var(--card-bg) 75%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-card) 45%, transparent);
+  color: var(--text-primary);
+}
+
+.rx-card__view-details {
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand-primary);
+  cursor: pointer;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+
+/* ── AI grid ── */
+.rx-card--ai-grid .rx-card__surface--ai {
+  border-color: color-mix(in srgb, #6366f1 16%, transparent);
+}
+
+/* ── Explore compact ── */
+.rx-card--explore .rx-card__badge {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 9px;
+}
+
+/* Section grids (homepage) */
+.rx-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rx-card-grid--ai {
+  margin-top: 10px;
+}
+
+.rx-card-rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rx-card-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* View-all CTA */
+.rx-view-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 46px;
+  margin-top: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rx-view-all-btn:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .rx-view-all-btn:hover {
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--brand-primary) 18%, transparent);
+  }
+}
+
+/* You may also like — carousel polish only */
+.premium-carousel-card-inner {
+  border-radius: 26px !important;
+}
+
+.premium-carousel-card-inner .relative.mx-3.mt-3 {
+  margin: 12px 12px 0 !important;
+  border-radius: 20px !important;
+}
+
+.premium-carousel-card-inner .flex.flex-1.flex-col {
+  padding: 12px 14px 16px !important;
+}
+
+.premium-carousel-card-inner h3 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em;
+}
+
+.premium-carousel-card-inner .mt-2.text-\[17px\] {
+  font-size: 18px !important;
+  color: var(--text-primary) !important;
+}
+
+@media (min-width: 768px) {
+  .rx-card--trending-rail {
+    flex: 0 0 min(300px, 28vw);
+    width: min(300px, 28vw);
+    max-width: 340px;
+  }
+
+  .rx-card-grid {
+    gap: 14px;
+  }
+
+  .rx-card__surface--ai-hero {
+    min-height: 200px;
+  }
+}

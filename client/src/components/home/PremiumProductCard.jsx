@@ -9,7 +9,7 @@ import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { useProductCardGestures } from '../../hooks/useProductCardGestures';
 import { useMotionUi } from '../../stores/motionUiStore';
 import { SERVER_URL } from '../../lib/config';
-import { buyerProductPath } from '../../lib/productUrl';
+import { openProductExperience } from '../../lib/productNavigation';
 import { productImageLayoutId } from '../../motion/presets';
 
 function extractImageSrc(src) {
@@ -102,17 +102,7 @@ export default function PremiumProductCard({ product, index = 0 }) {
         return;
       }
       pressCompress();
-      navigate(buyerProductPath(product), {
-        state: {
-          productPreview: {
-            id: productId,
-            title: name,
-            price,
-            image: imgSrc,
-            rating,
-          },
-        },
-      });
+      openProductExperience(navigate, product);
       window.setTimeout(releaseCompress, 180);
     },
     [navigate, name, price, imgSrc, product, productId, rating, pressCompress, releaseCompress, longPressFired],

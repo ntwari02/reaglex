@@ -23,6 +23,7 @@ import { SERVER_URL } from '../lib/config';
 import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 import { productImageLayoutId } from '../motion/presets';
+import { shouldUseProductOverlay } from '../lib/productNavigation';
 
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
@@ -394,6 +395,7 @@ export default function ProductDetail() {
   useEffect(() => {
     if (!slugParam && !legacyId) return;
     if (navigationType === 'POP') return;
+    if (shouldUseProductOverlay()) return;
     window.scrollTo({ top: 0, behavior: 'auto' });
     setActiveImage(0);
   }, [slugParam, legacyId, navigationType]);

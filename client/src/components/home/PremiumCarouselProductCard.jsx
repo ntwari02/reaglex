@@ -63,7 +63,7 @@ export default function PremiumCarouselProductCard({ product, isActive = false, 
 
   return (
     <motion.article
-      className="premium-carousel-card-inner flex h-full flex-col overflow-hidden rounded-[24px] cursor-pointer"
+      className="premium-carousel-card-inner rx-also-like-card flex h-full flex-col overflow-hidden rounded-[24px] cursor-pointer"
       onClick={openProduct}
       animate={{
         scale: isActive ? 1 : 0.96,
