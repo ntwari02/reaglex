@@ -515,7 +515,8 @@
       "alerts": "Alerts",
       "orders": "Orders",
       "deals": "Deals",
-      "system": "System"
+      "system": "System",
+      "messages": "Messages"
     },
     "actions": {
       "trackOrder": "Track Order ->",

@@ -119,7 +119,7 @@ export default function AIRecommendationsMobile({ products = [], loading }) {
         id="mob-ai-recs"
         title="AI for you"
         subtitle="Personalized picks based on your taste"
-        href="/search"
+        href="/explore?tab=ai"
       />
       <AIHeroCard product={hero} />
       {rest.length > 0 && (

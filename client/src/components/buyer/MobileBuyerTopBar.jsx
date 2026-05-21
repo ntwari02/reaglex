@@ -1,14 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Bell, ShoppingBag } from 'lucide-react';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { buyerNotificationsApi } from '../../services/buyerNotificationsApi';
 import NotificationsDropdown from '../NotificationsDropdown';
-import MobileBuyerMenu from './MobileBuyerMenu';
+import MobileMenuOverlay from '../menu/MobileMenuOverlay';
+import { useMobileMenuOverlay } from '../../stores/mobileMenuOverlayStore';
 
 export default function MobileBuyerTopBar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const openMenu = useMobileMenuOverlay((s) => s.open);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const notifRef = useRef(null);
@@ -40,15 +41,20 @@ export default function MobileBuyerTopBar() {
 
   return (
     <>
-      <div className="md:hidden relative flex items-center justify-between gap-2 w-full px-3 min-h-[44px] max-h-[48px] py-1">
+      <div className="md:hidden relative flex items-center justify-between gap-2 w-full px-4 min-h-[48px] max-h-[52px] py-2">
         <button
           type="button"
-          onClick={() => setMenuOpen(true)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg active:scale-95 transition-transform"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
+          onClick={openMenu}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border active:scale-95 transition-transform"
+          style={{
+            WebkitTapHighlightColor: 'transparent',
+            borderColor: 'var(--border-card)',
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+          }}
           aria-label="Open menu"
         >
-          <Menu size={20} strokeWidth={1.85} style={{ color: 'var(--text-primary)' }} />
+          <Menu size={20} strokeWidth={1.85} />
         </button>
 
         <Link to="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
@@ -66,18 +72,22 @@ export default function MobileBuyerTopBar() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <div className="relative" ref={notifRef}>
             <button
               type="button"
-              onClick={() => setNotifOpen(!notifOpen)}
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg active:scale-95 transition-transform"
+              onClick={() => setNotifOpen((v) => !v)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border active:scale-95 transition-transform"
+              style={{
+                borderColor: 'var(--border-card)',
+                background: 'var(--bg-secondary)',
+              }}
               aria-label="Notifications"
             >
               <Bell size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
               {notifCount > 0 && (
                 <span
-                  className="absolute top-1 right-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-0.5 text-[9px] font-bold text-white"
+                  className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
                   style={{ background: 'var(--brand-primary)' }}
                 >
                   {notifCount > 9 ? '9+' : notifCount}
@@ -95,14 +105,18 @@ export default function MobileBuyerTopBar() {
             type="button"
             data-cart-target="badge"
             onClick={openCart}
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg active:scale-95 transition-transform"
+            className="relative flex h-10 w-10 items-center justify-center rounded-xl border active:scale-95 transition-transform"
+            style={{
+              borderColor: 'var(--border-card)',
+              background: 'var(--bg-secondary)',
+            }}
             aria-label="Cart"
           >
             <ShoppingBag size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
             {cartCount > 0 && (
               <span
                 data-cart-target="badge"
-                className="absolute top-1 right-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-0.5 text-[9px] font-bold text-white"
+                className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
                 style={{ background: 'var(--brand-primary)' }}
               >
                 {cartCount > 9 ? '9+' : cartCount}
@@ -112,7 +126,7 @@ export default function MobileBuyerTopBar() {
         </div>
       </div>
 
-      <MobileBuyerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <MobileMenuOverlay />
     </>
   );
 }

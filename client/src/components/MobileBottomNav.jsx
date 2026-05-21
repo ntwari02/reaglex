@@ -18,7 +18,12 @@ function activeTab(pathname, search) {
   const params = new URLSearchParams(search || '');
   const accountTab = params.get('tab');
   if (pathname === '/') return 'home';
-  if (pathname.startsWith('/products') || pathname.startsWith('/category') || pathname.startsWith('/search')) {
+  if (
+    pathname.startsWith('/products')
+    || pathname.startsWith('/category')
+    || pathname.startsWith('/search')
+    || pathname.startsWith('/explore')
+  ) {
     return 'browse';
   }
   if (

@@ -2,6 +2,8 @@
 @import './styles/theme.css';
 @import './styles/mobile-commerce.css';
 @import './styles/mobile-assistant.css';
+@import './styles/notifications-os.css';
+@import './styles/mobile-menu-overlay.css';
 
 /* Mea Culpa – auth brand panel */
 @font-face {

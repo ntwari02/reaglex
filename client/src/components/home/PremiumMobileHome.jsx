@@ -13,6 +13,7 @@ import AIRecommendationsMobile from './mobile/AIRecommendationsMobile';
 import RecentlyViewedMobile from './mobile/RecentlyViewedMobile';
 import MobileTrustStrip from './mobile/MobileTrustStrip';
 import SuperDealsBanner from './mobile/SuperDealsBanner';
+import { explorePath } from '../explore/exploreConfig';
 
 export default function PremiumMobileHome() {
   const { theme } = useTheme();
@@ -52,7 +53,7 @@ export default function PremiumMobileHome() {
         <MobileSectionHeader
           id="mob-trending"
           title="Trending Now"
-          href="/search?sort=trending"
+          href={explorePath('trending')}
         />
         {loading.trending ? (
           <div className="mob-horizontal-scroll">
@@ -77,7 +78,7 @@ export default function PremiumMobileHome() {
           id="mob-bestsellers"
           title="Best sellers"
           subtitle="Top-rated this week"
-          href="/search?sort=bestseller"
+          href={explorePath('bestseller')}
         />
         {loading.best ? (
           <div className="mob-horizontal-scroll">
@@ -98,7 +99,7 @@ export default function PremiumMobileHome() {
         variant="ai"
         title="AI picks just for you"
         subtitle="Smart recommendations from Reaglex"
-        href="/search"
+        href={explorePath('ai')}
         cta="Explore"
       />
 
@@ -119,7 +120,7 @@ export default function PremiumMobileHome() {
           id="mob-fresh"
           title="New arrivals"
           subtitle="Fresh drops · 4–6 per screen"
-          href="/search?sort=newest"
+          href={explorePath('new')}
         />
         {loading.fresh ? (
           <div className="grid grid-cols-2 gap-2">

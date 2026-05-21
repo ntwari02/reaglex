@@ -110,6 +110,8 @@ const SellerAdvertise      = lazy(() => import('./pages/seller/AdvertiseWithUs')
 const SellerPending        = lazy(() => import('./pages/seller/SellerPending'));
 const About                = lazy(() => import('./pages/About'));
 const CategoryBrowse       = lazy(() => import('./pages/CategoryBrowse'));
+// @ts-ignore JSX module without TS typings
+const ExploreAll           = lazy(() => import('./pages/ExploreAll'));
 
 /** Redirects /login and /signup to /auth?tab=... while preserving query (e.g. redirect=) */
 function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
@@ -261,6 +263,7 @@ function App() {
               <Route path="/" element={<HomeRouteGuard />} />
               <Route path="/search" element={<SearchResults />} />
               <Route path="/products" element={<SearchResults />} />
+              <Route path="/explore" element={<ExploreAll />} />
               <Route path="/category/:slug" element={<CategoryBrowse />} />
               <Route path="/product/:slug" element={<BuyerProductDetail />} />
               <Route path="/products/:id" element={<BuyerProductDetail />} />
