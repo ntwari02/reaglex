@@ -18,6 +18,8 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { haptic } from '../haptics';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import MobileAssistantSheet from './MobileAssistantSheet';
 
 type CommandItem = {
   id: string;
@@ -53,15 +55,21 @@ function fuzzy(text: string, query: string): number {
   return score;
 }
 
-export default function CommandPalette() {
-  const [open, setOpen] = useState(false);
+/** Desktop command palette (unchanged behavior). */
+function DesktopCommandPalette({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   const close = () => {
-    setOpen(false);
+    onClose();
     setQuery('');
     setSelected(0);
   };
@@ -206,36 +214,6 @@ export default function CommandPalette() {
   }, [items, query]);
 
   useEffect(() => {
-    function handler(e: KeyboardEvent) {
-      const isMac = navigator.platform?.toLowerCase().includes('mac');
-      const meta = isMac ? e.metaKey : e.ctrlKey;
-      if (meta && (e.key === 'k' || e.key === 'K')) {
-        e.preventDefault();
-        haptic('selection');
-        setOpen((v) => !v);
-      } else if (e.key === '/' && !open) {
-        const target = e.target as HTMLElement | null;
-        const tag = (target?.tagName || '').toLowerCase();
-        if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
-        e.preventDefault();
-        setOpen(true);
-      } else if (e.key === 'Escape' && open) {
-        close();
-      }
-    }
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open]);
-
-  useEffect(() => {
-    function evt() {
-      setOpen(true);
-    }
-    window.addEventListener(COMMAND_OPEN_EVENT, evt);
-    return () => window.removeEventListener(COMMAND_OPEN_EVENT, evt);
-  }, []);
-
-  useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 30);
     }
@@ -259,6 +237,8 @@ export default function CommandPalette() {
         haptic('selection');
         item.action();
       }
+    } else if (e.key === 'Escape') {
+      close();
     }
   }
 
@@ -280,7 +260,7 @@ export default function CommandPalette() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh] px-4"
+          className="hidden md:flex fixed inset-0 z-[100] items-start justify-center pt-[12vh] px-4"
           style={{ background: 'rgba(5, 8, 19, 0.72)', backdropFilter: 'blur(8px)' }}
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) close();
@@ -387,4 +367,47 @@ export default function CommandPalette() {
       )}
     </AnimatePresence>
   );
+}
+
+export default function CommandPalette() {
+  const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  const close = () => setOpen(false);
+
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      const isMac = navigator.platform?.toLowerCase().includes('mac');
+      const meta = isMac ? e.metaKey : e.ctrlKey;
+      if (meta && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        haptic('selection');
+        setOpen((v) => !v);
+      } else if (e.key === '/' && !open && !isMobile) {
+        const target = e.target as HTMLElement | null;
+        const tag = (target?.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
+        e.preventDefault();
+        setOpen(true);
+      } else if (e.key === 'Escape' && open) {
+        close();
+      }
+    }
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, isMobile]);
+
+  useEffect(() => {
+    function evt() {
+      setOpen(true);
+    }
+    window.addEventListener(COMMAND_OPEN_EVENT, evt);
+    return () => window.removeEventListener(COMMAND_OPEN_EVENT, evt);
+  }, []);
+
+  if (isMobile) {
+    return <MobileAssistantSheet open={open} onClose={close} />;
+  }
+
+  return <DesktopCommandPalette open={open} onClose={close} />;
 }

@@ -1,5 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { fetchProductSearch } from '../hooks/queries/fetchProductSearch';
+import { productKeys } from '../hooks/queries/productKeys';
+import { useScrollContainer } from '../spa/useScrollContainer';
 import { homeFeedApi } from '../services/homeFeedApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -366,12 +370,7 @@ export default function SearchResults() {
       ]
     : undefined;
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [page, setPage] = useState(() => Math.max(1, parseInt(params.get('page') || '1', 10)));
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
   const [viewMode, setViewMode] = useState(getSavedViewMode);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeSort, setActiveSort] = useState(() => params.get('sort') || 'newest');
@@ -394,6 +393,55 @@ export default function SearchResults() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const productListRef = useRef(null);
   const initialMount = useRef(true);
+  useScrollContainer('search-product-list', productListRef);
+
+  const searchFilters = useMemo(
+    () => ({
+      page,
+      q,
+      category,
+      categories,
+      sellers,
+      activeSort,
+      priceRange,
+      customMinPrice,
+      customMaxPrice,
+      minRating,
+      freeShipping,
+    }),
+    [
+      page,
+      q,
+      category,
+      categories,
+      sellers,
+      activeSort,
+      priceRange,
+      customMinPrice,
+      customMaxPrice,
+      minRating,
+      freeShipping,
+    ],
+  );
+
+  const {
+    data: searchData,
+    isPending,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: productKeys.search(searchFilters),
+    queryFn: () => fetchProductSearch(searchFilters),
+    staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+
+  const products = searchData?.items ?? [];
+  const totalPages = searchData?.totalPages ?? 1;
+  const total = searchData?.total ?? 0;
+  const loading = isPending && !searchData;
+  const error = queryError ? 'messages.searchLoadError' : null;
 
   const hasFilters = priceRange || minRating || (category && category !== 'All Categories') || freeShipping || categories.length > 0 || sellers.length > 0;
 
@@ -453,51 +501,14 @@ export default function SearchResults() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
-  const loadProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const p = { page, limit: 20 };
-      if (q) p.search = q;
-      if (category && category !== 'All Categories') p.category = category;
-      if (activeSort === 'price_asc') { p.sortBy = 'price'; }
-      if (activeSort === 'price_desc') { p.sortBy = 'price'; p.sortOrder = 'desc'; }
-      if (activeSort === 'rating') p.sortBy = 'rating';
-      if (activeSort === 'newest' || activeSort === 'free_ship') { p.sortBy = 'createdAt'; p.sortOrder = 'desc'; }
-      const minP = priceRange?.min ?? (customMinPrice !== '' ? Number(customMinPrice) : null);
-      const maxP = priceRange?.max ?? (customMaxPrice !== '' ? Number(customMaxPrice) : null);
-      if (minP != null) p.minPrice = minP;
-      if (maxP != null) p.maxPrice = maxP;
-      if (minRating != null) p.minRating = minRating;
-      if (freeShipping) p.freeShipping = true;
-      if (categories?.length) p.categories = categories.join(',');
-      if (sellers?.length) p.sellers = sellers.join(',');
-
-      const data = await productAPI.getProducts(p);
-      let items = Array.isArray(data) ? data : data.products || data.items || [];
-      if (minP != null) items = items.filter((i) => (i.price || 0) >= minP);
-      if (maxP != null) items = items.filter((i) => (i.price || 0) <= maxP);
-      if (minRating != null) items = items.filter((i) => (i.averageRating || i.rating || 0) >= minRating);
-
-      setProducts(items);
-      setTotal(data.pagination?.total ?? items.length);
-      setTotalPages(data.pagination?.totalPages ?? 1);
-    } catch {
-      setError('messages.searchLoadError');
-    } finally {
-      setLoading(false);
-    }
-  }, [q, page, activeSort, priceRange, customMinPrice, customMaxPrice, minRating, category, categories, freeShipping, sellers]);
-
   useEffect(() => { setPage(1); }, [q, activeSort, priceRange, minRating, category, categories, freeShipping, sellers]);
-  useEffect(() => { loadProducts(); }, [loadProducts]);
   useEffect(() => {
     const onInventoryUpdated = () => {
-      loadProducts();
+      void refetch();
     };
     window.addEventListener('inventoryUpdated', onInventoryUpdated);
     return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
-  }, [loadProducts]);
+  }, [refetch]);
 
   // Page title
   useEffect(() => {
@@ -871,7 +882,7 @@ export default function SearchResults() {
                 <div className="text-center py-20 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)]" style={CARD}>
                   <p className="text-sm mb-4 text-[var(--text-faint)]">{t(error || 'messages.errorGeneric')}</p>
                   <button
-                    onClick={loadProducts}
+                    onClick={() => refetch()}
                     className="px-5 py-2 rounded-full text-white text-xs font-semibold"
                     style={{ background: 'var(--gradient-brand-cta)' }}
                   >

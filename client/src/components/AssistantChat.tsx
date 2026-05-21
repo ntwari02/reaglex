@@ -184,7 +184,11 @@ export default function AssistantChat() {
 
   /* ── External open events (unified assistant — legacy help-chat alias) ── */
   useEffect(() => {
-    const h = () => setOpen(true);
+    const h = (e: Event) => {
+      setOpen(true);
+      const q = (e as CustomEvent<{ query?: string }>)?.detail?.query;
+      if (typeof q === 'string' && q.trim()) setInput(q.trim());
+    };
     window.addEventListener('reaglex:assistant:open', h as EventListener);
     window.addEventListener('reaglex-open-help-chat', h as EventListener);
     return () => {

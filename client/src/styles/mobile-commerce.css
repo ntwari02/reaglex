@@ -1,0 +1,228 @@
+/**
+ * Reaglex mobile commerce — compact 2026 scale system.
+ * Applied on buyer storefront (max-width: 767px).
+ */
+
+@media (max-width: 767px) {
+  :root {
+    --mob-space-1: 4px;
+    --mob-space-2: 8px;
+    --mob-space-3: 12px;
+    --mob-space-4: 16px;
+    --mob-space-5: 20px;
+    --mob-space-6: 24px;
+
+    --mob-header-row: 44px;
+    --mob-search-row: 48px;
+    --mob-header-total: calc(var(--mob-header-row) + var(--mob-search-row) + env(safe-area-inset-top, 0px));
+    --mob-dock-height: 60px;
+    --mob-dock-bottom: calc(var(--mob-dock-height) + max(8px, env(safe-area-inset-bottom, 0px)) + 8px);
+
+    --mob-type-page: 1.5rem;
+    --mob-type-section: 1.125rem;
+    --mob-type-product: 0.875rem;
+    --mob-type-body: 0.8125rem;
+    --mob-type-label: 0.6875rem;
+    --mob-type-price: 1rem;
+    --mob-type-btn: 0.8125rem;
+
+    --mob-radius-sm: 10px;
+    --mob-radius-md: 14px;
+    --mob-radius-lg: 16px;
+    --mob-shadow-card: 0 2px 12px rgba(15, 23, 42, 0.06);
+    --mob-shadow-dock: 0 -4px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .mob-page {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mob-section {
+    padding-left: var(--mob-space-4);
+    padding-right: var(--mob-space-4);
+    padding-bottom: var(--mob-space-4);
+  }
+
+  .mob-section-title {
+    font-size: var(--mob-type-section);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  .mob-section-sub {
+    font-size: var(--mob-type-body);
+    font-weight: 400;
+    line-height: 1.35;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .mob-link-all {
+    font-size: var(--mob-type-body);
+    font-weight: 600;
+    color: var(--brand-primary);
+    flex-shrink: 0;
+  }
+
+  .mob-card-surface {
+    background: var(--card-bg);
+    border: 1px solid color-mix(in srgb, var(--border-card) 60%, transparent);
+    border-radius: var(--mob-radius-md);
+    box-shadow: var(--mob-shadow-card);
+  }
+
+  .mob-horizontal-scroll {
+    display: flex;
+    gap: var(--mob-space-3);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin-left: calc(-1 * var(--mob-space-4));
+    margin-right: calc(-1 * var(--mob-space-4));
+    padding-left: var(--mob-space-4);
+    padding-right: var(--mob-space-4);
+  }
+
+  .mob-horizontal-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mob-horizontal-scroll > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+
+  /* Buyer account compact overrides */
+  .buyer-account-mobile .account-hero-banner {
+    min-height: auto !important;
+    padding: var(--mob-space-4) !important;
+  }
+
+  .buyer-account-mobile .account-hero-banner h1 {
+    font-size: var(--mob-type-page) !important;
+    font-weight: 700 !important;
+  }
+
+  .buyer-account-mobile .account-hero-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 14px !important;
+  }
+
+  .buyer-account-mobile .account-main-pad {
+    padding-left: var(--mob-space-4) !important;
+    padding-right: var(--mob-space-4) !important;
+    padding-top: var(--mob-space-3) !important;
+    padding-bottom: var(--mob-space-6) !important;
+  }
+
+  .buyer-account-mobile [data-mobile-tab-active] {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+  }
+
+  .buyer-account-mobile .account-stat-grid {
+    gap: var(--mob-space-2) !important;
+  }
+
+  /* Category chips — reference: gray tile, orange ring when active */
+  .mob-cat-chip-icon {
+    background: var(--bg-secondary, #f3f4f6);
+    color: var(--text-secondary);
+    border: 1px solid color-mix(in srgb, var(--border-card) 50%, transparent);
+  }
+
+  .mob-cat-chip-icon[data-active='true'] {
+    background: color-mix(in srgb, var(--brand-primary) 12%, #fff);
+    color: var(--brand-primary);
+    border: 1.5px solid var(--brand-primary);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-primary) 18%, transparent);
+  }
+
+  .mob-cat-chip-label {
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--text-secondary);
+  }
+
+  .mob-cat-chip-label[data-active='true'] {
+    color: var(--brand-primary);
+    font-weight: 600;
+  }
+
+  /* Trust strip */
+  .mob-trust-strip {
+    padding: var(--mob-space-2) var(--mob-space-4) var(--mob-space-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-card) 45%, transparent);
+  }
+
+  .mob-trust-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--mob-space-2);
+  }
+
+  .mob-trust-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+  }
+
+  .mob-trust-title {
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  .mob-trust-sub {
+    font-size: 8px;
+    line-height: 1.25;
+    color: var(--text-muted);
+  }
+
+  /* Trending product card */
+  .mob-trending-card {
+    border-radius: 12px;
+    box-shadow: var(--mob-shadow-card);
+  }
+
+  /* Super deals split banner */
+  .mob-super-deals {
+    min-height: 100px;
+    max-height: 120px;
+    background: var(--card-bg);
+    border: 1px solid color-mix(in srgb, var(--border-card) 55%, transparent);
+    box-shadow: var(--mob-shadow-card);
+  }
+
+  .mob-super-deals-copy {
+    background: var(--card-bg);
+  }
+
+  /* Mobile menu drawer */
+  .mob-menu-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 4px;
+  }
+
+  .mob-menu-row:active {
+    background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+  }
+
+  .mob-footer-hide {
+    display: none !important;
+  }
+}

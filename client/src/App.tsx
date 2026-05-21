@@ -3,7 +3,9 @@ import { LayoutGroup } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { QueryProvider } from './providers/QueryProvider';
 import { ScrollToTop } from './components/ScrollToTop';
+import SpaBuyerShell from './spa/SpaBuyerShell';
 import { ResetPassword } from './pages/ResetPassword';
 import { VerifyOTP } from './pages/VerifyOTP';
 import { VerifyEmail } from './pages/VerifyEmail';
@@ -212,6 +214,7 @@ function App() {
   return (
     <HelmetProvider>
     <ThemeProvider>
+    <QueryProvider>
       <BrowserRouter>
         <SiteWideSchemas />
         <ScrollToTop />
@@ -253,48 +256,50 @@ function App() {
           <LayoutGroup id="buyer-product-transitions">
           <Suspense fallback={<PageLoader />}>
             <Routes>
-            {/* ── Buyer / Storefront ── */}
-            <Route path="/"                            element={<HomeRouteGuard />} />
-            <Route path="/search"                      element={<SearchResults />} />
-            <Route path="/products"                     element={<SearchResults />} />
-            <Route path="/category/:slug"               element={<CategoryBrowse />} />
-            <Route path="/product/:slug"                element={<BuyerProductDetail />} />
-            <Route path="/products/:id"                element={<BuyerProductDetail />} />
-            <Route path="/checkout"                    element={<Checkout />} />
-            <Route path="/checkout/momo-wait"          element={<MomoPaymentWait />} />
-            <Route path="/payment/stripe-return"       element={<StripeReturn />} />
-            <Route path="/payment/paypal-return"       element={<PayPalReturn />} />
-            <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-            <Route path="/track/:orderId"              element={<OrderTracking />} />
-            <Route path="/track"                       element={<OrderTracking />} />
-            <Route path="/account"                     element={<AccountRouteGuard />} />
-            <Route path="/notifications"               element={<BuyerNotifications />} />
-            <Route path="/returns"                     element={<Returns />} />
-            <Route path="/help"                        element={<BuyerHome />} />
-            <Route path="/contact"                     element={<Contact />} />
-            <Route path="/about"                       element={<About />} />
-            <Route path="/profile"                     element={<Navigate to="/account" replace />} />
-            <Route path="/report-problem"              element={<ReportProblem />} />
-            <Route path="/report-problem/:ticketId"    element={<ReportProblem />} />
-            <Route path="/seller/fees"                 element={<SellerFees />} />
-            <Route path="/buyer-protection"            element={<BuyerProtection />} />
-            <Route path="/cookie-settings"             element={<CookieSettings />} />
-            <Route path="/privacy"                     element={<Privacy />} />
-            <Route path="/cookies"                     element={<CookiesPolicy />} />
-            <Route path="/sitemap"                   element={<SitemapPage />} />
-            <Route path="/faq"                       element={<Faq />} />
-            <Route path="/terms"                       element={<Terms />} />
-            <Route path="/seller/protection"           element={(
-              <SellerRoute>
-                <SellerProtection />
-              </SellerRoute>
-            )}
-            />
-            <Route path="/seller/guidelines"           element={<SellerGuidelines />} />
-            <Route path="/seller/advertise"            element={<SellerAdvertise />} />
-            <Route path="/seller/pending"              element={<SellerPending />} />
-            <Route path="/become-seller"               element={<BecomeSeller />} />
-            <Route path="/cart"                        element={<Navigate to="/" replace />} />
+            {/* ── Buyer / Storefront (SPA keep-alive + scroll cache) ── */}
+            <Route element={<SpaBuyerShell />}>
+              <Route path="/" element={<HomeRouteGuard />} />
+              <Route path="/search" element={<SearchResults />} />
+              <Route path="/products" element={<SearchResults />} />
+              <Route path="/category/:slug" element={<CategoryBrowse />} />
+              <Route path="/product/:slug" element={<BuyerProductDetail />} />
+              <Route path="/products/:id" element={<BuyerProductDetail />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/checkout/momo-wait" element={<MomoPaymentWait />} />
+              <Route path="/payment/stripe-return" element={<StripeReturn />} />
+              <Route path="/payment/paypal-return" element={<PayPalReturn />} />
+              <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+              <Route path="/track/:orderId" element={<OrderTracking />} />
+              <Route path="/track" element={<OrderTracking />} />
+              <Route path="/account" element={<AccountRouteGuard />} />
+              <Route path="/notifications" element={<BuyerNotifications />} />
+              <Route path="/returns" element={<Returns />} />
+              <Route path="/help" element={<BuyerHome />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/profile" element={<Navigate to="/account" replace />} />
+              <Route path="/report-problem" element={<ReportProblem />} />
+              <Route path="/report-problem/:ticketId" element={<ReportProblem />} />
+              <Route path="/seller/fees" element={<SellerFees />} />
+              <Route path="/buyer-protection" element={<BuyerProtection />} />
+              <Route path="/cookie-settings" element={<CookieSettings />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/cookies" element={<CookiesPolicy />} />
+              <Route path="/sitemap" element={<SitemapPage />} />
+              <Route path="/faq" element={<Faq />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/seller/protection" element={(
+                <SellerRoute>
+                  <SellerProtection />
+                </SellerRoute>
+              )}
+              />
+              <Route path="/seller/guidelines" element={<SellerGuidelines />} />
+              <Route path="/seller/advertise" element={<SellerAdvertise />} />
+              <Route path="/seller/pending" element={<SellerPending />} />
+              <Route path="/become-seller" element={<BecomeSeller />} />
+              <Route path="/cart" element={<Navigate to="/" replace />} />
+            </Route>
 
             {/* ── PWA system routes ── */}
             <Route path="/share"                       element={<ShareTargetHandler />} />
@@ -335,6 +340,7 @@ function App() {
           </div>
         </div>
       </BrowserRouter>
+    </QueryProvider>
     </ThemeProvider>
     </HelmetProvider>
   );

@@ -8,7 +8,7 @@ import { useScrollChrome } from '../stores/scrollChromeStore';
 
 const TABS = [
   { id: 'home', icon: Home, label: 'Home', to: '/' },
-  { id: 'browse', icon: LayoutGrid, label: 'Browse', to: '/products' },
+  { id: 'browse', icon: LayoutGrid, label: 'Categories', to: '/products' },
   { id: 'cart', icon: ShoppingBag, label: 'Cart', to: null },
   { id: 'wishlist', icon: Heart, label: 'Saved', to: '/account?tab=wishlist' },
   { id: 'account', icon: User, label: 'Account', to: '/account' },
@@ -72,23 +72,23 @@ export default function MobileBottomNav() {
     <motion.nav
       data-mobile-nav="buyer"
       className="md:hidden fixed bottom-0 left-0 right-0 z-[140] flex justify-center px-3 pointer-events-none"
-      animate={{ y: navHidden ? 110 : 0, opacity: navHidden ? 0 : 1 }}
-      transition={{ type: 'spring', stiffness: 420, damping: 38 }}
+      animate={{ y: navHidden ? 100 : 0, opacity: navHidden ? 0 : 1 }}
+      transition={{ type: 'spring', stiffness: 440, damping: 36 }}
       style={{
-        paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))',
+        paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))',
       }}
       aria-label="Primary"
     >
       <div
-        className="pointer-events-auto flex w-full max-w-lg items-stretch rounded-t-[22px] px-1 pt-2"
+        className="pointer-events-auto flex w-full max-w-md items-stretch rounded-2xl px-0.5 py-1"
         style={{
-          background: 'color-mix(in srgb, var(--card-bg) 82%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--border-card) 65%, transparent)',
-          borderBottom: 'none',
-          backdropFilter: 'blur(22px)',
-          WebkitBackdropFilter: 'blur(22px)',
-          boxShadow:
-            '0 -12px 48px color-mix(in srgb, var(--bg-page) 65%, rgba(0,0,0,0.55)), 0 -4px 16px rgba(0,0,0,0.06)',
+          minHeight: 56,
+          maxHeight: 60,
+          background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--border-card) 50%, transparent)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: 'var(--mob-shadow-dock, 0 -4px 24px rgba(15,23,42,0.08))',
         }}
       >
         {TABS.map((tab) => {
@@ -102,7 +102,7 @@ export default function MobileBottomNav() {
               key={tab.id}
               type="button"
               onClick={() => handlePress(tab)}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1 py-2 min-h-[52px]"
+              className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 min-h-[48px]"
               style={{
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation',
@@ -112,40 +112,34 @@ export default function MobileBottomNav() {
                 {isActive && (
                   <motion.span
                     layoutId="buyer-mob-nav-active"
-                    initial={{ opacity: 0, scale: 0.85 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.85 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ type: 'spring', stiffness: 520, damping: 38 }}
-                    className="absolute inset-x-[14%] top-1 h-1 rounded-full"
-                    style={{ background: 'var(--brand-primary)', opacity: 0.9 }}
+                    className="absolute inset-x-[18%] top-0.5 h-0.5 rounded-full"
+                    style={{ background: 'var(--brand-primary)' }}
                   />
                 )}
               </AnimatePresence>
 
-              <div className="relative mt-1">
-                <motion.div
-                  animate={{ scale: isActive ? 1.06 : 1, y: isActive ? -1 : 0 }}
-                  transition={{ type: 'spring', stiffness: 480, damping: 28 }}
-                >
-                  <Icon
-                    size={22}
-                    strokeWidth={isActive ? 2.35 : 1.65}
-                    style={{
-                      color: isActive ? 'var(--brand-primary)' : 'var(--text-muted)',
-                    }}
-                  />
-                </motion.div>
-
+              <div className="relative">
+                <Icon
+                  size={20}
+                  strokeWidth={isActive ? 2.2 : 1.65}
+                  style={{
+                    color: isActive ? 'var(--brand-primary)' : 'var(--text-muted)',
+                  }}
+                />
                 {badgeCount > 0 && (
                   <motion.span
                     key={badgeCount}
                     data-cart-target="badge"
                     initial={{ scale: 0.5 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2.5 flex min-h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+                    className="absolute -top-1.5 -right-2 flex min-h-[15px] min-w-[15px] items-center justify-center rounded-full px-0.5 text-[9px] font-bold text-white"
                     style={{
                       background: 'var(--brand-primary)',
-                      boxShadow: '0 2px 8px rgba(255,122,26,0.35)',
+                      boxShadow: '0 1px 6px rgba(255,122,26,0.3)',
                     }}
                   >
                     {badgeCount > 99 ? '99+' : badgeCount}
@@ -154,7 +148,7 @@ export default function MobileBottomNav() {
               </div>
 
               <span
-                className="text-[10px] font-semibold leading-none tracking-tight"
+                className="text-[9px] font-semibold leading-none tracking-tight"
                 style={{ color: isActive ? 'var(--brand-primary)' : 'var(--text-muted)' }}
               >
                 {tab.label}

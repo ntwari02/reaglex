@@ -60,3 +60,12 @@ declare module './pages/Contact' {
   export default Contact;
 }
 
+declare module './components/cart/CartCloudSyncBridge' {
+  const CartCloudSyncBridge: ComponentType<Record<string, never>>;
+  export default CartCloudSyncBridge;
+}
+
+declare module './components/cart/CartCloudSyncBridge.tsx' {
+  const CartCloudSyncBridge: ComponentType<Record<string, never>>;
+  export default CartCloudSyncBridge;
+}

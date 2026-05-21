@@ -7,6 +7,7 @@ import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
 import { buyerProductPath } from '../lib/productUrl';
+import { prefetchProduct } from '../hooks/queries/prefetchProduct';
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
 
@@ -89,7 +90,13 @@ export function SearchProductCard({ product, index = 0 }) {
         willChange: 'transform',
       }}
     >
-      <Link to={buyerProductPath(product)} className="block">
+      <Link
+        to={buyerProductPath(product)}
+        state={{ productPreview: { id, title: name, image: imgSrc } }}
+        className="block"
+        onMouseEnter={() => prefetchProduct(product)}
+        onTouchStart={() => prefetchProduct(product)}
+      >
         {/* Image container: 220px height, no padding */}
         <div
           className="relative overflow-hidden bg-[var(--bg-tertiary)]"

@@ -7,6 +7,7 @@ import { useCurrencyPricing } from '../hooks/useCurrencyPricing';
 
 import { SERVER_URL } from '../lib/config';
 import { buyerProductPath } from '../lib/productUrl';
+import { buildProductPreview, warmProductRoute } from '../lib/productNavigation';
 
 function extractImageSrc(src) {
   if (!src) return null;
@@ -74,7 +75,13 @@ export default function ProductListItem({ product, index = 0 }) {
         transition:    'box-shadow 0.22s, border-color 0.22s, background 0.3s',
       }}
     >
-      <Link to={buyerProductPath(product)} className="flex gap-0">
+      <Link
+        to={buyerProductPath(product)}
+        state={{ productPreview: buildProductPreview(product) }}
+        className="flex gap-0"
+        onMouseEnter={() => warmProductRoute(product)}
+        onTouchStart={() => warmProductRoute(product)}
+      >
 
         {/* ── Image (160 × 160) ── */}
         <div
