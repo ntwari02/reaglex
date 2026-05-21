@@ -20,7 +20,13 @@ export async function releaseEscrow(orderId: string, confirmedBy: string) {
     throw new Error('Order not found');
   }
 
-  if (order.escrow?.status !== 'ESCROW_HOLD' && order.escrow?.status !== 'SHIPPED') {
+  if (
+    order.escrow?.status !== 'ESCROW_HOLD' &&
+    order.escrow?.status !== 'SHIPPED' &&
+    order.escrow?.status !== 'PICKUP_CONFIRMED' &&
+    order.escrow?.status !== 'DIGITAL_CONFIRMED' &&
+    order.escrow?.status !== 'SERVICE_CONFIRMED'
+  ) {
     throw new Error('Order not eligible for release');
   }
 
@@ -58,6 +64,10 @@ export async function releaseEscrow(orderId: string, confirmedBy: string) {
     await Order.findByIdAndUpdate(order._id, {
       'escrow.status': 'RELEASED',
       'escrow.releasedAt': new Date(),
+      'escrow.releasedProductAmount': Number(order.escrow?.productAmount || order.subtotal || 0),
+      'escrow.releasedShippingAmount': Number(order.escrow?.shippingAmount || order.shipping || 0),
+      'escrow.releasedTaxAmount': Number(order.escrow?.taxAmount || order.tax || 0),
+      'escrow.releasedSellerReserve': Number(order.escrow?.sellerReserve || amountToSeller || 0),
       'payout.transferId': response.data.id,
       'payout.transferStatus': response.data.status,
       'payout.paidToSellerAt': new Date(),
@@ -105,6 +115,69 @@ export async function releaseEscrow(orderId: string, confirmedBy: string) {
   }
 
   throw new Error(response.message || 'Failed to release escrow');
+}
+
+export async function partialReleaseEscrow(
+  orderId: string,
+  component: 'product' | 'shipping' | 'tax' | 'seller_reserve',
+  amount: number,
+  confirmedBy: string
+) {
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error('Order not found');
+  if (!order.escrow || !['ESCROW_HOLD', 'SHIPPED', 'DISPUTED'].includes(order.escrow.status)) {
+    throw new Error('Order not eligible for partial release');
+  }
+  const releaseAmount = Math.max(0, Number(amount || 0));
+  if (!releaseAmount) throw new Error('Invalid partial release amount');
+
+  const map: Record<string, { total: number; released: number; totalKey: string; releasedKey: string }> = {
+    product: {
+      total: Number(order.escrow.productAmount || order.subtotal || 0),
+      released: Number(order.escrow.releasedProductAmount || 0),
+      totalKey: 'escrow.productAmount',
+      releasedKey: 'escrow.releasedProductAmount',
+    },
+    shipping: {
+      total: Number(order.escrow.shippingAmount || order.shipping || 0),
+      released: Number(order.escrow.releasedShippingAmount || 0),
+      totalKey: 'escrow.shippingAmount',
+      releasedKey: 'escrow.releasedShippingAmount',
+    },
+    tax: {
+      total: Number(order.escrow.taxAmount || order.tax || 0),
+      released: Number(order.escrow.releasedTaxAmount || 0),
+      totalKey: 'escrow.taxAmount',
+      releasedKey: 'escrow.releasedTaxAmount',
+    },
+    seller_reserve: {
+      total: Number(order.escrow.sellerReserve || order.fees?.sellerAmount || 0),
+      released: Number(order.escrow.releasedSellerReserve || 0),
+      totalKey: 'escrow.sellerReserve',
+      releasedKey: 'escrow.releasedSellerReserve',
+    },
+  };
+  const target = map[component];
+  const remaining = Math.max(0, target.total - target.released);
+  if (releaseAmount > remaining) throw new Error(`Release exceeds remaining ${component} balance`);
+
+  await Order.findByIdAndUpdate(orderId, {
+    $inc: { [target.releasedKey]: releaseAmount },
+    $set: { 'escrow.lastPartialReleaseAt': new Date(), 'escrow.lastPartialReleaseBy': confirmedBy },
+  } as any);
+
+  await new TransactionLog({
+    type: 'RELEASE',
+    orderId: order._id,
+    buyerId: order.buyerId,
+    sellerId: order.sellerId,
+    amount: releaseAmount,
+    currency: order.payment?.currency || 'USD',
+    status: 'RELEASED',
+    metadata: { partial: true, component, confirmedBy },
+  }).save();
+
+  return { success: true, component, released: releaseAmount, remaining: remaining - releaseAmount };
 }
 
 export async function autoReleaseEscrow(orderId: string) {

@@ -823,14 +823,8 @@ export default function NotificationStudio() {
             Reaglex · broadcast
           </p>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3 flex-wrap">
-            <span
-              className="relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-2xl overflow-hidden shrink-0"
-              style={{
-                boxShadow: '0 0 32px color-mix(in srgb, var(--brand-primary) 40%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 30%, transparent)',
-              }}
-            >
-              <span className="absolute inset-0 bg-[var(--gradient-brand-cta)] opacity-90" />
-              <Bell className="relative h-5 w-5 sm:h-6 sm:w-6 text-[var(--text-on-accent)]" />
+            <span className="relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-2xl overflow-hidden shrink-0">
+              <Bell className="relative h-5 w-5 sm:h-6 sm:w-6 text-[var(--brand-primary)]" />
             </span>
             <span className="min-w-0 bg-gradient-to-r from-[var(--text-primary)] to-[color-mix(in_srgb,var(--text-primary)_55%,var(--brand-primary))] bg-clip-text text-transparent [text-shadow:0_0_40px_color-mix(in_srgb,var(--brand-primary)_18%,transparent)]">
               Notification Studio
@@ -1229,7 +1223,7 @@ export default function NotificationStudio() {
 
       {/* Sticky toolbar — thumb zone + safe area */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-[80] border-t lg:left-[var(--sidebar-width,0px)]"
+        className="fixed bottom-0 left-0 right-0 z-[80] border-t lg:hidden"
         style={{
           borderColor: 'color-mix(in srgb, var(--brand-primary) 25%, var(--border-card))',
           background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',

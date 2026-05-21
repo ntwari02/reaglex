@@ -31,10 +31,12 @@ export default function ProductListItem({ product, index = 0 }) {
   const addItem = useBuyerCart(s => s.addItem);
   const currencyPricing = useCurrencyPricing();
 
+  if (!product || typeof product !== 'object') return null;
+
   const id          = product._id || product.id;
   const name        = product.title || product.name || 'Product';
   const price       = product.price || 0;
-  const oldPrice    = product.compareAtPrice || product.originalPrice || null;
+  const oldPrice    = product?.compareAtPrice || product?.originalPrice || null;
   const discount    = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const rating      = product.averageRating || product.rating || (4 + Math.random()).toFixed(1);
   const reviews     = product.totalReviews  || product.reviewCount || Math.floor(Math.random() * 200 + 20);

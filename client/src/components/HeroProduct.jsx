@@ -43,7 +43,7 @@ export default function HeroProduct({ product }) {
     : product.images?.[0];
   const imageUrl = resolveImage(primary || product.image || product.imageUrl || product.thumbnail || product.thumbnailUrl);
   const price = product.price || 0;
-  const oldPrice = product.compareAtPrice || product.originalPrice || null;
+  const oldPrice = product?.compareAtPrice || product?.originalPrice || null;
   const discount = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const rating = product.averageRating || product.rating || 4.8;
   const category = product.category || product.categoryName || t('home.featured');

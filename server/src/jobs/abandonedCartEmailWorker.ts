@@ -1,21 +1,33 @@
 import mongoose from 'mongoose';
 import { AbandonedCart } from '../models/AbandonedCart';
-import { AbandonedCartSettings } from '../models/AbandonedCartSettings';
+import { AbandonedCartQueue } from '../models/AbandonedCartQueue';
+import { getOrCreateCartSettings, settingsToClient } from '../models/AbandonedCartSettings';
 import { RecommendationActivity } from '../models/RecommendationActivity';
 import { Product } from '../models/Product';
 import { User } from '../models/User';
 import { isEmailConfigured, sendAbandonedCartEmail } from '../services/emailService';
 import { getClientUrl } from '../config/publicEnv';
 import { formatUsdAsCurrency } from '../utils/money';
-import {
-  isMarketingFlowEnabled,
-  isMarketingFlowPushEnabled,
-  recordFlowRun,
-} from '../models/MarketingAutomationSettings';
+import { recordFlowRun } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from '../services/pushNotificationService';
+import { inferPrimaryCategory } from '../services/abandonedCartRecovery.service';
+import {
+  appendTimeline,
+  cancelPendingQueueJobs,
+  computeScheduledSendAt,
+  delayToMs,
+  emitRecoveryEvent,
+  enqueueReminder,
+  generateRecoveryCoupon,
+  getStepConfig,
+  parseCooldownMs,
+  preSendSafetyChecks,
+} from '../services/cartRecoveryEngine.service';
+import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
+const WORKER_INTERVAL_MS = 60 * 1000;
 
 function getBoolEnv(name: string, fallback: boolean) {
   const raw = String(process.env[name] ?? '').trim().toLowerCase();
@@ -25,32 +37,12 @@ function getBoolEnv(name: string, fallback: boolean) {
   return fallback;
 }
 
-function timingToMs(timing: string): number {
-  const t = String(timing || '').trim().toLowerCase();
-  if (t === '30m' || t === '30min' || t === '30mins') return 30 * 60 * 1000;
-  if (t === '1h' || t === '1hr' || t === '1hour') return 60 * 60 * 1000;
-  if (t === '2h' || t === '2hr') return 2 * 60 * 60 * 1000;
-  if (t === '6h' || t === '6hr') return 6 * 60 * 60 * 1000;
-  if (t === '12h' || t === '12hr') return 12 * 60 * 60 * 1000;
-  if (t === '24h' || t === '24hr' || t === '1d') return 24 * 60 * 60 * 1000;
-  if (t === '48h' || t === '48hr' || t === '2d') return 48 * 60 * 60 * 1000;
-  return 60 * 60 * 1000; // default 1 hour
-}
-
-async function getSettings() {
-  let doc = await AbandonedCartSettings.findOne().lean();
-  if (!doc) {
-    doc = await (AbandonedCartSettings as any).create({});
-    doc = await AbandonedCartSettings.findOne().lean();
-  }
-  const enabled = Boolean((doc as any)?.autoReminderEnabled ?? true);
-  const reminderTiming = String((doc as any)?.reminderTiming ?? '1hr');
-  return { enabled, reminderTiming };
-}
-
 type CartLine = { productId: string; quantity: number };
 
-async function buildCartLinesFromActivity(userId: string, since: Date): Promise<{ lines: CartLine[]; lastCartAddAt: Date | null }> {
+async function buildCartLinesFromActivity(
+  userId: string,
+  since: Date
+): Promise<{ lines: CartLine[]; lastCartAddAt: Date | null }> {
   const events = await RecommendationActivity.find({
     userId: new mongoose.Types.ObjectId(userId),
     eventType: { $in: ['cart_add', 'cart_remove', 'purchase'] },
@@ -67,13 +59,8 @@ async function buildCartLinesFromActivity(userId: string, since: Date): Promise<
     const pid = e?.productId ? String(e.productId) : '';
     const type = String(e?.eventType || '');
     const at = new Date(e?.createdAt || Date.now());
-    if (type === 'purchase') {
-      // Purchase after cart activity typically means cart recovered.
-      // We handle purchase gating separately; keep parsing to compute latest cart snapshot.
-      continue;
-    }
+    if (type === 'purchase') continue;
     if (!pid) continue;
-
     if (type === 'cart_add') {
       const qty = Math.max(1, Number(e?.meta?.quantity ?? 1) || 1);
       state.set(pid, { quantity: qty, lastType: 'cart_add', lastAt: at });
@@ -87,162 +74,378 @@ async function buildCartLinesFromActivity(userId: string, since: Date): Promise<
   for (const [pid, v] of state.entries()) {
     if (v.lastType === 'cart_add' && v.quantity > 0) lines.push({ productId: pid, quantity: v.quantity });
   }
-
   return { lines: lines.slice(0, 12), lastCartAddAt };
 }
 
-async function userPurchasedAfter(userId: string, after: Date): Promise<boolean> {
-  const row = await RecommendationActivity.findOne({
-    userId: new mongoose.Types.ObjectId(userId),
-    eventType: 'purchase',
-    createdAt: { $gte: after },
-  })
-    .select('_id')
-    .lean();
-  return Boolean(row?._id);
-}
-
-async function processOneUser(userId: string, cutoff: Date): Promise<'sent' | 'skipped' | 'failed'> {
-  const user = await User.findById(userId).select('email fullName accountStatus notifications preferences').lean();
-  if (!user?.email) return 'skipped';
-  if ((user as any).accountStatus === 'banned') return 'skipped';
-
-  const promoAllowed = Boolean((user as any)?.notifications?.email?.promotions ?? true);
-  if (!promoAllowed) return 'skipped';
+async function discoverAndEnqueue(): Promise<number> {
+  const settings = settingsToClient(await getOrCreateCartSettings());
+  if (!settings.enabled || settings.globalPause) return 0;
 
   const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-  const { lines, lastCartAddAt } = await buildCartLinesFromActivity(String(userId), lookback);
-  if (!lines.length || !lastCartAddAt) return 'skipped';
-  if (lastCartAddAt > cutoff) return 'skipped';
+  const candidates = await RecommendationActivity.aggregate([
+    { $match: { eventType: 'cart_add', createdAt: { $gte: lookback } } },
+    { $sort: { createdAt: -1 } },
+    { $group: { _id: '$userId', lastAdd: { $max: '$createdAt' } } },
+    { $limit: 80 },
+  ]);
 
-  const purchased = await userPurchasedAfter(String(userId), lastCartAddAt);
-  if (purchased) {
-    await AbandonedCart.updateMany(
-      { userId: new mongoose.Types.ObjectId(userId), recovered: false },
-      { $set: { recovered: true } },
+  let enqueued = 0;
+  for (const row of candidates as any[]) {
+    const userId = String(row._id);
+    if (!mongoose.Types.ObjectId.isValid(userId)) continue;
+
+    const { lines, lastCartAddAt } = await buildCartLinesFromActivity(userId, lookback);
+    if (!lines.length || !lastCartAddAt) continue;
+
+    const user = await User.findById(userId)
+      .select('email fullName accountStatus notifications preferences country')
+      .lean();
+    if (!user?.email || (user as any).accountStatus === 'banned') continue;
+
+    const safety = await preSendSafetyChecks({
+      userId,
+      cartId: 'new',
+      abandonedAt: lastCartAddAt,
+      lastCartActivityAt: lastCartAddAt,
+    });
+    if (!safety.ok && safety.reason !== 'cart_recovered') continue;
+
+    let cart = await AbandonedCart.findOne({ userId: new mongoose.Types.ObjectId(userId), recovered: false })
+      .sort({ abandonedAt: -1 });
+
+    const ids = lines.map((l) => l.productId).filter(mongoose.Types.ObjectId.isValid);
+    const products = ids.length
+      ? await Product.find({ _id: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } })
+          .select('_id name price discount images category')
+          .lean()
+      : [];
+    const byId = new Map(products.map((p: any) => [String(p._id), p]));
+    let total = 0;
+    let items = 0;
+    for (const l of lines) {
+      const p: any = byId.get(String(l.productId));
+      if (!p) continue;
+      total += Number(p.price || 0) * l.quantity;
+      items += l.quantity;
+    }
+    const primaryCategory = inferPrimaryCategory(
+      products.map((p: any) => ({ category: p.category }))
+    );
+
+    if (!cart) {
+      cart = await AbandonedCart.create({
+        userId: new mongoose.Types.ObjectId(userId),
+        customerName: String((user as any).fullName || 'Shopper'),
+        customerEmail: String(user.email).toLowerCase(),
+        items,
+        total,
+        abandonedAt: lastCartAddAt,
+        lastCartActivityAt: lastCartAddAt,
+        remindersSent: 0,
+        recovered: false,
+        primaryCategory,
+        timeline: [
+          { event: 'cart_created', at: lastCartAddAt },
+          { event: 'abandoned', at: lastCartAddAt },
+        ],
+      });
+      void emitRecoveryEvent('cart.abandoned', {
+        cartId: String(cart._id),
+        userId,
+        total,
+        items,
+      });
+    } else {
+      await AbandonedCart.updateOne(
+        { _id: cart._id },
+        { $set: { items, total, lastCartActivityAt: lastCartAddAt, primaryCategory } }
+      );
+    }
+
+    const step = Number(cart.remindersSent || 0) + 1;
+    const cooldownMs = parseCooldownMs(settings.cooldownPeriod);
+    const lastSent = (cart.reminderLog || []).slice(-1)[0]?.sentAt;
+    if (lastSent && Date.now() - new Date(lastSent).getTime() < cooldownMs) continue;
+
+    const result = await enqueueReminder({
+      userId,
+      cartId: String(cart._id),
+      reminderStep: step,
+      lastCartActivityAt: lastCartAddAt,
+      cartTotal: total,
+      primaryCategory,
+      user: user as any,
+    });
+    if (result.queued) enqueued += 1;
+  }
+  return enqueued;
+}
+
+async function processQueueItem(queueId: string): Promise<'sent' | 'skipped' | 'failed'> {
+  const settings = settingsToClient(await getOrCreateCartSettings());
+  if (!settings.enabled || settings.globalPause) {
+    await cancelPendingQueueJobs('campaign_disabled');
+    return 'skipped';
+  }
+
+  const job = await AbandonedCartQueue.findOneAndUpdate(
+    { _id: queueId, status: 'PENDING', cancelled: false },
+    { $set: { status: 'PROCESSING', lastAttemptAt: new Date() }, $inc: { attemptCount: 1 } },
+    { new: true }
+  );
+  if (!job) return 'skipped';
+
+  const cart = await AbandonedCart.findById(job.cartId).lean();
+  if (!cart || cart.recovered) {
+    await AbandonedCartQueue.updateOne(
+      { _id: job._id },
+      { $set: { status: 'CANCELLED', cancelled: true, cancelReason: 'cart_recovered' } }
     );
     return 'skipped';
   }
 
-  const existing = await AbandonedCart.findOne({ userId: new mongoose.Types.ObjectId(userId), recovered: false })
-    .sort({ abandonedAt: -1 })
-    .lean();
-  if (existing?.abandonedAt && (Date.now() - new Date(existing.abandonedAt).getTime()) < 12 * 60 * 60 * 1000) {
+  const userId = String(job.userId);
+  const lastActivity = cart.lastCartActivityAt
+    ? new Date(cart.lastCartActivityAt)
+    : new Date(cart.abandonedAt);
+
+  const safety = await preSendSafetyChecks({
+    userId,
+    cartId: String(cart._id),
+    abandonedAt: new Date(cart.abandonedAt),
+    lastCartActivityAt: lastActivity,
+  });
+  if (!safety.ok) {
+    await AbandonedCartQueue.updateOne(
+      { _id: job._id },
+      { $set: { status: 'CANCELLED', cancelled: true, cancelReason: safety.reason } }
+    );
+    if (safety.reason === 'cart_purchased' || safety.reason === 'cart_recovered') {
+      await AbandonedCart.updateOne({ _id: cart._id }, { $set: { recovered: true } });
+      void emitRecoveryEvent('cart.recovered', { cartId: String(cart._id), userId, reason: safety.reason });
+    }
     return 'skipped';
   }
 
-  const ids = lines.map((l) => l.productId).filter(mongoose.Types.ObjectId.isValid).map((id) => new mongoose.Types.ObjectId(id));
+  const user = await User.findById(userId)
+    .select('email fullName preferences notifications country')
+    .lean();
+  if (!user?.email) {
+    await AbandonedCartQueue.updateOne(
+      { _id: job._id },
+      { $set: { status: 'CANCELLED', cancelled: true, cancelReason: 'no_user' } }
+    );
+    return 'skipped';
+  }
+
+  const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const { lines } = await buildCartLinesFromActivity(userId, lookback);
+  const ids = lines.map((l) => l.productId).filter(mongoose.Types.ObjectId.isValid);
   const products = ids.length
-    ? await Product.find({ _id: { $in: ids }, status: { $in: ['in_stock', 'low_stock'] } })
-        .select('_id name price discount images')
+    ? await Product.find({ _id: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } })
+        .select('_id name price discount images category')
         .lean()
     : [];
-
   const byId = new Map(products.map((p: any) => [String(p._id), p]));
   const displayCurrency = String((user as any)?.preferences?.currency || 'USD').toUpperCase();
-  const emailProducts = lines
-    .map((l) => {
-      const p: any = byId.get(String(l.productId));
-      if (!p) return null;
-      const img = Array.isArray(p.images) && p.images[0] ? String(p.images[0]) : '';
-      const imageUrl = img && !img.startsWith('http')
-        ? `${(process.env.SERVER_URL || '').replace(/\/$/, '')}${img.startsWith('/') ? img : `/${img}`}`
-        : img;
-      return {
-        id: String(p._id),
-        name: String(p.name || ''),
-        imageUrl,
-        price: Number(p.price || 0),
-        priceText: '',
-        discount: Number(p.discount || 0),
-        quantity: Number(l.quantity || 1),
-        viewUrl: `${CLIENT_URL}/products/${encodeURIComponent(String(p._id))}?src=abandoned_cart_email`,
-      };
-    })
-    .filter(Boolean) as any[];
+  const emailProducts = (
+    await Promise.all(
+      lines.map(async (l) => {
+        const p: any = byId.get(String(l.productId));
+        if (!p) return null;
+        const img = Array.isArray(p.images) && p.images[0] ? String(p.images[0]) : '';
+        const imageUrl =
+          img && !img.startsWith('http')
+            ? `${(process.env.SERVER_URL || '').replace(/\/$/, '')}${img.startsWith('/') ? img : `/${img}`}`
+            : img;
+        const conv = await formatUsdAsCurrency(Number(p.price || 0), displayCurrency);
+        return {
+          id: String(p._id),
+          name: String(p.name || ''),
+          imageUrl,
+          price: Number(p.price || 0),
+          priceText: conv.formatted,
+          discount: Number(p.discount || 0),
+          quantity: Number(l.quantity || 1),
+          category: p.category,
+          viewUrl: `${CLIENT_URL}/products/${encodeURIComponent(String(p._id))}?src=abandoned_cart_email`,
+        };
+      })
+    )
+  ).filter(Boolean) as any[];
 
-  if (!emailProducts.length) return 'skipped';
-  for (const ep of emailProducts as any[]) {
-    const conv = await formatUsdAsCurrency(Number(ep.price || 0), displayCurrency);
-    ep.priceText = conv.formatted;
+  if (!emailProducts.length) {
+    await AbandonedCartQueue.updateOne(
+      { _id: job._id },
+      { $set: { status: 'CANCELLED', cancelled: true, cancelReason: 'cart_deleted' } }
+    );
+    return 'skipped';
   }
-  const total = emailProducts.reduce((sum: number, p: any) => sum + (Number(p.price || 0) * Number(p.quantity || 1)), 0);
 
-  await (AbandonedCart as any).create({
-    userId: new mongoose.Types.ObjectId(userId),
-    customerName: String((user as any).fullName || 'Shopper'),
-    customerEmail: String(user.email).toLowerCase(),
-    items: emailProducts.reduce((sum: number, p: any) => sum + (Number(p.quantity || 1)), 0),
-    total,
-    abandonedAt: lastCartAddAt,
-    remindersSent: 1,
-    recovered: false,
-  });
+  const settingsDoc = await getOrCreateCartSettings();
+  const incentives = settingsDoc.incentives || {};
+  let couponCode: string | undefined;
+  if (incentives.dynamicCoupon && job.reminderStep >= 3) {
+    couponCode = generateRecoveryCoupon(
+      String(incentives.couponPrefix || 'COMEBACK'),
+      userId,
+      job.reminderStep
+    );
+    await AbandonedCartQueue.updateOne({ _id: job._id }, { $set: { couponCode } });
+  }
 
-  await sendAbandonedCartEmail({
-    to: String(user.email),
-    name: String((user as any).fullName || 'there').split(' ')[0],
-    subject: `You left items in your cart – ${APP_NAME}`,
-    products: emailProducts,
-    cartUrl: `${CLIENT_URL}/cart`,
-  });
+  const template = job.template || 'waiting';
+  const subjects: Record<string, string> = {
+    waiting: `Items still waiting in your cart – ${APP_NAME}`,
+    low_stock: `Stock is running low on your cart items – ${APP_NAME}`,
+    discount: `Limited offer on your cart – ${APP_NAME}`,
+    custom: `Don't miss out – ${APP_NAME}`,
+  };
 
-  if (await isMarketingFlowPushEnabled('abandoned_cart')) {
+  try {
+    await sendAbandonedCartEmail({
+      to: String(user.email),
+      name: String((user as any).fullName || 'there').split(' ')[0],
+      subject: subjects[template] || subjects.waiting,
+      products: emailProducts,
+      cartUrl: `${CLIENT_URL}/cart`,
+    });
+
+    await RecommendationEmailHistory.create({
+      userId: new mongoose.Types.ObjectId(userId),
+      email: String(user.email).toLowerCase(),
+      campaign: 'abandoned_cart',
+      subject: subjects[template] || subjects.waiting,
+      frequency: 'daily',
+      mode: 'mixed',
+      productIds: emailProducts.map((p) => new mongoose.Types.ObjectId(p.id)),
+      products: emailProducts.map((p) => ({
+        productId: new mongoose.Types.ObjectId(p.id),
+        score: 1,
+        reason: 'abandoned_cart',
+      })),
+      status: 'sent',
+      sentAt: new Date(),
+    });
+
+    const step = job.reminderStep;
+    await AbandonedCart.updateOne(
+      { _id: cart._id },
+      {
+        $set: { remindersSent: step, items: emailProducts.reduce((s, p) => s + p.quantity, 0) },
+        $push: {
+          reminderLog: {
+            step,
+            channel: 'email',
+            scheduledAt: job.scheduledSendAt,
+            sentAt: new Date(),
+          },
+        },
+      }
+    );
+    await appendTimeline(String(cart._id), 'email_sent', { step, template });
+
+    await AbandonedCartQueue.updateOne(
+      { _id: job._id },
+      { $set: { status: 'COMPLETED', completed: true } }
+    );
+
+    void emitRecoveryEvent('email.sent', {
+      cartId: String(cart._id),
+      userId,
+      step,
+      scheduledSendAt: job.scheduledSendAt,
+    });
+
+    if (step < settings.maxReminders) {
+      const nextStep = step + 1;
+      const { scheduledSendAt } = await computeScheduledSendAt({
+        lastCartActivityAt: lastActivity,
+        stepIndex: nextStep - 1,
+        cartTotal: Number(cart.total || 0),
+        primaryCategory: cart.primaryCategory,
+        user: user as any,
+      });
+      const cooldownMs = parseCooldownMs(settings.cooldownPeriod);
+      const stepCfg = getStepConfig(settings, nextStep - 1);
+      const stepDelay = delayToMs(stepCfg.delayValue, stepCfg.delayUnit);
+      await enqueueReminder({
+        userId,
+        cartId: String(cart._id),
+        reminderStep: nextStep,
+        lastCartActivityAt: new Date(Date.now() + cooldownMs - stepDelay),
+        cartTotal: Number(cart.total || 0),
+        primaryCategory: cart.primaryCategory,
+        user: user as any,
+      });
+    }
+
     void safeSendPushToUser(userId, {
       title: 'Your cart is waiting',
-      body: `${emailProducts.length} item${emailProducts.length > 1 ? 's' : ''} still in your cart — tap to checkout.`,
+      body: `${emailProducts.length} item${emailProducts.length > 1 ? 's' : ''} still in your cart.`,
       category: 'abandoned_cart',
-      data: { campaign: 'abandoned_cart' },
-      url: `/cart`,
+      data: { campaign: 'abandoned_cart', step: String(step) },
+      url: '/cart',
     });
-  }
 
-  return 'sent';
+    return 'sent';
+  } catch (e) {
+    await AbandonedCartQueue.updateOne({ _id: job._id }, { $set: { status: 'FAILED' } });
+    console.error('[abandoned-cart-email] send failed', queueId, e);
+    return 'failed';
+  }
 }
 
-async function tick(): Promise<{ sent: number; skipped: number; failed: number }> {
+async function processDueQueue(): Promise<{ sent: number; skipped: number; failed: number }> {
   const stats = { sent: 0, skipped: 0, failed: 0 };
-  const enabledByEnv = getBoolEnv('SEND_ABANDONED_CART_EMAIL', true);
-  if (!enabledByEnv) return stats;
-  if (!isEmailConfigured()) return stats;
-  if (!(await isMarketingFlowEnabled('abandoned_cart'))) return stats;
+  const settings = settingsToClient(await getOrCreateCartSettings());
+  if (!settings.enabled || settings.globalPause) {
+    await cancelPendingQueueJobs('campaign_disabled');
+    return stats;
+  }
 
-  const settings = await getSettings();
-  if (!settings.enabled) return stats;
+  const due = await AbandonedCartQueue.find({
+    status: 'PENDING',
+    cancelled: false,
+    completed: false,
+    scheduledSendAt: { $lte: new Date() },
+  })
+    .sort({ scheduledSendAt: 1 })
+    .limit(40)
+    .lean();
 
-  const ageMs = timingToMs(settings.reminderTiming);
-  const cutoff = new Date(Date.now() - ageMs);
-  const lookback = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-
-  const candidates = await RecommendationActivity.aggregate([
-    {
-      $match: {
-        eventType: 'cart_add',
-        createdAt: { $gte: lookback, $lte: cutoff },
-      },
-    },
-    { $sort: { createdAt: -1 } },
-    { $group: { _id: '$userId', lastCartAddAt: { $first: '$createdAt' } } },
-    { $limit: 80 },
-  ]);
-
-  for (const c of candidates as any[]) {
-    const userId = String(c._id || '');
-    if (!mongoose.Types.ObjectId.isValid(userId)) continue;
-    try {
-      const outcome = await processOneUser(userId, cutoff);
-      if (outcome === 'sent') stats.sent += 1;
-      else if (outcome === 'failed') stats.failed += 1;
-      else stats.skipped += 1;
-    } catch (e) {
-      stats.failed += 1;
-      console.error('[abandoned-cart-email] user failed', userId, e);
-    }
+  for (const job of due as any[]) {
+    const outcome = await processQueueItem(String(job._id));
+    if (outcome === 'sent') stats.sent += 1;
+    else if (outcome === 'failed') stats.failed += 1;
+    else stats.skipped += 1;
   }
   return stats;
 }
 
-export async function runAbandonedCartOnce(): Promise<{ sent: number; skipped: number; failed: number }> {
+async function tick(): Promise<{ sent: number; skipped: number; failed: number; discovered: number }> {
+  const enabledByEnv = getBoolEnv('SEND_ABANDONED_CART_EMAIL', true);
+  if (!enabledByEnv || !isEmailConfigured()) {
+    return { sent: 0, skipped: 0, failed: 0, discovered: 0 };
+  }
+
+  const settings = settingsToClient(await getOrCreateCartSettings());
+  if (!settings.enabled || settings.globalPause) {
+    await cancelPendingQueueJobs('campaign_disabled');
+    return { sent: 0, skipped: 0, failed: 0, discovered: 0 };
+  }
+
+  const discovered = await discoverAndEnqueue();
+  const stats = await processDueQueue();
+  return { ...stats, discovered };
+}
+
+export async function runAbandonedCartOnce(): Promise<{
+  sent: number;
+  skipped: number;
+  failed: number;
+  discovered?: number;
+}> {
   const stats = await tick();
   await recordFlowRun('abandoned_cart', stats);
   return stats;
@@ -253,7 +456,6 @@ export function startAbandonedCartEmailWorker() {
   if (started) return;
   started = true;
   void runAbandonedCartOnce();
-  setInterval(() => void runAbandonedCartOnce(), 10 * 60 * 1000);
-  console.log(`[abandoned-cart-email] worker started (${APP_NAME})`);
+  setInterval(() => void runAbandonedCartOnce(), WORKER_INTERVAL_MS);
+  console.log(`[abandoned-cart-email] queue worker started (${APP_NAME}) — 1min tick, admin settings SSOT`);
 }
-

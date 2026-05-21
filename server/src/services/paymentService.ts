@@ -28,6 +28,7 @@ import { createPayPalCheckoutOrder, capturePayPalOrder } from './paypalCheckout.
 import { getMomoResolvedConfig } from './paymentGatewayCredentials.service';
 import { decrementInventoryForPaidOrderInSession, emitInventoryUpdatedForOrder } from './inventory.service';
 import { orderPayAmount, orderPayCurrency } from './orderPayMoney';
+import { computeEscrowTrustScores } from './escrowTrust.service';
 
 export type CheckoutPaymentProcessor = 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
 
@@ -45,6 +46,8 @@ export interface InitializePaymentInput {
 
 export interface InitializePaymentOptions {
   paymentMethod?: CheckoutPaymentMethod;
+  /** When true, routes to best gateway (region, fees, success rate, downtime). */
+  autoSelectGateway?: boolean;
   /** MTN MoMo MSISDN */
   momoPhone?: string;
   /** Airtel Money MSISDN */
@@ -119,6 +122,12 @@ export async function finalizeSuccessfulEscrowPayment(
 
       const feeBaseAmount = orderPayAmount(order);
       const fees = calculateFees(feeBaseAmount, ctx.provider);
+      const trustScore = await computeEscrowTrustScores({
+        buyerId: new mongoose.Types.ObjectId(String(order.buyerId)),
+        sellerId: new mongoose.Types.ObjectId(String(order.sellerId)),
+      });
+      const insurancePremium = Number(order.escrow?.insurance?.premium || 0);
+      const baseWithoutInsurance = Math.max(0, feeBaseAmount - insurancePremium);
 
       await Order.findByIdAndUpdate(
         orderId,
@@ -142,14 +151,42 @@ export async function finalizeSuccessfulEscrowPayment(
           ...(ctx.airtelTransactionId ? { 'payment.airtelTransactionId': ctx.airtelTransactionId } : {}),
           'escrow.status': 'ESCROW_HOLD',
           'escrow.heldAt': new Date(),
-          'escrow.releaseEligibleAt': new Date(
-            Date.now() + parseInt(process.env.AUTO_RELEASE_DAYS || '3', 10) * 24 * 60 * 60 * 1000
-          ),
+          'escrow.productAmount': Number(order.subtotal || 0),
+          'escrow.shippingAmount': Number(order.shipping || 0),
+          'escrow.taxAmount': Number(order.tax || 0),
+          'escrow.sellerReserve': Number(fees.sellerReceives || 0),
+          'escrow.releasedProductAmount': 0,
+          'escrow.releasedShippingAmount': 0,
+          'escrow.releasedTaxAmount': 0,
+          'escrow.releasedSellerReserve': 0,
+          'escrow.releaseEligibleAt':
+            (order as any)?.fulfillment?.type === 'digital'
+              ? new Date(Date.now() + 10 * 60 * 1000)
+              : (order as any)?.fulfillment?.type === 'shipping'
+                ? new Date(
+                    Date.now() + parseInt(process.env.AUTO_RELEASE_DAYS || '3', 10) * 24 * 60 * 60 * 1000
+                  )
+                : undefined,
+          'escrow.trustScore.buyer': trustScore.buyer,
+          'escrow.trustScore.seller': trustScore.seller,
+          'escrow.trustScore.riskTier': trustScore.riskTier,
+          'escrow.trustScore.autoReview': trustScore.autoReview,
+          'escrow.trustScore.evaluatedAt': trustScore.evaluatedAt,
+          'escrow.insurance.enabled': Boolean(order.escrow?.insurance?.enabled),
+          'escrow.insurance.plan': 'delivery_protection',
+          'escrow.insurance.premium': insurancePremium,
+          'escrow.insurance.currency': order.payment?.currency || 'USD',
+          'escrow.insurance.coverageTypes':
+            order.escrow?.insurance?.coverageTypes?.length
+              ? order.escrow.insurance.coverageTypes
+              : ['damaged', 'lost', 'late'],
+          'escrow.insurance.compensationCap': baseWithoutInsurance,
+          'escrow.insurance.status': order.escrow?.insurance?.enabled ? 'active' : 'expired',
           'fees.platformFeePercent': fees.platformFeePercent,
           'fees.platformFeeAmount': fees.platformFee,
           'fees.sellerAmount': fees.sellerReceives,
           'fees.flutterwaveFee': fees.flutterwaveFee,
-          'escrow.autoReleaseScheduled': true,
+          'escrow.autoReleaseScheduled': (order as any)?.fulfillment?.type === 'shipping' || (order as any)?.fulfillment?.type === 'digital',
         },
         { session },
       );
@@ -231,7 +268,28 @@ export async function initializePayment(
   buyer: InitializePaymentInput['buyer'],
   options: InitializePaymentOptions = {}
 ) {
-  const method: CheckoutPaymentMethod = options.paymentMethod || 'flutterwave';
+  let method: CheckoutPaymentMethod = options.paymentMethod || 'flutterwave';
+
+  if (options.autoSelectGateway) {
+    const orderForRoute = await Order.findById(orderId).lean();
+    const { selectOptimalGateway } = await import('./paymentOptimizer');
+    const selection = await selectOptimalGateway({
+      country: orderForRoute?.shippingAddress?.country || 'RW',
+      amount: orderForRoute ? orderPayAmount(orderForRoute as any) : 0,
+      preferredMethod: method,
+    });
+    method = selection.selectedGateway;
+    await Order.findByIdAndUpdate(orderId, {
+      $set: {
+        'paymentIntelligence.optimizer': {
+          selectedGateway: selection.selectedGateway,
+          reason: selection.reason,
+          alternatives: selection.alternatives,
+          evaluatedAt: new Date(),
+        },
+      },
+    });
+  }
 
   const order = await Order.findById(orderId);
   if (!order) {

@@ -39,6 +39,13 @@ function resolveImage(src) {
   return `${SERVER_URL}${t.startsWith('/') ? t : `/${t}`}`;
 }
 
+/** Safe compare-at / was-price for product objects (avoids null dereference during load/refetch). */
+function productOldPrice(p) {
+  if (!p || typeof p !== 'object') return null;
+  const v = p.compareAtPrice ?? p.originalPrice ?? p.compare_at_price ?? null;
+  return v != null && Number(v) > 0 ? Number(v) : null;
+}
+
 function resolveMedia(src) {
   if (!src) return null;
   let c = src;
@@ -166,7 +173,7 @@ export default function ProductDetail() {
   const images       = useMemo(() => {
     const list = (product?.images?.length ? product.images : [product?.image]).filter(Boolean);
     return list;
-  }, [product?.images, product?.image]);
+  }, [product]);
   const origin       = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
   const canonicalPath = useMemo(() => {
     if (product?.slug) return `/product/${encodeURIComponent(product.slug)}`;
@@ -368,13 +375,20 @@ export default function ProductDetail() {
   useEffect(() => {
     if (!slugParam && !legacyId) return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setLoading(true); setError(null); setActiveImage(0); setProduct(null);
+    setLoading(true);
+    setError(null);
+    setActiveImage(0);
     const load = async () => {
       try {
         const data = slugParam
           ? await productAPI.getProductBySlug(slugParam)
           : await productAPI.getProductById(legacyId);
-        const p = data.product || data;
+        const p = data?.product ?? data;
+        if (!p || typeof p !== 'object') {
+          setProduct(null);
+          setError('Product not found.');
+          return;
+        }
         setProduct(p);
         setWishlisted(!!p?.wishlisted);
         setWishlistCount(Number(p?.wishlistCount || 0));
@@ -389,6 +403,7 @@ export default function ProductDetail() {
           navigate(`/product/${encodeURIComponent(String(p.slug).trim())}`, { replace: true });
         }
       } catch {
+        setProduct(null);
         setError('Product not found.');
       } finally {
         setLoading(false);
@@ -404,7 +419,11 @@ export default function ProductDetail() {
       .getProducts({ limit: 12 })
       .then((data) => {
         const items = Array.isArray(data) ? data : data.products || data.items || [];
-        setRelated(items.filter((p) => String(p._id || p.id) !== excludeId).slice(0, 8));
+        setRelated(
+          items
+            .filter((p) => p && typeof p === 'object' && String(p._id || p.id) !== excludeId)
+            .slice(0, 8)
+        );
       })
       .catch(() => {});
   }, [product?._id, product?.id, legacyId]);
@@ -499,7 +518,7 @@ export default function ProductDetail() {
   };
 
   const previewPrice = product?.price || 0;
-  const previewOldPrice = product?.compareAtPrice || product?.originalPrice || product?.compare_at_price || null;
+  const previewOldPrice = productOldPrice(product);
   const productVideoUrl = useMemo(() => {
     const direct =
       product?.videoUrl ||
@@ -634,12 +653,12 @@ export default function ProductDetail() {
     </BuyerLayout>
   );
 
-  if (error) return (
+  if (error || !product || typeof product !== 'object') return (
     <BuyerLayout>
-      <PageSeo title="Product not found | Reaglex" description={error} canonicalUrl={canonicalUrl} noIndex />
+      <PageSeo title="Product not found | Reaglex" description={error || 'Product not found.'} canonicalUrl={canonicalUrl} noIndex />
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)' }}>
         <span className="text-6xl">😕</span>
-        <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error}</p>
+        <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error || 'Product not found.'}</p>
         <button onClick={() => navigate(-1)}
           className="px-7 py-3 rounded-full text-white font-bold text-sm"
           style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
@@ -649,18 +668,18 @@ export default function ProductDetail() {
     </BuyerLayout>
   );
 
-  /* ── derived values ── */
-  const price        = product?.price || 0;
-  const basePrice    = product?.price || 0;
+  /* ── derived values (product is guaranteed non-null below) ── */
+  const price        = product.price || 0;
+  const basePrice    = product.price || 0;
   const totalPrice   = basePrice * quantity;
-  const oldPrice     = product.compareAtPrice || product.originalPrice || product?.compare_at_price || null;
+  const oldPrice     = productOldPrice(product);
   const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
-  const showDiscount = Number(discount || 0) > 0 && product?.discountActive !== false;
+  const showDiscount = Number(discount || 0) > 0 && product.discountActive !== false;
   const rating       = Number(product.ratingAverage || product.averageRating || product.rating || 0) || 0;
   const reviewsCount = Number(product.reviewCount || product.totalReviews || 0) || 0;
-  const reviewThumbs = Array.isArray(product?.reviewGallery) ? product.reviewGallery.slice(0, 4).map((r) => resolveImage(r)).filter(Boolean) : [];
+  const reviewThumbs = Array.isArray(product.reviewGallery) ? product.reviewGallery.slice(0, 4).map((r) => resolveImage(r)).filter(Boolean) : [];
   const hasReviewData = reviewsCount > 0 || rating > 0 || reviewThumbs.length > 0;
-  const soldCount    = Number(product.soldCount || product?.salesCount || 0) || 0;
+  const soldCount    = Number(product.soldCount || product.salesCount || 0) || 0;
   const stock        = product.stockQuantity ?? product.stock ?? 10;
   const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
   const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
@@ -668,8 +687,8 @@ export default function ProductDetail() {
   const totalLocalPrice = currencyPricing.convertUsdToLocal(totalPrice);
   const baseLocalPrice = currencyPricing.convertUsdToLocal(basePrice);
   const totalUsdText = currencyPricing.formatUsd(totalPrice);
-  const showSizeSelector = categoryNeedsSize(product?.category) && Array.isArray(product?.sizes) && product.sizes.length > 0;
-  const showColorSelector = categoryNeedsColor(product?.category) && Array.isArray(product?.colors) && product.colors.length > 0;
+  const showSizeSelector = categoryNeedsSize(product.category) && Array.isArray(product.sizes) && product.sizes.length > 0;
+  const showColorSelector = categoryNeedsColor(product.category) && Array.isArray(product.colors) && product.colors.length > 0;
   const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
 
   const specs = [
@@ -677,7 +696,7 @@ export default function ProductDetail() {
     { prop: 'SKU',            value: product.sku      || resolvedId    },
     { prop: 'Category',       value: category                          },
     { prop: 'Material',       value: product.material || 'Cotton blend'},
-    { prop: 'Sizes',          value: (Array.isArray(product?.sizes) && product.sizes.length ? product.sizes : FALLBACK_SIZES).join(', ') },
+    { prop: 'Sizes',          value: (Array.isArray(product.sizes) && product.sizes.length ? product.sizes : FALLBACK_SIZES).join(', ') },
     { prop: 'Weight',         value: product.weight   || '200g'        },
     { prop: 'Origin',         value: product.origin   || 'Imported'    },
     { prop: 'Warranty',       value: '1 year limited'                  },

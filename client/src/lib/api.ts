@@ -2461,7 +2461,66 @@ export const adminMarketingAPI = {
       headers: getAuthHeaders(),
       credentials: 'include',
       body: JSON.stringify(body),
-    }).then(handleResponse<{ autoReminderEnabled: boolean; reminderTiming: string }>),
+    }).then(handleResponse<{ autoReminderEnabled: boolean; reminderTiming: string; strategy?: any }>),
+
+  getCartStrategy: () =>
+    fetch(`${MARKETING_BASE}/cart-strategy`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ strategy: any }>),
+
+  updateCartStrategy: (body: Record<string, unknown>) =>
+    fetch(`${MARKETING_BASE}/cart-strategy`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ strategy: any }>),
+
+  saveCartJourney: (journey: Record<string, unknown>) =>
+    fetch(`${MARKETING_BASE}/cart/journey`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ journey }),
+    }).then(handleResponse<{ success: boolean; journey: any }>),
+
+  simulateCartRecovery: (body: Record<string, unknown>) =>
+    fetch(`${MARKETING_BASE}/cart/simulate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(
+      handleResponse<{
+        prediction: any;
+        estimate?: { message: string; estimatedRecoveryBoostPercent: number };
+        schedulePreview: any[];
+      }>
+    ),
+
+  getCartRecoverySettings: () =>
+    fetch(`${MARKETING_BASE}/cart-recovery/settings`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ settings: any; pendingQueueJobs: number }>),
+
+  updateCartRecoverySettings: (body: Record<string, unknown>) =>
+    fetch(`${MARKETING_BASE}/cart-recovery/settings`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ settings: any; message?: string; queueRegenerated?: boolean }>),
+
+  getCartRecoveryAnalytics: (days = 30) =>
+    fetch(`${MARKETING_BASE}/cart-recovery/analytics?days=${days}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ analytics: any }>),
 
   getPromotions: () =>
     fetch(`${MARKETING_BASE}/promotions`, {

@@ -137,6 +137,8 @@ export const authAPI = {
 export const orderAPI = {
   create: (body: unknown) => api.post('/orders', body).then((r) => r.data),
   cancel: (orderId: string) => api.patch(`/orders/${orderId}/cancel`).then((r) => r.data),
+  checkoutIntelligence: (body: unknown) =>
+    api.post('/orders/checkout-intelligence', body).then((r) => r.data),
 };
 
 /** Reaglex multi-seller distance-based shipping quotes (buyer). */

@@ -118,6 +118,11 @@ export interface IUser extends Document {
   referredBy?: mongoose.Types.ObjectId;
   /** Reaglex marketplace shipping (sellers): warehouses, zones, methods, fees. */
   reaglexSellerShipping?: ReaglexSellerShippingConfig;
+  rewards?: {
+    points: number;
+    lifetimePoints: number;
+    lastEarnedAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -385,6 +390,11 @@ const userSchema = new Schema<IUser>(
       index: true,
     },
     reaglexSellerShipping: { type: reaglexSellerShippingSchema },
+    rewards: {
+      points: { type: Number, default: 0 },
+      lifetimePoints: { type: Number, default: 0 },
+      lastEarnedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );

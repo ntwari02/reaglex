@@ -86,6 +86,10 @@ export interface IReturnCase extends Document {
     at: Date;
   }>;
   chat: IReturnCaseMessage[];
+  postDeliveryResolution?: {
+    kind: 'replacement' | 'exchange' | 'repair';
+    status: 'open' | 'approved' | 'in_progress' | 'completed' | 'rejected';
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -192,6 +196,10 @@ const returnCaseSchema = new Schema<IReturnCase>(
       default: [],
     },
     chat: { type: [chatSchema], default: [] },
+    postDeliveryResolution: {
+      kind: { type: String, enum: ['replacement', 'exchange', 'repair'] },
+      status: { type: String, enum: ['open', 'approved', 'in_progress', 'completed', 'rejected'], default: 'open' },
+    },
   },
   { timestamps: true },
 );

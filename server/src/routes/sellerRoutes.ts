@@ -7,6 +7,9 @@ import {
   getSellerOrderById,
   updateSellerOrderStatus,
   updateSellerOrderTracking,
+  getSellerCarrierOptions,
+  bulkProcessSellerOrders,
+  markOrderReadyForPickup,
 } from '../controllers/sellerOrderController';
 import {
   getSellerCollections,
@@ -38,6 +41,9 @@ router.get('/orders', getSellerOrders);
 router.get('/orders/:orderId', getSellerOrderById);
 router.patch('/orders/:orderId/status', updateSellerOrderStatus);
 router.patch('/orders/:orderId/tracking', updateSellerOrderTracking);
+router.patch('/orders/:orderId/ready', markOrderReadyForPickup);
+router.get('/orders/:orderId/carrier-options', getSellerCarrierOptions);
+router.post('/orders/bulk-process', bulkProcessSellerOrders);
 router.get('/collections', getSellerCollections);
 router.post('/collections', createSellerCollection);
 router.patch('/collections/:collectionId', updateSellerCollection);

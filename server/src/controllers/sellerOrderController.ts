@@ -4,6 +4,11 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { Order, OrderStatus } from '../models/Order';
 import { notifyBuyerOrderStatusChange } from '../services/orderInboxNotifications';
 import { restoreInventoryForOrder } from '../services/inventory.service';
+import {
+  compareCarriersForOrder,
+  estimateDeliveryPrediction,
+} from '../services/fulfillmentIntelligence.service';
+import { buildPickupCredentials } from '../services/pickupService';
 
 // GET /api/seller/orders
 export async function getSellerOrders(req: AuthenticatedRequest, res: Response) {
@@ -40,8 +45,14 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
       'pending',
       'processing',
       'packed',
+      'paused',
+      'ready_for_pickup',
+      'pickup_confirmed',
+      'booked',
+      'in_progress',
       'shipped',
       'delivered',
+      'completed',
       'cancelled',
     ];
 
@@ -127,18 +138,29 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
 
     const now = new Date();
     const shouldMarkShipped = !!trackingNumber;
+    const carrierAnalysis = await compareCarriersForOrder(orderId);
+    const prediction = await estimateDeliveryPrediction(orderId);
+    const selectedCarrier = carrier || carrierAnalysis.recommended.carrier;
 
     const update: any = {
       $set: {
         trackingNumber: trackingNumber || '',
         'reaglexShipping.trackingNumber': trackingNumber || '',
         'reaglexShipping.shipmentStatus': shouldMarkShipped ? 'shipped' : 'pending',
+        deliveryPrediction: {
+          expected: new Date(prediction.expected),
+          confidence: prediction.confidence,
+          factors: prediction.factors,
+        },
+        'fulfillment.carrierOptions': carrierAnalysis.options,
+        'fulfillment.recommendedCarrier': {
+          carrier: carrierAnalysis.recommended.carrier,
+          service: carrierAnalysis.recommended.service,
+        },
       },
     };
 
-    if (carrier) {
-      update.$set.carrier = carrier;
-    }
+    update.$set.carrier = selectedCarrier;
 
     if (shouldMarkShipped) {
       update.$set.status = 'shipped';
@@ -181,6 +203,133 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
   } catch (err: any) {
     console.error('Error updating seller order tracking:', err);
     return res.status(500).json({ message: 'Failed to update order tracking' });
+  }
+}
+
+// GET /api/seller/orders/:orderId/carrier-options
+export async function getSellerCarrierOptions(req: AuthenticatedRequest, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Authentication required' });
+  try {
+    const sellerObjectId = new mongoose.Types.ObjectId(req.user.id);
+    const { orderId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ message: 'Invalid order ID' });
+    const order = await Order.findOne({ _id: new mongoose.Types.ObjectId(orderId), sellerId: sellerObjectId } as any).lean();
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    const carriers = await compareCarriersForOrder(orderId);
+    const prediction = await estimateDeliveryPrediction(orderId);
+    return res.json({
+      orderId,
+      deliveryPrediction: prediction,
+      recommended: carriers.recommended,
+      options: carriers.options,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: 'Failed to compare carriers', error: err.message });
+  }
+}
+
+// POST /api/seller/orders/bulk-process
+export async function bulkProcessSellerOrders(req: AuthenticatedRequest, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Authentication required' });
+  try {
+    const sellerObjectId = new mongoose.Types.ObjectId(req.user.id);
+    const { orderIds, action } = req.body as {
+      orderIds: string[];
+      action: 'print_labels' | 'ship' | 'package';
+    };
+    if (!Array.isArray(orderIds) || !orderIds.length) {
+      return res.status(400).json({ message: 'orderIds is required' });
+    }
+    if (!['print_labels', 'ship', 'package'].includes(String(action))) {
+      return res.status(400).json({ message: 'Invalid action' });
+    }
+    const validIds = orderIds.filter((id) => mongoose.Types.ObjectId.isValid(id)).map((id) => new mongoose.Types.ObjectId(id));
+    const orders = await Order.find({ _id: { $in: validIds }, sellerId: sellerObjectId } as any);
+    const now = new Date();
+    const results: Array<{ orderId: string; status: string }> = [];
+
+    for (const order of orders) {
+      const update: any = {
+        $push: {
+          'fulfillment.batchActionHistory': {
+            action,
+            at: now,
+            actorId: req.user.id,
+          },
+        },
+      };
+      if (action === 'package') {
+        update.$set = { status: 'packed' };
+      }
+      if (action === 'ship') {
+        update.$set = {
+          status: 'shipped',
+          'reaglexShipping.shipmentStatus': 'shipped',
+        };
+      }
+      if (action === 'print_labels') {
+        update.$set = {
+          'reaglexShipping.shipmentStatus': String((order as any)?.reaglexShipping?.shipmentStatus || 'pending'),
+        };
+      }
+      const updated = await Order.findByIdAndUpdate(order._id, update, { new: true }).lean();
+      results.push({ orderId: String(order._id), status: String((updated as any)?.status || order.status) });
+    }
+
+    return res.json({
+      success: true,
+      action,
+      processed: results.length,
+      results,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: 'Failed bulk processing', error: err.message });
+  }
+}
+
+// PATCH /api/seller/orders/:orderId/ready
+export async function markOrderReadyForPickup(req: AuthenticatedRequest, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Authentication required' });
+  try {
+    const sellerObjectId = new mongoose.Types.ObjectId(req.user.id);
+    const { orderId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ message: 'Invalid order ID' });
+
+    const order = await Order.findOne({ _id: new mongoose.Types.ObjectId(orderId), sellerId: sellerObjectId } as any);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if ((order as any)?.fulfillment?.type !== 'pickup') {
+      return res.status(400).json({ message: 'Only pickup fulfillment orders can be marked ready' });
+    }
+
+    const pickup = buildPickupCredentials(24 * 60);
+    order.status = 'ready_for_pickup';
+    (order as any).pickup = {
+      ...((order as any).pickup || {}),
+      code: pickup.code,
+      otp: pickup.otp,
+      qrToken: pickup.qrToken,
+      expiresAt: pickup.expiresAt,
+    };
+    order.timeline.push({
+      status: 'ready_for_pickup',
+      date: new Date(),
+      time: new Date().toLocaleTimeString(),
+    });
+    await order.save();
+
+    return res.json({
+      success: true,
+      pickup: {
+        code: (order as any)?.pickup?.code,
+        qrToken: (order as any)?.pickup?.qrToken,
+        otp: (order as any)?.pickup?.otp,
+        expiresAt: (order as any)?.pickup?.expiresAt,
+      },
+      order: { id: order._id, orderNumber: order.orderNumber, status: order.status },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: 'Failed to mark order ready', error: err.message });
   }
 }
 

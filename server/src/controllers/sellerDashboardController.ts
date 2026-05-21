@@ -423,8 +423,22 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
       pending: allOrders.filter(o => o.status === 'pending').length,
       inTransit: allOrders.filter(o => ['packed', 'shipped'].includes(o.status)).length,
       completed: allOrders.filter(o => o.status === 'delivered').length,
+      paused: allOrders.filter(o => o.status === 'paused').length,
       cancelled: allOrders.filter(o => o.status === 'cancelled').length,
     };
+
+    const cancellationRiskOrders = allOrders.filter((o: any) =>
+      ['pending', 'processing', 'paused'].includes(String(o.status))
+    );
+    const riskTotal = cancellationRiskOrders.reduce((sum: number, o: any) => {
+      const existing = Number(o?.cancellationIntelligence?.riskScore || 0);
+      if (existing > 0) return sum + existing;
+      const base = o.status === 'paused' ? 82 : o.status === 'pending' ? 68 : 54;
+      return sum + base;
+    }, 0);
+    const cancellationRiskScore = cancellationRiskOrders.length
+      ? Math.round(riskTotal / cancellationRiskOrders.length)
+      : 0;
 
     // Best selling products (top 4 by quantity sold)
     const productSales: { [key: string]: { name: string; sales: number; revenue: number; stock: number } } = {};
@@ -600,6 +614,11 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
         },
       },
       orderStats,
+      cancellationAnalytics: {
+        riskScore: cancellationRiskScore,
+        highRiskOrders: cancellationRiskOrders.filter((o: any) => Number(o?.cancellationIntelligence?.riskScore || 0) >= 70).length,
+        monitoredOrders: cancellationRiskOrders.length,
+      },
       bestSellingProducts,
       recentOrders,
       revenueTrend,

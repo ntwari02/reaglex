@@ -10,6 +10,7 @@ import { evaluateReturnPolicy } from '../services/returnsPolicy.service';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
 import { sendNotificationEmail } from '../services/emailService';
 import { User } from '../models/User';
+import { ProductReview } from '../models/ProductReview';
 
 const REASONS: Record<string, string> = {
   wrong_item: 'Wrong item received',
@@ -441,6 +442,257 @@ export async function addReturnCaseMessage(req: AuthenticatedRequest, res: Respo
     return res.json({ message: 'Message sent', chat: doc.chat });
   } catch (error: any) {
     return res.status(500).json({ message: error?.message || 'Failed to send message' });
+  }
+}
+
+export async function getSmartSatisfactionPrompts(req: AuthenticatedRequest, res: Response) {
+  try {
+    const buyerId = buyerIdFrom(req);
+    if (!buyerId) return res.status(401).json({ message: 'Authentication required' });
+    const { orderId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ message: 'Invalid order ID' });
+
+    const order = await Order.findOne({ _id: new mongoose.Types.ObjectId(orderId), buyerId } as any).lean();
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    const prompts = (order.items || []).map((item: any, idx: number) => ({
+      promptId: `${orderId}:${idx}`,
+      productId: String(item.productId || ''),
+      question: `Did ${String(item.name || 'this item')} arrive working?`,
+      suggestedActions: ['ok', 'damaged', 'not_working', 'late', 'missing'],
+    }));
+
+    return res.json({
+      orderId,
+      smartSatisfactionDetection: true,
+      prompts,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || 'Failed to generate prompts' });
+  }
+}
+
+export async function submitSatisfactionResponse(req: AuthenticatedRequest, res: Response) {
+  try {
+    const buyerId = buyerIdFrom(req);
+    if (!buyerId) return res.status(401).json({ message: 'Authentication required' });
+    const { orderId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ message: 'Invalid order ID' });
+    const responses = Array.isArray(req.body?.responses) ? req.body.responses : [];
+    if (!responses.length) return res.status(400).json({ message: 'responses are required' });
+
+    const order = await Order.findOne({ _id: new mongoose.Types.ObjectId(orderId), buyerId } as any);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    (order as any).postDelivery = {
+      ...((order as any).postDelivery || {}),
+      satisfactionResponses: responses.map((r: any) => ({
+        productId: String(r?.productId || ''),
+        sentiment: String(r?.sentiment || 'ok'),
+        comment: String(r?.comment || ''),
+        at: new Date(),
+      })),
+      lastSatisfactionCheckAt: new Date(),
+    };
+    await order.save();
+    return res.json({ success: true, message: 'Satisfaction responses saved' });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || 'Failed to save response' });
+  }
+}
+
+export async function createInstantResolution(req: AuthenticatedRequest, res: Response) {
+  try {
+    const buyerId = buyerIdFrom(req);
+    if (!buyerId) return res.status(401).json({ message: 'Authentication required' });
+    const { orderId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ message: 'Invalid order ID' });
+
+    const resolutionType = String(req.body?.resolutionType || '').toLowerCase();
+    if (!['replacement', 'exchange', 'repair'].includes(resolutionType)) {
+      return res.status(400).json({ message: 'resolutionType must be replacement|exchange|repair' });
+    }
+    const reasonCode = String(req.body?.reasonCode || 'not_as_described');
+    const description = String(req.body?.description || 'Instant resolution requested by buyer');
+
+    const order = await Order.findOne({ _id: new mongoose.Types.ObjectId(orderId), buyerId } as any);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    const caseDoc = await ReturnCase.create({
+      orderId: order._id,
+      buyerId,
+      sellerId: order.sellerId,
+      splitGroupKey: `${String(order._id)}:${String(order.sellerId)}`,
+      orderItemIds: (order.items || []).map((_x: any, idx: number) => `${String(order._id)}:${idx}`),
+      reasonCode,
+      reasonLabel: REASONS[reasonCode] || 'Post-delivery issue',
+      description,
+      returnType: resolutionType === 'replacement' ? 'replacement' : 'exchange',
+      fraudSignals: {
+        abuseScore: 15,
+        suspiciousPatterns: [],
+        consistencyWarnings: [],
+        autoApprovalRecommended: true,
+      },
+      authenticityCheck: {
+        score: 80,
+        notes: ['Instant resolution path'],
+        matchedProductMedia: true,
+      },
+      resolutionMetrics: {
+        sellerDefectRate: 0,
+        buyerReturnFrequency: 0,
+        estimatedResolutionHours: 48,
+      },
+      escrowSnapshot: {
+        escrowStatus: String(order.escrow?.status || 'PENDING'),
+        frozenAt: new Date(),
+        freezeReason: `Instant ${resolutionType} request`,
+      },
+      refund: {
+        amount: 0,
+        currency: String(order.payment?.currency || 'USD'),
+        method: 'original_payment',
+        etaLabel: 'N/A',
+      },
+      shipping: {
+        returnAddress: `${order.shippingAddress?.name || 'Seller'}, ${order.shippingAddress?.city || ''}, ${order.shippingAddress?.country || ''}`,
+        qrLabelUrl: '',
+        courierOptions: ['DHL', 'FedEx', 'Local Courier'],
+        selectedCourier: '',
+        trackingNumber: '',
+        trackingUrl: '',
+      },
+      timeline: [{ stage: 'requested', label: `Instant ${resolutionType} requested`, at: new Date() }],
+      chat: [{ actorRole: 'system', text: `Instant ${resolutionType} initiated.`, createdAt: new Date() }],
+      postDeliveryResolution: {
+        kind: resolutionType,
+        status: 'open',
+      },
+    } as any);
+
+    return res.status(201).json({
+      success: true,
+      resolutionType,
+      case: caseDoc,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || 'Failed to create instant resolution' });
+  }
+}
+
+export async function submitRewardedReview(req: AuthenticatedRequest, res: Response) {
+  try {
+    const buyerId = buyerIdFrom(req);
+    if (!buyerId) return res.status(401).json({ message: 'Authentication required' });
+    const {
+      orderId,
+      productId,
+      rating,
+      message,
+      images = [],
+      videos = [],
+      liveShoppingClips = [],
+    } = req.body || {};
+
+    if (!orderId || !productId || !rating) {
+      return res.status(400).json({ message: 'orderId, productId and rating are required' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(orderId) || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid orderId or productId' });
+    }
+
+    const order = await Order.findOne({
+      _id: new mongoose.Types.ObjectId(orderId),
+      buyerId,
+      status: { $in: ['delivered', 'shipped'] },
+    } as any).lean();
+    if (!order) return res.status(404).json({ message: 'Delivered order not found' });
+
+    const product = await Product.findById(productId).select('name').lean();
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    const existing = await ProductReview.findOne({
+      userId: buyerId,
+      productId: new mongoose.Types.ObjectId(productId),
+      orderId: String(orderId),
+    }).lean();
+    if (existing) return res.status(400).json({ message: 'Review already submitted for this product in this order' });
+
+    const rewardPoints = 20;
+    const review = await ProductReview.create({
+      userId: buyerId,
+      customerName: String((req.user as any)?.fullName || 'Verified Buyer'),
+      customerEmail: String((req.user as any)?.email || ''),
+      productId: new mongoose.Types.ObjectId(productId),
+      productName: String((product as any).name || 'Product'),
+      orderId: String(orderId),
+      rating: Math.max(1, Math.min(5, Number(rating))),
+      message: String(message || '').trim(),
+      images: Array.isArray(images) ? images.map((x: any) => String(x)) : [],
+      videos: Array.isArray(videos) ? videos.map((x: any) => String(x)) : [],
+      liveShoppingClips: Array.isArray(liveShoppingClips) ? liveShoppingClips.map((x: any) => String(x)) : [],
+      verifiedPurchase: true,
+      rewardPoints,
+      status: 'approved',
+      flagged: false,
+    });
+
+    await User.updateOne(
+      { _id: buyerId },
+      {
+        $inc: {
+          'rewards.points': rewardPoints,
+          'rewards.lifetimePoints': rewardPoints,
+        },
+        $set: { 'rewards.lastEarnedAt': new Date() },
+      }
+    );
+
+    return res.status(201).json({
+      success: true,
+      reward: { points: rewardPoints },
+      review,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || 'Failed to submit review' });
+  }
+}
+
+export async function getBuyerRewardsSummary(req: AuthenticatedRequest, res: Response) {
+  try {
+    const buyerId = buyerIdFrom(req);
+    if (!buyerId) return res.status(401).json({ message: 'Authentication required' });
+
+    const user = await User.findById(buyerId).select('rewards').lean();
+    const recentReviews = await ProductReview.find({
+      userId: buyerId,
+      verifiedPurchase: true,
+      rewardPoints: { $gt: 0 },
+    })
+      .select('productName rewardPoints createdAt orderId')
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    const history = recentReviews.map((r: any) => ({
+      type: 'review_reward',
+      points: Number(r.rewardPoints || 0),
+      productName: String(r.productName || 'Product'),
+      orderId: String(r.orderId || ''),
+      earnedAt: r.createdAt,
+    }));
+
+    return res.json({
+      rewards: {
+        points: Number((user as any)?.rewards?.points || 0),
+        lifetimePoints: Number((user as any)?.rewards?.lifetimePoints || 0),
+        lastEarnedAt: (user as any)?.rewards?.lastEarnedAt || null,
+      },
+      history,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || 'Failed to load rewards summary' });
   }
 }
 

@@ -22,6 +22,10 @@ interface BuyerCartState {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  replaceItems: (
+    items: CartLine[],
+    shippingPreviewLocation?: { country: string; city: string; state?: string; zip?: string },
+  ) => void;
   subtotal: () => number;
   itemCount: () => number;
 }
@@ -98,6 +102,27 @@ export const useBuyerCart = create<BuyerCartState>()(
       },
 
       clearCart: () => set({ items: [] }),
+
+      replaceItems: (items, shippingPreviewLocation) => {
+        const next = (items || []).map((i) => ({
+          id: String(i.id),
+          title: String(i.title || 'Product'),
+          price: Number(i.price) || 0,
+          image: String(i.image || ''),
+          seller: String(i.seller || 'Seller'),
+          quantity: Math.max(1, Number(i.quantity) || 1),
+        }));
+        const patch: Partial<BuyerCartState> = { items: next };
+        if (shippingPreviewLocation) {
+          patch.shippingPreviewLocation = {
+            country: String(shippingPreviewLocation.country || defaultShipPreview.country).trim(),
+            city: String(shippingPreviewLocation.city || defaultShipPreview.city).trim(),
+            state: String(shippingPreviewLocation.state ?? '').trim(),
+            zip: String(shippingPreviewLocation.zip ?? '').trim(),
+          };
+        }
+        set(patch);
+      },
 
       subtotal: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
 

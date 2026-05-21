@@ -10,7 +10,12 @@ import {
   createReturnCase,
   getReturnCase,
   getReturnOrderPreview,
+  getBuyerRewardsSummary,
+  getSmartSatisfactionPrompts,
   listReturnCases,
+  createInstantResolution,
+  submitRewardedReview,
+  submitSatisfactionResponse,
   uploadReturnEvidence,
 } from '../controllers/buyerReturnsController';
 
@@ -44,6 +49,11 @@ router.use(authenticate);
 router.use(limiter);
 
 router.get('/order/:orderId/preview', getReturnOrderPreview);
+router.get('/post-delivery/rewards', getBuyerRewardsSummary);
+router.get('/post-delivery/:orderId/satisfaction-prompts', getSmartSatisfactionPrompts);
+router.post('/post-delivery/:orderId/satisfaction-response', submitSatisfactionResponse);
+router.post('/post-delivery/:orderId/instant-resolution', createInstantResolution);
+router.post('/post-delivery/reviews', submitRewardedReview);
 router.get('/cases', listReturnCases);
 router.get('/cases/:caseId', getReturnCase);
 router.post('/cases', createReturnCase);

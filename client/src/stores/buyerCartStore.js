@@ -73,6 +73,28 @@ export const useBuyerCart = create(
 
       clearCart: () => set({ items: [] }),
 
+      /** Replace cart from cloud merge (cross-device sync). */
+      replaceItems: (items, shippingPreviewLocation) => {
+        const next = (items || []).map((i) => ({
+          id: i.id || i.productId,
+          title: i.title || 'Product',
+          price: Number(i.price) || 0,
+          image: i.image || '',
+          seller: i.seller || 'Seller',
+          quantity: Math.max(1, Number(i.quantity) || 1),
+        }));
+        const patch = { items: next };
+        if (shippingPreviewLocation) {
+          patch.shippingPreviewLocation = {
+            country: String(shippingPreviewLocation.country || defaultShipPreview.country).trim(),
+            city: String(shippingPreviewLocation.city || defaultShipPreview.city).trim(),
+            state: String(shippingPreviewLocation.state ?? '').trim(),
+            zip: String(shippingPreviewLocation.zip ?? '').trim(),
+          };
+        }
+        set(patch);
+      },
+
       get total() {
         return get().items.reduce((sum, i) => sum + i.price * i.quantity, 0);
       },

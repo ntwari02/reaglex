@@ -10,6 +10,10 @@ export interface IProductReview extends Document {
   rating: number;
   message: string;
   images: string[];
+  videos?: string[];
+  liveShoppingClips?: string[];
+  verifiedPurchase?: boolean;
+  rewardPoints?: number;
   status: 'approved' | 'pending' | 'rejected' | 'flagged';
   sellerResponse?: string;
   createdAt: Date;
@@ -29,6 +33,10 @@ const productReviewSchema = new Schema<IProductReview>(
     rating: { type: Number, required: true, min: 1, max: 5 },
     message: { type: String, default: '' },
     images: [{ type: String }],
+    videos: [{ type: String }],
+    liveShoppingClips: [{ type: String }],
+    verifiedPurchase: { type: Boolean, default: false },
+    rewardPoints: { type: Number, default: 0 },
     status: { type: String, enum: ['approved', 'pending', 'rejected', 'flagged'], default: 'pending' },
     sellerResponse: { type: String },
     aiScore: { type: Number },

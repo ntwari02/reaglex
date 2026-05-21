@@ -28,6 +28,7 @@ export async function raiseDispute(
     'escrow.disputeRaisedAt': new Date(),
     'escrow.disputeReason': reason,
     'escrow.autoReleaseScheduled': false,
+    'escrow.trustScore.autoReview': true,
   });
 
   const disputeNumber = `DSP-${Date.now()}-${Math.floor(Math.random() * 1000000)
@@ -60,6 +61,16 @@ export async function resolveDispute(
 
   if (resolution === 'BUYER_WINS') {
     await refundBuyer(dispute.orderId.toString(), dispute.reason);
+    const reasonLower = String(dispute.reason || '').toLowerCase();
+    const insuredReason =
+      reasonLower.includes('damag') || reasonLower.includes('lost') || reasonLower.includes('late');
+    if (insuredReason) {
+      await Order.findByIdAndUpdate(dispute.orderId, {
+        'escrow.insurance.status': 'claimed',
+        'escrow.insurance.claimedAt': new Date(),
+        'escrow.insurance.claimReason': dispute.reason,
+      });
+    }
   } else {
     await releaseEscrow(dispute.orderId.toString(), adminId);
   }

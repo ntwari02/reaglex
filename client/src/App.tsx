@@ -43,6 +43,7 @@ import { PwaRoot, ShareTargetHandler, DeepLinkHandler } from './pwa';
 import { websocketService } from './services/websocketService';
 // @ts-ignore Zustand JS store without TS types
 import { useBuyerCart } from './stores/buyerCartStore';
+import CartCloudSyncBridge from './components/cart/CartCloudSyncBridge';
 // @ts-ignore JS module without TS typings
 import { isBuyerChromeHidden } from './config/buyerNavVisibility';
 import { SiteWideSchemas } from './components/seo/SiteWideSchemas';
@@ -215,6 +216,7 @@ function App() {
         <SiteWideSchemas />
         <ScrollToTop />
         <GlobalRealtimeBridge />
+        <CartCloudSyncBridge />
         <SecurityTelemetryProbe />
         <ToastNotification />
         <PwaRoot />

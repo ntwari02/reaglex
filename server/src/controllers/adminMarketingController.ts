@@ -6,7 +6,12 @@ import { MarketingCoupon } from '../models/MarketingCoupon';
 import { CustomerSegment } from '../models/CustomerSegment';
 import { MarketingMessageCampaign } from '../models/MarketingMessageCampaign';
 import { AbandonedCart } from '../models/AbandonedCart';
-import { AbandonedCartSettings } from '../models/AbandonedCartSettings';
+import { getOrCreateCartSettings, settingsToClient } from '../models/AbandonedCartSettings';
+import { getOrCreateCartStrategy, strategyToClient } from '../models/AbandonedCartStrategy';
+import {
+  cancelPendingQueueJobs,
+  regenerateQueueFromSettings,
+} from '../services/cartRecoveryEngine.service';
 import { ProductPromotion } from '../models/ProductPromotion';
 import { AdIntegration } from '../models/AdIntegration';
 import { TrackingPixel } from '../models/TrackingPixel';
@@ -655,8 +660,11 @@ export async function getAbandonedCarts(req: AuthenticatedRequest, res: Response
       items: c.items,
       total: c.total,
       abandonedAt: c.abandonedAt,
+      lastCartActivityAt: c.lastCartActivityAt,
       remindersSent: c.remindersSent,
       recovered: c.recovered,
+      timeline: c.timeline || [],
+      aiSuggestedSendAt: c.aiSuggestedSendAt,
     }));
     res.json({ carts });
   } catch (e) {
@@ -667,14 +675,15 @@ export async function getAbandonedCarts(req: AuthenticatedRequest, res: Response
 export async function getAbandonedCartSettings(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
-    let doc = await AbandonedCartSettings.findOne();
-    if (!doc) {
-      doc = await (AbandonedCartSettings as any).create({});
-    }
-    const d = doc as any;
+    const settings = settingsToClient(await getOrCreateCartSettings());
+    const first = settings.recoverySteps?.[0];
     res.json({
-      autoReminderEnabled: d.autoReminderEnabled,
-      reminderTiming: d.reminderTiming,
+      enabled: settings.enabled,
+      autoReminderEnabled: settings.enabled,
+      delayValue: settings.delayValue,
+      delayUnit: settings.delayUnit,
+      reminderTiming: `${first?.delayValue || settings.delayValue}${first?.delayUnit || settings.delayUnit}`,
+      settings,
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to fetch settings' });
@@ -685,19 +694,53 @@ export async function updateAbandonedCartSettings(req: AuthenticatedRequest, res
   if (!ensureAdmin(req, res)) return;
   try {
     const body = req.body as Record<string, unknown>;
-    let doc = await AbandonedCartSettings.findOne();
-    if (!doc) doc = await (AbandonedCartSettings as any).create({});
+    const doc = await getOrCreateCartSettings();
     const d = doc as any;
-    d.autoReminderEnabled = body.autoReminderEnabled !== false;
-    if (body.reminderTiming != null) d.reminderTiming = String(body.reminderTiming);
+
+    if (body.enabled != null) d.enabled = Boolean(body.enabled);
+    if (body.autoReminderEnabled != null) d.enabled = Boolean(body.autoReminderEnabled);
+    if (body.delayValue != null) d.delayValue = Math.max(1, Number(body.delayValue) || 1);
+    if (body.delayUnit != null) d.delayUnit = String(body.delayUnit);
+    if (body.maxReminders != null) d.maxReminders = Math.max(1, Math.min(10, Number(body.maxReminders) || 3));
+    if (body.cooldownPeriod != null) d.cooldownPeriod = String(body.cooldownPeriod);
+    if (body.smartMode != null) d.smartMode = Boolean(body.smartMode);
+    if (body.aiOptimizationEnabled != null) d.aiOptimizationEnabled = Boolean(body.aiOptimizationEnabled);
+    if (Array.isArray(body.recoverySteps)) d.recoverySteps = body.recoverySteps;
+    if (body.reminderTiming != null) {
+      const mins = timingLegacyToMinutes(String(body.reminderTiming));
+      d.delayValue = mins >= 1440 ? Math.round(mins / 1440) : mins >= 60 ? Math.round(mins / 60) : mins;
+      d.delayUnit = mins >= 1440 ? 'days' : mins >= 60 ? 'hours' : 'minutes';
+      if (d.recoverySteps?.[0]) {
+        d.recoverySteps[0].delayValue = d.delayValue;
+        d.recoverySteps[0].delayUnit = d.delayUnit;
+      }
+    }
+
     await d.save();
+    if (!d.enabled) await cancelPendingQueueJobs('admin_disabled');
+    else await regenerateQueueFromSettings();
+
+    const settings = settingsToClient(d);
     res.json({
-      autoReminderEnabled: d.autoReminderEnabled,
-      reminderTiming: d.reminderTiming,
+      enabled: settings.enabled,
+      autoReminderEnabled: settings.enabled,
+      settings,
+      message: settings.enabled
+        ? 'Settings saved. Queue rescheduled from admin configuration.'
+        : 'Campaign off. Pending emails cancelled.',
     });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to update settings' });
   }
+}
+
+function timingLegacyToMinutes(timing: string): number {
+  const t = timing.toLowerCase();
+  if (t.includes('15')) return 15;
+  if (t.includes('48')) return 2880;
+  if (t.includes('24')) return 1440;
+  if (t.includes('2h') || t === '2hr') return 120;
+  return 60;
 }
 
 // ---------- Promotions ----------

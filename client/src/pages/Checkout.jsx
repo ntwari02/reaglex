@@ -230,9 +230,9 @@ export default function Checkout() {
           (address.fullName || user?.fullName || user?.name || 'Customer').trim() || 'Customer';
         let data;
         if (user?.id) {
-          data = await shippingAPI.quote({
+          const intelligence = await orderAPI.checkoutIntelligence({
             lines,
-            estimate: !hasFull,
+            strategy: 'lowest_cost',
             shippingAddress: hasFull
               ? {
                   full_name: fullName,
@@ -254,8 +254,26 @@ export default function Checkout() {
                   postal_code: address.zip || '00000',
                   country: address.country,
                 },
-            selectedMethods: shippingMethodsByGroup,
+            assistantContext: {
+              nearestWarehouseAvailable: true,
+              importTaxApplied: String(address.country || '').toUpperCase() !== 'RW',
+              bulkyDimensions: false,
+            },
           });
+          data = {
+            groups: intelligence?.optimization?.shipmentGroups || [],
+            totalShipping: intelligence?.optimization?.totalShipping || 0,
+            addressFingerprint: intelligence?.optimization?.addressFingerprint,
+            warnings: intelligence?.optimization?.warnings || [],
+            isEstimate: !hasFull,
+            orderOptimization: intelligence?.optimization?.orderOptimization || null,
+            aiSplitPlan: intelligence?.optimization?.aiSplitPlan || [],
+            assistant: intelligence?.aiAssistant || null,
+          };
+          const suggestedMethods = intelligence?.optimization?.selectedMethods || {};
+          if (Object.keys(suggestedMethods).length) {
+            setShippingMethodsByGroup((prev) => ({ ...suggestedMethods, ...prev }));
+          }
         } else {
           data = await shippingAPI.estimate({
             lines,
@@ -641,6 +659,21 @@ export default function Checkout() {
                         {(shippingQuote.warnings || []).map((w) => (
                           <p key={w}>{w}</p>
                         ))}
+                      </div>
+                    )}
+                    {shippingQuote?.orderOptimization && (
+                      <div className="rounded-xl border p-3 text-xs" style={{ borderColor: 'var(--divider)', background: 'var(--bg-tertiary)' }}>
+                        <p className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                          Smart optimization: {shippingQuote.orderOptimization.strategy}
+                        </p>
+                        <p style={{ color: 'var(--text-muted)' }}>
+                          AI confidence {shippingQuote.orderOptimization.aiConfidence}% · Estimated savings {fmtMoney(shippingQuote.orderOptimization.estimatedSavings || 0)}
+                        </p>
+                      </div>
+                    )}
+                    {shippingQuote?.assistant?.message && (
+                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-100">
+                        {shippingQuote.assistant.message}
                       </div>
                     )}
                     {(shippingQuote?.groups || []).map((g) => (

@@ -11,6 +11,7 @@ import { hydrateDeviceId } from './lib/deviceId';
 import { websocketService } from './services/websocketService';
 import RootNavigator from './navigation/RootNavigator';
 import ToastHost from './components/ToastHost';
+import CartCloudSyncBridge from './components/CartCloudSyncBridge';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -51,6 +52,7 @@ function AppNavigation() {
   return (
     <NavigationContainer theme={navTheme}>
       <GlobalRealtimeBridge />
+      <CartCloudSyncBridge />
       <RootNavigator />
       <ToastHost />
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />

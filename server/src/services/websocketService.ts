@@ -83,6 +83,7 @@ class WebSocketService {
 
       if (socket.userRole === 'admin') {
         socket.join('admin:kyc');
+        socket.join('admin:marketing');
       }
 
       // Handle inbox events
@@ -375,6 +376,15 @@ class WebSocketService {
     if (!this.io) return;
     this.io.to('admin:kyc').emit('seller_kyc_updated', payload);
     this.io.to(`user:${payload.sellerId}`).emit('seller_kyc_updated', payload);
+  }
+
+  /** Real-time abandoned cart recovery events for admin marketing dashboard. */
+  emitCartRecoveryEvent(
+    event: 'cart.abandoned' | 'recovery.scheduled' | 'email.sent' | 'cart.recovered',
+    payload: Record<string, unknown>
+  ) {
+    if (!this.io) return;
+    this.io.to('admin:marketing').emit(event, { ...payload, at: new Date().toISOString() });
   }
 
   /**

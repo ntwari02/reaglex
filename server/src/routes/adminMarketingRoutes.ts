@@ -56,6 +56,16 @@ import {
   sendAutomationPush,
   getAutomationRecentSends,
 } from '../controllers/adminMarketingController';
+import {
+  getCartStrategy,
+  updateCartStrategy,
+  saveCartJourney,
+  simulateCartRecovery,
+  getCartRecoverySettings,
+  updateCartRecoverySettings,
+  getCartRecoveryAnalytics,
+  getCartTimeline,
+} from '../controllers/cartRecoveryController';
 
 const router = Router();
 
@@ -98,6 +108,18 @@ router.delete('/message-campaigns/:campaignId', deleteMessageCampaign);
 router.get('/abandoned-carts', getAbandonedCarts);
 router.get('/abandoned-carts/settings', getAbandonedCartSettings);
 router.put('/abandoned-carts/settings', updateAbandonedCartSettings);
+
+// Abandoned cart recovery engine (admin SSOT + queue)
+router.get('/cart-recovery/settings', getCartRecoverySettings);
+router.put('/cart-recovery/settings', updateCartRecoverySettings);
+router.get('/cart-recovery/analytics', getCartRecoveryAnalytics);
+router.get('/cart-recovery/:cartId/timeline', getCartTimeline);
+
+// Smart recovery schedule (legacy aliases)
+router.get('/cart-strategy', getCartStrategy);
+router.put('/cart-strategy', updateCartStrategy);
+router.post('/cart/journey', saveCartJourney);
+router.post('/cart/simulate', simulateCartRecovery);
 
 // Promotions
 router.get('/promotions', getPromotions);

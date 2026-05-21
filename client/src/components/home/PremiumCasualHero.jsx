@@ -93,11 +93,11 @@ export default function PremiumCasualHero({ isDark, className = '' }) {
 
   return (
     <section
-      className={`premium-casual-hero px-4 pb-6 ${className}`.trim()}
+      className={`premium-casual-hero w-full px-4 pb-6 sm:px-6 lg:px-0 lg:pb-8 ${className}`.trim()}
       aria-label="Featured collections"
     >
       <div
-        className="relative overflow-hidden rounded-[24px]"
+        className="relative w-full overflow-hidden rounded-[24px] lg:rounded-none lg:border-x-0 lg:border-t-0 lg:shadow-none"
         style={{
           boxShadow: 'var(--shadow-md)',
           border: '1px solid color-mix(in srgb, var(--border-card) 55%, transparent)',
@@ -114,12 +114,11 @@ export default function PremiumCasualHero({ isDark, className = '' }) {
           }
           pagination={false}
           onSlideChange={(s) => setActive(s.realIndex)}
-          className="premium-casual-swiper !overflow-hidden rounded-[24px]"
-          style={{ minHeight: 248 }}
+          className="premium-casual-swiper !overflow-hidden rounded-[24px] lg:rounded-none min-h-[248px] md:min-h-[280px] lg:min-h-[360px] xl:min-h-[420px]"
         >
           {slides.map((slide, i) => (
             <SwiperSlide key={slide.id} className="!h-auto">
-              <article className="relative min-h-[248px] overflow-hidden">
+              <article className="relative min-h-[248px] overflow-hidden md:min-h-[280px] lg:min-h-[360px] xl:min-h-[420px]">
                 {slide.videoUrl ? (
                   <video
                     src={slide.videoUrl}
@@ -149,9 +148,9 @@ export default function PremiumCasualHero({ isDark, className = '' }) {
                   data-swiper-parallax-opacity="0.35"
                 />
 
-                <div className="relative z-[1] flex min-h-[248px] w-full flex-row items-stretch">
+                <div className="relative z-[1] flex min-h-[248px] w-full flex-row items-stretch md:min-h-[280px] lg:min-h-[360px] xl:min-h-[420px]">
                   <div
-                    className="flex max-w-[58%] flex-col justify-center px-5 py-7 pr-2"
+                    className="flex max-w-[58%] flex-col justify-center px-5 py-7 pr-2 lg:max-w-[48%] lg:px-10 lg:py-10 xl:px-14"
                     data-swiper-parallax="-120"
                   >
                     <p

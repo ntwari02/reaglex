@@ -98,6 +98,7 @@ export interface IProduct extends Document {
   reaglexProductId?: string;
   /** Ships from this warehouse for Reaglex grouped shipping (seller-defined). */
   warehouseId?: string;
+  fulfillmentType?: 'shipping' | 'pickup' | 'digital' | 'service';
   verificationSummary?: {
     status: 'unverified' | 'pending' | 'verified' | 'flagged' | 'rejected';
     score: number;
@@ -214,6 +215,12 @@ const productSchema = new Schema<IProduct>(
     ],
     reaglexProductId: { type: String, trim: true, unique: true, sparse: true, index: true },
     warehouseId: { type: String, trim: true, default: 'default', index: true },
+    fulfillmentType: {
+      type: String,
+      enum: ['shipping', 'pickup', 'digital', 'service'],
+      default: 'shipping',
+      index: true,
+    },
     verificationSummary: {
       status: {
         type: String,

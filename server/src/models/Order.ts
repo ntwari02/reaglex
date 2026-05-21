@@ -4,8 +4,15 @@ export type OrderStatus =
   | 'pending'
   | 'processing'
   | 'packed'
+  | 'paused'
+  | 'ready_for_pickup'
+  | 'pickup_confirmed'
+  | 'paid'
+  | 'booked'
+  | 'in_progress'
   | 'shipped'
   | 'delivered'
+  | 'completed'
   | 'cancelled';
 
 export interface IOrderItem {
@@ -26,6 +33,9 @@ export type EscrowStatus =
   | 'PENDING'
   | 'ESCROW_HOLD'
   | 'SHIPPED'
+  | 'PICKUP_CONFIRMED'
+  | 'DIGITAL_CONFIRMED'
+  | 'SERVICE_CONFIRMED'
   | 'DELIVERED'
   | 'DISPUTED'
   | 'RELEASED'
@@ -53,6 +63,14 @@ export interface IOrderPayment {
 
 export interface IOrderEscrow {
   status: EscrowStatus;
+  productAmount?: number;
+  shippingAmount?: number;
+  taxAmount?: number;
+  sellerReserve?: number;
+  releasedProductAmount?: number;
+  releasedShippingAmount?: number;
+  releasedTaxAmount?: number;
+  releasedSellerReserve?: number;
   heldAt?: Date;
   releaseEligibleAt?: Date;
   releasedAt?: Date;
@@ -62,6 +80,24 @@ export interface IOrderEscrow {
   disputeReason?: string;
   disputeResolvedAt?: Date;
   autoReleaseScheduled?: boolean;
+  trustScore?: {
+    buyer: number;
+    seller: number;
+    riskTier?: 'low' | 'medium' | 'high';
+    autoReview?: boolean;
+    evaluatedAt?: Date;
+  };
+  insurance?: {
+    enabled: boolean;
+    plan: 'delivery_protection';
+    premium: number;
+    currency: string;
+    coverageTypes: Array<'damaged' | 'lost' | 'late'>;
+    compensationCap: number;
+    status: 'active' | 'claimed' | 'expired' | 'rejected';
+    claimedAt?: Date;
+    claimReason?: string;
+  };
 }
 
 export interface IOrderFees {
@@ -149,6 +185,145 @@ export interface IOrder extends Document {
   };
   carrier?: string;
   reaglexShipping?: IOrderReaglexShipping;
+  orderOptimization?: {
+    strategy: 'lowest_cost' | 'fastest_delivery' | 'green_shipping';
+    aiConfidence: number;
+    estimatedSavings: number;
+  };
+  fulfillment?: {
+    type: 'shipping' | 'pickup' | 'digital' | 'service';
+    pickupLocationId?: string;
+    pickupTime?: Date;
+    pickupLocker?: string;
+    pickupLocation?: {
+      id?: string;
+      name?: string;
+      openingHours?: string;
+      coordinates?: number[];
+      readyInMinutes?: number;
+      distanceKm?: number;
+    };
+    carrierOptions?: Array<{
+      carrier: string;
+      service: string;
+      estimatedDays: number;
+      cost: number;
+      confidence: number;
+      score: number;
+    }>;
+    recommendedCarrier?: {
+      carrier: string;
+      service: string;
+    };
+    batchActionHistory?: Array<{
+      action: 'print_labels' | 'ship' | 'package';
+      at: Date;
+      actorId: string;
+    }>;
+  };
+  pickup?: {
+    code?: string;
+    qrToken?: string;
+    otp?: string;
+    expiresAt?: Date;
+    arrivedAt?: Date;
+    arrivalMeta?: {
+      vehicleColor?: string;
+      vehicleModel?: string;
+      plate?: string;
+      parkingSlot?: string;
+    };
+    verification?: {
+      qr: boolean;
+      otp: boolean;
+      gps: boolean;
+      face?: boolean;
+      sellerScan?: boolean;
+    };
+    locker?: {
+      lockerId?: string;
+      pin?: string;
+      placedAt?: Date;
+      openedAt?: Date;
+    };
+  };
+  deliveryPrediction?: {
+    expected: Date;
+    confidence: number;
+    factors?: {
+      weather?: number;
+      traffic?: number;
+      historicalDelays?: number;
+    };
+  };
+  postDelivery?: {
+    satisfactionResponses?: Array<{
+      productId: string;
+      sentiment: string;
+      comment?: string;
+      at: Date;
+    }>;
+    lastSatisfactionCheckAt?: Date;
+  };
+  cancellationIntelligence?: {
+    predictedReason?: string;
+    predictedConfidence?: number;
+    retentionOffers?: Array<'size_exchange' | 'shipping_speed_upgrade' | 'coupon'>;
+    riskScore?: number;
+    pausedAt?: Date;
+    pauseReason?: string;
+  };
+  paymentIntelligence?: {
+    optimizer?: {
+      selectedGateway?: string;
+      reason?: string;
+      alternatives?: Array<{ gateway: string; score: number; reason: string }>;
+      evaluatedAt?: Date;
+    };
+    splitPayment?: { enabled: boolean; installments: number };
+    paymentSchedule?: Array<{
+      installment: number;
+      amount: number;
+      dueDate: string;
+      status: 'due_now' | 'scheduled' | 'paid' | 'overdue';
+      paidAt?: Date;
+    }>;
+    bnpl?: {
+      provider: string;
+      installments: number;
+      aprPercent: number;
+      totalWithInterest: number;
+      schedule: Array<{
+        installment: number;
+        amount: number;
+        dueDate: string;
+        status: string;
+      }>;
+      status?: 'pending' | 'approved' | 'rejected' | 'completed';
+      approvedAt?: Date;
+    };
+    crypto?: {
+      asset: 'BTC' | 'USDT';
+      network: string;
+      depositAddress: string;
+      status: 'awaiting_confirmation' | 'confirmed' | 'expired';
+      escrowCompatible: boolean;
+      txRef?: string;
+      confirmedAt?: Date;
+    };
+  };
+  evidence?: {
+    media: Array<{
+      type: 'video' | 'image' | 'document';
+      url: string;
+      uploadedBy: 'buyer' | 'seller' | 'admin';
+      uploadedAt: Date;
+      note?: string;
+    }>;
+    hash?: string;
+    verificationStatus?: 'unverified' | 'verified' | 'tampered';
+    lastUpdatedAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -224,7 +399,21 @@ const orderSchema = new Schema<IOrder>(
     total: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled'],
+      enum: [
+        'pending',
+        'processing',
+        'packed',
+        'paused',
+        'ready_for_pickup',
+        'pickup_confirmed',
+        'paid',
+        'booked',
+        'in_progress',
+        'shipped',
+        'delivered',
+        'completed',
+        'cancelled',
+      ],
       default: 'pending',
       index: true,
     },
@@ -274,6 +463,9 @@ const orderSchema = new Schema<IOrder>(
           'PENDING',
           'ESCROW_HOLD',
           'SHIPPED',
+          'PICKUP_CONFIRMED',
+          'DIGITAL_CONFIRMED',
+          'SERVICE_CONFIRMED',
           'DELIVERED',
           'DISPUTED',
           'RELEASED',
@@ -292,6 +484,36 @@ const orderSchema = new Schema<IOrder>(
       disputeReason: { type: String },
       disputeResolvedAt: { type: Date },
       autoReleaseScheduled: { type: Boolean, default: true },
+      productAmount: { type: Number, default: 0 },
+      shippingAmount: { type: Number, default: 0 },
+      taxAmount: { type: Number, default: 0 },
+      sellerReserve: { type: Number, default: 0 },
+      releasedProductAmount: { type: Number, default: 0 },
+      releasedShippingAmount: { type: Number, default: 0 },
+      releasedTaxAmount: { type: Number, default: 0 },
+      releasedSellerReserve: { type: Number, default: 0 },
+      trustScore: {
+        buyer: { type: Number, min: 0, max: 100 },
+        seller: { type: Number, min: 0, max: 100 },
+        riskTier: { type: String, enum: ['low', 'medium', 'high'] },
+        autoReview: { type: Boolean, default: false },
+        evaluatedAt: { type: Date },
+      },
+      insurance: {
+        enabled: { type: Boolean, default: false },
+        plan: { type: String, enum: ['delivery_protection'], default: 'delivery_protection' },
+        premium: { type: Number, default: 0 },
+        currency: { type: String, default: 'USD' },
+        coverageTypes: {
+          type: [String],
+          default: ['damaged', 'lost', 'late'],
+          enum: ['damaged', 'lost', 'late'],
+        },
+        compensationCap: { type: Number, default: 0 },
+        status: { type: String, enum: ['active', 'claimed', 'expired', 'rejected'], default: 'active' },
+        claimedAt: { type: Date },
+        claimReason: { type: String },
+      },
     },
     fees: {
       platformFeePercent: { type: Number },
@@ -311,6 +533,171 @@ const orderSchema = new Schema<IOrder>(
       lastChangeReason: { type: String },
     },
     reaglexShipping: { type: reaglexOrderShippingSchema },
+    orderOptimization: {
+      strategy: { type: String, enum: ['lowest_cost', 'fastest_delivery', 'green_shipping'] },
+      aiConfidence: { type: Number },
+      estimatedSavings: { type: Number },
+    },
+    fulfillment: {
+      type: { type: String, enum: ['shipping', 'pickup', 'digital', 'service'], default: 'shipping' },
+      pickupLocationId: { type: String },
+      pickupTime: { type: Date },
+      pickupLocker: { type: String },
+      pickupLocation: {
+        id: { type: String },
+        name: { type: String },
+        openingHours: { type: String },
+        coordinates: { type: [Number], default: [] },
+        readyInMinutes: { type: Number },
+        distanceKm: { type: Number },
+      },
+      carrierOptions: {
+        type: [
+          new Schema(
+            {
+              carrier: { type: String, required: true },
+              service: { type: String, required: true },
+              estimatedDays: { type: Number, required: true },
+              cost: { type: Number, required: true },
+              confidence: { type: Number, required: true },
+              score: { type: Number, required: true },
+            },
+            { _id: false }
+          ),
+        ],
+        default: [],
+      },
+      recommendedCarrier: {
+        carrier: { type: String },
+        service: { type: String },
+      },
+      batchActionHistory: {
+        type: [
+          new Schema(
+            {
+              action: { type: String, enum: ['print_labels', 'ship', 'package'], required: true },
+              at: { type: Date, default: Date.now },
+              actorId: { type: String, required: true },
+            },
+            { _id: false }
+          ),
+        ],
+        default: [],
+      },
+    },
+    pickup: {
+      code: { type: String },
+      qrToken: { type: String },
+      otp: { type: String },
+      expiresAt: { type: Date },
+      arrivedAt: { type: Date },
+      arrivalMeta: {
+        vehicleColor: { type: String },
+        vehicleModel: { type: String },
+        plate: { type: String },
+        parkingSlot: { type: String },
+      },
+      verification: {
+        qr: { type: Boolean, default: false },
+        otp: { type: Boolean, default: false },
+        gps: { type: Boolean, default: false },
+        face: { type: Boolean, default: false },
+        sellerScan: { type: Boolean, default: false },
+      },
+      locker: {
+        lockerId: { type: String },
+        pin: { type: String },
+        placedAt: { type: Date },
+        openedAt: { type: Date },
+      },
+    },
+    deliveryPrediction: {
+      expected: { type: Date },
+      confidence: { type: Number },
+      factors: {
+        weather: { type: Number },
+        traffic: { type: Number },
+        historicalDelays: { type: Number },
+      },
+    },
+    postDelivery: {
+      satisfactionResponses: {
+        type: [
+          new Schema(
+            {
+              productId: { type: String, required: true },
+              sentiment: { type: String, required: true },
+              comment: { type: String },
+              at: { type: Date, default: Date.now },
+            },
+            { _id: false }
+          ),
+        ],
+        default: [],
+      },
+      lastSatisfactionCheckAt: { type: Date },
+    },
+    cancellationIntelligence: {
+      predictedReason: { type: String },
+      predictedConfidence: { type: Number },
+      retentionOffers: {
+        type: [String],
+        enum: ['size_exchange', 'shipping_speed_upgrade', 'coupon'],
+        default: [],
+      },
+      riskScore: { type: Number, min: 0, max: 100 },
+      pausedAt: { type: Date },
+      pauseReason: { type: String },
+    },
+    paymentIntelligence: {
+      optimizer: {
+        selectedGateway: { type: String },
+        reason: { type: String },
+        alternatives: { type: Schema.Types.Mixed },
+        evaluatedAt: { type: Date },
+      },
+      splitPayment: {
+        enabled: { type: Boolean, default: false },
+        installments: { type: Number },
+      },
+      paymentSchedule: {
+        type: [
+          new Schema(
+            {
+              installment: { type: Number },
+              amount: { type: Number },
+              dueDate: { type: String },
+              status: { type: String },
+              paidAt: { type: Date },
+            },
+            { _id: false }
+          ),
+        ],
+        default: [],
+      },
+      bnpl: { type: Schema.Types.Mixed },
+      crypto: { type: Schema.Types.Mixed },
+    },
+    evidence: {
+      media: {
+        type: [
+          new Schema(
+            {
+              type: { type: String, enum: ['video', 'image', 'document'], required: true },
+              url: { type: String, required: true },
+              uploadedBy: { type: String, enum: ['buyer', 'seller', 'admin'], required: true },
+              uploadedAt: { type: Date, default: Date.now },
+              note: { type: String },
+            },
+            { _id: false }
+          ),
+        ],
+        default: [],
+      },
+      hash: { type: String },
+      verificationStatus: { type: String, enum: ['unverified', 'verified', 'tampered'], default: 'unverified' },
+      lastUpdatedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );
