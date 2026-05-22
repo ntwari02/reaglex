@@ -8,6 +8,30 @@
   background: var(--bg-page);
 }
 
+.isearch-top-bar {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px 0;
+}
+
+.isearch-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 8px 8px;
+  border: none;
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 1px 8px color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+.isearch-back-btn:active {
+  transform: scale(0.98);
+}
+
 .isearch-bar-row {
   display: flex;
   align-items: center;

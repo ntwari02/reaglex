@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Mic, Camera, ShoppingCart, Sparkles } from 'lucide-react';
+import { Search, X, Mic, Camera, ShoppingCart, Sparkles, ArrowLeft } from 'lucide-react';
 import { useImmersiveSearch } from '../../stores/immersiveSearchStore';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useToastStore } from '../../stores/toastStore';
@@ -178,6 +178,12 @@ export default function ImmersiveSearchLayer() {
             style={{ paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))' }}
             onClick={(e) => e.stopPropagation()}
           >
+            <header className="isearch-top-bar">
+              <button type="button" className="isearch-back-btn" onClick={closeSearch} aria-label="Close search">
+                <ArrowLeft size={20} />
+                <span>Cancel</span>
+              </button>
+            </header>
             <div className="isearch-bar-row">
               <div className="isearch-field">
                 <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />

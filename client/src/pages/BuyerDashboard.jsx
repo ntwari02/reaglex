@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import AccountSettingsDashboard from '../components/AccountSettingsDashboard';
-import AccountMobileChrome from '../components/account/AccountMobileChrome';
+import AccountMobileLayout from '../components/account/AccountMobileLayout';
+import SecuritySettingsSheet from '../components/account/SecuritySettingsSheet';
 import { useAuthStore } from '../stores/authStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useWishlistStore } from '../stores/wishlistStore';
@@ -1299,6 +1300,7 @@ export default function BuyerDashboard() {
   const [showMobileLeftFade, setShowMobileLeftFade] = useState(false);
   const [showMobileRightFade, setShowMobileRightFade] = useState(false);
   const [mobileNavHintDismissed, setMobileNavHintDismissed] = useState(false);
+  const [securitySheetOpen, setSecuritySheetOpen] = useState(false);
 
   const mapApiOrderToUi = (order) => {
     if (!order) return null;
@@ -1766,9 +1768,10 @@ export default function BuyerDashboard() {
           </div>
         </motion.div>
 
-        <AccountMobileChrome
+        <AccountMobileLayout
           activeTab={tab}
           onTabChange={setTab}
+          onBackToHub={() => setTab('overview')}
           displayName={displayName}
           email={user.email}
           initials={initials}
@@ -1776,6 +1779,12 @@ export default function BuyerDashboard() {
           orderCount={orderCount}
           wishlistCount={savedCount}
           onLogout={handleLogout}
+          tabLabel={tabLabel}
+          onOpenSecurity={() => setSecuritySheetOpen(true)}
+        />
+        <SecuritySettingsSheet
+          open={securitySheetOpen}
+          onClose={() => setSecuritySheetOpen(false)}
         />
 
         {/* ═══ TIER 2: Main layout — sidebar + content ═══ */}
@@ -2113,7 +2122,7 @@ export default function BuyerDashboard() {
             </aside>
 
             {/* ═══ Main content area ═══ */}
-            <main className="flex-1 min-w-0 space-y-6">
+            <main className={`flex-1 min-w-0 space-y-6${tab === 'overview' ? ' rx-acc-mobile-hidden' : ''}`}>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={tab}
@@ -4583,7 +4592,9 @@ export default function BuyerDashboard() {
                       transition={{ duration: 0.3, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
                       className="rx-settings-2026"
                     >
-                      <AccountSettingsDashboard />
+                      <AccountSettingsDashboard
+                        onOpenSecurityMobile={() => setSecuritySheetOpen(true)}
+                      />
                     </motion.div>
                   )}
                 </motion.div>

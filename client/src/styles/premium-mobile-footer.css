@@ -3,7 +3,7 @@
 .rx-mfooter {
   position: relative;
   font-family: Inter, system-ui, -apple-system, sans-serif;
-  color: #a1a1aa;
+  color: var(--text-muted, #a1a1aa);
   overflow: hidden;
   isolation: isolate;
   margin-bottom: var(--mob-dock-bottom, calc(76px + env(safe-area-inset-bottom, 0px)));
@@ -646,4 +646,92 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* ── Light theme ── */
+html[data-theme='light'] .rx-mfooter {
+  color: var(--text-secondary);
+}
+
+html[data-theme='light'] .rx-mfooter-shell {
+  border-color: color-mix(in srgb, var(--border-card) 80%, transparent);
+  box-shadow: 0 -12px 40px color-mix(in srgb, var(--brand-primary) 8%, transparent);
+}
+
+html[data-theme='light'] .rx-mfooter-bg {
+  background: linear-gradient(
+    180deg,
+    var(--bg-page) 0%,
+    color-mix(in srgb, var(--bg-secondary) 90%, var(--bg-page)) 55%,
+    var(--card-bg) 100%
+  );
+}
+
+html[data-theme='light'] .rx-mfooter-glow-purple {
+  background: radial-gradient(ellipse, rgba(139, 92, 246, 0.12) 0%, transparent 68%);
+}
+
+html[data-theme='light'] .rx-mfooter-glow-orange {
+  background: radial-gradient(ellipse, rgba(249, 115, 22, 0.1) 0%, transparent 70%);
+}
+
+html[data-theme='light'] .rx-mfooter-glow-blue {
+  background: radial-gradient(ellipse, rgba(59, 130, 246, 0.08) 0%, transparent 72%);
+}
+
+html[data-theme='light'] .rx-mfooter-logo-text,
+html[data-theme='light'] .rx-mfooter-trust-title,
+html[data-theme='light'] .rx-mfooter-acc-label,
+html[data-theme='light'] .rx-mfooter-sub-title,
+html[data-theme='light'] .rx-mfooter-feat-title,
+html[data-theme='light'] .rx-mfooter-row-label,
+html[data-theme='light'] .rx-mfooter-link-label {
+  color: var(--text-primary);
+}
+
+html[data-theme='light'] .rx-mfooter-desc,
+html[data-theme='light'] .rx-mfooter-trust-sub,
+html[data-theme='light'] .rx-mfooter-sub-desc,
+html[data-theme='light'] .rx-mfooter-feat-sub,
+html[data-theme='light'] .rx-mfooter-copy,
+html[data-theme='light'] .rx-mfooter-privacy {
+  color: var(--text-muted);
+}
+
+html[data-theme='light'] .rx-mfooter-top-btn,
+html[data-theme='light'] .rx-mfooter-glass {
+  border-color: color-mix(in srgb, var(--border-card) 70%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 88%, transparent);
+  color: var(--text-primary);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+html[data-theme='light'] .rx-mfooter-social-btn {
+  border-color: color-mix(in srgb, var(--border-card) 60%, transparent);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+}
+
+html[data-theme='light'] .rx-mfooter-email {
+  background: var(--bg-secondary);
+  border-color: var(--border-card);
+  color: var(--text-primary);
+}
+
+html[data-theme='light'] .rx-mfooter-link-row:hover {
+  background: color-mix(in srgb, var(--brand-primary) 6%, transparent);
+}
+
+html[data-theme='light'] .rx-mfooter-pay-badge {
+  background: var(--card-bg);
+  border-color: var(--border-card);
+  color: var(--text-secondary);
+}
+
+html[data-theme='light'] .rx-mfooter-back {
+  color: var(--text-secondary);
+}
+
+html[data-theme='light'] .rx-mfooter-acc-panel {
+  background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
 }

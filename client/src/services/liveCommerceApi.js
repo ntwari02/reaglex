@@ -24,4 +24,7 @@ export const liveCommerceApi = {
     api.patch(`${BASE}/admin/session/${sessionId}`, payload).then((r) => r.data),
   setSellerLivePermission: (sellerId, approved) =>
     api.patch(`${BASE}/admin/seller/${sellerId}/live-permission`, { approved }).then((r) => r.data),
+  getAdminSellerLivePermissions: (params) =>
+    api.get(`${BASE}/admin/sellers/live-permissions`, { params }).then((r) => r.data),
+  getSellerLiveStatus: () => api.get(`${BASE}/seller/live-status`).then((r) => r.data),
 };

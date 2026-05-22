@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-const ICE_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const ICE_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+};
 
 function emitSignal(socket, sessionId, to, signal) {
   if (!socket?.connected) return;
@@ -19,6 +24,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef(new Map());
   const sellerSocketIdRef = useRef(null);
+  const pendingViewersRef = useRef(new Set());
 
   const stopLocalMedia = useCallback(() => {
     if (localStreamRef.current) {
@@ -40,29 +46,6 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
 
     let cancelled = false;
 
-    async function startBroadcast() {
-      try {
-        setStatus('connecting');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: true,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        localStreamRef.current = stream;
-        setLocalStream(stream);
-        socket.emit('webrtc-register-seller', { sessionId });
-        setStatus('live');
-      } catch (err) {
-        setError(err?.message || 'Camera access denied');
-        setStatus('error');
-      }
-    }
-
-    startBroadcast();
-
     const createOfferForViewer = async (viewerSocketId) => {
       if (!localStreamRef.current || peerConnectionsRef.current.has(viewerSocketId)) return;
 
@@ -79,13 +62,55 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
 
       peerConnectionsRef.current.set(viewerSocketId, pc);
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      emitSignal(socket, sessionId, viewerSocketId, { type: 'offer', sdp: offer });
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        emitSignal(socket, sessionId, viewerSocketId, { type: 'offer', sdp: offer });
+      } catch {
+        pc.close();
+        peerConnectionsRef.current.delete(viewerSocketId);
+      }
     };
 
+    const flushPendingViewers = () => {
+      const ids = [...pendingViewersRef.current];
+      pendingViewersRef.current.clear();
+      ids.forEach((viewerSocketId) => {
+        void createOfferForViewer(viewerSocketId);
+      });
+    };
+
+    async function startBroadcast() {
+      try {
+        setStatus('connecting');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: true,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        localStreamRef.current = stream;
+        setLocalStream(stream);
+        socket.emit('webrtc-register-seller', { sessionId });
+        setStatus('live');
+        flushPendingViewers();
+      } catch (err) {
+        setError(err?.message || 'Camera access denied');
+        setStatus('error');
+      }
+    }
+
+    startBroadcast();
+
     const onViewerJoined = ({ viewerSocketId }) => {
-      if (localStreamRef.current) createOfferForViewer(viewerSocketId);
+      if (!viewerSocketId) return;
+      if (localStreamRef.current) {
+        void createOfferForViewer(viewerSocketId);
+      } else {
+        pendingViewersRef.current.add(viewerSocketId);
+      }
     };
 
     const onSignal = async ({ from, signal }) => {
@@ -104,6 +129,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     };
 
     const onViewerLeft = ({ viewerSocketId }) => {
+      pendingViewersRef.current.delete(viewerSocketId);
       const pc = peerConnectionsRef.current.get(viewerSocketId);
       pc?.close();
       peerConnectionsRef.current.delete(viewerSocketId);
@@ -115,6 +141,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
 
     return () => {
       cancelled = true;
+      pendingViewersRef.current.clear();
       socket.off('webrtc-viewer-joined', onViewerJoined);
       socket.off('webrtc-signal', onSignal);
       socket.off('webrtc-viewer-left', onViewerLeft);

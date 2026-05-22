@@ -76,6 +76,14 @@ export default function SellerLiveDashboard() {
 
   });
 
+  const { data: liveStatus } = useQuery({
+
+    queryKey: ['live-commerce', 'seller-live-status'],
+
+    queryFn: () => liveCommerceApi.getSellerLiveStatus(),
+
+  });
+
 
 
   const enabledProviders = providersMeta?.providers || [];
@@ -177,6 +185,52 @@ export default function SellerLiveDashboard() {
         </span>
 
       </div>
+
+      {liveStatus && !liveStatus.canGoLive && (
+
+        <div
+
+          className="rounded-xl px-3 py-2.5 text-xs"
+
+          style={{
+
+            background: 'color-mix(in srgb, #f59e0b 12%, var(--card-bg))',
+
+            border: '1px solid color-mix(in srgb, #f59e0b 35%, transparent)',
+
+            color: 'var(--text-primary)',
+
+          }}
+
+        >
+
+          <p className="font-semibold mb-0.5">Cannot go live yet</p>
+
+          <p style={{ color: 'var(--text-muted)' }}>{liveStatus.reason}</p>
+
+          {liveStatus.permissionMode === 'allowlist' && !liveStatus.liveCommerceApproved && (
+
+            <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
+
+              Admin approves your store once — you will not need approval for each live session.
+
+            </p>
+
+          )}
+
+        </div>
+
+      )}
+
+      {liveStatus?.canGoLive && liveStatus.permissionMode === 'allowlist' && liveStatus.liveCommerceApproved && (
+
+        <p className="text-[11px] font-medium" style={{ color: '#16a34a' }}>
+
+          Live access approved for your store (all sessions).
+
+        </p>
+
+      )}
 
 
 
@@ -366,7 +420,12 @@ export default function SellerLiveDashboard() {
 
           style={{ background: 'var(--brand-primary)' }}
 
-          disabled={!title.trim() || startMutation.isPending || enabledProviders.length === 0}
+          disabled={
+            !title.trim() ||
+            startMutation.isPending ||
+            enabledProviders.length === 0 ||
+            liveStatus?.canGoLive === false
+          }
 
           onClick={() =>
 

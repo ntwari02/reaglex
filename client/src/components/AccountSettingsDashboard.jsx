@@ -37,7 +37,7 @@ const COUNTRIES = [
   { code: 'FR', flag: '🇫🇷', name: 'France' },
 ];
 
-export default function AccountSettingsDashboard() {
+export default function AccountSettingsDashboard({ onOpenSecurityMobile } = {}) {
   const [sp, setSp] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const showToast = useToastStore((s) => s.showToast);
@@ -314,8 +314,31 @@ export default function AccountSettingsDashboard() {
       style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)' }}
     >
       <div className="max-w-[1300px] mx-auto px-4 sm:px-5 lg:px-7 py-6 space-y-6">
-        {/* Tabs */}
+        <nav className="rx-settings-mobile-menu lg:hidden" aria-label="Settings sections">
+          {SETTINGS_TABS.map((t) => {
+            const TabIcon = t.icon;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  if (t.id === 'security' && onOpenSecurityMobile) {
+                    onOpenSecurityMobile();
+                    return;
+                  }
+                  setSection(t.id);
+                }}
+              >
+                <TabIcon size={18} strokeWidth={1.85} />
+                {t.label}
+                <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.4 }} />
+              </button>
+            );
+          })}
+        </nav>
+        {/* Tabs — desktop */}
         <motion.div
+          className="hidden lg:flex"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.1, ease: EASE }}
@@ -829,7 +852,7 @@ export default function AccountSettingsDashboard() {
         )}
 
         {section === 'security' && (
-          <motion.div key="security" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="space-y-6">
+          <motion.div key="security" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="space-y-6 hidden lg:block">
             <div className="rounded-2xl bg-white p-7" style={CARD_STYLE}>
               <h3 className="font-bold text-lg mb-5 flex items-center gap-2" style={{ color: '#0f172a' }}>🔒 Change Password</h3>
               <div className="space-y-4 max-w-md">
