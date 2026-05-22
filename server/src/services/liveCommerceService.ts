@@ -39,7 +39,7 @@ export async function canSellerGoLive(sellerId: string): Promise<{ ok: boolean; 
     return { ok: false, reason: 'Invalid seller' };
   }
   const user = await User.findById(sellerId)
-    .select('role sellerVerificationStatus liveCommerceApproved emailVerified storeName')
+    .select('role sellerVerificationStatus liveCommerceApproved emailVerified fullName')
     .lean();
   if (!user || user.role !== 'seller') {
     return { ok: false, reason: 'Seller account required' };

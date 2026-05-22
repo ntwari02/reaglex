@@ -487,13 +487,12 @@ router.get('/admin/sellers/live-permissions', authenticate, async (req: Authenti
     if (q) {
       filter.$or = [
         { email: { $regex: q, $options: 'i' } },
-        { storeName: { $regex: q, $options: 'i' } },
-        { name: { $regex: q, $options: 'i' } },
+        { fullName: { $regex: q, $options: 'i' } },
       ];
     }
     const sellers = await User.find(filter)
-      .select('storeName name email sellerVerificationStatus liveCommerceApproved createdAt')
-      .sort({ liveCommerceApproved: -1, storeName: 1, email: 1 })
+      .select('fullName email sellerVerificationStatus liveCommerceApproved createdAt')
+      .sort({ liveCommerceApproved: -1, fullName: 1, email: 1 })
       .limit(Math.min(100, Number(req.query.limit) || 50))
       .lean();
     const settings = await getLiveCommerceSettings();
@@ -501,10 +500,10 @@ router.get('/admin/sellers/live-permissions', authenticate, async (req: Authenti
       permissionMode: resolveLivePermissionMode(settings),
       sellers: sellers.map((s) => ({
         id: String(s._id),
-        storeName: s.storeName || s.name || '',
+        storeName: s.fullName || '',
         email: s.email,
         sellerVerificationStatus: s.sellerVerificationStatus,
-        liveCommerceApproved: Boolean((s as { liveCommerceApproved?: boolean }).liveCommerceApproved),
+        liveCommerceApproved: Boolean(s.liveCommerceApproved),
       })),
     });
   } catch (err: any) {
@@ -520,7 +519,7 @@ router.patch('/admin/seller/:sellerId/live-permission', authenticate, async (req
       req.params.sellerId,
       { liveCommerceApproved: Boolean(approved) },
       { new: true }
-    ).select('liveCommerceApproved storeName email');
+    ).select('liveCommerceApproved fullName email');
     if (!user) return res.status(404).json({ message: 'Seller not found' });
     return res.json({ success: true, user });
   } catch (err: any) {
