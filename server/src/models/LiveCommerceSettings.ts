@@ -1,9 +1,14 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import type { StreamProviderType } from '../streaming/types';
 
+export type LivePermissionMode = 'allowlist' | 'verified_sellers';
+
 export interface ILiveCommerceSettings extends Document {
   globallyEnabled: boolean;
+  /** @deprecated use livePermissionMode — kept for backward compat */
   requireSellerApproval: boolean;
+  /** allowlist = one-time admin approval per seller; verified_sellers = any verified seller */
+  livePermissionMode: LivePermissionMode;
   minSalesThreshold: number;
   maxDurationMinutes: number;
   streaming: {
@@ -37,6 +42,11 @@ const liveCommerceSettingsSchema = new Schema<ILiveCommerceSettings>(
   {
     globallyEnabled: { type: Boolean, default: true },
     requireSellerApproval: { type: Boolean, default: true },
+    livePermissionMode: {
+      type: String,
+      enum: ['allowlist', 'verified_sellers'],
+      default: 'allowlist',
+    },
     minSalesThreshold: { type: Number, default: 0 },
     maxDurationMinutes: { type: Number, default: 180 },
     streaming: {

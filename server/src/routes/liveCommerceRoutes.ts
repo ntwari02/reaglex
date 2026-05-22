@@ -23,8 +23,10 @@ import {
   estimateLiveSessionScore,
   isLiveGloballyEnabled,
   placeBid,
+  resolveLivePermissionMode,
   serializeLiveSession,
 } from '../services/liveCommerceService';
+import { clearWebRTCRoom } from '../socket/webrtcSignaling';
 import { StreamProviderFactory } from '../streaming/StreamProviderFactory';
 import {
   attachStreamToSession,
@@ -73,12 +75,34 @@ router.get('/settings/public', async (_req, res: Response) => {
     const streaming = await getStreamingConfig();
     return res.json({
       enabled: settings.globallyEnabled,
+      livePermissionMode: resolveLivePermissionMode(settings),
       features: settings.features,
       streaming: {
         defaultProvider: streaming.defaultProvider,
         enabledProviders: streaming.enabledProviders,
         webrtcMaxViewers: streaming.webrtcMaxViewers,
       },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/seller/live-status', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    const gate = await canSellerGoLive(req.user.id);
+    const user = await User.findById(req.user.id)
+      .select('liveCommerceApproved sellerVerificationStatus role')
+      .lean();
+    const settings = await getLiveCommerceSettings();
+    const permissionMode = resolveLivePermissionMode(settings);
+    return res.json({
+      canGoLive: gate.ok,
+      reason: gate.reason || null,
+      liveCommerceApproved: Boolean((user as { liveCommerceApproved?: boolean })?.liveCommerceApproved),
+      permissionMode,
+      globallyEnabled: settings.globallyEnabled,
     });
   } catch (err: any) {
     return res.status(500).json({ message: err.message });
@@ -391,6 +415,10 @@ router.put('/admin/settings', authenticate, async (req: AuthenticatedRequest, re
     if (body.requireSellerApproval != null) {
       settings.requireSellerApproval = Boolean(body.requireSellerApproval);
     }
+    if (body.livePermissionMode === 'allowlist' || body.livePermissionMode === 'verified_sellers') {
+      settings.livePermissionMode = body.livePermissionMode;
+      settings.requireSellerApproval = body.livePermissionMode === 'allowlist';
+    }
     if (body.minSalesThreshold != null) settings.minSalesThreshold = Number(body.minSalesThreshold);
     if (body.maxDurationMinutes != null) settings.maxDurationMinutes = Number(body.maxDurationMinutes);
     if (body.features) Object.assign(settings.features, body.features);
@@ -440,9 +468,45 @@ router.patch('/admin/session/:sessionId', authenticate, async (req: Authenticate
     if (!session) return res.status(404).json({ message: 'Session not found' });
     if (status) session.status = status as any;
     if (adminFrozen != null) session.adminFrozen = Boolean(adminFrozen);
-    if (status === 'ended') session.endedAt = new Date();
+    if (status === 'ended') {
+      session.endedAt = new Date();
+      clearWebRTCRoom(String(session._id));
+    }
     await session.save();
     return res.json({ success: true, session });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/admin/sellers/live-permissions', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  if (!adminOnly(req, res)) return;
+  try {
+    const q = String(req.query.q || '').trim();
+    const filter: Record<string, unknown> = { role: 'seller' };
+    if (q) {
+      filter.$or = [
+        { email: { $regex: q, $options: 'i' } },
+        { storeName: { $regex: q, $options: 'i' } },
+        { name: { $regex: q, $options: 'i' } },
+      ];
+    }
+    const sellers = await User.find(filter)
+      .select('storeName name email sellerVerificationStatus liveCommerceApproved createdAt')
+      .sort({ liveCommerceApproved: -1, storeName: 1, email: 1 })
+      .limit(Math.min(100, Number(req.query.limit) || 50))
+      .lean();
+    const settings = await getLiveCommerceSettings();
+    return res.json({
+      permissionMode: resolveLivePermissionMode(settings),
+      sellers: sellers.map((s) => ({
+        id: String(s._id),
+        storeName: s.storeName || s.name || '',
+        email: s.email,
+        sellerVerificationStatus: s.sellerVerificationStatus,
+        liveCommerceApproved: Boolean((s as { liveCommerceApproved?: boolean }).liveCommerceApproved),
+      })),
+    });
   } catch (err: any) {
     return res.status(500).json({ message: err.message });
   }

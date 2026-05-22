@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { LiveCommerceSession, ILiveCommerceSession } from '../models/LiveCommerceSession';
-import { getLiveCommerceSettings } from '../models/LiveCommerceSettings';
+import { getLiveCommerceSettings, type LivePermissionMode } from '../models/LiveCommerceSettings';
 import { User } from '../models/User';
 
 export function estimateLiveSessionScore(input: {
@@ -20,6 +20,16 @@ export async function isLiveGloballyEnabled(): Promise<boolean> {
   return Boolean(settings.globallyEnabled);
 }
 
+export function resolveLivePermissionMode(settings: {
+  livePermissionMode?: LivePermissionMode;
+  requireSellerApproval?: boolean;
+}): LivePermissionMode {
+  if (settings.livePermissionMode === 'allowlist' || settings.livePermissionMode === 'verified_sellers') {
+    return settings.livePermissionMode;
+  }
+  return settings.requireSellerApproval === false ? 'verified_sellers' : 'allowlist';
+}
+
 export async function canSellerGoLive(sellerId: string): Promise<{ ok: boolean; reason?: string }> {
   const settings = await getLiveCommerceSettings();
   if (!settings.globallyEnabled) {
@@ -29,7 +39,7 @@ export async function canSellerGoLive(sellerId: string): Promise<{ ok: boolean; 
     return { ok: false, reason: 'Invalid seller' };
   }
   const user = await User.findById(sellerId)
-    .select('role sellerVerificationStatus liveCommerceApproved emailVerified')
+    .select('role sellerVerificationStatus liveCommerceApproved emailVerified storeName')
     .lean();
   if (!user || user.role !== 'seller') {
     return { ok: false, reason: 'Seller account required' };
@@ -40,8 +50,14 @@ export async function canSellerGoLive(sellerId: string): Promise<{ ok: boolean; 
   if (user.sellerVerificationStatus !== 'approved') {
     return { ok: false, reason: 'Complete seller verification first' };
   }
-  if (settings.requireSellerApproval && !(user as any).liveCommerceApproved) {
-    return { ok: false, reason: 'Live permission pending admin approval' };
+
+  const permissionMode = resolveLivePermissionMode(settings);
+  if (permissionMode === 'allowlist' && !(user as { liveCommerceApproved?: boolean }).liveCommerceApproved) {
+    return {
+      ok: false,
+      reason:
+        'Live access not enabled for your store. Admin must approve your seller account once — you will not need approval for each session.',
+    };
   }
   return { ok: true };
 }
@@ -78,7 +94,7 @@ export function serializeLiveSession(
     status: s.status,
     thumbnailUrl: s.thumbnailUrl || '',
     streamUrl: s.playbackUrl || s.streamUrl || '',
-    streamProvider: s.streamProvider || 'youtube',
+    streamProvider: s.streamProvider || 'webrtc',
     streamId: s.streamId || '',
     playbackUrl: s.playbackUrl || s.streamUrl || '',
     ingestUrl: s.ingestUrl || '',
