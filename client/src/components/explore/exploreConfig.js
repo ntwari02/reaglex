@@ -3,6 +3,7 @@ export const EXPLORE_MAIN_TABS = [
   { id: 'trending', label: 'All Trending Now' },
   { id: 'bestseller', label: 'All Best Seller' },
   { id: 'ai', label: 'All AI For You' },
+  { id: 'upcoming', label: 'All Upcoming Drops' },
   { id: 'viewed', label: 'All Most Viewed' },
   { id: 'new', label: 'All New Arrivals' },
 ];
@@ -38,6 +39,12 @@ export const EXPLORE_SUB_TABS = {
     { id: 'month', label: 'This Month' },
     { id: 'fresh', label: 'Fresh Picks' },
   ],
+  upcoming: [
+    { id: 'soon', label: 'Launching Soon' },
+    { id: 'week', label: 'This Week' },
+    { id: 'preorder', label: 'Preorders' },
+    { id: 'limited', label: 'Limited Edition' },
+  ],
 };
 
 export const EXPLORE_SECTION_COPY = {
@@ -71,6 +78,12 @@ export const EXPLORE_SECTION_COPY = {
     week: { title: 'New This Week', sub: 'Latest arrivals' },
     month: { title: 'New This Month', sub: 'Recently added catalog' },
     fresh: { title: 'Fresh Picks', sub: 'Hand-picked new inventory' },
+  },
+  upcoming: {
+    soon: { title: 'Upcoming Drops', sub: 'Launching soon · notify to get early access' },
+    week: { title: 'This Week', sub: 'Drops landing in the next 7 days' },
+    preorder: { title: 'Preorders', sub: 'Reserve before public launch' },
+    limited: { title: 'Limited Edition', sub: 'Small-batch releases · act fast' },
   },
 };
 

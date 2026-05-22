@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
 import { useTranslation } from '../../i18n/useTranslation';
+import OverlayPortal from '../OverlayPortal';
 import { useNotificationFeed } from './useNotificationFeed';
 import NotificationList from './NotificationList';
 
@@ -45,9 +46,10 @@ export default function MobileNotificationSheet({ isOpen, onClose, onUnreadChang
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="rxn-sheet-root md:hidden" role="dialog" aria-modal="true" aria-label={t('nav.notifications')}>
+    <OverlayPortal active={isOpen}>
+      <AnimatePresence>
+        {isOpen && (
+          <div className="rxn-sheet-root md:hidden" role="dialog" aria-modal="true" aria-label={t('nav.notifications')}>
           <motion.button
             type="button"
             className="rxn-sheet-backdrop"
@@ -110,8 +112,9 @@ export default function MobileNotificationSheet({ isOpen, onClose, onUnreadChang
               onClose={onClose}
             />
           </motion.section>
-        </div>
-      )}
-    </AnimatePresence>
+          </div>
+        )}
+      </AnimatePresence>
+    </OverlayPortal>
   );
 }

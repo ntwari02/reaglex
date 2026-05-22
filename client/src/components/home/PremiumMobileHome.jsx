@@ -5,12 +5,12 @@ import PremiumCasualHero from './PremiumCasualHero';
 import PremiumCategoryChips from './PremiumCategoryChips';
 import { useTheme } from '../../contexts/ThemeContext';
 import MobileSectionHeader from './mobile/MobileSectionHeader';
-import MobileCommerceBanner from './mobile/MobileCommerceBanner';
 import TrendingCarouselCard from './mobile/TrendingCarouselCard';
 import BestSellerCarouselCard from './mobile/BestSellerCarouselCard';
 import CompactGridProductCard from './mobile/CompactGridProductCard';
 import AIRecommendationsMobile from './mobile/AIRecommendationsMobile';
 import RecentlyViewedMobile from './mobile/RecentlyViewedMobile';
+import UpcomingProductsSection from './mobile/UpcomingProductsSection';
 import MobileTrustStrip from './mobile/MobileTrustStrip';
 import SuperDealsBanner from './mobile/SuperDealsBanner';
 import { explorePath } from '../explore/exploreConfig';
@@ -70,9 +70,7 @@ export default function PremiumMobileHome() {
         )}
       </section>
 
-      <SuperDealsBanner />
-
-      {/* 7. Best sellers — horizontal premium */}
+      {/* 2. Best sellers — horizontal premium */}
       <section className="mob-section" aria-labelledby="mob-bestsellers">
         <MobileSectionHeader
           id="mob-bestsellers"
@@ -95,26 +93,13 @@ export default function PremiumMobileHome() {
         )}
       </section>
 
-      <MobileCommerceBanner
-        variant="ai"
-        title="AI picks just for you"
-        subtitle="Smart recommendations from Reaglex"
-        href={explorePath('ai')}
-        cta="Explore"
-      />
-
-      {/* 8. AI recommendations */}
+      {/* 3. AI recommendations */}
       <AIRecommendationsMobile products={aiRecs} loading={loading.ai} />
 
-      <MobileCommerceBanner
-        variant="shipping"
-        title="Free shipping over $50"
-        subtitle="On eligible orders · Track in app"
-        href="/buyer-protection"
-        cta="Details"
-      />
+      {/* 4. Upcoming drops */}
+      <UpcomingProductsSection />
 
-      {/* 9. New arrivals — 2-col grid */}
+      {/* 5. New arrivals — 2-col grid */}
       <section className="mob-section" aria-labelledby="mob-fresh">
         <MobileSectionHeader
           id="mob-fresh"
@@ -137,15 +122,10 @@ export default function PremiumMobileHome() {
         )}
       </section>
 
-      <MobileCommerceBanner
-        variant="fashion"
-        title="Fashion week edit"
-        subtitle="Curated looks · Limited stock"
-        href="/category/clothing"
-        cta="View"
-      />
+      {/* 6. Flash deals */}
+      <SuperDealsBanner />
 
-      {/* 10. Recently viewed */}
+      {/* 7. Recently viewed */}
       <RecentlyViewedMobile />
     </motion.div>
   );

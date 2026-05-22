@@ -17,6 +17,7 @@ import {
   ExploreTrendingRailCard,
   renderFeedInsert,
 } from '../components/explore/ExploreProductCards';
+import ExploreUpcomingFeed from '../components/explore/ExploreUpcomingFeed';
 import '../styles/explore-all.css';
 
 const PAGE_SIZE = 20;
@@ -204,6 +205,9 @@ export default function ExploreAll() {
 
                 {aiHero && <ExploreAIHeroCard product={aiHero} />}
 
+                {tab === 'upcoming' ? (
+                  <ExploreUpcomingFeed products={products} loading={isLoading} />
+                ) : (
                 <div className={`ex-grid${tab === 'ai' && aiHero ? ' ex-grid--after-hero' : ''}`}>
                   {gridProducts.map((item, index) => renderGridItem(item, index))}
 
@@ -238,6 +242,7 @@ export default function ExploreAll() {
                     </div>
                   )}
                 </div>
+                )}
               </>
             )}
           </motion.div>

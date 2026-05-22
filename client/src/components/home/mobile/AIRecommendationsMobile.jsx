@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ShoppingBag } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useBuyerCart } from '../../../stores/buyerCartStore';
 import { useCurrencyPricing } from '../../../hooks/useCurrencyPricing';
-import { buyerProductPath } from '../../../lib/productUrl';
+import { navigateToProduct } from '../../../lib/productNavigation';
+import { explorePath } from '../../explore/exploreConfig';
 import MobileSectionHeader from './MobileSectionHeader';
+import MobileAddCta from './MobileAddCta';
 import { productDisplayName, resolveProductImage } from './productUtils';
 
 function AIHeroCard({ product }) {
@@ -17,51 +19,49 @@ function AIHeroCard({ product }) {
   return (
     <button
       type="button"
-      onClick={() => navigate(buyerProductPath(product))}
-      className="mob-card-surface relative flex w-full overflow-hidden text-left active:scale-[0.99] transition-transform"
-      style={{ minHeight: 120 }}
+      className="mob-ai-hero w-full text-left active:scale-[0.99] transition-transform"
+      onClick={() => navigateToProduct(navigate, product)}
     >
-      <div className="relative w-[42%] shrink-0 overflow-hidden">
-        <img src={imgSrc} alt="" className="h-full min-h-[120px] w-full object-cover" />
+      <div className="mob-ai-hero-media">
+        <img src={imgSrc} alt="" loading="lazy" />
         <span
-          className="absolute left-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
+          className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase"
           style={{
             background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
             color: '#fff',
           }}
         >
-          <Sparkles size={10} />
-          AI Pick
+          <Sparkles size={8} />
+          AI
         </span>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2.5">
-        <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+      <div className="mob-ai-hero-body">
+        <p className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
           For you
         </p>
-        <h3
-          className="mt-0.5 line-clamp-2 text-[14px] font-semibold leading-snug"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {name}
-        </h3>
-        <p className="mt-1 line-clamp-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          {reason}
-        </p>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-[15px] font-bold" style={{ color: 'var(--brand-primary)' }}>
+        <h3 className="mob-ai-hero-title">{name}</h3>
+        <p className="mob-ai-hero-reason">{reason}</p>
+        <div className="mob-ai-hero-foot">
+          <span className="mob-ai-hero-price">
             {currencyPricing.formatLocalWithUsd(product.price || 0)}
           </span>
-          <span
-            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
-            style={{ background: 'var(--brand-primary)' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              addItem(product, 1);
-            }}
-            role="presentation"
-          >
-            <ShoppingBag size={12} />
-            Add
+          <span className="flex items-center gap-1.5">
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+              style={{
+                background: 'var(--brand-tint)',
+                color: 'var(--brand-primary)',
+                border: '1px solid var(--brand-border-subtle)',
+              }}
+            >
+              View pick
+            </span>
+            <MobileAddCta
+              onClick={(e) => {
+                e.stopPropagation();
+                addItem(product, 1);
+              }}
+            />
           </span>
         </div>
       </div>
@@ -77,17 +77,15 @@ function AISupportCard({ product }) {
   return (
     <button
       type="button"
-      onClick={() => navigate(buyerProductPath(product))}
-      className="mob-card-surface flex w-[120px] shrink-0 flex-col overflow-hidden text-left"
+      className="mob-ai-chip-card text-left active:scale-[0.98] transition-transform"
+      onClick={() => navigateToProduct(navigate, product)}
     >
-      <div className="relative" style={{ aspectRatio: '1 / 1' }}>
-        <img src={imgSrc} alt="" className="h-full w-full object-cover" loading="lazy" />
+      <div className="mob-ai-chip-media">
+        <img src={imgSrc} alt="" loading="lazy" />
       </div>
-      <div className="px-2 py-1.5">
-        <p className="line-clamp-1 text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>
-          {productDisplayName(product)}
-        </p>
-        <p className="text-[12px] font-bold" style={{ color: 'var(--brand-primary)' }}>
+      <div className="mob-ai-chip-body">
+        <p className="mob-ai-chip-title">{productDisplayName(product)}</p>
+        <p className="mob-ai-chip-price">
           {currencyPricing.formatLocalWithUsd(product.price || 0)}
         </p>
       </div>
@@ -98,11 +96,11 @@ function AISupportCard({ product }) {
 export default function AIRecommendationsMobile({ products = [], loading }) {
   if (loading) {
     return (
-      <section className="mob-section">
-        <div className="mob-card-surface mb-3 h-[120px] pwa-skeleton" />
+      <section className="mob-section mob-ai-section">
+        <div className="mob-card-surface mb-2 h-[104px] pwa-skeleton" />
         <div className="mob-horizontal-scroll">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="mob-card-surface h-[140px] w-[120px] pwa-skeleton" />
+            <div key={i} className="mob-ai-chip-card h-[128px] pwa-skeleton" />
           ))}
         </div>
       </section>
@@ -114,16 +112,16 @@ export default function AIRecommendationsMobile({ products = [], loading }) {
   const [hero, ...rest] = products;
 
   return (
-    <section className="mob-section" aria-labelledby="mob-ai-recs">
+    <section className="mob-section mob-ai-section" aria-labelledby="mob-ai-recs">
       <MobileSectionHeader
         id="mob-ai-recs"
         title="AI for you"
-        subtitle="Personalized picks based on your taste"
-        href="/explore?tab=ai"
+        subtitle="Personalized picks"
+        href={explorePath('ai')}
       />
       <AIHeroCard product={hero} />
       {rest.length > 0 && (
-        <div className="mob-horizontal-scroll mt-3">
+        <div className="mob-horizontal-scroll mt-2">
           {rest.slice(0, 6).map((p) => (
             <AISupportCard key={p._id || p.id} product={p} />
           ))}

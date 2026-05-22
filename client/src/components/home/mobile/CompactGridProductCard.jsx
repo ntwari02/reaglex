@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { Heart } from 'lucide-react';
+import MobileAddCta from './MobileAddCta';
 import { useBuyerCart } from '../../../stores/buyerCartStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { useWishlistStore } from '../../../stores/wishlistStore';
@@ -89,8 +90,7 @@ export default function CompactGridProductCard({ product, index = 0 }) {
             <p className="text-[13px] font-bold leading-none" style={{ color: 'var(--brand-primary)' }}>
               {currencyPricing.formatLocalWithUsd(price)}
             </p>
-            <button
-              type="button"
+            <MobileAddCta
               disabled={stock <= 0}
               onClick={(e) => {
                 e.stopPropagation();
@@ -98,12 +98,7 @@ export default function CompactGridProductCard({ product, index = 0 }) {
                 addItem(product, 1);
                 flyFromCard();
               }}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
-              style={{ background: 'var(--brand-primary)', color: '#fff' }}
-              aria-label="Add to cart"
-            >
-              <ShoppingBag size={12} />
-            </button>
+            />
           </div>
         </div>
       </button>

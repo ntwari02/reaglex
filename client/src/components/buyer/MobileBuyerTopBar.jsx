@@ -126,7 +126,6 @@ export default function MobileBuyerTopBar() {
         </div>
       </div>
 
-      <MobileMenuOverlay />
     </>
   );
 }

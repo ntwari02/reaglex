@@ -21,26 +21,32 @@ html.rx-menu-open [data-mobile-nav='buyer'] > div {
   z-index: 10250;
   pointer-events: none;
   font-family: 'Inter', system-ui, sans-serif;
+  width: 100vw;
+  height: 100dvh;
 }
 
 .mmo-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: auto;
   background: color-mix(in srgb, var(--bg-overlay) 40%, transparent);
 }
 
 .mmo-panel {
-  position: absolute;
-  top: max(10px, env(safe-area-inset-top, 0px));
-  left: 8px;
-  bottom: max(10px, env(safe-area-inset-bottom, 0px));
-  width: min(92vw, 400px);
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top, 0px));
+  left: max(8px, env(safe-area-inset-left, 0px));
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  width: min(calc(100vw - 16px), 420px);
+  max-width: calc(100vw - 16px);
+  height: calc(100dvh - max(8px, env(safe-area-inset-top, 0px)) - max(8px, env(safe-area-inset-bottom, 0px)));
+  max-height: calc(100dvh - 16px);
   display: flex;
   flex-direction: column;
   pointer-events: auto;
   border-radius: 32px;
   overflow: hidden;
+  box-sizing: border-box;
   background: color-mix(in srgb, var(--card-bg) 94%, var(--bg-page));
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -79,6 +85,9 @@ html.rx-menu-open [data-mobile-nav='buyer'] > div {
   font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.05em;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .mmo-close {
@@ -156,6 +165,9 @@ html.rx-menu-open [data-mobile-nav='buyer'] > div {
 .mmo-nav-link span {
   flex: 1;
   min-width: 0;
+  white-space: normal;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .mmo-nav-chevron {

@@ -12,10 +12,12 @@ html.rx-notif-sheet-open [data-buyer-page-root] {
   inset: 0;
   z-index: 10300;
   pointer-events: none;
+  width: 100vw;
+  height: 100dvh;
 }
 
 .rxn-sheet-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: auto;
   background: color-mix(in srgb, var(--bg-overlay) 55%, transparent);
@@ -24,11 +26,14 @@ html.rx-notif-sheet-open [data-buyer-page-root] {
 }
 
 .rxn-sheet {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  max-height: min(92vh, 820px);
+  width: 100%;
+  height: min(92dvh, 920px);
+  max-height: 92dvh;
+  min-height: min(78dvh, 640px);
   display: flex;
   flex-direction: column;
   pointer-events: auto;
@@ -39,6 +44,7 @@ html.rx-notif-sheet-open [data-buyer-page-root] {
   box-shadow: 0 -24px 60px color-mix(in srgb, var(--text-primary) 14%, transparent);
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .rxn-sheet-grabber-wrap {
@@ -69,6 +75,12 @@ html.rx-notif-sheet-open [data-buyer-page-root] {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  flex: 1;
+}
+
+.rxn-sheet-header-left > div {
+  min-width: 0;
+  flex: 1;
 }
 
 .rxn-sheet-icon {
@@ -88,12 +100,16 @@ html.rx-notif-sheet-open [data-buyer-page-root] {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-primary);
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .rxn-sheet-sub {
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 2px;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .rxn-sheet-close {
@@ -215,8 +231,23 @@ html.rx-notif-sheet-open [data-buyer-page-root] {
   overscroll-behavior: contain;
 }
 
+.rxn-sheet > .rxn-list--compact {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rxn-list--compact {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .rxn-list--compact .rxn-list-scroll {
-  max-height: min(58vh, 520px);
+  flex: 1;
+  min-height: 0;
+  max-height: none;
 }
 
 /* Row */

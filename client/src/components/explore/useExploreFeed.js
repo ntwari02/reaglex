@@ -9,6 +9,7 @@ const TAB_SECTION = {
   ai: 'foryou',
   viewed: 'inspired',
   new: 'fresh',
+  upcoming: 'fresh',
 };
 
 async function loadSection(id, limit) {
@@ -74,6 +75,13 @@ function applySubFilter(products, tab, sub) {
     if (sub === 'today') return list.slice(0, Math.ceil(list.length * 0.4));
     if (sub === 'month') return list;
     if (sub === 'fresh') return list.filter((p) => p.aiMeta?.badges?.freshArrival).concat(list).slice(0, list.length);
+    return list;
+  }
+
+  if (tab === 'upcoming') {
+    if (sub === 'preorder') return list.filter((_, i) => i % 2 === 0);
+    if (sub === 'limited') return list.filter((p) => (p.price || 0) >= 60);
+    if (sub === 'week') return list.slice(0, Math.ceil(list.length * 0.65));
     return list;
   }
 

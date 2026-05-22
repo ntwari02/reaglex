@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { AnimatePresence, motion, useDragControls, useMotionValue } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
+import OverlayPortal from '../OverlayPortal';
 import {
   Home,
   LayoutGrid,
@@ -42,7 +43,6 @@ export default function MobileMenuOverlay() {
   const close = useMobileMenuOverlay((s) => s.close);
   const { t } = useTranslation();
   const recent = getRecentSearches().slice(0, 4);
-  const dragX = useMotionValue(0);
   const dragControls = useDragControls();
 
   useEffect(() => {
@@ -62,9 +62,10 @@ export default function MobileMenuOverlay() {
   }, [isOpen, close]);
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="mmo-root md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+    <OverlayPortal active={isOpen}>
+      <AnimatePresence>
+        {isOpen && (
+          <div className="mmo-root md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           <motion.button
             type="button"
             className="mmo-backdrop"
@@ -82,7 +83,6 @@ export default function MobileMenuOverlay() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '-108%', opacity: 0 }}
             transition={{ duration: 0.28, ease: EASE }}
-            style={{ x: dragX }}
             drag="x"
             dragControls={dragControls}
             dragListener={false}
@@ -162,8 +162,9 @@ export default function MobileMenuOverlay() {
               </Link>
             </nav>
           </motion.aside>
-        </div>
-      )}
-    </AnimatePresence>
+          </div>
+        )}
+      </AnimatePresence>
+    </OverlayPortal>
   );
 }

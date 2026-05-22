@@ -6,7 +6,6 @@ import {
   Eye,
   Flame,
   Heart,
-  ShoppingBag,
   Sparkles,
   Star,
   Stars,
@@ -17,6 +16,8 @@ import { useWishlistStore } from '../../stores/wishlistStore';
 import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { useMotionUi } from '../../stores/motionUiStore';
 import { navigateToProduct } from '../../lib/productNavigation';
+import MobileAddCta from '../home/mobile/MobileAddCta';
+import { EXPLORE_CARD_CTA } from './exploreCardCtas';
 import {
   productDisplayName,
   productId,
@@ -52,12 +53,31 @@ function formatNewMeta(sub) {
   return 'Fresh drop';
 }
 
+function ExploreCardActions({ variant, onView, onAdd }) {
+  const cta = EXPLORE_CARD_CTA[variant] || EXPLORE_CARD_CTA.trending;
+  return (
+    <div className="ex-card-actions">
+      <button
+        type="button"
+        className={`ex-card-cta ex-card-cta--${cta.tone}`}
+        onClick={onView}
+      >
+        {cta.label}
+      </button>
+      <MobileAddCta onClick={onAdd} />
+    </div>
+  );
+}
+
 export function ExploreSponsoredCard({ item }) {
   return (
     <article className="ex-sponsored">
       <span className="ex-sponsored-badge">Sponsored</span>
       <p className="ex-sponsored-title">{item.title || 'Curated for you'}</p>
       <p className="ex-sponsored-sub">{item.subtitle || 'Premium partner · subtle placement'}</p>
+      <button type="button" className="ex-sponsored-cta">
+        Learn more
+      </button>
     </article>
   );
 }
@@ -75,50 +95,54 @@ export function ExploreTrendingRailCard({ product, index = 0 }) {
   return (
     <motion.article
       className="ex-rail-card"
-      initial={{ opacity: 0, x: 16 }}
+      initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.28, delay: index * 0.04 }}
+      transition={{ duration: 0.24, delay: index * 0.03 }}
     >
-      <button type="button" className="ex-rail-card-hit" onClick={() => navigateToProduct(navigate, product)}>
-        <div className="ex-rail-card-media">
-          <img src={resolveProductImage(product)} alt="" loading="lazy" />
-          <span className="ex-badge ex-badge--trending">🔥 Trending</span>
-          <button
-            type="button"
-            className="ex-wish-btn"
-            aria-label="Save"
-            onClick={(e) => {
-              e.stopPropagation();
-              addToWishlist(user?.id, { ...product, id });
-            }}
-          >
-            <Heart size={18} strokeWidth={1.75} fill={wishlisted ? 'var(--brand-primary)' : 'none'} color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'} />
-          </button>
-        </div>
-        <div className="ex-rail-card-body">
-          <h3 className="ex-card-title">{productDisplayName(product)}</h3>
-          <div className="ex-rail-card-foot">
-            <div>
-              <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
-              <div className="ex-rating">
-                <Star size={12} fill="var(--brand-primary)" color="var(--brand-primary)" />
-                <span>{Number(product.rating || product.averageRating || 4.7).toFixed(1)}</span>
-              </div>
-            </div>
+      <div className="ex-rail-card-hit">
+        <button
+          type="button"
+          className="ex-rail-card-tap"
+          onClick={() => navigateToProduct(navigate, product)}
+        >
+          <div className="ex-rail-card-media">
+            <img src={resolveProductImage(product)} alt="" loading="lazy" />
+            <span className="ex-badge ex-badge--trending">🔥 Hot</span>
             <button
               type="button"
-              className="ex-cart-fab"
-              aria-label="Add to cart"
+              className="ex-wish-btn ex-wish-btn--sm"
+              aria-label="Save"
               onClick={(e) => {
                 e.stopPropagation();
-                addItem(product, 1);
+                addToWishlist(user?.id, { ...product, id });
               }}
             >
-              <ShoppingBag size={18} strokeWidth={1.75} />
+              <Heart
+                size={14}
+                strokeWidth={1.75}
+                fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+                color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
+              />
             </button>
           </div>
-        </div>
-      </button>
+          <div className="ex-rail-card-body">
+            <h3 className="ex-card-title">{productDisplayName(product)}</h3>
+            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
+            <div className="ex-rating">
+              <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />
+              <span>{Number(product.rating || product.averageRating || 4.7).toFixed(1)}</span>
+            </div>
+          </div>
+        </button>
+        <ExploreCardActions
+          variant="trending"
+          onView={() => navigateToProduct(navigate, product)}
+          onAdd={(e) => {
+            e.stopPropagation();
+            addItem(product, 1);
+          }}
+        />
+      </div>
     </motion.article>
   );
 }
@@ -126,43 +150,37 @@ export function ExploreTrendingRailCard({ product, index = 0 }) {
 export function ExploreAIHeroCard({ product }) {
   const navigate = useNavigate();
   const addItem = useBuyerCart((s) => s.addItem);
-  const user = useAuthStore((s) => s.user);
-  const addToWishlist = useWishlistStore((s) => s.addToWishlist);
-  const isInWishlist = useWishlistStore((s) => s.isInWishlist);
   const currencyPricing = useCurrencyPricing();
-  const id = productId(product);
-  const wishlisted = isInWishlist(String(id));
   const reason = product.aiMeta?.topReason || product.aiMeta?.reasons?.[0] || 'Based on your activity';
 
   return (
     <article className="ex-ai-hero">
-      <div className="ex-ai-hero-media">
-        <img src={resolveProductImage(product)} alt="" loading="lazy" />
-      </div>
-      <div className="ex-ai-hero-body">
-        <span className="ex-badge ex-badge--ai">✨ AI Pick</span>
-        <h3 className="ex-ai-hero-title">{productDisplayName(product)}</h3>
-        <div className="ex-rating">
-          <Star size={14} fill="var(--brand-primary)" color="var(--brand-primary)" />
-          <span>{Number(product.rating || 4.8).toFixed(1)}</span>
+      <button
+        type="button"
+        className="ex-ai-hero-tap"
+        onClick={() => navigateToProduct(navigate, product)}
+      >
+        <div className="ex-ai-hero-media">
+          <img src={resolveProductImage(product)} alt="" loading="lazy" />
         </div>
-        <p className="ex-ai-hero-reason">{reason}</p>
-        <p className="ex-card-price ex-ai-hero-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
-        <div className="ex-ai-hero-actions">
-          <button
-            type="button"
-            className="ex-ai-ghost-btn"
-            onClick={() => addToWishlist(user?.id, { ...product, id })}
-          >
-            <Heart size={18} fill={wishlisted ? 'var(--brand-primary)' : 'none'} color={wishlisted ? 'var(--brand-primary)' : 'currentColor'} />
-          </button>
-          <button type="button" className="ex-ai-cta" onClick={() => navigateToProduct(navigate, product)}>
-            View Details
-          </button>
-          <button type="button" className="ex-cart-fab ex-cart-fab--inline" onClick={() => addItem(product, 1)}>
-            <ShoppingBag size={18} strokeWidth={1.75} />
-          </button>
+        <div className="ex-ai-hero-body">
+          <span className="ex-badge ex-badge--ai">✨ AI Pick</span>
+          <h3 className="ex-ai-hero-title">{productDisplayName(product)}</h3>
+          <p className="ex-ai-hero-reason">{reason}</p>
+          <p className="ex-card-price ex-ai-hero-price">
+            {currencyPricing.formatLocalWithUsd(product.price || 0)}
+          </p>
         </div>
+      </button>
+      <div className="ex-ai-hero-actions">
+        <button type="button" className="ex-card-cta ex-card-cta--ai" onClick={() => navigateToProduct(navigate, product)}>
+          View pick
+        </button>
+        <MobileAddCta
+          variant="pill"
+          label="Add"
+          onClick={() => addItem(product, 1)}
+        />
       </div>
     </article>
   );
@@ -205,61 +223,65 @@ export function ExploreGridCard({ product, variant = 'trending', index = 0, sub 
     <motion.article
       ref={cardRef}
       className={`ex-grid-card ex-grid-card--${variant}`}
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.26, delay: Math.min(index * 0.03, 0.24) }}
+      transition={{ duration: 0.22, delay: Math.min(index * 0.025, 0.2) }}
       whileTap={{ scale: 0.98 }}
     >
-      <button type="button" className="ex-grid-card-hit" onClick={() => navigateToProduct(navigate, product)}>
-        <div className="ex-grid-card-media">
-          <img src={resolveProductImage(product)} alt="" loading="lazy" />
-          <span className={`ex-badge ex-badge--${variant}`}>
-            <BadgeIcon size={12} strokeWidth={1.85} />
-            {badge.emoji} {badge.label}
-          </span>
-          <button
-            type="button"
-            className="ex-wish-btn ex-wish-btn--sm"
-            aria-label="Save"
-            onClick={(e) => {
-              e.stopPropagation();
-              addToWishlist(user?.id, { ...product, id });
-            }}
-          >
-            <Heart size={16} strokeWidth={1.75} fill={wishlisted ? 'var(--brand-primary)' : 'none'} color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'} />
-          </button>
-        </div>
-        <div className="ex-grid-card-body">
-          <h3 className="ex-card-title">{productDisplayName(product)}</h3>
-          {variant === 'bestseller' && (
-            <p className="ex-card-store">{product.sellerName || product.storeName || 'Verified store'}</p>
-          )}
-          {meta && <p className="ex-card-meta">{meta}</p>}
-          <div className="ex-grid-card-foot">
-            <div>
-              <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
-              {(variant === 'trending' || variant === 'bestseller') && (
-                <div className="ex-rating">
-                  <Star size={11} fill="var(--brand-primary)" color="var(--brand-primary)" />
-                  <span>{Number(product.rating || 4.6).toFixed(1)}</span>
-                </div>
-              )}
-            </div>
+      <div className="ex-grid-card-hit">
+        <button
+          type="button"
+          className="ex-grid-card-tap"
+          onClick={() => navigateToProduct(navigate, product)}
+        >
+          <div className="ex-grid-card-media">
+            <img src={resolveProductImage(product)} alt="" loading="lazy" />
+            <span className={`ex-badge ex-badge--${variant}`}>
+              <BadgeIcon size={10} strokeWidth={1.85} />
+              {badge.label}
+            </span>
             <button
               type="button"
-              className="ex-cart-fab ex-cart-fab--sm"
-              aria-label="Add to cart"
+              className="ex-wish-btn ex-wish-btn--sm"
+              aria-label="Save"
               onClick={(e) => {
                 e.stopPropagation();
-                addItem(product, 1);
-                flyFromCard();
+                addToWishlist(user?.id, { ...product, id });
               }}
             >
-              <ShoppingBag size={16} strokeWidth={1.75} />
+              <Heart
+                size={14}
+                strokeWidth={1.75}
+                fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+                color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
+              />
             </button>
           </div>
-        </div>
-      </button>
+          <div className="ex-grid-card-body">
+            <h3 className="ex-card-title">{productDisplayName(product)}</h3>
+            {variant === 'bestseller' && (
+              <p className="ex-card-store">{product.sellerName || product.storeName || 'Verified'}</p>
+            )}
+            {meta && <p className="ex-card-meta">{meta}</p>}
+            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
+            {(variant === 'trending' || variant === 'bestseller') && (
+              <div className="ex-rating">
+                <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />
+                <span>{Number(product.rating || 4.6).toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+        </button>
+        <ExploreCardActions
+          variant={variant}
+          onView={() => navigateToProduct(navigate, product)}
+          onAdd={(e) => {
+            e.stopPropagation();
+            addItem(product, 1);
+            flyFromCard();
+          }}
+        />
+      </div>
     </motion.article>
   );
 }

@@ -229,6 +229,7 @@ function App() {
         <CartDrawer />
         <GlobalNavbar />
         <MobileBottomNav />
+        <MobileMenuOverlay />
         <ImmersiveSearchLayer />
         <ClientOnly>
           <VisualSearchLayer />

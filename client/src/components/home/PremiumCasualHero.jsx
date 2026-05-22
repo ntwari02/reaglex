@@ -5,6 +5,9 @@ import { Autoplay, Parallax } from 'swiper/modules';
 import { useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useHeroCarousel } from '../../hooks/useBuyerSiteContent';
+import UpcomingHeroSlide from './mobile/UpcomingHeroSlide';
+import { UPCOMING_HERO_TEASER } from './mobile/upcomingProductsData';
+import '../../styles/upcoming-products.css';
 
 import 'swiper/css';
 
@@ -76,8 +79,12 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
   const { data: heroData } = useHeroCarousel();
-  const slides =
+  const baseSlides =
     heroData?.slides?.length > 0 ? mapApiSlides(heroData.slides) : FALLBACK_SLIDES;
+  const slides = [
+    UPCOMING_HERO_TEASER,
+    ...baseSlides.filter((s) => s.variant !== 'upcoming'),
+  ];
   const overlay = slideOverlay(isDark);
   const textPrimary = isDark ? '#ffffff' : '#111111';
   const textMuted = isDark ? 'rgba(255,255,255,0.72)' : '#777777';
@@ -126,6 +133,9 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
         >
           {slides.map((slide, i) => (
             <SwiperSlide key={slide.id} className="!h-auto">
+              {slide.variant === 'upcoming' ? (
+                <UpcomingHeroSlide slide={slide} isDark={isDark} compact={compact} />
+              ) : (
               <article
                 className={`relative overflow-hidden ${articleMinH || ''}`.trim()}
                 style={compact ? { minHeight: slideMinH } : undefined}
@@ -210,6 +220,7 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
                   <div className="min-w-0 flex-1" aria-hidden />
                 </div>
               </article>
+              )}
             </SwiperSlide>
           ))}
         </Swiper>
