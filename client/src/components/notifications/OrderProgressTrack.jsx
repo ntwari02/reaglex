@@ -1,6 +1,6 @@
 import { getOrderStepPresentation } from '../../lib/notificationPresentation';
 
-export default function OrderProgressTrack({ progress, compact = false }) {
+export default function OrderProgressTrack({ progress, compact = false, glow = false }) {
   if (!progress || progress.cancelled) {
     return (
       <p className="rxn-order-cancelled">Order cancelled</p>
@@ -10,10 +10,13 @@ export default function OrderProgressTrack({ progress, compact = false }) {
   const { steps, currentIndex, percent } = progress;
 
   return (
-    <div className={`rxn-progress${compact ? ' rxn-progress--compact' : ''}`}>
+    <div className={`rxn-progress${compact ? ' rxn-progress--compact' : ''}${glow ? ' rxn-progress--glow' : ''}`}>
       <div className="rxn-progress-bar" aria-hidden>
         <span className="rxn-progress-fill" style={{ width: `${percent}%` }} />
       </div>
+      {glow && compact && (
+        <p className="rxn-progress-transit-label">In transit</p>
+      )}
       <div className="rxn-progress-steps" role="list">
         {steps.map((step, i) => {
           const { label, Icon } = getOrderStepPresentation(step);

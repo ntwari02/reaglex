@@ -93,6 +93,7 @@ import pushDeviceRoutes from './src/routes/pushDeviceRoutes';
 import warehouseRoutes from './src/routes/warehouseRoutes';
 import pickupRoutes from './src/routes/pickupRoutes';
 import marketplaceInnovationRoutes from './src/routes/marketplaceInnovationRoutes';
+import liveCommerceRoutes from './src/routes/liveCommerceRoutes';
 import { logMicroblinkStartupCheck } from './src/services/microblink.service';
 
 const app = express();
@@ -318,6 +319,7 @@ app.use('/api/push', pushDeviceRoutes);
 app.use('/api/warehouse', warehouseRoutes);
 app.use('/api/pickup', pickupRoutes);
 app.use('/api/marketplace', marketplaceInnovationRoutes);
+app.use('/api/live-commerce', liveCommerceRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);

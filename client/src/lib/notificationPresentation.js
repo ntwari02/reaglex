@@ -9,6 +9,10 @@ import {
   CheckCircle2,
   Box,
   Clock3,
+  Radio,
+  Sparkles,
+  Shield,
+  ShoppingBag,
 } from 'lucide-react';
 
 export const ORDER_STATUSES = ['pending', 'processing', 'packed', 'shipped', 'delivered'];
@@ -107,22 +111,92 @@ export const TYPE_META = {
     surface: 'var(--badge-error-bg)',
     border: 'var(--badge-error-border)',
   },
+  live: {
+    Icon: Radio,
+    label: 'Live',
+    accent: 'var(--brand-primary)',
+    surface: 'var(--brand-tint)',
+    border: 'var(--brand-border-subtle)',
+  },
+  ai: {
+    Icon: Sparkles,
+    label: 'AI Pick',
+    accent: 'var(--rxn-glow-teal, #2dd4bf)',
+    surface: 'color-mix(in srgb, #2dd4bf 14%, var(--card-bg))',
+    border: 'color-mix(in srgb, #2dd4bf 30%, transparent)',
+    glow: 'color-mix(in srgb, #2dd4bf 45%, transparent)',
+  },
+  security: {
+    Icon: Shield,
+    label: 'Security',
+    accent: 'var(--rxn-glow-blue, #60a5fa)',
+    surface: 'color-mix(in srgb, #60a5fa 12%, var(--card-bg))',
+    border: 'color-mix(in srgb, #60a5fa 28%, transparent)',
+    glow: 'color-mix(in srgb, #60a5fa 40%, transparent)',
+  },
 };
 
-export function enrichNotification(row) {
+export function formatDealCountdown(ms) {
+  if (!ms || ms <= 0) return '00h : 00m : 00s';
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${String(h).padStart(2, '0')}h : ${String(m).padStart(2, '0')}m : ${String(s).padStart(2, '0')}s`;
+}
+
+function inferPresentationType(row) {
   const type = row?.type || 'system';
-  const base = { ...row, type };
-  if (type === 'order') {
+  const blob = `${row?.title || ''} ${row?.message || ''}`.toLowerCase();
+  if (type === 'system' && (blob.includes('security') || blob.includes('login'))) return 'security';
+  if (blob.includes('ai pick') || blob.includes('picked for you') || row?.aiMeta) return 'ai';
+  if (type === 'order' && blob.includes('confirmed')) return 'order';
+  return type;
+}
+
+export function enrichNotification(row) {
+  const rawType = row?.type || 'system';
+  const presentationType = inferPresentationType(row);
+  const base = { ...row, type: rawType, presentationType };
+  const blob = `${base.title || ''} ${base.message || ''}`.toLowerCase();
+
+  if (rawType === 'order') {
     const orderStatus = parseOrderStatus(base);
+    const statusLabel =
+      orderStatus === 'shipped'
+        ? 'In transit'
+        : orderStatus === 'delivered'
+          ? 'Delivered'
+          : orderStatus === 'processing'
+            ? 'Processing'
+            : blob.includes('confirmed')
+              ? 'Confirmed'
+              : 'Order update';
     return {
       ...base,
       orderStatus,
+      statusLabel,
       progress: getOrderProgress(orderStatus),
+      statusTone:
+        orderStatus === 'shipped' ? 'transit' : orderStatus === 'delivered' ? 'success' : 'confirmed',
     };
   }
+
+  if (presentationType === 'ai') {
+    return {
+      ...base,
+      aiThumbs: row?.aiThumbs || row?.productImages || [],
+    };
+  }
+
+  if (rawType === 'deal') {
+    const endsAt = row?.endsAt || row?.dealEndsAt || Date.now() + 2 * 3600000 + 18 * 60000;
+    return { ...base, dealEndsAt: endsAt };
+  }
+
   return base;
 }
 
-export function getTypeMeta(type) {
-  return TYPE_META[type] || TYPE_META.system;
+export function getTypeMeta(type, presentationType) {
+  return TYPE_META[presentationType || type] || TYPE_META[type] || TYPE_META.system;
 }

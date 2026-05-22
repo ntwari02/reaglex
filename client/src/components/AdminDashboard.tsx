@@ -19,6 +19,7 @@ import {
   Crown,
   RotateCcw,
   Bell,
+  Radio,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/config';
 import Sidebar from '@/components/dashboard/Sidebar';
@@ -43,6 +44,7 @@ import { AdminProfile } from '@/pages/admin/AdminProfile';
 import SystemAnalysisPage from '@/pages/admin/SystemAnalysisPage';
 import SecurityAnalysisPage from '@/pages/admin/SecurityAnalysisPage';
 import NotificationStudio from '@/pages/admin/notifications/NotificationStudio';
+import LiveCommerceControl from '@/pages/admin/LiveCommerceControl';
 import KycVerificationQueues from '@/pages/admin/kyc/KycVerificationQueues';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import type { MenuItem } from '@/components/dashboard/Sidebar';
@@ -86,6 +88,7 @@ const AdminDashboard: React.FC = () => {
       'returns',
       'logistics',
       'notifications',
+      'live-commerce',
       'marketing',
       'reviews',
       'collections',
@@ -178,6 +181,7 @@ const AdminDashboard: React.FC = () => {
           { id: 'returns', label: 'Returns', icon: RotateCcw },
           { id: 'logistics', label: 'Logistics', icon: Truck },
           { id: 'notifications', label: 'Notifications', icon: Bell },
+          { id: 'live-commerce', label: 'Live Commerce', icon: Radio },
           { id: 'marketing', label: 'Marketing', icon: Megaphone },
           { id: 'reviews', label: 'Reviews', icon: Star },
           { id: 'collections', label: 'Collections', icon: FolderKanban },
@@ -214,6 +218,7 @@ const AdminDashboard: React.FC = () => {
             <Route path="returns" element={<ReturnsControlCenter />} />
             <Route path="logistics" element={<LogisticsCenter />} />
             <Route path="notifications" element={<NotificationStudio />} />
+            <Route path="live-commerce" element={<LiveCommerceControl />} />
             <Route path="marketing" element={<MarketingCenter />} />
             <Route path="reviews" element={<ReviewsCenter />} />
             <Route path="collections" element={<CollectionsCenter />} />

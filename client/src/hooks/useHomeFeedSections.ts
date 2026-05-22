@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { homeFeedApi, type FeedSectionId } from '../services/homeFeedApi';
 import { productAPI } from '../services/api';
 
+/** Target product count per home section (8–10). */
+export const HOME_PRODUCT_LIMIT = 10;
+
 async function loadSectionProducts(id: FeedSectionId, limit: number) {
   try {
     const section = await homeFeedApi.getSection(id, { limit });
@@ -24,16 +27,17 @@ export function useHomeFeedSection(id: FeedSectionId, limit: number) {
 }
 
 /** Single request for full mobile home when backend supports it. */
-export function useHomeFeedBundle(limitPerSection = 10) {
+export function useHomeFeedBundle(limitPerSection = HOME_PRODUCT_LIMIT) {
+  const limit = Math.min(10, Math.max(8, limitPerSection));
   return useQuery({
-    queryKey: ['home-feed', 'bundle', limitPerSection],
+    queryKey: ['home-feed', 'bundle', limit],
     queryFn: async () => {
       try {
-        const feed = await homeFeedApi.getFeed({ limit: limitPerSection });
+        const feed = await homeFeedApi.getFeed({ limit });
         const map: Partial<Record<FeedSectionId, unknown[]>> = {};
         for (const section of feed.sections || []) {
           if (section?.id && Array.isArray(section.products)) {
-            map[section.id] = section.products;
+            map[section.id] = section.products.slice(0, limit);
           }
         }
         if (Object.keys(map).length) return map;
@@ -41,16 +45,16 @@ export function useHomeFeedBundle(limitPerSection = 10) {
         /* per-section fallback below */
       }
       const [trending, bestsellers, fresh, foryou] = await Promise.all([
-        loadSectionProducts('trending', limitPerSection),
-        loadSectionProducts('bestsellers', limitPerSection),
-        loadSectionProducts('fresh', Math.min(8, limitPerSection)),
-        loadSectionProducts('foryou', 7),
+        loadSectionProducts('trending', limit),
+        loadSectionProducts('bestsellers', limit),
+        loadSectionProducts('fresh', limit),
+        loadSectionProducts('foryou', limit),
       ]);
       return {
-        trending,
-        bestsellers,
-        fresh,
-        foryou,
+        trending: trending.slice(0, limit),
+        bestsellers: bestsellers.slice(0, limit),
+        fresh: fresh.slice(0, limit),
+        foryou: foryou.slice(0, limit),
       };
     },
     staleTime: 5 * 60 * 1000,

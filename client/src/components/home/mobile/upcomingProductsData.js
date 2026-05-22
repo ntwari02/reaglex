@@ -44,8 +44,29 @@ export function formatCountdown(ms) {
   return `${String(d).padStart(2, '0')}D : ${String(h).padStart(2, '0')}H : ${String(m).padStart(2, '0')}M`;
 }
 
+/** HRS : MINS : SECS for featured hero */
+export function formatCountdownHMS(ms) {
+  if (!ms || ms <= 0) return '00 : 00 : 00';
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${String(h).padStart(2, '0')} : ${String(m).padStart(2, '0')} : ${String(s).padStart(2, '0')}`;
+}
+
+export function enrichDrop(drop, index = 0) {
+  const interested = 24800 - index * 2100;
+  return {
+    ...drop,
+    hypeScore: drop.hypeScore ?? Math.min(99, 88 + index * 2),
+    unitsLeft: drop.unitsLeft ?? Math.max(40, 120 - index * 18),
+    unitsTotal: drop.unitsTotal ?? 200,
+    interestedCount: drop.interestedCount ?? interested,
+  };
+}
+
 export function mergeUpcomingList(products = []) {
-  const fromApi = products.slice(0, 6).map((p, i) => ({
+  const fromApi = products.slice(0, 10).map((p, i) => ({
     id: p._id || p.id || `api-${i}`,
     title: productDisplayName(p),
     description: p.aiMeta?.topReason || 'Curated drop · launching soon',
@@ -57,10 +78,10 @@ export function mergeUpcomingList(products = []) {
 
   const merged = [...fromApi];
   for (const drop of UPCOMING_DROPS) {
-    if (merged.length >= 8) break;
+    if (merged.length >= 10) break;
     if (!merged.some((m) => m.title === drop.title)) merged.push(drop);
   }
-  return merged.slice(0, 8);
+  return merged.slice(0, 10);
 }
 
 export const UPCOMING_HERO_TEASER = {

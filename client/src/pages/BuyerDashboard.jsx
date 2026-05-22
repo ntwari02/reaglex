@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import AccountSettingsDashboard from '../components/AccountSettingsDashboard';
+import AccountMobileChrome from '../components/account/AccountMobileChrome';
 import { useAuthStore } from '../stores/authStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useWishlistStore } from '../stores/wishlistStore';
@@ -1765,10 +1766,22 @@ export default function BuyerDashboard() {
           </div>
         </motion.div>
 
+        <AccountMobileChrome
+          activeTab={tab}
+          onTabChange={setTab}
+          displayName={displayName}
+          email={user.email}
+          initials={initials}
+          avatarSrc={hasAvatar ? avatarSrc : null}
+          orderCount={orderCount}
+          wishlistCount={savedCount}
+          onLogout={handleLogout}
+        />
+
         {/* ═══ TIER 2: Main layout — sidebar + content ═══ */}
         <div className="account-main-pad w-full" style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 22, paddingBottom: 40 }}>
-          {/* Mobile: horizontal tab bar */}
-          <div className="mb-5 lg:hidden">
+          {/* Mobile: horizontal tab bar (legacy — hidden on mobile via CSS) */}
+          <div className="account-mobile-tabs-legacy mb-5 lg:hidden">
             <div className="flex items-center justify-between mb-2 px-0.5">
               <p
                 style={{
@@ -4568,6 +4581,7 @@ export default function BuyerDashboard() {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                      className="rx-settings-2026"
                     >
                       <AccountSettingsDashboard />
                     </motion.div>

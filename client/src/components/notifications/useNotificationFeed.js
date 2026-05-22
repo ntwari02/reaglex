@@ -32,21 +32,30 @@ export function useNotificationFeed({ enabled = true, limit = 50 } = {}) {
   const tabCounts = useMemo(
     () => ({
       all: notifications.length,
-      unread: unreadCount,
       orders: notifications.filter((n) => n.type === 'order').length,
       deals: notifications.filter((n) => n.type === 'deal').length,
-      system: notifications.filter((n) => n.type === 'system').length,
-      messages: notifications.filter((n) => n.type === 'message').length,
+      system: notifications.filter(
+        (n) => n.type === 'system' || n.type === 'message' || n.type === 'review' || n.type === 'alert'
+      ).length,
+      ai: notifications.filter((n) => n.presentationType === 'ai').length,
     }),
-    [notifications, unreadCount],
+    [notifications],
   );
 
   const filtered = useMemo(() => {
-    if (activeTab === 'unread') return notifications.filter((n) => n.unread);
     if (activeTab === 'orders') return notifications.filter((n) => n.type === 'order');
     if (activeTab === 'deals') return notifications.filter((n) => n.type === 'deal');
-    if (activeTab === 'system') return notifications.filter((n) => n.type === 'system');
-    if (activeTab === 'messages') return notifications.filter((n) => n.type === 'message');
+    if (activeTab === 'system') {
+      return notifications.filter(
+        (n) =>
+          n.type === 'system' ||
+          n.type === 'message' ||
+          n.type === 'review' ||
+          n.type === 'alert' ||
+          n.presentationType === 'security'
+      );
+    }
+    if (activeTab === 'ai') return notifications.filter((n) => n.presentationType === 'ai');
     return notifications;
   }, [notifications, activeTab]);
 

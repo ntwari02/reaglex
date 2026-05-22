@@ -1,25 +1,40 @@
-import UpcomingProductCard from '../home/mobile/UpcomingProductCard';
-import { mergeUpcomingList } from '../home/mobile/upcomingProductsData';
-import '../../styles/upcoming-products.css';
+import { useMemo } from 'react';
+import UpcomingFeaturedDrop from '../home/mobile/UpcomingFeaturedDrop';
+import UpcomingDropMiniCard from '../home/mobile/UpcomingDropMiniCard';
+import { mergeUpcomingList, enrichDrop } from '../home/mobile/upcomingProductsData';
+import '../../styles/upcoming-drops-premium.css';
+
+const LIMIT = 10;
 
 export default function ExploreUpcomingFeed({ products, loading }) {
-  const drops = mergeUpcomingList(Array.isArray(products) ? products : []);
+  const drops = useMemo(
+    () =>
+      mergeUpcomingList(Array.isArray(products) ? products : [])
+        .map(enrichDrop)
+        .slice(0, LIMIT),
+    [products]
+  );
 
   if (loading && !drops.length) {
     return (
-      <div className="up-explore-feed">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="up-card up-card--skel up-explore-card" />
-        ))}
+      <div className="ud-explore-loading">
+        <div className="ud-skeleton-featured" />
       </div>
     );
   }
 
+  const [featured, ...rest] = drops;
+
   return (
-    <div className="up-explore-feed">
-      {drops.map((drop, i) => (
-        <UpcomingProductCard key={drop.id} drop={drop} index={i} />
-      ))}
+    <div className="ud-explore-feed">
+      {featured && <UpcomingFeaturedDrop drop={featured} />}
+      {rest.length > 0 && (
+        <div className="ud-mini-rail ud-mini-rail--explore">
+          {rest.map((drop, i) => (
+            <UpcomingDropMiniCard key={drop.id} drop={drop} index={i} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

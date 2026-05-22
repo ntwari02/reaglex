@@ -7,6 +7,7 @@ import { User } from '../models/User';
 import mongoose from 'mongoose';
 import { getAllowedCorsOrigins } from '../config/publicEnv';
 import { attachSystemMonitorNamespaces } from '../socket/systemMonitorSockets';
+import { attachLiveCommerceSockets } from '../socket/liveCommerceSockets';
 import { socketPresenceRegister, socketPresenceUnregister } from './socketRegistry';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
@@ -103,6 +104,7 @@ class WebSocketService {
     });
 
     attachSystemMonitorNamespaces(this.io);
+    attachLiveCommerceSockets(this.io);
 
     console.log('✅ WebSocket server initialized');
   }

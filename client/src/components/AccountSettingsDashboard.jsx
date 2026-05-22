@@ -22,12 +22,12 @@ const EASE = [0.25, 0.46, 0.45, 0.94];
 const CARD_STYLE = { boxShadow: '0 4px 20px rgba(0,0,0,0.06)', borderRadius: 16 };
 
 const SETTINGS_TABS = [
-  { id: 'profile', label: 'Profile', icon: '👤' },
-  { id: 'security', label: 'Security', icon: '🔒' },
-  { id: 'notifications', label: 'Notifications', icon: '🔔' },
-  { id: 'appearance', label: 'Appearance', icon: '🌓' },
-  { id: 'preferences', label: 'Preferences', icon: '🎨' },
-  { id: 'danger', label: 'Danger Zone', icon: '🗑️' },
+  { id: 'profile', label: 'Profile', icon: User },
+  { id: 'security', label: 'Security', icon: Lock },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'preferences', label: 'Preferences', icon: Shield },
+  { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
 ];
 
 const COUNTRIES = [
@@ -374,23 +374,25 @@ export default function AccountSettingsDashboard() {
               )}
               <div
                 ref={settingsTabsScrollRef}
-                className="flex overflow-x-auto gap-2 scrollbar-hide"
+                className="settings-tabs-scroll-container flex overflow-x-auto gap-2 scrollbar-hide"
                 style={{ scrollbarWidth: 'none' }}
               >
                 <div
-                  className="inline-flex items-center gap-1 rounded-2xl px-1.5 py-1.5 bg-[var(--card-bg)] shadow-sm"
+                  className="inline-flex items-center gap-1 rounded-2xl px-1.5 py-1.5 bg-[var(--card-bg)]"
                   style={{
                     borderRadius: 16,
-                    boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
+                    border: '1px solid color-mix(in srgb, var(--border-card) 50%, transparent)',
                   }}
                 >
                   {SETTINGS_TABS.map((t) => {
                     const isActive = section === t.id;
                     const hasUnsavedSection = unsavedBySection[t.id];
+                    const TabIcon = t.icon;
                     return (
                       <button
                         key={t.id}
                         type="button"
+                        data-settings-tab
                         data-settings-tab-active={isActive ? 'true' : 'false'}
                         onClick={() => {
                           if (unsavedBySection[section] && section !== t.id) {
@@ -409,14 +411,11 @@ export default function AccountSettingsDashboard() {
                             : 'none',
                         }}
                       >
-                        <span
-                          style={{
-                            fontSize: 16,
-                            color: isActive ? '#ffffff' : 'var(--text-faint)',
-                          }}
-                        >
-                          {t.icon}
-                        </span>
+                        <TabIcon
+                          size={16}
+                          strokeWidth={1.85}
+                          style={{ color: isActive ? '#ffffff' : 'var(--text-faint)', flexShrink: 0 }}
+                        />
                         <span>{t.label}</span>
                         {hasUnsavedSection && (
                           <span className="settings-unsaved-dot" />

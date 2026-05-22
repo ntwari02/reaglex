@@ -109,6 +109,8 @@ export interface IUser extends Document {
   // Seller-specific fields
   sellerVerificationStatus?: SellerVerificationStatus;
   isSellerVerified?: boolean;
+  /** Admin-approved permission to host live commerce sessions */
+  liveCommerceApproved?: boolean;
     // Account status
     accountStatus?: 'active' | 'pending' | 'banned' | 'warned' | 'inactive';
   warningCount?: number;
@@ -362,6 +364,10 @@ const userSchema = new Schema<IUser>(
       default: 'pending',
     },
     isSellerVerified: {
+      type: Boolean,
+      default: false,
+    },
+    liveCommerceApproved: {
       type: Boolean,
       default: false,
     },

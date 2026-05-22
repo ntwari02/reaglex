@@ -762,3 +762,70 @@
     animation: none;
   }
 }
+
+/* ── Upcoming drops (home + explore) — matches explore grid cards ─────────── */
+
+.ex-upcoming-card-hit {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: var(--ex-radius-md);
+  overflow: hidden;
+  background: var(--ex-surface);
+  border: 1px solid var(--ex-border-subtle);
+  box-shadow: var(--ex-shadow);
+}
+
+.ex-upcoming-card-tap {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ex-upcoming-card-media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.ex-upcoming-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ex-badge--upcoming {
+  color: #fff;
+  background: linear-gradient(90deg, #ff8a1f, #ff6b00);
+  border-color: color-mix(in srgb, #ff6b00 40%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, #ff6b00 35%, transparent);
+}
+
+.ex-upcoming-card-body {
+  padding: 7px 8px 4px;
+}
+
+.ex-upcoming-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 6%, var(--card-bg));
+  border: 1px solid var(--ex-border-subtle);
+}
+
+.ex-upcoming-card .ex-card-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}

@@ -1142,7 +1142,6 @@ export default function Navbar() {
   const { language, setLanguage, currency, setCurrency } = useTheme();
   const { t } = useTranslation();
   const openImmersiveSearch = useImmersiveSearch((s) => s.openSearch);
-  const openVisualSearch = useMotionUi((s) => s.openVisualSearch);
   const headerHidden = useScrollChrome((s) => s.headerHidden);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
@@ -1230,58 +1229,34 @@ export default function Navbar() {
 
         <MobileBuyerTopBar />
 
-        {/* Mobile: compact search — AI commerce style */}
+        {/* Mobile: search — double-tap to open (voice & camera live inside search layer) */}
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            openImmersiveSearch(searchQuery);
-          }}
+          onSubmit={(e) => e.preventDefault()}
           className="md:hidden px-3 pb-2"
         >
           <motion.div
-            role="button"
+            role="search"
             tabIndex={0}
-            onClick={() => openImmersiveSearch(searchQuery)}
+            onDoubleClick={() => openImmersiveSearch(searchQuery)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === 'Enter') {
                 e.preventDefault();
                 openImmersiveSearch(searchQuery);
               }
             }}
-            className="mob-search-bar flex items-center gap-1 min-h-[44px] max-h-[48px] rounded-xl px-1.5 pl-3 pr-1.5 transition-[box-shadow,border-color] duration-200 cursor-text"
+            className="mob-search-bar mob-search-bar--2026 flex items-center gap-2 min-h-[44px] max-h-[48px] rounded-2xl px-3 transition-[box-shadow] duration-200 cursor-default"
             style={{
-              background: 'var(--bg-secondary, #f1f3f5)',
-              border: '1px solid color-mix(in srgb, var(--border-card) 70%, transparent)',
-              boxShadow: '0 1px 6px rgba(15,23,42,0.04)',
+              background: 'var(--card-bg)',
             }}
+            aria-label="Double-tap to search"
           >
             <Search className="w-4 h-4 flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
-            <input
-              type="search"
-              enterKeyHint="search"
-              readOnly
-              value={searchQuery}
-              placeholder="Search products, brands, stores..."
-              onFocus={() => openImmersiveSearch(searchQuery)}
-              className="flex-1 min-w-0 h-10 bg-transparent outline-none text-[14px] search-input pointer-events-none"
+            <span
+              className="flex-1 min-w-0 text-[14px] truncate select-none"
               style={{ color: searchQuery ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: '-0.01em' }}
-            />
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openVisualSearch();
-              }}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
-              style={{
-                background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
-                color: 'var(--brand-primary)',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label="Visual search"
             >
-              <Camera className="w-4 h-4" strokeWidth={2} />
-            </button>
+              {searchQuery || 'Double-tap to search…'}
+            </span>
             <Link
               to="/products"
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
@@ -1291,6 +1266,7 @@ export default function Navbar() {
                 WebkitTapHighlightColor: 'transparent',
               }}
               aria-label={t('footer.links.shop.allProducts')}
+              onClick={(e) => e.stopPropagation()}
             >
               <SlidersHorizontal className="w-4 h-4" strokeWidth={1.85} />
             </Link>

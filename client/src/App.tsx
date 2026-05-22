@@ -114,6 +114,10 @@ const About                = lazy(() => import('./pages/About'));
 const CategoryBrowse       = lazy(() => import('./pages/CategoryBrowse'));
 // @ts-ignore JSX module without TS typings
 const ExploreAll           = lazy(() => import('./pages/ExploreAll'));
+// @ts-ignore JSX module without TS typings
+const LiveDiscover         = lazy(() => import('./pages/LiveDiscover'));
+// @ts-ignore JSX module without TS typings
+const LiveSession          = lazy(() => import('./pages/LiveSession'));
 
 /** Redirects /login and /signup to /auth?tab=... while preserving query (e.g. redirect=) */
 function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
@@ -267,6 +271,8 @@ function App() {
               <Route path="/search" element={<SearchResults />} />
               <Route path="/products" element={<SearchResults />} />
               <Route path="/explore" element={<ExploreAll />} />
+              <Route path="/live" element={<LiveDiscover />} />
+              <Route path="/live/:sessionId" element={<LiveSession />} />
               <Route path="/category/:slug" element={<CategoryBrowse />} />
               <Route path="/product/:slug" element={<BuyerProductDetail />} />
               <Route path="/products/:id" element={<BuyerProductDetail />} />

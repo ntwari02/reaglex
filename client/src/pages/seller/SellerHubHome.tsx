@@ -13,6 +13,8 @@ import SalesChart from '@/components/dashboard/SalesChart';
 import RecentOrders from '@/components/dashboard/RecentOrders';
 import { API_BASE_URL } from '@/lib/config';
 import { useToastStore } from '@/stores/toastStore';
+// @ts-ignore seller live dashboard (JSX)
+import SellerLiveDashboard from '@/components/seller/SellerLiveDashboard';
 
 type Trend = 'up' | 'down';
 
@@ -216,6 +218,8 @@ export default function SellerHubHome() {
           <KpiCard key={k.title} {...k} />
         ))}
       </div>
+
+      <SellerLiveDashboard />
 
       {/* Chart + Recent orders */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

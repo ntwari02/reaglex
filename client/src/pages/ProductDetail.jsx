@@ -23,6 +23,7 @@ import { SERVER_URL } from '../lib/config';
 import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 import { productImageLayoutId } from '../motion/presets';
+import LiveProductTeaser from '../components/live/LiveProductTeaser';
 
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
@@ -1661,6 +1662,7 @@ export default function ProductDetail() {
                 <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 animate-pulse" />
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Responds within 1 hour · 98% positive ratings</span>
               </div>
+              <LiveProductTeaser sellerId={product?.sellerId || product?.seller?._id || product?.seller?.id} />
             </div>
 
             {/* Trust badges */}

@@ -1,76 +1,78 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { explorePath } from '../../explore/exploreConfig';
-import { useReducedMotion } from 'framer-motion';
 import { useHomeFeedSection } from '../../../hooks/useHomeFeedSections';
-import { mergeUpcomingList } from './upcomingProductsData';
-import UpcomingProductCard from './UpcomingProductCard';
-import '../../../styles/upcoming-products.css';
-
-const SCROLL_SPEED = 0.28;
+import { HOME_PRODUCT_LIMIT } from './HomeExploreSection';
+import { mergeUpcomingList, enrichDrop } from './upcomingProductsData';
+import UpcomingFeaturedDrop from './UpcomingFeaturedDrop';
+import UpcomingDropMiniCard from './UpcomingDropMiniCard';
+import MobileSectionHeader from './MobileSectionHeader';
+import { explorePath } from '../../explore/exploreConfig';
+import { useToastStore } from '../../../stores/toastStore';
+import '../../../styles/upcoming-drops-premium.css';
 
 export default function UpcomingProductsSection() {
-  const trackRef = useRef(null);
-  const reduceMotion = useReducedMotion();
-  const [paused, setPaused] = useState(false);
-  const { data: freshProducts, isPending } = useHomeFeedSection('fresh', 6);
+  const showToast = useToastStore((s) => s.showToast);
+  const { data: freshProducts, isPending } = useHomeFeedSection('fresh', HOME_PRODUCT_LIMIT);
 
-  const drops = mergeUpcomingList(Array.isArray(freshProducts) ? freshProducts : []);
+  const drops = mergeUpcomingList(Array.isArray(freshProducts) ? freshProducts : [])
+    .map(enrichDrop)
+    .slice(0, HOME_PRODUCT_LIMIT);
 
-  const pause = useCallback(() => setPaused(true), []);
-  const resume = useCallback(() => {
-    window.setTimeout(() => setPaused(false), 2200);
-  }, []);
+  const handleNotify = (drop) => {
+    showToast(`We'll notify you when ${drop.title} drops`, 'success');
+  };
 
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el || reduceMotion || drops.length < 2) return undefined;
+  if (!isPending && !drops.length) return null;
 
-    let raf = 0;
-    const step = () => {
-      if (!paused && el) {
-        el.scrollLeft += SCROLL_SPEED;
-        const max = el.scrollWidth - el.clientWidth;
-        if (max > 0 && el.scrollLeft >= max - 1) el.scrollLeft = 0;
-      }
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [paused, reduceMotion, drops.length]);
+  const [featured, ...rest] = drops;
 
   return (
-    <section className="up-section" aria-labelledby="upcoming-drops-heading">
-      <header className="up-header">
-        <div className="up-header-text">
-          <h2 id="upcoming-drops-heading" className="up-title">
-            Upcoming Drops
-          </h2>
-          <p className="up-subtitle">Launching soon</p>
-        </div>
-        <Link to={explorePath('upcoming')} className="up-view-all">
-          View All →
-        </Link>
-      </header>
+    <section className="ud-section mob-section" aria-labelledby="upcoming-drops-heading">
+      <MobileSectionHeader
+        id="upcoming-drops-heading"
+        title="Upcoming Drops"
+        subtitle="Limited releases · notify before they sell out"
+        href={explorePath('upcoming')}
+      />
 
-      <div className="up-track-wrap">
-        <div
-          ref={trackRef}
-          className="up-track"
-          onTouchStart={pause}
-          onTouchEnd={resume}
-          onMouseEnter={pause}
-          onMouseLeave={resume}
-        >
-          {isPending && !drops.length
-            ? Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="up-card up-card--skel" />
-              ))
-            : drops.map((drop, i) => (
-                <UpcomingProductCard key={drop.id} drop={drop} index={i} />
-              ))}
-        </div>
-      </div>
+      {isPending && !drops.length ? (
+        <div className="ud-skeleton-featured" />
+      ) : (
+        <>
+          {featured && <UpcomingFeaturedDrop drop={featured} onNotify={handleNotify} />}
+
+          {rest.length > 0 && (
+            <>
+              <h3 className="ud-rail-title">More Drops You&apos;ll Love</h3>
+              <div className="ud-mini-rail">
+                {rest.map((drop, i) => (
+                  <UpcomingDropMiniCard key={drop.id} drop={drop} index={i} onNotify={handleNotify} />
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="ud-promo ud-promo--alerts">
+            <div className="ud-promo-icon ud-promo-icon--bell" aria-hidden />
+            <div>
+              <p className="ud-promo-title">Never Miss a Drop</p>
+              <p className="ud-promo-sub">Get instant alerts when hype products go live</p>
+            </div>
+            <button type="button" className="ud-promo-cta" onClick={() => handleNotify(featured || drops[0])}>
+              Enable Alerts
+            </button>
+          </div>
+
+          <div className="ud-promo ud-promo--vip">
+            <div className="ud-promo-icon ud-promo-icon--crown" aria-hidden />
+            <div>
+              <p className="ud-promo-title">VIP Early Access</p>
+              <p className="ud-promo-sub">Shop drops 24h before everyone else</p>
+            </div>
+            <button type="button" className="ud-promo-cta ud-promo-cta--vip">
+              Become VIP
+            </button>
+          </div>
+        </>
+      )}
     </section>
   );
 }

@@ -1,0 +1,661 @@
+/* ── Reaglex Live Commerce — contextual, theme-aware (light + dark) ───────── */
+
+.live-rail-section {
+  padding-bottom: var(--mob-space-3, 12px);
+}
+
+.live-rail-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--mob-space-4, 16px));
+  padding: 0 var(--mob-space-4, 16px) 2px;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.live-rail-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.live-card {
+  flex: 0 0 148px;
+  scroll-snap-align: start;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid color-mix(in srgb, var(--border-card) 55%, transparent);
+  box-shadow: var(--mob-shadow-card, 0 2px 12px rgba(15, 23, 42, 0.06));
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.live-card:active {
+  transform: scale(0.98);
+}
+
+.live-card--compact {
+  flex: 0 0 140px;
+}
+
+.live-card--skel {
+  min-height: 168px;
+  animation: live-pulse 1.2s ease-in-out infinite;
+  background: var(--bg-skeleton, var(--bg-tertiary));
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.live-card-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--bg-tertiary);
+}
+
+.live-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-card-body {
+  padding: 8px;
+}
+
+.live-card-seller {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.live-card-title {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.live-card-meta {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.live-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.live-card-viewers {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.live-card-cta {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
+/* Status pill */
+.live-pill {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  border: 1px solid var(--border-card);
+  color: var(--text-primary);
+  backdrop-filter: blur(8px);
+}
+
+.live-pill--live {
+  color: #fff;
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  border-color: transparent;
+  box-shadow: 0 0 12px color-mix(in srgb, #ef4444 40%, transparent);
+}
+
+.live-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: live-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes live-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+.live-pill-mode {
+  margin-left: 2px;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+.live-escrow-badge {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 700;
+  background: var(--brand-tint);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-border-subtle);
+}
+
+/* Live viewer page */
+.live-viewer-page {
+  min-height: 100dvh;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  padding-bottom: max(88px, env(safe-area-inset-bottom, 0px));
+}
+
+.live-viewer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: color-mix(in srgb, var(--bg-page) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.live-viewer-stage {
+  position: relative;
+  margin: 0 12px;
+  border-radius: 18px;
+  overflow: hidden;
+  min-height: min(52vh, 420px);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-card);
+}
+
+html[data-theme='dark'] .live-viewer-stage {
+  background: linear-gradient(160deg, #0a0e14 0%, #141a24 50%, #1a1220 100%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme='light'] .live-viewer-stage,
+:root:not([data-theme='dark']) .live-viewer-stage {
+  background: linear-gradient(160deg, #f4f6fa 0%, #e8edf5 55%, #f0ebe8 100%);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+.live-viewer-stage img,
+.live-viewer-stage video {
+  width: 100%;
+  height: 100%;
+  min-height: min(52vh, 420px);
+  object-fit: cover;
+}
+
+.live-viewer-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 12px;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--bg-page) 92%, transparent));
+}
+
+.live-viewer-ai {
+  margin: 10px 12px 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--brand-primary) 8%, var(--card-bg));
+  border: 1px solid var(--brand-border-subtle);
+}
+
+.live-viewer-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+}
+
+.live-btn-primary {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: var(--text-on-accent, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+.live-btn-secondary {
+  flex: 1;
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.live-bid-panel {
+  margin: 0 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-card);
+}
+
+.live-bid-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.live-bid-input {
+  flex: 1;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-card);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.live-discover-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 16px 24px;
+}
+
+.live-product-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 12px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--brand-primary) 10%, var(--card-bg));
+  border: 1px solid var(--brand-border-subtle);
+  text-decoration: none;
+  color: inherit;
+}
+
+.live-product-banner span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-primary);
+}
+
+.live-product-banner .live-pill {
+  position: static;
+}
+
+/* ── Immersive TikTok-style viewer ───────────────────────────────────────── */
+
+.live-immersive {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .live-immersive,
+.live-immersive {
+  --live-immersive-bg: linear-gradient(180deg, #0a0c10 0%, #12151c 40%, #0a0c10 100%);
+}
+
+html[data-theme='light'] .live-immersive {
+  --live-immersive-bg: linear-gradient(180deg, #f6f7f9 0%, #e8ecf2 50%, #f6f7f9 100%);
+}
+
+.live-immersive--loading {
+  padding: 12px;
+}
+
+.live-immersive-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: max(8px, env(safe-area-inset-top, 0px)) 12px 8px;
+  z-index: 40;
+}
+
+.live-immersive-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--card-bg) 75%, transparent);
+  color: var(--text-primary);
+  backdrop-filter: blur(10px);
+}
+
+.live-immersive-seller-name {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.live-immersive-title {
+  font-size: 10px;
+  margin: 0;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-immersive-viewers {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.live-immersive-stage {
+  position: relative;
+  flex: 1;
+  min-height: min(72dvh, 640px);
+  margin: 0 8px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #000;
+}
+
+.live-immersive-player,
+.live-player {
+  width: 100%;
+  height: 100%;
+  min-height: min(72dvh, 640px);
+}
+
+.live-player-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: min(72dvh, 640px);
+  border: none;
+}
+
+.live-player-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-player-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.live-player--webrtc {
+  position: relative;
+  background: #000;
+}
+
+.live-player-waiting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2;
+}
+
+.live-webrtc-broadcast {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: min(72dvh, 640px);
+  background: #000;
+}
+
+.live-webrtc-broadcast-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-webrtc-broadcast-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(220, 38, 38, 0.9);
+  color: #fff;
+}
+
+.live-immersive-provider-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+.live-immersive-overlay-top {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.live-immersive-overlay-top .live-pill {
+  position: static;
+}
+
+.live-immersive-escrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--brand-primary) 20%, var(--card-bg));
+  color: var(--brand-primary);
+}
+
+.live-immersive-overlay-side {
+  position: absolute;
+  right: 8px;
+  bottom: 100px;
+  z-index: 15;
+}
+
+.live-immersive-overlay-bottom {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 12px;
+  z-index: 14;
+}
+
+.live-reactions-wrap--compact .live-reactions-bar {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.live-reactions-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.live-reaction-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  font-size: 18px;
+  background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px color-mix(in srgb, #000 25%, transparent);
+}
+
+.live-reactions-float {
+  position: absolute;
+  right: 48px;
+  bottom: 80px;
+  width: 80px;
+  height: 160px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.live-reaction-bubble {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  font-size: 22px;
+}
+
+.live-pinned-product {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+  border: 1px solid var(--border-card);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 18%, transparent);
+}
+
+.live-pinned-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.live-pinned-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin: 0;
+}
+
+.live-pinned-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.live-pinned-price {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--brand-primary);
+}
+
+.live-pinned-cta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.live-pinned-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-primary) 10%, var(--card-bg));
+}
+
+.live-immersive-ai {
+  margin: 8px 12px;
+  padding: 8px 10px;
+  font-size: 11px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--brand-primary) 8%, var(--card-bg));
+  border: 1px solid var(--brand-border-subtle);
+}

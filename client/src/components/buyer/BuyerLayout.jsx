@@ -1,4 +1,5 @@
 import Footer from '../Footer';
+import PremiumMobileFooter from '../footer/PremiumMobileFooter';
 
 /*
  * Navbar renders from App.tsx (<GlobalNavbar />) outside the cart-push wrapper so
@@ -21,6 +22,9 @@ export default function BuyerLayout({ children, className = '' }) {
         style={{ color: 'var(--text-primary, #0f172a)' }}
       >
         {children}
+      </div>
+      <div className="md:hidden">
+        <PremiumMobileFooter />
       </div>
       <div className="hidden md:block">
         <Footer />

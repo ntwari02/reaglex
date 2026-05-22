@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { explorePath } from '../../explore/exploreConfig';
 import { motion } from 'framer-motion';
+import { Bell, Clock } from 'lucide-react';
+import { explorePath } from '../../explore/exploreConfig';
 import { formatCountdown } from './upcomingProductsData';
 
+/**
+ * Upcoming drop card — matches Explore All grid aesthetic.
+ */
 export default function UpcomingProductCard({ drop, index = 0, onNotify }) {
   const [left, setLeft] = useState(() => Math.max(0, (drop.launchAt || 0) - Date.now()));
 
@@ -16,38 +20,41 @@ export default function UpcomingProductCard({ drop, index = 0, onNotify }) {
 
   return (
     <motion.article
-      className="up-card"
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-20px' }}
-      transition={{ duration: 0.28, delay: index * 0.04 }}
-      whileTap={{ scale: 0.98, y: -2 }}
+      className="ex-upcoming-card"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, delay: Math.min(index * 0.03, 0.2) }}
+      whileTap={{ scale: 0.98 }}
     >
-      <Link to={explorePath('upcoming')} className="up-card-inner">
-        <div className="up-card-content">
-          <span className="up-badge">{drop.badge || 'COMING SOON'}</span>
-          <h3 className="up-card-title">{drop.title}</h3>
-          <p className="up-card-desc">{drop.description}</p>
-          <span className="up-countdown" aria-live="polite">
-            {formatCountdown(left)}
-          </span>
+      <div className="ex-upcoming-card-hit">
+        <Link to={explorePath('upcoming')} className="ex-upcoming-card-tap">
+          <div className="ex-upcoming-card-media">
+            <img src={drop.image} alt="" loading="lazy" />
+            <span className="ex-badge ex-badge--upcoming">{drop.badge || 'COMING SOON'}</span>
+          </div>
+          <div className="ex-upcoming-card-body">
+            <h3 className="ex-card-title">{drop.title}</h3>
+            <p className="ex-card-meta">{drop.description}</p>
+            <span className="ex-upcoming-countdown" aria-live="polite">
+              <Clock size={10} strokeWidth={2} aria-hidden />
+              {formatCountdown(left)}
+            </span>
+          </div>
+        </Link>
+        <div className="ex-card-actions">
           <button
             type="button"
-            className="up-notify-btn"
+            className="ex-card-cta ex-card-cta--hot"
             onClick={(e) => {
               e.preventDefault();
-              e.stopPropagation();
               onNotify?.(drop);
             }}
           >
-            Notify Me
+            <Bell size={12} strokeWidth={2} aria-hidden />
+            Notify me
           </button>
         </div>
-        <div className="up-card-visual">
-          <span className="up-glow" aria-hidden />
-          <img src={drop.image} alt="" className="up-product-img" loading="lazy" />
-        </div>
-      </Link>
+      </div>
     </motion.article>
   );
 }
