@@ -29,6 +29,8 @@ import Navbar from './components/Navbar';
 // @ts-ignore JSX module without TS typings
 import MobileBottomNav from './components/MobileBottomNav';
 // @ts-ignore JSX module without TS typings
+import MobileMenuOverlay from './components/menu/MobileMenuOverlay';
+// @ts-ignore JSX module without TS typings
 import ImmersiveSearchLayer from './components/search/ImmersiveSearchLayer';
 // @ts-ignore JSX modules without TS typings
 import VisualSearchLayer from './components/search/VisualSearchLayer';

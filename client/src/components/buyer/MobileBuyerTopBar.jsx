@@ -5,7 +5,6 @@ import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { buyerNotificationsApi } from '../../services/buyerNotificationsApi';
 import NotificationsDropdown from '../NotificationsDropdown';
-import MobileMenuOverlay from '../menu/MobileMenuOverlay';
 import { useMobileMenuOverlay } from '../../stores/mobileMenuOverlayStore';
 
 export default function MobileBuyerTopBar() {
