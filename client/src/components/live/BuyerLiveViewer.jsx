@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Share2, Shield, Users, ShoppingBag } from 'lucide-react';
 import LivePlayer from './LivePlayer';
@@ -23,6 +23,12 @@ export default function BuyerLiveViewer({
   const user = useAuthStore((s) => s.user);
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'Guest';
+
+  useEffect(() => {
+    document.documentElement.classList.add('rx-live-buyer-page');
+    return () => document.documentElement.classList.remove('rx-live-buyer-page');
+  }, []);
+
   const muted = useLiveStreamStore((s) => s.muted);
   const setMuted = useLiveStreamStore((s) => s.setMuted);
 

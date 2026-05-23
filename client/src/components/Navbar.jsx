@@ -1229,33 +1229,36 @@ export default function Navbar() {
 
         <MobileBuyerTopBar />
 
-        {/* Mobile: search — double-tap to open (voice & camera live inside search layer) */}
+        {/* Mobile: search — single tap to open */}
         <form
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={(e) => {
+            e.preventDefault();
+            openImmersiveSearch(searchQuery);
+          }}
           className="md:hidden px-3 pb-2"
         >
-          <motion.div
+          <motion.button
+            type="button"
             role="search"
-            tabIndex={0}
-            onDoubleClick={() => openImmersiveSearch(searchQuery)}
+            onClick={() => openImmersiveSearch(searchQuery)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 openImmersiveSearch(searchQuery);
               }
             }}
-            className="mob-search-bar mob-search-bar--2026 flex items-center gap-2 min-h-[44px] max-h-[48px] rounded-2xl px-3 transition-[box-shadow] duration-200 cursor-default"
+            className="mob-search-bar mob-search-bar--2026 flex items-center gap-2 min-h-[44px] max-h-[48px] rounded-2xl px-3 transition-[box-shadow] duration-200 w-full text-left"
             style={{
               background: 'var(--card-bg)',
             }}
-            aria-label="Double-tap to search"
+            aria-label="Search"
           >
             <Search className="w-4 h-4 flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
             <span
               className="flex-1 min-w-0 text-[14px] truncate select-none"
               style={{ color: searchQuery ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: '-0.01em' }}
             >
-              {searchQuery || 'Double-tap to search…'}
+              {searchQuery || 'Search products, brands…'}
             </span>
             <Link
               to="/products"
@@ -1270,7 +1273,7 @@ export default function Navbar() {
             >
               <SlidersHorizontal className="w-4 h-4" strokeWidth={1.85} />
             </Link>
-          </motion.div>
+          </motion.button>
         </form>
       </div>
 

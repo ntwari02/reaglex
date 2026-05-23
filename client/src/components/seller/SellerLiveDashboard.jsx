@@ -100,6 +100,19 @@ export default function SellerLiveDashboard() {
 
   }, [providersMeta?.defaultProvider]);
 
+  useEffect(() => {
+    void liveCommerceApi.endStaleSellerLive().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const id = liveStatus?.activeSession?.id;
+    if (id && liveStatus?.activeSession?.status === 'live') {
+      setActiveSessionId(id);
+    } else if (!id) {
+      setActiveSessionId(null);
+    }
+  }, [liveStatus?.activeSession?.id, liveStatus?.activeSession?.status]);
+
 
 
   const { data: credentials, refetch: refetchCreds } = useQuery({

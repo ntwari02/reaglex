@@ -122,10 +122,18 @@ export async function discoverLiveSessions(limit = 12) {
   const enabled = await isLiveGloballyEnabled();
   if (!enabled) return { enabled: false, sessions: [] };
 
+  const { liveDiscoverFilter } = await import('./liveSellerPresence');
+  const liveFilter = liveDiscoverFilter();
+
   const sessions = await LiveCommerceSession.find({
-    status: { $in: ['live', 'starting_soon', 'scheduled'] },
-    isPrivate: false,
-    adminFrozen: false,
+    $or: [
+      liveFilter,
+      {
+        status: { $in: ['starting_soon', 'scheduled'] },
+        isPrivate: false,
+        adminFrozen: false,
+      },
+    ],
   })
     .sort({ status: 1, viewerCount: -1, startedAt: -1 })
     .limit(limit)

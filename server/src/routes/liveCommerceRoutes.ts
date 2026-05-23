@@ -91,6 +91,19 @@ router.get('/settings/public', async (_req, res: Response) => {
   }
 });
 
+router.post('/seller/end-stale-live', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'seller') {
+      return res.status(403).json({ message: 'Seller only' });
+    }
+    const { endStaleSellerLiveSessions } = await import('../services/liveSellerPresence');
+    const ended = await endStaleSellerLiveSessions(req.user.id);
+    return res.json({ success: true, ended });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.get('/seller/live-status', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
@@ -100,8 +113,13 @@ router.get('/seller/live-status', authenticate, async (req: AuthenticatedRequest
       .lean();
     const settings = await getLiveCommerceSettings();
     const permissionMode = resolveLivePermissionMode(settings);
-    const { getSellerActiveLiveSessionId } = await import('../services/liveSellerPresence');
-    const activeId = await getSellerActiveLiveSessionId(req.user.id);
+    const { getSellerActiveLiveSessionId, endStaleSellerLiveSessions } = await import(
+      '../services/liveSellerPresence'
+    );
+    let activeId = await getSellerActiveLiveSessionId(req.user.id);
+    if (!activeId) {
+      await endStaleSellerLiveSessions(req.user.id);
+    }
     let activeSession = null;
     if (activeId) {
       const row = await LiveCommerceSession.findById(activeId).lean();
@@ -169,13 +187,12 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
     const gate = await canSellerGoLive(req.user.id);
     if (!gate.ok) return res.status(403).json({ message: gate.reason });
 
-    const { getSellerActiveLiveSessionId } = await import('../services/liveSellerPresence');
+    const { forceEndSellerLiveSessions, getSellerActiveLiveSessionId } = await import(
+      '../services/liveSellerPresence'
+    );
     const activeLiveId = await getSellerActiveLiveSessionId(req.user.id);
     if (activeLiveId) {
-      return res.status(409).json({
-        message: 'You already have an active live session. End it before starting another.',
-        sessionId: activeLiveId,
-      });
+      await forceEndSellerLiveSessions(req.user.id);
     }
 
     const body = req.body as CreateLiveSessionBody;

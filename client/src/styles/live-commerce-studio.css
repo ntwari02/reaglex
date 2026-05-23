@@ -85,9 +85,18 @@
 
 /* Buyer: sticky video ~39% + scrollable chat (TikTok-style) */
 .live-buyer--sticky {
-  height: 100dvh;
-  max-height: 100dvh;
+  min-height: 100dvh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+}
+
+html.rx-live-buyer-page,
+html.rx-live-buyer-page body {
+  overflow-y: auto !important;
+  height: auto !important;
+  touch-action: pan-y;
 }
 
 .live-buyer-video-rail {

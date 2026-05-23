@@ -3,8 +3,11 @@ import { LiveCommerceSession } from '../models/LiveCommerceSession';
 import { endStreamForSession } from '../streaming/streamSessionService';
 import { broadcastLiveEnded } from '../socket/liveCommerceSockets';
 
-const HEARTBEAT_TIMEOUT_MS = 45_000;
-const DISCONNECT_GRACE_MS = 5_000;
+/** YouTube-style: ~3 missed 10s heartbeats before auto-end */
+const HEARTBEAT_TIMEOUT_MS = 90_000;
+/** Socket blip / refresh — cancel if seller rejoins within this window */
+const DISCONNECT_GRACE_MS = 25_000;
+const NEW_STREAM_GRACE_MS = 120_000;
 
 type PresenceEntry = {
   sessionId: string;
@@ -20,7 +23,7 @@ export function ensurePresenceWatchdog() {
   if (watchdogTimer) return;
   watchdogTimer = setInterval(() => {
     void sweepStaleSessions();
-  }, 15_000);
+  }, 20_000);
 }
 
 export async function registerSellerPresence(sessionId: string, sellerId: string) {
@@ -29,6 +32,7 @@ export async function registerSellerPresence(sessionId: string, sellerId: string
   const existing = presenceBySession.get(sessionId);
   if (existing?.disconnectTimer) {
     clearTimeout(existing.disconnectTimer);
+    existing.disconnectTimer = undefined;
   }
   presenceBySession.set(sessionId, { sessionId, sellerId, lastBeat: now });
   await LiveCommerceSession.updateOne(
@@ -48,8 +52,13 @@ export async function touchSellerHeartbeat(sessionId: string, sellerId: string) 
 }
 
 export function scheduleSellerDisconnect(sessionId: string, sellerId: string) {
-  const entry = presenceBySession.get(sessionId);
-  if (!entry || entry.sellerId !== sellerId) return;
+  let entry = presenceBySession.get(sessionId);
+  if (!entry) {
+    entry = { sessionId, sellerId, lastBeat: Date.now() };
+    presenceBySession.set(sessionId, entry);
+  } else if (entry.sellerId !== sellerId) {
+    return;
+  }
 
   if (entry.disconnectTimer) clearTimeout(entry.disconnectTimer);
   entry.disconnectTimer = setTimeout(() => {
@@ -81,20 +90,77 @@ export async function endSellerLive(
   broadcastLiveEnded(sessionId, { status: 'ended', reason });
 }
 
+export async function endStaleSellerLiveSessions(sellerId: string): Promise<string[]> {
+  const now = Date.now();
+  const heartbeatCutoff = new Date(now - HEARTBEAT_TIMEOUT_MS);
+  const newStreamGrace = new Date(now - NEW_STREAM_GRACE_MS);
+
+  const rows = await LiveCommerceSession.find({
+    sellerId,
+    status: { $in: ['live', 'starting_soon', 'paused'] },
+    $or: [
+      { sellerLastHeartbeatAt: { $lt: heartbeatCutoff } },
+      { sellerLastHeartbeatAt: null, startedAt: { $lt: newStreamGrace } },
+      { sellerLastHeartbeatAt: { $exists: false }, startedAt: { $lt: newStreamGrace } },
+    ],
+  })
+    .select('_id')
+    .lean();
+
+  const ended: string[] = [];
+  for (const row of rows) {
+    const id = String(row._id);
+    await endSellerLive(id, sellerId, 'network_lost');
+    ended.push(id);
+  }
+  return ended;
+}
+
+export async function forceEndSellerLiveSessions(sellerId: string): Promise<string[]> {
+  const rows = await LiveCommerceSession.find({
+    sellerId,
+    status: { $in: ['live', 'starting_soon', 'paused'] },
+  })
+    .select('_id')
+    .lean();
+
+  const ended: string[] = [];
+  for (const row of rows) {
+    const id = String(row._id);
+    await endSellerLive(id, sellerId, 'seller_ended');
+    ended.push(id);
+  }
+  return ended;
+}
+
 async function sweepStaleSessions() {
   const now = Date.now();
+
   for (const [sessionId, entry] of presenceBySession.entries()) {
     if (now - entry.lastBeat > HEARTBEAT_TIMEOUT_MS) {
       await endSellerLive(sessionId, entry.sellerId, 'heartbeat_timeout');
     }
   }
 
+  const heartbeatCutoff = new Date(now - HEARTBEAT_TIMEOUT_MS);
+  const newStreamGrace = new Date(now - NEW_STREAM_GRACE_MS);
+
   const stale = await LiveCommerceSession.find({
     status: 'live',
-    sellerLastHeartbeatAt: { $lt: new Date(now - HEARTBEAT_TIMEOUT_MS) },
+    $or: [
+      { sellerLastHeartbeatAt: { $lt: heartbeatCutoff } },
+      {
+        sellerLastHeartbeatAt: { $exists: false },
+        startedAt: { $lt: newStreamGrace },
+      },
+      {
+        sellerLastHeartbeatAt: null,
+        startedAt: { $lt: newStreamGrace },
+      },
+    ],
   })
     .select('_id sellerId')
-    .limit(20)
+    .limit(30)
     .lean();
 
   await Promise.allSettled(
@@ -113,8 +179,43 @@ export async function getSellerActiveLiveSessionId(sellerId: string): Promise<st
     sellerId,
     status: { $in: ['live', 'starting_soon', 'paused'] },
   })
-    .select('_id')
+    .select('_id sellerLastHeartbeatAt startedAt status')
     .sort({ createdAt: -1 })
     .lean();
-  return row ? String(row._id) : null;
+
+  if (!row) return null;
+
+  const id = String(row._id);
+  if (row.status !== 'live') return id;
+
+  const lastBeat = row.sellerLastHeartbeatAt
+    ? new Date(row.sellerLastHeartbeatAt).getTime()
+    : 0;
+  const started = row.startedAt ? new Date(row.startedAt).getTime() : 0;
+  const fresh =
+    (lastBeat && Date.now() - lastBeat < HEARTBEAT_TIMEOUT_MS) ||
+    (!lastBeat && started && Date.now() - started < NEW_STREAM_GRACE_MS);
+
+  if (!fresh) {
+    await endSellerLive(id, sellerId, 'network_lost');
+    return null;
+  }
+
+  return id;
+}
+
+/** Sessions buyers should see in discover (actually broadcasting). */
+export function liveDiscoverFilter() {
+  const heartbeatCutoff = new Date(Date.now() - HEARTBEAT_TIMEOUT_MS);
+  const newStreamGrace = new Date(Date.now() - NEW_STREAM_GRACE_MS);
+  return {
+    status: 'live' as const,
+    isPrivate: false,
+    adminFrozen: false,
+    $or: [
+      { sellerLastHeartbeatAt: { $gte: heartbeatCutoff } },
+      { sellerLastHeartbeatAt: null, startedAt: { $gte: newStreamGrace } },
+      { sellerLastHeartbeatAt: { $exists: false }, startedAt: { $gte: newStreamGrace } },
+    ],
+  };
 }

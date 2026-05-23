@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
@@ -20,6 +20,8 @@ import LiveChatPanel from './LiveChatPanel';
 import { useLiveSocket } from '../../hooks/useLiveSocket';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { useSellerLivePresence } from '../../hooks/useSellerLivePresence';
+import { useSellerLiveHost } from '../../hooks/useSellerLiveHost';
+import { clearSellerLiveHost } from '../../live/sellerLiveHost';
 import { liveCommerceApi } from '../../services/liveCommerceApi';
 import { useToastStore } from '../../stores/toastStore';
 import '../../styles/seller-live-studio.css';
@@ -30,6 +32,11 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const [panel, setPanel] = useState('products');
   const [broadcasting, setBroadcasting] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.add('rx-live-seller-page');
+    return () => document.documentElement.classList.remove('rx-live-seller-page');
+  }, []);
 
   const isWebRTC = (session?.streamProvider || 'webrtc') === 'webrtc';
   const isLive = session?.status === 'live';
@@ -65,11 +72,22 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
     mediaActive: broadcasting,
   });
 
+  useSellerLiveHost(sessionId, { enabled: isLive && Boolean(sessionId) });
+
   useSellerLivePresence(sessionId, {
     socket,
     enabled: isLive && broadcasting && Boolean(sessionId),
     token: token || undefined,
   });
+
+  useEffect(() => {
+    const onEnded = () => {
+      stopMedia();
+      setBroadcasting(false);
+    };
+    window.addEventListener('rx-seller-live-ended', onEnded);
+    return () => window.removeEventListener('rx-seller-live-ended', onEnded);
+  }, [stopMedia]);
 
   const { data: productsData } = useQuery({
     queryKey: ['live-commerce', 'seller-products', sessionId],
@@ -80,6 +98,7 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
   const endMutation = useMutation({
     mutationFn: () => liveCommerceApi.endStream(session.id),
     onSuccess: () => {
+      clearSellerLiveHost(session.id);
       stopMedia();
       setBroadcasting(false);
       showToast('Live ended', 'success');
@@ -111,15 +130,7 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
         <button
           type="button"
           className="sls-icon-btn"
-          onClick={() => {
-            if (broadcasting) {
-              if (window.confirm('End this live and leave the studio?')) {
-                endMutation.mutate();
-              }
-              return;
-            }
-            navigate('/seller');
-          }}
+          onClick={() => navigate('/seller')}
           aria-label="Back"
         >
           <ArrowLeft size={20} />

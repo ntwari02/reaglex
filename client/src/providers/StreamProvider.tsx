@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { useLocation, matchPath } from 'react-router-dom';
 import FloatingLivePlayer from '../components/live/FloatingLivePlayer';
+import SellerLiveHostGuard from '../components/live/SellerLiveHostGuard';
 import { useLiveStreamStore } from '../stores/liveStreamStore';
 
 type StreamProviderProps = {
@@ -28,6 +29,7 @@ export default function StreamProvider({ children }: StreamProviderProps) {
   return (
     <>
       {children}
+      <SellerLiveHostGuard />
       <FloatingLivePlayer />
     </>
   );
