@@ -4,7 +4,7 @@ import { endStreamForSession } from '../streaming/streamSessionService';
 import { broadcastLiveEnded } from '../socket/liveCommerceSockets';
 
 const HEARTBEAT_TIMEOUT_MS = 45_000;
-const DISCONNECT_GRACE_MS = 8_000;
+const DISCONNECT_GRACE_MS = 5_000;
 
 type PresenceEntry = {
   sessionId: string;

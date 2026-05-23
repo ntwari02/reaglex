@@ -1,17 +1,17 @@
 import { useEffect } from 'react';
 import { API_BASE_URL } from '../lib/config';
-const HEARTBEAT_MS = 15_000;
+import { endSellerLiveKeepalive } from '../services/liveSessionCleanup';
+
+const HEARTBEAT_MS = 12_000;
 
 /**
- * TikTok/YouTube-style seller presence: heartbeat + end live on tab close / offline.
+ * Seller presence: heartbeat while live; end stream on tab close / leave / offline.
  */
 export function useSellerLivePresence(sessionId, { socket, enabled = false, token }) {
   useEffect(() => {
     if (!enabled || !sessionId) return undefined;
 
-    const beatSocket = () => {
-      socket?.emit('seller-heartbeat', { sessionId });
-    };
+    const beatSocket = () => socket?.emit('seller-heartbeat', { sessionId });
 
     const beatHttp = () => {
       if (!token) return;
@@ -33,21 +33,27 @@ export function useSellerLivePresence(sessionId, { socket, enabled = false, toke
     beat();
     const interval = window.setInterval(beat, HEARTBEAT_MS);
 
-    const onOnline = () => beat();
-    window.addEventListener('online', onOnline);
+    const endNow = () => {
+      endSellerLiveKeepalive(sessionId);
+      socket?.emit('seller-going-offline', { sessionId });
+    };
 
     const onPageHide = (e) => {
       if (e.persisted) return;
-      socket?.emit('seller-going-offline', { sessionId });
-      beatHttp();
+      endNow();
     };
 
+    const onOffline = () => endNow();
+
     window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', endNow);
+    window.addEventListener('offline', onOffline);
 
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener('online', onOnline);
       window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', endNow);
+      window.removeEventListener('offline', onOffline);
     };
   }, [enabled, sessionId, socket, token]);
 }

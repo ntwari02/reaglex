@@ -19,6 +19,7 @@ import { useLiveSocket } from '../../hooks/useLiveSocket';
 import { useWebRTC } from '../../hooks/useWebRTC';
 
 import { useAuthStore } from '../../stores/authStore';
+import { isLiveSessionHost } from '../../lib/liveSessionRole';
 
 
 
@@ -50,11 +51,7 @@ export default function LiveImmersiveViewer({
 
 
 
-  const sellerId = session?.seller?.id || session?.sellerId;
-
-  const isSeller =
-
-    Boolean(user?.id) && sellerId && String(user.id) === String(sellerId);
+  const isSeller = isLiveSessionHost(user, session);
 
 
 

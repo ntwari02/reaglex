@@ -82,7 +82,7 @@ export function serializeLiveSession(
     sellerId: String(s.sellerId),
     seller: seller
       ? {
-          id: String(seller._id),
+          id: String((seller as { _id?: unknown; id?: unknown })._id || (seller as { id?: unknown }).id),
           name: seller.storeName || seller.name || seller.email || 'Seller',
           verified: seller.sellerVerificationStatus === 'approved',
           rating: seller.sellerRating ?? 4.8,

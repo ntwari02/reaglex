@@ -325,8 +325,21 @@ export function attachLiveCommerceSockets(io: Server): void {
 
     socket.on('disconnect', async () => {
       const sessionId = socket.liveSessionId;
-      if (sessionId && socket.isLiveSellerHost && socket.userId) {
-        scheduleSellerDisconnect(sessionId, socket.userId);
+      if (socket.userId && socket.userRole === 'seller') {
+        const hostSessionId =
+          sessionId && socket.isLiveSellerHost
+            ? sessionId
+            : (
+                await LiveCommerceSession.findOne({
+                  sellerId: socket.userId,
+                  status: 'live',
+                })
+                  .select('_id')
+                  .lean()
+              )?._id;
+        if (hostSessionId) {
+          scheduleSellerDisconnect(String(hostSessionId), socket.userId);
+        }
       }
       if (!sessionId) return;
       const state = getRoomState(sessionId);

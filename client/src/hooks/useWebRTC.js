@@ -14,10 +14,9 @@ function emitSignal(socket, sessionId, to, signal) {
 }
 
 /**
- * P2P WebRTC over Socket.IO signaling (seller star-topology).
- * Seller media is acquired independently of socket reconnects.
+ * WebRTC — seller must call startMedia() from a user click (required on mobile).
  */
-export function useWebRTC({ sessionId, role, socket, enabled = false }) {
+export function useWebRTC({ sessionId, role, socket, enabled = false, mediaActive = false }) {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [status, setStatus] = useState('idle');
@@ -30,12 +29,10 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
   const sellerSocketIdRef = useRef(null);
   const pendingViewersRef = useRef(new Set());
   const socketRef = useRef(socket);
-  const mediaStartedRef = useRef(false);
 
   socketRef.current = socket;
 
   const stopLocalMedia = useCallback(() => {
-    mediaStartedRef.current = false;
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
@@ -49,9 +46,8 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     setRemoteStream(null);
   }, []);
 
-  const retryMedia = useCallback(async () => {
-    if (role !== 'seller' || !enabled) return;
-    stopLocalMedia();
+  const startMedia = useCallback(async () => {
+    if (role !== 'seller') return false;
     setError(null);
     setStatus('connecting');
     try {
@@ -61,59 +57,38 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
       setMicEnabled(stream.getAudioTracks()[0]?.enabled !== false);
       setCamEnabled(stream.getVideoTracks()[0]?.enabled !== false);
       setStatus('live');
-      const s = socketRef.current;
-      if (s?.connected) {
-        s.emit('webrtc-register-seller', { sessionId });
+      if (socketRef.current?.connected && sessionId) {
+        socketRef.current.emit('webrtc-register-seller', { sessionId });
       }
+      return true;
     } catch (err) {
       setError(err?.message || 'Camera access denied');
       setStatus('error');
+      return false;
     }
-  }, [role, enabled, sessionId, stopLocalMedia]);
+  }, [role, sessionId]);
 
-  // ── Seller: camera/mic (not tied to socket identity) ─────────────────────
+  const stopMedia = useCallback(() => {
+    stopLocalMedia();
+    closeAllPeers();
+    setStatus('idle');
+    setError(null);
+  }, [stopLocalMedia, closeAllPeers]);
+
+  const retryMedia = startMedia;
+
   useEffect(() => {
-    if (!enabled || !sessionId || role !== 'seller') return undefined;
-
-    let cancelled = false;
-    mediaStartedRef.current = true;
-
-    (async () => {
-      try {
-        setStatus('connecting');
-        setError(null);
-        const stream = await acquireLocalMedia();
-        if (cancelled || !mediaStartedRef.current) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        localStreamRef.current = stream;
-        setLocalStream(stream);
-        setMicEnabled(stream.getAudioTracks()[0]?.enabled !== false);
-        setCamEnabled(stream.getVideoTracks()[0]?.enabled !== false);
-        setStatus('live');
-        if (socketRef.current?.connected) {
-          socketRef.current.emit('webrtc-register-seller', { sessionId });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err?.message || 'Camera access denied');
-          setStatus('error');
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
+    if (role === 'seller' && !mediaActive) {
       stopLocalMedia();
-      closeAllPeers();
       setStatus('idle');
-    };
-  }, [sessionId, role, enabled, stopLocalMedia, closeAllPeers]);
+    }
+  }, [role, mediaActive, stopLocalMedia]);
 
-  // ── Seller: signaling (socket may connect after media) ───────────────────
+  // Seller signaling
   useEffect(() => {
-    if (!enabled || !sessionId || role !== 'seller' || !socket?.connected) return undefined;
+    if (!enabled || !mediaActive || !sessionId || role !== 'seller' || !socket?.connected) {
+      return undefined;
+    }
 
     const createOfferForViewer = async (viewerSocketId) => {
       if (!localStreamRef.current || peerConnectionsRef.current.has(viewerSocketId)) return;
@@ -166,14 +141,13 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
           await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
         }
       } catch {
-        /* stale ICE */
+        /* stale */
       }
     };
 
     const onViewerLeft = ({ viewerSocketId }) => {
       pendingViewersRef.current.delete(viewerSocketId);
-      const pc = peerConnectionsRef.current.get(viewerSocketId);
-      pc?.close();
+      peerConnectionsRef.current.get(viewerSocketId)?.close();
       peerConnectionsRef.current.delete(viewerSocketId);
     };
 
@@ -189,9 +163,9 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
       peerConnectionsRef.current.forEach((pc) => pc.close());
       peerConnectionsRef.current.clear();
     };
-  }, [sessionId, role, enabled, socket?.connected, socket?.id]);
+  }, [sessionId, role, enabled, mediaActive, socket?.connected, socket?.id]);
 
-  // ── Viewer: single peer to seller ─────────────────────────────────────────
+  // Viewer
   useEffect(() => {
     if (!enabled || !socket || !sessionId || role !== 'viewer') return undefined;
 
@@ -237,7 +211,6 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     socket.on('webrtc-signal', onSignal);
     socket.on('webrtc-waiting-seller', onWaiting);
     socket.on('webrtc-seller-online', onSellerOnline);
-
     setStatus('waiting');
 
     return () => {
@@ -251,9 +224,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
   }, [sessionId, role, socket, enabled, closeAllPeers]);
 
   const toggleMic = useCallback(() => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    const track = stream.getAudioTracks()[0];
+    const track = localStreamRef.current?.getAudioTracks()[0];
     if (track) {
       track.enabled = !track.enabled;
       setMicEnabled(track.enabled);
@@ -261,9 +232,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
   }, []);
 
   const toggleCam = useCallback(() => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    const track = stream.getVideoTracks()[0];
+    const track = localStreamRef.current?.getVideoTracks()[0];
     if (track) {
       track.enabled = !track.enabled;
       setCamEnabled(track.enabled);
@@ -279,6 +248,8 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     camEnabled,
     toggleMic,
     toggleCam,
+    startMedia,
+    stopMedia,
     retryMedia,
   };
 };

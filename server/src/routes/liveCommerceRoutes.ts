@@ -100,12 +100,25 @@ router.get('/seller/live-status', authenticate, async (req: AuthenticatedRequest
       .lean();
     const settings = await getLiveCommerceSettings();
     const permissionMode = resolveLivePermissionMode(settings);
+    const { getSellerActiveLiveSessionId } = await import('../services/liveSellerPresence');
+    const activeId = await getSellerActiveLiveSessionId(req.user.id);
+    let activeSession = null;
+    if (activeId) {
+      const row = await LiveCommerceSession.findById(activeId).lean();
+      if (row) {
+        const sellerDoc = await User.findById(req.user.id)
+          .select('storeName name email sellerVerificationStatus sellerRating')
+          .lean();
+        activeSession = serializeLiveSession(row, sellerDoc);
+      }
+    }
     return res.json({
       canGoLive: gate.ok,
       reason: gate.reason || null,
       liveCommerceApproved: Boolean((user as { liveCommerceApproved?: boolean })?.liveCommerceApproved),
       permissionMode,
       globallyEnabled: settings.globallyEnabled,
+      activeSession,
     });
   } catch (err: any) {
     return res.status(500).json({ message: err.message });
@@ -402,6 +415,8 @@ router.post('/session/:sessionId/stream/end', authenticate, async (req: Authenti
     if (String(session.sellerId) !== req.user.id) return res.status(403).json({ message: 'Access denied' });
 
     const ended = await endStreamForSession(String(session._id));
+    const { clearSellerPresence } = await import('../services/liveSellerPresence');
+    clearSellerPresence(String(session._id));
     return res.json({ success: true, session: serializeLiveSession(ended) });
   } catch (err: any) {
     return res.status(400).json({ message: err.message });

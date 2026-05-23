@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
@@ -10,30 +10,34 @@ import {
   VideoOff,
   Pin,
   PinOff,
-  Square,
+  Radio,
   Package,
-  RefreshCw,
+  MessageCircle,
+  Loader2,
 } from 'lucide-react';
 import WebRTCBroadcast from './WebRTCBroadcast';
-import LivePlayer from './LivePlayer';
-import LiveStatusPill from './LiveStatusPill';
 import LiveChatPanel from './LiveChatPanel';
 import { useLiveSocket } from '../../hooks/useLiveSocket';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { useSellerLivePresence } from '../../hooks/useSellerLivePresence';
 import { liveCommerceApi } from '../../services/liveCommerceApi';
+import { useToastStore } from '../../stores/toastStore';
+import '../../styles/seller-live-studio.css';
 
 export default function SellerLiveStudio({ session, bidPanel = null }) {
   const navigate = useNavigate();
+  const showToast = useToastStore((s) => s.showToast);
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const [panel, setPanel] = useState('products');
+  const [broadcasting, setBroadcasting] = useState(false);
 
-  const provider = session?.streamProvider || 'webrtc';
-  const isWebRTC = provider === 'webrtc';
+  const isWebRTC = (session?.streamProvider || 'webrtc') === 'webrtc';
   const isLive = session?.status === 'live';
+  const sessionId = session?.id;
 
   const {
     socket,
+    connected,
     viewerCount,
     pinnedProduct,
     chatMessages,
@@ -41,7 +45,7 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
     pinProduct,
     unpinProduct,
     sendChat,
-  } = useLiveSocket(session?.id, { enabled: Boolean(session?.id), token: token || undefined });
+  } = useLiveSocket(sessionId, { enabled: Boolean(sessionId), token: token || undefined });
 
   const {
     localStream,
@@ -51,179 +55,237 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
     camEnabled,
     toggleMic,
     toggleCam,
-    retryMedia,
+    startMedia,
+    stopMedia,
   } = useWebRTC({
-    sessionId: session?.id,
+    sessionId,
     role: 'seller',
     socket,
-    enabled: isWebRTC && isLive,
+    enabled: isWebRTC && isLive && broadcasting,
+    mediaActive: broadcasting,
   });
 
-  useSellerLivePresence(session?.id, {
+  useSellerLivePresence(sessionId, {
     socket,
-    enabled: isLive && Boolean(session?.id),
+    enabled: isLive && broadcasting && Boolean(sessionId),
     token: token || undefined,
   });
 
   const { data: productsData } = useQuery({
-    queryKey: ['live-commerce', 'seller-products', session?.id],
+    queryKey: ['live-commerce', 'seller-products', sessionId],
     queryFn: () => liveCommerceApi.getSellerProducts(session.id),
-    enabled: Boolean(session?.id),
+    enabled: Boolean(sessionId),
   });
 
   const endMutation = useMutation({
     mutationFn: () => liveCommerceApi.endStream(session.id),
-    onSuccess: () => navigate('/seller'),
+    onSuccess: () => {
+      stopMedia();
+      setBroadcasting(false);
+      showToast('Live ended', 'success');
+      navigate('/seller');
+    },
+    onError: (err) => {
+      showToast(err?.response?.data?.message || 'Could not end live', 'error');
+    },
   });
 
+  const handleStartBroadcast = useCallback(async () => {
+    const ok = await startMedia();
+    if (ok) setBroadcasting(true);
+  }, [startMedia]);
+
+  const handleEndLive = () => {
+    if (window.confirm('End this live stream for all viewers?')) {
+      endMutation.mutate();
+    }
+  };
+
   const products = productsData?.products || [];
-  const playbackUrl = session?.playbackUrl || session?.streamUrl || '';
   const sellerName = session?.seller?.name || 'You';
+  const onAir = broadcasting && localStream && webrtcStatus === 'live';
 
   return (
-    <div className="live-studio">
-      <header className="live-studio-top">
-        <button type="button" className="live-studio-icon-btn" onClick={() => navigate('/seller')} aria-label="Exit">
+    <div className="sls-root">
+      <header className="sls-header">
+        <button
+          type="button"
+          className="sls-icon-btn"
+          onClick={() => {
+            if (broadcasting) {
+              if (window.confirm('End this live and leave the studio?')) {
+                endMutation.mutate();
+              }
+              return;
+            }
+            navigate('/seller');
+          }}
+          aria-label="Back"
+        >
           <ArrowLeft size={20} />
         </button>
-        <div className="live-studio-top-text">
-          <p className="live-studio-label">Seller studio</p>
-          <h1 className="live-studio-title">{session?.title}</h1>
+        <div className="sls-header-text">
+          <span className="sls-kicker">Seller studio</span>
+          <h1 className="sls-title">{session?.title}</h1>
         </div>
-        <span className="live-studio-viewers">
-          <Users size={14} />
-          {viewerCount}
-        </span>
+        <div className="sls-header-stats">
+          <span className="sls-live-pill">
+            <Radio size={12} />
+            {onAir ? 'ON AIR' : 'READY'}
+          </span>
+          <span className="sls-viewers">
+            <Users size={14} />
+            {viewerCount}
+          </span>
+        </div>
       </header>
 
-      <div className="live-studio-stage">
-        {isWebRTC ? (
-          <WebRTCBroadcast
-            stream={localStream}
-            status={webrtcStatus}
-            className="live-studio-video"
-            micOn={micEnabled}
-            camOn={camEnabled}
-          />
-        ) : (
-          <LivePlayer
-            playbackUrl={playbackUrl}
-            provider={provider}
-            isLive={isLive}
-            autoplay
-            className="live-studio-video"
-          />
-        )}
+      <div className="sls-video-card">
+        <div className="sls-video-wrap">
+          {broadcasting ? (
+            <WebRTCBroadcast
+              stream={localStream}
+              status={webrtcStatus}
+              className="sls-video"
+              micOn={micEnabled}
+              camOn={camEnabled}
+            />
+          ) : (
+            <div className="sls-video-placeholder">
+              <Video size={40} strokeWidth={1.25} />
+              <p>Camera preview appears here</p>
+            </div>
+          )}
 
-        <div className="live-studio-stage-overlay">
-          <LiveStatusPill status={session?.status} mode={session?.mode} compact />
-          {webrtcError && (
-            <div className="live-studio-error-box">
-              <p className="live-studio-error">{webrtcError}</p>
-              <button type="button" className="live-studio-retry-media" onClick={retryMedia}>
-                <RefreshCw size={14} />
-                Enable camera &amp; mic
+          {!broadcasting && (
+            <div className="sls-prebroadcast">
+              <p className="sls-prebroadcast-title">Ready to go live?</p>
+              <p className="sls-prebroadcast-sub">
+                Tap below so your browser can use the camera and microphone (required on mobile).
+              </p>
+              <button type="button" className="sls-start-btn" onClick={handleStartBroadcast}>
+                <Video size={18} />
+                Start camera &amp; microphone
               </button>
             </div>
           )}
-          {webrtcStatus === 'connecting' && !webrtcError && (
-            <p className="live-studio-error">Opening camera and microphone…</p>
+
+          {webrtcError && (
+            <div className="sls-error-banner">
+              <p>{webrtcError}</p>
+              <button type="button" onClick={handleStartBroadcast}>
+                Try again
+              </button>
+            </div>
+          )}
+
+          {broadcasting && webrtcStatus === 'connecting' && (
+            <div className="sls-connecting">
+              <Loader2 size={20} className="sls-spin" />
+              <span>Starting camera…</span>
+            </div>
           )}
         </div>
 
-        {isWebRTC && isLive && localStream && (
-          <div className="live-studio-media-controls">
-            <button type="button" className="live-studio-media-btn" onClick={toggleMic} aria-label="Toggle microphone">
-              {micEnabled ? <Mic size={18} /> : <MicOff size={18} />}
+        {broadcasting && (
+          <div className="sls-dock">
+            <button
+              type="button"
+              className={`sls-dock-btn${micEnabled ? '' : ' is-off'}`}
+              onClick={toggleMic}
+              aria-label="Microphone"
+            >
+              {micEnabled ? <Mic size={20} /> : <MicOff size={20} />}
             </button>
-            <button type="button" className="live-studio-media-btn" onClick={toggleCam} aria-label="Toggle camera">
-              {camEnabled ? <Video size={18} /> : <VideoOff size={18} />}
+            <button
+              type="button"
+              className={`sls-dock-btn${camEnabled ? '' : ' is-off'}`}
+              onClick={toggleCam}
+              aria-label="Camera"
+            >
+              {camEnabled ? <Video size={20} /> : <VideoOff size={20} />}
+            </button>
+            <button
+              type="button"
+              className="sls-dock-btn sls-dock-btn--end"
+              disabled={endMutation.isPending}
+              onClick={handleEndLive}
+            >
+              {endMutation.isPending ? <Loader2 size={18} className="sls-spin" /> : 'End'}
             </button>
           </div>
         )}
       </div>
 
-      <div className="live-studio-tabs">
+      {!connected && broadcasting && (
+        <p className="sls-socket-hint">Reconnecting to live server…</p>
+      )}
+
+      <nav className="sls-tabs" aria-label="Studio panels">
         <button
           type="button"
           className={panel === 'products' ? 'is-active' : ''}
           onClick={() => setPanel('products')}
         >
-          <Package size={14} />
-          Pin products
+          <Package size={15} />
+          Products
         </button>
         <button
           type="button"
           className={panel === 'chat' ? 'is-active' : ''}
           onClick={() => setPanel('chat')}
         >
+          <MessageCircle size={15} />
           Chat
         </button>
-      </div>
+      </nav>
 
-      {panel === 'products' && (
-        <div className="live-studio-panel">
-          {pinnedProduct && (
-            <div className="live-studio-pinned">
-              <img src={pinnedProduct.image} alt="" />
-              <div>
-                <p className="font-semibold text-sm">{pinnedProduct.title}</p>
-                <p className="text-xs" style={{ color: 'var(--brand-primary)' }}>
-                  ${Number(pinnedProduct.price || 0).toFixed(2)} · Pinned
-                </p>
+      <div className="sls-scroll">
+        {panel === 'products' && (
+          <div className="sls-panel">
+            {pinnedProduct && (
+              <div className="sls-pinned">
+                {pinnedProduct.image && <img src={pinnedProduct.image} alt="" />}
+                <div>
+                  <p className="sls-pinned-title">{pinnedProduct.title}</p>
+                  <p className="sls-pinned-price">${Number(pinnedProduct.price || 0).toFixed(2)}</p>
+                </div>
+                <button type="button" className="sls-unpin" onClick={() => unpinProduct()} aria-label="Unpin">
+                  <PinOff size={16} />
+                </button>
               </div>
-              <button type="button" className="live-studio-unpin" onClick={() => unpinProduct()}>
-                <PinOff size={16} />
-              </button>
-            </div>
-          )}
-          <p className="live-studio-hint">Tap a product to show it to all viewers with price and image.</p>
-          <div className="live-studio-product-grid">
-            {products.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={`live-studio-product${pinnedProduct?.productId === p.id ? ' is-pinned' : ''}`}
-                onClick={() => pinProduct(p.id)}
-              >
-                {p.image && <img src={p.image} alt="" />}
-                <span className="live-studio-product-title">{p.title}</span>
-                <span className="live-studio-product-price">${Number(p.price || 0).toFixed(2)}</span>
-                <Pin size={12} className="live-studio-pin-icon" />
-              </button>
-            ))}
-            {!products.length && (
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Add products to your catalog to pin during live.
-              </p>
             )}
+            <div className="sls-product-grid">
+              {products.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`sls-product${pinnedProduct?.productId === p.id ? ' is-pinned' : ''}`}
+                  onClick={() => pinProduct(p.id)}
+                  disabled={!broadcasting}
+                >
+                  {p.image && <img src={p.image} alt="" />}
+                  <span className="sls-product-name">{p.title}</span>
+                  <span className="sls-product-price">${Number(p.price || 0).toFixed(2)}</span>
+                  <Pin size={12} className="sls-pin-icon" />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {panel === 'chat' && (
-        <LiveChatPanel
-          messages={chatMessages}
-          onSend={sendChat}
-          isSeller
-          chatEnabled={chatEnabled}
-          userDisplayName={sellerName}
-        />
-      )}
+        {panel === 'chat' && (
+          <LiveChatPanel
+            messages={chatMessages}
+            onSend={sendChat}
+            isSeller
+            chatEnabled={chatEnabled && broadcasting}
+            userDisplayName={sellerName}
+          />
+        )}
 
-      {bidPanel}
-
-      <footer className="live-studio-footer">
-        <button
-          type="button"
-          className="live-studio-end"
-          disabled={endMutation.isPending}
-          onClick={() => endMutation.mutate()}
-        >
-          <Square size={14} />
-          End live
-        </button>
-      </footer>
+        {bidPanel}
+      </div>
     </div>
   );
 }

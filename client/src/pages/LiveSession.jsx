@@ -5,6 +5,7 @@ import SellerLiveStudio from '../components/live/SellerLiveStudio';
 import BuyerLiveViewer from '../components/live/BuyerLiveViewer';
 import { liveCommerceApi } from '../services/liveCommerceApi';
 import { useAuthStore } from '../stores/authStore';
+import { isLiveSessionHost } from '../lib/liveSessionRole';
 import '../styles/live-commerce.css';
 
 export default function LiveSession() {
@@ -12,6 +13,7 @@ export default function LiveSession() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const authReady = useAuthStore((s) => s.initialized);
   const [bidAmount, setBidAmount] = useState('');
 
   const { data, isPending, isError } = useQuery({
@@ -38,9 +40,7 @@ export default function LiveSession() {
   const session = data?.session;
   const isReplay = session?.status === 'replay_available';
   const timeline = replayData?.timeline || data?.timeline || [];
-  const sellerId = session?.seller?.id || session?.sellerId;
-  const isSeller =
-    Boolean(user?.id) && sellerId && String(user.id) === String(sellerId);
+  const isHost = authReady && isLiveSessionHost(user, session);
 
   if (isPending) {
     return (
@@ -107,7 +107,15 @@ export default function LiveSession() {
       </div>
     ) : null;
 
-  if (isSeller && !isReplay) {
+  if (!authReady) {
+    return (
+      <div className="live-immersive live-immersive--loading">
+        <div className="live-card--skel" style={{ flex: 1, minHeight: '70dvh' }} />
+      </div>
+    );
+  }
+
+  if (isHost && !isReplay) {
     return <SellerLiveStudio session={session} bidPanel={bidPanel} />;
   }
 

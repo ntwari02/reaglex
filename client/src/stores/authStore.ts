@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Profile } from '../types';
 import { useToastStore } from './toastStore';
 import { authAPI } from '../lib/api';
+import { endSellerLiveOnLogout } from '../services/liveSessionCleanup';
 
 let lastSessionReplacedToastAt = 0;
 
@@ -57,6 +58,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async (reason) => {
+    try {
+      await endSellerLiveOnLogout();
+    } catch {
+      /* best-effort */
+    }
     if (reason === 'SESSION_REPLACED') {
       const now = Date.now();
       if (now - lastSessionReplacedToastAt > 3000) {
