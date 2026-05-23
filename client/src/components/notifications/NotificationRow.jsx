@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronRight, Trash2 } from 'lucide-react';
-import { getTypeMeta, formatDealCountdown } from '../../lib/notificationPresentation';
+import { getTypeMeta, formatDealCountdown, getNotificationHref } from '../../lib/notificationPresentation';
 import OrderProgressTrack from './OrderProgressTrack';
 
 const SWIPE_DELETE = -72;
@@ -64,11 +64,9 @@ export default function NotificationRow({
       onPress(n);
       return;
     }
-    if (n.type === 'order' && n.orderId) navigate(`/track/${n.orderId}`);
-    else if (n.type === 'message' && n.threadId) navigate('/account?tab=messages');
-    else if (n.type === 'deal') navigate('/search?sort=discount');
+    const href = getNotificationHref(n);
+    if (href) navigate(href);
     else if (n.type === 'system') navigate('/notifications');
-    else if (n.type === 'review') navigate('/account?tab=reviews');
   };
 
   const showTransit =

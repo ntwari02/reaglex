@@ -27,4 +27,8 @@ export const liveCommerceApi = {
   getAdminSellerLivePermissions: (params) =>
     api.get(`${BASE}/admin/sellers/live-permissions`, { params }).then((r) => r.data),
   getSellerLiveStatus: () => api.get(`${BASE}/seller/live-status`).then((r) => r.data),
+  getSessionComments: (sessionId) =>
+    api.get(`${BASE}/session/${sessionId}/comments`).then((r) => r.data),
+  getSellerProducts: (sessionId) =>
+    api.get(`${BASE}/session/${sessionId}/seller-products`).then((r) => r.data),
 };

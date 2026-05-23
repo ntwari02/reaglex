@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import LiveImmersiveViewer from '../components/live/LiveImmersiveViewer';
+import SellerLiveStudio from '../components/live/SellerLiveStudio';
+import BuyerLiveViewer from '../components/live/BuyerLiveViewer';
 import { liveCommerceApi } from '../services/liveCommerceApi';
 import { useAuthStore } from '../stores/authStore';
 import '../styles/live-commerce.css';
@@ -37,6 +38,9 @@ export default function LiveSession() {
   const session = data?.session;
   const isReplay = session?.status === 'replay_available';
   const timeline = replayData?.timeline || data?.timeline || [];
+  const sellerId = session?.seller?.id || session?.sellerId;
+  const isSeller =
+    Boolean(user?.id) && sellerId && String(user.id) === String(sellerId);
 
   if (isPending) {
     return (
@@ -103,26 +107,16 @@ export default function LiveSession() {
       </div>
     ) : null;
 
-  const actionBar = (
-    <div className="live-viewer-actions">
-      {session.features?.instantBuy && !isReplay && (
-        <button type="button" className="live-btn-primary">
-          Buy instantly
-        </button>
-      )}
-      <button type="button" className="live-btn-secondary" onClick={() => navigate('/search')}>
-        Browse shop
-      </button>
-    </div>
-  );
+  if (isSeller && !isReplay) {
+    return <SellerLiveStudio session={session} bidPanel={bidPanel} />;
+  }
 
   return (
-    <LiveImmersiveViewer
+    <BuyerLiveViewer
       session={session}
       timeline={timeline}
       isReplay={isReplay}
       bidPanel={bidPanel}
-      actionBar={actionBar}
     />
   );
 }

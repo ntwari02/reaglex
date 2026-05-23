@@ -7,6 +7,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import MobileNotificationSheet from './notifications/MobileNotificationSheet';
 import { useNotificationFeed } from './notifications/useNotificationFeed';
 import NotificationList from './notifications/NotificationList';
+import { getNotificationHref } from '../lib/notificationPresentation';
 import '../styles/notifications-os.css';
 
 const EASE = [0.22, 1, 0.36, 1];
@@ -54,8 +55,8 @@ function DesktopNotificationsDropdown({ isOpen, onClose, onUnreadChange, t }) {
   const handleItemPress = (n) => {
     feed.markAsRead(n.id, n);
     onClose();
-    if (n.type === 'order' && n.orderId) navigate(`/track/${n.orderId}`);
-    else if (n.type === 'message') navigate('/account?tab=messages');
+    const href = getNotificationHref(n);
+    if (href) navigate(href);
     else navigate('/notifications');
   };
 

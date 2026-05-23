@@ -1,10 +1,15 @@
-import { Server } from 'socket.io';
+import { Server, type Namespace } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import type { Socket } from 'socket.io';
 import mongoose from 'mongoose';
 import { LiveCommerceSession } from '../models/LiveCommerceSession';
 import { Product } from '../models/Product';
 import { attachWebRTCSignaling, onWebRTCViewerJoined, onWebRTCSellerDetected } from './webrtcSignaling';
+import {
+  getLiveChatHistory,
+  postLiveChatMessage,
+  resolveDisplayName,
+} from '../services/liveCommerceChat';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -21,6 +26,22 @@ interface SessionRoomState {
 
 const roomState = new Map<string, SessionRoomState>();
 
+let liveNamespace: Namespace | null = null;
+
+/** Notify all viewers in a session that the live broadcast ended. */
+export function broadcastLiveEnded(
+  sessionId: string,
+  payload: { status?: string; reason?: string } = {}
+) {
+  if (!liveNamespace) return;
+  liveNamespace.to(`live:${sessionId}`).emit('live-ended', {
+    sessionId,
+    status: payload.status || 'ended',
+    reason: payload.reason,
+    at: Date.now(),
+  });
+}
+
 function getRoomState(sessionId: string): SessionRoomState {
   let s = roomState.get(sessionId);
   if (!s) {
@@ -35,9 +56,25 @@ function sessionOffsetMs(session: { startedAt?: Date }) {
   return Math.max(0, Date.now() - new Date(session.startedAt).getTime());
 }
 
+async function loadPinnedProduct(session: {
+  pinnedProductId?: mongoose.Types.ObjectId;
+}): Promise<Record<string, unknown> | null> {
+  if (!session.pinnedProductId) return null;
+  const product = await Product.findById(session.pinnedProductId)
+    .select('title name price images image')
+    .lean();
+  if (!product) return null;
+  return {
+    productId: String(session.pinnedProductId),
+    title: (product as any).title || (product as any).name,
+    price: (product as any).price,
+    image: (product as any).images?.[0] || (product as any).image,
+  };
+}
+
 async function appendTimeline(
   sessionId: string,
-  type: 'pin' | 'unpin' | 'reaction' | 'status',
+  type: 'pin' | 'unpin' | 'reaction' | 'status' | 'comment',
   payload: Record<string, unknown>
 ) {
   const session = await LiveCommerceSession.findById(sessionId);
@@ -49,6 +86,7 @@ async function appendTimeline(
 
 export function attachLiveCommerceSockets(io: Server): void {
   const liveNs = io.of('/live');
+  liveNamespace = liveNs;
   attachWebRTCSignaling(liveNs);
 
   liveNs.use((socket: LiveSocket, next) => {
@@ -96,10 +134,15 @@ export function attachLiveCommerceSockets(io: Server): void {
         const streamProvider = session.streamProvider || 'webrtc';
 
         const state = getRoomState(sessionId);
+        if (!state.pinnedProduct && session.pinnedProductId) {
+          state.pinnedProduct = await loadPinnedProduct(session);
+        }
         if (!isSeller) {
           state.viewerCount += 1;
           await LiveCommerceSession.updateOne({ _id: sessionId }, { $inc: { viewerCount: 1 } });
         }
+
+        const chatHistory = await getLiveChatHistory(sessionId);
 
         if (streamProvider === 'webrtc') {
           socket.join(`webrtc:${sessionId}`);
@@ -119,7 +162,11 @@ export function attachLiveCommerceSockets(io: Server): void {
           streamProvider,
           role: isSeller ? 'seller' : 'viewer',
           sellerId: String(session.sellerId),
+          features: session.features,
+          chatEnabled: session.features?.chat !== false,
         });
+
+        socket.emit('chat-history', { sessionId, messages: chatHistory });
 
         socket.to(`live:${sessionId}`).emit('viewer-count', {
           sessionId,
@@ -150,14 +197,48 @@ export function attachLiveCommerceSockets(io: Server): void {
       const sessionId = data?.sessionId || socket.liveSessionId;
       const emoji = data?.emoji;
       if (!sessionId || !emoji) return;
+      const session = await LiveCommerceSession.findById(sessionId).select('features status').lean();
+      if (!session || session.status !== 'live' || session.features?.reactions === false) return;
       const payload = {
         emoji,
         userId: socket.userId || 'guest',
+        displayName: await resolveDisplayName(socket.userId, 'Viewer'),
         at: Date.now(),
       };
       await appendTimeline(sessionId, 'reaction', payload);
       liveNs.to(`live:${sessionId}`).emit('reaction', { sessionId, ...payload });
     });
+
+    socket.on(
+      'chat-message',
+      async (data: { sessionId: string; text: string; replyToId?: string; guestName?: string }) => {
+        const sessionId = data?.sessionId || socket.liveSessionId;
+        if (!sessionId) return;
+
+        const session = await LiveCommerceSession.findById(sessionId).lean();
+        if (!session) return;
+
+        const isSeller =
+          Boolean(socket.userId) && String(session.sellerId) === String(socket.userId);
+        const displayName = data.guestName
+          ? String(data.guestName).slice(0, 32)
+          : await resolveDisplayName(socket.userId, isSeller ? 'Seller' : 'Guest');
+
+        const msg = await postLiveChatMessage({
+          sessionId,
+          userId: socket.userId,
+          guestId: socket.userId ? undefined : `guest-${socket.id}`,
+          displayName,
+          text: data.text,
+          isSellerReply: Boolean(isSeller && data.replyToId),
+          replyToId: data.replyToId,
+        });
+
+        if (msg) {
+          liveNs.to(`live:${sessionId}`).emit('chat-message', { sessionId, message: msg });
+        }
+      }
+    );
 
     socket.on('pin-product', async (data: { sessionId: string; productId: string }) => {
       const sessionId = data?.sessionId || socket.liveSessionId;

@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 /**
  * Seller preview while broadcasting via WebRTC (local camera).
  */
-export default function WebRTCBroadcast({ stream, status, className = '' }) {
+export default function WebRTCBroadcast({ stream, status, className = '', micOn = true, camOn = true }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -28,6 +28,8 @@ export default function WebRTCBroadcast({ stream, status, className = '' }) {
       />
       <span className="live-webrtc-broadcast-badge">
         {status === 'live' ? 'You are live' : status === 'connecting' ? 'Starting…' : 'Camera'}
+        {!micOn && ' · Mic off'}
+        {!camOn && ' · Cam off'}
       </span>
     </div>
   );

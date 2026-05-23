@@ -4,8 +4,9 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { Order } from '../models/Order';
 import { MessageThread } from '../models/MessageThread';
 import { SystemNotification } from '../models/SystemNotification';
+import { LiveCommerceSession } from '../models/LiveCommerceSession';
 
-type BuyerNotificationType = 'order' | 'message' | 'system';
+type BuyerNotificationType = 'order' | 'message' | 'system' | 'live';
 
 interface BuyerNotificationItem {
   id: string;
@@ -17,6 +18,7 @@ interface BuyerNotificationItem {
   unread: boolean;
   orderId?: string;
   threadId?: string;
+  liveSessionId?: string;
 }
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
@@ -132,9 +134,10 @@ async function buildBuyerNotifications(
   const systemItems: BuyerNotificationItem[] = sysRows.map((n: any) => {
     const createdAt = n.createdAt || new Date();
     const unread = !n.readBy?.some((id: mongoose.Types.ObjectId) => id.toString() === buyerId.toString());
+    const isLive = String(n.actionUrl || '').includes('/live/');
     return {
       id: `system:${n._id}`,
-      type: 'system',
+      type: isLive ? 'live' : 'system',
       title: String(n.title || 'Announcement'),
       message: String(n.message || ''),
       time: formatRelativeTime(createdAt),
@@ -142,10 +145,37 @@ async function buildBuyerNotifications(
       unread,
       orderId: undefined,
       threadId: undefined,
+      liveSessionId: isLive
+        ? String(n.actionUrl || '').match(/\/live\/([a-f0-9]{24})/i)?.[1]
+        : undefined,
     };
   });
 
-  return [...orderItems, ...messageItems, ...systemItems]
+  const liveSessions = await LiveCommerceSession.find({
+    status: 'live',
+    isPrivate: false,
+    startedAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+  })
+    .select('title sellerId startedAt')
+    .sort({ startedAt: -1 })
+    .limit(5)
+    .lean();
+
+  const liveItems: BuyerNotificationItem[] = liveSessions.map((s: any) => {
+    const createdAt = s.startedAt || new Date();
+    return {
+      id: `live:${s._id}`,
+      type: 'live',
+      title: 'Live shopping now',
+      message: s.title ? `${s.title} — tap to watch` : 'A seller is live. Join now.',
+      time: formatRelativeTime(createdAt),
+      createdAt: new Date(createdAt).toISOString(),
+      unread: Date.now() - new Date(createdAt).getTime() < 30 * 60 * 1000,
+      liveSessionId: String(s._id),
+    };
+  });
+
+  return [...liveItems, ...orderItems, ...messageItems, ...systemItems]
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, limit);
 }

@@ -338,11 +338,10 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile } = {}) 
         </nav>
         {/* Tabs — desktop */}
         <motion.div
-          className="hidden lg:flex"
+          className="hidden lg:flex items-center justify-between gap-4 flex-wrap"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.1, ease: EASE }}
-          className="flex items-center justify-between gap-4 flex-wrap"
         >
           <div className="w-full flex items-center justify-between sm:justify-end gap-3">
             {!tabsHintDismissed && showTabsRightFade && (

@@ -200,3 +200,19 @@ export function enrichNotification(row) {
 export function getTypeMeta(type, presentationType) {
   return TYPE_META[presentationType || type] || TYPE_META[type] || TYPE_META.system;
 }
+
+/** Resolve in-app path when user taps a notification row. */
+export function getNotificationHref(n) {
+  if (!n) return null;
+  if (n.type === 'live') {
+    if (n.liveSessionId) return `/live/${n.liveSessionId}`;
+    const url = String(n.actionUrl || '');
+    const m = url.match(/\/live\/([a-f0-9]{24})/i);
+    if (m) return `/live/${m[1]}`;
+  }
+  if (n.type === 'order' && n.orderId) return `/track/${n.orderId}`;
+  if (n.type === 'message') return '/account?tab=messages';
+  if (n.type === 'deal') return '/search?sort=discount';
+  if (n.type === 'review') return '/account?tab=reviews';
+  return null;
+}

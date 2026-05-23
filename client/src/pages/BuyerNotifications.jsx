@@ -4,6 +4,7 @@ import { ArrowLeft, Bell } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useNotificationFeed } from '../components/notifications/useNotificationFeed';
 import NotificationList from '../components/notifications/NotificationList';
+import { getNotificationHref } from '../lib/notificationPresentation';
 import '../styles/notifications-os.css';
 
 export default function BuyerNotifications() {
@@ -13,9 +14,8 @@ export default function BuyerNotifications() {
 
   const handleItemPress = (n) => {
     feed.markAsRead(n.id, n);
-    if (n.type === 'order' && n.orderId) navigate(`/track/${n.orderId}`);
-    else if (n.type === 'message') navigate('/account?tab=messages');
-    else if (n.type === 'deal') navigate('/search?sort=discount');
+    const href = getNotificationHref(n);
+    if (href) navigate(href);
   };
 
   return (

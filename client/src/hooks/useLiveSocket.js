@@ -3,16 +3,21 @@ import { io } from 'socket.io-client';
 import { SERVER_URL } from '../lib/config';
 
 /**
- * Socket.IO client for /live namespace (reactions, pins, viewer count).
+ * Socket.IO client for /live namespace (reactions, pins, chat, viewer count).
+ * Buyer live viewing uses `persistentLiveEngine` + `usePersistentStream` instead
+ * so WebRTC survives route changes. Seller studio still uses this hook directly.
  */
-export function useLiveSocket(sessionId, { enabled = true, token } = {}) {
+export function useLiveSocket(sessionId, { enabled = true, token, guestName } = {}) {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [pinnedProduct, setPinnedProduct] = useState(null);
   const [reactions, setReactions] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
   const [viewerState, setViewerState] = useState(null);
+  const [chatEnabled, setChatEnabled] = useState(true);
+  const [role, setRole] = useState('viewer');
 
   const emitReaction = useCallback(
     (emoji) => {
@@ -31,6 +36,20 @@ export function useLiveSocket(sessionId, { enabled = true, token } = {}) {
   const unpinProduct = useCallback(() => {
     socketRef.current?.emit('unpin-product', { sessionId });
   }, [sessionId]);
+
+  const sendChat = useCallback(
+    (text, replyToId) => {
+      const trimmed = String(text || '').trim();
+      if (!trimmed) return;
+      socketRef.current?.emit('chat-message', {
+        sessionId,
+        text: trimmed,
+        replyToId: replyToId || undefined,
+        guestName: guestName || undefined,
+      });
+    },
+    [sessionId, guestName]
+  );
 
   useEffect(() => {
     if (!enabled || !sessionId) return undefined;
@@ -56,6 +75,17 @@ export function useLiveSocket(sessionId, { enabled = true, token } = {}) {
       setViewerState(state);
       setViewerCount(state.viewerCount ?? 0);
       setPinnedProduct(state.pinnedProduct ?? null);
+      setRole(state.role || 'viewer');
+      setChatEnabled(state.chatEnabled !== false);
+    });
+
+    socket.on('chat-history', (p) => {
+      if (p.sessionId === sessionId) setChatMessages(p.messages || []);
+    });
+
+    socket.on('chat-message', (p) => {
+      if (p.sessionId !== sessionId || !p.message) return;
+      setChatMessages((prev) => [...prev.slice(-79), p.message]);
     });
 
     socket.on('viewer-count', (p) => {
@@ -89,9 +119,13 @@ export function useLiveSocket(sessionId, { enabled = true, token } = {}) {
     viewerCount,
     pinnedProduct,
     reactions,
+    chatMessages,
     viewerState,
+    chatEnabled,
+    role,
     emitReaction,
     pinProduct,
     unpinProduct,
+    sendChat,
   };
 }

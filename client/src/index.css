@@ -6,6 +6,8 @@
 @import './styles/mobile-menu-overlay.css';
 @import './styles/modern-account-mobile.css';
 @import './styles/immersive-search.css';
+@import './styles/live-commerce-studio.css';
+@import './styles/floating-live-player.css';
 
 /* Mea Culpa – auth brand panel */
 @font-face {

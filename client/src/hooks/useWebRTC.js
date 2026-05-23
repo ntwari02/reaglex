@@ -20,6 +20,8 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
   const [remoteStream, setRemoteStream] = useState(null);
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState(null);
+  const [micEnabled, setMicEnabled] = useState(true);
+  const [camEnabled, setCamEnabled] = useState(true);
 
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef(new Map());
@@ -210,5 +212,25 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     };
   }, [sessionId, role, socket, enabled, closeAllPeers]);
 
-  return { localStream, remoteStream, status, error };
+  const toggleMic = useCallback(() => {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+    const track = stream.getAudioTracks()[0];
+    if (track) {
+      track.enabled = !track.enabled;
+      setMicEnabled(track.enabled);
+    }
+  }, []);
+
+  const toggleCam = useCallback(() => {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (track) {
+      track.enabled = !track.enabled;
+      setCamEnabled(track.enabled);
+    }
+  }, []);
+
+  return { localStream, remoteStream, status, error, micEnabled, camEnabled, toggleMic, toggleCam };
 }

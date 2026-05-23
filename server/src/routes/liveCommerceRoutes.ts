@@ -27,6 +27,9 @@ import {
   serializeLiveSession,
 } from '../services/liveCommerceService';
 import { clearWebRTCRoom } from '../socket/webrtcSignaling';
+import { getLiveChatHistory } from '../services/liveCommerceChat';
+import { notifySellerWentLive } from '../services/liveCommerceNotify';
+import { Product } from '../models/Product';
 import { StreamProviderFactory } from '../streaming/StreamProviderFactory';
 import {
   attachStreamToSession,
@@ -226,6 +229,7 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
       session = attached.session;
       session.status = 'live';
       await session.save();
+      void notifySellerWentLive(String(session._id), req.user.id);
     }
 
     const seller = await User.findById(req.user.id)
@@ -240,6 +244,53 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
     return res.status(500).json({ message: 'Failed to start live session', error: err.message });
   }
 });
+
+router.get('/session/:sessionId/comments', async (req, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: 'Invalid session id' });
+    }
+    const messages = await getLiveChatHistory(sessionId);
+    return res.json({ messages });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get(
+  '/session/:sessionId/seller-products',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+      const session = await LiveCommerceSession.findById(req.params.sessionId).lean();
+      if (!session) return res.status(404).json({ message: 'Session not found' });
+      if (String(session.sellerId) !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Seller only' });
+      }
+      const filter: Record<string, unknown> = { sellerId: session.sellerId };
+      if (session.productIds?.length) {
+        filter._id = { $in: session.productIds };
+      }
+      const products = await Product.find(filter)
+        .select('title name price images image thumbnail')
+        .sort({ updatedAt: -1 })
+        .limit(40)
+        .lean();
+      return res.json({
+        products: products.map((p) => ({
+          id: String(p._id),
+          title: (p as any).title || (p as any).name,
+          price: (p as any).price,
+          image: (p as any).images?.[0] || (p as any).image || (p as any).thumbnail,
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
 
 router.post('/session/:sessionId/bid', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {

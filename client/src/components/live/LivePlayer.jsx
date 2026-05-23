@@ -12,8 +12,10 @@ export default function LivePlayer({
   remoteStream = null,
   localStream = null,
   webrtcStatus = '',
+  videoRef: externalVideoRef = null,
 }) {
-  const videoRef = useRef(null);
+  const internalVideoRef = useRef(null);
+  const videoRef = externalVideoRef || internalVideoRef;
   const url = playbackUrl || '';
   const isWebRTC = provider === 'webrtc';
   const isYoutube = provider === 'youtube' || url.includes('youtube.com/embed');
@@ -24,7 +26,7 @@ export default function LivePlayer({
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !isWebRTC) return undefined;
+    if (!el || !isWebRTC || externalVideoRef) return undefined;
     const stream = remoteStream || localStream;
     if (stream) {
       el.srcObject = stream;
@@ -35,9 +37,10 @@ export default function LivePlayer({
       el.srcObject = null;
     }
     return () => {
-      if (el) el.srcObject = null;
+      // Persistent engine owns MediaStream when using external ref — do not stop tracks.
+      if (el && !externalVideoRef) el.srcObject = null;
     };
-  }, [isWebRTC, remoteStream, localStream, autoplay, isLive]);
+  }, [isWebRTC, remoteStream, localStream, autoplay, isLive, externalVideoRef]);
 
   if (isWebRTC) {
     const hasStream = Boolean(remoteStream || localStream);

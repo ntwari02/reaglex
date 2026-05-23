@@ -6,6 +6,7 @@ import { useTranslation } from '../../i18n/useTranslation';
 import OverlayPortal from '../OverlayPortal';
 import { useNotificationFeed } from './useNotificationFeed';
 import NotificationList from './NotificationList';
+import { getNotificationHref } from '../../lib/notificationPresentation';
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -39,9 +40,8 @@ export default function MobileNotificationSheet({ isOpen, onClose, onUnreadChang
   const handleItemPress = (n) => {
     feed.markAsRead(n.id, n);
     onClose();
-    if (n.type === 'order' && n.orderId) navigate(`/track/${n.orderId}`);
-    else if (n.type === 'message') navigate('/account?tab=messages');
-    else if (n.type === 'deal') navigate('/search?sort=discount');
+    const href = getNotificationHref(n);
+    if (href) navigate(href);
     else navigate('/notifications');
   };
 

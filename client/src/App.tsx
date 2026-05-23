@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { QueryProvider } from './providers/QueryProvider';
+import StreamProvider from './providers/StreamProvider';
 import { ScrollToTop } from './components/ScrollToTop';
 import SpaBuyerShell from './spa/SpaBuyerShell';
 import { ResetPassword } from './pages/ResetPassword';
@@ -224,6 +225,7 @@ function App() {
     <ThemeProvider>
     <QueryProvider>
       <BrowserRouter>
+        <StreamProvider>
         <SiteWideSchemas />
         <ScrollToTop />
         <GlobalRealtimeBridge />
@@ -351,6 +353,7 @@ function App() {
           </BuyerGestureShell>
           </div>
         </div>
+        </StreamProvider>
       </BrowserRouter>
     </QueryProvider>
     </ThemeProvider>

@@ -1,0 +1,169 @@
+/* Persistent floating live mini-player (buyer) */
+
+.rx-float-live {
+  position: fixed;
+  z-index: 10050;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #0a0a0f;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  touch-action: none;
+  user-select: none;
+}
+
+.rx-float-live--dragging {
+  cursor: grabbing;
+  box-shadow:
+    0 28px 56px rgba(0, 0, 0, 0.55),
+    0 0 0 1px color-mix(in srgb, var(--brand-primary) 40%, transparent);
+}
+
+.rx-float-live-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rx-float-live-drag {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: grab;
+  backdrop-filter: blur(8px);
+}
+
+.rx-float-live--dragging .rx-float-live-drag {
+  cursor: grabbing;
+}
+
+.rx-float-live-media {
+  position: relative;
+  width: 100%;
+  height: 196px;
+  background: #000;
+  overflow: hidden;
+}
+
+.rx-float-live-video,
+.rx-float-live-iframe {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+  pointer-events: none;
+}
+
+.rx-float-live-waiting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  z-index: 2;
+}
+
+.rx-float-live-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.rx-float-live-meta {
+  position: relative;
+  z-index: 3;
+  padding: 8px 10px 4px;
+  pointer-events: none;
+}
+
+.rx-float-live-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rx-float-live-sub {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rx-float-live-controls {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 6px 8px 10px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.85));
+}
+
+.rx-float-live-controls button {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.rx-float-live-controls button:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.rx-float-live-controls button:active {
+  transform: scale(0.94);
+}
+
+@media (max-width: 480px) {
+  .rx-float-live {
+    border-radius: 16px;
+  }
+
+  .rx-float-live-media {
+    height: 180px;
+  }
+}

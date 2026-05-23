@@ -46,6 +46,14 @@ export async function endStreamForSession(sessionId: string) {
   session.status = session.features?.replay ? 'replay_available' : 'ended';
   session.endedAt = new Date();
   await session.save();
+
+  try {
+    const { broadcastLiveEnded } = await import('../socket/liveCommerceSockets');
+    broadcastLiveEnded(String(session._id), { status: session.status, reason: 'seller_ended' });
+  } catch {
+    /* socket not ready */
+  }
+
   return session;
 }
 

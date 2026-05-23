@@ -21,7 +21,7 @@ export interface ILiveBid {
 
 export interface ILiveTimelineEvent {
   offsetMs: number;
-  type: 'pin' | 'unpin' | 'reaction' | 'status';
+  type: 'pin' | 'unpin' | 'reaction' | 'status' | 'comment';
   payload: Record<string, unknown>;
   createdAt: Date;
 }
