@@ -156,6 +156,15 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
     const gate = await canSellerGoLive(req.user.id);
     if (!gate.ok) return res.status(403).json({ message: gate.reason });
 
+    const { getSellerActiveLiveSessionId } = await import('../services/liveSellerPresence');
+    const activeLiveId = await getSellerActiveLiveSessionId(req.user.id);
+    if (activeLiveId) {
+      return res.status(409).json({
+        message: 'You already have an active live session. End it before starting another.',
+        sessionId: activeLiveId,
+      });
+    }
+
     const body = req.body as CreateLiveSessionBody;
     const {
       title,
@@ -228,6 +237,7 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
       });
       session = attached.session;
       session.status = 'live';
+      session.sellerLastHeartbeatAt = new Date();
       await session.save();
       void notifySellerWentLive(String(session._id), req.user.id);
     }
@@ -365,6 +375,24 @@ router.post('/session/:sessionId/stream/start', authenticate, async (req: Authen
     return res.status(400).json({ message: err.message });
   }
 });
+
+router.post(
+  '/session/:sessionId/seller-heartbeat',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user || req.user.role !== 'seller') {
+        return res.status(403).json({ message: 'Seller only' });
+      }
+      const { touchSellerHeartbeat } = await import('../services/liveSellerPresence');
+      const result = await touchSellerHeartbeat(req.params.sessionId, req.user.id);
+      if (!result.ok) return res.status(404).json({ message: 'Live session not found' });
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
 
 router.post('/session/:sessionId/stream/end', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {

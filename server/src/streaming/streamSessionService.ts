@@ -54,6 +54,13 @@ export async function endStreamForSession(sessionId: string) {
     /* socket not ready */
   }
 
+  try {
+    const { clearSellerPresence } = await import('../services/liveSellerPresence');
+    clearSellerPresence(String(session._id));
+  } catch {
+    /* noop */
+  }
+
   return session;
 }
 

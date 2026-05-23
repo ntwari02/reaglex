@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { acquireLocalMedia } from '../lib/liveMedia';
 
 const ICE_CONFIG = {
   iceServers: [
@@ -13,7 +14,8 @@ function emitSignal(socket, sessionId, to, signal) {
 }
 
 /**
- * P2P WebRTC over Socket.IO signaling (seller star-topology, max ~10 viewers).
+ * P2P WebRTC over Socket.IO signaling (seller star-topology).
+ * Seller media is acquired independently of socket reconnects.
  */
 export function useWebRTC({ sessionId, role, socket, enabled = false }) {
   const [localStream, setLocalStream] = useState(null);
@@ -27,8 +29,13 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
   const peerConnectionsRef = useRef(new Map());
   const sellerSocketIdRef = useRef(null);
   const pendingViewersRef = useRef(new Set());
+  const socketRef = useRef(socket);
+  const mediaStartedRef = useRef(false);
+
+  socketRef.current = socket;
 
   const stopLocalMedia = useCallback(() => {
+    mediaStartedRef.current = false;
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
@@ -42,11 +49,71 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     setRemoteStream(null);
   }, []);
 
-  // ── Seller: camera + offer per viewer ─────────────────────────────────────
+  const retryMedia = useCallback(async () => {
+    if (role !== 'seller' || !enabled) return;
+    stopLocalMedia();
+    setError(null);
+    setStatus('connecting');
+    try {
+      const stream = await acquireLocalMedia();
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      setMicEnabled(stream.getAudioTracks()[0]?.enabled !== false);
+      setCamEnabled(stream.getVideoTracks()[0]?.enabled !== false);
+      setStatus('live');
+      const s = socketRef.current;
+      if (s?.connected) {
+        s.emit('webrtc-register-seller', { sessionId });
+      }
+    } catch (err) {
+      setError(err?.message || 'Camera access denied');
+      setStatus('error');
+    }
+  }, [role, enabled, sessionId, stopLocalMedia]);
+
+  // ── Seller: camera/mic (not tied to socket identity) ─────────────────────
   useEffect(() => {
-    if (!enabled || !socket || !sessionId || role !== 'seller') return undefined;
+    if (!enabled || !sessionId || role !== 'seller') return undefined;
 
     let cancelled = false;
+    mediaStartedRef.current = true;
+
+    (async () => {
+      try {
+        setStatus('connecting');
+        setError(null);
+        const stream = await acquireLocalMedia();
+        if (cancelled || !mediaStartedRef.current) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        localStreamRef.current = stream;
+        setLocalStream(stream);
+        setMicEnabled(stream.getAudioTracks()[0]?.enabled !== false);
+        setCamEnabled(stream.getVideoTracks()[0]?.enabled !== false);
+        setStatus('live');
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('webrtc-register-seller', { sessionId });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err?.message || 'Camera access denied');
+          setStatus('error');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      stopLocalMedia();
+      closeAllPeers();
+      setStatus('idle');
+    };
+  }, [sessionId, role, enabled, stopLocalMedia, closeAllPeers]);
+
+  // ── Seller: signaling (socket may connect after media) ───────────────────
+  useEffect(() => {
+    if (!enabled || !sessionId || role !== 'seller' || !socket?.connected) return undefined;
 
     const createOfferForViewer = async (viewerSocketId) => {
       if (!localStreamRef.current || peerConnectionsRef.current.has(viewerSocketId)) return;
@@ -75,44 +142,17 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     };
 
     const flushPendingViewers = () => {
-      const ids = [...pendingViewersRef.current];
+      [...pendingViewersRef.current].forEach((id) => void createOfferForViewer(id));
       pendingViewersRef.current.clear();
-      ids.forEach((viewerSocketId) => {
-        void createOfferForViewer(viewerSocketId);
-      });
     };
 
-    async function startBroadcast() {
-      try {
-        setStatus('connecting');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: true,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        localStreamRef.current = stream;
-        setLocalStream(stream);
-        socket.emit('webrtc-register-seller', { sessionId });
-        setStatus('live');
-        flushPendingViewers();
-      } catch (err) {
-        setError(err?.message || 'Camera access denied');
-        setStatus('error');
-      }
-    }
-
-    startBroadcast();
+    socket.emit('webrtc-register-seller', { sessionId });
+    if (localStreamRef.current) flushPendingViewers();
 
     const onViewerJoined = ({ viewerSocketId }) => {
       if (!viewerSocketId) return;
-      if (localStreamRef.current) {
-        void createOfferForViewer(viewerSocketId);
-      } else {
-        pendingViewersRef.current.add(viewerSocketId);
-      }
+      if (localStreamRef.current) void createOfferForViewer(viewerSocketId);
+      else pendingViewersRef.current.add(viewerSocketId);
     };
 
     const onSignal = async ({ from, signal }) => {
@@ -126,7 +166,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
           await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
         }
       } catch {
-        /* ignore stale ICE */
+        /* stale ICE */
       }
     };
 
@@ -142,16 +182,14 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     socket.on('webrtc-viewer-left', onViewerLeft);
 
     return () => {
-      cancelled = true;
       pendingViewersRef.current.clear();
       socket.off('webrtc-viewer-joined', onViewerJoined);
       socket.off('webrtc-signal', onSignal);
       socket.off('webrtc-viewer-left', onViewerLeft);
-      stopLocalMedia();
-      closeAllPeers();
-      setStatus('idle');
+      peerConnectionsRef.current.forEach((pc) => pc.close());
+      peerConnectionsRef.current.clear();
     };
-  }, [sessionId, role, socket, enabled, stopLocalMedia, closeAllPeers]);
+  }, [sessionId, role, enabled, socket?.connected, socket?.id]);
 
   // ── Viewer: single peer to seller ─────────────────────────────────────────
   useEffect(() => {
@@ -232,5 +270,15 @@ export function useWebRTC({ sessionId, role, socket, enabled = false }) {
     }
   }, []);
 
-  return { localStream, remoteStream, status, error, micEnabled, camEnabled, toggleMic, toggleCam };
-}
+  return {
+    localStream,
+    remoteStream,
+    status,
+    error,
+    micEnabled,
+    camEnabled,
+    toggleMic,
+    toggleCam,
+    retryMedia,
+  };
+};

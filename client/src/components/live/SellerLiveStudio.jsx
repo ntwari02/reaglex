@@ -12,6 +12,7 @@ import {
   PinOff,
   Square,
   Package,
+  RefreshCw,
 } from 'lucide-react';
 import WebRTCBroadcast from './WebRTCBroadcast';
 import LivePlayer from './LivePlayer';
@@ -19,6 +20,7 @@ import LiveStatusPill from './LiveStatusPill';
 import LiveChatPanel from './LiveChatPanel';
 import { useLiveSocket } from '../../hooks/useLiveSocket';
 import { useWebRTC } from '../../hooks/useWebRTC';
+import { useSellerLivePresence } from '../../hooks/useSellerLivePresence';
 import { liveCommerceApi } from '../../services/liveCommerceApi';
 
 export default function SellerLiveStudio({ session, bidPanel = null }) {
@@ -34,7 +36,6 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
     socket,
     viewerCount,
     pinnedProduct,
-    reactions,
     chatMessages,
     chatEnabled,
     pinProduct,
@@ -50,11 +51,18 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
     camEnabled,
     toggleMic,
     toggleCam,
+    retryMedia,
   } = useWebRTC({
     sessionId: session?.id,
     role: 'seller',
     socket,
-    enabled: isWebRTC && isLive && Boolean(socket),
+    enabled: isWebRTC && isLive,
+  });
+
+  useSellerLivePresence(session?.id, {
+    socket,
+    enabled: isLive && Boolean(session?.id),
+    token: token || undefined,
   });
 
   const { data: productsData } = useQuery({
@@ -109,10 +117,21 @@ export default function SellerLiveStudio({ session, bidPanel = null }) {
 
         <div className="live-studio-stage-overlay">
           <LiveStatusPill status={session?.status} mode={session?.mode} compact />
-          {webrtcError && <p className="live-studio-error">{webrtcError}</p>}
+          {webrtcError && (
+            <div className="live-studio-error-box">
+              <p className="live-studio-error">{webrtcError}</p>
+              <button type="button" className="live-studio-retry-media" onClick={retryMedia}>
+                <RefreshCw size={14} />
+                Enable camera &amp; mic
+              </button>
+            </div>
+          )}
+          {webrtcStatus === 'connecting' && !webrtcError && (
+            <p className="live-studio-error">Opening camera and microphone…</p>
+          )}
         </div>
 
-        {isWebRTC && isLive && (
+        {isWebRTC && isLive && localStream && (
           <div className="live-studio-media-controls">
             <button type="button" className="live-studio-media-btn" onClick={toggleMic} aria-label="Toggle microphone">
               {micEnabled ? <Mic size={18} /> : <MicOff size={18} />}

@@ -134,7 +134,15 @@ export default function SellerLiveDashboard() {
 
     },
 
-    onError: (err) => setError(err?.response?.data?.message || 'Could not start live'),
+    onError: (err) => {
+      const existingId = err?.response?.data?.sessionId;
+      if (err?.response?.status === 409 && existingId) {
+        setActiveSessionId(existingId);
+        navigate(`/live/${existingId}`);
+        return;
+      }
+      setError(err?.response?.data?.message || 'Could not start live');
+    },
 
   });
 

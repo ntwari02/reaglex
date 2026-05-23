@@ -83,6 +83,131 @@
   overflow: hidden;
 }
 
+/* Buyer: sticky video ~39% + scrollable chat (TikTok-style) */
+.live-buyer--sticky {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.live-buyer-video-rail {
+  flex: 0 0 auto;
+  z-index: 30;
+  background: #000;
+}
+
+.live-buyer-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 1023px) {
+  .live-buyer--sticky .live-buyer-video-rail {
+    height: 39dvh;
+    min-height: 39dvh;
+    max-height: 39dvh;
+  }
+
+  .live-buyer--sticky .live-buyer-stage {
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+
+  .live-buyer--sticky .live-buyer-player,
+  .live-buyer--sticky .live-player-video {
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+@media (min-width: 1024px) {
+  .live-buyer--sticky {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .live-buyer--sticky .live-buyer-scroll {
+    overflow: visible;
+  }
+}
+
+.live-buyer-reactions-inline {
+  padding: 8px 12px 0;
+}
+
+/* Video overlay controls */
+.live-video-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.live-video-chrome-actions {
+  align-self: flex-end;
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+  margin-top: auto;
+}
+
+.live-video-chrome-actions button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.live-video-chrome-live {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.live-studio-error-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.live-studio-retry-media {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: none;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .live-studio-video,
 .live-buyer-player,
 .live-webrtc-broadcast-video {

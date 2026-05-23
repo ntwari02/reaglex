@@ -44,6 +44,8 @@ export interface ILiveCommerceSession extends Document {
   scheduledAt?: Date;
   startedAt?: Date;
   endedAt?: Date;
+  /** Updated while seller is broadcasting (heartbeat). */
+  sellerLastHeartbeatAt?: Date;
   auctionEndsAt?: Date;
   viewerCount: number;
   currentPrice: number;
@@ -111,6 +113,7 @@ const liveCommerceSessionSchema = new Schema<ILiveCommerceSession>(
     scheduledAt: { type: Date },
     startedAt: { type: Date },
     endedAt: { type: Date },
+    sellerLastHeartbeatAt: { type: Date },
     auctionEndsAt: { type: Date },
     viewerCount: { type: Number, default: 0 },
     currentPrice: { type: Number, default: 0 },

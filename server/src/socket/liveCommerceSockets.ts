@@ -10,6 +10,12 @@ import {
   postLiveChatMessage,
   resolveDisplayName,
 } from '../services/liveCommerceChat';
+import {
+  cancelSellerDisconnect,
+  registerSellerPresence,
+  scheduleSellerDisconnect,
+  touchSellerHeartbeat,
+} from '../services/liveSellerPresence';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -17,6 +23,7 @@ type LiveSocket = Socket & {
   userId?: string;
   userRole?: string;
   liveSessionId?: string;
+  isLiveSellerHost?: boolean;
 };
 
 interface SessionRoomState {
@@ -144,6 +151,12 @@ export function attachLiveCommerceSockets(io: Server): void {
 
         const chatHistory = await getLiveChatHistory(sessionId);
 
+        if (isSeller && session.status === 'live') {
+          socket.isLiveSellerHost = true;
+          await registerSellerPresence(sessionId, String(socket.userId));
+          cancelSellerDisconnect(sessionId);
+        }
+
         if (streamProvider === 'webrtc') {
           socket.join(`webrtc:${sessionId}`);
           if (isSeller) {
@@ -174,6 +187,22 @@ export function attachLiveCommerceSockets(io: Server): void {
         });
       } catch (err: any) {
         socket.emit('error', { message: err.message || 'join failed' });
+      }
+    });
+
+    socket.on('seller-going-offline', async (data: { sessionId: string }) => {
+      const sessionId = data?.sessionId || socket.liveSessionId;
+      if (!sessionId || !socket.userId) return;
+      scheduleSellerDisconnect(sessionId, socket.userId);
+    });
+
+    socket.on('seller-heartbeat', async (data: { sessionId: string }) => {
+      const sessionId = data?.sessionId || socket.liveSessionId;
+      if (!sessionId || !socket.userId) return;
+      const result = await touchSellerHeartbeat(sessionId, socket.userId);
+      if (result.ok) {
+        cancelSellerDisconnect(sessionId);
+        socket.emit('seller-heartbeat-ack', { sessionId, at: Date.now() });
       }
     });
 
@@ -296,6 +325,9 @@ export function attachLiveCommerceSockets(io: Server): void {
 
     socket.on('disconnect', async () => {
       const sessionId = socket.liveSessionId;
+      if (sessionId && socket.isLiveSellerHost && socket.userId) {
+        scheduleSellerDisconnect(sessionId, socket.userId);
+      }
       if (!sessionId) return;
       const state = getRoomState(sessionId);
       state.viewerCount = Math.max(0, state.viewerCount - 1);
