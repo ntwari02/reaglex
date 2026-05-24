@@ -1,8 +1,15 @@
 import https from 'https';
 
-const SELF_URL = (process.env.RENDER_EXTERNAL_URL || process.env.RENDER_EXTERNAL_HOSTNAME || '').trim()
-  ? `https://${String(process.env.RENDER_EXTERNAL_HOSTNAME || '').trim()}`
-  : (process.env.RENDER_EXTERNAL_URL || 'https://reaglex.onrender.com').trim();
+/** Prefer full RENDER_EXTERNAL_URL; fall back to hostname or default service URL. */
+function resolveSelfUrl(): string {
+  const externalUrl = (process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '');
+  if (externalUrl) return externalUrl;
+  const hostname = (process.env.RENDER_EXTERNAL_HOSTNAME || '').trim();
+  if (hostname) return `https://${hostname}`;
+  return 'https://reaglex.onrender.com';
+}
+
+const SELF_URL = resolveSelfUrl();
 
 function pingOnce() {
   const url = `${SELF_URL.replace(/\/$/, '')}/api/health`;

@@ -146,6 +146,10 @@ const ExploreAll           = lazy(() => import('./pages/ExploreAll'));
 const LiveDiscover         = lazy(() => import('./pages/LiveDiscover'));
 // @ts-ignore JSX module without TS typings
 const LiveSession          = lazy(() => import('./pages/LiveSession'));
+const HelpCenter           = lazy(() => import('./pages/HelpCenter'));
+const HelpSearch           = lazy(() => import('./pages/HelpSearch'));
+const HelpCategory         = lazy(() => import('./pages/HelpCategory'));
+const HelpArticle          = lazy(() => import('./pages/HelpArticle'));
 
 /** Redirects /login and /signup to /auth?tab=... while preserving query (e.g. redirect=) */
 function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
@@ -322,7 +326,10 @@ function App() {
               <Route path="/account" element={<AccountRouteGuard />} />
               <Route path="/notifications" element={<BuyerNotifications />} />
               <Route path="/returns" element={<Returns />} />
-              <Route path="/help" element={<BuyerHome />} />
+              <Route path="/help/search" element={<HelpSearch />} />
+              <Route path="/help/:category/:article" element={<HelpArticle />} />
+              <Route path="/help/:category" element={<HelpCategory />} />
+              <Route path="/help" element={<HelpCenter />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/about" element={<About />} />
               <Route path="/profile" element={<Navigate to="/account" replace />} />

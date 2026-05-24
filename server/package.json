@@ -69,6 +69,7 @@
     "typecheck": "node --max-old-space-size=4096 ./node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit",
     "postinstall": "node scripts/ensure-web-push.mjs",
     "start": "nodemon index.ts",
+    "start:prod": "node dist/index.js",
     "seo:ssr:dev": "ts-node-dev --respawn --transpile-only src/seo/seoSsrServer.ts",
     "seo:ssr": "node dist/src/seo/seoSsrServer.js",
     "seed:disputes": "ts-node src/scripts/seedDisputes.ts",

@@ -6,6 +6,7 @@ import { sendAdminReport } from '../services/notificationService';
 
 // Run every hour — check for eligible auto-releases
 cron.schedule('0 * * * *', async () => {
+  try {
   // eslint-disable-next-line no-console
   console.log('Running escrow auto-release check...');
 
@@ -26,17 +27,26 @@ cron.schedule('0 * * * *', async () => {
       console.error(`Auto-release failed for ${order._id}:`, err);
     }
   }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[escrowJobs] auto-release check failed:', err);
+  }
 });
 
 // Daily summary report at 09:00
 cron.schedule('0 9 * * *', async () => {
-  const wallet = await EscrowWallet.findOne();
-  if (!wallet) return;
+  try {
+    const wallet = await EscrowWallet.findOne();
+    if (!wallet) return;
 
-  await sendAdminReport({
-    totalHeld: wallet.totalHeld,
-    totalReleased: wallet.totalReleased,
-    totalFees: wallet.totalFees,
-  });
+    await sendAdminReport({
+      totalHeld: wallet.totalHeld,
+      totalReleased: wallet.totalReleased,
+      totalFees: wallet.totalFees,
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[escrowJobs] daily admin report failed:', err);
+  }
 });
 

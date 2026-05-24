@@ -78,7 +78,7 @@ const BoostAnalyticsMiniPanel: React.FC<BoostAnalyticsMiniPanelProps> = ({
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${API_BASE_URL}/analytics?timeRange=month`, {
+        const response = await fetch(`${API_BASE_URL}/seller/analytics?timeRange=month`, {
           method: 'GET',
           headers: getAuthHeaders(),
           credentials: 'include',

@@ -30,6 +30,7 @@ import analyticsRoutes from './src/routes/analyticsRoutes';
 import productRoutes from './src/routes/productRoutes';
 import buyerOrderRoutes from './src/routes/buyerOrderRoutes';
 import buyerCartRoutes from './src/routes/buyerCartRoutes';
+import couponRoutes from './src/routes/couponRoutes';
 import shippingRoutes from './src/routes/shippingRoutes';
 import inboxRoutes from './src/routes/inboxRoutes';
 import buyerInboxRoutes from './src/routes/buyerInboxRoutes';
@@ -101,7 +102,38 @@ import { logMicroblinkStartupCheck } from './src/services/microblink.service';
 const app = express();
 const httpServer = createServer(app);
 const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || '';
+
+if (process.env.NODE_ENV === 'production') {
+  const jwtSecret = (process.env.JWT_SECRET || '').trim();
+  if (!jwtSecret || jwtSecret === 'dev_secret') {
+    console.warn(
+      '⚠️  JWT_SECRET is missing or using the dev default. Set a strong JWT_SECRET in production.',
+    );
+  }
+}
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  process.exit(1);
+});
+
+async function runStartupStep(label: string, fn: () => void | Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[startup] ${label} failed:`, message);
+    if (err instanceof Error && err.stack) {
+      console.error(err.stack);
+    }
+  }
+}
 
 // Render and other reverse proxies set `X-Forwarded-For`.
 // IMPORTANT: use a hop count (not boolean `true`) to avoid
@@ -286,6 +318,7 @@ app.use('/api/track', trackingRoutes);
 // Buyer order routes
 app.use('/api/orders', buyerOrderRoutes);
 app.use('/api/buyer/cart', buyerCartRoutes);
+app.use('/api/coupons', couponRoutes);
 // Shipping (quotes)
 app.use('/api/shipping', shippingRoutes);
 // Admin routes
@@ -374,8 +407,8 @@ const connectDB = async () => {
       connectTimeoutMS: 10000,
       retryWrites: true,
       retryReads: true,
-      maxPoolSize: 20,
-      minPoolSize: 5,
+      maxPoolSize: process.env.NODE_ENV === 'production' ? 10 : 20,
+      minPoolSize: process.env.NODE_ENV === 'production' ? 0 : 5,
       maxIdleTimeMS: 45000,
       heartbeatFrequencyMS: 10000,
     };
@@ -410,52 +443,62 @@ const connectDB = async () => {
     
     console.log('✅ Connected to MongoDB');
 
-    const { ensureCorePaymentGateways } = await import('./src/services/paymentGateway.service');
-    await ensureCorePaymentGateways();
-    console.log('✅ Payment gateways registry synced');
+    await runStartupStep('payment gateways', async () => {
+      const { ensureCorePaymentGateways } = await import('./src/services/paymentGateway.service');
+      await ensureCorePaymentGateways();
+      console.log('✅ Payment gateways registry synced');
+    });
 
-    startScheduledNotificationWorker();
-    startRecommendationEmailWorker();
-    startAbandonedCartEmailWorker();
-    startBuyerInsightWorker();
-    startLifecycleEmailWorker();
-    startCartPulseEmailWorker();
-    startBrowseAbandonEmailWorker();
-    startExchangeRateWorker();
-    startComplianceCertificateReminderJob();
-    startMarketplaceAIWorker();
+    await runStartupStep('background workers', async () => {
+      startScheduledNotificationWorker();
+      startRecommendationEmailWorker();
+      startAbandonedCartEmailWorker();
+      startBuyerInsightWorker();
+      startLifecycleEmailWorker();
+      startCartPulseEmailWorker();
+      startBrowseAbandonEmailWorker();
+      startExchangeRateWorker();
+      startComplianceCertificateReminderJob();
+      startMarketplaceAIWorker();
+      console.log('✅ Background workers started');
+    });
 
     if (process.env.MEILISEARCH_HOST?.trim()) {
-      void import('./src/search/intelligenceIndex.service').then(({ syncIntelligenceIndex }) =>
-        syncIntelligenceIndex({ perType: 200 })
-          .then((r) => console.log(`✅ Intelligence search index: ${r.indexed} documents`))
-          .catch((e) => console.warn('[intelligence-search] index sync skipped:', e?.message)),
-      );
+      void import('./src/search/intelligenceIndex.service')
+        .then(({ syncIntelligenceIndex }) =>
+          syncIntelligenceIndex({ perType: 200 })
+            .then((r) => console.log(`✅ Intelligence search index: ${r.indexed} documents`))
+            .catch((e) => console.warn('[intelligence-search] index sync skipped:', e?.message)),
+        )
+        .catch((e) => console.warn('[intelligence-search] module load skipped:', e?.message));
     }
 
-    void import('./src/queues/intelligenceIndex.queue').then(({ startIntelligenceIndexWorker }) =>
-      startIntelligenceIndexWorker(),
-    );
+    void import('./src/queues/intelligenceIndex.queue')
+      .then(({ startIntelligenceIndexWorker }) => startIntelligenceIndexWorker())
+      .catch((e) => console.warn('[intelligence-index] worker skipped:', e?.message));
 
-    // Initialize WebSocket server
     websocketService.initialize(httpServer);
-    
-    // Start HTTP server (WebSocket is attached to it)
-    httpServer.listen(PORT, () => {
-      console.log(`🚀 Server listening on port ${PORT}`);
-      console.log(`📡 WebSocket server ready`);
+
+    await new Promise<void>((resolve, reject) => {
+      httpServer.once('error', (listenErr: NodeJS.ErrnoException) => {
+        console.error('❌ HTTP server failed to start:', listenErr.message);
+        reject(listenErr);
+      });
+      httpServer.listen(PORT, HOST, () => {
+        console.log(`🚀 Server listening on ${HOST}:${PORT}`);
+        console.log('📡 WebSocket server ready');
+        keepAlive();
+        resolve();
+      });
     });
   } catch (err: any) {
-    console.error('❌ MongoDB connection error:', err.message || err);
+    console.error('❌ Startup failed:', err?.message || err);
+    if (err?.stack) console.error(err.stack);
     process.exit(1);
   }
 };
 
 connectDB();
-
-// Best-effort keepalive pings. Note: Render free tier can still suspend the service;
-// this helps keep it warm while it is running.
-keepAlive();
 
 
 
