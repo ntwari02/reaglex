@@ -165,7 +165,7 @@ const liveCommerceSessionSchema = new Schema<ILiveCommerceSession>(
         new Schema(
           {
             offsetMs: { type: Number, required: true },
-            type: { type: String, enum: ['pin', 'unpin', 'reaction', 'status'], required: true },
+            type: { type: String, enum: ['pin', 'unpin', 'reaction', 'status', 'comment'], required: true },
             payload: { type: Schema.Types.Mixed, default: {} },
             createdAt: { type: Date, default: Date.now },
           },
