@@ -47,6 +47,7 @@ export default function BuyerLiveViewer({
     emitReaction,
     sendChat,
     webrtcStatus,
+    hasVideo,
     isPersistent,
     closePlayer,
   } = usePersistentStream(session, {
@@ -114,6 +115,7 @@ export default function BuyerLiveViewer({
             remoteStream={isWebRTC && isPersistent ? remoteStream : null}
             webrtcStatus={webrtcStatus}
             videoRef={isWebRTC && isLive ? inlineVideoRef : null}
+            key={hasVideo ? 'live-video' : 'live-waiting'}
           />
 
           <div className="live-buyer-overlay-top">

@@ -42,12 +42,30 @@ class PersistentLiveEngine {
   }
 
   notifyStream() {
+    const revision = (this.getStore().streamRevision || 0) + 1;
+    this.syncStore({ streamRevision: revision, webrtcStatus: 'live', connectionError: null });
     this.videoSinks.forEach((el) => {
       if (el && this.remoteStream) {
         if (el.srcObject !== this.remoteStream) el.srcObject = this.remoteStream;
         el.play?.().catch(() => {});
       }
     });
+  }
+
+  /** Merge audio + video tracks from separate ontrack events into one stream. */
+  mergeRemoteTrack(event) {
+    const incoming =
+      event.streams?.[0]?.getTracks?.() ?? (event.track ? [event.track] : []);
+    if (!incoming.length) return;
+
+    if (!this.remoteStream) {
+      this.remoteStream = new MediaStream();
+    }
+
+    for (const track of incoming) {
+      const exists = this.remoteStream.getTracks().some((t) => t.id === track.id);
+      if (!exists) this.remoteStream.addTrack(track);
+    }
   }
 
   /** Attach a <video> element without owning the MediaStream lifecycle. */
@@ -194,11 +212,10 @@ class PersistentLiveEngine {
     const pc = new RTCPeerConnection(ICE_CONFIG);
     this.pc = pc;
     this.sellerSocketId = null;
+    this.remoteStream = null;
 
     pc.ontrack = (event) => {
-      const stream = event.streams?.[0] || new MediaStream([event.track]);
-      this.remoteStream = stream;
-      this.syncStore({ webrtcStatus: 'live', connectionError: null });
+      this.mergeRemoteTrack(event);
       this.notifyStream();
     };
 

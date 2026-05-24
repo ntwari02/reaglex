@@ -24,6 +24,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false, mediaActiv
   const [micEnabled, setMicEnabled] = useState(true);
   const [camEnabled, setCamEnabled] = useState(true);
 
+  const remoteStreamRef = useRef(null);
   const localStreamRef = useRef(null);
   const peerConnectionsRef = useRef(new Map());
   const sellerSocketIdRef = useRef(null);
@@ -31,6 +32,22 @@ export function useWebRTC({ sessionId, role, socket, enabled = false, mediaActiv
   const socketRef = useRef(socket);
 
   socketRef.current = socket;
+
+  const mergeRemoteTrack = useCallback((event) => {
+    const incoming =
+      event.streams?.[0]?.getTracks?.() ?? (event.track ? [event.track] : []);
+    if (!incoming.length) return;
+
+    if (!remoteStreamRef.current) {
+      remoteStreamRef.current = new MediaStream();
+    }
+
+    for (const track of incoming) {
+      const exists = remoteStreamRef.current.getTracks().some((t) => t.id === track.id);
+      if (!exists) remoteStreamRef.current.addTrack(track);
+    }
+    setRemoteStream(remoteStreamRef.current);
+  }, []);
 
   const stopLocalMedia = useCallback(() => {
     if (localStreamRef.current) {
@@ -43,6 +60,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false, mediaActiv
   const closeAllPeers = useCallback(() => {
     peerConnectionsRef.current.forEach((pc) => pc.close());
     peerConnectionsRef.current.clear();
+    remoteStreamRef.current = null;
     setRemoteStream(null);
   }, []);
 
@@ -171,10 +189,10 @@ export function useWebRTC({ sessionId, role, socket, enabled = false, mediaActiv
 
     const pc = new RTCPeerConnection(ICE_CONFIG);
     peerConnectionsRef.current.set('seller', pc);
+    remoteStreamRef.current = null;
 
     pc.ontrack = (event) => {
-      const stream = event.streams?.[0] || new MediaStream([event.track]);
-      setRemoteStream(stream);
+      mergeRemoteTrack(event);
       setStatus('live');
     };
 
@@ -221,7 +239,7 @@ export function useWebRTC({ sessionId, role, socket, enabled = false, mediaActiv
       closeAllPeers();
       setStatus('idle');
     };
-  }, [sessionId, role, socket, enabled, closeAllPeers]);
+  }, [sessionId, role, socket, enabled, closeAllPeers, mergeRemoteTrack]);
 
   const toggleMic = useCallback(() => {
     const track = localStreamRef.current?.getAudioTracks()[0];

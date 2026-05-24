@@ -38,6 +38,15 @@ export function attachWebRTCSignaling(liveNs: Namespace): void {
       socket.liveSessionId = sessionId;
       socket.join(`webrtc:${sessionId}`);
       socket.emit('webrtc-registered', { role: 'seller', sessionId });
+
+      // Seller may start camera after buyers joined — re-notify so offers are sent.
+      for (const viewerId of room.viewerSockets) {
+        liveNs.to(socket.id).emit('webrtc-viewer-joined', {
+          sessionId,
+          viewerSocketId: viewerId,
+          viewerCount: room.viewerSockets.size,
+        });
+      }
     });
 
     socket.on(

@@ -37,6 +37,7 @@ export default function FloatingLivePlayer() {
     muted,
     webrtcStatus,
     viewMode,
+    streamRevision,
   } = useLiveStreamUi();
 
   const setMuted = useLiveStreamStore((s) => s.setMuted);
@@ -60,7 +61,7 @@ export default function FloatingLivePlayer() {
     if (!visible || !el) return undefined;
     persistentLiveEngine.attachVideo(el);
     return () => persistentLiveEngine.detachVideo(el);
-  }, [visible, webrtcStatus]);
+  }, [visible, webrtcStatus, streamRevision]);
 
   useEffect(() => {
     if (visible && pos.x === null) {

@@ -27,6 +27,8 @@ export type LiveStreamUiState = {
   chatMessages: unknown[];
   reactions: unknown[];
   chatEnabled: boolean;
+  /** Bumped when remote MediaStream gains/loses tracks (forces React refresh). */
+  streamRevision: number;
 };
 
 type LiveStreamActions = {
@@ -55,6 +57,7 @@ const INITIAL: LiveStreamUiState = {
   chatMessages: [],
   reactions: [],
   chatEnabled: true,
+  streamRevision: 0,
 };
 
 export const useLiveStreamStore = create<LiveStreamUiState & LiveStreamActions>((set) => ({

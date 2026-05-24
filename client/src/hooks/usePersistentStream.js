@@ -42,13 +42,14 @@ export function usePersistentStream(session, options = {}) {
 
     persistentLiveEngine.attachVideo(el);
     return () => persistentLiveEngine.detachVideo(el);
-  }, [isOnLivePage, isActiveForSession, state.webrtcStatus]);
+  }, [isOnLivePage, isActiveForSession, state.webrtcStatus, state.streamRevision]);
 
   useEffect(() => {
     persistentLiveEngine.setTrackMuted(state.muted);
   }, [state.muted, isActiveForSession]);
 
   const remoteStream = isActiveForSession ? persistentLiveEngine.getRemoteStream() : null;
+  const hasVideo = Boolean(remoteStream?.getVideoTracks?.().length);
 
   const emitReaction = useCallback((emoji) => {
     persistentLiveEngine.emitReaction(emoji);
@@ -74,6 +75,8 @@ export function usePersistentStream(session, options = {}) {
     chatMessages: isActiveForSession ? state.chatMessages : [],
     chatEnabled: isActiveForSession ? state.chatEnabled : true,
     webrtcStatus: isActiveForSession ? state.webrtcStatus : 'idle',
+    hasVideo,
+    streamRevision: state.streamRevision,
     connectionError: state.connectionError,
     emitReaction,
     sendChat,

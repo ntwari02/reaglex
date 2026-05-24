@@ -43,7 +43,10 @@ export default function LivePlayer({
   }, [isWebRTC, remoteStream, localStream, autoplay, isLive, externalVideoRef]);
 
   if (isWebRTC) {
-    const hasStream = Boolean(remoteStream || localStream);
+    const hasVideo =
+      Boolean(remoteStream?.getVideoTracks?.().length) ||
+      Boolean(localStream?.getVideoTracks?.().length);
+    const hasStream = hasVideo || Boolean(localStream);
     return (
       <div className={`live-player live-player--webrtc ${className}`.trim()}>
         <video
@@ -53,10 +56,10 @@ export default function LivePlayer({
           autoPlay={autoplay && isLive}
           muted={Boolean(localStream) || autoplay}
         />
-        {!hasStream && (
+        {!hasVideo && (
           <div className="live-player-waiting">
             <p className="live-player-placeholder">
-              {webrtcStatus === 'waiting' ? 'Waiting for host…' : 'Connecting stream…'}
+              {webrtcStatus === 'waiting' ? 'Waiting for host…' : 'Connecting video…'}
             </p>
           </div>
         )}
