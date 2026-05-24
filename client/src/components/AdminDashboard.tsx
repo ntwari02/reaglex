@@ -47,11 +47,16 @@ import NotificationStudio from '@/pages/admin/notifications/NotificationStudio';
 import LiveCommerceControl from '@/pages/admin/LiveCommerceControl';
 import KycVerificationQueues from '@/pages/admin/kyc/KycVerificationQueues';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
+import AdminIntelligenceSearch from '@/components/admin/intelligence/AdminIntelligenceSearch';
+import { useAdminIntelligenceSearchStore } from '@/stores/adminIntelligenceSearchStore';
+import { useAdminIntelligenceLive } from '@/hooks/useAdminIntelligenceLive';
 import type { MenuItem } from '@/components/dashboard/Sidebar';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const setIntelSearchOpen = useAdminIntelligenceSearchStore((s) => s.setOpen);
+  useAdminIntelligenceLive(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [systemBadge, setSystemBadge] = useState<{ text: string; tone: MenuItem['badgeTone'] }>({
@@ -105,6 +110,17 @@ const AdminDashboard: React.FC = () => {
       navigate('/admin', { replace: true });
     }
   }, [location.pathname, navigate, pathSegments, adminIndex]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIntelSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setIntelSearchOpen]);
 
   useEffect(() => {
     const t = localStorage.getItem('auth_token');
@@ -198,6 +214,8 @@ const AdminDashboard: React.FC = () => {
           userName="Admin User"
           userRole="Super Admin"
           accentVariant="emerald"
+          showIntelligenceSearch
+          onOpenIntelligenceSearch={() => setIntelSearchOpen(true)}
         />
         
         <main className="dashboard-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden scroll-smooth p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
@@ -234,6 +252,7 @@ const AdminDashboard: React.FC = () => {
       />
 
       <DeviceApprovalPopup />
+      <AdminIntelligenceSearch />
     </div>
   );
 };

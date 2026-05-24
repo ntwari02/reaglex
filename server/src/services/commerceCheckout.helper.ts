@@ -169,6 +169,9 @@ export async function performCheckoutSingleProduct(
 
     await order.save();
 
+    const { enqueueIntelligenceIndex } = await import('../queues/intelligenceIndex.queue');
+    enqueueIntelligenceIndex('order', order._id.toString(), 'created');
+
     const paymentInit = await initializePayment(
       order._id.toString(),
       {

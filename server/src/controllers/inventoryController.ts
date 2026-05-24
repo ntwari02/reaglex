@@ -339,6 +339,9 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       warehouseId: wid,
     });
 
+    const { enqueueIntelligenceIndex } = await import('../queues/intelligenceIndex.queue');
+    enqueueIntelligenceIndex('product', String(product._id), 'created');
+
     // Optional: create initial stock history record if stock > 0
     if (product.stock > 0) {
       await StockHistory.create({

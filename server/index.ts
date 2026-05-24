@@ -52,6 +52,7 @@ import adminOrdersRoutes from './src/routes/adminOrdersRoutes';
 import adminComplianceRoutes from './src/routes/adminComplianceRoutes';
 import adminReturnsRoutes from './src/routes/adminReturnsRoutes';
 import adminSellerSubscriptionRoutes from './src/routes/adminSellerSubscriptionRoutes';
+import adminIntelligenceSearchRoutes from './src/routes/adminIntelligenceSearchRoutes';
 import publicContentRoutes from './src/routes/publicContentRoutes';
 import adminSiteContentRoutes from './src/routes/adminSiteContentRoutes';
 import { startScheduledNotificationWorker } from './src/jobs/scheduledNotificationWorker';
@@ -302,6 +303,7 @@ app.use('/api/admin/orders', adminOrdersRoutes);
 app.use('/api/admin/compliance', adminComplianceRoutes);
 app.use('/api/admin/returns', adminReturnsRoutes);
 app.use('/api/admin/seller-subscriptions', adminSellerSubscriptionRoutes);
+app.use('/api/admin/intelligence', adminIntelligenceSearchRoutes);
 app.use('/api/admin/site', adminSiteContentRoutes);
 // Payments & escrow routes
 app.use('/api/payments', paymentRoutes);
@@ -422,6 +424,18 @@ const connectDB = async () => {
     startExchangeRateWorker();
     startComplianceCertificateReminderJob();
     startMarketplaceAIWorker();
+
+    if (process.env.MEILISEARCH_HOST?.trim()) {
+      void import('./src/search/intelligenceIndex.service').then(({ syncIntelligenceIndex }) =>
+        syncIntelligenceIndex({ perType: 200 })
+          .then((r) => console.log(`✅ Intelligence search index: ${r.indexed} documents`))
+          .catch((e) => console.warn('[intelligence-search] index sync skipped:', e?.message)),
+      );
+    }
+
+    void import('./src/queues/intelligenceIndex.queue').then(({ startIntelligenceIndexWorker }) =>
+      startIntelligenceIndexWorker(),
+    );
 
     // Initialize WebSocket server
     websocketService.initialize(httpServer);

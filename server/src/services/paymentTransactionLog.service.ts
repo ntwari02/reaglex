@@ -74,6 +74,14 @@ export async function recordPaymentTransaction(
   } else {
     await doc.save();
   }
+
+  if (input.type === 'PAYMENT' || input.type === 'REFUND' || input.type === 'FEE') {
+    const { enqueueIntelligenceIndex } = await import('../queues/intelligenceIndex.queue');
+    enqueueIntelligenceIndex('payment', String(doc._id), 'created');
+    if (input.orderId) {
+      enqueueIntelligenceIndex('order', String(input.orderId), 'updated');
+    }
+  }
 }
 
 export async function recordPaymentCaptured(input: {

@@ -85,6 +85,7 @@ class WebSocketService {
       if (socket.userRole === 'admin') {
         socket.join('admin:kyc');
         socket.join('admin:marketing');
+        socket.join('admin:intelligence');
       }
 
       // Handle inbox events
@@ -387,6 +388,24 @@ class WebSocketService {
   ) {
     if (!this.io) return;
     this.io.to('admin:marketing').emit(event, { ...payload, at: new Date().toISOString() });
+  }
+
+  /** Live platform pulse for admin intelligence search (orders, payments, etc.). */
+  emitAdminIntelligencePulse(payload: {
+    entityType: string;
+    entityId: string;
+    title: string;
+    subtitle?: string;
+    deepLink?: string;
+    moduleLabel?: string;
+    status?: string;
+    event?: 'created' | 'updated';
+  }) {
+    if (!this.io) return;
+    this.io.to('admin:intelligence').emit('admin_intelligence_pulse', {
+      ...payload,
+      at: new Date().toISOString(),
+    });
   }
 
   /**
