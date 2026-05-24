@@ -9,6 +9,12 @@ import * as esbuild from 'esbuild';
 
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 
+function collectRootTsFiles(dir) {
+  return readdirSync(dir)
+    .filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts') && name !== 'index.ts')
+    .map((name) => name.replace(/\\/g, '/'));
+}
+
 function collectTsFiles(dir, files = []) {
   for (const name of readdirSync(dir)) {
     const abs = join(dir, name);
@@ -22,7 +28,7 @@ function collectTsFiles(dir, files = []) {
   return files;
 }
 
-const entryPoints = ['index.ts', ...collectTsFiles(join(root, 'src'))];
+const entryPoints = ['index.ts', ...collectRootTsFiles(root), ...collectTsFiles(join(root, 'src'))];
 
 rmSync(join(root, 'dist'), { recursive: true, force: true });
 

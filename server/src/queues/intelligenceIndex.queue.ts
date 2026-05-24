@@ -1,10 +1,10 @@
-import type { IntelligenceEntityType, IntelligenceSearchDocument } from './intelligenceSearch.types';
+import type { IntelligenceEntityType, IntelligenceSearchDocument } from '../search/intelligenceSearch.types';
 import {
   buildIntelligenceDocumentForEntity,
   upsertIntelligenceDocuments,
-} from './intelligenceIndex.service';
-import { invalidateSearchCache } from './searchCache';
-import { isRedisEnabled, getRedisClient } from './redisClient';
+} from '../search/intelligenceIndex.service';
+import { invalidateSearchCache } from '../search/searchCache';
+import { isRedisEnabled, getRedisClient } from '../search/redisClient';
 import { websocketService } from '../services/websocketService';
 
 export type IntelligenceIndexJob = {
