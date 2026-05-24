@@ -618,7 +618,7 @@ export default function SellerList({ onViewSeller }: SellerListProps) {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-500">Sellers • Management</p>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Seller Store Management</h1>
+          <h1 className="admin-page-title">Seller Store Management</h1>
           <p className="text-gray-500 dark:text-gray-400">
             Approve, manage, and monitor seller stores across the platform
           </p>

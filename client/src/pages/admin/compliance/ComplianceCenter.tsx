@@ -749,7 +749,7 @@ export default function ComplianceCenter() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Data Protection & Privacy Compliance</h1>
+        <h1 className="admin-page-title">Data Protection & Privacy Compliance</h1>
         <p className="mt-1 text-gray-600 dark:text-gray-400">
           Rwanda NCSA controller/processor readiness, certificate tracking, and policy governance.
         </p>

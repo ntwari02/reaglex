@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSellerAccess } from '../hooks/useSellerAccess';
 import { useAuthStore } from '../stores/authStore';
+import { getDashboardPathForRole } from '../lib/authRouting';
 
 type SellerRouteProps = {
   children: ReactNode;
@@ -115,7 +116,6 @@ export default function SellerRoute({ children }: SellerRouteProps) {
   const { loading, initialized } = useAuthStore();
   const { isLoggedIn, isSeller } = useSellerAccess();
 
-  // Prevent redirect loops on full page reload while auth store is still initializing.
   if (!initialized || loading) {
     return (
       <div
@@ -130,14 +130,13 @@ export default function SellerRoute({ children }: SellerRouteProps) {
   if (!isLoggedIn) {
     return (
       <Navigate
-        to="/become-seller"
+        to="/login"
         state={{ reason: 'login_required', intended: location.pathname }}
         replace
       />
     );
   }
 
-  // Keep seller area secure: require verified email before entering seller routes.
   if (user && user.email_verified !== true) {
     return (
       <Navigate
@@ -147,7 +146,11 @@ export default function SellerRoute({ children }: SellerRouteProps) {
     );
   }
 
-  if (!isSeller) {
+  if (user && user.role === 'admin') {
+    return <Navigate to={getDashboardPathForRole('admin')} replace />;
+  }
+
+  if (user && user.role === 'buyer') {
     if (location.pathname === '/seller') {
       return <SellerAccessDenied />;
     }
@@ -160,6 +163,9 @@ export default function SellerRoute({ children }: SellerRouteProps) {
     );
   }
 
+  if (!isSeller) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 }
-

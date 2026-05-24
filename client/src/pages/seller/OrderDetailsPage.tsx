@@ -8,6 +8,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { API_BASE_URL } from '@/lib/config';
+import { getDashboardPathForRole } from '@/lib/authRouting';
+import { useAuthStore } from '@/stores/authStore';
 
 const SELLER_ORDERS_API = `${API_BASE_URL}/seller/orders`;
 
@@ -101,7 +103,8 @@ const OrderDetailsPage: React.FC = () => {
         }
 
         if (res.status === 403) {
-          navigate('/');
+          const role = useAuthStore.getState().user?.role;
+          navigate(getDashboardPathForRole(role));
           return;
         }
 

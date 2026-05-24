@@ -21,6 +21,9 @@ import SellerRoute from './components/SellerRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './components/AdminDashboard';
 import { useAuthStore } from './stores/authStore';
+import BuyerShellGuard from './components/BuyerShellGuard';
+import NotFoundRedirect from './components/NotFoundRedirect';
+import { canAccessBuyerUi, getDashboardPathForRole } from './lib/authRouting';
 import { ToastNotification } from './components/ToastNotification';
 import { SecurityTelemetryProbe } from './components/SecurityTelemetryProbe';
 // @ts-ignore JSX module without TS typings
@@ -63,10 +66,34 @@ import { ClientOnly } from './components/ClientOnly';
  */
 function GlobalNavbar() {
   const { pathname } = useLocation();
+  const user = useAuthStore((s) => s.user);
   const isSellerPending = pathname === '/seller/pending';
   if (isSellerPending) return <Navbar />;
+  if (user && !canAccessBuyerUi(user)) return null;
   if (isBuyerChromeHidden(pathname)) return null;
   return <Navbar />;
+}
+
+function GlobalMobileBottomNav() {
+  const user = useAuthStore((s) => s.user);
+  const { pathname } = useLocation();
+  if (user && !canAccessBuyerUi(user)) return null;
+  if (isBuyerChromeHidden(pathname)) return null;
+  return <MobileBottomNav />;
+}
+
+function GlobalMobileMenuOverlay() {
+  const user = useAuthStore((s) => s.user);
+  const { pathname } = useLocation();
+  if (user && !canAccessBuyerUi(user)) return null;
+  if (isBuyerChromeHidden(pathname)) return null;
+  return <MobileMenuOverlay />;
+}
+
+function GlobalAssistantChat() {
+  const user = useAuthStore((s) => s.user);
+  if (user && !canAccessBuyerUi(user)) return null;
+  return <AssistantChat />;
 }
 
 // ── Buyer pages (lazy) ────────────────────────────────────────────────────────
@@ -128,7 +155,8 @@ function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
 }
 
 function DashboardRedirect() {
-  const { user } = useAuthStore();
+  const { user, loading, initialized } = useAuthStore();
+  if (!initialized || loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.email_verified !== true) {
     return (
@@ -138,14 +166,15 @@ function DashboardRedirect() {
       />
     );
   }
-  if (user.role === 'seller') return <Navigate to="/seller" replace />;
-  if (user.role === 'admin') return <Navigate to="/admin" replace />;
-  return <Navigate to="/account" replace />;
+  return <Navigate to={getDashboardPathForRole(user.role)} replace />;
 }
 
 function HomeRouteGuard() {
   const { user, loading, initialized } = useAuthStore();
   if (!initialized || loading) return <PageLoader />;
+  if (user && user.role !== 'buyer') {
+    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
+  }
   if (user && user.email_verified !== true) {
     return (
       <Navigate
@@ -160,7 +189,11 @@ function HomeRouteGuard() {
 function AccountRouteGuard() {
   const { user, loading, initialized } = useAuthStore();
   if (!initialized || loading) return <PageLoader />;
-  if (user && user.email_verified !== true) {
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'buyer') {
+    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
+  }
+  if (user.email_verified !== true) {
     return (
       <Navigate
         to={`/verify-otp?email=${encodeURIComponent(user.email)}`}
@@ -236,8 +269,8 @@ function App() {
         {/* CartDrawer, GlobalNavbar and MobileBottomNav stay fixed to the real viewport. */}
         <CartDrawer />
         <GlobalNavbar />
-        <MobileBottomNav />
-        <MobileMenuOverlay />
+        <GlobalMobileBottomNav />
+        <GlobalMobileMenuOverlay />
         <ImmersiveSearchLayer />
         <ClientOnly>
           <VisualSearchLayer />
@@ -262,12 +295,13 @@ function App() {
               transition: 'width 420ms cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
-          <AssistantChat />
+          <GlobalAssistantChat />
           <BuyerGestureShell>
           <LayoutGroup id="buyer-product-transitions">
           <Suspense fallback={<PageLoader />}>
             <Routes>
             {/* ── Buyer / Storefront (SPA keep-alive + scroll cache) ── */}
+            <Route element={<BuyerShellGuard />}>
             <Route element={<SpaBuyerShell />}>
               <Route path="/" element={<HomeRouteGuard />} />
               <Route path="/search" element={<SearchResults />} />
@@ -314,6 +348,7 @@ function App() {
               <Route path="/become-seller" element={<BecomeSeller />} />
               <Route path="/cart" element={<Navigate to="/" replace />} />
             </Route>
+            </Route>
 
             {/* ── PWA system routes ── */}
             <Route path="/share"                       element={<ShareTargetHandler />} />
@@ -346,7 +381,7 @@ function App() {
             />
             <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundRedirect />} />
             </Routes>
           </Suspense>
           </LayoutGroup>

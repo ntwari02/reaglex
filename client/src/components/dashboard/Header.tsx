@@ -202,8 +202,14 @@ const Header: React.FC<HeaderProps> = ({
       };
 
   return (
-    <header className="dashboard-header backdrop-blur-md border-b border-gray-200 dark:border-gray-700/30 px-4 md:px-6 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300">
-      <div className="flex items-center gap-4 flex-1">
+    <header
+      className={`dashboard-header backdrop-blur-md border-b border-gray-200 dark:border-gray-700/30 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300 ${
+        isAdmin
+          ? 'px-3 py-2.5 sm:px-4 sm:py-3 md:px-6 md:py-4 lg:px-8'
+          : 'px-4 md:px-6 lg:px-8 py-4'
+      }`}
+    >
+      <div className={`flex items-center flex-1 min-w-0 ${isAdmin ? 'gap-2 sm:gap-3 md:gap-4' : 'gap-4'}`}>
         <Button
           variant="ghost"
           size="icon"
@@ -215,12 +221,23 @@ const Header: React.FC<HeaderProps> = ({
         </Button>
 
         {/* Mobile title (matches screenshot vibe) */}
-        <div className="md:hidden flex flex-col leading-tight">
-          <span className="text-[15px] font-extrabold text-gray-900 dark:text-white">{mobileSubtitle || 'Dashboard'}</span>
-          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 truncate max-w-[190px]">
+        <div className="md:hidden flex flex-col leading-tight min-w-0 flex-1">
+          <span className="text-sm font-bold text-gray-900 dark:text-white sm:text-[15px]">{mobileSubtitle || 'Dashboard'}</span>
+          <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 truncate sm:text-[11px] sm:font-semibold">
             {userName}
           </span>
         </div>
+
+        {isAdmin && showIntelligenceSearch ? (
+          <button
+            type="button"
+            onClick={onOpenIntelligenceSearch}
+            className="md:hidden shrink-0 min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-600 dark:border-gray-700 dark:bg-dark-secondary/70 dark:text-gray-300"
+            aria-label="Search platform"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+        ) : null}
 
         <div
           className={`hidden md:flex items-center flex-1 max-w-md${showIntelligenceSearch ? ' intel-search-trigger' : ''}`}
@@ -257,18 +274,18 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center shrink-0 ${isAdmin ? 'gap-1.5 sm:gap-2 md:gap-3' : 'gap-3'}`}>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
-          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+          className={`inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors ${isAdmin ? 'min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px]' : 'min-h-[44px] min-w-[44px]'}`}
           title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
         >
           {theme === 'dark' ? (
-            <Sun className="w-6 h-6 text-yellow-400" />
+            <Sun className={`text-yellow-400 ${isAdmin ? 'w-5 h-5 md:w-6 md:h-6' : 'w-6 h-6'}`} />
           ) : (
-            <Moon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+            <Moon className={`text-gray-600 dark:text-gray-400 ${isAdmin ? 'w-5 h-5 md:w-6 md:h-6' : 'w-6 h-6'}`} />
           )}
         </motion.button>
 

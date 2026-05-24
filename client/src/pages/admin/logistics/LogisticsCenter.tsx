@@ -24,7 +24,10 @@ import AutomationSettings from './AutomationSettings';
 import AccessControl from './AccessControl';
 import SystemIntegrations from './SystemIntegrations';
 import ExceptionManagement from './ExceptionManagement';
-import { pageTransition, tabHoverTap } from './logisticsAnimations';
+import { pageTransition } from './logisticsAnimations';
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader';
+import { AdminHubTabs } from '@/components/admin/layout/AdminHubTabs';
+import { adminMobileClasses } from '@/components/admin/layout/adminMobileClasses';
 
 type TabId =
   | 'partners'
@@ -87,46 +90,20 @@ export default function LogisticsCenter() {
 
   return (
     <motion.div
-      className="space-y-6"
+      className={adminMobileClasses.pageShell}
       initial={pageTransition.initial}
       animate={pageTransition.animate}
       exit={pageTransition.exit}
       transition={pageTransition.transition}
     >
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Logistics & Delivery</h1>
-        <p className="mt-1 text-gray-600 dark:text-gray-400">
-          Manage shipping, delivery partners, warehouses, and tracking operations
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Logistics & Delivery"
+        description="Manage shipping, delivery partners, warehouses, and tracking operations"
+      />
 
-      <div className="border-b border-gray-200 dark:border-gray-800 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700">
-        <div className="flex gap-1 min-w-max">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <motion.button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                variants={tabHoverTap}
-                initial="rest"
-                whileHover="hover"
-                whileTap="tap"
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
+      <AdminHubTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className="min-h-[calc(100vh-200px)] overflow-x-hidden scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700">
+      <div className={adminMobileClasses.hubTabContent}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

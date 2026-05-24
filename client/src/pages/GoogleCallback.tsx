@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { Loader2, KeyRound, Shield, Mail } from 'lucide-react';
 import { authAPI } from '../lib/api';
+import { getDashboardPathForRole, isValidRole } from '../lib/authRouting';
 
 import { API_BASE_URL } from '../lib/config';
 
@@ -34,8 +35,6 @@ export function GoogleCallback() {
       const error = searchParams.get('error');
       const tempToken = searchParams.get('tempToken');
       const email = searchParams.get('email') || '';
-      const role = searchParams.get('role') || '';
-
       if (error) {
         const messages: Record<string, string> = {
           access_denied: 'Google sign-in was cancelled',
@@ -62,45 +61,31 @@ export function GoogleCallback() {
           // Store token first so authAPI can call /me
           localStorage.setItem('auth_token', token);
 
-          let userProfile: any = null;
-          try {
-            const me = await authAPI.getCurrentUser();
-            userProfile = {
-              id: me.user.id?.toString() || me.user._id?.toString() || '',
-              email: me.user.email,
-                email_verified: me.user.emailVerified,
-              full_name: me.user.fullName,
-              role: me.user.role,
-              seller_status: me.user.sellerVerificationStatus,
-              seller_verified: me.user.isSellerVerified,
-              phone: me.user.phone,
-              // Use Google profile image when available
-              avatar_url: me.user.avatarUrl || me.user.avatar_url || null,
-              created_at: me.user.createdAt || new Date().toISOString(),
-              updated_at: me.user.updatedAt || new Date().toISOString(),
-            };
-          } catch {
-            // Fallback: still complete sign-in even if /me fails temporarily
-            userProfile = {
-              id: '',
-              email: email || '',
-              email_verified: false,
-              full_name: '',
-              role: role || 'buyer',
-              seller_status: undefined,
-              seller_verified: undefined,
-              phone: undefined,
-              avatar_url: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            };
+          const me = await authAPI.getCurrentUser();
+          const userProfile = {
+            id: me.user.id?.toString() || me.user._id?.toString() || '',
+            email: me.user.email,
+            email_verified: me.user.emailVerified,
+            full_name: me.user.fullName,
+            role: me.user.role,
+            seller_status: me.user.sellerVerificationStatus,
+            seller_verified: me.user.isSellerVerified,
+            phone: me.user.phone,
+            avatar_url: me.user.avatarUrl || me.user.avatar_url || null,
+            created_at: me.user.createdAt || new Date().toISOString(),
+            updated_at: me.user.updatedAt || new Date().toISOString(),
+          };
+
+          if (!isValidRole(userProfile.role)) {
+            localStorage.removeItem('auth_token');
+            showToast('Could not verify your account role. Please sign in again.', 'error');
+            navigate('/login');
+            return;
           }
 
           setUserAndToken(userProfile, token);
           showToast('Successfully signed in with Google!', 'success');
-          if (userProfile.role === 'seller') navigate('/seller');
-          else if (userProfile.role === 'admin') navigate('/admin');
-          else navigate('/');
+          navigate(getDashboardPathForRole(userProfile.role));
         } catch (err: any) {
           showToast('Failed to complete sign-in', 'error');
           navigate('/login');
@@ -205,9 +190,7 @@ export function GoogleCallback() {
       };
       setUserAndToken(profile, success.token);
       showToast('Signed in with Google successfully!', 'success');
-      if (success.user.role === 'seller') navigate('/seller');
-      else if (success.user.role === 'admin') navigate('/admin');
-      else navigate('/');
+      navigate(getDashboardPathForRole(success.user.role));
     } catch (err: any) {
       setOtpError(err.message || 'Invalid code. Try again.');
     } finally {
@@ -264,9 +247,7 @@ export function GoogleCallback() {
       };
       setUserAndToken(profile, success.token);
       showToast('2FA enabled. Signed in with Google!', 'success');
-      if (success.user.role === 'seller') navigate('/seller');
-      else if (success.user.role === 'admin') navigate('/admin');
-      else navigate('/');
+      navigate(getDashboardPathForRole(success.user.role));
     } catch (err: any) {
       setOtpError(err.message || 'Invalid code. Try again.');
     } finally {

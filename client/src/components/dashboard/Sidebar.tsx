@@ -100,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   <div
     className="dashboard-sidebar flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth sidebar transition-colors duration-300 text-gray-900 dark:text-gray-100 backdrop-blur border-r border-gray-200 dark:border-gray-800 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600"
   >
-      <div className="p-6 flex items-center justify-between sidebar-profile border-b border-gray-200 dark:border-gray-800">
+      <div className="p-4 sm:p-5 lg:p-6 flex items-center justify-between sidebar-profile border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 ${accentClasses.badgeBg} rounded-lg flex items-center justify-center`}>
             <ShieldCheck className="w-6 h-6 text-white" />
@@ -120,8 +120,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
       
-      <nav className="flex-1 p-4 sidebar-stats">
-        <div className="space-y-2">
+      <nav className="flex-1 p-3 sm:p-4 sidebar-stats">
+        <div className="space-y-1 sm:space-y-2">
           {itemsToRender.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -134,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   setSidebarOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item",
+                  "w-full flex items-center justify-between gap-2 sm:gap-3 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item min-h-[44px] lg:min-h-0",
                   isActive
                     ? `${accentClasses.activeShadow} text-white hover:bg-transparent`
                     : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200"
@@ -216,7 +216,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25 }}
-              className="fixed left-0 top-0 bottom-0 w-72 z-50 lg:hidden"
+              className="fixed left-0 top-0 bottom-0 w-[min(100vw-3rem,18rem)] z-50 lg:hidden"
             >
               {sidebarContent}
             </motion.aside>

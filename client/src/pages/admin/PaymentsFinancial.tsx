@@ -24,6 +24,9 @@ import Chargebacks from './finance/Chargebacks';
 import TaxManagement from './finance/TaxManagement';
 import FinancialReports from './finance/FinancialReports';
 import FinanceSettings from './finance/FinanceSettings';
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader';
+import { AdminHubTabs } from '@/components/admin/layout/AdminHubTabs';
+import { adminMobileClasses } from '@/components/admin/layout/adminMobileClasses';
 
 type TabId =
   | 'dashboard'
@@ -130,46 +133,24 @@ export default function PaymentsFinancial() {
 
   return (
     <>
-      <div className="space-y-6 pb-10 overflow-x-hidden w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.4em] text-emerald-500">Finance • Management</p>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Finance Management</h1>
-          <p className="text-gray-500 dark:text-gray-400">Manage payments, payouts, and financial operations</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
-            <Download className="h-4 w-4" /> Export
-          </button>
-        </div>
-      </div>
+      <div className={`${adminMobileClasses.pageShell} pb-10`}>
+        <AdminPageHeader
+          eyebrow="Finance • Management"
+          title="Finance Management"
+          description="Manage payments, payouts, and financial operations"
+          actions={
+            <button
+              type="button"
+              className="flex min-h-[40px] items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300 sm:px-4 sm:text-sm"
+            >
+              <Download className="h-4 w-4" /> Export
+            </button>
+          }
+        />
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-800">
-        <div className="flex flex-wrap gap-2 overflow-x-auto overflow-y-hidden scroll-smooth [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        <AdminHubTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Tab Content */}
-      <div>{renderTabContent()}</div>
+        <div className={adminMobileClasses.hubTabContent}>{renderTabContent()}</div>
       </div>
 
       {/* Modals */}

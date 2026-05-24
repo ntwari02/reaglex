@@ -68,8 +68,9 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
       }
     }
     
-    req.user = decoded;
-    noteUserRequest(String(decoded.id), decoded.role);
+    // Always use the role from the database — JWT may be stale after role changes.
+    req.user = { ...decoded, role: user.role };
+    noteUserRequest(String(decoded.id), user.role);
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Invalid or expired token', code: 'AUTH_INVALID' });
@@ -77,12 +78,24 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
 }
 
 export function authorize(...allowedRoles: string[]) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const dbUser = await User.findById(req.user.id).select('role accountStatus');
+    if (!dbUser) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    if (dbUser.accountStatus === 'inactive' || dbUser.accountStatus === 'banned') {
+      return res.status(403).json({
+        message: 'Your account has been deactivated. Please contact support for assistance.',
+      });
+    }
+
+    req.user = { ...req.user, role: dbUser.role };
+
+    if (!allowedRoles.includes(dbUser.role)) {
       return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
     }
 
@@ -134,7 +147,7 @@ export async function optionalAuthenticate(
       }
     }
 
-    req.user = decoded;
+    req.user = { ...decoded, role: user.role };
   } catch {
     // treat as guest
   }

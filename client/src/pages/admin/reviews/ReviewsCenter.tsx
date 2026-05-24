@@ -14,7 +14,10 @@ import {
   Link,
   Settings,
 } from 'lucide-react';
-import { pageTransition, tabHoverTap } from './reviewAnimations';
+import { pageTransition } from './reviewAnimations';
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader';
+import { AdminHubTabs } from '@/components/admin/layout/AdminHubTabs';
+import { adminMobileClasses } from '@/components/admin/layout/adminMobileClasses';
 import ReviewsDashboard from './ReviewsDashboard';
 import CustomerProductReviews from './CustomerProductReviews';
 import ReviewModeration from './ReviewModeration';
@@ -92,44 +95,15 @@ export default function ReviewsCenter() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reviews & Moderation</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Moderate customer reviews, seller ratings, and manage review quality
-        </p>
-      </div>
+    <div className={adminMobileClasses.pageShell}>
+      <AdminPageHeader
+        title="Reviews & Moderation"
+        description="Moderate customer reviews, seller ratings, and manage review quality"
+      />
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-800 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700">
-        <div className="flex gap-1 min-w-max">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <motion.button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                variants={tabHoverTap}
-                initial="rest"
-                whileHover="hover"
-                whileTap="tap"
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
+      <AdminHubTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent="amber" />
 
-      {/* Tab Content */}
-      <div className="min-h-[calc(100vh-200px)] overflow-x-hidden scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700">
+      <div className={adminMobileClasses.hubTabContent}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

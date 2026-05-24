@@ -218,7 +218,7 @@ const AdminDashboard: React.FC = () => {
           onOpenIntelligenceSearch={() => setIntelSearchOpen(true)}
         />
         
-        <main className="dashboard-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden scroll-smooth p-4 md:p-6 lg:p-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <main className="dashboard-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden scroll-smooth p-3 sm:p-4 md:p-6 lg:p-8 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8 transition-colors duration-300 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
           <Routes>
             <Route index element={<AdminOverview />} />
             <Route path="dashboard" element={<AdminOverview />} />

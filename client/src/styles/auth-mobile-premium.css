@@ -1,0 +1,133 @@
+/**
+ * Premium auth (/auth) — mobile-only polish.
+ * Scoped to `.auth-root` so desktop (md+) layout is unchanged.
+ */
+@media (max-width: 767px) {
+  .auth-root {
+    min-height: 100dvh;
+    min-height: 100svh;
+  }
+
+  .auth-root main {
+    min-height: 100dvh;
+    min-height: 100svh;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .auth-root .auth-mobile-card-wrap {
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+    padding-top: 0.5rem;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .auth-root .auth-mobile-card {
+    border-radius: 1.25rem !important;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12) !important;
+  }
+
+  .dark .auth-root .auth-mobile-card {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  .auth-root .auth-mobile-card-inner {
+    padding: 1rem !important;
+  }
+
+  .auth-root .auth-mobile-chrome {
+    display: none !important;
+  }
+
+  .auth-root .auth-mobile-title {
+    font-size: 1.25rem !important;
+    line-height: 1.3 !important;
+    font-weight: 700 !important;
+  }
+
+  .auth-root .auth-mobile-subtitle {
+    font-size: 0.875rem !important;
+  }
+
+  .auth-root .auth-mobile-form {
+    gap: 0.875rem !important;
+  }
+
+  .auth-root .auth-mobile-tab-bar {
+    margin-bottom: 1rem !important;
+    padding: 0.25rem !important;
+  }
+
+  .auth-root .auth-mobile-tab-link {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .auth-root .auth-mobile-input {
+    min-height: 48px !important;
+    height: 48px !important;
+    font-size: 16px !important;
+    border-radius: 0.875rem !important;
+    padding-left: 2.75rem !important;
+  }
+
+  .auth-root .auth-mobile-input-label {
+    font-size: 0.6875rem !important;
+    letter-spacing: 0.06em !important;
+  }
+
+  .auth-root .auth-mobile-btn-primary,
+  .auth-root .auth-mobile-btn-google {
+    min-height: 48px !important;
+    height: 48px !important;
+    font-size: 0.9375rem !important;
+    border-radius: 0.875rem !important;
+  }
+
+  .auth-root .auth-mobile-footer-legal {
+    font-size: 0.6875rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .auth-root .auth-mobile-otp-title {
+    font-size: 1.25rem !important;
+  }
+
+  .auth-root .auth-mobile-panel-heading {
+    margin-bottom: 0.25rem !important;
+  }
+}
+
+/* Legacy AuthLayout (Navbar + split panel) — mobile only */
+@media (max-width: 1023px) {
+  .login-signup-wrapper.auth-main-shell .auth-main-stage {
+    padding-top: max(5.5rem, calc(env(safe-area-inset-top, 0px) + 4.5rem)) !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .login-signup-wrapper .auth-mobile-app-glow {
+    opacity: 0.45;
+  }
+
+  .login-signup-wrapper .auth-form-shell .flex.items-center.justify-between.mb-5 {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+
+  .login-signup-wrapper .auth-form-shell .inline-flex.items-center.px-1 {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .login-signup-wrapper .auth-form-shell .inline-flex.items-center.px-1 a {
+    flex: 1;
+    text-align: center;
+  }
+
+  .login-signup-wrapper .auth-mobile-chrome-legacy {
+    display: none !important;
+  }
+}

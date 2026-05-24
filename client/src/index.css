@@ -10,6 +10,8 @@
 @import './styles/floating-live-player.css';
 @import './styles/seller-live-studio.css';
 @import './styles/seller-notifications.css';
+@import './styles/admin-mobile.css';
+@import './styles/auth-mobile-premium.css';
 
 /* Mea Culpa – auth brand panel */
 @font-face {

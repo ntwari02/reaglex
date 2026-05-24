@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/config';
 import { isSellerPathWithBuyerNav } from '@/config/buyerNavVisibility';
+import { useAuthStore } from '@/stores/authStore';
+import { getAssistantChatStorageKey } from '@/lib/clearAuthSession';
 
 type Sender = 'bot' | 'user';
 
@@ -37,7 +39,7 @@ interface ChatMessage {
   paymentReferenceId?: string;
 }
 
-const STORAGE_KEY = 'reaglex_unified_assistant_chat';
+const LEGACY_STORAGE_KEY = 'reaglex_unified_assistant_chat';
 const MAX_MESSAGES = 50;
 const SEND_COOLDOWN_MS = 10_000;
 const PRIMARY = 'var(--commerce-brand-primary)';
@@ -107,6 +109,8 @@ export default function AssistantChat() {
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname;
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const storageKey = getAssistantChatStorageKey(userId);
 
   const isHidden =
     path === '/login' || path === '/signup' ||
@@ -147,11 +151,19 @@ export default function AssistantChat() {
   const textareaRef      = useRef<HTMLTextAreaElement | null>(null);
   const chatWindowRef    = useRef<HTMLDivElement | null>(null);
 
-  /* ── Persist / hydrate ── */
+  /* ── Persist / hydrate (per user — no shared chat across accounts) ── */
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      let raw = window.localStorage.getItem(storageKey);
+      if (!raw && userId) {
+        const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacy) {
+          raw = legacy;
+          window.localStorage.setItem(storageKey, legacy);
+          window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+        }
+      }
       if (raw) {
         const parsed = JSON.parse(raw) as ChatMessage[];
         if (Array.isArray(parsed) && parsed.length) {
@@ -161,13 +173,15 @@ export default function AssistantChat() {
       }
     } catch { /* ignore */ }
     setMessages([WELCOME_MESSAGE]);
-  }, []);
+  }, [storageKey, userId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES))); }
-    catch { /* ignore */ }
-  }, [messages]);
+    if (!messages.length) return;
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(messages.slice(-MAX_MESSAGES)));
+    } catch { /* ignore */ }
+  }, [messages, storageKey]);
 
   /* ── Cooldown ticker ── */
   useEffect(() => {
