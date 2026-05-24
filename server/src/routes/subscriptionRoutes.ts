@@ -3,6 +3,7 @@ import { authenticate, authorize } from '../middleware/auth';
 import {
   getSubscriptionPlans,
   getCurrentSubscription,
+  getSubscriptionEntitlements,
   getBillingHistory,
   downloadInvoice,
   getPaymentMethods,
@@ -29,6 +30,7 @@ router.use(authorize('seller'));
 
 // Subscription management
 router.get('/current', getCurrentSubscription);
+router.get('/entitlements', getSubscriptionEntitlements);
 router.post('/upgrade', upgradeSubscription);
 
 // Billing history

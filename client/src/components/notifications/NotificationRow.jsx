@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ChevronRight, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { getTypeMeta, formatDealCountdown, getNotificationHref } from '../../lib/notificationPresentation';
 import OrderProgressTrack from './OrderProgressTrack';
+import OsNotificationCard from './OsNotificationCard';
 
 const SWIPE_DELETE = -72;
 
@@ -51,6 +52,7 @@ export default function NotificationRow({
   onMarkRead,
   onDelete,
   enableSwipe = true,
+  index = 0,
 }) {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
@@ -72,9 +74,52 @@ export default function NotificationRow({
   const showTransit =
     n.type === 'order' && (n.orderStatus === 'shipped' || n.statusTone === 'transit');
 
+  const showThumbs =
+    n.presentationType === 'ai' ||
+    n.type === 'live' ||
+    (n.type === 'system' && n.thumbnails?.length > 0);
+
+  const footer = (
+    <>
+      {n.type === 'order' && n.statusLabel ? (
+        <StatusBadge
+          label={n.statusLabel}
+          tone={n.statusTone === 'transit' ? 'transit' : 'confirmed'}
+        />
+      ) : null}
+
+      {n.type === 'order' && n.progress ? (
+        <OrderProgressTrack progress={n.progress} compact glow={showTransit} />
+      ) : null}
+
+      {n.type === 'deal' && n.dealEndsAt ? <DealCountdown endsAt={n.dealEndsAt} /> : null}
+
+      {n.presentationType === 'ai' ? <AiThumbs images={n.aiThumbs || n.thumbnails} /> : null}
+
+      {n.type === 'order' && n.orderId ? (
+        <Link
+          to={`/track/${n.orderId}`}
+          onClick={(e) => e.stopPropagation()}
+          className="rxn-row-chip"
+        >
+          Order {n.orderId}
+        </Link>
+      ) : null}
+    </>
+  );
+
+  const hasFooter =
+    (n.type === 'order' && (n.statusLabel || n.progress || n.orderId)) ||
+    (n.type === 'deal' && n.dealEndsAt) ||
+    n.presentationType === 'ai';
+
+  const actionLabel =
+    n.actionText ||
+    (n.type === 'live' ? 'Watch live' : n.type === 'message' ? 'Reply' : n.actionUrl ? 'Open' : undefined);
+
   return (
-    <div className="rxn-row-wrap">
-      {enableSwipe && onDelete && (
+    <div className="rxn-row-wrap rxn-row-wrap--os">
+      {enableSwipe && onDelete ? (
         <button
           type="button"
           className="rxn-row-delete"
@@ -83,11 +128,10 @@ export default function NotificationRow({
         >
           <Trash2 size={18} strokeWidth={1.75} />
         </button>
-      )}
-      <motion.article
-        layout
-        className={`rxn-row rxn-row--premium${n.unread ? ' rxn-row--unread' : ''}`}
-        style={enableSwipe && !reduceMotion ? { x: dragX } : undefined}
+      ) : null}
+      <motion.div
+        className="rxn-row-os-drag"
+        style={enableSwipe && onDelete && !reduceMotion ? { x: dragX } : undefined}
         drag={enableSwipe && onDelete && !reduceMotion ? 'x' : false}
         dragConstraints={{ left: SWIPE_DELETE, right: 0 }}
         dragElastic={0.08}
@@ -96,61 +140,26 @@ export default function NotificationRow({
           if (info.offset.x < SWIPE_DELETE * 0.55) onDelete?.(n.id);
           setDragX(0);
         }}
-        whileTap={{ scale: 0.985 }}
       >
-        {n.unread && <span className="rxn-row-accent-bar" aria-hidden />}
-        <button type="button" className="rxn-row-hit" onClick={handleOpen}>
-          <span
-            className="rxn-row-icon rxn-row-icon--glow"
-            style={{
-              background: meta.surface,
-              borderColor: meta.border,
-              color: meta.accent,
-              boxShadow: meta.glow ? `0 0 24px ${meta.glow}` : undefined,
-            }}
-          >
-            <Icon size={20} strokeWidth={1.75} />
-          </span>
-
-          <span className="rxn-row-body">
-            <span className="rxn-row-top">
-              <span className="rxn-row-type" style={{ color: meta.accent }}>
-                {meta.label}
-              </span>
-              <span className="rxn-row-time">{n.time}</span>
-            </span>
-            <span className={`rxn-row-title${n.unread ? ' rxn-row-title--bold' : ''}`}>{n.title}</span>
-            <span className="rxn-row-message">{n.message}</span>
-
-            {n.type === 'order' && n.statusLabel && (
-              <StatusBadge
-                label={n.statusLabel}
-                tone={n.statusTone === 'transit' ? 'transit' : 'confirmed'}
-              />
-            )}
-
-            {n.type === 'order' && n.progress && (
-              <OrderProgressTrack progress={n.progress} compact glow={showTransit} />
-            )}
-
-            {n.type === 'deal' && n.dealEndsAt && <DealCountdown endsAt={n.dealEndsAt} />}
-
-            {n.presentationType === 'ai' && <AiThumbs images={n.aiThumbs} />}
-
-            {n.type === 'order' && n.orderId && (
-              <Link
-                to={`/track/${n.orderId}`}
-                onClick={(e) => e.stopPropagation()}
-                className="rxn-row-chip"
-              >
-                Order {n.orderId}
-              </Link>
-            )}
-          </span>
-
-          <ChevronRight className="rxn-row-chevron" size={18} strokeWidth={1.75} />
-        </button>
-      </motion.article>
+        <OsNotificationCard
+          variant={n.osVariant || 'stack'}
+          unread={n.unread}
+          accent={meta.accent}
+          surface={meta.surface}
+          glow={n.osGlow || meta.glow}
+          Icon={Icon}
+          kicker={meta.label}
+          title={n.title}
+          message={n.message}
+          time={n.time}
+          actionLabel={actionLabel}
+          thumbnails={n.thumbnails || n.aiThumbs || []}
+          showThumbs={showThumbs}
+          footer={hasFooter ? footer : null}
+          index={index}
+          onClick={handleOpen}
+        />
+      </motion.div>
     </div>
   );
 }

@@ -187,13 +187,8 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
     const gate = await canSellerGoLive(req.user.id);
     if (!gate.ok) return res.status(403).json({ message: gate.reason });
 
-    const { forceEndSellerLiveSessions, getSellerActiveLiveSessionId } = await import(
-      '../services/liveSellerPresence'
-    );
-    const activeLiveId = await getSellerActiveLiveSessionId(req.user.id);
-    if (activeLiveId) {
-      await forceEndSellerLiveSessions(req.user.id);
-    }
+    const { forceEndSellerLiveSessions } = await import('../services/liveSellerPresence');
+    await forceEndSellerLiveSessions(req.user.id);
 
     const body = req.body as CreateLiveSessionBody;
     const {
@@ -217,9 +212,21 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
     if (!title) return res.status(400).json({ message: 'title is required' });
 
     const sessionMode = parseSessionMode(modeInput);
-    const resolvedProvider =
+    let resolvedProvider =
       (streamProvider as StreamProviderType) || (await getDefaultProvider());
-    await assertProviderAllowed(resolvedProvider);
+    try {
+      await assertProviderAllowed(resolvedProvider);
+    } catch {
+      const fallback = await getDefaultProvider();
+      try {
+        await assertProviderAllowed(fallback);
+        resolvedProvider = fallback;
+      } catch (providerErr: any) {
+        return res.status(400).json({
+          message: providerErr?.message || 'No streaming providers are enabled',
+        });
+      }
+    }
 
     const settings = await getLiveCommerceSettings();
     const now = new Date();
@@ -253,23 +260,32 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
         instantBuy: features.instantBuy !== false,
         autoBid: features.autoBid !== false,
       },
-      isPrivate: Boolean(isPrivate),
+      isPrivate: Boolean(isPrivate) || sessionMode === 'private',
       aiInsight: 'Demand trending · viewers engaging now',
       clips: [],
       timeline: [],
     });
 
     if (!scheduledAt) {
-      const attached = await attachStreamToSession(String(session._id), session.streamProvider, {
-        youtubeVideoId: String(youtubeVideoId || ''),
-        youtubeUrl: String(youtubeUrl || streamUrl || ''),
-        title: session.title,
+      try {
+        const attached = await attachStreamToSession(String(session._id), session.streamProvider, {
+          youtubeVideoId: String(youtubeVideoId || ''),
+          youtubeUrl: String(youtubeUrl || streamUrl || ''),
+          title: session.title,
+        });
+        session = attached.session;
+        session.status = 'live';
+        session.sellerLastHeartbeatAt = new Date();
+        await session.save();
+      } catch (streamErr: any) {
+        await LiveCommerceSession.deleteOne({ _id: session._id });
+        return res.status(400).json({
+          message: streamErr?.message || 'Could not attach stream to session',
+        });
+      }
+      notifySellerWentLive(String(session._id), req.user.id).catch((err) => {
+        console.warn('[live] notifySellerWentLive failed:', err?.message);
       });
-      session = attached.session;
-      session.status = 'live';
-      session.sellerLastHeartbeatAt = new Date();
-      await session.save();
-      void notifySellerWentLive(String(session._id), req.user.id);
     }
 
     const seller = await User.findById(req.user.id)
@@ -281,7 +297,13 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
       session: serializeLiveSession(session, seller),
     });
   } catch (err: any) {
-    return res.status(500).json({ message: 'Failed to start live session', error: err.message });
+    const msg = err?.message || 'Unknown error';
+    const status =
+      err?.name === 'ValidationError' || /not enabled|required|invalid/i.test(msg) ? 400 : 500;
+    return res.status(status).json({
+      message: status === 400 ? msg : 'Failed to start live session',
+      error: msg,
+    });
   }
 });
 

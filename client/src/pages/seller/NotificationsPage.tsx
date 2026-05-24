@@ -1,118 +1,66 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Bell,
-  Store,
-  FileText,
-  Settings,
-  AlertTriangle,
-  CheckCircle2,
-  Info,
-} from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Bell, Settings } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { sellerNotificationsApi } from '@/services/sellerNotificationsApi';
+import { useAuthStore } from '@/stores/authStore';
+import { enrichSellerNotification } from '@/lib/sellerNotificationPresentation';
+import SellerNotificationCard from '@/components/seller/SellerNotificationCard';
 
-interface Notification {
-  id: string;
-  _id?: string;
-  type: 'info' | 'warning' | 'error' | 'success' | 'policy_update' | 'system_announcement';
-  title: string;
-  message: string;
-  createdAt: string;
-  unread: boolean;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  actionLink?: string;
-  actionLabel?: string | null;
-  category?: string;
-}
+const FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'orders', label: 'Orders' },
+  { id: 'shipping', label: 'Shipping' },
+  { id: 'returns', label: 'Returns' },
+  { id: 'finance', label: 'Finance' },
+];
 
-const NotificationsPage: React.FC = () => {
+const CATEGORY_GROUPS: Record<string, string[]> = {
+  orders: ['new_order'],
+  shipping: ['shipping_delay', 'shipping_soon'],
+  returns: ['return_opened', 'dispute_opened'],
+  finance: ['payout_received', 'funds_released', 'order_refunded'],
+};
+
+export default function NotificationsPage() {
   const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const userId = useAuthStore((s) => s.user?.id || '');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const filters: Array<{ id: string; label: string; icon: typeof Bell }> = [
-    { id: 'all', label: 'All', icon: Bell },
-    { id: 'success', label: 'Success', icon: CheckCircle2 },
-    { id: 'warning', label: 'Warnings', icon: AlertTriangle },
-    { id: 'error', label: 'Errors', icon: AlertTriangle },
-    { id: 'system_announcement', label: 'Announcements', icon: FileText },
-    { id: 'policy_update', label: 'Policy', icon: Store },
-  ];
-
-  useEffect(() => {
-    let mounted = true;
+  const refresh = useCallback(() => {
     setLoading(true);
-    sellerNotificationsApi
+    return sellerNotificationsApi
       .getNotifications(100)
       .then((data) => {
-        if (!mounted) return;
         const rows = Array.isArray(data?.notifications) ? data.notifications : [];
-        const mapped = rows.map((n: any) => ({
-          ...n,
-          id: String(n._id || n.id),
-          unread: !Array.isArray(n.readBy) || !n.readBy.length,
-          actionLink: n.actionUrl,
-          actionLabel: n.actionText || 'Open',
-        }));
-        setNotifications(mapped);
+        setNotifications(rows.map((n) => enrichSellerNotification(n, userId)));
       })
-      .catch(() => {
-        if (mounted) setNotifications([]);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+      .catch(() => setNotifications([]))
+      .finally(() => setLoading(false));
+  }, [userId]);
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
-  const filteredNotifications = useMemo(
-    () =>
-      activeFilter === 'all'
-        ? notifications
-        : notifications.filter((n) => n.type === activeFilter),
-    [activeFilter, notifications],
-  );
+  const filteredNotifications = useMemo(() => {
+    if (activeFilter === 'all') return notifications;
+    const cats = CATEGORY_GROUPS[activeFilter] || [];
+    return notifications.filter((n) => cats.includes(n.category));
+  }, [activeFilter, notifications]);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
-  const filteredUnreadCount = filteredNotifications.filter((n) => n.unread).length;
 
-  const getMeta = (type: Notification['type']) => {
-    if (type === 'warning' || type === 'error') {
-      return {
-        icon: AlertTriangle,
-        iconBg: 'bg-yellow-100 dark:bg-yellow-900/20',
-        iconColor: 'text-yellow-600 dark:text-yellow-400',
-      };
-    }
-    if (type === 'success') {
-      return {
-        icon: CheckCircle2,
-        iconBg: 'bg-emerald-100 dark:bg-emerald-900/20',
-        iconColor: 'text-emerald-600 dark:text-emerald-400',
-      };
-    }
-    if (type === 'policy_update' || type === 'system_announcement') {
-      return {
-        icon: FileText,
-        iconBg: 'bg-gray-100 dark:bg-[var(--bg-tertiary)]',
-        iconColor: 'text-gray-700 dark:text-[var(--text-secondary)]',
-      };
-    }
-    return {
-      icon: Info,
-      iconBg: 'bg-gray-100 dark:bg-gray-700',
-      iconColor: 'text-gray-600 dark:text-gray-300',
-    };
+  const markAsRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+    void sellerNotificationsApi.markAsRead(id).catch(() => null);
   };
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleString();
+  const openNotification = (id: string) => {
+    const row = notifications.find((n) => n.id === id);
+    markAsRead(id);
+    if (row?.actionLink) navigate(row.actionLink);
   };
 
   const markAllAsRead = () => {
@@ -121,33 +69,32 @@ const NotificationsPage: React.FC = () => {
     void Promise.all(unreadIds.map((id) => sellerNotificationsApi.markAsRead(id).catch(() => null)));
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
-    void sellerNotificationsApi.markAsRead(id).catch(() => null);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {filteredUnreadCount > 0 ? `${filteredUnreadCount} unread` : 'All caught up!'}
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            Notifications
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+            {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </p>
         </div>
         <div className="flex items-center gap-3">
           {unreadCount > 0 && (
             <button
+              type="button"
               onClick={markAllAsRead}
-              className="px-4 py-2 text-sm font-semibold text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-semibold rounded-lg"
+              style={{ color: 'var(--brand-primary)' }}
             >
-              Mark All Read
+              Mark all read
             </button>
           )}
           <Link
             to="/seller/settings"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg"
+            style={{ color: 'var(--text-muted)' }}
           >
             <Settings className="h-4 w-4" />
             Settings
@@ -155,120 +102,62 @@ const NotificationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {filters.map((filter) => {
-          const Icon = filter.icon;
-          const count = filter.id === 'all'
-            ? unreadCount
-            : notifications.filter((n) => n.type === filter.id && n.unread).length;
+        {FILTERS.map((filter) => {
+          const count =
+            filter.id === 'all'
+              ? unreadCount
+              : notifications.filter(
+                  (n) => (CATEGORY_GROUPS[filter.id] || []).includes(n.category) && n.unread,
+                ).length;
           const isActive = activeFilter === filter.id;
-          
           return (
             <button
               key={filter.id}
+              type="button"
               onClick={() => setActiveFilter(filter.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                isActive
-                  ? 'bg-[var(--brand-tint-strong)] dark:bg-[var(--brand-tint-strong)] text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)]'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
+              className="rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap"
+              style={{
+                background: isActive ? 'var(--brand-tint)' : 'var(--bg-secondary)',
+                color: isActive ? 'var(--brand-primary)' : 'var(--text-muted)',
+                border: `1px solid ${isActive ? 'var(--brand-border-subtle)' : 'var(--border-card)'}`,
+              }}
             >
-              <Icon className="h-4 w-4" />
-              <span>{filter.label}</span>
-              {count > 0 && (
-                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                  isActive
-                    ? 'bg-[var(--brand-primary-hover)] dark:bg-[var(--brand-primary)] text-white'
-                    : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
-                }`}>
-                  {count}
-                </span>
-              )}
+              {filter.label}
+              {count > 0 ? ` · ${count}` : ''}
             </button>
           );
         })}
       </div>
 
-      {/* Notifications List */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+      <div
+        className="rounded-2xl border p-4 md:p-6"
+        style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)' }}
+      >
         {loading ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading notifications...</div>
+          <p className="p-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+            Loading notifications…
+          </p>
         ) : filteredNotifications.length === 0 ? (
           <div className="p-12 text-center">
-            <Bell className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <p className="text-lg font-medium text-gray-500 dark:text-gray-400">No notifications</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-              {activeFilter !== 'all' ? `No ${filters.find(f => f.id === activeFilter)?.label.toLowerCase()} notifications` : 'You\'re all caught up!'}
+            <Bell className="h-14 w-14 mx-auto mb-4 opacity-30" />
+            <p className="font-medium" style={{ color: 'var(--text-muted)' }}>
+              No notifications yet
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredNotifications.map((notification) => {
-              const meta = getMeta(notification.type);
-              const Icon = meta.icon;
-              return (
-                <div
-                  key={notification.id}
-                  onClick={() => markAsRead(notification.id)}
-                  className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                    notification.unread
-                      ? 'border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)] bg-[color-mix(in_srgb,var(--brand-primary)_8%,transparent)] dark:bg-[var(--brand-tint)]'
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-                  } hover:shadow-md hover:border-[var(--brand-border-subtle)] dark:hover:border-[var(--brand-border-subtle)]`}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Icon */}
-                    <div className={`w-12 h-12 ${meta.iconBg} rounded-lg flex items-center justify-center flex-shrink-0 border-2 border-[var(--brand-border-subtle)] dark:border-[var(--brand-border-subtle)]`}>
-                      <Icon className={`h-6 w-6 ${meta.iconColor}`} strokeWidth={2} />
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h4 className={`font-bold text-base ${
-                          notification.unread 
-                            ? 'text-gray-900 dark:text-white' 
-                            : 'text-gray-700 dark:text-gray-300'
-                        }`}>
-                          {notification.title}
-                        </h4>
-                        {notification.unread && (
-                          <div className="w-3 h-3 bg-[var(--brand-primary-hover)] dark:bg-[var(--brand-primary)] rounded-full flex-shrink-0 mt-1 shadow-sm" />
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
-                        {notification.message}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">
-                          {formatDate(notification.createdAt)}
-                        </p>
-                        {notification.actionLink && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (notification.actionLink) {
-                                navigate(notification.actionLink);
-                              }
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--brand-orange-text)] dark:text-[var(--brand-orange-text)] hover:text-[var(--brand-primary-hover)] dark:hover:text-[var(--brand-primary)] hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] rounded-lg transition-colors"
-                          >
-                            {notification.actionLabel || 'Open'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="sln-feed">
+            {filteredNotifications.map((notification, index) => (
+              <SellerNotificationCard
+                key={notification.id}
+                notification={notification}
+                onOpen={openNotification}
+                index={index}
+              />
+            ))}
           </div>
         )}
       </div>
     </div>
   );
-};
-
-export default NotificationsPage;
-
+}

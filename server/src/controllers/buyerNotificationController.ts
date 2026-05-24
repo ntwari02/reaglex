@@ -19,6 +19,10 @@ interface BuyerNotificationItem {
   orderId?: string;
   threadId?: string;
   liveSessionId?: string;
+  actionUrl?: string;
+  actionText?: string;
+  metadata?: Record<string, unknown>;
+  productThumbnails?: string[];
 }
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
@@ -134,7 +138,11 @@ async function buildBuyerNotifications(
   const systemItems: BuyerNotificationItem[] = sysRows.map((n: any) => {
     const createdAt = n.createdAt || new Date();
     const unread = !n.readBy?.some((id: mongoose.Types.ObjectId) => id.toString() === buyerId.toString());
-    const isLive = String(n.actionUrl || '').includes('/live/');
+    const actionUrl = n.actionUrl ? String(n.actionUrl) : undefined;
+    const isLive = actionUrl?.includes('/live/') || false;
+    const thumbs = Array.isArray(n.metadata?.productThumbnails)
+      ? n.metadata.productThumbnails.filter(Boolean).slice(0, 3)
+      : undefined;
     return {
       id: `system:${n._id}`,
       type: isLive ? 'live' : 'system',
@@ -143,11 +151,11 @@ async function buildBuyerNotifications(
       time: formatRelativeTime(createdAt),
       createdAt: new Date(createdAt).toISOString(),
       unread,
-      orderId: undefined,
-      threadId: undefined,
-      liveSessionId: isLive
-        ? String(n.actionUrl || '').match(/\/live\/([a-f0-9]{24})/i)?.[1]
-        : undefined,
+      actionUrl,
+      actionText: n.actionText ? String(n.actionText) : undefined,
+      metadata: n.metadata || undefined,
+      productThumbnails: thumbs,
+      liveSessionId: isLive ? actionUrl?.match(/\/live\/([a-f0-9]{24})/i)?.[1] : undefined,
     };
   });
 

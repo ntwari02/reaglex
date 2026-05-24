@@ -7,8 +7,8 @@ import { Product } from '../models/Product';
 import { Dispute } from '../models/Dispute';
 import { ReturnCase } from '../models/ReturnCase';
 import { evaluateReturnPolicy } from '../services/returnsPolicy.service';
-import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
-import { sendNotificationEmail } from '../services/emailService';
+import { deliverBuyerNotification } from '../services/buyerNotificationService';
+import { deliverSellerNotification } from '../services/sellerNotificationService';
 import { User } from '../models/User';
 import { ProductReview } from '../models/ProductReview';
 
@@ -288,23 +288,16 @@ export async function createReturnCase(req: AuthenticatedRequest, res: Response)
           },
         ],
       });
-      void createSystemInboxAndFanout({
-        title: `New return case ${doc.caseNumber}`,
-        message: `Buyer opened a return request for order ${order.orderNumber || String(order._id)}.`,
-        type: 'system_announcement',
-        priority: abuseScore > 70 ? 'high' : 'medium',
-        targetAudience: 'specific_seller',
-        targetSellerId: sellerId,
-        createdBy: buyerId,
-      });
-      const seller = await User.findById(sellerId).select('email fullName').lean();
-      if (seller?.email) {
-        void sendNotificationEmail({
-          to: seller.email,
-          subject: `Return case opened (${doc.caseNumber})`,
-          body: `A buyer opened return case ${doc.caseNumber}. Please review and respond.`,
-        });
-      }
+      void deliverSellerNotification(
+        'return_opened',
+        {
+          sellerId: String(sellerId),
+          orderId: String(order._id),
+          orderNumber: String(order.orderNumber || ''),
+          caseNumber: String(doc.caseNumber || ''),
+        },
+        String(buyerId)
+      );
       createdCases.push(doc);
     }
 
@@ -314,15 +307,16 @@ export async function createReturnCase(req: AuthenticatedRequest, res: Response)
     escrow.disputeReason = REASONS[reasonCode];
     order.escrow = escrow;
     await order.save();
-    void createSystemInboxAndFanout({
-      title: `Return request submitted (${createdCases.length})`,
-      message: `Your return request for order ${order.orderNumber || String(order._id)} was submitted.`,
-      type: 'system_announcement',
-      priority: 'medium',
-      targetAudience: 'specific_user',
-      targetUserId: buyerId,
-      createdBy: buyerId,
-    });
+    void deliverBuyerNotification(
+      'return_submitted',
+      {
+        buyerId: String(buyerId),
+        orderId: String(order._id),
+        orderNumber: String(order.orderNumber || ''),
+        caseNumber: createdCases[0]?.caseNumber ? String(createdCases[0].caseNumber) : undefined,
+      },
+      String(buyerId)
+    );
 
     return res.status(201).json({
       message: 'Return case(s) created successfully',
@@ -648,6 +642,19 @@ export async function submitRewardedReview(req: AuthenticatedRequest, res: Respo
         $set: { 'rewards.lastEarnedAt': new Date() },
       }
     );
+
+    const sellerIdForReview = String((product as { sellerId?: unknown }).sellerId || '');
+    if (sellerIdForReview) {
+      void deliverSellerNotification(
+        'new_review',
+        {
+          sellerId: sellerIdForReview,
+          orderId: String(orderId),
+          orderNumber: String(orderId),
+        },
+        String(buyerId)
+      );
+    }
 
     return res.status(201).json({
       success: true,

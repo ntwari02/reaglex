@@ -147,6 +147,9 @@ async function handleTransferComplete(data: any) {
     });
     await sendNotification(order.sellerId.toString(), 'PAYOUT_CONFIRMED', {
       amount: data.amount,
+      orderId: String(order._id),
+      orderNumber: order.orderNumber,
+      currency: order.currency,
     });
   }
 }

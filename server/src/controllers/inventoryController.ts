@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { deleteImage } = require('../../config/cloudinary');
 import { Product } from '../models/Product';
+import { assertCanCreateProduct } from '../services/subscriptionEntitlements.service';
 import { Warehouse } from '../models/Warehouse';
 import { StockHistory } from '../models/StockHistory';
 import {
@@ -256,6 +257,27 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({
         message: 'Product verification failed. Fix the issues below before submitting.',
         verification: trustEval,
+      });
+    }
+
+    const limitCheck = await assertCanCreateProduct(String(sellerId));
+    if (!limitCheck.ok) {
+      if (limitCheck.code === 'PRODUCT_LIMIT' && limitCheck.entitlements) {
+        const { deliverSellerNotification } = await import('../services/sellerNotificationService');
+        void deliverSellerNotification(
+          'subscription_limit_reached',
+          {
+            sellerId: String(sellerId),
+            affectedCount: limitCheck.entitlements.productCount,
+            planName: limitCheck.entitlements.tierName,
+          },
+          String(sellerId),
+        );
+      }
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        entitlements: limitCheck.entitlements,
       });
     }
 

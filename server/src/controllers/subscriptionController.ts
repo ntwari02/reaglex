@@ -14,6 +14,13 @@ import {
 } from '../utils/subscriptionTransformers';
 import { simulateTokenizePaymentMethod, validateCardNumber, validateExpiryDate } from '../services/paymentSimulator';
 import { chargeDefaultPaymentMethodForSubscription } from '../services/subscriptionBilling.service';
+import {
+  evaluateEffectivePrice,
+  planFeaturesFromPlan,
+  type BillingCycleChoice,
+} from '../services/subscriptionPlan.service';
+import { getSellerEntitlements } from '../services/subscriptionEntitlements.service';
+import { deliverSellerNotification } from '../services/sellerNotificationService';
 import mongoose from 'mongoose';
 
 /**
@@ -114,7 +121,8 @@ export async function getCurrentSubscription(req: AuthenticatedRequest, res: Res
       return res.status(404).json({ message: 'No active subscription found' });
     }
 
-    const currentPlan = transformCurrentPlanToFrontend(subscription as ISellerSubscription);
+    const entitlements = await getSellerEntitlements(req.user.id);
+    const currentPlan = transformCurrentPlanToFrontend(subscription as ISellerSubscription, entitlements || undefined);
 
     res.json({
       subscription: {
@@ -122,11 +130,31 @@ export async function getCurrentSubscription(req: AuthenticatedRequest, res: Res
         status: subscription.current_plan.status,
         autoRenew: subscription.current_plan.auto_renew,
         startDate: formatDate(subscription.current_plan.start_date),
+        entitlements,
       },
     });
   } catch (error: any) {
     console.error('Error fetching current subscription:', error);
     res.status(500).json({ message: 'Failed to fetch current subscription' });
+  }
+}
+
+/**
+ * GET /api/seller/subscription/entitlements
+ */
+export async function getSubscriptionEntitlements(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const entitlements = await getSellerEntitlements(req.user.id);
+    if (!entitlements) {
+      return res.status(404).json({ message: 'No subscription found' });
+    }
+    return res.json({ entitlements });
+  } catch (error: any) {
+    console.error('Error fetching entitlements:', error);
+    res.status(500).json({ message: 'Failed to fetch entitlements' });
   }
 }
 
@@ -957,7 +985,9 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { tierId, paymentMethodId } = req.body;
+    const { tierId, paymentMethodId, billingCycle: billingCycleBody } = req.body;
+    const billingCycle: BillingCycleChoice =
+      billingCycleBody === 'annual' ? 'annual' : 'monthly';
     
     console.log('Upgrade subscription request:', { 
       userId: req.user.id, 
@@ -987,7 +1017,11 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
 
     const now = new Date();
     let isNewSubscription = false;
-    let paymentAmount = newPlan.price;
+    const priceQuote = evaluateEffectivePrice(newPlan, {
+      billingCycle,
+      adminCoupon: null,
+    });
+    let paymentAmount = priceQuote.effectivePrice;
     let oldPlanId: string | null = null;
     let oldTierId: string | null = null;
     let oldPrice = 0;
@@ -1053,23 +1087,9 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
           auto_renew: true,
           trial_days: newPlan.trial_days,
           trial_used: false,
-          effective_price: newPlan.price,
+          effective_price: priceQuote.effectivePrice,
         },
-        plan_features: {
-          product_limit: newPlan.limits.products.is_unlimited ? 'unlimited' : newPlan.limits.products.display,
-          product_limit_numeric: newPlan.limits.products.limit,
-          storage_limit: newPlan.limits.storage.limit_display,
-          storage_limit_bytes: newPlan.limits.storage.limit_bytes,
-          analytics_enabled: newPlan.limits.analytics.enabled,
-          priority_support: newPlan.limits.support_level !== 'email',
-          custom_branding: newPlan.limits.custom_branding,
-          api_access: newPlan.limits.api_calls_per_month > 0,
-          fast_payment_processing: true,
-          white_label: newPlan.limits.white_label,
-          advanced_api: newPlan.limits.api_calls_per_month > 10000,
-          custom_integrations: false,
-          dedicated_support: newPlan.limits.support_level === 'dedicated_24_7',
-        },
+        plan_features: planFeaturesFromPlan(newPlan),
         financial_events: [],
         billing_history: [],
         payment_methods: [],
@@ -1164,7 +1184,9 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
       
       const daysRemaining = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const totalDaysInCycle = Math.ceil((renewalDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      paymentAmount = Math.abs(calculateProratedAmount(oldPrice, newPlan.price, daysRemaining, totalDaysInCycle));
+      paymentAmount = Math.abs(
+        calculateProratedAmount(oldPrice, priceQuote.effectivePrice, daysRemaining, totalDaysInCycle),
+      );
     }
 
     // Get default payment method (only required for paid plans)
@@ -1176,7 +1198,7 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
       paymentMethods.find((m: any) => m && m.is_default && m.is_active);
 
     // If plan requires payment and no payment method exists
-    if (newPlan.price > 0 && !selectedPaymentMethod) {
+    if (paymentAmount > 0 && !selectedPaymentMethod) {
       return res.status(400).json({ 
         message: 'No default payment method found. Please add a payment method first.',
         requiresPaymentMethod: true 
@@ -1185,7 +1207,7 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
 
     // Simulate payment (only if plan costs money)
     let paymentResult = null;
-    if (newPlan.price > 0 && selectedPaymentMethod) {
+    if (paymentAmount > 0 && selectedPaymentMethod) {
       paymentResult = await chargeDefaultPaymentMethodForSubscription(
         selectedPaymentMethod,
         paymentAmount,
@@ -1210,7 +1232,7 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
     }
 
     // Update subscription
-    const newRenewalDate = calculateRenewalDate(now, newPlan.billing_cycle);
+    const newRenewalDate = calculateRenewalDate(now, billingCycle === 'annual' ? 'annual' : newPlan.billing_cycle);
 
     // Add to subscription history (only if upgrading, not creating new)
     if (!isNewSubscription && oldPlanId) {
@@ -1246,35 +1268,21 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
       name: newPlan.name,
       price: newPlan.price,
       currency: newPlan.currency,
-      billing_cycle: newPlan.billing_cycle,
+      billing_cycle: billingCycle,
       status: 'active',
       start_date: now,
       renewal_date: newRenewalDate,
       auto_renew: subscription.current_plan?.auto_renew ?? true,
       trial_days: newPlan.trial_days,
       trial_used: !newPlan.trial_enabled || subscription.trial?.trial_used || false,
-      effective_price: newPlan.price,
+      effective_price: priceQuote.effectivePrice,
     };
     
     // Mark current_plan as modified since it's Schema.Types.Mixed
     subscription.markModified('current_plan');
 
     // Update plan features
-    subscription.plan_features = {
-      product_limit: newPlan.limits.products.is_unlimited ? 'unlimited' : newPlan.limits.products.display,
-      product_limit_numeric: newPlan.limits.products.limit,
-      storage_limit: newPlan.limits.storage.limit_display,
-      storage_limit_bytes: newPlan.limits.storage.limit_bytes,
-      analytics_enabled: newPlan.limits.analytics.enabled,
-      priority_support: newPlan.limits.support_level !== 'email',
-      custom_branding: newPlan.limits.custom_branding,
-      api_access: newPlan.limits.api_calls_per_month > 0,
-      fast_payment_processing: true,
-      white_label: newPlan.limits.white_label,
-      advanced_api: newPlan.limits.api_calls_per_month > 10000,
-      custom_integrations: false,
-      dedicated_support: newPlan.limits.support_level === 'dedicated_24_7',
-    };
+    subscription.plan_features = planFeaturesFromPlan(newPlan);
     
     // Mark plan_features as modified since it's Schema.Types.Mixed
     subscription.markModified('plan_features');
@@ -1412,6 +1420,19 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
     subscription.metadata.version = (subscription.metadata.version || 0) + 1;
 
     await subscription.save();
+
+    void deliverSellerNotification(
+      'subscription_upgraded',
+      {
+        sellerId: req.user!.id,
+        planName: newPlan.tier_name,
+        previousPlanName: oldTierId || undefined,
+        amount: paymentAmount,
+        currency: newPlan.currency || 'USD',
+        renewalDate: formatDate(newRenewalDate),
+      },
+      req.user!.id,
+    );
 
     res.json({
       message: isNewSubscription ? 'Subscription created successfully' : 'Subscription upgraded successfully',

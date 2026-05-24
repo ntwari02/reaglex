@@ -1,33 +1,42 @@
 import mongoose from 'mongoose';
 import { LiveCommerceSession } from '../models/LiveCommerceSession';
-import { SystemNotification } from '../models/SystemNotification';
 import { User } from '../models/User';
+import { createSystemInboxAndFanout } from './systemInboxFanout';
 import { safeSendPushToUser } from './pushNotificationService';
 
 /**
- * Notify buyers when a seller goes live (in-app system notification + optional push).
+ * Notify buyers when a seller goes live (in-app + push + real-time fan-out).
  */
 export async function notifySellerWentLive(sessionId: string, sellerId: string) {
   const session = await LiveCommerceSession.findById(sessionId).select('title sellerId status').lean();
   if (!session || session.status !== 'live') return;
 
-  const seller = await User.findById(sellerId).select('fullName email').lean();
-  const sellerName = (seller as { fullName?: string })?.fullName || 'A seller';
+  const seller = await User.findById(sellerId).select('fullName storeName email').lean();
+  const sellerName =
+    (seller as { fullName?: string; storeName?: string })?.storeName ||
+    (seller as { fullName?: string })?.fullName ||
+    'A seller';
   const title = `${sellerName} is live now`;
   const message = session.title
     ? `Watch "${session.title}" — tap to join the live show.`
     : 'Join the live stream and shop products in real time.';
 
   const admin = await User.findOne({ role: 'admin' }).select('_id').lean();
-  await SystemNotification.create({
+  await createSystemInboxAndFanout({
     title,
     message,
     type: 'system_announcement',
-    targetAudience: 'all_buyers',
     priority: 'high',
+    targetAudience: 'all_buyers',
     actionUrl: `/live/${sessionId}`,
     actionText: 'Watch live',
     createdBy: admin?._id || new mongoose.Types.ObjectId(sellerId),
+    metadata: {
+      category: 'live_now',
+      eventKey: 'live_now',
+      entityId: sessionId,
+      visualStyle: { showProductPreview: false, compact: true, thumbnailCount: 0 },
+    },
   });
 
   const recentBuyers = await User.find({ role: 'buyer' })

@@ -5,10 +5,11 @@ import {
   Package, Heart, MapPin, CreditCard, Star, RotateCcw, User, ChevronRight,
   Truck, CheckCircle, Clock, ShoppingBag, Shield, ArrowUpRight, Edit3, Plus,
   Settings, LogOut, LayoutGrid, List, ChevronDown, Eye, Headphones, X, Copy,
-  Trash2, Check, Search, Upload, ArrowLeft,
+  Trash2, Check, Search, Upload, ArrowLeft, Gift,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import AccountSettingsDashboard from '../components/AccountSettingsDashboard';
+import BuyerReferralPanel from '../components/buyer/BuyerReferralPanel';
 import AccountMobileLayout from '../components/account/AccountMobileLayout';
 import SecuritySettingsSheet from '../components/account/SecuritySettingsSheet';
 import { useAuthStore } from '../stores/authStore';
@@ -57,6 +58,7 @@ const TAB_CONFIG = [
   { id: 'wishlist', label: 'Wishlist', icon: Heart },
   { id: 'addresses', label: 'Addresses', icon: MapPin },
   { id: 'payments', label: 'Payment Methods', icon: CreditCard },
+  { id: 'referral', label: 'Invite Friends', icon: Gift },
   { id: 'reviews', label: 'My Reviews', icon: Star },
   { id: 'returns', label: 'Returns', icon: RotateCcw },
   { id: 'settings', label: 'Account Settings', icon: Settings },
@@ -2180,6 +2182,36 @@ export default function BuyerDashboard() {
                         ))}
                       </div>
 
+                      <motion.button
+                        type="button"
+                        onClick={() => setTab('referral')}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        className="w-full text-left rounded-2xl p-5 flex items-center justify-between gap-4"
+                        style={{
+                          background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 12%, var(--card-bg)), var(--card-bg))',
+                          border: '1px solid color-mix(in srgb, var(--brand-primary) 28%, var(--card-border))',
+                        }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span
+                            className="w-12 h-12 rounded-xl flex items-center justify-center"
+                            style={{ background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)' }}
+                          >
+                            <Gift size={22} style={{ color: 'var(--brand-primary)' }} />
+                          </span>
+                          <div>
+                            <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                              Invite friends & earn rewards
+                            </p>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                              Get your personal link and referral code to share
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight size={20} style={{ color: 'var(--brand-primary)' }} />
+                      </motion.button>
+
                       {/* Recent Orders */}
                       <Card>
                         <CardHeader
@@ -3010,6 +3042,17 @@ export default function BuyerDashboard() {
 
                   {/* ── PAYMENT METHODS ── */}
                   {tab === 'payments' && <PaymentsTabContent />}
+
+                  {tab === 'referral' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35 }}
+                    >
+                      <BuyerReferralPanel />
+                    </motion.div>
+                  )}
+
                   {false && (
                     <div className="space-y-6">
                       {/* Escrow wallet balance card */}

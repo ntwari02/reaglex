@@ -234,7 +234,11 @@ export const subscriptionApi = {
    * Upgrade subscription plan
    * Returns a result object instead of throwing errors for expected cases
    */
-  async upgradeSubscription(tierId: string, paymentMethodId?: string): Promise<{
+  async upgradeSubscription(
+    tierId: string,
+    paymentMethodId?: string,
+    billingCycle?: 'monthly' | 'annual',
+  ): Promise<{
     success: boolean;
     data?: any;
     error?: {
@@ -248,7 +252,7 @@ export const subscriptionApi = {
         method: 'POST',
         headers: getAuthHeaders(),
         credentials: 'include',
-        body: JSON.stringify({ tierId, paymentMethodId }),
+        body: JSON.stringify({ tierId, paymentMethodId, billingCycle }),
       });
 
       if (!response.ok) {

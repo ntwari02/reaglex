@@ -1,0 +1,172 @@
+/* Seller subscription & billing — modern ops UI */
+
+.slx-sub-root {
+  --slx-accent: var(--brand-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.slx-sub-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slx-sub-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, #111);
+}
+
+.slx-sub-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text-primary, #111) 4%, transparent);
+  border: 1px solid var(--border-card, #e5e7eb);
+}
+
+.slx-sub-tab {
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  color: var(--text-muted, #6b7280);
+  background: transparent;
+}
+
+.slx-sub-tab.is-active {
+  color: #fff;
+  background: var(--gradient-brand-cta, linear-gradient(90deg, #ef4444, var(--brand-primary)));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+
+.slx-pay-flow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .slx-pay-flow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.slx-pay-step {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-card, #e5e7eb);
+  background: var(--card-bg, #fff);
+  text-align: center;
+}
+
+.slx-pay-step-num {
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-primary) 12%, transparent);
+}
+
+.slx-pay-step.is-active .slx-pay-step-num {
+  color: #fff;
+  background: var(--brand-primary);
+}
+
+.slx-pay-step.is-active {
+  border-color: color-mix(in srgb, var(--brand-primary) 40%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+
+.slx-pay-step-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.slx-billing-log {
+  border-radius: 16px;
+  border: 1px solid var(--border-card, #e5e7eb);
+  overflow: hidden;
+}
+
+.slx-billing-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--bg-secondary, #f9fafb);
+  border-bottom: 1px solid var(--border-card, #e5e7eb);
+}
+
+.slx-invoice-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 18px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-card, #e5e7eb);
+}
+
+@media (max-width: 640px) {
+  .slx-invoice-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+.slx-status-paid {
+  color: #059669;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.slx-status-pending {
+  color: #d97706;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.slx-status-failed {
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.slx-plan-card {
+  border-radius: 20px;
+  border: 1px solid var(--border-card, #e5e7eb);
+  padding: 24px;
+  background: var(--card-bg, #fff);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.slx-plan-card:hover {
+  border-color: color-mix(in srgb, var(--brand-primary) 35%, transparent);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--text-primary, #111) 8%, transparent);
+}
+
+.slx-plan-card.is-popular {
+  border-color: color-mix(in srgb, var(--brand-primary) 50%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-primary) 25%, transparent);
+}

@@ -4,11 +4,12 @@ import { getClientUrl } from '../config/publicEnv';
 import { Order, IOrder } from '../models/Order';
 import { EscrowWallet } from '../models/EscrowWallet';
 import { SellerWallet } from '../models/SellerWallet';
-import { TransactionLog } from '../models/TransactionLog';
 import { sendNotification } from './notificationService';
 import { scheduleAutoRelease } from './escrowService';
 import { processReferralRewardOnOrderPaid } from './referralReward.service';
-import { assertPaymentGatewayEnabled } from './paymentGateway.service';
+import { assertPaymentGatewayEnabled, assertCheckoutGatewayEnabled } from './paymentGateway.service';
+import { recordPaymentCaptured } from './paymentTransactionLog.service';
+import { gatewayKeyFromCheckoutMethod } from '../financial/paymentGatewayRegistry';
 import {
   assertMomoCallbackUrlProductionSafe,
   getRequestToPayStatus,
@@ -28,6 +29,7 @@ import { createPayPalCheckoutOrder, capturePayPalOrder } from './paypalCheckout.
 import { getMomoResolvedConfig } from './paymentGatewayCredentials.service';
 import { decrementInventoryForPaidOrderInSession, emitInventoryUpdatedForOrder } from './inventory.service';
 import { orderPayAmount, orderPayCurrency } from './orderPayMoney';
+import { toMinor } from '../financial/money';
 import { computeEscrowTrustScores } from './escrowTrust.service';
 
 export type CheckoutPaymentProcessor = 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
@@ -83,6 +85,74 @@ export function calculateFees(orderTotal: number, processor: CheckoutPaymentProc
 /**
  * Applies escrow + ledger side-effects once per order (idempotent).
  */
+/**
+ * Shadow-mode: append-only ledger + integrity checks without changing legacy wallet paths.
+ * Enable with FINANCIAL_LEDGER_SHADOW=true
+ */
+async function recordShadowLedgerCapture(
+  orderId: string,
+  order: IOrder,
+  ctx: {
+    provider: CheckoutPaymentProcessor;
+    paidAmount: number;
+    currency: string;
+    flutterwaveTransactionId?: string | number;
+    momoReferenceId?: string;
+    momoFinancialTransactionId?: string;
+    stripePaymentIntentId?: string;
+    paypalCaptureId?: string;
+    airtelTransactionId?: string;
+  },
+): Promise<void> {
+  if (process.env.FINANCIAL_LEDGER_SHADOW !== 'true') return;
+
+  const { postPaymentCaptured } = await import('./financialLedger.service');
+  const { verifyPaymentCapture } = await import('./financialIntegrity.service');
+
+  const feeBase = orderPayAmount(order);
+  const fees = calculateFees(feeBase, ctx.provider);
+  const currency = ctx.currency || orderPayCurrency(order) || 'RWF';
+  const grossMinor = toMinor(ctx.paidAmount, currency);
+  const platformFeeMinor = toMinor(fees.platformFee, currency);
+  const pspFeeMinor = toMinor(fees.flutterwaveFee, currency);
+  const sellerNetMinor = toMinor(fees.sellerReceives, currency);
+
+  const providerRef = String(
+    ctx.flutterwaveTransactionId ||
+      ctx.stripePaymentIntentId ||
+      ctx.paypalCaptureId ||
+      ctx.airtelTransactionId ||
+      ctx.momoFinancialTransactionId ||
+      ctx.momoReferenceId ||
+      orderId,
+  );
+
+  await postPaymentCaptured({
+    orderId,
+    sellerId: String(order.sellerId),
+    provider: ctx.provider,
+    providerRef,
+    grossMinor,
+    platformFeeMinor,
+    pspFeeMinor,
+    sellerNetMinor,
+    currency,
+    traceId: orderId,
+  });
+
+  const expectedGrossMinor = toMinor(feeBase, currency);
+  await verifyPaymentCapture({
+    orderId,
+    provider: ctx.provider,
+    providerRef,
+    expectedGrossMinor,
+    reportedGrossMinor: grossMinor,
+    currency,
+    sellerId: String(order.sellerId),
+    buyerId: String(order.buyerId),
+  });
+}
+
 export async function finalizeSuccessfulEscrowPayment(
   orderId: string,
   ctx: {
@@ -207,14 +277,17 @@ export async function finalizeSuccessfulEscrowPayment(
         { upsert: true, session },
       );
 
-      await new TransactionLog({
-        type: 'PAYMENT',
+      await recordPaymentCaptured({
         orderId,
         buyerId: order.buyerId,
         sellerId: order.sellerId,
-        amount: feeBaseAmount,
+        grossAmount: feeBaseAmount,
+        platformFee: fees.platformFee,
+        processingFee: fees.flutterwaveFee,
+        sellerNet: fees.sellerReceives,
         currency: ctx.currency,
-        flutterwaveRef:
+        provider: ctx.provider,
+        providerRef:
           ctx.provider === 'flutterwave' && ctx.flutterwaveTransactionId != null
             ? String(ctx.flutterwaveTransactionId)
             : ctx.stripePaymentIntentId ||
@@ -223,13 +296,13 @@ export async function finalizeSuccessfulEscrowPayment(
               ctx.momoFinancialTransactionId ||
               ctx.momoReferenceId ||
               ctx.provider,
-        status: 'ESCROW_HOLD',
-        metadata: {
-          provider: ctx.provider,
-          payment_type: ctx.paymentMethodLabel,
-          payment_method: ctx.provider === 'momo' ? 'MTN' : ctx.provider === 'flutterwave' ? 'Flutterwave' : ctx.provider,
+        paymentMethodLabel: ctx.paymentMethodLabel,
+        extraMetadata: {
+          payment_method:
+            ctx.provider === 'momo' ? 'MTN' : ctx.provider === 'flutterwave' ? 'Flutterwave' : ctx.provider,
           amount_paid: ctx.paidAmount,
           payment_currency: ctx.currency,
+          gatewayKey: gatewayKeyFromCheckoutMethod(ctx.provider),
           usd_equivalent:
             order.currencySnapshot?.currency && order.currencySnapshot.currency !== 'USD'
               ? Number(ctx.paidAmount || 0) / Number(order.currencySnapshot.exchangeRate || 1)
@@ -237,7 +310,8 @@ export async function finalizeSuccessfulEscrowPayment(
           momoReferenceId: ctx.momoReferenceId,
           momoFinancialTransactionId: ctx.momoFinancialTransactionId,
         },
-      }).save({ session });
+        session,
+      });
 
       orderForSideEffects = order;
     });
@@ -246,8 +320,20 @@ export async function finalizeSuccessfulEscrowPayment(
       return { success: true, status: 'ALREADY_COMPLETED' };
     }
 
-    await sendNotification(orderForSideEffects.buyerId.toString(), 'PAYMENT_RECEIVED');
-    await sendNotification(orderForSideEffects.sellerId.toString(), 'NEW_ORDER_PAID');
+    await sendNotification(orderForSideEffects.buyerId.toString(), 'PAYMENT_RECEIVED', {
+      orderId: String(orderForSideEffects._id),
+      orderNumber: orderForSideEffects.orderNumber,
+      amount: orderForSideEffects.total,
+      currency: orderForSideEffects.currency,
+      createdBy: String(orderForSideEffects.sellerId),
+    });
+    await sendNotification(orderForSideEffects.sellerId.toString(), 'NEW_ORDER_PAID', {
+      orderId: String(orderForSideEffects._id),
+      orderNumber: orderForSideEffects.orderNumber,
+      amount: orderForSideEffects.total,
+      currency: orderForSideEffects.currency,
+      createdBy: String(orderForSideEffects.buyerId),
+    });
     await scheduleAutoRelease(orderId);
     await emitInventoryUpdatedForOrder(orderId);
 
@@ -255,6 +341,10 @@ export async function finalizeSuccessfulEscrowPayment(
       _id: orderForSideEffects._id,
       buyerId: orderForSideEffects.buyerId,
       total: orderForSideEffects.total,
+    });
+
+    void recordShadowLedgerCapture(orderId, orderForSideEffects, ctx).catch((err) => {
+      console.error('[financialLedger] shadow capture failed', orderId, err);
     });
 
     return { success: true, status: 'ESCROW_HOLD' };
@@ -296,22 +386,12 @@ export async function initializePayment(
     throw new Error('Order not found');
   }
 
-  if (method === 'flutterwave') {
-    await assertPaymentGatewayEnabled('flutterwave');
-  } else if (method === 'momo') {
-    await assertPaymentGatewayEnabled('mtn_momo');
-    if (!(await isMomoConfigured())) {
-      throw new Error('MTN MoMo is not configured on the server');
-    }
-  } else if (method === 'stripe') {
-    await assertPaymentGatewayEnabled('stripe');
-  } else if (method === 'paypal') {
-    await assertPaymentGatewayEnabled('paypal');
-  } else if (method === 'airtel') {
-    await assertPaymentGatewayEnabled('airtel_money');
-  }
+  await assertCheckoutGatewayEnabled(method);
 
   if (method === 'momo') {
+    if (!(await isMomoConfigured())) {
+      throw new Error('MTN MoMo is not configured — add API credentials in Admin → Finance → Payment Gateways');
+    }
     const currency = orderPayCurrency(order);
     const cfg = await getMomoResolvedConfig();
     if (!cfg?.currency) {

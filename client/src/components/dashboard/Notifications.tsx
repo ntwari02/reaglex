@@ -4,6 +4,8 @@ import { Bell, FileText, AlertTriangle, X, Settings, ExternalLink, Loader2 } fro
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { systemInboxApi, type SystemInboxRow } from '@/services/systemInboxApi';
+import { enrichSellerNotification } from '@/lib/sellerNotificationPresentation';
+import SellerNotificationCard from '@/components/seller/SellerNotificationCard';
 import { useTranslation } from '@/i18n/useTranslation';
 
 interface NotificationsProps {
@@ -64,18 +66,27 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen, userId, refresh]);
 
-  const mapped = rows.map((n) => ({
-    raw: n,
-    id: String(n._id),
-    title: n.title || t('notifications.notice'),
-    message: n.message || '',
-    date: n.createdAt ? new Date(n.createdAt).toLocaleString() : '',
-    unread: isUnread(n),
-    category: categoryForType(n.type || ''),
-    priority: priorityUi(n.priority || 'medium'),
-    actionLink: n.actionUrl,
-    actionLabel: n.actionText || (n.actionUrl ? t('buttons.open') : undefined),
-  }));
+  const isSellerPanel = location.pathname.startsWith('/seller');
+
+  const mapped = rows.map((n) => {
+    if (isSellerPanel) {
+      return enrichSellerNotification(n, userId);
+    }
+    return {
+      raw: n,
+      id: String(n._id),
+      title: n.title || t('notifications.notice'),
+      message: n.message || '',
+      date: n.createdAt ? new Date(n.createdAt).toLocaleString() : '',
+      unread: isUnread(n),
+      category: categoryForType(n.type || ''),
+      priority: priorityUi(n.priority || 'medium'),
+      actionLink: n.actionUrl,
+      actionLabel: n.actionText || (n.actionUrl ? t('buttons.open') : undefined),
+    };
+  });
+
+  const sellerAlertCategories = new Set(['dispute_opened', 'shipping_delay', 'return_opened']);
 
   const filtered =
     activeFilter === 'all'
@@ -83,8 +94,16 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
       : activeFilter === 'unread'
         ? mapped.filter((m) => m.unread)
         : activeFilter === 'announcement'
-          ? mapped.filter((m) => m.category === 'announcement')
-          : mapped.filter((m) => m.category === 'alert');
+          ? mapped.filter((m) =>
+              isSellerPanel
+                ? !sellerAlertCategories.has(String(m.category))
+                : m.category === 'announcement',
+            )
+          : mapped.filter((m) =>
+              isSellerPanel
+                ? sellerAlertCategories.has(String(m.category))
+                : m.category === 'alert',
+            );
 
   const unreadCount = mapped.filter((m) => m.unread).length;
   const filteredUnreadCount = filtered.filter((m) => m.unread).length;
@@ -250,8 +269,27 @@ const Notifications: React.FC<NotificationsProps> = ({ isOpen, onClose }) => {
                 </div>
               )}
               {userId && !loading && !error && filtered.length > 0 && (
-                <div className="space-y-3">
+                <div className={isSellerPanel ? 'sln-feed' : 'space-y-3'}>
                   {filtered.map((notification, index) => {
+                    if (isSellerPanel) {
+                      return (
+                        <SellerNotificationCard
+                          key={notification.id}
+                          notification={notification}
+                          compact
+                          index={index}
+                          onOpen={(id) => {
+                            markAsRead(id);
+                            const row = notification as { actionLink?: string };
+                            if (row.actionLink) {
+                              onClose();
+                              navigate(row.actionLink);
+                            }
+                          }}
+                        />
+                      );
+                    }
+
                     const Icon = notification.category === 'alert' ? AlertTriangle : FileText;
                     return (
                       <motion.div

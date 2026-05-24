@@ -295,6 +295,7 @@ export async function updateOrderStatus(req: AuthenticatedRequest, res: Response
     if (updated && newStatus && previousStatus !== updated.status && req.user?.id) {
       void notifyBuyerOrderStatusChange({
         buyerId: updated.buyerId,
+        orderId: String(updated._id),
         orderNumber: updated.orderNumber,
         newStatus: updated.status,
         previousStatus,

@@ -116,18 +116,28 @@ export async function endStaleSellerLiveSessions(sellerId: string): Promise<stri
   return ended;
 }
 
+/** End every in-progress seller session (live, starting_soon, paused). */
 export async function forceEndSellerLiveSessions(sellerId: string): Promise<string[]> {
   const rows = await LiveCommerceSession.find({
     sellerId,
     status: { $in: ['live', 'starting_soon', 'paused'] },
   })
-    .select('_id')
+    .select('_id status')
     .lean();
 
   const ended: string[] = [];
   for (const row of rows) {
     const id = String(row._id);
-    await endSellerLive(id, sellerId, 'seller_ended');
+    if (row.status === 'live') {
+      await endSellerLive(id, sellerId, 'seller_ended');
+    } else {
+      await LiveCommerceSession.updateOne(
+        { _id: row._id, sellerId },
+        { $set: { status: 'ended', endedAt: new Date() } }
+      );
+      clearSellerPresence(id);
+      broadcastLiveEnded(id, { status: 'ended', reason: 'seller_ended' });
+    }
     ended.push(id);
   }
   return ended;
@@ -186,7 +196,22 @@ export async function getSellerActiveLiveSessionId(sellerId: string): Promise<st
   if (!row) return null;
 
   const id = String(row._id);
-  if (row.status !== 'live') return id;
+  if (row.status !== 'live') {
+    const started = row.startedAt ? new Date(row.startedAt).getTime() : 0;
+    const staleStarting =
+      row.status === 'starting_soon' &&
+      started > 0 &&
+      Date.now() - started > NEW_STREAM_GRACE_MS;
+    if (staleStarting) {
+      await LiveCommerceSession.updateOne(
+        { _id: row._id, sellerId },
+        { $set: { status: 'ended', endedAt: new Date() } }
+      );
+      clearSellerPresence(id);
+      return null;
+    }
+    return id;
+  }
 
   const lastBeat = row.sellerLastHeartbeatAt
     ? new Date(row.sellerLastHeartbeatAt).getTime()

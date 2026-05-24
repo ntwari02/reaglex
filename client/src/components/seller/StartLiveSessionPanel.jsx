@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Radio } from 'lucide-react';
+import { Loader2, Radio } from 'lucide-react';
 import { liveCommerceApi } from '../../services/liveCommerceApi';
 
 const MODES = [
@@ -18,12 +18,26 @@ export default function StartLiveSessionPanel() {
   const [error, setError] = useState('');
 
   const startMutation = useMutation({
-    mutationFn: (payload) => liveCommerceApi.startSession(payload),
+    mutationFn: async (payload) => {
+      try {
+        await liveCommerceApi.endStaleSellerLive();
+      } catch {
+        /* best-effort */
+      }
+      return liveCommerceApi.startSession({
+        ...payload,
+        streamProvider: 'webrtc',
+      });
+    },
+    onMutate: () => setError(''),
     onSuccess: (res) => {
       if (res?.session?.id) navigate(`/live/${res.session.id}`);
+      else setError('Session started but no session id was returned');
     },
     onError: (err) => {
-      setError(err?.response?.data?.message || 'Could not start live session');
+      const detail = err?.response?.data?.error;
+      const msg = err?.response?.data?.message;
+      setError(detail && detail !== msg ? `${msg}: ${detail}` : msg || 'Could not start live session');
     },
   });
 
@@ -69,7 +83,7 @@ export default function StartLiveSessionPanel() {
       )}
       <button
         type="button"
-        className="w-full rounded-full py-2.5 text-sm font-semibold text-white"
+        className={`go-live-btn w-full rounded-full py-2.5 text-sm font-semibold text-white${startMutation.isPending ? ' go-live-btn--loading' : ''}`}
         style={{ background: 'var(--brand-primary)' }}
         disabled={!title.trim() || startMutation.isPending}
         onClick={() =>
@@ -80,7 +94,14 @@ export default function StartLiveSessionPanel() {
           })
         }
       >
-        Go live
+        {startMutation.isPending ? (
+          <>
+            <Loader2 className="go-live-btn__spinner" aria-hidden />
+            Starting live…
+          </>
+        ) : (
+          'Go live'
+        )}
       </button>
     </section>
   );

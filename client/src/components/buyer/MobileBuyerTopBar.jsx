@@ -64,7 +64,7 @@ export default function MobileBuyerTopBar() {
             style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
           />
           <span
-            className="text-[15px] font-extrabold tracking-[0.06em]"
+            className="text-[11px] font-extrabold tracking-[0.06em]"
             style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}
           >
             REAG<span style={{ color: 'var(--brand-primary)' }}>LEX</span>

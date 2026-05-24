@@ -1,6 +1,7 @@
 import { PaymentGatewayMetric } from '../models/PaymentGatewayMetric';
 import { TransactionLog } from '../models/TransactionLog';
 import { getPublicGatewayFlags } from './paymentGateway.service';
+import { PAYMENT_GATEWAY_REGISTRY } from '../financial/paymentGatewayRegistry';
 import type { CheckoutPaymentProcessor } from './paymentService';
 
 export type GatewayCandidate = {
@@ -22,13 +23,9 @@ const DEFAULT_METRICS: Record<string, { successRate: number; feeRate: number; fr
   airtel: { successRate: 84, feeRate: 0.02, fraudRiskScore: 24 },
 };
 
-const GATEWAY_KEY_MAP: Record<CheckoutPaymentProcessor, string> = {
-  flutterwave: 'flutterwave',
-  momo: 'mtn_momo',
-  stripe: 'stripe',
-  paypal: 'paypal',
-  airtel: 'airtel_money',
-};
+const GATEWAY_KEY_MAP: Record<CheckoutPaymentProcessor, string> = Object.fromEntries(
+  PAYMENT_GATEWAY_REGISTRY.filter((g) => g.checkoutMethod).map((g) => [g.checkoutMethod!, g.key]),
+) as Record<CheckoutPaymentProcessor, string>;
 
 async function ensureDefaultMetrics(region: string) {
   const r = String(region || 'GLOBAL').toUpperCase();

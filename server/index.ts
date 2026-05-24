@@ -65,6 +65,7 @@ import assistantRoutes from './src/routes/assistantRoutes';
 import aiChatRoutes from './src/routes/aiChatRoutes';
 import aiAgentRoutes from './src/routes/aiAgentRoutes';
 import buyerNotificationRoutes from './src/routes/buyerNotificationRoutes';
+import buyerReferralRoutes from './src/routes/buyerReferralRoutes';
 import { sanitizeInput } from './src/middleware/sanitizeInput';
 import './src/jobs/escrowJobs';
 import './src/jobs/subscriptionRenewalJob';
@@ -258,6 +259,7 @@ app.use('/api/seller/inbox', inboxRoutes);
 app.use('/api/buyer/inbox', buyerInboxRoutes);
 // Buyer notification routes
 app.use('/api/buyer/notifications', buyerNotificationRoutes);
+app.use('/api/buyer/referral', buyerReferralRoutes);
 // Buyer dispute routes
 app.use('/api/buyer/disputes', buyerDisputeRoutes);
 app.use('/api/buyer/returns', buyerReturnsRoutes);
@@ -405,6 +407,10 @@ const connectDB = async () => {
     }
     
     console.log('✅ Connected to MongoDB');
+
+    const { ensureCorePaymentGateways } = await import('./src/services/paymentGateway.service');
+    await ensureCorePaymentGateways();
+    console.log('✅ Payment gateways registry synced');
 
     startScheduledNotificationWorker();
     startRecommendationEmailWorker();

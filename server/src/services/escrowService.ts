@@ -108,8 +108,14 @@ export async function releaseEscrow(orderId: string, confirmedBy: string) {
 
     await sendNotification(order.sellerId.toString(), 'FUNDS_RELEASED', {
       amount: amountToSeller,
+      orderId: String(order._id),
+      orderNumber: order.orderNumber,
+      currency: order.currency,
     });
-    await sendNotification(order.buyerId.toString(), 'DELIVERY_CONFIRMED');
+    await sendNotification(order.buyerId.toString(), 'DELIVERY_CONFIRMED', {
+      orderId: String(order._id),
+      orderNumber: order.orderNumber,
+    });
 
     return { success: true };
   }
@@ -196,7 +202,10 @@ export async function autoReleaseEscrow(orderId: string) {
     });
 
     await sendNotification(order.buyerId.toString(), 'AUTO_RELEASE_NOTICE');
-    await sendNotification(order.sellerId.toString(), 'AUTO_RELEASE_FUNDS');
+    await sendNotification(order.sellerId.toString(), 'AUTO_RELEASE_FUNDS', {
+      orderId: String(order._id),
+      orderNumber: order.orderNumber,
+    });
   }
 }
 
@@ -285,8 +294,14 @@ export async function refundBuyer(
     await sendNotification(order.buyerId.toString(), 'REFUND_INITIATED', {
       amount,
       reason,
+      orderId: String(order._id),
+      orderNumber: order.orderNumber,
     });
-    await sendNotification(order.sellerId.toString(), 'ORDER_REFUNDED', { reason });
+    await sendNotification(order.sellerId.toString(), 'ORDER_REFUNDED', {
+      reason,
+      orderId: String(order._id),
+      orderNumber: order.orderNumber,
+    });
 
     if (isFullyRefunded) {
       await restoreInventoryForOrder(orderId, 'order_refunded');

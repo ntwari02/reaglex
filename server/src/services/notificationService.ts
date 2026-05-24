@@ -1,8 +1,3 @@
-// Lightweight notification helper used by payment/escrow flows.
-// Currently implemented as a no-op logger to avoid coupling tightly
-// with seller/buyer notification UIs. Replace with real implementation
-// (e.g. SystemNotification, email, or websockets) as needed.
-
 export type NotificationType =
   | 'PAYMENT_RECEIVED'
   | 'NEW_ORDER_PAID'
@@ -14,17 +9,43 @@ export type NotificationType =
   | 'ORDER_REFUNDED'
   | 'PAYOUT_CONFIRMED';
 
+import { deliverBuyerNotificationFromLegacy } from './buyerNotificationService';
+import { deliverSellerNotificationFromLegacy } from './sellerNotificationService';
+
+const SELLER_TYPES: NotificationType[] = [
+  'NEW_ORDER_PAID',
+  'FUNDS_RELEASED',
+  'PAYOUT_CONFIRMED',
+  'ORDER_REFUNDED',
+  'AUTO_RELEASE_FUNDS',
+];
+
+const BUYER_TYPES: NotificationType[] = [
+  'PAYMENT_RECEIVED',
+  'DELIVERY_CONFIRMED',
+  'AUTO_RELEASE_NOTICE',
+  'REFUND_INITIATED',
+];
+
 export async function sendNotification(
   userIdOrRole: string,
   type: NotificationType,
   payload?: Record<string, unknown>
 ): Promise<void> {
-  // eslint-disable-next-line no-console
-  console.log('[Notification]', { userIdOrRole, type, payload });
+  try {
+    if (SELLER_TYPES.includes(type)) {
+      await deliverSellerNotificationFromLegacy(type, userIdOrRole, payload);
+      return;
+    }
+    if (BUYER_TYPES.includes(type)) {
+      await deliverBuyerNotificationFromLegacy(type, userIdOrRole, payload);
+      return;
+    }
+  } catch (err) {
+    console.error('[Notification] delivery failed:', type, err);
+  }
 }
 
 export async function sendAdminReport(payload: Record<string, unknown>): Promise<void> {
-  // eslint-disable-next-line no-console
   console.log('[AdminReport]', payload);
 }
-

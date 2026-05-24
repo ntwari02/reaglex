@@ -136,3 +136,95 @@ export async function processReferralRewardOnOrderPaid(order: {
     console.warn('[referralReward] processReferralRewardOnOrderPaid', e);
   }
 }
+
+export type BuyerReferralDashboard = {
+  programEnabled: boolean;
+  referralCode: string | null;
+  shareLink: string | null;
+  rewardType: 'cash' | 'points' | 'coupon';
+  rewardAmount: number;
+  rewardLabel: string;
+  stats: {
+    friendsInvited: number;
+    rewardsEarned: number;
+    totalRewardAmount: number;
+  };
+  recentRewards: Array<{
+    id: string;
+    amount: number;
+    rewardType: string;
+    status: string;
+    createdAt: string;
+  }>;
+};
+
+function rewardLabel(type: string, amount: number): string {
+  if (type === 'points') return `${amount} points per successful invite`;
+  if (type === 'coupon') return `${amount} coupon credit per invite`;
+  return `${amount} reward per friend’s first paid order`;
+}
+
+/** Buyer-facing invite dashboard (link + code + stats). */
+export async function getBuyerReferralDashboard(
+  userId: mongoose.Types.ObjectId | string,
+): Promise<BuyerReferralDashboard> {
+  const programEnabled = await isReferralProgramEnabled();
+  let rewardType: 'cash' | 'points' | 'coupon' = 'cash';
+  let rewardAmount = 10;
+  try {
+    const settings = await ReferralSettings.findOne().lean();
+    if (settings) {
+      rewardType = (settings.rewardType as typeof rewardType) || 'cash';
+      rewardAmount = Number(settings.rewardAmount) || 10;
+    }
+  } catch {
+    /* defaults */
+  }
+
+  if (!programEnabled) {
+    return {
+      programEnabled: false,
+      referralCode: null,
+      shareLink: null,
+      rewardType,
+      rewardAmount,
+      rewardLabel: rewardLabel(rewardType, rewardAmount),
+      stats: { friendsInvited: 0, rewardsEarned: 0, totalRewardAmount: 0 },
+      recentRewards: [],
+    };
+  }
+
+  const uid = new mongoose.Types.ObjectId(String(userId));
+  const code = await ensureReferralCodeForUser(uid);
+  const { getClientUrl } = await import('../config/publicEnv');
+  const base = (getClientUrl() || process.env.CLIENT_URL || '').replace(/\/$/, '');
+  const shareLink = base ? `${base}/auth?ref=${encodeURIComponent(code)}` : null;
+
+  const [friendsInvited, rewards] = await Promise.all([
+    User.countDocuments({ referredBy: uid }),
+    MarketingReferralReward.find({ referrerUserId: uid }).sort({ createdAt: -1 }).limit(20).lean(),
+  ]);
+
+  const totalRewardAmount = rewards.reduce((sum, r) => sum + Number(r.rewardAmount || 0), 0);
+
+  return {
+    programEnabled: true,
+    referralCode: code,
+    shareLink,
+    rewardType,
+    rewardAmount,
+    rewardLabel: rewardLabel(rewardType, rewardAmount),
+    stats: {
+      friendsInvited,
+      rewardsEarned: rewards.length,
+      totalRewardAmount,
+    },
+    recentRewards: rewards.map((r) => ({
+      id: String(r._id),
+      amount: Number(r.rewardAmount || 0),
+      rewardType: String(r.rewardType || 'cash'),
+      status: String(r.status || 'paid'),
+      createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+    })),
+  };
+}

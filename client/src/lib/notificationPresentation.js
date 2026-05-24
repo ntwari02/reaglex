@@ -17,6 +17,8 @@ import {
 
 export const ORDER_STATUSES = ['pending', 'processing', 'packed', 'shipped', 'delivered'];
 
+import { pickOsVariant, pickOsGlow } from './osNotificationVariants';
+
 const MESSAGE_TO_STATUS = {
   'order placed': 'pending',
   'order is being processed': 'processing',
@@ -147,6 +149,10 @@ export function formatDealCountdown(ms) {
 
 function inferPresentationType(row) {
   const type = row?.type || 'system';
+  const category = row?.metadata?.category;
+  if (category === 'live_now' || type === 'live') return 'live';
+  if (category === 'return_submitted' || category === 'return_update') return 'alert';
+  if (category === 'new_message' || type === 'message') return 'message';
   const blob = `${row?.title || ''} ${row?.message || ''}`.toLowerCase();
   if (type === 'system' && (blob.includes('security') || blob.includes('login'))) return 'security';
   if (blob.includes('ai pick') || blob.includes('picked for you') || row?.aiMeta) return 'ai';
@@ -157,7 +163,28 @@ function inferPresentationType(row) {
 export function enrichNotification(row) {
   const rawType = row?.type || 'system';
   const presentationType = inferPresentationType(row);
-  const base = { ...row, type: rawType, presentationType };
+  const id = String(row.id || row._id || '');
+  const osVariant =
+    row?.metadata?.visualVariant ||
+    row?.osVariant ||
+    pickOsVariant(`${id}:${rawType}:${row?.createdAt || ''}`);
+  const osGlow = row?.osGlow || pickOsGlow(`${id}-glow`);
+  const thumbnails =
+    row?.productThumbnails ||
+    row?.metadata?.productThumbnails ||
+    row?.aiThumbs ||
+    row?.productImages ||
+    [];
+  const base = {
+    ...row,
+    type: rawType,
+    presentationType,
+    osVariant,
+    osGlow,
+    thumbnails: Array.isArray(thumbnails) ? thumbnails.filter(Boolean).slice(0, 3) : [],
+    actionUrl: row.actionUrl || row.actionLink,
+    actionText: row.actionText || row.actionLabel,
+  };
   const blob = `${base.title || ''} ${base.message || ''}`.toLowerCase();
 
   if (rawType === 'order') {
@@ -204,6 +231,16 @@ export function getTypeMeta(type, presentationType) {
 /** Resolve in-app path when user taps a notification row. */
 export function getNotificationHref(n) {
   if (!n) return null;
+  if (n.actionUrl) {
+    const url = String(n.actionUrl);
+    if (url.startsWith('/')) return url;
+    try {
+      const parsed = new URL(url, window.location.origin);
+      if (parsed.origin === window.location.origin) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      /* ignore */
+    }
+  }
   if (n.type === 'live') {
     if (n.liveSessionId) return `/live/${n.liveSessionId}`;
     const url = String(n.actionUrl || '');
@@ -211,7 +248,10 @@ export function getNotificationHref(n) {
     if (m) return `/live/${m[1]}`;
   }
   if (n.type === 'order' && n.orderId) return `/track/${n.orderId}`;
-  if (n.type === 'message') return '/account?tab=messages';
+  if (n.type === 'message') {
+    if (n.threadId) return `/account?tab=messages&thread=${n.threadId}`;
+    return '/account?tab=messages';
+  }
   if (n.type === 'deal') return '/search?sort=discount';
   if (n.type === 'review') return '/account?tab=reviews';
   return null;

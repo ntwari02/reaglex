@@ -12,6 +12,7 @@ import {
   getRecommendationEmailPreference,
   updateRecommendationEmailPreference,
 } from '../services/recommendationEmailApi';
+import { profileAPI } from '../lib/api';
 import WebPushOptInCard from './notifications/WebPushOptInCard';
 
 const PRIMARY = 'var(--brand-primary)';
@@ -1512,6 +1513,30 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile } = {}) 
                   if (section === 'profile') await saveProfile();
                   else if (section === 'notifications') {
                     try {
+                      const orderUpdatesOn =
+                        notifPrefs.orderPlaced &&
+                        notifPrefs.orderShipped &&
+                        notifPrefs.orderDelivered &&
+                        notifPrefs.returnUpdates;
+                      await profileAPI.updateNotificationSettings({
+                        email: {
+                          orderUpdates: orderUpdatesOn && notifPrefs.email,
+                          promotions: notifPrefs.flashSale || notifPrefs.recommendations,
+                          securityAlerts: notifPrefs.newDevice || notifPrefs.passwordChanged,
+                          newsletter: notifPrefs.weeklyDigest,
+                        },
+                        push: {
+                          orderUpdates: orderUpdatesOn && notifPrefs.push,
+                          messages: notifPrefs.newMessage && notifPrefs.push,
+                          promotions: notifPrefs.flashSale && notifPrefs.push,
+                          securityAlerts: notifPrefs.newDevice && notifPrefs.push,
+                        },
+                        sms: {
+                          orderUpdates: orderUpdatesOn && notifPrefs.sms,
+                          securityAlerts: notifPrefs.twoFactorAlerts && notifPrefs.sms,
+                          promotions: false,
+                        },
+                      });
                       await updateRecommendationEmailPreference({
                         enabled: recEmailPrefs.enabled,
                         frequency: recEmailPrefs.frequency,
@@ -1519,7 +1544,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile } = {}) 
                         unsubscribed: recEmailPrefs.unsubscribed,
                       });
                     } catch {
-                      showToast('Failed to save recommendation email settings', 'error');
+                      showToast('Failed to save notification settings', 'error');
                       return;
                     }
                     setNotifDirty(false);

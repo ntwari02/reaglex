@@ -63,6 +63,11 @@ export interface IPlan {
     support_level: string;
     custom_branding: boolean;
     white_label: boolean;
+    product_boost?: {
+      enabled: boolean;
+      monthly_limit: number;
+      is_unlimited: boolean;
+    };
   };
   identity_requirements: {
     identity_status: string;

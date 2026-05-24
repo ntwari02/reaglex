@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { MessageThread, Message, IMessageThread, IMessage } from '../models/MessageThread';
 import mongoose from 'mongoose';
 import { websocketService } from '../services/websocketService';
+import { deliverBuyerNotification } from '../services/buyerNotificationService';
 
 // Helper to get seller ID from request
 const getSellerId = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null => {
@@ -504,6 +505,15 @@ export async function sendMessage(req: AuthenticatedRequest, res: Response) {
           buyerUnreadCount: (thread.buyerUnreadCount || 0) + 1,
         },
       }
+    );
+
+    void deliverBuyerNotification(
+      'new_message',
+      {
+        buyerId: String(thread.buyerId),
+        messagePreview: preview.slice(0, 120),
+      },
+      String(sellerId)
     );
 
     // Populate message fully before emitting

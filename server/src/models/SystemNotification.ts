@@ -25,6 +25,20 @@ export interface ISystemNotification extends Document {
   actionUrl?: string;
   actionText?: string;
   expiresAt?: Date;
+  /** Rich card payload for modern seller/buyer notification UI */
+  metadata?: {
+    category?: string;
+    tone?: string;
+    eventKey?: string;
+    entityId?: string;
+    productThumbnails?: string[];
+    visualStyle?: {
+      showProductPreview?: boolean;
+      compact?: boolean;
+      thumbnailCount?: number;
+    };
+    visualVariant?: string;
+  };
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -69,6 +83,19 @@ const systemNotificationSchema = new Schema<ISystemNotification>(
     actionUrl: { type: String },
     actionText: { type: String },
     expiresAt: { type: Date },
+    metadata: {
+      category: { type: String, trim: true, index: true },
+      tone: { type: String, trim: true },
+      eventKey: { type: String, trim: true, index: true },
+      entityId: { type: String, trim: true, index: true },
+      productThumbnails: { type: [String], default: undefined },
+      visualStyle: {
+        showProductPreview: { type: Boolean },
+        compact: { type: Boolean },
+        thumbnailCount: { type: Number },
+      },
+      visualVariant: { type: String, trim: true },
+    },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

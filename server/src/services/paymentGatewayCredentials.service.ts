@@ -3,6 +3,14 @@ import axios from 'axios';
 import { PaymentGatewayConfig } from '../models/PaymentGatewayConfig';
 import { encryptCredentialsJson, decryptCredentialsJson } from './paymentSecretsCrypto.service';
 import { getServerUrl } from '../config/publicEnv';
+import {
+  PAYMENT_GATEWAY_REGISTRY,
+  allCanonicalGatewayKeys,
+  type CanonicalGatewayKey,
+} from '../financial/paymentGatewayRegistry';
+
+export type { CanonicalGatewayKey };
+export { PAYMENT_GATEWAY_REGISTRY as GATEWAY_REGISTRY };
 
 function clearMomoTokenCacheSafe(): void {
   try {
@@ -32,32 +40,6 @@ export type GatewayFieldMeta = {
   /** UI grouping (admin Payment Gateways modal) */
   group?: string;
 };
-
-const CANONICAL_KEYS = [
-  'offline',
-  'flutterwave',
-  'mtn_momo',
-  'airtel_money',
-  'stripe',
-  'paypal',
-] as const;
-
-export type CanonicalGatewayKey = (typeof CANONICAL_KEYS)[number];
-
-export const GATEWAY_REGISTRY: Array<{
-  key: CanonicalGatewayKey;
-  name: string;
-  type: string;
-  profile: CredentialProfile;
-  defaultEnabled: boolean;
-}> = [
-  { key: 'offline', name: 'Offline / Manual', type: 'Manual', profile: 'none', defaultEnabled: false },
-  { key: 'flutterwave', name: 'Flutterwave', type: 'Payment Gateway', profile: 'flutterwave', defaultEnabled: true },
-  { key: 'mtn_momo', name: 'MTN MoMo Rwanda', type: 'Mobile Money', profile: 'mtn_momo', defaultEnabled: false },
-  { key: 'airtel_money', name: 'Airtel Money', type: 'Mobile Money', profile: 'airtel_api', defaultEnabled: false },
-  { key: 'stripe', name: 'Stripe', type: 'Card Payments', profile: 'stripe', defaultEnabled: false },
-  { key: 'paypal', name: 'PayPal', type: 'Digital Wallet', profile: 'paypal', defaultEnabled: false },
-];
 
 export function getFieldMetaForProfile(profile: CredentialProfile): GatewayFieldMeta[] {
   switch (profile) {
@@ -160,7 +142,7 @@ export function getFieldMetaForProfile(profile: CredentialProfile): GatewayField
  * `credentialProfile` stored in MongoDB (invalid values produced an empty form).
  */
 export function getFieldMetaForGatewayKey(key: string): GatewayFieldMeta[] {
-  const def = GATEWAY_REGISTRY.find((x) => x.key === key);
+  const def = PAYMENT_GATEWAY_REGISTRY.find((x) => x.key === key);
   const profile = def?.profile ?? resolveProfileForKey(key);
   return getFieldMetaForProfile(profile);
 }
@@ -561,12 +543,12 @@ export async function isGatewayFullyConfigured(key: string): Promise<boolean> {
 }
 
 export function resolveProfileForKey(key: string): CredentialProfile {
-  const g = GATEWAY_REGISTRY.find((x) => x.key === key);
-  return g?.profile ?? 'generic_api_secret';
+  const g = PAYMENT_GATEWAY_REGISTRY.find((x) => x.key === key);
+  return (g?.profile ?? 'generic_api_secret') as CredentialProfile;
 }
 
 export async function ensureAllPaymentGateways(): Promise<void> {
-  for (const g of GATEWAY_REGISTRY) {
+  for (const g of PAYMENT_GATEWAY_REGISTRY) {
     // Do not put the same path in $set and $setOnInsert — MongoDB rejects it ("conflict at 'name'").
     await PaymentGatewayConfig.updateOne(
       { key: g.key },
@@ -586,7 +568,7 @@ export async function ensureAllPaymentGateways(): Promise<void> {
       { upsert: true }
     );
   }
-  const allowed = GATEWAY_REGISTRY.map((x) => x.key);
+  const allowed = allCanonicalGatewayKeys();
   await PaymentGatewayConfig.deleteMany({ key: { $nin: allowed } });
 }
 
@@ -742,6 +724,29 @@ export function suggestedMomoCallbackUrl(): string {
   const base = getServerUrl();
   if (!base) return '';
   return `${base.replace(/\/$/, '')}/api/payments/momo/callback`;
+}
+
+export function suggestedAirtelWebhookUrl(): string {
+  const base = getServerUrl();
+  if (!base) return '';
+  return `${base.replace(/\/$/, '')}/api/webhooks/airtel/callback`;
+}
+
+export function suggestedWebhookUrlForGateway(key: string): string | undefined {
+  switch (key) {
+    case 'flutterwave':
+      return suggestedFlutterwaveWebhookUrl();
+    case 'mtn_momo':
+      return suggestedMomoCallbackUrl();
+    case 'stripe':
+      return suggestedStripeWebhookUrl();
+    case 'paypal':
+      return suggestedPaypalWebhookUrl();
+    case 'airtel_money':
+      return suggestedAirtelWebhookUrl();
+    default:
+      return undefined;
+  }
 }
 
 export async function saveEncryptedCredentials(

@@ -9,6 +9,7 @@
 @import './styles/live-commerce-studio.css';
 @import './styles/floating-live-player.css';
 @import './styles/seller-live-studio.css';
+@import './styles/seller-notifications.css';
 
 /* Mea Culpa – auth brand panel */
 @font-face {

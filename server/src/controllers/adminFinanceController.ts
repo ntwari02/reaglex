@@ -9,12 +9,12 @@ import { RefundRequest } from '../models/RefundRequest';
 import { Chargeback } from '../models/Chargeback';
 import { TaxRule } from '../models/TaxRule';
 import { PaymentGatewayConfig } from '../models/PaymentGatewayConfig';
+import { PAYMENT_GATEWAY_REGISTRY } from '../financial/paymentGatewayRegistry';
 import { ensureCorePaymentGateways } from '../services/paymentGateway.service';
 import {
   appendGatewayHealthLog,
   buildAirtelDraftConfigFromMerged,
   buildMaskedSummary,
-  GATEWAY_REGISTRY,
   getFieldMetaForGatewayKey,
   getMomoResolvedConfig,
   invalidatePaymentRuntimeCaches,
@@ -22,10 +22,7 @@ import {
   mergeCredentialsForSave,
   resolveProfileForKey,
   saveEncryptedCredentials,
-  suggestedFlutterwaveWebhookUrl,
-  suggestedMomoCallbackUrl,
-  suggestedPaypalWebhookUrl,
-  suggestedStripeWebhookUrl,
+  suggestedWebhookUrlForGateway,
   testGatewayByKey,
   type AirtelResolvedConfig,
   type CredentialProfile,
@@ -354,7 +351,7 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
     await ensureCorePaymentGateways();
     const rows = await PaymentGatewayConfig.find().lean();
     const byKey = new Map(rows.map((r: any) => [r.key, r]));
-    const ordered = GATEWAY_REGISTRY.map((def) => byKey.get(def.key) || {
+    const ordered = PAYMENT_GATEWAY_REGISTRY.map((def) => byKey.get(def.key) || {
       _id: null,
       key: def.key,
       name: def.name,
@@ -375,7 +372,7 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
           const hit = await PaymentGatewayConfig.findOne({ key: row.key }).lean();
           if (hit) row = hit;
         }
-        const registryDef = GATEWAY_REGISTRY.find((d) => d.key === row.key);
+        const registryDef = PAYMENT_GATEWAY_REGISTRY.find((d) => d.key === row.key);
         const canonicalProfile = (registryDef?.profile ?? resolveProfileForKey(row.key)) as CredentialProfile;
         let configured = false;
         try {
@@ -395,16 +392,9 @@ export async function getGateways(req: AuthenticatedRequest, res: Response) {
           maskedSummary: row.maskedSummary && typeof row.maskedSummary === 'object' ? row.maskedSummary : {},
           apiKeyMasked: row.apiKeyMasked,
           webhookUrl: row.webhookUrl,
-          suggestedWebhookUrl:
-            row.key === 'flutterwave'
-              ? suggestedFlutterwaveWebhookUrl()
-              : row.key === 'mtn_momo'
-                ? suggestedMomoCallbackUrl()
-                : row.key === 'stripe'
-                  ? suggestedStripeWebhookUrl()
-                  : row.key === 'paypal'
-                    ? suggestedPaypalWebhookUrl()
-                    : undefined,
+          suggestedWebhookUrl: suggestedWebhookUrlForGateway(row.key),
+          checkoutMethod: registryDef?.checkoutMethod || undefined,
+          supportsOnlineCheckout: registryDef?.supportsOnlineCheckout ?? false,
           isConfigured: configured,
           lastChecked: row.lastChecked,
           issues: row.issues || [],

@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@types/speakeasy": "^2.0.10",
+    "esbuild": "^0.25.12",
     "nodemon": "^3.1.11",
     "ts-node-dev": "^2.0.0"
   },
@@ -61,7 +62,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only index.ts",
-    "build": "tsc && node scripts/copyConfigToDist.js",
+    "build": "node scripts/build.mjs && node scripts/copyConfigToDist.js",
+    "typecheck": "node --max-old-space-size=4096 ./node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit",
     "postinstall": "node scripts/ensure-web-push.mjs",
     "start": "nodemon index.ts",
     "seo:ssr:dev": "ts-node-dev --respawn --transpile-only src/seo/seoSsrServer.ts",

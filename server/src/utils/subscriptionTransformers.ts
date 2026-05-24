@@ -1,22 +1,50 @@
 import { IPlan } from '../models/SubscriptionPlan';
 import { ISellerSubscription } from '../models/SellerSubscription';
+import { basePriceForCycle, planMarketingBullets } from '../services/subscriptionPlan.service';
 
 /**
  * Transform MongoDB plan to frontend Tier format
  */
 export function transformPlanToTier(plan: IPlan, currentTierId?: string) {
+  const boost = (plan.limits as any)?.product_boost;
   return {
     id: plan.tier_id,
+    tierId: plan.tier_id,
     name: plan.tier_name,
+    displayName: plan.display_name || plan.name,
     price: plan.price,
-    features: plan.features,
+    billingCycle: plan.billing_cycle,
+    billingCycles: plan.billing_cycles || {
+      monthly: basePriceForCycle(plan, 'monthly'),
+      annual: basePriceForCycle(plan, 'annual'),
+    },
+    currency: plan.currency || 'USD',
+    features: plan.features?.length ? plan.features : planMarketingBullets(plan),
+    marketingFeatures: planMarketingBullets(plan),
     limits: {
       products: plan.limits.products.display,
+      productsNumeric: plan.limits.products.is_unlimited ? null : plan.limits.products.limit,
+      productsUnlimited: plan.limits.products.is_unlimited,
       storage: plan.limits.storage.limit_display,
       analytics: plan.limits.analytics.enabled,
+      apiCallsPerMonth: plan.limits.api_calls_per_month,
+      customBranding: plan.limits.custom_branding,
+      whiteLabel: plan.limits.white_label,
+      productBoost: boost
+        ? {
+            enabled: Boolean(boost.enabled),
+            monthlyLimit: boost.is_unlimited ? null : Number(boost.monthly_limit ?? 0),
+            unlimited: Boolean(boost.is_unlimited),
+          }
+        : { enabled: false, monthlyLimit: 0, unlimited: false },
     },
+    discountRules: plan.discount_rules || [],
+    trialDays: plan.trial_days,
+    trialEnabled: plan.trial_enabled,
     current: currentTierId === plan.tier_id,
     popular: plan.is_popular,
+    isActive: plan.is_active,
+    sortOrder: plan.sort_order,
   };
 }
 
@@ -72,16 +100,32 @@ export function transformPaymentMethodToFrontend(method: any) {
 /**
  * Transform current plan data to frontend format
  */
-export function transformCurrentPlanToFrontend(subscription: ISellerSubscription) {
+export function transformCurrentPlanToFrontend(subscription: ISellerSubscription, entitlements?: Record<string, unknown>) {
+  const pf = subscription.plan_features || ({} as any);
   return {
     name: subscription.current_plan.tier_name,
-    price: subscription.current_plan.price,
+    tierId: subscription.current_plan.tier_id,
+    price: subscription.current_plan.effective_price ?? subscription.current_plan.price,
+    listPrice: subscription.current_plan.price,
     renewalDate: formatDate(subscription.current_plan.renewal_date),
+    billingCycle: subscription.current_plan.billing_cycle,
     limits: {
       products: subscription.plan_features.product_limit,
       storage: subscription.plan_features.storage_limit,
       analytics: subscription.plan_features.analytics_enabled,
+      productBoost: {
+        enabled: Boolean(pf.product_boost_enabled),
+        monthlyLimit:
+          pf.product_boost_monthly_limit === -1 ? null : Number(pf.product_boost_monthly_limit ?? 0),
+      },
     },
+    entitlements: entitlements || null,
+    boostUsage: entitlements
+      ? {
+          used: 0,
+          limit: (entitlements as any).productBoostMonthlyLimit,
+        }
+      : undefined,
   };
 }
 

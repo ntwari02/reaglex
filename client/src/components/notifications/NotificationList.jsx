@@ -56,7 +56,7 @@ export default function NotificationList({
     return (
       <div className="rxn-day-group">
         <h3 className="rxn-day-label">{label}</h3>
-        {items.map((n) => (
+        {items.map((n, index) => (
           <NotificationRow
             key={n.id}
             notification={n}
@@ -64,6 +64,7 @@ export default function NotificationList({
             onMarkRead={onMarkRead}
             onDelete={onDelete}
             enableSwipe={enableSwipe}
+            index={index}
           />
         ))}
       </div>

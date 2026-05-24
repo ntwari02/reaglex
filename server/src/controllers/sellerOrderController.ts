@@ -101,6 +101,7 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
       }
       void notifyBuyerOrderStatusChange({
         buyerId: updated.buyerId,
+        orderId: String(updated._id),
         orderNumber: updated.orderNumber,
         newStatus: updated.status,
         previousStatus: prior.status,
@@ -192,6 +193,7 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
     if (prior.status !== updated.status) {
       void notifyBuyerOrderStatusChange({
         buyerId: updated.buyerId,
+        orderId: String(updated._id),
         orderNumber: updated.orderNumber,
         newStatus: updated.status,
         previousStatus: prior.status,

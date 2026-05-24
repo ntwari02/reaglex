@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import { Copy, Radio, Square } from 'lucide-react';
+import { Copy, Loader2, Radio, Square } from 'lucide-react';
 
 import { liveCommerceApi } from '../../services/liveCommerceApi';
 
@@ -101,10 +101,6 @@ export default function SellerLiveDashboard() {
   }, [providersMeta?.defaultProvider]);
 
   useEffect(() => {
-    void liveCommerceApi.endStaleSellerLive().catch(() => {});
-  }, []);
-
-  useEffect(() => {
     const id = liveStatus?.activeSession?.id;
     if (id && liveStatus?.activeSession?.status === 'live') {
       setActiveSessionId(id);
@@ -129,7 +125,22 @@ export default function SellerLiveDashboard() {
 
   const startMutation = useMutation({
 
-    mutationFn: (payload) => liveCommerceApi.startSession(payload),
+    mutationFn: async (payload) => {
+      try {
+        await liveCommerceApi.endStaleSellerLive();
+      } catch {
+        /* stale cleanup is best-effort */
+      }
+      const enabledIds = enabledProviders.map((p) => p.id);
+      const streamProvider = enabledIds.includes(provider)
+        ? provider
+        : providersMeta?.defaultProvider || enabledIds[0] || 'webrtc';
+      return liveCommerceApi.startSession({ ...payload, streamProvider });
+    },
+
+    onMutate: () => {
+      setError('');
+    },
 
     onSuccess: (res) => {
 
@@ -143,6 +154,8 @@ export default function SellerLiveDashboard() {
 
         navigate(`/live/${id}`);
 
+      } else {
+        setError('Session started but no session id was returned');
       }
 
     },
@@ -154,7 +167,9 @@ export default function SellerLiveDashboard() {
         navigate(`/live/${existingId}`);
         return;
       }
-      setError(err?.response?.data?.message || 'Could not start live');
+      const detail = err?.response?.data?.error;
+      const msg = err?.response?.data?.message;
+      setError(detail && detail !== msg ? `${msg}: ${detail}` : msg || 'Could not start live');
     },
 
   });
@@ -437,7 +452,7 @@ export default function SellerLiveDashboard() {
 
           type="button"
 
-          className="flex-1 rounded-full py-2.5 text-sm font-semibold text-white"
+          className={`go-live-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white${startMutation.isPending ? ' go-live-btn--loading' : ''}`}
 
           style={{ background: 'var(--brand-primary)' }}
 
@@ -455,8 +470,6 @@ export default function SellerLiveDashboard() {
               title: title.trim(),
 
               mode,
-
-              streamProvider: provider,
 
               youtubeVideoId: youtubeInput,
 
@@ -482,7 +495,14 @@ export default function SellerLiveDashboard() {
 
         >
 
-          Go live
+          {startMutation.isPending ? (
+            <>
+              <Loader2 className="go-live-btn__spinner" aria-hidden />
+              Starting live…
+            </>
+          ) : (
+            'Go live'
+          )}
 
         </button>
 
