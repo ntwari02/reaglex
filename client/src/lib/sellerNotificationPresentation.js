@@ -90,12 +90,23 @@ const TYPE_FALLBACK = {
   policy_update: { Icon: Bell, label: 'Policy', accent: 'var(--text-muted)', surface: 'var(--bg-secondary)' },
 };
 
+function resolveMediaUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw) || raw.startsWith('data:')) return raw;
+  const base = String(import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || '').replace(/\/$/, '');
+  if (!base) return raw;
+  return `${base}${raw.startsWith('/') ? raw : `/${raw}`}`;
+}
+
 export function enrichSellerNotification(row, userId) {
   const readBy = row?.readBy || [];
   const unread = userId ? !readBy.some((id) => String(id) === String(userId)) : true;
   const category = row?.metadata?.category || row?.category || 'system_announcement';
   const meta = CATEGORY_META[category] || TYPE_FALLBACK[row?.type] || TYPE_FALLBACK.info;
-  const thumbs = row?.metadata?.productThumbnails || row?.productThumbnails || [];
+  const thumbs = (row?.metadata?.productThumbnails || row?.productThumbnails || [])
+    .map((src) => resolveMediaUrl(src))
+    .filter(Boolean);
   const visualStyle = row?.metadata?.visualStyle || row?.visualStyle || {};
   const id = String(row._id || row.id || '');
   const variant = row?.metadata?.visualVariant || pickOsVariant(`${id}:${category}:${row?.createdAt || ''}`);

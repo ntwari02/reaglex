@@ -8,13 +8,16 @@ import {
   getPasswordResetOtpEmailHtml,
   getSecurityAlertEmailHtml,
   getNotificationEmailHtml,
+  getRichNotificationEmailHtml,
   getDeviceApprovalEmailHtml,
   getLoginNotificationEmailHtml,
   getRecommendationDealsEmailHtml,
   getAbandonedCartEmailHtml,
   getNewsletterWelcomeEmailHtml,
 } from '../email/templates';
+import type { RichNotificationOptions } from '../email/templates';
 import { getClientUrl } from '../config/publicEnv';
+import { isProductionReadyEmailHtml, toAbsoluteEmailUrl } from '../email/emailUrls';
 
 function getEnv(key: string, fallback = ''): string {
   return String(process.env[key] || fallback).trim();
@@ -83,6 +86,10 @@ export interface SendEmailOptions {
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<{ success: boolean; error?: string }> {
+  if (!isProductionReadyEmailHtml(options.html)) {
+    console.warn('[emailService] HTML may be missing responsive shell — still attempting send');
+  }
+
   // Resend provider (recommended for Render environments)
   if (EMAIL_PROVIDER === 'resend') {
     try {
@@ -177,22 +184,15 @@ export async function sendVerificationEmail(
   expiresIn = '24 hours'
 ): Promise<{ success: boolean; error?: string }> {
   const verifyUrl = `${CLIENT_URL}/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(to)}`;
-  const safeName = name || 'there';
-  const html = `
-    <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6;">
-      <p>Hi ${safeName},</p>
-      <p>Please verify your Reaglex account.</p>
-      <p>
-        <a href="${verifyUrl}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#f97316;color:#fff;text-decoration:none;font-weight:600;">
-          Verify my email
-        </a>
-      </p>
-      <p style="font-size:13px;color:#6b7280;">This link expires in ${expiresIn}.</p>
-    </div>
-  `;
+  const html = getVerificationEmailHtml({
+    name: name || 'there',
+    verifyUrl,
+    appName: APP_NAME,
+    expiresIn,
+  });
   return sendEmail({
     to,
-    subject: 'Verify your Reaglex account',
+    subject: `Confirm your email – ${APP_NAME}`,
     html,
   });
 }
@@ -279,19 +279,35 @@ export async function sendNotificationEmail(options: {
   body: string;
   actionUrl?: string;
   actionLabel?: string;
+  name?: string;
+  rich?: RichNotificationOptions;
 }): Promise<{ success: boolean; error?: string }> {
-  const html = getNotificationEmailHtml({
-    subject: options.subject,
-    body: options.body,
-    appName: APP_NAME,
-    actionUrl: options.actionUrl,
-    actionLabel: options.actionLabel,
-  });
+  const html = options.rich
+    ? getRichNotificationEmailHtml({ appName: APP_NAME, ...options.rich })
+    : getNotificationEmailHtml({
+        subject: options.subject,
+        body: options.body,
+        appName: APP_NAME,
+        actionUrl: options.actionUrl,
+        actionLabel: options.actionLabel,
+        name: options.name,
+      });
   return sendEmail({
     to: options.to,
     subject: options.subject,
     html,
   });
+}
+
+export async function sendRichNotificationEmail(
+  options: RichNotificationOptions & { to: string; subject: string },
+): Promise<{ success: boolean; error?: string }> {
+  const html = getRichNotificationEmailHtml({
+    appName: APP_NAME,
+    ...options,
+    actionUrl: toAbsoluteEmailUrl(options.actionUrl),
+  });
+  return sendEmail({ to: options.to, subject: options.subject, html });
 }
 
 /** Optional: set SEND_LOGIN_ALERT_EMAIL=false to disable post-login emails */
@@ -353,7 +369,9 @@ export async function sendRecommendationDealsEmail(options: {
   to: string;
   name: string;
   subject: string;
+  headline?: string;
   intro?: string;
+  shopCtaLabel?: string;
   products: Array<{
     id: string;
     name: string;
@@ -362,6 +380,7 @@ export async function sendRecommendationDealsEmail(options: {
     discount?: number;
     description?: string;
     viewUrl: string;
+    ctaLabel?: string;
   }>;
   unsubscribeUrl: string;
   preferencesUrl: string;
@@ -371,11 +390,14 @@ export async function sendRecommendationDealsEmail(options: {
     appName: APP_NAME,
     name: options.name,
     title: options.subject,
+    headline: options.headline,
     intro: options.intro,
+    shopCtaLabel: options.shopCtaLabel,
     products: options.products,
     unsubscribeUrl: options.unsubscribeUrl,
     preferencesUrl: options.preferencesUrl,
     openPixelUrl: options.openPixelUrl,
+    shopMoreUrl: `${CLIENT_URL}/search?q=recommended`,
   });
   return sendEmail({
     to: options.to,
@@ -388,6 +410,9 @@ export async function sendAbandonedCartEmail(options: {
   to: string;
   name: string;
   subject: string;
+  headline?: string;
+  intro?: string;
+  cartCtaLabel?: string;
   cartUrl: string;
   products: Array<{
     id: string;
@@ -397,6 +422,7 @@ export async function sendAbandonedCartEmail(options: {
     discount?: number;
     quantity?: number;
     viewUrl: string;
+    ctaLabel?: string;
   }>;
 }): Promise<{ success: boolean; error?: string }> {
   if (!isEmailConfigured()) {
@@ -405,7 +431,10 @@ export async function sendAbandonedCartEmail(options: {
   const html = getAbandonedCartEmailHtml({
     appName: APP_NAME,
     name: options.name,
-    title: 'Abandoned cart',
+    title: options.subject,
+    headline: options.headline,
+    intro: options.intro,
+    cartCtaLabel: options.cartCtaLabel,
     cartUrl: options.cartUrl || `${CLIENT_URL}/cart`,
     products: options.products,
   });

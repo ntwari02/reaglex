@@ -2707,6 +2707,82 @@ export const adminMarketingAPI = {
       credentials: 'include',
       body: JSON.stringify(body),
     }).then(handleResponse<{ budgetLimit: number; spamProtection: boolean; smtp: any; sms: any; push: any }>),
+
+  getAutomationOverview: () =>
+    fetch(`${MARKETING_BASE}/automation/overview`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(
+      handleResponse<{
+        globalEnabled: boolean;
+        dailyEmailCap: number;
+        email: {
+          richTemplatesEnabled: boolean;
+          geminiMarketingCopy: boolean;
+          geminiTransactionalPolish: boolean;
+          geminiSellerNotifications: boolean;
+        };
+        system: { emailProviderConfigured: boolean; geminiApiConfigured: boolean };
+        pushDeviceCount: number;
+        pushEnabledUserCount: number;
+        flows: Array<{
+          key: string;
+          label: string;
+          description: string;
+          enabled: boolean;
+          pushEnabled: boolean;
+          lastRunAt: string | null;
+          lastRunSent: number;
+          lastRunSkipped: number;
+          lastRunFailed: number;
+          lastError: string;
+          stats7d: { sent: number; skipped: number; failed: number; opens: number; clicks: number };
+        }>;
+      }>,
+    ),
+
+  updateAutomationGlobals: (body: Record<string, unknown>) =>
+    fetch(`${MARKETING_BASE}/automation/globals`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(
+      handleResponse<{
+        globalEnabled: boolean;
+        dailyEmailCap: number;
+        email: {
+          richTemplatesEnabled: boolean;
+          geminiMarketingCopy: boolean;
+          geminiTransactionalPolish: boolean;
+          geminiSellerNotifications: boolean;
+        };
+      }>,
+    ),
+
+  updateAutomationFlow: (flow: string, body: { enabled?: boolean; pushEnabled?: boolean }) =>
+    fetch(`${MARKETING_BASE}/automation/flows/${encodeURIComponent(flow)}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ flow: string; enabled: boolean; pushEnabled: boolean }>),
+
+  runAutomationFlow: (flow: string) =>
+    fetch(`${MARKETING_BASE}/automation/flows/${encodeURIComponent(flow)}/run`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ sent: number; skipped: number; failed: number }>),
+
+  testAutomationEmail: (email: string) =>
+    fetch(`${MARKETING_BASE}/automation/test-email`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ email }),
+    }).then(handleResponse<{ result: unknown; user: { id: string; email: string } }>),
 };
 
 /**

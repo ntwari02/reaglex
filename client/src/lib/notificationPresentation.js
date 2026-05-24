@@ -19,6 +19,15 @@ export const ORDER_STATUSES = ['pending', 'processing', 'packed', 'shipped', 'de
 
 import { pickOsVariant, pickOsGlow } from './osNotificationVariants';
 
+function resolveMediaUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw) || raw.startsWith('data:')) return raw;
+  const base = String(import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || '').replace(/\/$/, '');
+  if (!base) return raw;
+  return `${base}${raw.startsWith('/') ? raw : `/${raw}`}`;
+}
+
 const MESSAGE_TO_STATUS = {
   'order placed': 'pending',
   'order is being processed': 'processing',
@@ -169,12 +178,16 @@ export function enrichNotification(row) {
     row?.osVariant ||
     pickOsVariant(`${id}:${rawType}:${row?.createdAt || ''}`);
   const osGlow = row?.osGlow || pickOsGlow(`${id}-glow`);
-  const thumbnails =
+  const visualStyle = row?.metadata?.visualStyle || row?.visualStyle || {};
+  const thumbnails = (
     row?.productThumbnails ||
     row?.metadata?.productThumbnails ||
     row?.aiThumbs ||
     row?.productImages ||
-    [];
+    []
+  )
+    .map((src) => resolveMediaUrl(src))
+    .filter(Boolean);
   const base = {
     ...row,
     type: rawType,
@@ -184,6 +197,11 @@ export function enrichNotification(row) {
     thumbnails: Array.isArray(thumbnails) ? thumbnails.filter(Boolean).slice(0, 3) : [],
     actionUrl: row.actionUrl || row.actionLink,
     actionText: row.actionText || row.actionLabel,
+    visualStyle,
+    showProductPreview: Boolean(
+      visualStyle.showProductPreview !== false && thumbnails.length > 0,
+    ),
+    compact: visualStyle.compact !== false,
   };
   const blob = `${base.title || ''} ${base.message || ''}`.toLowerCase();
 

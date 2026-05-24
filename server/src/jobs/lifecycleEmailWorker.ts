@@ -3,10 +3,12 @@ import { BuyerInsightProfile } from '../models/BuyerInsightProfile';
 import { User } from '../models/User';
 import { generateRecommendationsForUser } from '../services/recommendationEmail.service';
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
+import { generateMarketingEmailCopy } from '../email/emailCopyAi.service';
+import { buildMarketingEmailContent } from '../email/marketingEmailBuilder';
 import { sendRecommendationDealsEmail, isEmailConfigured } from '../services/emailService';
 import { getClientUrl } from '../config/publicEnv';
-import { formatUsdAsCurrency } from '../utils/money';
 import {
+  getDailyMarketingEmailCap,
   isMarketingFlowEnabled,
   isMarketingFlowPushEnabled,
   recordFlowRun,
@@ -21,13 +23,8 @@ function daysSince(date?: Date | null): number {
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
 }
 
-function getIntEnv(name: string, fallback: number) {
-  const n = Number(process.env[name]);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
-}
-
 async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
-  const cap = getIntEnv('DAILY_MARKETING_EMAIL_CAP', 1);
+  const cap = await getDailyMarketingEmailCap();
   if (cap <= 0) return false;
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const count = await RecommendationEmailHistory.countDocuments({
@@ -55,12 +52,25 @@ async function sendWinback(profile: any): Promise<'sent' | 'skipped' | 'failed'>
   const { products } = await generateRecommendationsForUser(userId);
   if (!products?.length) return 'skipped';
 
-  const subject = `We miss you — picks you’ll like, ${String((user as any).fullName || 'shopper').split(' ')[0]}`;
+  const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
+  const copy = await generateMarketingEmailCopy({
+    userId,
+    firstName,
+    campaign: 'winback',
+    mode: 'mixed',
+    allowPersonalized: true,
+    products: products.map((p: any) => ({
+      id: String(p._id),
+      name: String(p.name || ''),
+      reason: String(p.reason || ''),
+      discount: Number(p.discount || 0),
+    })),
+  });
   const history = await RecommendationEmailHistory.create({
     userId,
     email: user.email,
     campaign: 'winback',
-    subject,
+    subject: copy.subject,
     frequency: 'weekly',
     mode: 'mixed',
     productIds: products.map((p: any) => p._id),
@@ -70,30 +80,26 @@ async function sendWinback(profile: any): Promise<'sent' | 'skipped' | 'failed'>
 
   const API_URL = ((process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || CLIENT_URL) || '').replace(/\/$/, '');
   const displayCurrency = String((user as any)?.preferences?.currency || 'USD').toUpperCase();
-  const emailProducts = products.map((p: any) => ({
-    id: String(p._id),
-    name: p.name,
-    imageUrl: Array.isArray(p.images) && p.images[0]
-      ? String(p.images[0]).startsWith('http')
-        ? String(p.images[0])
-        : `${process.env.SERVER_URL || ''}${String(p.images[0]).startsWith('/') ? p.images[0] : `/${p.images[0]}`}`
-      : '',
-    price: Number(p.price || 0),
-    priceText: '',
-    discount: Number(p.discount || 0),
-    description: String(p.description || '').slice(0, 120),
-    viewUrl: `${API_URL}/api/recommendation-emails/track/click/${history._id}/${p._id}`,
-  }));
-  for (const ep of emailProducts as any[]) {
-    const conv = await formatUsdAsCurrency(Number(ep.price || 0), displayCurrency);
-    ep.priceText = conv.formatted;
-  }
+  const { products: emailProducts } = await buildMarketingEmailContent({
+    userId,
+    firstName,
+    campaign: 'winback',
+    mode: 'mixed',
+    allowPersonalized: true,
+    products: products as any[],
+    historyId: String(history._id),
+    displayCurrency,
+    serverUrl: API_URL,
+    copy,
+  });
 
   const sendResult = await sendRecommendationDealsEmail({
     to: user.email,
-    name: String((user as any).fullName || 'there').split(' ')[0],
-    subject,
-    intro: 'It’s been a while — here are fresh deals and recommendations based on your interests.',
+    name: firstName,
+    subject: copy.subject,
+    headline: copy.headline,
+    intro: copy.intro,
+    shopCtaLabel: copy.ctaLabel,
     products: emailProducts,
     unsubscribeUrl: `${CLIENT_URL}/account?tab=settings&section=notifications`,
     preferencesUrl: `${CLIENT_URL}/account?tab=settings&section=notifications`,

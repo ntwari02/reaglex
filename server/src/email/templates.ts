@@ -1,54 +1,52 @@
 /**
- * HTML email templates. Use CLIENT_URL for links (e.g. reset password, verify email).
- * Beautiful, responsive design with clear CTAs and security notes.
+ * HTML email templates — responsive layout, varied copy via copyEngine.
  */
-const baseStyles = `
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  line-height: 1.6;
-  color: #1f2937;
-  max-width: 560px;
-  margin: 0 auto;
-`;
-const buttonStyle = `
-  display: inline-block;
-  padding: 14px 28px;
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-  color: #ffffff !important;
-  text-decoration: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 15px;
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
-`;
-const footerStyle = `font-size: 12px; color: #6b7280; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb;`;
+import { timeGreeting, pickCta } from './copyEngine';
+import {
+  renderAction,
+  renderBodyParagraphs,
+  renderMetaCard,
+  renderOtpBlock,
+  renderProductGrid,
+  renderUnsubscribeLinks,
+  type ProductCardInput,
+} from './components';
+import { renderEmailDocument, type EmailAccent } from './layout';
+import { toAbsoluteEmailUrl } from './emailUrls';
+import { getRichNotificationEmailHtml } from './notificationEmail';
 
-/** Shared email wrapper: gradient header bar + white card */
-function emailWrapper(content: string, appName: string, title: string) {
-  return `
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; margin: 0 auto; background: #f9fafb;">
-  <tr><td style="padding: 24px 20px 0;">
-    <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border-radius: 16px 16px 0 0; padding: 28px 24px; text-align: center;">
-      <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">${appName}</h1>
-      <p style="margin: 8px 0 0; font-size: 14px; color: rgba(255,255,255,0.9);">${title}</p>
-    </div>
-    <div style="background: #ffffff; border-radius: 0 0 16px 16px; padding: 32px 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; border-top: none;">
-      ${content}
-    </div>
-  </td></tr>
-</table>`;
+export { getRichNotificationEmailHtml } from './notificationEmail';
+export type { RichNotificationOptions } from './notificationEmail';
+export type { ProductCardInput } from './components';
+
+function doc(appName: string, headline: string, accent: EmailAccent, body: string, opts?: { subtitle?: string; preheader?: string; footerNote?: string }) {
+  return renderEmailDocument({
+    appName,
+    headline,
+    subtitle: opts?.subtitle,
+    preheader: opts?.preheader,
+    accent,
+    bodyHtml: body,
+    footerNote: opts?.footerNote,
+  });
 }
 
 export function getWelcomeEmailHtml(options: { name: string; loginUrl: string; appName?: string }) {
   const appName = options.appName || 'Reaglex';
-  const content = `
-  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
-  <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">Thanks for signing up. You're all set to start exploring.</p>
-  <p style="text-align: center; margin: 28px 0;">
-    <a href="${options.loginUrl}" style="${buttonStyle}">Sign in to your account</a>
-  </p>
-  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you have any questions, reply to this email or visit our help center.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. You received it because you created an account.</div>`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Welcome')}</body></html>`;
+  const greeting = timeGreeting(options.name);
+  const intro = pickCta('auth_welcome', `welcome:${options.name}`);
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#111827;">${greeting},</p>`,
+    renderBodyParagraphs([
+      'Welcome aboard — your account is ready. Explore sellers, track orders, and shop with escrow protection.',
+      'We’re glad you’re here. Jump in whenever you’re ready.',
+    ]),
+    renderAction(options.loginUrl, intro),
+  ].join('');
+  return doc(appName, 'Welcome to the marketplace', 'brand', body, {
+    preheader: 'Your account is ready — start exploring',
+    footerNote: `You received this because you created an account on ${appName}.`,
+  });
 }
 
 export function getVerificationEmailHtml(options: {
@@ -59,16 +57,15 @@ export function getVerificationEmailHtml(options: {
 }) {
   const appName = options.appName || 'Reaglex';
   const expires = options.expiresIn || '24 hours';
-  const content = `
-  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
-  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">Please confirm your email address by clicking the button below. This keeps your account secure.</p>
-  <p style="margin: 0 0 8px; font-size: 13px; color: #9ca3af;">Link expires in <strong>${expires}</strong>. You can also verify using a one-time code on the sign-in page.</p>
-  <p style="text-align: center; margin: 28px 0;">
-    <a href="${options.verifyUrl}" style="${buttonStyle}">Verify email address</a>
-  </p>
-  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't create an account, you can safely ignore this email.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. You received it because a verification was requested for this address.</div>`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Verify your email')}</body></html>`;
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs([
+      'Please confirm your email to secure your account and unlock the full experience.',
+      `This link expires in ${expires}. You can also verify with a one-time code on the sign-in page.`,
+    ]),
+    renderAction(options.verifyUrl, pickCta('auth_verify', options.verifyUrl)),
+  ].join('');
+  return doc(appName, 'Confirm your email', 'brand', body, { preheader: 'One quick step to verify your address' });
 }
 
 export function getVerificationOtpEmailHtml(options: {
@@ -79,16 +76,13 @@ export function getVerificationOtpEmailHtml(options: {
 }) {
   const appName = options.appName || 'Reaglex';
   const expires = options.expiresIn || '10 minutes';
-  const content = `
-  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
-  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">Use this one-time code to verify your email. Enter it on the verification page.</p>
-  <p style="text-align: center; margin: 24px 0;">
-    <span style="display: inline-block; padding: 20px 32px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px dashed #f59e0b; border-radius: 16px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #92400e;">${options.code}</span>
-  </p>
-  <p style="margin: 0 0 8px; font-size: 13px; color: #9ca3af; text-align: center;">Expires in <strong>${expires}</strong>. Do not share this code.</p>
-  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't request this code, you can safely ignore this email.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. You received it because a verification code was requested for your account.</div>`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Your verification code')}</body></html>`;
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs(['Enter this code on the verification screen. Do not share it with anyone.']),
+    renderOtpBlock(options.code, 'verify'),
+    `<p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">Expires in <strong>${expires}</strong></p>`,
+  ].join('');
+  return doc(appName, 'Your verification code', 'brand', body);
 }
 
 export function getPasswordResetEmailHtml(options: {
@@ -99,24 +93,15 @@ export function getPasswordResetEmailHtml(options: {
 }) {
   const appName = options.appName || 'Reaglex';
   const expires = options.expiresIn || '1 hour';
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="${baseStyles} padding: 24px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <h1 style="font-size: 24px; font-weight: 700; color: #111827;">Reset your password</h1>
-  </div>
-  <p>Hi ${options.name},</p>
-  <p>We received a request to reset your password. Click the button below to choose a new password. This link expires in ${expires}.</p>
-  <p style="text-align: center; margin: 28px 0;">
-    <a href="${options.resetUrl}" style="${buttonStyle}">Reset password</a>
-  </p>
-  <p>If you didn't request a reset, you can safely ignore this email. Your password will not change.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. You received it because a password reset was requested for your account.</div>
-</body>
-</html>
-`;
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs([
+      'We received a request to reset your password. If you made this request, use the button below.',
+      `The link expires in ${expires}. If you did not request a reset, ignore this email — your password will stay the same.`,
+    ]),
+    renderAction(options.resetUrl, pickCta('auth_reset', options.resetUrl)),
+  ].join('');
+  return doc(appName, 'Reset your password', 'warning', body, { preheader: 'Password reset requested' });
 }
 
 export function getPasswordResetOtpEmailHtml(options: {
@@ -127,19 +112,15 @@ export function getPasswordResetOtpEmailHtml(options: {
 }) {
   const appName = options.appName || 'Reaglex';
   const expires = options.expiresIn || '15 minutes';
-  const content = `
-  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
-  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">Use this one-time code to reset your password. Enter it on the password reset screen.</p>
-  <p style="text-align: center; margin: 24px 0;">
-    <span style="display: inline-block; padding: 20px 32px; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 2px dashed #f97316; border-radius: 16px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #9a3412;">${options.code}</span>
-  </p>
-  <p style="margin: 0 0 8px; font-size: 13px; color: #9ca3af; text-align: center;">Expires in <strong>${expires}</strong>. Do not share this code.</p>
-  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't request a password reset, you can safely ignore this email.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. You received it because a password reset was requested for your account.</div>`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Reset your password')}</body></html>`;
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs(['Use this code on the password reset screen.']),
+    renderOtpBlock(options.code, 'reset'),
+    `<p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">Expires in <strong>${expires}</strong></p>`,
+  ].join('');
+  return doc(appName, 'Password reset code', 'warning', body);
 }
 
-/** Sign-in alert: sent after each successful login when email is configured */
 export function getLoginNotificationEmailHtml(options: {
   name: string;
   deviceInfo: string;
@@ -152,25 +133,19 @@ export function getLoginNotificationEmailHtml(options: {
   const appName = options.appName || 'Reaglex';
   const loginUrl = options.loginUrl || '#';
   const when = options.signedInAt || new Date().toUTCString();
-  const content = `
-  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name || 'there'},</p>
-  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">Your <strong>${appName}</strong> account was signed in successfully.</p>
-  <div style="background: #f3f4f6; border-radius: 12px; padding: 16px 20px; margin: 20px 0; border-left: 4px solid #10b981;">
-    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">When</p>
-    <p style="margin: 0 0 16px; font-size: 14px; color: #111827;">${when}</p>
-    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">Role</p>
-    <p style="margin: 0 0 16px; font-size: 14px; color: #111827;">${options.role}</p>
-    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">Device / client</p>
-    <p style="margin: 0 0 16px; font-size: 14px; color: #111827; word-break: break-all;">${options.deviceInfo}</p>
-    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">IP address</p>
-    <p style="margin: 0; font-size: 14px; color: #111827;">${options.ipAddress}</p>
-  </div>
-  <p style="margin: 0 0 24px; font-size: 14px; color: #6b7280;">If this wasn’t you, change your password and contact support immediately.</p>
-  <p style="text-align: center; margin: 0;">
-    <a href="${loginUrl}" style="${buttonStyle}">Go to ${appName}</a>
-  </p>
-  <div style="${footerStyle}">Automated security notice from ${appName}. You received this because a login completed for your account.</div>`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'New sign-in')}</body></html>`;
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs(['Your account was signed in successfully. If this was you, no action is needed.']),
+    renderMetaCard([
+      { label: 'When', value: when },
+      { label: 'Role', value: options.role },
+      { label: 'Device', value: options.deviceInfo },
+      { label: 'IP address', value: options.ipAddress },
+    ]),
+    renderBodyParagraphs(['If this wasn’t you, change your password and contact support immediately.']),
+    renderAction(loginUrl, 'Review account', 'dark'),
+  ].join('');
+  return doc(appName, 'New sign-in detected', 'success', body, { footerNote: 'Automated security notice.' });
 }
 
 export function getSecurityAlertEmailHtml(options: {
@@ -181,51 +156,14 @@ export function getSecurityAlertEmailHtml(options: {
 }) {
   const appName = options.appName || 'Reaglex';
   const loginUrl = options.loginUrl || '#';
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="${baseStyles} padding: 24px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <h1 style="font-size: 24px; font-weight: 700; color: #b91c1c;">Security alert</h1>
-  </div>
-  <p>Hi ${options.name},</p>
-  <p>${options.message}</p>
-  <p style="text-align: center; margin: 28px 0;">
-    <a href="${loginUrl}" style="${buttonStyle}">Review account</a>
-  </p>
-  <div style="${footerStyle}">This is an automated security message from ${appName}. If you didn't take this action, secure your account immediately.</div>
-</body>
-</html>
-`;
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs([options.message, 'Secure your account if you did not authorize this activity.']),
+    renderAction(loginUrl, 'Secure my account', 'dark'),
+  ].join('');
+  return doc(appName, 'Security alert', 'danger', body);
 }
 
-export function getNotificationEmailHtml(options: {
-  subject: string;
-  body: string;
-  appName?: string;
-  actionUrl?: string;
-  actionLabel?: string;
-}) {
-  const appName = options.appName || 'Reaglex';
-  const action = options.actionUrl && options.actionLabel
-    ? `<p style="text-align: center; margin: 28px 0;"><a href="${options.actionUrl}" style="${buttonStyle}">${options.actionLabel}</a></p>`
-    : '';
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="${baseStyles} padding: 24px;">
-  <h1 style="font-size: 20px; font-weight: 700; color: #111827;">${options.subject}</h1>
-  <div style="margin: 20px 0;">${options.body}</div>
-  ${action}
-  <div style="${footerStyle}">${appName}</div>
-</body>
-</html>
-`;
-}
-
-/** Beautiful device approval email – new login from another device, approve via link */
 export function getDeviceApprovalEmailHtml(options: {
   name: string;
   approveUrl: string;
@@ -236,213 +174,161 @@ export function getDeviceApprovalEmailHtml(options: {
 }) {
   const appName = options.appName || 'Reaglex';
   const expires = options.expiresIn || '15 minutes';
-  const content = `
-  <p style="margin: 0 0 16px; font-size: 16px;">Hi ${options.name},</p>
-  <p style="margin: 0 0 20px; font-size: 15px; color: #4b5563;">A new sign-in to your ${appName} account was requested from another device.</p>
-  <div style="background: #f3f4f6; border-radius: 12px; padding: 16px 20px; margin: 20px 0; border-left: 4px solid #f97316;">
-    <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">Device</p>
-    <p style="margin: 0 0 12px; font-size: 15px; font-weight: 600; color: #111827;">${options.deviceInfo}</p>
-    <p style="margin: 0; font-size: 13px; color: #6b7280;">IP address: ${options.ipAddress}</p>
-  </div>
-  <p style="margin: 0 0 8px; font-size: 14px; color: #4b5563;">If this was you, click the button below to allow this device and sign in. The link expires in <strong>${expires}</strong>.</p>
-  <p style="text-align: center; margin: 28px 0;">
-    <a href="${options.approveUrl}" style="${buttonStyle}">Approve new device</a>
-  </p>
-  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't try to sign in, ignore this email and your account will stay secure. Consider changing your password if you're concerned.</p>
-  <div style="${footerStyle}">This email was sent by ${appName}. One sign-in per device is allowed for admin and seller accounts.</div>`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, 'Approve new device sign-in')}</body></html>`;
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs([
+      'A new sign-in was requested from another device. Approve only if you recognize this activity.',
+      `The approval link expires in ${expires}.`,
+    ]),
+    renderMetaCard([
+      { label: 'Device', value: options.deviceInfo },
+      { label: 'IP address', value: options.ipAddress },
+    ]),
+    renderAction(options.approveUrl, 'Approve this device'),
+  ].join('');
+  return doc(appName, 'Approve new device', 'warning', body);
+}
+
+/** Legacy generic notification — prefer getRichNotificationEmailHtml */
+export function getNotificationEmailHtml(options: {
+  subject: string;
+  body: string;
+  appName?: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  name?: string;
+}) {
+  const appName = options.appName || 'Reaglex';
+  const plain = options.body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  return getRichNotificationEmailHtml({
+    appName,
+    name: options.name || 'there',
+    category: 'general',
+    headline: options.subject,
+    message: plain,
+    actionUrl: options.actionUrl || '#',
+    actionLabel: options.actionLabel,
+    preheader: plain.slice(0, 100),
+  });
 }
 
 export function getRecommendationDealsEmailHtml(options: {
   appName?: string;
   name: string;
   title: string;
+  headline?: string;
   intro?: string;
-  products: Array<{
-    id: string;
-    name: string;
-    imageUrl?: string;
-    price: number;
-    priceText?: string;
-    discount?: number;
-    description?: string;
-    viewUrl: string;
-  }>;
+  shopCtaLabel?: string;
+  products: ProductCardInput[];
   unsubscribeUrl: string;
   preferencesUrl: string;
   openPixelUrl?: string;
+  shopMoreUrl?: string;
 }) {
   const appName = options.appName || 'Reaglex';
-  // Table-based responsive grid (email-client safe).
-  // Desktop: 2 columns. Mobile: stacked (via media query + block cells).
-  const productRows: string[] = [];
-  const list = Array.isArray(options.products) ? options.products : [];
-  for (let i = 0; i < list.length; i += 2) {
-    const a = list[i];
-    const b = list[i + 1];
-
-    const renderCard = (p?: (typeof list)[number]) => {
-      if (!p) {
-        return `<td class="col" style="padding:0 0 14px 0;"></td>`;
-      }
-      const price = p.priceText || (Number.isFinite(p.price) ? `$${p.price.toFixed(2)}` : '$0.00');
-      const hasDiscount = Number(p.discount || 0) > 0;
-      const discountBadge = hasDiscount
-        ? `<span style="display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:#fee2e2;color:#b91c1c;">-${Math.round(Number(p.discount || 0))}%</span>`
-        : '';
-      const desc = String(p.description || 'Curated pick based on your shopping activity.').slice(0, 90);
-      return `
-        <td class="col" style="width:50%;padding:0 10px 14px 0;vertical-align:top;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
-            <tr>
-              <td style="padding:0;">
-                <a href="${p.viewUrl}" style="text-decoration:none;">
-                  <img src="${p.imageUrl || ''}" alt="${p.name}" width="260" style="display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;background:#f3f4f6;" />
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:12px 12px 14px;">
-                <p style="margin:0 0 6px;font-size:14px;font-weight:800;color:#111827;line-height:1.3;">${p.name}</p>
-                <p style="margin:0 0 10px;font-size:12px;color:#6b7280;line-height:1.45;">${desc}</p>
-                <p style="margin:0 0 10px;font-size:15px;font-weight:900;color:#111827;">${price} ${discountBadge}</p>
-                <a href="${p.viewUrl}" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#f97316;color:#fff;font-weight:800;font-size:12px;text-decoration:none;">View</a>
-              </td>
-            </tr>
-          </table>
-        </td>
-      `;
-    };
-
-    productRows.push(`
-      <tr>
-        ${renderCard(a)}
-        ${renderCard(b)}
-      </tr>
-    `);
-  }
-
-  const content = `
-    <p style="margin:0 0 12px;font-size:16px;">Hi ${options.name},</p>
-    <p style="margin:0 0 20px;font-size:14px;color:#4b5563;">${options.intro || 'We found deal picks that match your interests and recent shopping activity.'}</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-      ${productRows.join('')}
-    </table>
-    <p style="text-align:center;margin: 6px 0 0;">
-      <a href="/search?q=recommended" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#111827;color:#fff;font-weight:800;font-size:13px;text-decoration:none;">View more</a>
-    </p>
-    <p style="margin:22px 0 0;font-size:12px;color:#6b7280;">
-      Manage your recommendations any time: <a href="${options.preferencesUrl}" style="color:#f97316;">preferences</a> ·
-      <a href="${options.unsubscribeUrl}" style="color:#f97316;">unsubscribe</a>
-    </p>
-    ${options.openPixelUrl ? `<img src="${options.openPixelUrl}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;" />` : ''}
-  `;
-
-  const responsiveStyle = `
-  <style>
-    @media only screen and (max-width: 620px) {
-      .col { display:block !important; width:100% !important; padding-right:0 !important; }
-      img { height:auto !important; }
-    }
-  </style>`;
-
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">${responsiveStyle}</head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, options.title)}</body></html>`;
+  const shopUrl = options.shopMoreUrl || '/search?q=recommended';
+  const shopCta = options.shopCtaLabel || pickCta('recommendation', options.name);
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs([options.intro || 'Here are personalized picks based on your recent shopping activity.']),
+    renderProductGrid(options.products),
+    renderAction(shopUrl, shopCta, 'dark'),
+    renderUnsubscribeLinks(options.preferencesUrl, options.unsubscribeUrl),
+    options.openPixelUrl
+      ? `<img src="${options.openPixelUrl}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0;" />`
+      : '',
+  ].join('');
+  return doc(appName, options.headline || options.title, 'promo', body, {
+    preheader: options.intro?.slice(0, 100) || 'Personalized picks inside',
+    footerNote: 'Marketing email — manage preferences or unsubscribe below.',
+  });
 }
 
 export function getAbandonedCartEmailHtml(options: {
   appName?: string;
   name: string;
   title: string;
+  headline?: string;
+  intro?: string;
   cartUrl: string;
-  products: Array<{
-    id: string;
-    name: string;
-    imageUrl?: string;
-    price: number;
-    priceText?: string;
-    discount?: number;
-    quantity?: number;
-    viewUrl: string;
-  }>;
+  cartCtaLabel?: string;
+  products: ProductCardInput[];
 }) {
   const appName = options.appName || 'Reaglex';
-  const productRows: string[] = [];
-  const list = Array.isArray(options.products) ? options.products : [];
-  for (let i = 0; i < list.length; i += 2) {
-    const a = list[i];
-    const b = list[i + 1];
+  const cartCta = options.cartCtaLabel || pickCta('cart', options.name);
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs([
+      options.intro || 'You left items in your cart — they may sell out or change price.',
+    ]),
+    renderAction(options.cartUrl, cartCta),
+    renderProductGrid(options.products),
+  ].join('');
+  return doc(appName, options.headline || options.title, 'promo', body, {
+    preheader: 'Your saved items are waiting',
+    footerNote: 'Cart reminder from your recent visit.',
+  });
+}
 
-    const renderCard = (p?: (typeof list)[number]) => {
-      if (!p) return `<td class="col" style="padding:0 0 14px 0;"></td>`;
-      const qty = Math.max(1, Number(p.quantity || 1));
-      const price = p.priceText || (Number.isFinite(p.price) ? `$${p.price.toFixed(2)}` : '$0.00');
-      const hasDiscount = Number(p.discount || 0) > 0;
-      const discountBadge = hasDiscount
-        ? `<span style="display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:#fee2e2;color:#b91c1c;">-${Math.round(Number(p.discount || 0))}%</span>`
-        : '';
-      return `
-        <td class="col" style="width:50%;padding:0 10px 14px 0;vertical-align:top;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
-            <tr>
-              <td style="padding:0;">
-                <a href="${p.viewUrl}" style="text-decoration:none;">
-                  <img src="${p.imageUrl || ''}" alt="${p.name}" width="260" style="display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;background:#f3f4f6;" />
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:12px 12px 14px;">
-                <p style="margin:0 0 6px;font-size:14px;font-weight:800;color:#111827;line-height:1.3;">${p.name}</p>
-                <p style="margin:0 0 8px;font-size:12px;color:#6b7280;">Quantity: <strong>${qty}</strong></p>
-                <p style="margin:0 0 10px;font-size:15px;font-weight:900;color:#111827;">${price} ${discountBadge}</p>
-                <a href="${p.viewUrl}" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#f97316;color:#fff;font-weight:800;font-size:12px;text-decoration:none;">View</a>
-              </td>
-            </tr>
-          </table>
-        </td>
-      `;
-    };
+export function getSubscriptionBillingEmailHtml(options: {
+  appName?: string;
+  name: string;
+  variant: 'activated' | 'renewed' | 'payment_failed' | 'upgraded' | 'invoice';
+  planName?: string;
+  amountText?: string;
+  renewalDate?: string;
+  actionUrl: string;
+  actionLabel?: string;
+}) {
+  const appName = options.appName || 'Reaglex';
+  const accent =
+    options.variant === 'payment_failed' ? 'danger' : options.variant === 'upgraded' ? 'success' : 'brand';
+  const headlines: Record<typeof options.variant, string> = {
+    activated: 'Your subscription is active',
+    renewed: 'Subscription renewed',
+    payment_failed: 'Payment could not be processed',
+    upgraded: 'Plan upgraded',
+    invoice: 'New invoice available',
+  };
+  const intros: Record<typeof options.variant, string> = {
+    activated: options.planName
+      ? `Welcome to ${options.planName}. Your seller tools and limits are now unlocked.`
+      : 'Your subscription is live — manage billing anytime from your dashboard.',
+    renewed: options.amountText
+      ? `We processed ${options.amountText} for this billing cycle.${options.renewalDate ? ` Next renewal: ${options.renewalDate}.` : ''}`
+      : 'Your plan renewed successfully. Invoice details are in billing history.',
+    payment_failed:
+      'We could not charge your default payment method. Update billing to avoid service interruption.',
+    upgraded: options.planName
+      ? `You are now on ${options.planName}. New limits apply immediately.`
+      : 'Your subscription tier was updated successfully.',
+    invoice: 'A new invoice was added to your billing history. Download it from your subscription page.',
+  };
+  const rows = [];
+  if (options.planName) rows.push({ label: 'Plan', value: options.planName });
+  if (options.amountText) rows.push({ label: 'Amount', value: options.amountText });
+  if (options.renewalDate) rows.push({ label: 'Next renewal', value: options.renewalDate });
 
-    productRows.push(`
-      <tr>
-        ${renderCard(a)}
-        ${renderCard(b)}
-      </tr>
-    `);
-  }
-
-  const content = `
-    <p style="margin:0 0 12px;font-size:16px;">Hi ${options.name},</p>
-    <p style="margin:0 0 18px;font-size:14px;color:#4b5563;">Looks like you left a few items in your cart. They may sell out or change price — grab them while they're available.</p>
-    <p style="text-align:center;margin: 16px 0 24px;">
-      <a href="${options.cartUrl}" style="${buttonStyle}">Return to your cart</a>
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-      ${productRows.join('')}
-    </table>
-    <div style="${footerStyle}">This is an automated reminder from ${appName}.</div>
-  `;
-
-  const responsiveStyle = `
-  <style>
-    @media only screen and (max-width: 620px) {
-      .col { display:block !important; width:100% !important; padding-right:0 !important; }
-      img { height:auto !important; }
-    }
-  </style>`;
-
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">${responsiveStyle}</head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, options.title)}</body></html>`;
+  const body = [
+    `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
+    renderBodyParagraphs([intros[options.variant]]),
+    rows.length ? renderMetaCard(rows) : '',
+    renderAction(options.actionUrl, options.actionLabel || pickCta('subscription', options.name)),
+  ].join('');
+  return doc(appName, headlines[options.variant], accent, body, {
+    preheader: intros[options.variant].slice(0, 100),
+    footerNote: 'Subscription & billing notification.',
+  });
 }
 
 export function getNewsletterWelcomeEmailHtml(options: { shopUrl: string; appName?: string }) {
   const appName = options.appName || 'Reaglex';
-  const content = `
-  <p style="margin: 0 0 16px; font-size: 16px;">Thanks for subscribing,</p>
-  <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">You'll get curated deals, new arrivals, and marketplace updates. You can unsubscribe anytime from the link in future emails.</p>
-  <p style="text-align: center; margin: 28px 0;">
-    <a href="${options.shopUrl}" style="${buttonStyle}">Shop ${appName}</a>
-  </p>
-  <p style="margin: 24px 0 0; font-size: 14px; color: #6b7280;">If you didn't sign up for this list, you can ignore this message.</p>
-  <div style="${footerStyle}">This email was sent by ${appName} because you subscribed on our website.</div>`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="${baseStyles} padding: 24px;">${emailWrapper(content, appName, "You're on the list")}</body></html>`;
+  const body = [
+    renderBodyParagraphs([
+      'Thanks for subscribing — you’ll get curated deals, new arrivals, and marketplace highlights.',
+      'You can unsubscribe anytime from the link in any email.',
+    ]),
+    renderAction(options.shopUrl, 'Start shopping'),
+  ].join('');
+  return doc(appName, "You're on the list", 'brand', body);
 }

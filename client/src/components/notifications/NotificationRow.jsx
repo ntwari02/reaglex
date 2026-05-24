@@ -75,8 +75,10 @@ export default function NotificationRow({
     n.type === 'order' && (n.orderStatus === 'shipped' || n.statusTone === 'transit');
 
   const showThumbs =
+    n.showProductPreview ||
     n.presentationType === 'ai' ||
     n.type === 'live' ||
+    (n.type === 'order' && n.thumbnails?.length > 0) ||
     (n.type === 'system' && n.thumbnails?.length > 0);
 
   const footer = (
@@ -155,6 +157,7 @@ export default function NotificationRow({
           actionLabel={actionLabel}
           thumbnails={n.thumbnails || n.aiThumbs || []}
           showThumbs={showThumbs}
+          compact={n.compact !== false}
           footer={hasFooter ? footer : null}
           index={index}
           onClick={handleOpen}

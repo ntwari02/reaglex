@@ -3,6 +3,7 @@ import { User } from '../models/User';
 import { SentNotificationLog } from '../models/SentNotificationLog';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
 import { sendNotificationEmail, isEmailConfigured } from '../services/emailService';
+import { getClientUrl } from '../config/publicEnv';
 
 function mapScheduledTargetToAudience(
   target: string,
@@ -72,10 +73,24 @@ export function startScheduledNotificationWorker(): void {
           const body = String(s.body || '').slice(0, 8000);
           const recipients = await collectEmailsForScheduledTarget(String(s.target));
           for (const to of recipients) {
+            const clientUrl = getClientUrl();
             const result = await sendNotificationEmail({
               to,
               subject,
               body,
+              name: 'there',
+              actionUrl: `${clientUrl}/`,
+              actionLabel: 'Open marketplace',
+              rich: {
+                name: 'there',
+                category: 'marketing',
+                headline: subject,
+                message: body,
+                actionUrl: `${clientUrl}/`,
+                actionLabel: 'Open marketplace',
+                accent: 'promo',
+                preheader: body.slice(0, 120),
+              },
             });
             await SentNotificationLog.create({
               recipient: to,

@@ -30,6 +30,7 @@ export interface BuyerNotificationContext {
   liveTitle?: string;
   messagePreview?: string;
   reminderCount?: number;
+  productImages?: string[];
 }
 
 export interface BuyerNotificationCopy {
@@ -41,6 +42,11 @@ export interface BuyerNotificationCopy {
   deepLink: string;
   inboxType: 'info' | 'warning' | 'success' | 'system_announcement';
   pushCategory: 'order' | 'message' | 'live' | 'return';
+  visualStyle?: {
+    showProductPreview: boolean;
+    compact: boolean;
+    thumbnailCount: number;
+  };
 }
 
 type Pool = Array<{
@@ -239,6 +245,8 @@ export function generateBuyerNotificationCopy(
   const pool = POOLS[event] || POOLS.payment_notice;
   const seed = `${event}:${ctx.buyerId}:${ctx.orderId || ''}:${new Date().toISOString().slice(0, 10)}`;
   const v = pool[pick(seed, pool.length)];
+  const thumbs = (ctx.productImages || []).filter(Boolean).slice(0, 3);
+  const showProducts = thumbs.length > 0 && (event.startsWith('order_') || event === 'live_now');
   return {
     title: v.title(ctx),
     message: v.message(ctx),
@@ -248,5 +256,10 @@ export function generateBuyerNotificationCopy(
     deepLink: deepLink(event, ctx),
     inboxType: v.inboxType,
     pushCategory: v.pushCategory,
+    visualStyle: {
+      showProductPreview: showProducts,
+      compact: true,
+      thumbnailCount: showProducts ? Math.min(3, thumbs.length) : 0,
+    },
   };
 }

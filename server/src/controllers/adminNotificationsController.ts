@@ -9,6 +9,7 @@ import { NotificationPermission } from '../models/NotificationPermission';
 import { AdminSystemAlert } from '../models/AdminSystemAlert';
 import { User } from '../models/User';
 import { sendNotificationEmail, isEmailConfigured } from '../services/emailService';
+import { pickCta } from '../email/copyEngine';
 import mongoose from 'mongoose';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
 import {
@@ -143,12 +144,24 @@ export async function sendNotification(req: AuthenticatedRequest, res: Response)
 
     if (types.includes('email') && emailsToSend.length > 0 && isEmailConfigured()) {
       for (const to of emailsToSend) {
+        const actionUrl = process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/login` : '/';
         const result = await sendNotificationEmail({
           to,
           subject: subject || 'Notification',
           body: message,
-          actionUrl: process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/login` : undefined,
-          actionLabel: 'View',
+          name: 'there',
+          actionUrl,
+          actionLabel: pickCta('marketing', to),
+          rich: {
+            name: 'there',
+            category: 'marketing',
+            headline: subject || 'Notification',
+            message: message || '',
+            actionUrl,
+            actionLabel: pickCta('marketing', to),
+            accent: 'promo',
+            preheader: String(message || '').slice(0, 120),
+          },
         });
         const log = await SentNotificationLog.create({
           recipient: to,
@@ -351,10 +364,24 @@ export async function runNotificationABTest(req: AuthenticatedRequest, res: Resp
       if (!recipientValue) continue;
 
       if (type === 'email' && isEmailConfigured()) {
+        const actionUrl = process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/` : '/';
         await sendNotificationEmail({
           to: recipientValue,
           subject: chosen.subject || 'Reaglex update',
           body: chosen.message,
+          name: 'there',
+          actionUrl,
+          actionLabel: pickCta('marketing', recipientValue),
+          rich: {
+            name: 'there',
+            category: 'marketing',
+            headline: chosen.subject || 'Reaglex update',
+            message: chosen.message || '',
+            actionUrl,
+            actionLabel: pickCta('marketing', `${recipientValue}:${variant}`),
+            accent: 'promo',
+            preheader: String(chosen.message || '').slice(0, 120),
+          },
         });
       } else if (type === 'inapp' && req.user?.id) {
         await createSystemInboxAndFanout({

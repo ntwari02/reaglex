@@ -5,6 +5,7 @@ import { getOrCreateCartSettings, settingsToClient } from '../models/AbandonedCa
 import { RecommendationActivity } from '../models/RecommendationActivity';
 import { Product } from '../models/Product';
 import { User } from '../models/User';
+import { generateMarketingEmailCopy } from '../email/emailCopyAi.service';
 import { isEmailConfigured, sendAbandonedCartEmail } from '../services/emailService';
 import { getClientUrl } from '../config/publicEnv';
 import { formatUsdAsCurrency } from '../utils/money';
@@ -24,6 +25,7 @@ import {
   preSendSafetyChecks,
 } from '../services/cartRecoveryEngine.service';
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
+import { isMarketingFlowEnabled } from '../models/MarketingAutomationSettings';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -295,18 +297,32 @@ async function processQueueItem(queueId: string): Promise<'sent' | 'skipped' | '
   }
 
   const template = job.template || 'waiting';
-  const subjects: Record<string, string> = {
-    waiting: `Items still waiting in your cart – ${APP_NAME}`,
-    low_stock: `Stock is running low on your cart items – ${APP_NAME}`,
-    discount: `Limited offer on your cart – ${APP_NAME}`,
-    custom: `Don't miss out – ${APP_NAME}`,
-  };
+  const firstName = String((user as any).fullName || 'there').split(' ')[0];
+  const copy = await generateMarketingEmailCopy({
+    userId,
+    firstName,
+    campaign: 'abandoned_cart',
+    cartTemplate: template,
+    products: emailProducts.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      discount: p.discount,
+    })),
+  });
+  for (const p of emailProducts as any[]) {
+    if (copy.productDescriptions[p.id]) p.description = copy.productDescriptions[p.id];
+    p.ctaLabel = copy.ctaLabel;
+  }
 
   try {
     await sendAbandonedCartEmail({
       to: String(user.email),
-      name: String((user as any).fullName || 'there').split(' ')[0],
-      subject: subjects[template] || subjects.waiting,
+      name: firstName,
+      subject: copy.subject,
+      headline: copy.headline,
+      intro: copy.intro,
+      cartCtaLabel: copy.ctaLabel,
       products: emailProducts,
       cartUrl: `${CLIENT_URL}/cart`,
     });
@@ -315,7 +331,7 @@ async function processQueueItem(queueId: string): Promise<'sent' | 'skipped' | '
       userId: new mongoose.Types.ObjectId(userId),
       email: String(user.email).toLowerCase(),
       campaign: 'abandoned_cart',
-      subject: subjects[template] || subjects.waiting,
+      subject: copy.subject,
       frequency: 'daily',
       mode: 'mixed',
       productIds: emailProducts.map((p) => new mongoose.Types.ObjectId(p.id)),
@@ -426,6 +442,9 @@ async function processDueQueue(): Promise<{ sent: number; skipped: number; faile
 async function tick(): Promise<{ sent: number; skipped: number; failed: number; discovered: number }> {
   const enabledByEnv = getBoolEnv('SEND_ABANDONED_CART_EMAIL', true);
   if (!enabledByEnv || !isEmailConfigured()) {
+    return { sent: 0, skipped: 0, failed: 0, discovered: 0 };
+  }
+  if (!(await isMarketingFlowEnabled('abandoned_cart'))) {
     return { sent: 0, skipped: 0, failed: 0, discovered: 0 };
   }
 

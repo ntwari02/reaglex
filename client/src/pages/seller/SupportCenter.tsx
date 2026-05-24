@@ -40,6 +40,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
+import { enrichSellerNotification } from '@/lib/sellerNotificationPresentation';
+import SellerNotificationCard from '@/components/seller/SellerNotificationCard';
+import { useNavigate } from 'react-router-dom';
 import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
 import { API_BASE_URL, resolveAssetUrl } from '@/lib/config';
 
@@ -159,6 +162,7 @@ interface SystemNotification {
 const SupportCenter: React.FC = () => {
   const { showToast } = useToastStore();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'tickets' | 'knowledge' | 'disputes' | 'health' | 'notifications' | 'contact'>('knowledge');
   
   // Ticket management state
@@ -742,7 +746,9 @@ const SupportCenter: React.FC = () => {
       
       if (!response.ok) throw new Error('Failed to fetch notifications');
       const data = await response.json();
-      setNotifications(data.notifications || []);
+      const rows = Array.isArray(data.notifications) ? data.notifications : [];
+      const uid = user?.id || '';
+      setNotifications(rows.map((n: SystemNotification) => enrichSellerNotification(n, uid)));
     } catch (error: any) {
       console.error('Failed to fetch notifications:', error);
     }
@@ -1274,35 +1280,19 @@ const SupportCenter: React.FC = () => {
                 <p className="text-gray-600 dark:text-gray-400">No notifications</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {notifications.map((notification) => (
-                  <div key={notification._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-900/40">
-                        <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{notification.title}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{notification.message}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span>{formatDate(notification.createdAt)}</span>
-                          {notification.actionRequired && (
-                            <span className="text-gray-600 dark:text-gray-400 font-semibold">Action Required</span>
-                          )}
-                        </div>
-                        {notification.actionUrl && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-2"
-                            onClick={() => window.location.href = notification.actionUrl!}
-                          >
-                            {notification.actionText || 'Take Action'}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              <div className="sln-feed p-2">
+                {notifications.map((notification: any, index: number) => (
+                  <SellerNotificationCard
+                    key={notification.id || notification._id}
+                    notification={notification}
+                    index={index}
+                    onOpen={(id) => {
+                      const row = notifications.find(
+                        (n: any) => n.id === id || n._id === id,
+                      );
+                      if (row?.actionLink) navigate(row.actionLink);
+                    }}
+                  />
                 ))}
               </div>
             )}

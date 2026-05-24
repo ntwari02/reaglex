@@ -4,7 +4,9 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { ReturnCase } from '../models/ReturnCase';
 import { Order } from '../models/Order';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
-import { sendNotificationEmail } from '../services/emailService';
+import { sendRichNotificationEmail } from '../services/emailService';
+import { pickCta } from '../email/copyEngine';
+import { getClientUrl } from '../config/publicEnv';
 import { User } from '../models/User';
 
 const STATUS_FLOW: Record<string, string[]> = {
@@ -126,11 +128,18 @@ export async function updateReturnCaseStatus(req: AuthenticatedRequest, res: Res
       createdBy: req.user?.id || doc.sellerId,
     });
     if (buyer?.email) {
-      void sendNotificationEmail({
+      const clientUrl = getClientUrl();
+      void sendRichNotificationEmail({
         to: buyer.email,
-        subject: `Return case ${doc.caseNumber} status update`,
-        body: `Your return case is now: ${doc.status.replace(/_/g, ' ')}.`,
-      });
+        subject: `Return case ${doc.caseNumber} — update`,
+        name: 'there',
+        category: 'return',
+        headline: `Return ${doc.caseNumber} updated`,
+        message: `Your return case is now: ${doc.status.replace(/_/g, ' ')}.`,
+        actionUrl: `${clientUrl}/account?tab=orders&returns=${encodeURIComponent(String(doc._id))}`,
+        actionLabel: pickCta('return', String(doc.buyerId)),
+        accent: doc.status === 'rejected' ? 'warning' : 'brand',
+      }).catch(() => {});
     }
 
     return res.json({ message: 'Return case updated', case: doc });
@@ -175,11 +184,18 @@ export async function addReturnCaseStaffMessage(req: AuthenticatedRequest, res: 
       createdBy: req.user?.id || doc.sellerId,
     });
     if (buyer?.email) {
-      void sendNotificationEmail({
+      const clientUrl = getClientUrl();
+      void sendRichNotificationEmail({
         to: buyer.email,
-        subject: `New message on return case ${doc.caseNumber}`,
-        body: 'A new message was posted in your return case thread.',
-      });
+        subject: `Return ${doc.caseNumber} — new message`,
+        name: 'there',
+        category: 'return',
+        headline: 'New message on your return',
+        message: 'A new message was posted in your return case thread.',
+        actionUrl: `${clientUrl}/account?tab=orders&returns=${encodeURIComponent(String(doc._id))}`,
+        actionLabel: pickCta('return', String(doc.buyerId)),
+        accent: 'brand',
+      }).catch(() => {});
     }
 
     return res.json({ message: 'Message sent', chat: doc.chat });
@@ -244,11 +260,18 @@ export async function adminBulkUpdateReturnCases(req: AuthenticatedRequest, res:
         createdBy: req.user?.id || doc.sellerId,
       });
       if (buyer?.email) {
-        void sendNotificationEmail({
+        const clientUrl = getClientUrl();
+        void sendRichNotificationEmail({
           to: buyer.email,
-          subject: `Return case ${doc.caseNumber} status update`,
-          body: `Your return case is now: ${doc.status.replace(/_/g, ' ')}.`,
-        });
+          subject: `Return case ${doc.caseNumber} — update`,
+          name: 'there',
+          category: 'return',
+          headline: `Return ${doc.caseNumber} updated`,
+          message: `Your return case is now: ${doc.status.replace(/_/g, ' ')}.`,
+          actionUrl: `${clientUrl}/account?tab=orders&returns=${encodeURIComponent(String(doc._id))}`,
+          actionLabel: pickCta('return', String(doc.buyerId)),
+          accent: doc.status === 'rejected' ? 'warning' : 'brand',
+        }).catch(() => {});
       }
     }
 

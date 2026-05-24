@@ -7,8 +7,13 @@ import {
 } from './buyerNotificationAssistant.service';
 import { createSystemInboxAndFanout } from './systemInboxFanout';
 import { safeSendPushToUser } from './pushNotificationService';
-import { sendNotificationEmail, isEmailConfigured } from './emailService';
+import { sendRichNotificationEmail, isEmailConfigured } from './emailService';
+import { buyerEventCategory, buyerEventAccent } from '../email/eventCategories';
+import { enhanceTransactionalEmailCopy } from '../email/emailCopyAi.service';
+import { getClientUrl } from '../config/publicEnv';
 import { pickVisualVariant } from '../utils/notificationVisual';
+import { prepareInAppNotificationPayload } from '../utils/notificationDisplay';
+import { normalizeMediaUrls } from '../email/emailUrls';
 
 type EmailPref = 'orderUpdates' | 'promotions' | 'securityAlerts';
 type PushPref = 'orderUpdates' | 'messages' | 'promotions';
@@ -65,7 +70,9 @@ export async function deliverBuyerNotification(
   const channels = await buyerChannels(ctx.buyerId, event);
   if (!channels.inapp && !channels.push && !channels.email) return;
 
-  const copy = generateBuyerNotificationCopy(event, ctx);
+  const productImages = normalizeMediaUrls(ctx.productImages);
+  const enrichedCtx = { ...ctx, productImages };
+  const copy = generateBuyerNotificationCopy(event, enrichedCtx);
   const entityId = ctx.orderId || ctx.caseNumber || ctx.liveSessionId || '';
   const visualVariant = pickVisualVariant(`${ctx.buyerId}:${event}:${entityId || copy.title}:${Date.now()}`);
   const admin = await User.findOne({ role: 'admin' }).select('_id').lean();
@@ -75,23 +82,31 @@ export async function deliverBuyerNotification(
       : admin?._id || ctx.buyerId;
 
   if (channels.inapp) {
-    await createSystemInboxAndFanout({
+    const inApp = prepareInAppNotificationPayload({
       title: copy.title,
       message: copy.message,
-      type: copy.inboxType,
+      actionUrl: copy.deepLink,
+      actionLabel: copy.actionLabel,
+      tone: copy.tone,
       priority: copy.priority,
+      category: event,
+      eventKey: event,
+      entityId: entityId || undefined,
+      productThumbnails: productImages,
+      visualStyle: copy.visualStyle,
+      visualVariant,
+    });
+    await createSystemInboxAndFanout({
+      title: inApp.title,
+      message: inApp.message,
+      type: copy.inboxType,
+      priority: inApp.priority,
       targetAudience: 'specific_user',
       targetUserId: ctx.buyerId,
       createdBy: creator,
-      actionUrl: copy.deepLink,
-      actionText: copy.actionLabel,
-      metadata: {
-        category: event,
-        tone: copy.tone,
-        eventKey: event,
-        entityId: ctx.orderId || ctx.caseNumber || ctx.liveSessionId,
-        visualVariant,
-      },
+      actionUrl: inApp.actionUrl,
+      actionText: inApp.actionText,
+      metadata: inApp.metadata,
     });
   }
 
@@ -107,13 +122,41 @@ export async function deliverBuyerNotification(
   }
 
   if (channels.email && isEmailConfigured()) {
-    const user = await User.findById(ctx.buyerId).select('email').lean();
+    const user = await User.findById(ctx.buyerId).select('email fullName').lean();
     if (user?.email) {
-      void sendNotificationEmail({
-        to: user.email,
-        subject: copy.title,
-        body: `${copy.message}\n\n${copy.actionLabel}: ${copy.deepLink}`,
-      }).catch(() => {});
+      const actionUrl = copy.deepLink.startsWith('http')
+        ? copy.deepLink
+        : `${getClientUrl()}${copy.deepLink.startsWith('/') ? copy.deepLink : `/${copy.deepLink}`}`;
+      const firstName = String((user as { fullName?: string }).fullName || 'there').split(' ')[0];
+      const category = buyerEventCategory(event);
+      void (async () => {
+        const enhanced = await enhanceTransactionalEmailCopy({
+          userId: ctx.buyerId,
+          firstName,
+          category,
+          eventKey: event,
+          headline: copy.title,
+          message: copy.message,
+          actionLabel: copy.actionLabel,
+        });
+        const metaRows = [];
+        if (ctx.orderNumber) metaRows.push({ label: 'Order', value: `#${ctx.orderNumber}` });
+        if (ctx.caseNumber) metaRows.push({ label: 'Case', value: ctx.caseNumber });
+
+        await sendRichNotificationEmail({
+          to: user.email,
+          subject: copy.title,
+          name: firstName,
+          category,
+          headline: copy.title,
+          message: enhanced.message,
+          actionUrl,
+          actionLabel: enhanced.actionLabel,
+          accent: buyerEventAccent(event),
+          preheader: enhanced.message.slice(0, 120),
+          metaRows: metaRows.length ? metaRows : undefined,
+        });
+      })().catch(() => {});
     }
   }
 }

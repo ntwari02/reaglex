@@ -11,8 +11,13 @@ import {
 } from './sellerNotificationAssistant.service';
 import { createSystemInboxAndFanout } from './systemInboxFanout';
 import { safeSendPushToUser } from './pushNotificationService';
-import { sendNotificationEmail, isEmailConfigured } from './emailService';
+import { sendRichNotificationEmail, isEmailConfigured } from './emailService';
+import { enhanceTransactionalEmailCopy } from '../email/emailCopyAi.service';
+import { sellerEventCategory, sellerEventAccent } from '../email/eventCategories';
+import { getClientUrl } from '../config/publicEnv';
 import { pickVisualVariant } from '../utils/notificationVisual';
+import { prepareInAppNotificationPayload } from '../utils/notificationDisplay';
+import { normalizeMediaUrls } from '../email/emailUrls';
 
 type PreferenceKey = 'newOrders' | 'newDisputes' | 'paymentReceived' | 'lowStock' | 'newMessages' | 'newReviews';
 
@@ -85,7 +90,10 @@ async function countRecentReminders(
 async function orderProductThumbnails(orderId: string): Promise<string[]> {
   const order = await Order.findById(orderId).select('items').lean();
   if (!order?.items?.length) return [];
-  const ids = order.items.map((it: { productId?: unknown }) => it.productId).filter(Boolean);
+  const ids = order.items
+    .map((it: { productId?: unknown }) => it.productId)
+    .filter((id): id is mongoose.Types.ObjectId | string => Boolean(id))
+    .map((id) => new mongoose.Types.ObjectId(String(id)));
   const products = await Product.find({ _id: { $in: ids } })
     .select('image images')
     .limit(3)
@@ -107,43 +115,53 @@ export async function deliverSellerNotification(
 
   const entityId = ctx.orderId || ctx.caseNumber || ctx.disputeNumber || '';
   const reminderCount = await countRecentReminders(ctx.sellerId, event, entityId || undefined);
+  const rawThumbs = ctx.productImages?.length
+    ? ctx.productImages
+    : ctx.orderId
+      ? await orderProductThumbnails(ctx.orderId)
+      : [];
+  const productImages = normalizeMediaUrls(rawThumbs);
+
   const enriched: SellerNotificationContext = {
     ...ctx,
     reminderCount,
-    productImages: ctx.productImages?.length
-      ? ctx.productImages
-      : ctx.orderId
-        ? await orderProductThumbnails(ctx.orderId)
-        : [],
+    productImages,
   };
 
-  const copy = generateSellerNotificationCopy(event, enriched);
+  const copy = await generateSellerNotificationCopy(event, enriched);
   const visualSeed = `${ctx.sellerId}:${event}:${entityId || copy.title}:${Date.now()}`;
   const visualVariant = pickVisualVariant(visualSeed);
   const admin = await User.findOne({ role: 'admin' }).select('_id').lean();
   const creator = createdBy && mongoose.Types.ObjectId.isValid(createdBy) ? createdBy : admin?._id || ctx.sellerId;
 
   if (channels.inapp) {
-    await createSystemInboxAndFanout({
+    const inApp = prepareInAppNotificationPayload({
       title: copy.title,
       message: copy.message,
-      type: copy.inboxType,
+      actionUrl: copy.deepLink,
+      actionLabel: copy.actionLabel,
+      tone: copy.tone,
       priority: copy.priority,
+      category: event,
+      eventKey: event,
+      entityId: entityId || undefined,
+      productThumbnails: productImages,
+      visualStyle: copy.visualStyle,
+      visualVariant,
+      copySource: copy.source,
+    });
+    await createSystemInboxAndFanout({
+      title: inApp.title,
+      message: inApp.message,
+      type: copy.inboxType,
+      priority: inApp.priority,
       targetAudience: 'specific_seller',
       targetSellerId: ctx.sellerId,
       createdBy: creator,
-      actionUrl: copy.deepLink,
-      actionText: copy.actionLabel,
+      actionUrl: inApp.actionUrl,
+      actionText: inApp.actionText,
       actionRequired: copy.priority === 'high',
-      metadata: {
-        category: event,
-        tone: copy.tone,
-        eventKey: event,
-        entityId: entityId || undefined,
-        productThumbnails: enriched.productImages?.slice(0, 3),
-        visualStyle: copy.visualStyle,
-        visualVariant,
-      },
+      metadata: inApp.metadata,
     });
   }
 
@@ -159,13 +177,42 @@ export async function deliverSellerNotification(
   }
 
   if (channels.email && isEmailConfigured()) {
-    const seller = await User.findById(ctx.sellerId).select('email').lean();
+    const seller = await User.findById(ctx.sellerId).select('email fullName').lean();
     if (seller?.email) {
-      void sendNotificationEmail({
-        to: seller.email,
-        subject: copy.title,
-        body: `${copy.message}\n\n${copy.actionLabel}: ${copy.deepLink}`,
-      }).catch(() => {});
+      const actionUrl = copy.deepLink.startsWith('http')
+        ? copy.deepLink
+        : `${getClientUrl()}${copy.deepLink.startsWith('/') ? copy.deepLink : `/${copy.deepLink}`}`;
+      const firstName = String((seller as { fullName?: string }).fullName || 'there').split(' ')[0];
+      const category = sellerEventCategory(event);
+      void (async () => {
+        let message = copy.message;
+        let actionLabel = copy.actionLabel;
+        if (copy.source !== 'gemini') {
+          const enhanced = await enhanceTransactionalEmailCopy({
+            userId: ctx.sellerId,
+            firstName,
+            category,
+            eventKey: event,
+            headline: copy.title,
+            message: copy.message,
+            actionLabel: copy.actionLabel,
+          });
+          message = enhanced.message;
+          actionLabel = enhanced.actionLabel;
+        }
+        await sendRichNotificationEmail({
+          to: seller.email,
+          subject: copy.title,
+          name: firstName,
+          category,
+          headline: copy.title,
+          message,
+          actionUrl,
+          actionLabel,
+          accent: sellerEventAccent(event),
+          preheader: message.slice(0, 120),
+        });
+      })().catch(() => {});
     }
   }
 }
@@ -178,10 +225,10 @@ export async function checkSellerShippingReminders(sellerId: string): Promise<vo
 
   const cutoff = new Date(Date.now() - 36 * 60 * 60 * 1000);
   const stale = await Order.find({
-    sellerId,
-    status: { $in: ['processing', 'packed', 'confirmed'] },
+    sellerId: new mongoose.Types.ObjectId(sellerId),
+    status: { $in: ['processing', 'packed', 'confirmed'] as string[] },
     updatedAt: { $lt: cutoff },
-  })
+  } as Record<string, unknown>)
     .select('_id orderNumber updatedAt')
     .sort({ updatedAt: 1 })
     .limit(5)

@@ -5,10 +5,12 @@ import { User } from '../models/User';
 import { BuyerInsightProfile } from '../models/BuyerInsightProfile';
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
 import { isEmailConfigured, sendRecommendationDealsEmail } from '../services/emailService';
+import { generateMarketingEmailCopy } from '../email/emailCopyAi.service';
+import { buildMarketingEmailContent } from '../email/marketingEmailBuilder';
 import { getClientUrl } from '../config/publicEnv';
-import { formatUsdAsCurrency } from '../utils/money';
 import { getPersonalizationGate } from '../services/personalizationGate.service';
 import {
+  getDailyMarketingEmailCap,
   isMarketingFlowEnabled,
   isMarketingFlowPushEnabled,
   recordFlowRun,
@@ -29,7 +31,7 @@ function hoursSince(date?: Date | null) {
 }
 
 async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
-  const cap = getIntEnv('DAILY_MARKETING_EMAIL_CAP', 8);
+  const cap = await getDailyMarketingEmailCap();
   if (cap <= 0) return false;
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const count = await RecommendationEmailHistory.countDocuments({
@@ -184,12 +186,24 @@ async function sendCartPulse(userId: string, lastCartAddAt: Date): Promise<'sent
   const gate = await getPersonalizationGate(userId);
 
   const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
-  const subject = `More picks for your cart, ${firstName}`;
+  const copy = await generateMarketingEmailCopy({
+    userId,
+    firstName,
+    campaign: 'cart_pulse',
+    mode: 'mixed',
+    allowPersonalized: gate.allowPersonalized,
+    products: products.map((p: any) => ({
+      id: String(p._id),
+      name: String(p.name || ''),
+      category: p.category ? String(p.category) : undefined,
+      discount: Number(p.discount || 0),
+    })),
+  });
   const history = await RecommendationEmailHistory.create({
     userId: uid,
     email: user.email,
     campaign: 'cart_pulse',
-    subject,
+    subject: copy.subject,
     frequency: 'daily',
     mode: 'mixed',
     productIds: products.map((p: any) => p._id),
@@ -200,33 +214,26 @@ async function sendCartPulse(userId: string, lastCartAddAt: Date): Promise<'sent
 
   const API_URL = ((process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || CLIENT_URL) || '').replace(/\/$/, '');
   const displayCurrency = String((user as any)?.preferences?.currency || 'USD').toUpperCase();
-
-  const emailProducts = [];
-  for (const p of products as any[]) {
-    const img = Array.isArray(p.images) && p.images[0] ? String(p.images[0]) : '';
-    const imageUrl = img && !img.startsWith('http')
-      ? `${(process.env.SERVER_URL || '').replace(/\/$/, '')}${img.startsWith('/') ? img : `/${img}`}`
-      : img;
-    const conv = await formatUsdAsCurrency(Number(p.price || 0), displayCurrency);
-    emailProducts.push({
-      id: String(p._id),
-      name: String(p.name || ''),
-      imageUrl,
-      price: Number(p.price || 0),
-      priceText: conv.formatted,
-      discount: Number(p.discount || 0),
-      description: String(p.description || '').slice(0, 90),
-      viewUrl: `${API_URL}/api/recommendation-emails/track/click/${history._id}/${p._id}`,
-    });
-  }
+  const { products: emailProducts } = await buildMarketingEmailContent({
+    userId,
+    firstName,
+    campaign: 'cart_pulse',
+    mode: 'mixed',
+    allowPersonalized: gate.allowPersonalized,
+    products: products as any[],
+    historyId: String(history._id),
+    displayCurrency,
+    serverUrl: API_URL,
+    copy,
+  });
 
   const sendResult = await sendRecommendationDealsEmail({
     to: user.email,
     name: firstName,
-    subject,
-    intro: gate.allowPersonalized
-      ? 'You added items to your cart — here are more similar picks and today’s trending deals.'
-      : 'Popular deals and trending picks based on marketplace activity.',
+    subject: copy.subject,
+    headline: copy.headline,
+    intro: copy.intro,
+    shopCtaLabel: copy.ctaLabel,
     products: emailProducts,
     unsubscribeUrl: `${CLIENT_URL}/account?tab=settings&section=notifications`,
     preferencesUrl: `${CLIENT_URL}/account?tab=settings&section=notifications`,

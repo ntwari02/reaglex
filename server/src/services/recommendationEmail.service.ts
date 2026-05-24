@@ -6,12 +6,14 @@ import { User } from '../models/User';
 import { RecommendationActivity, RecommendationActivityType } from '../models/RecommendationActivity';
 import { RecommendationEmailPreference } from '../models/RecommendationEmailPreference';
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
+import { generateMarketingEmailCopy } from '../email/emailCopyAi.service';
+import { buildMarketingEmailContent } from '../email/marketingEmailBuilder';
 import { sendRecommendationDealsEmail } from './emailService';
 import { getClientUrl } from '../config/publicEnv';
 import { buyerVisibleProductFilter } from '../utils/publicProductQuery';
-import { formatUsdAsCurrency } from '../utils/money';
 import { getPersonalizationGate } from './personalizationGate.service';
 import {
+  getDailyMarketingEmailCap,
   isMarketingFlowEnabled,
   isMarketingFlowPushEnabled,
   recordFlowRun,
@@ -28,7 +30,6 @@ function getIntEnv(name: string, fallback: number) {
 const MAX_RECOMMENDATIONS = getIntEnv('RECOMMENDATION_EMAIL_MAX_PRODUCTS', 12);
 const ACTIVITY_LOOKBACK_DAYS = 45;
 const RECENT_PURCHASE_EXCLUDE_DAYS = 30;
-const DEFAULT_DAILY_MARKETING_CAP = 1;
 const RECENCY_HALF_LIFE_DAYS = 10; // smaller = more weight on recent behavior
 const MAX_PER_CATEGORY_IN_EMAIL = 2;
 
@@ -60,7 +61,7 @@ function shouldSendByFrequency(pref: { frequency: 'daily' | 'weekly'; lastSentAt
 }
 
 async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
-  const cap = getIntEnv('DAILY_MARKETING_EMAIL_CAP', DEFAULT_DAILY_MARKETING_CAP);
+  const cap = await getDailyMarketingEmailCap();
   if (cap <= 0) return false;
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const count = await RecommendationEmailHistory.countDocuments({
@@ -400,12 +401,26 @@ export async function sendRecommendationEmailToUser(userId: string) {
     return { success: false, reason: 'duplicate_batch' };
   }
 
-  const subject = `Special deals just for you, ${String((user as any).fullName || 'shopper').split(' ')[0]}`;
+  const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
+  const copy = await generateMarketingEmailCopy({
+    userId,
+    firstName,
+    campaign: 'recommendation',
+    mode: pref.mode === 'deals_only' ? 'deals_only' : 'mixed',
+    allowPersonalized: gate.allowPersonalized,
+    products: products.map((p: any) => ({
+      id: String(p._id),
+      name: String(p.name || ''),
+      category: p.category ? String(p.category) : undefined,
+      reason: String(p.reason || ''),
+      discount: Number(p.discount || 0),
+    })),
+  });
   const history = await RecommendationEmailHistory.create({
     userId,
     email: user.email,
     campaign: 'recommendation',
-    subject,
+    subject: copy.subject,
     frequency: pref.frequency,
     mode: pref.mode,
     productIds: products.map((p: any) => p._id),
@@ -417,40 +432,27 @@ export async function sendRecommendationEmailToUser(userId: string) {
   const unsubscribeUrl = `${CLIENT_URL}/recommendations/unsubscribe/${pref.unsubscribeToken}`;
   const preferencesUrl = `${CLIENT_URL}/account?tab=settings&section=notifications`;
   const API_URL = ((process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || CLIENT_URL) || '').replace(/\/$/, '');
-
-  // Display currency (AliExpress-style):
-  // - Prefer user pinned currency; otherwise default USD.
   const displayCurrency = String((user as any)?.preferences?.currency || 'USD').toUpperCase();
-  const emailProducts = products.map((p: any) => ({
-    id: String(p._id),
-    name: p.name,
-    imageUrl: Array.isArray(p.images) && p.images[0]
-      ? String(p.images[0]).startsWith('http')
-        ? String(p.images[0])
-        : `${process.env.SERVER_URL || ''}${String(p.images[0]).startsWith('/') ? p.images[0] : `/${p.images[0]}`}`
-      : '',
-    price: Number(p.price || 0),
-    priceText: '', // filled below
-    discount: Number(p.discount || 0),
-    description: String(p.description || '').slice(0, 120),
-    viewUrl: `${API_URL}/api/recommendation-emails/track/click/${history._id}/${p._id}`,
-  }));
-
-  // Fill formatted price text with conversion (best-effort).
-  for (const ep of emailProducts as any[]) {
-    const conv = await formatUsdAsCurrency(Number(ep.price || 0), displayCurrency);
-    ep.priceText = conv.formatted;
-  }
+  const { products: emailProducts } = await buildMarketingEmailContent({
+    userId,
+    firstName,
+    campaign: 'recommendation',
+    mode: pref.mode === 'deals_only' ? 'deals_only' : 'mixed',
+    allowPersonalized: gate.allowPersonalized,
+    products: products as any[],
+    historyId: String(history._id),
+    displayCurrency,
+    serverUrl: API_URL,
+    copy,
+  });
 
   const sendResult = await sendRecommendationDealsEmail({
     to: user.email,
-    name: String((user as any).fullName || 'there').split(' ')[0],
-    subject,
-    intro: !gate.allowPersonalized
-      ? 'Trending picks based on popular items and your recent activity.'
-      : pref.mode === 'deals_only'
-      ? 'Hand-picked deal drops you can grab today.'
-      : 'We picked these based on your wishlist, views, and shopping activity.',
+    name: firstName,
+    subject: copy.subject,
+    headline: copy.headline,
+    intro: copy.intro,
+    shopCtaLabel: copy.ctaLabel,
     products: emailProducts,
     unsubscribeUrl,
     preferencesUrl,

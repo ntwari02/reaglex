@@ -14,6 +14,7 @@ import {
   Settings,
   Image,
   TrendingUp,
+  MailCheck,
 } from 'lucide-react';
 import MarketingDashboard from './MarketingDashboard';
 import CampaignManagement from './CampaignManagement';
@@ -30,6 +31,7 @@ import AffiliateProgramManagement from './AffiliateProgramManagement';
 import MarketingAnalyticsSuite from './MarketingAnalyticsSuite';
 import AIMarketingTools from './AIMarketingTools';
 import MarketingSettings from './MarketingSettings';
+import MarketingEmailAutomation from './MarketingEmailAutomation';
 
 type TabId =
   | 'dashboard'
@@ -37,6 +39,7 @@ type TabId =
   | 'coupons'
   | 'segmentation'
   | 'messaging'
+  | 'email-automation'
   | 'abandoned-cart'
   | 'promotions'
   | 'ads'
@@ -57,6 +60,7 @@ export default function MarketingCenter() {
     { id: 'coupons' as TabId, label: 'Coupons', icon: Ticket },
     { id: 'segmentation' as TabId, label: 'Segmentation', icon: Users },
     { id: 'messaging' as TabId, label: 'Messaging', icon: MessageSquare },
+    { id: 'email-automation' as TabId, label: 'Email automation', icon: MailCheck },
     { id: 'abandoned-cart' as TabId, label: 'Abandoned Cart', icon: ShoppingCart },
     { id: 'promotions' as TabId, label: 'Promotions', icon: Star },
     { id: 'ads' as TabId, label: 'Ads & Social', icon: Share2 },
@@ -81,6 +85,8 @@ export default function MarketingCenter() {
         return <CustomerSegmentation />;
       case 'messaging':
         return <MarketingMessagingTools />;
+      case 'email-automation':
+        return <MarketingEmailAutomation />;
       case 'abandoned-cart':
         return <AbandonedCartRecovery />;
       case 'promotions':
