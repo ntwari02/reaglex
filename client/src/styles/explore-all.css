@@ -21,10 +21,6 @@
   --ex-meta: var(--text-muted);
   --ex-sponsored-bg: color-mix(in srgb, var(--brand-primary) 8%, var(--card-bg));
   --ex-ai-hero-bg: color-mix(in srgb, var(--card-bg) 96%, var(--brand-tint));
-  /* Product card vertical scale (−19% height vs prior layout) */
-  --ex-card-h-scale: 0.81;
-  --ex-media-ratio-vertical: 4 / 4.05;
-  --ex-media-ratio-square: 1 / 0.81;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--text-primary);
   min-height: 100%;
@@ -204,15 +200,13 @@
 }
 
 .ex-rail-card {
-  flex: 0 0 132px;
+  flex: 0 0 148px;
   scroll-snap-align: start;
 }
 
 .ex-rail-card-hit {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  min-height: 0;
   border-radius: var(--ex-radius-md);
   overflow: hidden;
   background: var(--ex-surface);
@@ -230,7 +224,7 @@
 
 .ex-rail-card-media {
   position: relative;
-  aspect-ratio: var(--ex-media-ratio-square);
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   background: var(--bg-tertiary);
 }
@@ -242,7 +236,7 @@
 }
 
 .ex-rail-card-body {
-  padding: 6px 7px 5px;
+  padding: 8px 8px 6px;
 }
 
 /* AI hero — compact */
@@ -276,7 +270,7 @@
 .ex-ai-hero-media img {
   width: 100%;
   height: 100%;
-  min-height: calc(96px * var(--ex-card-h-scale));
+  min-height: 96px;
   object-fit: cover;
 }
 
@@ -326,26 +320,16 @@
 .ex-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  align-items: stretch;
+  gap: 8px;
 }
 
 .ex-grid--after-hero {
   margin-top: 2px;
 }
 
-.ex-grid-card.ex-gesture-card {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-width: 0;
-}
-
 .ex-grid-card-hit {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  min-height: 0;
   border-radius: var(--ex-radius-md);
   overflow: hidden;
   background: var(--ex-surface);
@@ -363,83 +347,8 @@
 
 .ex-grid-card-media {
   position: relative;
-  aspect-ratio: var(--ex-media-ratio-square);
-  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
   background: var(--bg-tertiary);
-}
-
-/* Vertical product cards + swipe gestures */
-.ex-card-vertical {
-  display: flex;
-  flex-direction: column;
-}
-
-.ex-card-media--vertical {
-  aspect-ratio: var(--ex-media-ratio-vertical);
-}
-
-.ex-gesture-card {
-  min-width: 0;
-}
-
-.ex-gesture-card-drag {
-  position: relative;
-  border-radius: var(--ex-radius-md);
-  overflow: hidden;
-  height: 100%;
-}
-
-.ex-grid-card .ex-gesture-card-drag,
-.ex-grid-card .ex-gesture-card-surface {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.ex-gesture-reveal {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  pointer-events: none;
-}
-
-.ex-gesture-reveal--cart {
-  justify-content: flex-end;
-}
-
-.ex-gesture-reveal--wish {
-  justify-content: flex-start;
-}
-
-.ex-gesture-card-surface {
-  position: relative;
-  z-index: 1;
-}
-
-.ex-gesture-hint {
-  margin: 4px 2px 0;
-  font-size: 9px;
-  font-weight: 500;
-  text-align: center;
-  color: var(--ex-meta);
-  opacity: 0.85;
-  line-height: 1.2;
-}
-
-.ex-ai-hero-wrap {
-  margin-bottom: 10px;
-}
-
-.ex-rail-card.ex-gesture-card {
-  flex: 0 0 132px;
 }
 
 .ex-grid-card-media img {
@@ -449,9 +358,7 @@
 }
 
 .ex-grid-card-body {
-  flex: 1;
-  min-height: 0;
-  padding: 6px 7px 3px;
+  padding: 7px 8px 4px;
 }
 
 /* Typography */
@@ -501,14 +408,13 @@
 .ex-card-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 7px calc(8px * var(--ex-card-h-scale));
-  margin-top: auto;
+  gap: 6px;
+  padding: 0 8px 8px;
 }
 
 .ex-card-cta {
   flex: 1;
-  min-height: calc(28px * var(--ex-card-h-scale));
+  min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
   border: 1px solid var(--ex-border-subtle);

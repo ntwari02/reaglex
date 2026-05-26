@@ -206,12 +206,12 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header
       className={`dashboard-header backdrop-blur-md border-b border-gray-200 dark:border-gray-700/30 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300 ${
-        isAdmin
+        isAdminHub
           ? 'px-3 py-2.5 sm:px-4 sm:py-3 md:px-6 md:py-4 lg:px-8'
           : 'px-4 md:px-6 lg:px-8 py-4'
       }`}
     >
-      <div className={`flex items-center flex-1 min-w-0 ${isAdmin ? 'gap-2 sm:gap-3 md:gap-4' : 'gap-4'}`}>
+      <div className={`flex items-center flex-1 min-w-0 ${isAdminHub ? 'gap-2 sm:gap-3 md:gap-4' : 'gap-4'}`}>
         <Button
           variant="ghost"
           size="icon"
@@ -230,7 +230,7 @@ const Header: React.FC<HeaderProps> = ({
           </span>
         </div>
 
-        {isAdmin && showIntelligenceSearch ? (
+        {isAdminHub && showIntelligenceSearch ? (
           <button
             type="button"
             onClick={onOpenIntelligenceSearch}
@@ -276,18 +276,18 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className={`flex items-center shrink-0 ${isAdmin ? 'gap-1.5 sm:gap-2 md:gap-3' : 'gap-3'}`}>
+      <div className={`flex items-center shrink-0 ${isAdminHub ? 'gap-1.5 sm:gap-2 md:gap-3' : 'gap-3'}`}>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
-          className={`inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors ${isAdmin ? 'min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px]' : 'min-h-[44px] min-w-[44px]'}`}
+          className={`inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors ${isAdminHub ? 'min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px]' : 'min-h-[44px] min-w-[44px]'}`}
           title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
         >
           {theme === 'dark' ? (
-            <Sun className={`text-yellow-400 ${isAdmin ? 'w-5 h-5 md:w-6 md:h-6' : 'w-6 h-6'}`} />
+            <Sun className={`text-yellow-400 ${isAdminHub ? 'w-5 h-5 md:w-6 md:h-6' : 'w-6 h-6'}`} />
           ) : (
-            <Moon className={`text-gray-600 dark:text-gray-400 ${isAdmin ? 'w-5 h-5 md:w-6 md:h-6' : 'w-6 h-6'}`} />
+            <Moon className={`text-gray-600 dark:text-gray-400 ${isAdminHub ? 'w-5 h-5 md:w-6 md:h-6' : 'w-6 h-6'}`} />
           )}
         </motion.button>
 

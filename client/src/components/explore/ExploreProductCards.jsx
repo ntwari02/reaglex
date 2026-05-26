@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Award,
@@ -14,8 +15,8 @@ import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useWishlistStore } from '../../stores/wishlistStore';
 import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { useMotionUi } from '../../stores/motionUiStore';
+import { navigateToProduct } from '../../lib/productNavigation';
 import MobileAddCta from '../home/mobile/MobileAddCta';
-import ExploreGestureCard from './ExploreGestureCard';
 import { EXPLORE_CARD_CTA } from './exploreCardCtas';
 import {
   productDisplayName,
@@ -82,120 +83,84 @@ export function ExploreSponsoredCard({ item }) {
 }
 
 export function ExploreTrendingRailCard({ product, index = 0 }) {
-  const cardRef = useRef(null);
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const addToWishlist = useWishlistStore((s) => s.addToWishlist);
   const isInWishlist = useWishlistStore((s) => s.isInWishlist);
   const addItem = useBuyerCart((s) => s.addItem);
-  const openQuickPreview = useMotionUi((s) => s.openQuickPreview);
-  const triggerFlyToCart = useMotionUi((s) => s.triggerFlyToCart);
   const currencyPricing = useCurrencyPricing();
   const id = productId(product);
   const wishlisted = isInWishlist(String(id));
-  const wishlistProduct = { ...product, id };
-
-  const flyFromCard = useCallback(() => {
-    const rect = cardRef.current?.getBoundingClientRect();
-    triggerFlyToCart({
-      src: resolveProductImage(product),
-      from: rect
-        ? { x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.35 }
-        : { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-    });
-  }, [product, triggerFlyToCart]);
-
-  const handleAdd = (e) => {
-    e?.stopPropagation?.();
-    addItem(product, 1);
-    flyFromCard();
-  };
 
   return (
-    <ExploreGestureCard
-      ref={cardRef}
-      product={product}
-      wishlistProduct={wishlistProduct}
-      onFlyFromCard={flyFromCard}
+    <motion.article
       className="ex-rail-card"
-      showHint={false}
+      initial={{ opacity: 0, x: 12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.24, delay: index * 0.03 }}
     >
-      <motion.div
-        className="ex-rail-card-hit ex-card-vertical"
-        initial={{ opacity: 0, x: 12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.24, delay: index * 0.03 }}
-      >
-        <div className="ex-rail-card-media ex-card-media--vertical">
-          <img src={resolveProductImage(product)} alt="" loading="lazy" />
-          <span className="ex-badge ex-badge--trending">🔥 Hot</span>
-          <button
-            type="button"
-            className="ex-wish-btn ex-wish-btn--sm"
-            aria-label="Save"
-            onClick={(e) => {
-              e.stopPropagation();
-              addToWishlist(user?.id, wishlistProduct);
-            }}
-          >
-            <Heart
-              size={14}
-              strokeWidth={1.75}
-              fill={wishlisted ? 'var(--brand-primary)' : 'none'}
-              color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
-            />
-          </button>
-        </div>
-        <div className="ex-rail-card-body">
-          <h3 className="ex-card-title">{productDisplayName(product)}</h3>
-          <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
-          <div className="ex-rating">
-            <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />
-            <span>{Number(product.rating || product.averageRating || 4.7).toFixed(1)}</span>
+      <div className="ex-rail-card-hit">
+        <button
+          type="button"
+          className="ex-rail-card-tap"
+          onClick={() => navigateToProduct(navigate, product)}
+        >
+          <div className="ex-rail-card-media">
+            <img src={resolveProductImage(product)} alt="" loading="lazy" />
+            <span className="ex-badge ex-badge--trending">🔥 Hot</span>
+            <button
+              type="button"
+              className="ex-wish-btn ex-wish-btn--sm"
+              aria-label="Save"
+              onClick={(e) => {
+                e.stopPropagation();
+                addToWishlist(user?.id, { ...product, id });
+              }}
+            >
+              <Heart
+                size={14}
+                strokeWidth={1.75}
+                fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+                color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
+              />
+            </button>
           </div>
-        </div>
+          <div className="ex-rail-card-body">
+            <h3 className="ex-card-title">{productDisplayName(product)}</h3>
+            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
+            <div className="ex-rating">
+              <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />
+              <span>{Number(product.rating || product.averageRating || 4.7).toFixed(1)}</span>
+            </div>
+          </div>
+        </button>
         <ExploreCardActions
           variant="trending"
-          onView={(e) => {
-            e?.stopPropagation?.();
-            openQuickPreview(product);
+          onView={() => navigateToProduct(navigate, product)}
+          onAdd={(e) => {
+            e.stopPropagation();
+            addItem(product, 1);
           }}
-          onAdd={handleAdd}
         />
-      </motion.div>
-    </ExploreGestureCard>
+      </div>
+    </motion.article>
   );
 }
 
 export function ExploreAIHeroCard({ product }) {
-  const cardRef = useRef(null);
+  const navigate = useNavigate();
   const addItem = useBuyerCart((s) => s.addItem);
-  const openQuickPreview = useMotionUi((s) => s.openQuickPreview);
-  const triggerFlyToCart = useMotionUi((s) => s.triggerFlyToCart);
   const currencyPricing = useCurrencyPricing();
   const reason = product.aiMeta?.topReason || product.aiMeta?.reasons?.[0] || 'Based on your activity';
-  const id = productId(product);
-
-  const flyFromCard = useCallback(() => {
-    const rect = cardRef.current?.getBoundingClientRect();
-    triggerFlyToCart({
-      src: resolveProductImage(product),
-      from: rect
-        ? { x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.4 }
-        : { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-    });
-  }, [product, triggerFlyToCart]);
 
   return (
-    <ExploreGestureCard
-      ref={cardRef}
-      product={product}
-      wishlistProduct={{ ...product, id }}
-      onFlyFromCard={flyFromCard}
-      className="ex-ai-hero-wrap"
-      showHint={false}
-    >
-      <article className="ex-ai-hero ex-card-vertical">
-        <div className="ex-ai-hero-media ex-card-media--vertical">
+    <article className="ex-ai-hero">
+      <button
+        type="button"
+        className="ex-ai-hero-tap"
+        onClick={() => navigateToProduct(navigate, product)}
+      >
+        <div className="ex-ai-hero-media">
           <img src={resolveProductImage(product)} alt="" loading="lazy" />
         </div>
         <div className="ex-ai-hero-body">
@@ -206,46 +171,34 @@ export function ExploreAIHeroCard({ product }) {
             {currencyPricing.formatLocalWithUsd(product.price || 0)}
           </p>
         </div>
-        <div className="ex-ai-hero-actions">
-          <button
-            type="button"
-            className="ex-card-cta ex-card-cta--ai"
-            onClick={(e) => {
-              e.stopPropagation();
-              openQuickPreview(product);
-            }}
-          >
-            Quick view
-          </button>
-          <MobileAddCta
-            variant="pill"
-            label="Add"
-            onClick={(e) => {
-              e.stopPropagation();
-              addItem(product, 1);
-              flyFromCard();
-            }}
-          />
-        </div>
-      </article>
-    </ExploreGestureCard>
+      </button>
+      <div className="ex-ai-hero-actions">
+        <button type="button" className="ex-card-cta ex-card-cta--ai" onClick={() => navigateToProduct(navigate, product)}>
+          View pick
+        </button>
+        <MobileAddCta
+          variant="pill"
+          label="Add"
+          onClick={() => addItem(product, 1)}
+        />
+      </div>
+    </article>
   );
 }
 
 export function ExploreGridCard({ product, variant = 'trending', index = 0, sub }) {
+  const navigate = useNavigate();
   const cardRef = useRef(null);
   const user = useAuthStore((s) => s.user);
   const addToWishlist = useWishlistStore((s) => s.addToWishlist);
   const isInWishlist = useWishlistStore((s) => s.isInWishlist);
   const addItem = useBuyerCart((s) => s.addItem);
-  const openQuickPreview = useMotionUi((s) => s.openQuickPreview);
   const triggerFlyToCart = useMotionUi((s) => s.triggerFlyToCart);
   const currencyPricing = useCurrencyPricing();
   const id = productId(product);
   const wishlisted = isInWishlist(String(id));
   const badge = BADGE[variant] || BADGE.trending;
   const BadgeIcon = badge.icon;
-  const wishlistProduct = { ...product, id };
 
   const flyFromCard = useCallback(() => {
     const rect = cardRef.current?.getBoundingClientRect();
@@ -266,74 +219,70 @@ export function ExploreGridCard({ product, variant = 'trending', index = 0, sub 
           ? formatNewMeta(sub)
           : null;
 
-  const handleAdd = (e) => {
-    e.stopPropagation();
-    addItem(product, 1);
-    flyFromCard();
-  };
-
   return (
-    <ExploreGestureCard
+    <motion.article
       ref={cardRef}
-      product={product}
-      wishlistProduct={wishlistProduct}
-      onFlyFromCard={flyFromCard}
       className={`ex-grid-card ex-grid-card--${variant}`}
-      showHint={index < 2}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, delay: Math.min(index * 0.025, 0.2) }}
+      whileTap={{ scale: 0.98 }}
     >
-      <motion.div
-        className="ex-grid-card-hit ex-card-vertical"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, delay: Math.min(index * 0.025, 0.2) }}
-      >
-        <div className="ex-grid-card-media ex-card-media--vertical">
-          <img src={resolveProductImage(product)} alt="" loading="lazy" />
-          <span className={`ex-badge ex-badge--${variant}`}>
-            <BadgeIcon size={10} strokeWidth={1.85} />
-            {badge.label}
-          </span>
-          <button
-            type="button"
-            className="ex-wish-btn ex-wish-btn--sm"
-            aria-label="Save"
-            onClick={(e) => {
-              e.stopPropagation();
-              addToWishlist(user?.id, wishlistProduct);
-            }}
-          >
-            <Heart
-              size={14}
-              strokeWidth={1.75}
-              fill={wishlisted ? 'var(--brand-primary)' : 'none'}
-              color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
-            />
-          </button>
-        </div>
-        <div className="ex-grid-card-body">
-          <h3 className="ex-card-title">{productDisplayName(product)}</h3>
-          {variant === 'bestseller' && (
-            <p className="ex-card-store">{product.sellerName || product.storeName || 'Verified'}</p>
-          )}
-          {meta && <p className="ex-card-meta">{meta}</p>}
-          <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
-          {(variant === 'trending' || variant === 'bestseller') && (
-            <div className="ex-rating">
-              <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />
-              <span>{Number(product.rating || 4.6).toFixed(1)}</span>
-            </div>
-          )}
-        </div>
+      <div className="ex-grid-card-hit">
+        <button
+          type="button"
+          className="ex-grid-card-tap"
+          onClick={() => navigateToProduct(navigate, product)}
+        >
+          <div className="ex-grid-card-media">
+            <img src={resolveProductImage(product)} alt="" loading="lazy" />
+            <span className={`ex-badge ex-badge--${variant}`}>
+              <BadgeIcon size={10} strokeWidth={1.85} />
+              {badge.label}
+            </span>
+            <button
+              type="button"
+              className="ex-wish-btn ex-wish-btn--sm"
+              aria-label="Save"
+              onClick={(e) => {
+                e.stopPropagation();
+                addToWishlist(user?.id, { ...product, id });
+              }}
+            >
+              <Heart
+                size={14}
+                strokeWidth={1.75}
+                fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+                color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
+              />
+            </button>
+          </div>
+          <div className="ex-grid-card-body">
+            <h3 className="ex-card-title">{productDisplayName(product)}</h3>
+            {variant === 'bestseller' && (
+              <p className="ex-card-store">{product.sellerName || product.storeName || 'Verified'}</p>
+            )}
+            {meta && <p className="ex-card-meta">{meta}</p>}
+            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
+            {(variant === 'trending' || variant === 'bestseller') && (
+              <div className="ex-rating">
+                <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />
+                <span>{Number(product.rating || 4.6).toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+        </button>
         <ExploreCardActions
           variant={variant}
-          onView={(e) => {
-            e?.stopPropagation?.();
-            openQuickPreview(product);
+          onView={() => navigateToProduct(navigate, product)}
+          onAdd={(e) => {
+            e.stopPropagation();
+            addItem(product, 1);
+            flyFromCard();
           }}
-          onAdd={handleAdd}
         />
-      </motion.div>
-    </ExploreGestureCard>
+      </div>
+    </motion.article>
   );
 }
 
