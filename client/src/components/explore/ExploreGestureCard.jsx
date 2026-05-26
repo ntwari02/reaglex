@@ -2,28 +2,28 @@ import { forwardRef, useRef, useCallback } from 'react';
 import { motion, useMotionTemplate, useTransform } from 'framer-motion';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { useProductCardGestures } from '../../hooks/useProductCardGestures';
+import { useDeliberateCardTap } from '../../hooks/useDeliberateCardTap';
 import { useAuthStore } from '../../stores/authStore';
 import { useWishlistStore } from '../../stores/wishlistStore';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useMotionUi } from '../../stores/motionUiStore';
 
 /**
- * Swipe right → add to cart · swipe left → wishlist · tap → quick preview · double-tap → add to cart
+ * Swipe right → cart · swipe left → wishlist · press & hold or tap → quick preview · double-tap → add to cart
  */
 const ExploreGestureCard = forwardRef(function ExploreGestureCard(
   {
-  product,
-  wishlistProduct,
-  onFlyFromCard,
-  className = '',
-  children,
-  showHint = true,
+    product,
+    wishlistProduct,
+    onFlyFromCard,
+    className = '',
+    children,
+    showHint = true,
   },
   ref,
 ) {
   const innerRef = useRef(null);
   const cardRef = ref || innerRef;
-  const lastTap = useRef(0);
   const user = useAuthStore((s) => s.user);
   const addToWishlist = useWishlistStore((s) => s.addToWishlist);
   const addItem = useBuyerCart((s) => s.addItem);
@@ -58,28 +58,25 @@ const ExploreGestureCard = forwardRef(function ExploreGestureCard(
     onLongPress: openPreview,
   });
 
+  const { tapHandlers } = useDeliberateCardTap({
+    onTap: () => {
+      if (longPressFired.current) {
+        longPressFired.current = false;
+        return;
+      }
+      openPreview();
+    },
+    onDoubleTap: handleSwipeCart,
+  });
+
   const xStyle = useMotionTemplate`translateX(${x}px)`;
   const cartBg = useTransform(cartReveal, [0, 1], ['rgba(34,197,94,0)', 'rgba(34,197,94,0.92)']);
   const wishBg = useTransform(wishReveal, [0, 1], ['rgba(255,122,26,0)', 'rgba(255,122,26,0.9)']);
 
-  const onCardClick = (e) => {
-    if (e.target.closest('button, a')) return;
-    if (longPressFired.current) {
-      longPressFired.current = false;
-      e.preventDefault();
-      return;
-    }
-    const now = Date.now();
-    if (now - lastTap.current < 300) {
-      lastTap.current = 0;
-      e.preventDefault();
-      handleSwipeCart();
-      return;
-    }
-    lastTap.current = now;
-    window.setTimeout(() => {
-      if (lastTap.current === now) openPreview();
-    }, 310);
+  const gestureBind = bind();
+  const mergePointer = (gestureKey, tapKey) => (e) => {
+    gestureBind[gestureKey]?.(e);
+    tapHandlers[tapKey]?.(e);
   };
 
   return (
@@ -89,16 +86,19 @@ const ExploreGestureCard = forwardRef(function ExploreGestureCard(
       style={{ scale: cardScale }}
     >
       <motion.div
-        {...bind()}
+        {...gestureBind}
+        onPointerDown={mergePointer('onPointerDown', 'onPointerDown')}
+        onPointerMove={mergePointer('onPointerMove', 'onPointerMove')}
+        onPointerUp={mergePointer('onPointerUp', 'onPointerUp')}
+        onPointerCancel={mergePointer('onPointerCancel', 'onPointerCancel')}
         style={{ x: xStyle, touchAction: 'pan-y' }}
         className="ex-gesture-card-drag"
-        onClick={onCardClick}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === 'Enter') openPreview();
         }}
-        aria-label="View product. Double-tap or swipe right to add to cart."
+        aria-label="Press and hold or tap to view. Swipe right to add to cart."
       >
         <motion.div
           className="ex-gesture-reveal ex-gesture-reveal--cart"
@@ -119,7 +119,7 @@ const ExploreGestureCard = forwardRef(function ExploreGestureCard(
       </motion.div>
       {showHint && (
         <p className="ex-gesture-hint" aria-hidden>
-          Tap view · Swipe → cart · Double-tap add
+          Hold or tap to view · Swipe → cart
         </p>
       )}
     </motion.article>

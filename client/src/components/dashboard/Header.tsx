@@ -91,12 +91,14 @@ const Header: React.FC<HeaderProps> = ({
     console.log('[Header] Has avatar:', hasAvatar);
   }, [user, avatarUrl, hasAvatar]);
 
-  const isSeller = location.pathname.startsWith('/seller');
-  const isAdmin = location.pathname.startsWith('/admin');
-  const mobileSubtitle = isSeller ? 'Seller Hub' : isAdmin ? 'Admin' : '';
+  const isSellerUser = user?.role === 'seller';
+  const isAdminUser = user?.role === 'admin';
+  const isSellerHub = isSellerUser && location.pathname.startsWith('/seller');
+  const isAdminHub = isAdminUser && location.pathname.startsWith('/admin');
+  const mobileSubtitle = isSellerHub ? 'Seller Hub' : isAdminHub ? 'Admin' : '';
 
   const refreshSystemInboxUnread = useCallback(() => {
-    if (!isSeller && !isAdmin) {
+    if (!isSellerHub && !isAdminHub) {
       setSystemInboxUnread(0);
       return;
     }
@@ -109,7 +111,7 @@ const Header: React.FC<HeaderProps> = ({
       .unreadCount()
       .then((c) => setSystemInboxUnread(Number.isFinite(c) ? c : 0))
       .catch(() => setSystemInboxUnread(0));
-  }, [isSeller, isAdmin]);
+  }, [isSellerHub, isAdminHub]);
 
   useEffect(() => {
     refreshSystemInboxUnread();
@@ -173,9 +175,9 @@ const Header: React.FC<HeaderProps> = ({
 
   const handleProfileClick = () => {
     // Determine profile route based on current path
-    if (isAdmin) {
+    if (isAdminUser) {
       navigate('/admin/settings');
-    } else if (isSeller) {
+    } else if (isSellerUser) {
       navigate('/seller/settings');
     } else {
       navigate('/profile');
@@ -420,7 +422,7 @@ const Header: React.FC<HeaderProps> = ({
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {user?.email}
                     </p>
-                    {isSeller && (
+                    {isSellerUser && (
                       <div className="mt-1.5 flex items-center gap-1 text-xs">
                         {user?.seller_status === 'approved' ? (
                           <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
@@ -442,7 +444,23 @@ const Header: React.FC<HeaderProps> = ({
                     )}
                   </div>
                   <div className="py-1.5">
-                    {isSeller && (
+                    {isAdminUser && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigate('/admin');
+                            setShowUserMenu(false);
+                          }}
+                          className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          Admin dashboard
+                        </button>
+                        <div className="my-1.5 border-t border-gray-200 dark:border-gray-700" />
+                      </>
+                    )}
+                    {isSellerUser && (
                       <>
                         <button
                           onClick={() => {

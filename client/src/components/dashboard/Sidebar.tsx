@@ -47,6 +47,8 @@ interface SidebarProps {
   title: string;
   tier: string;
   accentVariant?: 'emerald' | 'orange';
+  /** Prevents admin shell from falling back to seller nav when menus are loading/empty. */
+  hub?: 'seller' | 'admin';
 }
 
 function badgeClasses(tone: MenuItem['badgeTone']) {
@@ -72,10 +74,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   title,
   tier,
   accentVariant = 'emerald',
+  hub = 'seller',
 }) => {
   const { t } = useTranslation();
   const sellerSupportEmail = 'reaglexltd@gmail.com';
-  const defaultMenuItems: MenuItem[] = [
+  const sellerDefaultMenuItems: MenuItem[] = [
     { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'inventory', label: t('header.inventory'), icon: Package },
     { id: 'orders', label: t('nav.orders'), icon: ShoppingCart },
@@ -91,8 +94,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: t('account.profileSettings'), icon: Settings },
   ];
 
-  const flatItems = menuItems || defaultMenuItems;
+  const flatItems =
+    menuItems ??
+    (hub === 'admin' ? [] : sellerDefaultMenuItems);
   const useSections = Boolean(menuSections?.length);
+  const showEmptyAdminNav =
+    hub === 'admin' && !useSections && flatItems.length === 0;
 
   const accentClasses = accentVariant === 'emerald'
     ? {
@@ -197,6 +204,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+        ) : showEmptyAdminNav ? (
+          <div
+            className="mx-2 rounded-xl px-3 py-4 text-center text-xs leading-relaxed"
+            style={{
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border-card)',
+            }}
+          >
+            No admin modules are assigned to your account yet. Ask a super admin to update your
+            role in Admin team.
           </div>
         ) : (
           <div className="space-y-1 sm:space-y-2">

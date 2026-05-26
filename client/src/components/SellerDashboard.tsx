@@ -124,6 +124,7 @@ const SellerDashboard: React.FC = () => {
         title="Seller Hub"
         tier="Premium Tier"
         accentVariant="orange"
+        hub="seller"
       />
       
       <div className="flex-1 flex flex-col overflow-hidden">

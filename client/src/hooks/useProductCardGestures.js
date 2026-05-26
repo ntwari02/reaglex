@@ -19,6 +19,8 @@ export function useProductCardGestures({
   const cardScale = useMotionValue(1);
   const longPressTimer = useRef(null);
   const longPressFired = useRef(false);
+  const pointerStart = useRef(null);
+  const pointerMoved = useRef(false);
 
   const cartReveal = useTransform(x, [0, SNAP], [0, 1]);
   const wishReveal = useTransform(x, [-SNAP, 0], [1, 0]);
@@ -52,19 +54,33 @@ export function useProductCardGestures({
         resetX();
       },
       onPointerDown: ({ event }) => {
-        if (!enabled || !onLongPress) return;
+        if (!enabled) return;
         longPressFired.current = false;
+        pointerMoved.current = false;
+        pointerStart.current = { x: event.clientX, y: event.clientY };
+        if (!onLongPress) return;
         const target = event.target;
         clearTimeout(longPressTimer.current);
         longPressTimer.current = window.setTimeout(() => {
-          if (target?.closest?.('button')) return;
+          if (pointerMoved.current || target?.closest?.('button')) return;
           longPressFired.current = true;
           animate(cardScale, 0.97, { duration: 0.12 });
           onLongPress();
-        }, 480);
+        }, 520);
+      },
+      onPointerMove: ({ event }) => {
+        const start = pointerStart.current;
+        if (!start) return;
+        const dx = event.clientX - start.x;
+        const dy = event.clientY - start.y;
+        if (Math.hypot(dx, dy) > 12) {
+          pointerMoved.current = true;
+          clearTimeout(longPressTimer.current);
+        }
       },
       onPointerUp: () => {
         clearTimeout(longPressTimer.current);
+        pointerStart.current = null;
         animate(cardScale, 1, { type: 'spring', stiffness: 520, damping: 38 });
       },
     },
@@ -94,6 +110,7 @@ export function useProductCardGestures({
     wishReveal,
     resetX,
     longPressFired,
+    pointerMoved,
     onDoubleTapHandler: handleDoubleTap,
     pressCompress,
     releaseCompress,

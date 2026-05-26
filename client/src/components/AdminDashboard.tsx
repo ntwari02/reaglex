@@ -9,6 +9,7 @@ import {
   hasAdminScope,
   isSuperAdmin,
 } from '@/lib/adminPermissions';
+import { getDashboardPathForRole } from '@/lib/authRouting';
 import { buildAdminMenuItems, buildAdminMenuSections, getAllAdminRouteIds } from '@/lib/adminNavCatalog';
 import AdminScopeGuard from '@/components/admin/AdminScopeGuard';
 import AdminTeamManagement from '@/pages/admin/AdminTeamManagement';
@@ -56,6 +57,8 @@ const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const authUser = useAuthStore((s) => s.user);
+  const authLoading = useAuthStore((s) => s.loading);
+  const authInitialized = useAuthStore((s) => s.initialized);
   const setIntelSearchOpen = useAdminIntelligenceSearchStore((s) => s.setOpen);
   const intelSearchEnabled = canUseAdminIntelligenceSearch(authUser);
   useAdminIntelligenceLive(intelSearchEnabled);
@@ -77,6 +80,17 @@ const AdminDashboard: React.FC = () => {
     ? pathSegments[adminIndex + 1] 
     : 'dashboard';
   
+  useEffect(() => {
+    if (authLoading || !authInitialized) return;
+    if (!authUser) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    if (authUser.role !== 'admin') {
+      navigate(getDashboardPathForRole(authUser.role), { replace: true });
+    }
+  }, [authUser, authLoading, authInitialized, navigate]);
+
   // Ensure we're on a valid route the staff member may access
   useEffect(() => {
     const validRoutes = getAllAdminRouteIds();
@@ -175,6 +189,7 @@ const AdminDashboard: React.FC = () => {
         title="Admin Panel"
         tier={adminRoleLabel(authUser)}
         accentVariant="emerald"
+        hub="admin"
         menuItems={menuItems}
         menuSections={menuSections}
       />

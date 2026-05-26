@@ -23,6 +23,29 @@ export type AdminScope =
   | 'security'
   | 'settings';
 
+export const ALL_ADMIN_SCOPES: AdminScope[] = [
+  'dashboard',
+  'users',
+  'sellers',
+  'kyc',
+  'products',
+  'orders',
+  'finance',
+  'subscriptions',
+  'support',
+  'returns',
+  'logistics',
+  'notifications',
+  'live_commerce',
+  'marketing',
+  'reviews',
+  'collections',
+  'compliance',
+  'system',
+  'security',
+  'settings',
+];
+
 export interface AdminAccessInfo {
   tier: 'super' | 'scoped';
   isSuperAdmin: boolean;
@@ -32,19 +55,46 @@ export interface AdminAccessInfo {
   require2FA?: boolean;
 }
 
+function normalizeScopes(scopes: unknown): AdminScope[] {
+  if (!Array.isArray(scopes)) return [];
+  const allowed = new Set(ALL_ADMIN_SCOPES);
+  return scopes
+    .map((s) => String(s).trim())
+    .filter((s): s is AdminScope => allowed.has(s as AdminScope));
+}
+
+/** Mirrors server `resolveAdminAccess` — legacy admins without adminAccess are super admins. */
+function superAdminAccess(label = 'Super Admin'): AdminAccessInfo {
+  return {
+    tier: 'super',
+    isSuperAdmin: true,
+    scopes: [...ALL_ADMIN_SCOPES],
+    preset: 'super_admin',
+    label,
+    require2FA: true,
+  };
+}
+
 export function getAdminAccess(user: Profile | null | undefined): AdminAccessInfo | null {
-  const raw = (user as Profile & { adminAccess?: AdminAccessInfo })?.adminAccess;
   if (!user || user.role !== 'admin') return null;
-  if (!raw) {
-    return {
-      tier: 'scoped',
-      isSuperAdmin: false,
-      scopes: [],
-      label: 'Admin',
-      require2FA: true,
-    };
+  const raw = (user as Profile & { adminAccess?: AdminAccessInfo })?.adminAccess;
+
+  if (!raw || !raw.tier) {
+    return superAdminAccess();
   }
-  return raw;
+
+  if (raw.tier === 'super' || raw.isSuperAdmin) {
+    return superAdminAccess(raw.label || 'Super Admin');
+  }
+
+  return {
+    tier: 'scoped',
+    isSuperAdmin: false,
+    scopes: normalizeScopes(raw.scopes),
+    preset: raw.preset,
+    label: raw.label || raw.preset || 'Admin staff',
+    require2FA: raw.require2FA !== false,
+  };
 }
 
 export function isSuperAdmin(user: Profile | null | undefined): boolean {

@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useWishlistStore } from '../../stores/wishlistStore';
 import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { useProductCardGestures } from '../../hooks/useProductCardGestures';
+import { useDeliberateCardTap } from '../../hooks/useDeliberateCardTap';
 import { useMotionUi } from '../../stores/motionUiStore';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
@@ -31,7 +32,6 @@ function resolveImage(src) {
 export default function PremiumProductCard({ product, index = 0 }) {
   const navigate = useNavigate();
   const cardRef = useRef(null);
-  const lastTap = useRef(0);
   const addItem = useBuyerCart((s) => s.addItem);
   const user = useAuthStore((s) => s.user);
   const addToWishlist = useWishlistStore((s) => s.addToWishlist);
@@ -118,18 +118,21 @@ export default function PremiumProductCard({ product, index = 0 }) {
     [navigate, name, price, imgSrc, product, productId, rating, pressCompress, releaseCompress, longPressFired],
   );
 
-  const onCardClick = (e) => {
-    const now = Date.now();
-    if (now - lastTap.current < 280) {
-      lastTap.current = 0;
-      e.preventDefault();
-      handleSwipeCart();
-      return;
-    }
-    lastTap.current = now;
-    window.setTimeout(() => {
-      if (lastTap.current === now) openProduct(e);
-    }, 290);
+  const { tapHandlers } = useDeliberateCardTap({
+    onTap: (e) => {
+      if (longPressFired.current) {
+        longPressFired.current = false;
+        return;
+      }
+      openProduct(e);
+    },
+    onDoubleTap: handleSwipeCart,
+  });
+
+  const gestureBind = bind();
+  const mergePointer = (gestureKey, tapKey) => (e) => {
+    gestureBind[gestureKey]?.(e);
+    tapHandlers[tapKey]?.(e);
   };
 
   const rounded = Math.min(5, Math.max(0, Math.round(rating)));
@@ -146,10 +149,13 @@ export default function PremiumProductCard({ product, index = 0 }) {
       style={{ fontFamily: "'Inter', system-ui, sans-serif", scale: cardScale }}
     >
       <motion.div
-        {...bind()}
+        {...gestureBind}
+        onPointerDown={mergePointer('onPointerDown', 'onPointerDown')}
+        onPointerMove={mergePointer('onPointerMove', 'onPointerMove')}
+        onPointerUp={mergePointer('onPointerUp', 'onPointerUp')}
+        onPointerCancel={mergePointer('onPointerCancel', 'onPointerCancel')}
         style={{ x: xStyle, touchAction: 'pan-y' }}
         className="relative overflow-hidden rounded-[20px]"
-        onClick={onCardClick}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && openProduct(e)}
@@ -174,12 +180,11 @@ export default function PremiumProductCard({ product, index = 0 }) {
             boxShadow: 'var(--shadow-card)',
             border: '1px solid color-mix(in srgb, var(--border-card) 65%, transparent)',
           }}
-          whileTap={{ scale: 0.98 }}
           transition={{ type: 'spring', stiffness: 520, damping: 38 }}
         >
           <motion.div
             className="relative overflow-hidden"
-            style={{ aspectRatio: '1 / 1.05', background: 'var(--bg-tertiary)' }}
+            style={{ aspectRatio: '1 / 0.85', background: 'var(--bg-tertiary)' }}
           >
             <motion.img
               layoutId={imageLayoutId}
@@ -239,7 +244,7 @@ export default function PremiumProductCard({ product, index = 0 }) {
             </motion.button>
           </motion.div>
 
-          <div className="space-y-1.5 px-3 pb-3 pt-3">
+          <div className="space-y-1 px-2.5 pb-2.5 pt-2">
             <h3 className="line-clamp-2 text-[13px] font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>
               {name}
             </h3>

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { canAccessAdminRoute } from '@/lib/adminPermissions';
+import { canAccessAdminRoute, getDefaultAdminPath } from '@/lib/adminPermissions';
 
 type Props = {
   routeId: string;
@@ -10,7 +10,7 @@ type Props = {
 export default function AdminScopeGuard({ routeId, children }: Props) {
   const user = useAuthStore((s) => s.user);
   if (!canAccessAdminRoute(user, routeId)) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to={getDefaultAdminPath(user)} replace />;
   }
   return <>{children}</>;
 }
