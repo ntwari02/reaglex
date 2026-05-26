@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { Order } from '../models/Order';
 import mongoose from 'mongoose';
 import { notifyBuyerOrderStatusChange } from '../services/orderInboxNotifications';
+import { completeAdminOrder } from '../services/orderLifecycle.service';
 
 function ensureAdmin(req: AuthenticatedRequest, res: Response): boolean {
   if (!req.user || req.user.role !== 'admin') {
@@ -267,7 +268,7 @@ export async function updateOrderStatus(req: AuthenticatedRequest, res: Response
   try {
     const { orderId } = req.params;
     const body = req.body as { status?: string; trackingNumber?: string };
-    const allowedStatuses = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled'];
+    const allowedStatuses = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'completed', 'cancelled'];
     const newStatus = body.status && allowedStatuses.includes(body.status) ? body.status : undefined;
 
     const byId = mongoose.Types.ObjectId.isValid(orderId);
@@ -286,6 +287,24 @@ export async function updateOrderStatus(req: AuthenticatedRequest, res: Response
         time: now.toTimeString().slice(0, 8),
       });
       update.timeline = timeline;
+      if (newStatus === 'delivered') {
+        const graceHours = Number(process.env.ORDER_DELIVERED_GRACE_HOURS || 72);
+        update.autoCompletion = {
+          ...(order as any).autoCompletion,
+          deliveredAt: now,
+          eligibleAt: new Date(now.getTime() + graceHours * 3600000),
+          state: 'scheduled',
+          reason: undefined,
+          completionSource: undefined,
+        };
+      } else if (newStatus === 'completed') {
+        update.autoCompletion = {
+          ...(order as any).autoCompletion,
+          state: 'completed',
+          completedAt: now,
+          completionSource: 'admin',
+        };
+      }
     }
     if (body.trackingNumber !== undefined) update.trackingNumber = body.trackingNumber;
 
@@ -307,6 +326,32 @@ export async function updateOrderStatus(req: AuthenticatedRequest, res: Response
     res.json({ order: out });
   } catch (e) {
     res.status(500).json({ message: e instanceof Error ? e.message : 'Failed to update order status' });
+  }
+}
+
+/** POST /api/admin/orders/:orderId/complete — mark delivered/completed, optional payout, notify buyer & seller */
+export async function completeOrder(req: AuthenticatedRequest, res: Response) {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { orderId } = req.params;
+    const body = req.body as { releasePayout?: boolean; trackingNumber?: string };
+    const result = await completeAdminOrder(orderId, req.user!.id, {
+      releasePayout: body.releasePayout !== false,
+      trackingNumber: body.trackingNumber,
+    });
+    const out = toOrderShape(result.order);
+    res.json({
+      order: out,
+      escrowReleased: result.escrowReleased,
+      notificationsSent: result.notificationsSent,
+      message: result.escrowReleased
+        ? 'Order completed and seller payout released. Notifications sent.'
+        : 'Order marked delivered. Notifications sent.',
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Failed to complete order';
+    const status = msg.includes('not found') ? 404 : msg.includes('eligible') || msg.includes('dispute') ? 400 : 500;
+    res.status(status).json({ message: msg });
   }
 }
 

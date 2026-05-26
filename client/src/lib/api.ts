@@ -2314,6 +2314,24 @@ export const adminOrdersAPI = {
       body: JSON.stringify(body),
     }).then(handleResponse<{ order: any }>),
 
+  completeOrder: (
+    orderId: string,
+    body?: { releasePayout?: boolean; trackingNumber?: string },
+  ) =>
+    fetch(`${ADMIN_ORDERS_BASE}/${orderId}/complete`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body || {}),
+    }).then(
+      handleResponse<{
+        order: any;
+        escrowReleased: boolean;
+        notificationsSent: boolean;
+        message: string;
+      }>,
+    ),
+
   getOrderLogs: (orderId: string) =>
     fetch(`${ADMIN_ORDERS_BASE}/${orderId}/logs`, {
       method: 'GET',

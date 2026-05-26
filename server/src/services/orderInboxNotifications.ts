@@ -1,13 +1,7 @@
-import {
-  buyerEventFromOrderStatus,
-  type BuyerNotificationEvent,
-} from './buyerNotificationAssistant.service';
-import { deliverBuyerNotification } from './buyerNotificationService';
-
-const NOTIFY_STATUSES = new Set(['packed', 'shipped', 'delivered', 'cancelled']);
+import { notifyBuyerOrderStatusChangeEnhanced } from './orderLifecycleNotifications.service';
 
 /**
- * Order status change → buyer in-app + push + email (respecting preferences).
+ * Order status change → buyer in-app + push + rule-based email (payment & payout aware).
  */
 export async function notifyBuyerOrderStatusChange(params: {
   buyerId: unknown;
@@ -17,21 +11,5 @@ export async function notifyBuyerOrderStatusChange(params: {
   previousStatus?: string | null;
   actorUserId: string;
 }): Promise<void> {
-  const { buyerId, orderId, orderNumber, newStatus, previousStatus, actorUserId } = params;
-  if (previousStatus && previousStatus === newStatus) return;
-  if (!NOTIFY_STATUSES.has(newStatus)) return;
-
-  const event = buyerEventFromOrderStatus(newStatus) as BuyerNotificationEvent | null;
-  if (!event) return;
-
-  await deliverBuyerNotification(
-    event,
-    {
-      buyerId: String(buyerId),
-      orderId,
-      orderNumber,
-      status: newStatus,
-    },
-    actorUserId
-  );
+  await notifyBuyerOrderStatusChangeEnhanced(params);
 }

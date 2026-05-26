@@ -93,6 +93,7 @@ import { startLifecycleEmailWorker } from './src/jobs/lifecycleEmailWorker';
 import { startCartPulseEmailWorker } from './src/jobs/cartPulseEmailWorker';
 import { startBrowseAbandonEmailWorker } from './src/jobs/browseAbandonEmailWorker';
 import { startOrderFulfillmentGuardWorker } from './src/jobs/orderFulfillmentGuardWorker';
+import { startDeliveryAutoCompleteWorker } from './src/jobs/deliveryAutoCompleteWorker';
 import { startComplianceCertificateReminderJob } from './src/jobs/complianceCertificateReminderJob';
 import pushDeviceRoutes from './src/routes/pushDeviceRoutes';
 import warehouseRoutes from './src/routes/warehouseRoutes';
@@ -475,6 +476,7 @@ const connectDB = async () => {
       startCartPulseEmailWorker();
       startBrowseAbandonEmailWorker();
       startOrderFulfillmentGuardWorker();
+      startDeliveryAutoCompleteWorker();
       startExchangeRateWorker();
       startComplianceCertificateReminderJob();
       startMarketplaceAIWorker();

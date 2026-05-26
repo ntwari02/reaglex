@@ -29,7 +29,7 @@ type OrderItem = {
   quantity?: number | string;
 };
 
-const BACKEND_STATUSES = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled'];
+const BACKEND_STATUSES = ['pending', 'processing', 'packed', 'shipped', 'delivered', 'completed', 'cancelled'];
 
 export default function OrderDetails({ order: initialOrder, onBack, onOrderUpdated }: OrderDetailsProps) {
   const [order, setOrder] = useState(initialOrder);
@@ -41,6 +41,8 @@ export default function OrderDetails({ order: initialOrder, onBack, onOrderUpdat
   const [trackingNumber, setTrackingNumber] = useState(initialOrder.trackingNumber || '');
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completeMessage, setCompleteMessage] = useState<string | null>(null);
 
   const orderItems: OrderItem[] = Array.isArray(order.items) ? (order.items as OrderItem[]) : [];
   const computedSubtotal = orderItems.reduce(
@@ -359,6 +361,36 @@ export default function OrderDetails({ order: initialOrder, onBack, onOrderUpdat
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
             <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
             <div className="space-y-2">
+              {order.status !== 'completed' && order.status !== 'cancelled' && (
+                <button
+                  type="button"
+                  disabled={completing}
+                  onClick={async () => {
+                    setCompleting(true);
+                    setCompleteMessage(null);
+                    try {
+                      const res = await adminOrdersAPI.completeOrder(order.id, {
+                        releasePayout: true,
+                        ...(trackingNumber.trim() ? { trackingNumber: trackingNumber.trim() } : {}),
+                      });
+                      setOrder(res.order);
+                      setCompleteMessage(res.message);
+                      onOrderUpdated?.();
+                    } catch (e) {
+                      setCompleteMessage(e instanceof Error ? e.message : 'Could not complete order');
+                    } finally {
+                      setCompleting(false);
+                    }
+                  }}
+                  className="w-full rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {completing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                  Complete order &amp; notify
+                </button>
+              )}
+              {completeMessage && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-300 px-1">{completeMessage}</p>
+              )}
               <button className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-emerald-400 dark:border-gray-700 dark:text-gray-300">
                 Edit Items
               </button>

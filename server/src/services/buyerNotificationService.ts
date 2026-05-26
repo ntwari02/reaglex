@@ -63,7 +63,8 @@ async function buyerChannels(
 export async function deliverBuyerNotification(
   event: BuyerNotificationEvent,
   ctx: BuyerNotificationContext,
-  createdBy?: string
+  createdBy?: string,
+  options?: { skipEmail?: boolean },
 ): Promise<void> {
   if (!ctx.buyerId || !mongoose.Types.ObjectId.isValid(ctx.buyerId)) return;
 
@@ -121,7 +122,7 @@ export async function deliverBuyerNotification(
     });
   }
 
-  if (channels.email && isEmailConfigured()) {
+  if (channels.email && !options?.skipEmail && isEmailConfigured()) {
     const user = await User.findById(ctx.buyerId).select('email fullName').lean();
     if (user?.email) {
       const actionUrl = copy.deepLink.startsWith('http')

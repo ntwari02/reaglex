@@ -78,6 +78,19 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
       $set: { status },
       $push: { timeline: timelineEntry },
     };
+    if (status === 'delivered') {
+      const graceHours = Number(process.env.ORDER_DELIVERED_GRACE_HOURS || 72);
+      update.$set.autoCompletion = {
+        ...(prior as any).autoCompletion,
+        deliveredAt: now,
+        eligibleAt: new Date(now.getTime() + graceHours * 3600000),
+        state: 'scheduled',
+      };
+    } else if (status === 'completed') {
+      update.$set['autoCompletion.state'] = 'completed';
+      update.$set['autoCompletion.completedAt'] = now;
+      update.$set['autoCompletion.completionSource'] = 'admin';
+    }
 
     if (reason && reason.trim()) {
       update.$push.notes = reason.trim();

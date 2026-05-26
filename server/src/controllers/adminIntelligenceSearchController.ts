@@ -190,9 +190,14 @@ export async function adminIntelligencePreview(req: AuthenticatedRequest, res: R
       });
     }
 
-    const preview = await getEntityPreview(entityType as IntelligenceEntityType, entityId);
+    const depth = String(req.query.depth || 'lite') === 'full' ? 'full' : 'lite';
+    const preview = await getEntityPreview(
+      entityType as IntelligenceEntityType,
+      entityId,
+      depth,
+    );
     if (!preview) return res.status(404).json({ message: 'Entity not found' });
-    return res.json({ preview });
+    return res.json({ preview, depth });
   } catch (e: unknown) {
     console.error('[adminIntelligencePreview]', e);
     return res.status(500).json({ message: 'Preview failed' });

@@ -16,6 +16,7 @@ import {
   confirmPickup,
   confirmDigitalAccess,
   approveServiceCompletion,
+  confirmOrderReceipt,
 } from '../controllers/buyerOrderController';
 
 const router = Router();
@@ -27,6 +28,7 @@ router.post('/checkout-intelligence', authenticate, getUnifiedCheckoutIntelligen
 router.post('/confirm-pickup', authenticate, confirmPickup);
 router.post('/:orderId/confirm-digital-access', authenticate, confirmDigitalAccess);
 router.post('/:orderId/approve-service-completion', authenticate, approveServiceCompletion);
+router.post('/:orderId/confirm-receipt', authenticate, confirmOrderReceipt);
 router.get('/:orderId/cancellation-intelligence', authenticate, getCancellationIntelligence);
 router.patch('/:orderId/pause', authenticate, pauseOrder);
 router.get('/track/:orderNumber', trackOrder); // Public endpoint for tracking

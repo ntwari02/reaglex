@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -40,9 +40,12 @@ import NotificationStudio from '@/pages/admin/notifications/NotificationStudio';
 import LiveCommerceControl from '@/pages/admin/LiveCommerceControl';
 import KycVerificationQueues from '@/pages/admin/kyc/KycVerificationQueues';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
-import AdminIntelligenceSearch from '@/components/admin/intelligence/AdminIntelligenceSearch';
 import { useAdminIntelligenceSearchStore } from '@/stores/adminIntelligenceSearchStore';
 import { useAdminIntelligenceLive } from '@/hooks/useAdminIntelligenceLive';
+
+const AdminIntelligenceSearch = lazy(
+  () => import('@/components/admin/intelligence/AdminIntelligenceSearch'),
+);
 import type { MenuItem } from '@/components/dashboard/Sidebar';
 
 function AdminHome() {
@@ -60,6 +63,7 @@ const AdminDashboard: React.FC = () => {
   const authLoading = useAuthStore((s) => s.loading);
   const authInitialized = useAuthStore((s) => s.initialized);
   const setIntelSearchOpen = useAdminIntelligenceSearchStore((s) => s.setOpen);
+  const intelSearchOpen = useAdminIntelligenceSearchStore((s) => s.open);
   const intelSearchEnabled = canUseAdminIntelligenceSearch(authUser);
   useAdminIntelligenceLive(intelSearchEnabled);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -241,7 +245,11 @@ const AdminDashboard: React.FC = () => {
       />
 
       <DeviceApprovalPopup />
-      {intelSearchEnabled ? <AdminIntelligenceSearch /> : null}
+      {intelSearchEnabled && intelSearchOpen ? (
+        <Suspense fallback={null}>
+          <AdminIntelligenceSearch />
+        </Suspense>
+      ) : null}
     </div>
   );
 };

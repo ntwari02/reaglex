@@ -31,7 +31,11 @@ import { Dispute } from '../models/Dispute';
 import { ReturnCase } from '../models/ReturnCase';
 import { registryLookup, expandGraphFromSeeds } from '../search/intelligenceGraph.service';
 import { buildIntelligenceAiInsight, shouldRunAiAssist } from './intelligenceAiAssist.service';
-import { buildRuleAssistantBrief, mergeGeminiIntoBrief } from '../search/intelligenceAssistantBrief.service';
+import {
+  buildRuleAssistantBrief,
+  mergeGeminiIntoBrief,
+  rankIntelligenceHits,
+} from '../search/intelligenceAssistantBrief.service';
 import type {
   IntelligenceConnectedRecord,
   IntelligenceEntityPreview,
@@ -54,7 +58,41 @@ const GROUP_META: Record<IntelligenceEntityType, { label: string; icon: string }
   dispute: { label: 'Disputes', icon: 'alert' },
 };
 
+const UNRESOLVED_STATUS = /\b(pending|processing|open|delayed|dispute|failed|unpaid|investigating|active|escalat|review|hold|refund|return|shipped|in[- ]?transit)\b/i;
+const LIVE_STATUS = /\b(processing|pending|reconcil|updating|running|in[- ]?progress|active|live)\b/i;
+
+function temporalSignals(doc: IntelligenceSearchDocument) {
+  const updatedAt = doc.updatedAt || Date.now();
+  const status = String(doc.status || '');
+  const isUnresolved = UNRESOLVED_STATUS.test(status);
+  const isLive = LIVE_STATUS.test(status);
+  let activityLabel = 'Updated';
+  switch (doc.entityType) {
+    case 'order':
+      activityLabel = isLive ? 'Shipment activity' : 'Order updated';
+      break;
+    case 'payment':
+      activityLabel = isLive ? 'Reconciliation' : 'Payment activity';
+      break;
+    case 'user':
+    case 'seller':
+      activityLabel = 'Account activity';
+      break;
+    case 'support':
+    case 'dispute':
+      activityLabel = isUnresolved ? 'Case open' : 'Case updated';
+      break;
+    case 'vehicle':
+      activityLabel = 'Fleet update';
+      break;
+    default:
+      activityLabel = 'Record updated';
+  }
+  return { updatedAt, lastActivityAt: updatedAt, activityLabel, isLive, isUnresolved };
+}
+
 function docToHit(doc: IntelligenceSearchDocument, score?: number): IntelligenceSearchHit {
+  const temporal = temporalSignals(doc);
   return {
     id: doc.id,
     entityType: doc.entityType,
@@ -69,6 +107,7 @@ function docToHit(doc: IntelligenceSearchDocument, score?: number): Intelligence
     deepLink: doc.deepLink,
     metadata: doc.metadata || {},
     score,
+    ...temporal,
   };
 }
 
@@ -235,7 +274,11 @@ export async function runIntelligenceSearch(
   }
 
   const truncated = hits.length > safeLimit;
-  const cappedHits = hits.slice(0, safeLimit + graphExpanded);
+  const cappedHits = rankIntelligenceHits(
+    hits.slice(0, safeLimit + graphExpanded),
+    intent,
+    q,
+  );
   let assistant = buildRuleAssistantBrief({
     query: q,
     understanding,
@@ -288,12 +331,23 @@ export async function runIntelligenceSearch(
   return response;
 }
 
+export function stripLiteEntityPreview(preview: IntelligenceEntityPreview): IntelligenceEntityPreview {
+  return {
+    ...preview,
+    fields: preview.fields.slice(0, 6),
+    relationships: preview.relationships.slice(0, 4),
+    connectedRecords: undefined,
+    timeline: undefined,
+  };
+}
+
 export async function getEntityPreview(
   entityType: IntelligenceEntityType,
   entityId: string,
+  depth: 'lite' | 'full' = 'full',
 ): Promise<IntelligenceEntityPreview | null> {
   const cached = await getCachedPreview<IntelligenceEntityPreview>(entityType, entityId);
-  if (cached) return cached;
+  if (cached) return depth === 'lite' ? stripLiteEntityPreview(cached) : cached;
 
   if (!mongoose.Types.ObjectId.isValid(entityId) && entityType !== 'subscription') {
     return null;
@@ -332,7 +386,7 @@ export async function getEntityPreview(
   }
 
   if (preview) await setCachedPreview(entityType, entityId, preview);
-  return preview;
+  return preview ? (depth === 'lite' ? stripLiteEntityPreview(preview) : preview) : null;
 }
 
 async function previewUser(userId: string, type: IntelligenceEntityType): Promise<IntelligenceEntityPreview | null> {

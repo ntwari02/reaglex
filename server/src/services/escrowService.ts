@@ -3,6 +3,7 @@ import { Order } from '../models/Order';
 import { SellerWallet } from '../models/SellerWallet';
 import { EscrowWallet } from '../models/EscrowWallet';
 import { TransactionLog } from '../models/TransactionLog';
+import { notifyOrderLifecycle } from './orderLifecycleNotifications.service';
 import { sendNotification } from './notificationService';
 import { restoreInventoryForOrder } from './inventory.service';
 import mongoose from 'mongoose';
@@ -23,6 +24,7 @@ export async function releaseEscrow(orderId: string, confirmedBy: string) {
   if (
     order.escrow?.status !== 'ESCROW_HOLD' &&
     order.escrow?.status !== 'SHIPPED' &&
+    order.escrow?.status !== 'DELIVERED' &&
     order.escrow?.status !== 'PICKUP_CONFIRMED' &&
     order.escrow?.status !== 'DIGITAL_CONFIRMED' &&
     order.escrow?.status !== 'SERVICE_CONFIRMED'
@@ -106,16 +108,15 @@ export async function releaseEscrow(orderId: string, confirmedBy: string) {
       flutterwaveRef: String(response.data.id),
     }).save();
 
-    await sendNotification(order.sellerId.toString(), 'FUNDS_RELEASED', {
-      amount: amountToSeller,
-      orderId: String(order._id),
-      orderNumber: order.orderNumber,
-      currency: order.currency,
-    });
-    await sendNotification(order.buyerId.toString(), 'DELIVERY_CONFIRMED', {
-      orderId: String(order._id),
-      orderNumber: order.orderNumber,
-    });
+    const populated = await Order.findById(order._id).populate('sellerId', 'fullName email');
+    if (populated) {
+      await notifyOrderLifecycle({
+        order: populated as any,
+        actorUserId: confirmedBy,
+        forceEmailStatus: 'COMPLETED',
+        notifySellerPayout: true,
+      });
+    }
 
     return { success: true };
   }
@@ -291,12 +292,15 @@ export async function refundBuyer(
       },
     }).save();
 
-    await sendNotification(order.buyerId.toString(), 'REFUND_INITIATED', {
-      amount,
-      reason,
-      orderId: String(order._id),
-      orderNumber: order.orderNumber,
-    });
+    const populated = await Order.findById(orderId).populate('sellerId', 'fullName email');
+    if (populated) {
+      await notifyOrderLifecycle({
+        order: populated as any,
+        actorUserId: 'system',
+        forceEmailStatus: 'REFUNDED',
+        notifySellerPayout: false,
+      });
+    }
     await sendNotification(order.sellerId.toString(), 'ORDER_REFUNDED', {
       reason,
       orderId: String(order._id),

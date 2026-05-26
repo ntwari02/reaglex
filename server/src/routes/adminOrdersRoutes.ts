@@ -6,6 +6,7 @@ import {
   getOrders,
   getOrder,
   updateOrderStatus,
+  completeOrder,
   getOrderLogs,
 } from '../controllers/adminOrdersController';
 
@@ -19,6 +20,7 @@ router.get('/facets', getOrderFacets);
 router.get('/', getOrders);
 router.get('/:orderId', getOrder);
 router.patch('/:orderId/status', updateOrderStatus);
+router.post('/:orderId/complete', completeOrder);
 router.get('/:orderId/logs', getOrderLogs);
 
 export default router;

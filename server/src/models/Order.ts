@@ -265,6 +265,16 @@ export interface IOrder extends Document {
     }>;
     lastSatisfactionCheckAt?: Date;
   };
+  autoCompletion?: {
+    deliveredAt?: Date;
+    eligibleAt?: Date;
+    state?: 'scheduled' | 'blocked' | 'completed';
+    reason?: string;
+    reminderStagesSent?: Array<'d1' | 'd2' | 'final'>;
+    lastReminderSentAt?: Date;
+    completedAt?: Date;
+    completionSource?: 'buyer_confirmed' | 'auto_system' | 'admin';
+  };
   cancellationIntelligence?: {
     predictedReason?: string;
     predictedConfidence?: number;
@@ -636,6 +646,19 @@ const orderSchema = new Schema<IOrder>(
         default: [],
       },
       lastSatisfactionCheckAt: { type: Date },
+    },
+    autoCompletion: {
+      deliveredAt: { type: Date },
+      eligibleAt: { type: Date, index: true },
+      state: { type: String, enum: ['scheduled', 'blocked', 'completed'], default: 'scheduled', index: true },
+      reason: { type: String },
+      reminderStagesSent: {
+        type: [{ type: String, enum: ['d1', 'd2', 'final'] }],
+        default: [],
+      },
+      lastReminderSentAt: { type: Date },
+      completedAt: { type: Date },
+      completionSource: { type: String, enum: ['buyer_confirmed', 'auto_system', 'admin'] },
     },
     cancellationIntelligence: {
       predictedReason: { type: String },

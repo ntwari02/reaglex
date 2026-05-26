@@ -231,6 +231,7 @@ const STATUS_EVENT: Record<string, BuyerNotificationEvent> = {
   packed: 'order_packed',
   shipped: 'order_shipped',
   delivered: 'order_delivered',
+  completed: 'delivery_confirmed',
   cancelled: 'order_cancelled',
 };
 

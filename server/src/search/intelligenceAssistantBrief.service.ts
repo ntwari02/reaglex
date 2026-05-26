@@ -87,6 +87,17 @@ export function rankIntelligenceHits(
     const title = `${h.title} ${h.subtitle}`.toLowerCase();
     if (q.length >= 4 && title.includes(q.slice(0, Math.min(q.length, 12)))) score += 0.18;
     if (h.riskLevel === 'high' || h.riskLevel === 'critical') score += 0.08;
+    if (h.isUnresolved) score += 0.14;
+    if (h.isLive) score += 0.06;
+    const updatedAt = h.updatedAt ?? (h.metadata?.updatedAt ? Number(h.metadata.updatedAt) : 0);
+    if (updatedAt > 0) {
+      const ageMs = Date.now() - updatedAt;
+      if (ageMs < 15 * 60 * 1000) score += 0.32;
+      else if (ageMs < 60 * 60 * 1000) score += 0.2;
+      else if (ageMs < 24 * 60 * 60 * 1000) score += 0.1;
+      else if (ageMs < 7 * 24 * 60 * 60 * 1000) score += 0.04;
+      else score -= 0.1;
+    }
     return { h, score };
   });
   return scored.sort((a, b) => b.score - a.score).map((x) => x.h);

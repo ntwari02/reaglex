@@ -48,6 +48,16 @@ export interface IntelligenceSearchHit {
   deepLink: string;
   metadata: Record<string, string>;
   score?: number;
+  /** Indexed document freshness (ms epoch) — used for recency ranking & UI grouping */
+  updatedAt?: number;
+  /** Best-effort last operational touch (defaults to updatedAt) */
+  lastActivityAt?: number;
+  /** Human label for UI, e.g. "Shipment updated" */
+  activityLabel?: string;
+  /** Subtle live indicator for in-flight operational states */
+  isLive?: boolean;
+  /** Open / unresolved operational item */
+  isUnresolved?: boolean;
 }
 
 export interface IntelligenceSearchGroup {

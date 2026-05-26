@@ -24,6 +24,12 @@ export interface IntelligenceSearchHit {
   moduleLabel: string;
   deepLink: string;
   metadata: Record<string, string>;
+  score?: number;
+  updatedAt?: number;
+  lastActivityAt?: number;
+  activityLabel?: string;
+  isLive?: boolean;
+  isUnresolved?: boolean;
 }
 
 export interface IntelligenceSearchGroup {
@@ -212,10 +218,16 @@ export const adminIntelligenceSearchApi = {
     return res.json();
   },
 
-  async preview(entityType: IntelligenceEntityType, entityId: string): Promise<IntelligenceEntityPreview> {
+  async preview(
+    entityType: IntelligenceEntityType,
+    entityId: string,
+    depth: 'lite' | 'full' = 'lite',
+    signal?: AbortSignal,
+  ): Promise<IntelligenceEntityPreview> {
+    const qs = new URLSearchParams({ depth });
     const res = await fetch(
-      `${API_BASE_URL}/admin/intelligence/preview/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`,
-      { headers: authHeaders(), credentials: 'include' },
+      `${API_BASE_URL}/admin/intelligence/preview/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}?${qs}`,
+      { headers: authHeaders(), credentials: 'include', signal },
     );
     if (!res.ok) throw new Error('Preview unavailable');
     const data = await res.json();

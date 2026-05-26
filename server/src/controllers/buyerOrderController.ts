@@ -21,6 +21,7 @@ import { digitalEscrowReleaseEligibleAt } from '../services/digitalDeliveryServi
 import { predictCancellationReason } from '../services/cancellationIntelligence.service';
 import { verifyPickupProof } from '../services/pickupVerificationService';
 import { releaseEscrow } from '../services/escrowService';
+import { completeAdminOrder } from '../services/orderLifecycle.service';
 import {
   buildShipmentGroupsFromLines,
   computeShippingForOrderGroup,
@@ -1330,6 +1331,49 @@ export async function approveServiceCompletion(req: AuthenticatedRequest, res: R
     return res.json({ success: true, message: 'Service completion approved and escrow released' });
   } catch (err: any) {
     return res.status(500).json({ message: 'Failed to approve service completion', error: err.message });
+  }
+}
+
+export async function confirmOrderReceipt(req: AuthenticatedRequest, res: Response) {
+  if (!req.user) return res.status(401).json({ message: 'Authentication required' });
+  try {
+    const buyerId = new mongoose.Types.ObjectId(req.user.id);
+    const { orderId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ message: 'Invalid order ID' });
+
+    const order = await Order.findOne({ _id: new mongoose.Types.ObjectId(orderId), buyerId } as any).lean();
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (String(order.status) !== 'delivered') {
+      return res.status(400).json({ message: 'Only delivered orders can be confirmed' });
+    }
+
+    const result = await completeAdminOrder(orderId, req.user.id, { releasePayout: true });
+    await Order.findByIdAndUpdate(orderId, {
+      $set: {
+        'autoCompletion.state': 'completed',
+        'autoCompletion.reason': 'buyer_confirmed',
+        'autoCompletion.completedAt': new Date(),
+        'autoCompletion.completionSource': 'buyer_confirmed',
+      },
+      $push: {
+        timeline: {
+          status: 'buyer_confirmed_receipt',
+          date: new Date(),
+          time: new Date().toLocaleTimeString(),
+        },
+      },
+    });
+
+    return res.json({
+      success: true,
+      orderId,
+      orderNumber: result.order.orderNumber,
+      status: 'completed',
+      escrowReleased: result.escrowReleased,
+      message: 'Order confirmed and completion flow finished.',
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: 'Failed to confirm order receipt', error: err.message });
   }
 }
 
