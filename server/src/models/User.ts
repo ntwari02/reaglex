@@ -2,6 +2,19 @@ import mongoose, { Document, Schema } from 'mongoose';
 import type { ReaglexSellerShippingConfig } from '../types/reaglexShipping.types';
 
 export type UserRole = 'buyer' | 'seller' | 'admin';
+
+export type AdminStaffTier = 'super' | 'scoped';
+
+export interface IAdminAccess {
+  tier: AdminStaffTier;
+  /** Permission scopes when tier is scoped; empty when super */
+  scopes: string[];
+  preset?: string;
+  label?: string;
+  createdBy?: mongoose.Types.ObjectId;
+  require2FA?: boolean;
+  lastScopeChangeAt?: Date;
+}
 export type SellerVerificationStatus = 'pending' | 'approved' | 'rejected';
 export type ProfileVisibility = 'public' | 'private' | 'friends';
 export type Theme = 'light' | 'dark' | 'auto';
@@ -61,6 +74,8 @@ export interface IUserPreferences {
   currency?: string; // ISO 4217 code when set or pinned
   /** When true, buyer chose currency in UI; otherwise show prices from IP/geo (AliExpress-style). */
   currencyUserPinned?: boolean;
+  /** Opt-in Gemini help inside admin intelligence search (Ctrl+K) */
+  intelligenceAiAssist?: boolean;
 }
 
 export interface ILoginHistory {
@@ -84,6 +99,8 @@ export interface IUser extends Document {
   email: string;
   passwordHash: string;
   role: UserRole;
+  /** Sub-role for admin staff (finance, support, etc.) — only when role === admin */
+  adminAccess?: IAdminAccess;
   phone?: string;
   avatarUrl?: string;
   bio?: string;
@@ -207,6 +224,7 @@ const userPreferencesSchema = new Schema<IUserPreferences>(
     language: { type: String, default: 'en' },
     currency: { type: String },
     currencyUserPinned: { type: Boolean, default: false },
+    intelligenceAiAssist: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -328,6 +346,15 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ['buyer', 'seller', 'admin'],
       default: 'buyer',
+    },
+    adminAccess: {
+      tier: { type: String, enum: ['super', 'scoped'], default: 'scoped' },
+      scopes: { type: [String], default: [] },
+      preset: { type: String },
+      label: { type: String },
+      createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      require2FA: { type: Boolean, default: true },
+      lastScopeChangeAt: { type: Date },
     },
     phone: { type: String, trim: true },
     avatarUrl: { type: String },

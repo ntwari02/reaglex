@@ -101,14 +101,15 @@ function Field({
   inputClassName?: string;
   autoFocus?: boolean;
 }) {
-  const borderColor = error ? ERROR : valid ? SUCCESS : focused ? PRIMARY : 'var(--divider)';
-  const shadow = focused && !error ? '0 0 0 3px var(--brand-tint-strong)' : 'none';
+  const inputState = error ? 'premium-input--error' : valid ? 'premium-input--valid' : '';
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}{required ? ' *' : ''}</label>
-      <div className="relative">
+      <label className="premium-input-label block text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+        {label}{required ? ' *' : ''}
+      </label>
+      <div className="premium-input-wrap">
         {LeftIcon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center" style={{ color: error ? ERROR : focused || valid ? PRIMARY : 'var(--text-faint)' }}>
+          <span className="premium-input-icon premium-input-icon--left" aria-hidden>
             <LeftIcon className="w-5 h-5" />
           </span>
         )}
@@ -122,17 +123,22 @@ function Field({
           placeholder={placeholder}
           required={required}
           autoFocus={autoFocus}
-          className={`w-full h-12 pl-10 pr-10 rounded-xl border bg-white outline-none transition-all text-sm ${inputClassName}`}
-          style={{
-            borderWidth: '1.5px',
-            borderColor,
-            boxShadow: shadow,
-            color: '#111827',
-          }}
+          className={[
+            'premium-input w-full outline-none text-sm',
+            LeftIcon ? 'premium-input--has-left-icon' : '',
+            rightEl || valid ? 'premium-input--has-right-icon' : '',
+            inputState,
+            inputClassName,
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          style={{ color: 'var(--text-primary)' }}
         />
-        {rightEl && <div className="absolute right-3 top-1/2 -translate-y-1/2">{rightEl}</div>}
+        {rightEl && (
+          <span className="premium-input-icon premium-input-icon--right premium-input-icon--interactive">{rightEl}</span>
+        )}
         {valid && !rightEl && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2">
+          <span className="premium-input-icon premium-input-icon--right" aria-hidden>
             <Check className="w-5 h-5" style={{ color: SUCCESS }} />
           </span>
         )}
@@ -508,7 +514,7 @@ export default function AuthModal() {
           >
             <div
               ref={formRef}
-              className={`relative w-full max-w-[560px] flex overflow-hidden rounded-3xl bg-white pointer-events-auto ${shake ? 'auth-shake' : ''}`}
+              className={`auth-root relative w-full max-w-[560px] flex overflow-hidden rounded-3xl bg-white pointer-events-auto ${shake ? 'auth-shake' : ''}`}
               style={{
                 maxHeight: '90vh',
                 borderRadius: 24,

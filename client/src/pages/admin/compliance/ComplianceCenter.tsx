@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck, FileText, ClipboardCheck, FolderOpen, AlertTriangle, Download, Save } from 'lucide-react';
 import { adminComplianceAPI } from '@/lib/api';
+import { useAdminHubTab } from '@/hooks/useAdminHubTab';
 
 type TabId = 'overview' | 'classification' | 'registration' | 'policies' | 'inventory' | 'certificates' | 'audit';
 
@@ -20,8 +21,10 @@ const splitTags = (value: string) =>
     .map((v) => v.trim())
     .filter(Boolean);
 
+const COMPLIANCE_TABS = ['overview', 'classification', 'registration', 'policies', 'inventory', 'certificates', 'audit'] as const;
+
 export default function ComplianceCenter() {
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const { activeTab, setActiveTab } = useAdminHubTab<TabId>('compliance', 'overview', COMPLIANCE_TABS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [definitions, setDefinitions] = useState<any[]>([]);

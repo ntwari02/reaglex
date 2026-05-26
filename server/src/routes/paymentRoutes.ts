@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth';
+import rateLimit from 'express-rate-limit';
+import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth';
 import {
   initializePayment,
   verifyPayment,
@@ -227,8 +228,16 @@ router.post('/momo/callback', async (req, res) => {
   }
 });
 
+const paymentCompleteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many payment completion requests.' },
+});
+
 // Stripe Checkout: complete after redirect (SPA calls this with session_id)
-router.get('/stripe/complete', async (req, res) => {
+router.get('/stripe/complete', paymentCompleteLimiter, async (req, res) => {
   try {
     const sessionId = String((req.query as { session_id?: string }).session_id || '').trim();
     if (!sessionId) {
@@ -250,7 +259,7 @@ router.get('/stripe/complete', async (req, res) => {
 });
 
 // PayPal: return handler — query token is the PayPal order ID
-router.get('/paypal/complete', async (req, res) => {
+router.get('/paypal/complete', paymentCompleteLimiter, async (req, res) => {
   try {
     const token = String((req.query as { token?: string }).token || '').trim();
     if (!token) {
@@ -715,14 +724,11 @@ router.post(
 router.post(
   '/admin/disputes/:disputeId/resolve',
   authenticate,
+  authorize('admin'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { disputeId } = req.params;
       const { resolution } = req.body;
-
-      if (!req.user || req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin only' });
-      }
 
       if (!['BUYER_WINS', 'SELLER_WINS'].includes(resolution)) {
         return res.status(400).json({ message: 'Invalid resolution' });
@@ -739,12 +745,8 @@ router.post(
 );
 
 // Admin: escrow dashboard overview
-router.get('/admin/escrow/overview', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/admin/escrow/overview', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin only' });
-    }
-
     const held = await TransactionLog.aggregate([
       { $match: { type: 'PAYMENT' } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
@@ -773,12 +775,8 @@ router.get('/admin/escrow/overview', authenticate, async (req: AuthenticatedRequ
 });
 
 // Admin: high-risk escrow auto-review queue
-router.get('/admin/escrow/auto-review-queue', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/admin/escrow/auto-review-queue', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin only' });
-    }
-
     const page = Math.max(1, Number((req.query as any)?.page || 1));
     const limit = Math.min(100, Math.max(1, Number((req.query as any)?.limit || 20)));
     const skip = (page - 1) * limit;
@@ -1035,11 +1033,8 @@ router.post('/wallets/transfer', authenticate, async (req: AuthenticatedRequest,
 });
 
 // Admin: mark gateway down (e.g. MTN outage → auto-failover on next smart init)
-router.patch('/admin/gateway-status', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/admin/gateway-status', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin only' });
-    }
     const { gatewayKey, isDown, reason } = req.body as {
       gatewayKey?: string;
       isDown?: boolean;

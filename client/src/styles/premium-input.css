@@ -1,0 +1,227 @@
+/**
+ * Premium SaaS inputs — Linear / Stripe / Raycast inspired.
+ * Applied via `.premium-input` and global text-like form controls.
+ */
+
+:root {
+  --premium-input-height: 60px;
+  --premium-input-radius: 20px;
+  --premium-input-bg: rgba(255, 255, 255, 0.9);
+  --premium-input-border: #eaeaea;
+  --premium-input-padding-x: 20px;
+  --premium-input-focus-border: #ff7a00;
+  --premium-input-focus-ring: 0 0 0 4px rgba(255, 122, 0, 0.12);
+  --premium-input-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
+  --premium-input-icon-opacity: 0.6;
+  --premium-input-icon-offset: 20px;
+  --premium-input-transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.dark {
+  --premium-input-bg: rgba(28, 28, 32, 0.88);
+  --premium-input-border: rgba(255, 255, 255, 0.12);
+  --premium-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Base field ─────────────────────────────────────────────────────────── */
+.premium-input,
+input[type='text']:not(.premium-input-exempt):not(.sr-only):not([class*='sr-only']),
+input[type='email']:not(.premium-input-exempt):not(.sr-only),
+input[type='password']:not(.premium-input-exempt):not(.sr-only),
+input[type='search']:not(.premium-input-exempt):not(.sr-only),
+input[type='tel']:not(.premium-input-exempt):not(.sr-only),
+input[type='url']:not(.premium-input-exempt):not(.sr-only),
+input[type='number']:not(.premium-input-exempt):not(.sr-only),
+textarea:not(.premium-input-exempt):not(.sr-only),
+select:not(.premium-input-exempt):not(.sr-only) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--premium-input-height);
+  height: var(--premium-input-height);
+  border-radius: var(--premium-input-radius);
+  background: var(--premium-input-bg);
+  border: 1px solid var(--premium-input-border);
+  padding: 0 var(--premium-input-padding-x);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text-primary, #111111);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--premium-input-shadow);
+  outline: none;
+  transition: var(--premium-input-transition);
+  appearance: none;
+}
+
+textarea:not(.premium-input-exempt) {
+  height: auto;
+  min-height: calc(var(--premium-input-height) * 1.6);
+  padding-top: 16px;
+  padding-bottom: 16px;
+  resize: vertical;
+}
+
+select:not(.premium-input-exempt) {
+  padding-right: 44px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+}
+
+.premium-input::placeholder,
+input[type='text']:not(.premium-input-exempt)::placeholder,
+input[type='email']:not(.premium-input-exempt)::placeholder,
+input[type='password']:not(.premium-input-exempt)::placeholder,
+input[type='search']:not(.premium-input-exempt)::placeholder,
+textarea:not(.premium-input-exempt)::placeholder {
+  color: var(--input-placeholder, #9ca3af);
+  opacity: 1;
+}
+
+.premium-input:hover:not(:disabled):not(:focus),
+input[type='text']:not(.premium-input-exempt):hover:not(:disabled):not(:focus),
+input[type='email']:not(.premium-input-exempt):hover:not(:disabled):not(:focus),
+input[type='password']:not(.premium-input-exempt):hover:not(:disabled):not(:focus),
+input[type='search']:not(.premium-input-exempt):hover:not(:disabled):not(:focus),
+textarea:not(.premium-input-exempt):hover:not(:disabled):not(:focus),
+select:not(.premium-input-exempt):hover:not(:disabled):not(:focus) {
+  border-color: color-mix(in srgb, var(--premium-input-focus-border) 35%, var(--premium-input-border));
+}
+
+.premium-input:focus,
+.premium-input:focus-visible,
+input[type='text']:not(.premium-input-exempt):focus,
+input[type='email']:not(.premium-input-exempt):focus,
+input[type='password']:not(.premium-input-exempt):focus,
+input[type='search']:not(.premium-input-exempt):focus,
+input[type='tel']:not(.premium-input-exempt):focus,
+input[type='url']:not(.premium-input-exempt):focus,
+input[type='number']:not(.premium-input-exempt):focus,
+textarea:not(.premium-input-exempt):focus,
+select:not(.premium-input-exempt):focus {
+  border-color: var(--premium-input-focus-border);
+  box-shadow: var(--premium-input-focus-ring), var(--premium-input-shadow);
+}
+
+.premium-input:disabled,
+input:not(.premium-input-exempt):disabled,
+textarea:not(.premium-input-exempt):disabled,
+select:not(.premium-input-exempt):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Icon slots */
+.premium-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.premium-input-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: var(--premium-input-icon-opacity);
+  pointer-events: none;
+  color: var(--text-muted, #6b7280);
+  line-height: 0;
+  z-index: 1;
+}
+
+.premium-input-icon--left {
+  left: var(--premium-input-icon-offset);
+}
+
+.premium-input-icon--right {
+  right: var(--premium-input-icon-offset);
+  pointer-events: auto;
+}
+
+.premium-input-icon--interactive {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.premium-input-icon--interactive:hover {
+  opacity: 0.85;
+}
+
+.premium-input--has-left-icon,
+.premium-input-wrap .premium-input--has-left-icon {
+  padding-left: calc(var(--premium-input-padding-x) + 28px);
+}
+
+.premium-input--has-right-icon,
+.premium-input-wrap .premium-input--has-right-icon {
+  padding-right: calc(var(--premium-input-padding-x) + 28px);
+}
+
+.premium-input-label {
+  display: block;
+  margin-bottom: 8px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, #6b7280);
+}
+
+/* Auth / form states */
+.premium-input--error,
+.premium-input.premium-input--error {
+  border-color: #ef4444;
+  background: color-mix(in srgb, #ef4444 6%, var(--premium-input-bg));
+}
+
+.premium-input--error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+}
+
+.premium-input--valid,
+.premium-input.premium-input--valid {
+  border-color: #10b981;
+}
+
+.premium-input--valid:focus {
+  border-color: var(--premium-input-focus-border);
+  box-shadow: var(--premium-input-focus-ring), var(--premium-input-shadow);
+}
+
+.premium-input-wrap:focus-within .premium-input-icon {
+  opacity: calc(var(--premium-input-icon-opacity) + 0.15);
+  color: var(--premium-input-focus-border);
+}
+
+.premium-input-wrap:has(.premium-input--error) .premium-input-icon {
+  color: #ef4444;
+  opacity: 0.75;
+}
+
+/* Compact search bars (navbar) — keep height but allow exempt */
+input.search-input.premium-input-exempt {
+  min-height: 33px;
+  height: 33px;
+  border-radius: 14px;
+}
+
+/* OTP / compact controls — exempt from 60px full-width treatment */
+input.otp-digit,
+input.premium-input-exempt:not([type='checkbox']):not([type='radio']) {
+  width: auto;
+  min-height: unset;
+  height: auto;
+  border-radius: inherit;
+  background: inherit;
+  border: inherit;
+  padding: inherit;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}

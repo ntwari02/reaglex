@@ -136,6 +136,9 @@ router.patch('/preferences/me', async (req: AuthenticatedRequest, res) => {
 
 router.post('/activity', async (req: AuthenticatedRequest, res) => {
   if (!req.user) return res.status(401).json({ message: 'Authentication required' });
+  if (req.user.role !== 'buyer') {
+    return res.json({ success: true, skipped: true, reason: 'not_buyer' });
+  }
   try {
     const payload = activitySchema.parse(req.body || {});
     await recordRecommendationActivity({

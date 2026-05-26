@@ -7,6 +7,17 @@ import { FleetDriver } from '../models/FleetDriver';
 import { SupportTicket } from '../models/SupportTicket';
 import { SellerSubscription } from '../models/SellerSubscription';
 import { classifyQuery } from '../search/queryClassifier';
+import { explainQuery } from '../search/intelligenceQueryUnderstanding';
+import {
+  INTEL_MAX_GRAPH_EXPAND,
+  INTEL_MAX_GRAPH_SEEDS,
+  INTEL_MAX_QUERY_LENGTH,
+  INTEL_MAX_REGISTRY_PER_TYPE,
+  INTEL_MAX_RESULTS,
+  sanitizeIntelligenceQuery,
+  shouldRunGraphExpansion,
+  withSearchTimeout,
+} from '../search/intelligenceGuard';
 import { getCachedSearch, setCachedSearch, getCachedPreview, setCachedPreview } from '../search/searchCache';
 import { getMeilisearchClient, INTELLIGENCE_INDEX } from '../search/meilisearchClient';
 import {
@@ -16,7 +27,13 @@ import {
   statusTone,
 } from '../search/intelligenceIndex.service';
 import { logIntelligenceSearch } from '../models/IntelligenceSearchAudit';
+import { Dispute } from '../models/Dispute';
+import { ReturnCase } from '../models/ReturnCase';
+import { registryLookup, expandGraphFromSeeds } from '../search/intelligenceGraph.service';
+import { buildIntelligenceAiInsight, shouldRunAiAssist } from './intelligenceAiAssist.service';
+import { buildRuleAssistantBrief, mergeGeminiIntoBrief } from '../search/intelligenceAssistantBrief.service';
 import type {
+  IntelligenceConnectedRecord,
   IntelligenceEntityPreview,
   IntelligenceEntityType,
   IntelligenceSearchDocument,
@@ -34,6 +51,7 @@ const GROUP_META: Record<IntelligenceEntityType, { label: string; icon: string }
   vehicle: { label: 'Vehicles', icon: 'truck' },
   support: { label: 'Support', icon: 'life-buoy' },
   subscription: { label: 'Subscriptions', icon: 'crown' },
+  dispute: { label: 'Disputes', icon: 'alert' },
 };
 
 function docToHit(doc: IntelligenceSearchDocument, score?: number): IntelligenceSearchHit {
@@ -70,6 +88,7 @@ function groupHits(hits: IntelligenceSearchHit[]): IntelligenceSearchGroup[] {
     'product',
     'vehicle',
     'support',
+    'dispute',
     'subscription',
   ];
 
@@ -105,11 +124,12 @@ export async function runIntelligenceSearch(
   ip?: string,
 ): Promise<IntelligenceSearchResponse> {
   const started = Date.now();
-  const q = String(query || '').trim();
+  const safeLimit = Math.min(INTEL_MAX_RESULTS, Math.max(1, limit));
+  const sanitized = sanitizeIntelligenceQuery(query);
 
-  if (!q) {
+  if (!sanitized.ok) {
     return {
-      query: '',
+      query: String(query || '').trim().slice(0, INTEL_MAX_QUERY_LENGTH),
       intent: 'general',
       intentLabel: 'Search anything',
       groups: [],
@@ -117,12 +137,19 @@ export async function runIntelligenceSearch(
       tookMs: 0,
       engine: 'mongodb',
       cached: false,
+      understanding: explainQuery(''),
     };
   }
 
-  const cached = await getCachedSearch<IntelligenceSearchResponse>(q, limit);
-  if (cached) {
-    return { ...cached, cached: true };
+  const q = sanitized.query;
+  const understanding = explainQuery(q);
+  const useAiAssist = adminId ? await shouldRunAiAssist(adminId) : false;
+
+  if (!useAiAssist) {
+    const cached = await getCachedSearch<IntelligenceSearchResponse>(q, safeLimit);
+    if (cached) {
+      return { ...cached, cached: true, understanding };
+    }
   }
 
   const { intent, label: intentLabel } = classifyQuery(q);
@@ -130,28 +157,122 @@ export async function runIntelligenceSearch(
   let hits: IntelligenceSearchHit[] = [];
   let engine: 'meilisearch' | 'mongodb' = 'mongodb';
 
-  const meiliHits = await searchMeilisearch(q, limit);
+  const meiliHits = await searchMeilisearch(q, safeLimit);
   if (meiliHits.length > 0) {
     hits = meiliHits;
     engine = 'meilisearch';
   } else {
-    const docs = await mongoIntelligenceSearch(q, intent, Math.ceil(limit / 4));
-    hits = docs.slice(0, limit).map((d) => docToHit(d));
+    const docs = await mongoIntelligenceSearch(q, intent, Math.ceil(safeLimit / 4));
+    hits = docs.slice(0, safeLimit).map((d) => docToHit(d));
   }
 
-  const groups = groupHits(hits);
+  const registryDocs = await registryLookup(q, intent, INTEL_MAX_REGISTRY_PER_TYPE);
+  const registryHits = registryDocs.map((d) => docToHit(d));
+  const seenIds = new Set(hits.map((h) => h.id));
+  for (const h of registryHits) {
+    if (!seenIds.has(h.id)) {
+      hits.push(h);
+      seenIds.add(h.id);
+    }
+  }
+
+  const primaryCount = hits.length;
+  let graphExpanded = 0;
+
+  if (shouldRunGraphExpansion(understanding.allowGraphExpansion, primaryCount)) {
+    const graphDocs = await expandGraphFromSeeds(
+      hits.slice(0, INTEL_MAX_GRAPH_SEEDS).map((h) => ({ entityType: h.entityType, entityId: h.entityId })),
+    );
+    for (const d of graphDocs) {
+      const h = docToHit(d);
+      if (!seenIds.has(h.id) && graphExpanded < INTEL_MAX_GRAPH_EXPAND) {
+        hits.push(h);
+        seenIds.add(h.id);
+        graphExpanded += 1;
+      }
+    }
+  }
+
+  let aiEnabled = false;
+  let aiInsight: IntelligenceSearchResponse['aiInsight'];
+
+  if (useAiAssist) {
+    aiEnabled = true;
+    const insight = await buildIntelligenceAiInsight({
+      query: q,
+      understanding: {
+        intent: understanding.intent,
+        intentLabel: understanding.intentLabel,
+        summary: understanding.summary,
+        searchScope: understanding.searchScope,
+        tips: understanding.tips,
+        keywords: understanding.keywords,
+      },
+      resultCount: hits.length,
+      hitSummaries: hits.slice(0, 12).map((h) => ({
+        type: h.entityType,
+        title: h.title,
+        subtitle: h.subtitle,
+        status: h.status,
+      })),
+    });
+
+    if (insight) {
+      aiInsight = insight;
+      if (insight.extractedTerms.length > 0 && hits.length < 6) {
+        for (const term of insight.extractedTerms.slice(0, 3)) {
+          const extraDocs = await registryLookup(term, 'general', 3);
+          for (const d of extraDocs) {
+            const h = docToHit(d);
+            if (!seenIds.has(h.id) && hits.length < safeLimit + INTEL_MAX_GRAPH_EXPAND) {
+              hits.push(h);
+              seenIds.add(h.id);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const truncated = hits.length > safeLimit;
+  const cappedHits = hits.slice(0, safeLimit + graphExpanded);
+  let assistant = buildRuleAssistantBrief({
+    query: q,
+    understanding,
+    hits: cappedHits,
+  });
+  if (aiInsight) {
+    assistant = mergeGeminiIntoBrief(assistant, aiInsight);
+  }
+
+  const groups = groupHits(cappedHits);
   const response: IntelligenceSearchResponse = {
     query: q,
     intent,
     intentLabel,
     groups,
-    total: hits.length,
+    total: Math.min(hits.length, safeLimit + graphExpanded),
     tookMs: Date.now() - started,
     engine,
     cached: false,
+    graphExpanded,
+    truncated,
+    aiEnabled,
+    aiInsight,
+    assistant,
+    understanding: {
+      intent: understanding.intent,
+      intentLabel: understanding.intentLabel,
+      summary: understanding.summary,
+      searchScope: understanding.searchScope,
+      tips: understanding.tips,
+      keywords: understanding.keywords,
+    },
   };
 
-  await setCachedSearch(q, limit, response);
+  if (!aiEnabled) {
+    await setCachedSearch(q, safeLimit, response);
+  }
 
   if (adminId) {
     void logIntelligenceSearch({
@@ -203,6 +324,9 @@ export async function getEntityPreview(
     case 'subscription':
       preview = await previewSubscription(entityId);
       break;
+    case 'dispute':
+      preview = await previewDispute(entityId);
+      break;
     default:
       preview = null;
   }
@@ -212,73 +336,206 @@ export async function getEntityPreview(
 }
 
 async function previewUser(userId: string, type: IntelligenceEntityType): Promise<IntelligenceEntityPreview | null> {
-  const u = await User.findById(userId).select('fullName email phone role accountStatus city country createdAt').lean();
+  const u = await User.findById(userId)
+    .select('fullName email phone role accountStatus location createdAt warningCount')
+    .lean();
   if (!u) return null;
 
-  const [orderCount, productCount] = await Promise.all([
-    Order.countDocuments({ buyerId: userId }).catch(() => 0),
-    type === 'seller' ? Product.countDocuments({ sellerId: userId }) : Promise.resolve(0),
-  ]);
-
+  const oid = new mongoose.Types.ObjectId(userId);
   const isSeller = u.role === 'seller' || type === 'seller';
+
+  const [orderCount, productCount, paymentCount, ticketCount, disputeCount, recentOrders, recentPayments] =
+    await Promise.all([
+      Order.countDocuments({ $or: [{ buyerId: oid }, { sellerId: oid }] } as Record<string, unknown>),
+      isSeller ? Product.countDocuments({ sellerId: oid }) : Promise.resolve(0),
+      TransactionLog.countDocuments({ $or: [{ buyerId: oid }, { sellerId: oid }] }),
+      SupportTicket.countDocuments({ sellerId: oid }),
+      Dispute.countDocuments({ $or: [{ sellerId: oid }, { buyerId: oid }] }),
+      Order.find((isSeller ? { sellerId: oid } : { buyerId: oid }) as Record<string, unknown>)
+        .select('orderNumber status total paymentMethod createdAt')
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .lean(),
+      TransactionLog.find({ $or: [{ buyerId: oid }, { sellerId: oid }] } as Record<string, unknown>)
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .lean(),
+    ]);
+
+  const connected: IntelligenceConnectedRecord[] = [
+    ...recentOrders.map((o) => ({
+      entityType: 'order' as const,
+      entityId: String(o._id),
+      title: `Order ${o.orderNumber}`,
+      subtitle: `${o.status} · ${o.paymentMethod || '—'} · $${Number(o.total || 0).toFixed(2)}`,
+      status: o.status,
+      href: `/admin/orders?orderId=${o._id}`,
+    })),
+    ...recentPayments.map((t) => ({
+      entityType: 'payment' as const,
+      entityId: String(t._id),
+      title: `Payment ${t.flutterwaveRef || String(t._id).slice(-6)}`,
+      subtitle: `${t.type} · ${t.status}`,
+      status: t.status,
+      href: `/admin/finance?tab=transactions&txnId=${t._id}`,
+    })),
+  ];
+
   return {
     entityType: isSeller ? 'seller' : 'user',
     entityId: userId,
     title: u.fullName || 'User',
-    subtitle: maskEmail(u.email),
+    subtitle: `${u.email || ''} · ${u.phone || ''}`,
     status: u.accountStatus || u.role,
     statusTone: statusTone(u.accountStatus || u.role),
     fields: [
-      { label: 'Email', value: maskEmail(u.email), masked: true },
-      { label: 'Phone', value: maskPhone(u.phone), masked: true },
+      { label: 'Email', value: u.email || '—' },
+      { label: 'Phone', value: u.phone || '—' },
       { label: 'Role', value: String(u.role || '') },
-      { label: 'Location', value: [u.city, u.country].filter(Boolean).join(', ') || '—' },
+      { label: 'Location', value: u.location || '—' },
+      { label: 'Warnings', value: String(u.warningCount ?? 0) },
     ],
     actions: [
       {
-        label: isSeller ? 'Open Seller' : 'Open User',
-        href: isSeller ? `/admin/sellers?userId=${userId}` : `/admin/users?userId=${userId}`,
+        label: isSeller ? 'Open Seller profile' : 'Open User',
+        href: isSeller ? `/admin/sellers?seller=${userId}` : `/admin/users?userId=${userId}`,
         primary: true,
       },
+      { label: 'All orders', href: `/admin/orders?${isSeller ? `sellerId=${userId}` : `userId=${userId}`}` },
+      { label: 'Finance', href: `/admin/finance?${isSeller ? `sellerId=${userId}` : `userId=${userId}`}` },
     ],
     relationships: [
       { label: 'Orders', count: orderCount, href: `/admin/orders?userId=${userId}` },
-      ...(isSeller
-        ? [{ label: 'Products', count: productCount, href: `/admin/products?sellerId=${userId}` }]
-        : []),
-      { label: 'Support', count: 0, href: `/admin/support?userId=${userId}` },
+      ...(isSeller ? [{ label: 'Products', count: productCount, href: `/admin/products?sellerId=${userId}` }] : []),
+      { label: 'Payments', count: paymentCount, href: `/admin/finance?sellerId=${userId}` },
+      { label: 'Support tickets', count: ticketCount, href: `/admin/support?sellerId=${userId}` },
+      { label: 'Disputes', count: disputeCount, href: `/admin/support?tab=disputes&sellerId=${userId}` },
     ],
+    connectedRecords: connected,
   };
 }
 
 async function previewOrder(orderId: string): Promise<IntelligenceEntityPreview | null> {
-  const o = await Order.findById(orderId)
-    .select('orderNumber status total currency customer sellerId buyerId date createdAt')
-    .lean();
+  const o = (await Order.findById(orderId).lean()) as Record<string, unknown> | null;
   if (!o) return null;
 
-  const paymentCount = await TransactionLog.countDocuments({ orderId: o._id });
+  const oid = o._id as mongoose.Types.ObjectId;
+  const [seller, buyer, payments, tickets, disputes, returnCount] = await Promise.all([
+    o.sellerId ? User.findById(o.sellerId as mongoose.Types.ObjectId).select('fullName email phone role').lean() : null,
+    o.buyerId ? User.findById(o.buyerId as mongoose.Types.ObjectId).select('fullName email phone').lean() : null,
+    TransactionLog.find({ orderId: oid }).sort({ createdAt: -1 }).limit(8).lean(),
+    SupportTicket.find({ relatedOrderId: oid }).select('ticketNumber subject status').limit(4).lean(),
+    Dispute.find({ orderId: oid }).select('disputeNumber type status reason').limit(4).lean(),
+    ReturnCase.countDocuments({ orderId: oid }),
+  ]);
+
+  const pay = o.payment as { method?: string; paidAt?: Date; flutterwaveReference?: string; momoReferenceId?: string } | undefined;
+  const escrow = o.escrow as { status?: string } | undefined;
+  const addr = o.shippingAddress as { street?: string; city?: string; state?: string; zip?: string } | undefined;
+  const addressLine = addr
+    ? [addr.street, addr.city, addr.state, addr.zip].filter(Boolean).join(', ')
+    : '—';
+
+  const connected: IntelligenceConnectedRecord[] = [];
+  if (seller) {
+    connected.push({
+      entityType: 'seller',
+      entityId: String(seller._id),
+      title: seller.fullName || 'Seller',
+      subtitle: `${seller.email || ''} · ${seller.phone || ''}`,
+      href: `/admin/sellers?seller=${seller._id}`,
+    });
+  }
+  if (buyer) {
+    connected.push({
+      entityType: 'user',
+      entityId: String(buyer._id),
+      title: buyer.fullName || 'Buyer',
+      subtitle: `${buyer.email || ''} · ${buyer.phone || ''}`,
+      href: `/admin/users?userId=${buyer._id}`,
+    });
+  }
+  for (const t of payments) {
+    connected.push({
+      entityType: 'payment',
+      entityId: String(t._id),
+      title: `Payment ${t.flutterwaveRef || String(t._id).slice(-6)}`,
+      subtitle: `${t.type} · ${t.currency} ${Number(t.amount || 0).toFixed(2)} · ${t.status}`,
+      status: t.status,
+      href: `/admin/finance?tab=transactions&txnId=${t._id}`,
+    });
+  }
+  for (const d of disputes) {
+    connected.push({
+      entityType: 'dispute',
+      entityId: String(d._id),
+      title: d.disputeNumber || 'Dispute',
+      subtitle: `${d.type} · ${d.reason || ''}`,
+      status: d.status,
+      href: `/admin/support?tab=disputes&disputeId=${d._id}`,
+    });
+  }
+  for (const t of tickets) {
+    connected.push({
+      entityType: 'support',
+      entityId: String(t._id),
+      title: t.ticketNumber || 'Ticket',
+      subtitle: t.subject || '',
+      status: t.status,
+      href: `/admin/support?ticketId=${t._id}`,
+    });
+  }
+
+  const timeline: Array<{ label: string; at: string }> = [];
+  if (pay?.paidAt) timeline.push({ label: 'Payment received', at: new Date(pay.paidAt).toLocaleString() });
+  if (Array.isArray(o.timeline)) {
+    for (const entry of o.timeline.slice(-6)) {
+      timeline.push({
+        label: String((entry as { status?: string }).status || 'Update'),
+        at: new Date((entry as { date?: Date }).date || Date.now()).toLocaleString(),
+      });
+    }
+  }
 
   return {
     entityType: 'order',
     entityId: orderId,
-    title: `Order ${o.orderNumber}`,
-    subtitle: o.customer || 'Customer order',
-    status: o.status,
-    statusTone: statusTone(o.status),
+    title: `Order ${String(o.orderNumber || '')}`,
+    subtitle: `${String(o.customer || 'Customer')} · ${String(o.paymentMethod || pay?.method || '—')}`,
+    status: String(o.status || ''),
+    statusTone: statusTone(String(o.status || '')),
     fields: [
-      { label: 'Amount', value: `${o.currency || 'USD'} ${Number(o.total || 0).toFixed(2)}` },
-      { label: 'Customer', value: o.customer || '—' },
-      { label: 'Created', value: new Date(o.date || o.createdAt || Date.now()).toLocaleDateString() },
+      { label: 'Amount', value: `${String(o.currency || 'USD')} ${Number(o.total || 0).toFixed(2)}` },
+      { label: 'Payment method', value: String(o.paymentMethod || pay?.method || '—') },
+      { label: 'Escrow', value: escrow?.status || '—' },
+      { label: 'Customer', value: String(o.customer || '—') },
+      { label: 'Customer email', value: String(o.customerEmail || '—') },
+      { label: 'Customer phone', value: String(o.customerPhone || '—') },
+      { label: 'Seller', value: seller?.fullName || String(o.sellerName || '—') },
+      { label: 'Tracking', value: String(o.trackingNumber || '—') },
+      { label: 'Ship to', value: addressLine },
+      {
+        label: 'Payment ref',
+        value: pay?.flutterwaveReference || pay?.momoReferenceId || payments[0]?.flutterwaveRef || '—',
+      },
+      {
+        label: 'Created',
+        value: new Date((o.date || o.createdAt || Date.now()) as Date).toLocaleString(),
+      },
     ],
     actions: [
       { label: 'View Order', href: `/admin/orders?orderId=${orderId}`, primary: true },
       { label: 'Open Finance', href: `/admin/finance?orderId=${orderId}` },
+      { label: 'Support', href: `/admin/support?orderId=${orderId}` },
     ],
     relationships: [
-      { label: 'Payments', count: paymentCount, href: `/admin/finance?orderId=${orderId}` },
-      { label: 'Returns', count: 0, href: `/admin/returns?orderId=${orderId}` },
+      { label: 'Payments', count: payments.length, href: `/admin/finance?orderId=${orderId}` },
+      { label: 'Disputes', count: disputes.length, href: `/admin/support?tab=disputes&orderId=${orderId}` },
+      { label: 'Returns', count: returnCount, href: `/admin/returns?orderId=${orderId}` },
+      { label: 'Tickets', count: tickets.length, href: `/admin/support?orderId=${orderId}` },
     ],
+    connectedRecords: connected,
+    timeline: timeline.length ? timeline : undefined,
   };
 }
 
@@ -286,28 +543,103 @@ async function previewPayment(paymentId: string): Promise<IntelligenceEntityPrev
   const t = await TransactionLog.findById(paymentId).lean();
   if (!t) return null;
 
-  const ref = t.flutterwaveRef || paymentId.slice(-8);
+  const ref = t.flutterwaveRef || (t.metadata as { gatewayRef?: string })?.gatewayRef || paymentId.slice(-8);
+  const order = t.orderId
+    ? await Order.findById(t.orderId)
+        .select('orderNumber status total paymentMethod customer customerEmail sellerId sellerName createdAt')
+        .lean()
+    : null;
+
+  const connected: IntelligenceConnectedRecord[] = [];
+  if (order) {
+    connected.push({
+      entityType: 'order',
+      entityId: String(order._id),
+      title: `Order ${order.orderNumber}`,
+      subtitle: `${order.status} · ${order.paymentMethod || '—'}`,
+      status: order.status,
+      href: `/admin/orders?orderId=${order._id}`,
+    });
+  }
+  if (t.sellerId) {
+    const s = await User.findById(t.sellerId).select('fullName email phone').lean();
+    if (s) {
+      connected.push({
+        entityType: 'seller',
+        entityId: String(s._id),
+        title: s.fullName || 'Seller',
+        subtitle: s.email || '',
+        href: `/admin/sellers?seller=${s._id}`,
+      });
+    }
+  }
+
   return {
     entityType: 'payment',
     entityId: paymentId,
     title: `Payment ${ref}`,
-    subtitle: `${t.type} transaction`,
+    subtitle: `${t.type} · ${t.status}`,
     status: t.status,
     statusTone: statusTone(t.status),
     fields: [
       { label: 'Amount', value: `${t.currency} ${Number(t.amount || 0).toFixed(2)}` },
       { label: 'Type', value: t.type },
       { label: 'Reference', value: ref },
+      { label: 'Order', value: order ? order.orderNumber : '—' },
+      { label: 'Paid at', value: t.createdAt ? new Date(t.createdAt).toLocaleString() : '—' },
     ],
     actions: [
       { label: 'Open Payment', href: `/admin/finance?tab=transactions&txnId=${paymentId}`, primary: true },
-      { label: 'See Ledger', href: `/admin/finance?tab=ledger&txnId=${paymentId}` },
-    ],
-    relationships: [
-      ...(t.orderId
-        ? [{ label: 'Order', count: 1, href: `/admin/orders?orderId=${t.orderId}` }]
+      ...(order
+        ? [{ label: 'Full order dossier', href: `/admin/orders?orderId=${order._id}`, primary: false }]
         : []),
     ],
+    relationships: [
+      ...(t.orderId ? [{ label: 'Order', count: 1, href: `/admin/orders?orderId=${t.orderId}` }] : []),
+    ],
+    connectedRecords: connected,
+  };
+}
+
+async function previewDispute(disputeId: string): Promise<IntelligenceEntityPreview | null> {
+  const d = await Dispute.findById(disputeId).lean();
+  if (!d) return null;
+
+  const order = d.orderId
+    ? await Order.findById(d.orderId).select('orderNumber status total paymentMethod customer').lean()
+    : null;
+
+  const connected: IntelligenceConnectedRecord[] = [];
+  if (order) {
+    connected.push({
+      entityType: 'order',
+      entityId: String(order._id),
+      title: `Order ${order.orderNumber}`,
+      subtitle: `${order.paymentMethod || '—'} · $${Number(order.total || 0).toFixed(2)}`,
+      status: order.status,
+      href: `/admin/orders?orderId=${order._id}`,
+    });
+  }
+
+  return {
+    entityType: 'dispute',
+    entityId: disputeId,
+    title: d.disputeNumber || 'Dispute',
+    subtitle: d.reason || d.type,
+    status: d.status,
+    statusTone: statusTone(d.status),
+    fields: [
+      { label: 'Type', value: d.type },
+      { label: 'Reason', value: d.reason || '—' },
+      { label: 'Order', value: order?.orderNumber || '—' },
+      { label: 'Created', value: d.createdAt ? new Date(d.createdAt).toLocaleString() : '—' },
+    ],
+    actions: [
+      { label: 'Open Dispute', href: `/admin/support?tab=disputes&disputeId=${disputeId}`, primary: true },
+      ...(order ? [{ label: 'View Order', href: `/admin/orders?orderId=${order._id}` }] : []),
+    ],
+    relationships: order ? [{ label: 'Order', count: 1, href: `/admin/orders?orderId=${order._id}` }] : [],
+    connectedRecords: connected,
   };
 }
 

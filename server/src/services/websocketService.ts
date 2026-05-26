@@ -10,7 +10,7 @@ import { attachSystemMonitorNamespaces } from '../socket/systemMonitorSockets';
 import { attachLiveCommerceSockets } from '../socket/liveCommerceSockets';
 import { socketPresenceRegister, socketPresenceUnregister } from './socketRegistry';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+import { getJwtSecret } from '../config/jwtSecret';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -54,7 +54,7 @@ class WebSocketService {
       }
 
       try {
-        const decoded = jwt.verify(token, JWT_SECRET) as AuthTokenPayload;
+        const decoded = jwt.verify(token, getJwtSecret()) as AuthTokenPayload;
         socket.userId = decoded.id;
         socket.userRole = decoded.role;
         next();

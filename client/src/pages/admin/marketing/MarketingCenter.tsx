@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useAdminHubTab } from '@/hooks/useAdminHubTab';
 import {
   LayoutDashboard,
   Megaphone,
@@ -54,8 +55,27 @@ type TabId =
   | 'ai-tools'
   | 'settings';
 
+const MARKETING_TABS = [
+  'dashboard',
+  'campaigns',
+  'coupons',
+  'segmentation',
+  'messaging',
+  'email-automation',
+  'abandoned-cart',
+  'promotions',
+  'ads',
+  'creatives',
+  'hero-carousel',
+  'referral',
+  'affiliate',
+  'analytics',
+  'ai-tools',
+  'settings',
+] as const;
+
 export default function MarketingCenter() {
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const { activeTab, setActiveTab } = useAdminHubTab<TabId>('marketing', 'dashboard', MARKETING_TABS);
 
   const tabs = [
     { id: 'dashboard' as TabId, label: 'Dashboard', icon: LayoutDashboard },

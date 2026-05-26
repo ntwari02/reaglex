@@ -14,6 +14,7 @@ import { scheduleNextReminderAt } from './timingOptimizer';
 import { getOrCreateCartStrategy } from '../models/AbandonedCartStrategy';
 import { computeEngagementPattern } from './engagementLearning';
 import { websocketService } from './websocketService';
+import { assertBuyerMarketingEligible } from './marketingRecipient.service';
 
 export function delayToMs(value: number, unit: string): number {
   const u = String(unit || 'minute').toLowerCase();
@@ -283,11 +284,16 @@ export async function preSendSafetyChecks(params: {
   const settings = settingsToClient(await getOrCreateCartSettings());
   if (!settings.enabled || settings.globalPause) return { ok: false, reason: 'campaign_disabled' };
 
-  const user = await User.findById(params.userId)
-    .select('accountStatus notifications preferences')
-    .lean();
+  const buyerGate = await assertBuyerMarketingEligible(params.userId);
+  if (!buyerGate.ok) {
+    if (buyerGate.reason === 'not_buyer') return { ok: false, reason: 'not_buyer' };
+    if (buyerGate.reason === 'banned') return { ok: false, reason: 'banned' };
+    if (buyerGate.reason === 'promotions_off') return { ok: false, reason: 'user_unsubscribed' };
+    return { ok: false, reason: buyerGate.reason };
+  }
+
+  const user = buyerGate.user;
   if (!user) return { ok: false, reason: 'no_user' };
-  if ((user as any).accountStatus === 'banned') return { ok: false, reason: 'banned' };
 
   if (settings.respectBuyerPreferences) {
     const promo = Boolean((user as any)?.notifications?.email?.promotions ?? true);

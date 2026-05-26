@@ -161,6 +161,7 @@ export async function getTickets(req: AuthenticatedRequest, res: Response) {
       category,
       priority,
       search,
+      sellerId,
       page = '1',
       limit = '20',
       sortBy = 'createdAt',
@@ -168,6 +169,9 @@ export async function getTickets(req: AuthenticatedRequest, res: Response) {
     } = req.query;
 
     const query: any = {};
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId as string)) {
+      query.sellerId = new mongoose.Types.ObjectId(sellerId as string);
+    }
     if (status && typeof status === 'string' && status !== 'all') {
       if (status === 'pending') {
         query.status = { $in: ['in_progress', 'waiting_customer'] };
@@ -384,10 +388,13 @@ export async function addTicketMessage(req: AuthenticatedRequest, res: Response)
 export async function getDisputes(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
-    const { status, type, page = '1', limit = '20' } = req.query;
+    const { status, type, sellerId, page = '1', limit = '20' } = req.query;
     const query: any = {};
     if (status && status !== 'all') query.status = status;
     if (type && type !== 'all') query.type = type;
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId as string)) {
+      query.sellerId = new mongoose.Types.ObjectId(sellerId as string);
+    }
 
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);

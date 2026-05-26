@@ -64,11 +64,10 @@
   }
 
   .auth-root .auth-mobile-input {
-    min-height: 48px !important;
-    height: 48px !important;
+    min-height: 60px !important;
+    height: 60px !important;
     font-size: 16px !important;
-    border-radius: 0.875rem !important;
-    padding-left: 2.75rem !important;
+    border-radius: 20px !important;
   }
 
   .auth-root .auth-mobile-input-label {

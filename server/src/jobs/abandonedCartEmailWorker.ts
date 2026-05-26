@@ -26,6 +26,7 @@ import {
 } from '../services/cartRecoveryEngine.service';
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
 import { isMarketingFlowEnabled } from '../models/MarketingAutomationSettings';
+import { assertBuyerMarketingEligible } from '../services/marketingRecipient.service';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -95,6 +96,8 @@ async function discoverAndEnqueue(): Promise<number> {
   for (const row of candidates as any[]) {
     const userId = String(row._id);
     if (!mongoose.Types.ObjectId.isValid(userId)) continue;
+    const buyerGate = await assertBuyerMarketingEligible(userId);
+    if (!buyerGate.ok) continue;
 
     const { lines, lastCartAddAt } = await buildCartLinesFromActivity(userId, lookback);
     if (!lines.length || !lastCartAddAt) continue;

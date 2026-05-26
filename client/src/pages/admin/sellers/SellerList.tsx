@@ -360,12 +360,20 @@ export default function SellerList({ onViewSeller }: SellerListProps) {
       const response = await adminAPI.getSellerDetails(seller.userId);
       setKycLiveUpdatedAt(null);
       setViewSellerModal({ open: true, sellerData: response.seller });
-    } catch (err: any) {
-      console.error('Failed to load seller details:', err);
-      showToast(`Failed to load seller details: ${err.message || 'Unknown error'}`, 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      showToast(`Failed to load seller details: ${msg}`, 'error');
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleOpenFullProfile = (seller: Seller) => {
+    if (!seller.userId) {
+      showToast('Seller ID not available. Please refresh the page.', 'error');
+      return;
+    }
+    onViewSeller(seller.userId);
   };
 
   const handleWarnSeller = (seller: Seller) => {
@@ -1349,6 +1357,26 @@ export default function SellerList({ onViewSeller }: SellerListProps) {
                 </div>
               </div>
             </div>
+            <DialogFooter className="border-t border-gray-200 pt-4 dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setViewSellerModal({ open: false, sellerData: null })}
+              >
+                Close
+              </Button>
+              <Button
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={() => {
+                  const id = viewSellerModal.sellerData?.id;
+                  if (!id) return;
+                  setViewSellerModal({ open: false, sellerData: null });
+                  onViewSeller(id);
+                }}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open full profile
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

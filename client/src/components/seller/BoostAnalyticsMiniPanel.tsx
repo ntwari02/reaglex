@@ -92,9 +92,11 @@ const BoostAnalyticsMiniPanel: React.FC<BoostAnalyticsMiniPanelProps> = ({
         const getVal = (label: string) =>
           Number(funnel.find((f: any) => String(f.label).toLowerCase() === label.toLowerCase())?.value || 0);
 
-        const impressions = getVal('Product Views');
-        const clicks = getVal('Add to Cart');
-        const conversions = getVal('Completed');
+        const impressions =
+          getVal('Catalog views (sum of product.views)') ||
+          getVal('Product Views');
+        const clicks = getVal('Orders (period, excl. cancelled)') || getVal('Add to Cart');
+        const conversions = clicks;
         const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
         const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
         const revenue = Number(data?.salesStats?.totalRevenue?.value || 0);

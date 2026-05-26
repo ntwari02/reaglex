@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
+import { adminAPI, adminFinanceAPI } from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 import {
   DollarSign,
   Wallet,
@@ -30,58 +33,57 @@ interface Payout {
   platformFees: number;
 }
 
-const mockPayouts: Payout[] = [
-  {
-    id: 'PAY-001',
-    amount: 12500,
-    status: 'pending',
-    requestedDate: '2024-03-15',
-    method: 'Bank Transfer',
-    commission: 1500,
-    platformFees: 250,
-  },
-  {
-    id: 'PAY-002',
-    amount: 9800,
-    status: 'completed',
-    requestedDate: '2024-03-01',
-    processedDate: '2024-03-03',
-    method: 'Bank Transfer',
-    commission: 1176,
-    platformFees: 196,
-  },
-  {
-    id: 'PAY-003',
-    amount: 15200,
-    status: 'completed',
-    requestedDate: '2024-02-15',
-    processedDate: '2024-02-17',
-    method: 'PayPal',
-    commission: 1824,
-    platformFees: 304,
-  },
-  {
-    id: 'PAY-004',
-    amount: 8500,
-    status: 'rejected',
-    requestedDate: '2024-02-01',
-    method: 'Bank Transfer',
-    notes: 'Insufficient documentation',
-    commission: 1020,
-    platformFees: 170,
-  },
-];
+function mapPayout(p: Record<string, unknown>): Payout {
+  return {
+    id: String(p.id),
+    amount: Number(p.amount ?? 0),
+    status: String(p.status || 'pending') as PayoutStatus,
+    requestedDate: p.requestedDate ? String(p.requestedDate).slice(0, 10) : '',
+    processedDate: p.completedDate ? String(p.completedDate).slice(0, 10) : undefined,
+    method: String(p.paymentMethod || '—'),
+    notes: p.notes ? String(p.notes) : undefined,
+    commission: Number(p.commission ?? 0),
+    platformFees: Number(p.platformFee ?? p.fees ?? 0),
+  };
+}
 
 export default function SellerFinance({ sellerId }: SellerFinanceProps) {
+  const showToast = useToastStore((s) => s.showToast);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
 
-  const totalEarnings = 125000;
-  const withdrawableBalance = 25000;
-  const pendingPayouts = mockPayouts.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
-  const completedPayouts = mockPayouts.filter((p) => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
-  const totalCommission = mockPayouts.reduce((sum, p) => sum + p.commission, 0);
-  const totalPlatformFees = mockPayouts.reduce((sum, p) => sum + p.platformFees, 0);
+  const loadFinance = useCallback(async () => {
+    if (!sellerId) return;
+    setLoading(true);
+    try {
+      const [sellerRes, payoutsRes] = await Promise.all([
+        adminAPI.getSellerDetails(sellerId),
+        adminFinanceAPI.getPayouts({ sellerId, limit: 50 }),
+      ]);
+      setTotalEarnings(sellerRes.seller.earnings ?? 0);
+      setPayouts((payoutsRes.payouts || []).map((p) => mapPayout(p as Record<string, unknown>)));
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load finance data', 'error');
+      setPayouts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [sellerId, showToast]);
+
+  useEffect(() => {
+    loadFinance();
+  }, [loadFinance]);
+
+  const withdrawableBalance = payouts
+    .filter((p) => p.status === 'pending')
+    .reduce((sum, p) => sum + p.amount, 0);
+  const pendingPayouts = payouts.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
+  const completedPayouts = payouts.filter((p) => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
+  const totalCommission = payouts.reduce((sum, p) => sum + p.commission, 0);
+  const totalPlatformFees = payouts.reduce((sum, p) => sum + p.platformFees, 0);
 
   const getStatusBadge = (status: PayoutStatus) => {
     const styles = {
@@ -111,6 +113,12 @@ export default function SellerFinance({ sellerId }: SellerFinanceProps) {
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Seller Finance</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">Earnings, payouts, and financial records</p>
       </div>
+
+      {loading && (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        </div>
+      )}
 
       {/* Financial Summary */}
       <div className="grid gap-4 lg:grid-cols-4">
@@ -176,25 +184,25 @@ export default function SellerFinance({ sellerId }: SellerFinanceProps) {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">Pending</span>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {mockPayouts.filter((p) => p.status === 'pending').length} payouts
+                {payouts.filter((p) => p.status === 'pending').length} payouts
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">Approved</span>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {mockPayouts.filter((p) => p.status === 'approved').length} payouts
+                {payouts.filter((p) => p.status === 'approved').length} payouts
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">Completed</span>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {mockPayouts.filter((p) => p.status === 'completed').length} payouts
+                {payouts.filter((p) => p.status === 'completed').length} payouts
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">Failed/Rejected</span>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {mockPayouts.filter((p) => p.status === 'failed' || p.status === 'rejected').length} payouts
+                {payouts.filter((p) => p.status === 'failed' || p.status === 'rejected').length} payouts
               </span>
             </div>
           </div>
@@ -228,7 +236,7 @@ export default function SellerFinance({ sellerId }: SellerFinanceProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {mockPayouts.map((payout) => (
+              {payouts.map((payout) => (
                 <tr key={payout.id} className="bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800/60">
                   <td className="px-4 py-4">
                     <p className="font-semibold text-gray-900 dark:text-white">{payout.id}</p>
@@ -291,7 +299,7 @@ export default function SellerFinance({ sellerId }: SellerFinanceProps) {
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow dark:border-gray-800 dark:bg-gray-900">
         <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Recent Payment Logs</h3>
         <div className="space-y-3">
-          {mockPayouts.slice(0, 5).map((payout) => (
+          {payouts.slice(0, 5).map((payout) => (
             <div
               key={payout.id}
               className="flex items-center justify-between rounded-xl border border-gray-100 p-3 dark:border-gray-800"

@@ -15,6 +15,7 @@ import {
 import { API_BASE_URL, SERVER_URL } from '@/lib/config';
 import { useSystemAnalysisUiStore } from '@/stores/systemAnalysisUiStore';
 import { cn } from '@/lib/utils';
+import SystemOpsCenterPanel from '@/components/admin/SystemOpsCenterPanel';
 
 function toneForMetric(v: number, warn = 70, crit = 85) {
   // Semantic tones are fine to keep; avoid decorative gradients/glows on cards.
@@ -341,6 +342,13 @@ export default function SystemAnalysisPage() {
           <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{globalStatus.detail}</span>
         </motion.div>
       )}
+
+      <SystemOpsCenterPanel
+        settings={settings}
+        alerts={alerts}
+        authHeaders={authHeaders}
+        onSettingsSaved={() => void loadAll()}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
         {metricCards.map((card, i) => {

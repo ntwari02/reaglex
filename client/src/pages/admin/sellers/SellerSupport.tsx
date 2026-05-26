@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
+import { adminSupportAPI } from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 import {
   MessageSquare,
   FileText,
@@ -42,67 +45,72 @@ interface Dispute {
   evidence: string[];
 }
 
-const mockTickets: SupportTicket[] = [
-  {
-    id: 'TICK-001',
-    subject: 'Payment issue with payout',
-    status: 'open',
-    priority: 'high',
-    createdAt: '2024-03-10',
-    updatedAt: '2024-03-15',
-    messages: 5,
-    hasAttachments: true,
-  },
-  {
-    id: 'TICK-002',
-    subject: 'Product approval question',
-    status: 'in_progress',
-    priority: 'medium',
-    createdAt: '2024-03-12',
-    updatedAt: '2024-03-14',
-    messages: 3,
+function mapTicket(t: Record<string, unknown>): SupportTicket {
+  const statusRaw = String(t.status || 'open');
+  const status: TicketStatus =
+    statusRaw === 'in_progress' || statusRaw === 'waiting_customer'
+      ? 'in_progress'
+      : statusRaw === 'resolved' || statusRaw === 'closed'
+        ? 'resolved'
+        : 'open';
+  return {
+    id: String(t.id || t.ticketNumber),
+    subject: String(t.subject || ''),
+    status,
+    priority: (t.priority as SupportTicket['priority']) || 'medium',
+    createdAt: t.createdAt ? String(t.createdAt).slice(0, 10) : '',
+    updatedAt: t.lastUpdated ? String(t.lastUpdated).slice(0, 10) : '',
+    messages: Number(t.messageCount ?? 0),
     hasAttachments: false,
-  },
-  {
-    id: 'TICK-003',
-    subject: 'Account verification help',
-    status: 'resolved',
-    priority: 'low',
-    createdAt: '2024-03-01',
-    updatedAt: '2024-03-05',
-    messages: 2,
-    hasAttachments: false,
-  },
-];
+  };
+}
 
-const mockDisputes: Dispute[] = [
-  {
-    id: 'DISP-001',
-    orderId: 'ORD-001',
-    customerName: 'John Doe',
-    type: 'refund',
-    status: 'new',
-    amount: 299.99,
-    description: 'Product not as described, requesting full refund',
-    createdAt: '2024-03-15',
-    evidence: ['evidence1.jpg', 'evidence2.pdf'],
-  },
-  {
-    id: 'DISP-002',
-    orderId: 'ORD-002',
-    customerName: 'Jane Smith',
-    type: 'return',
-    status: 'under_review',
-    amount: 149.99,
-    description: 'Received wrong item, want to return',
-    createdAt: '2024-03-12',
-    evidence: ['photo1.jpg'],
-  },
-];
+function mapDispute(d: Record<string, unknown>): Dispute {
+  const buyer = d.buyerId as Record<string, string> | undefined;
+  const order = d.orderId as Record<string, unknown> | undefined;
+  return {
+    id: String(d._id || d.id),
+    orderId: order?.orderNumber ? String(order.orderNumber) : String(d.orderId || ''),
+    customerName: buyer?.fullName || String(d.buyerName || 'Customer'),
+    type: (String(d.type || 'other') as Dispute['type']) || 'other',
+    status: (String(d.status || 'new') as DisputeStatus) || 'new',
+    amount: Number(d.amount ?? order?.total ?? 0),
+    description: String(d.description || d.reason || ''),
+    createdAt: d.createdAt ? String(d.createdAt).slice(0, 10) : '',
+    evidence: Array.isArray(d.evidence) ? (d.evidence as string[]) : [],
+  };
+}
 
 export default function SellerSupport({ sellerId }: SellerSupportProps) {
+  const showToast = useToastStore((s) => s.showToast);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'tickets' | 'disputes'>('tickets');
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+
+  const loadSupport = useCallback(async () => {
+    if (!sellerId) return;
+    setLoading(true);
+    try {
+      const [ticketsRes, disputesRes] = await Promise.all([
+        adminSupportAPI.getTickets({ sellerId, limit: 50 }),
+        adminSupportAPI.getDisputes({ sellerId, limit: 50 }),
+      ]);
+      setTickets((ticketsRes.tickets || []).map((t) => mapTicket(t as Record<string, unknown>)));
+      setDisputes((disputesRes.disputes || []).map((d) => mapDispute(d as Record<string, unknown>)));
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load support data', 'error');
+      setTickets([]);
+      setDisputes([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [sellerId, showToast]);
+
+  useEffect(() => {
+    loadSupport();
+  }, [loadSupport]);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
@@ -147,6 +155,12 @@ export default function SellerSupport({ sellerId }: SellerSupportProps) {
         <p className="text-sm text-gray-500 dark:text-gray-400">Support tickets and dispute management</p>
       </div>
 
+      {loading && (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-800">
         <div className="flex gap-2">
@@ -158,7 +172,7 @@ export default function SellerSupport({ sellerId }: SellerSupportProps) {
                 : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
             }`}
           >
-            Support Tickets ({mockTickets.length})
+            Support Tickets ({tickets.length})
           </button>
           <button
             onClick={() => setActiveTab('disputes')}
@@ -168,7 +182,7 @@ export default function SellerSupport({ sellerId }: SellerSupportProps) {
                 : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
             }`}
           >
-            Disputes ({mockDisputes.length})
+            Disputes ({disputes.length})
           </button>
         </div>
       </div>
@@ -176,7 +190,7 @@ export default function SellerSupport({ sellerId }: SellerSupportProps) {
       {/* Support Tickets Tab */}
       {activeTab === 'tickets' && (
         <div className="space-y-4">
-          {mockTickets.map((ticket) => (
+          {tickets.map((ticket) => (
             <div
               key={ticket.id}
               className="rounded-2xl border border-gray-200 bg-white p-5 shadow dark:border-gray-800 dark:bg-gray-900"
@@ -218,7 +232,7 @@ export default function SellerSupport({ sellerId }: SellerSupportProps) {
       {/* Disputes Tab */}
       {activeTab === 'disputes' && (
         <div className="space-y-4">
-          {mockDisputes.map((dispute) => (
+          {disputes.map((dispute) => (
             <div
               key={dispute.id}
               className="rounded-2xl border border-gray-200 bg-white p-5 shadow dark:border-gray-800 dark:bg-gray-900"

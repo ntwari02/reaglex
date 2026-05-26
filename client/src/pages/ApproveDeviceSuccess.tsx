@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 
@@ -7,28 +7,26 @@ import { API_BASE_URL } from '../lib/config';
 const API_BASE = API_BASE_URL;
 
 export function ApproveDeviceSuccess() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token');
 
   useEffect(() => {
-    if (!token) {
-      navigate('/login?error=missing_token', { replace: true });
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch(`${API_BASE}/auth/session-bootstrap`, {
           credentials: 'include',
         });
         if (!res.ok || cancelled) {
-          if (!cancelled) navigate('/login', { replace: true });
+          if (!cancelled) navigate('/login?error=approval_session', { replace: true });
           return;
         }
         const data = await res.json();
         const u = data.user;
+        const tokenFromBody = typeof data.token === 'string' ? data.token : '';
+        if (!tokenFromBody) {
+          if (!cancelled) navigate('/login?error=approval_session', { replace: true });
+          return;
+        }
         const profile = {
           id: u?.id?.toString() || u?._id?.toString() || '',
           email: u?.email,
@@ -42,17 +40,17 @@ export function ApproveDeviceSuccess() {
           updated_at: u?.updatedAt || new Date().toISOString(),
         };
         const { setUserAndToken } = useAuthStore.getState();
-        setUserAndToken(profile, token);
+        setUserAndToken(profile, tokenFromBody);
         if (!cancelled) {
           const redir = profile.role === 'seller' ? '/seller' : profile.role === 'admin' ? '/admin' : '/';
           navigate(redir, { replace: true });
         }
       } catch {
-        if (!cancelled) navigate('/login', { replace: true });
+        if (!cancelled) navigate('/login?error=approval_session', { replace: true });
       }
     })();
     return () => { cancelled = true; };
-  }, [token, navigate]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-950 dark:to-emerald-950/20">

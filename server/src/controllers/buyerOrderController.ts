@@ -54,6 +54,9 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
   if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
+  if (req.user.role !== 'buyer') {
+    return res.status(403).json({ message: 'Only buyer accounts can place storefront orders' });
+  }
 
   try {
     const {
@@ -147,10 +150,21 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
     }
 
     const productDocs = await Product.find({ _id: { $in: productIds } })
-      .select('sellerId name price warehouseId fulfillmentType')
+      .select('sellerId name price warehouseId fulfillmentType listingMode launchAt publicationStatus status stock')
       .lean();
     if (productDocs.length !== productIds.length) {
       return res.status(404).json({ message: 'One or more products were not found' });
+    }
+    const notBuyable = (productDocs as any[]).find(
+      (p) =>
+        p.listingMode === 'upcoming' ||
+        !['in_stock', 'low_stock'].includes(String(p.status || '')) ||
+        (p.publicationStatus && p.publicationStatus !== 'published' && p.publicationStatus !== 'pending_verification'),
+    );
+    if (notBuyable) {
+      return res.status(400).json({
+        message: 'One or more items are not available for purchase yet (upcoming or unpublished).',
+      });
     }
 
     const pmap = new Map<

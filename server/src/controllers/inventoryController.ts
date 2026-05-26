@@ -234,7 +234,18 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       verification: verificationBody,
       sizes,
       colors,
+      listingMode: listingModeRaw,
+      launchAt: launchAtRaw,
     } = req.body;
+
+    const listingMode = listingModeRaw === 'upcoming' ? 'upcoming' : 'live';
+    const launchAt =
+      listingMode === 'upcoming' && launchAtRaw
+        ? new Date(launchAtRaw)
+        : undefined;
+    if (listingMode === 'upcoming' && (!launchAt || Number.isNaN(launchAt.getTime()))) {
+      return res.status(400).json({ message: 'launchAt is required for upcoming products' });
+    }
 
     const hasListingAmount =
       (req.body as any).listingPriceAmount != null && (req.body as any).listingPriceAmount !== '';
@@ -306,14 +317,16 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       description,
       weight,
       sku,
-      stock: stock ?? 0,
+      stock: listingMode === 'upcoming' ? Math.max(0, Number(stock) || 0) : stock ?? 0,
       price: canonical.priceUsd,
       listingCurrency: canonical.listingCurrency,
       listingPriceAmount: canonical.listingPriceAmount,
       listingExchangeRate: canonical.listingExchangeRate,
       discount,
       moq,
-      status: status || 'in_stock',
+      status: listingMode === 'upcoming' ? 'out_of_stock' : status || 'in_stock',
+      listingMode,
+      launchAt,
       publicationStatus,
       location,
       variants,
@@ -446,6 +459,21 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       if (field in req.body) {
         (existing as any)[field] = req.body[field];
       }
+    }
+
+    if ('listingMode' in req.body) {
+      const mode = (req.body as { listingMode?: string }).listingMode === 'upcoming' ? 'upcoming' : 'live';
+      (existing as any).listingMode = mode;
+      if (mode === 'upcoming') {
+        (existing as any).status = 'out_of_stock';
+      }
+    }
+    if ('launchAt' in req.body) {
+      const raw = (req.body as { launchAt?: string }).launchAt;
+      (existing as any).launchAt = raw ? new Date(raw) : undefined;
+    }
+    if ((existing as any).listingMode === 'upcoming' && !(existing as any).launchAt) {
+      return res.status(400).json({ message: 'launchAt is required for upcoming products' });
     }
 
     if ('listingCurrency' in req.body || 'listingPriceAmount' in req.body || 'price' in req.body) {

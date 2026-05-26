@@ -188,10 +188,13 @@ export async function getDashboard(req: AuthenticatedRequest, res: Response) {
 export async function getPayouts(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
-    const { section = 'requests', status, search, page = 1, limit = 20 } = req.query;
+    const { section = 'requests', status, search, sellerId, page = 1, limit = 20 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
     const filter: any = {};
     if (status && status !== 'all') filter.status = status;
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId as string)) {
+      filter.sellerId = new mongoose.Types.ObjectId(sellerId as string);
+    }
 
     if (search && typeof search === 'string') {
       const raw = String(search).trim().slice(0, 120);

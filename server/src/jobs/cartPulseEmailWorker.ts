@@ -16,6 +16,7 @@ import {
   recordFlowRun,
 } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from '../services/pushNotificationService';
+import { assertBuyerMarketingEligible } from '../services/marketingRecipient.service';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -174,11 +175,10 @@ async function sendCartPulse(userId: string, lastCartAddAt: Date): Promise<'sent
   // If purchased after the cart add, skip.
   if (await purchasedAfter(uid, lastCartAddAt)) return 'skipped';
 
+  const eligibility = await assertBuyerMarketingEligible(userId, { checkDailyCap: true });
+  if (!eligibility.ok) return 'skipped';
   const user = await User.findById(uid).select('fullName email notifications accountStatus preferences').lean();
   if (!user?.email) return 'skipped';
-  if ((user as any).accountStatus === 'banned') return 'skipped';
-  const promoAllowed = Boolean((user as any)?.notifications?.email?.promotions ?? true);
-  if (!promoAllowed) return 'skipped';
 
   const maxProducts = getIntEnv('CART_PULSE_MAX_PRODUCTS', 16);
   const products = await buildCartPulseProducts(uid, maxProducts);

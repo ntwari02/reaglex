@@ -12,6 +12,8 @@
 @import './styles/seller-notifications.css';
 @import './styles/admin-mobile.css';
 @import './styles/auth-mobile-premium.css';
+@import './styles/auth-typography.css';
+@import './styles/premium-input.css';
 
 /* Mea Culpa – auth brand panel */
 @font-face {
@@ -328,23 +330,23 @@
     box-shadow: var(--shadow-md) !important;
   }
 
-  /* ── Input / select / textarea global dark treatment ───────────────────── */
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([class*="auth"]):not([class*="otp"]) {
+  /* ── Input / select / textarea global dark treatment (legacy; skip premium inputs) ── */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([class*="auth"]):not([class*="otp"]):not(.premium-input):not(.premium-input-exempt) {
     background-color: var(--bg-input) !important;
     color: var(--input-text) !important;
     border-color: var(--border-input) !important;
   }
-  .dark input::placeholder,
-  .dark textarea::placeholder {
+  .dark input:not(.premium-input):not(.premium-input-exempt)::placeholder,
+  .dark textarea:not(.premium-input-exempt)::placeholder {
     color: var(--input-placeholder) !important;
     opacity: 1 !important;
   }
-  .dark select {
+  .dark select:not(.premium-input):not(.premium-input-exempt) {
     background-color: var(--bg-input) !important;
     color: var(--input-text) !important;
     border-color: var(--border-input) !important;
   }
-  .dark textarea {
+  .dark textarea:not(.premium-input-exempt) {
     background-color: var(--bg-input) !important;
     color: var(--input-text) !important;
     border-color: var(--border-input) !important;
@@ -1520,36 +1522,11 @@ html {
   letter-spacing: 0.02em;
 }
 
-.auth-form-shell .auth-form-modern input,
-.auth-form-shell .auth-form-modern select,
-.auth-form-shell .auth-form-modern textarea {
-  min-height: 52px;
-  border-radius: 14px;
-  font-size: 15px;
-  line-height: 1.3;
-  touch-action: manipulation;
-}
-
 .auth-form-shell .auth-form-modern button {
   min-height: 48px;
   border-radius: 14px;
   touch-action: manipulation;
-}
-
-.auth-form-shell .auth-form-modern input:focus,
-.auth-form-shell .auth-form-modern select:focus,
-.auth-form-shell .auth-form-modern textarea:focus {
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--brand-primary) 32%, transparent),
-    0 8px 20px rgba(15, 23, 42, 0.08) !important;
-}
-
-.dark .auth-form-shell .auth-form-modern input:focus,
-.dark .auth-form-shell .auth-form-modern select:focus,
-.dark .auth-form-shell .auth-form-modern textarea:focus {
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--brand-primary) 35%, transparent),
-    0 8px 22px rgba(0, 0, 0, 0.28) !important;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 .auth-form-shell .auth-form-modern button[type='submit'] {
@@ -1788,14 +1765,26 @@ nav[data-mobile-nav="seller"] > div {
    These styles are no-ops in regular browser tabs.
    ──────────────────────────────────────────────────────────────────── */
 @media all and (display-mode: standalone) {
-  html, body {
-    overscroll-behavior-y: none;
+  html {
+    height: 100%;
     -webkit-user-select: none;
     user-select: none;
   }
   body {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  #root {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
   }
   /* Keep prose / input fields selectable */
   input, textarea, [contenteditable="true"],
@@ -1817,11 +1806,22 @@ nav[data-mobile-nav="seller"] > div {
 
 /* HTML-level flag set by PwaRoot (works on iOS where matchMedia is unreliable) */
 html.pwa-standalone {
-  overscroll-behavior-y: none;
+  height: 100%;
 }
 html.pwa-standalone body {
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html.pwa-standalone #root {
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Soft GPU-accelerated transitions everywhere a route change happens */

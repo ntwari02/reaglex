@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useAdminHubTab } from '@/hooks/useAdminHubTab';
 import {
   LayoutDashboard,
   List,
@@ -43,8 +43,23 @@ type TabId =
   | 'moderation'
   | 'enhanced';
 
+const COLLECTIONS_TABS = [
+  'dashboard',
+  'list',
+  'create',
+  'media',
+  'products',
+  'sorting',
+  'scheduling',
+  'analytics',
+  'import-export',
+  'permissions',
+  'moderation',
+  'enhanced',
+] as const;
+
 export default function CollectionsCenter() {
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const { activeTab, setActiveTab } = useAdminHubTab<TabId>('collections', 'dashboard', COLLECTIONS_TABS);
 
   const tabs = [
     { id: 'dashboard' as TabId, label: 'Dashboard', icon: LayoutDashboard },

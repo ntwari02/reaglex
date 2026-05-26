@@ -10,9 +10,9 @@ import '../../../styles/upcoming-drops-premium.css';
 
 export default function UpcomingProductsSection() {
   const showToast = useToastStore((s) => s.showToast);
-  const { data: freshProducts, isPending } = useHomeFeedSection('fresh', HOME_PRODUCT_LIMIT);
+  const { data: upcomingProducts, isPending } = useHomeFeedSection('upcoming', HOME_PRODUCT_LIMIT);
 
-  const drops = mergeUpcomingList(Array.isArray(freshProducts) ? freshProducts : [])
+  const drops = mergeUpcomingList(Array.isArray(upcomingProducts) ? upcomingProducts : [])
     .map(enrichDrop)
     .slice(0, HOME_PRODUCT_LIMIT);
 

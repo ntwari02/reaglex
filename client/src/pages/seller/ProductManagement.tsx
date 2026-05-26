@@ -121,6 +121,8 @@ const ProductManagement: React.FC = () => {
     seoKeywords: '',
     sizes: [] as string[],
     colors: [] as string[],
+    listingMode: 'live' as 'live' | 'upcoming',
+    launchAt: '',
   });
   const [verificationInput, setVerificationInput] = useState({
     barcode: '',
@@ -638,6 +640,12 @@ const ProductManagement: React.FC = () => {
           sizes: categoryNeedsSize(editingProduct.category) ? (editingProduct.sizes || []) : [],
           colors: categoryNeedsColor(editingProduct.category) ? (editingProduct.colors || []) : [],
           verification: verificationPayload,
+          listingMode: (editingProduct as { listingMode?: string }).listingMode || 'live',
+          launchAt:
+            (editingProduct as { listingMode?: string; launchAt?: string }).listingMode === 'upcoming' &&
+            (editingProduct as { launchAt?: string }).launchAt
+              ? (editingProduct as { launchAt?: string }).launchAt
+              : undefined,
         };
         const response = await fetch(`${API_BASE}/products/${editingProduct.id}`, {
           method: 'PUT',
@@ -678,6 +686,11 @@ const ProductManagement: React.FC = () => {
           sizes: categoryNeedsSize(newProduct.category) ? (newProduct.sizes || []) : [],
           colors: categoryNeedsColor(newProduct.category) ? (newProduct.colors || []) : [],
           verification: verificationPayload,
+          listingMode: newProduct.listingMode,
+          launchAt:
+            newProduct.listingMode === 'upcoming' && newProduct.launchAt
+              ? new Date(newProduct.launchAt).toISOString()
+              : undefined,
         };
         const response = await fetch(`${API_BASE}/products`, {
           method: 'POST',
@@ -2229,6 +2242,57 @@ const ProductManagement: React.FC = () => {
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Low stock warning starts below 20 units.</p>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Listing type</label>
+                  <select
+                    value={
+                      editingProduct
+                        ? (editingProduct as { listingMode?: string }).listingMode || 'live'
+                        : newProduct.listingMode
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value === 'upcoming' ? 'upcoming' : 'live';
+                      if (editingProduct) {
+                        setEditingProduct({ ...editingProduct, listingMode: v } as Product);
+                      } else {
+                        setNewProduct({ ...newProduct, listingMode: v });
+                      }
+                    }}
+                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white"
+                  >
+                    <option value="live">Live now (buyable)</option>
+                    <option value="upcoming">Upcoming drop</option>
+                  </select>
+                </div>
+                {(editingProduct
+                  ? (editingProduct as { listingMode?: string }).listingMode === 'upcoming'
+                  : newProduct.listingMode === 'upcoming') && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Launch date & time *</label>
+                    <input
+                      type="datetime-local"
+                      value={
+                        editingProduct
+                          ? String((editingProduct as { launchAt?: string }).launchAt || '').slice(0, 16)
+                          : newProduct.launchAt
+                      }
+                      onChange={(e) => {
+                        if (editingProduct) {
+                          setEditingProduct({
+                            ...editingProduct,
+                            launchAt: e.target.value ? new Date(e.target.value).toISOString() : '',
+                          } as Product);
+                        } else {
+                          setNewProduct({ ...newProduct, launchAt: e.target.value });
+                        }
+                      }}
+                      className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Shown in Upcoming Drops until launch; not buyable until then.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SKU</label>
                   <input

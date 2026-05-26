@@ -1,4 +1,5 @@
 import api from './api';
+import { useAuthStore } from '../stores/authStore';
 
 export type RecommendationFrequency = 'daily' | 'weekly';
 export type RecommendationMode = 'deals_only' | 'mixed';
@@ -36,6 +37,8 @@ export async function trackRecommendationActivity(payload: {
   try {
     const token = localStorage.getItem('auth_token');
     if (!token) return;
+    const role = useAuthStore.getState().user?.role;
+    if (role && role !== 'buyer') return;
     await api.post('/recommendation-emails/activity', payload);
   } catch {
     // analytics should never break UX

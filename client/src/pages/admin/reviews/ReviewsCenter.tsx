@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useAdminHubTab } from '@/hooks/useAdminHubTab';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -45,8 +46,23 @@ type TabId =
   | 'integrations'
   | 'settings';
 
+const REVIEWS_TABS = [
+  'dashboard',
+  'reviews',
+  'moderation',
+  'fraud',
+  'seller-ratings',
+  'seller-responses',
+  'media',
+  'analytics',
+  'requests',
+  'ai-assistant',
+  'integrations',
+  'settings',
+] as const;
+
 export default function ReviewsCenter() {
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const { activeTab, setActiveTab } = useAdminHubTab<TabId>('reviews', 'dashboard', REVIEWS_TABS);
 
   const tabs = [
     { id: 'dashboard' as TabId, label: 'Dashboard', icon: LayoutDashboard },

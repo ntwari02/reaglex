@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useAdminHubTab } from '@/hooks/useAdminHubTab';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Truck,
@@ -42,8 +43,22 @@ type TabId =
   | 'integrations'
   | 'exceptions';
 
+const LOGISTICS_TABS = [
+  'partners',
+  'zones',
+  'fleet',
+  'warehouse',
+  'tracking',
+  'analytics',
+  'returns',
+  'automation',
+  'access',
+  'integrations',
+  'exceptions',
+] as const;
+
 export default function LogisticsCenter() {
-  const [activeTab, setActiveTab] = useState<TabId>('partners');
+  const { activeTab, setActiveTab } = useAdminHubTab<TabId>('logistics', 'partners', LOGISTICS_TABS);
 
   const tabs = [
     { id: 'partners' as TabId, label: 'Delivery Partners', icon: Truck },

@@ -66,15 +66,18 @@ export function enrichDrop(drop, index = 0) {
 }
 
 export function mergeUpcomingList(products = []) {
-  const fromApi = products.slice(0, 10).map((p, i) => ({
-    id: p._id || p.id || `api-${i}`,
-    title: productDisplayName(p),
-    description: p.aiMeta?.topReason || 'Curated drop · launching soon',
-    image: resolveProductImage(p),
-    launchAt: Date.now() + (i + 2) * 86400000 + (i + 1) * 3600000,
-    badge: i === 0 ? 'AI PICK' : 'COMING SOON',
-    product: p,
-  }));
+  const fromApi = products.slice(0, 10).map((p, i) => {
+    const launchMs = p.launchAt ? new Date(p.launchAt).getTime() : Date.now() + (i + 2) * 86400000;
+    return {
+      id: p._id || p.id || `api-${i}`,
+      title: productDisplayName(p),
+      description: p.aiMeta?.topReason || p.description?.slice?.(0, 80) || 'Seller drop · launching soon',
+      image: resolveProductImage(p),
+      launchAt: launchMs,
+      badge: i === 0 ? 'AI PICK' : 'COMING SOON',
+      product: p,
+    };
+  });
 
   const merged = [...fromApi];
   for (const drop of UPCOMING_DROPS) {

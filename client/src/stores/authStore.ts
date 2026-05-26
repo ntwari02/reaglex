@@ -15,6 +15,7 @@ function mapBackendUserToProfile(data: any): Profile {
     email_verified: data.emailVerified ?? true,
     full_name: data.fullName,
     role: data.role,
+    adminAccess: data.adminAccess,
     seller_status: data.sellerVerificationStatus,
     seller_verified: data.isSellerVerified,
     kyc_verified: data.kycVerified ?? false,
@@ -146,18 +147,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.setItem('auth_token', result.token);
       }
       if (result.user) {
-        const userProfile: Profile = {
-          id: result.user.id?.toString() || result.user._id?.toString() || '',
-          email: result.user.email,
-          full_name: result.user.fullName,
-          role: result.user.role,
-          seller_status: result.user.sellerVerificationStatus,
-          seller_verified: result.user.isSellerVerified,
-          phone: result.user.phone,
-          avatar_url: result.user.avatarUrl,
-          created_at: result.user.createdAt || new Date().toISOString(),
-          updated_at: result.user.updatedAt || new Date().toISOString(),
-        };
+        const userProfile = mapBackendUserToProfile(result.user);
         if (!isValidRole(userProfile.role)) {
           await clearAuthSession();
           return { success: false, error: 'Invalid account role.' };

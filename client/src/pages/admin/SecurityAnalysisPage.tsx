@@ -30,6 +30,7 @@ import { NotificationsPanel } from '@/components/security/NotificationsPanel';
 import { AuditTimeline } from '@/components/security/AuditTimeline';
 import { ConfigurationRoom } from '@/components/security/ConfigurationRoom';
 import type { IntelligenceBundle } from '@/components/security/securityIntelTypes';
+import SystemOpsCenterPanel, { type MonitorSettingsFull } from '@/components/admin/SystemOpsCenterPanel';
 
 function scoreColor(score: number) {
   if (score >= 85) return 'text-emerald-400';
@@ -117,6 +118,7 @@ export default function SecurityAnalysisPage() {
   const [intelConnected, setIntelConnected] = useState(false);
   const [postureOpen, setPostureOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [opsSettings, setOpsSettings] = useState<MonitorSettingsFull | null>(null);
   const [socketTick, setSocketTick] = useState<number | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const seenAlertIds = useRef<Set<string>>(new Set());
@@ -213,6 +215,13 @@ export default function SecurityAnalysisPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void fetch(`${API_BASE_URL}/system/settings`, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((data) => setOpsSettings(data.settings ?? null))
+      .catch(() => setOpsSettings(null));
+  }, [authHeaders]);
 
   useEffect(() => {
     const t = window.setInterval(() => {
@@ -374,6 +383,27 @@ export default function SecurityAnalysisPage() {
             </button>
           </div>
         </motion.div>
+
+        <SystemOpsCenterPanel
+          compact
+          settings={opsSettings}
+          alerts={intel.alerts.map((a) => ({
+            id: a.id,
+            level: (a.riskScore >= 80 ? 'critical' : a.riskScore >= 50 ? 'warning' : 'info') as
+              | 'critical'
+              | 'warning'
+              | 'info',
+            title: a.title,
+            message: a.detail,
+            at: a.at,
+          }))}
+          authHeaders={authHeaders}
+          onSettingsSaved={() => {
+            void fetch(`${API_BASE_URL}/system/settings`, { headers: authHeaders() })
+              .then((r) => r.json())
+              .then((data) => setOpsSettings(data.settings ?? null));
+          }}
+        />
 
         {loadError && (
           <div

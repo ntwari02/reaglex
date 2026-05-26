@@ -287,9 +287,9 @@ async function generateActionRequired(sellerId: mongoose.Types.ObjectId): Promis
     responseDeadline: { $lte: new Date(Date.now() + 2 * 60 * 60 * 1000) }, // Due in 2 hours
   } as any);
   
-  if (urgentDisputes > 0) {
+    if (urgentDisputes > 0) {
     actions.push({
-      title: 'Review high-value RFQs',
+      title: 'Respond to open disputes',
       meta: `${urgentDisputes} disputes require immediate response`,
       priority: 'High',
       due: 'Due in 2 hours',
@@ -490,8 +490,7 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
       ? ((avgOrderValue - previousAvgOrderValue) / previousAvgOrderValue * 100).toFixed(1)
       : '0';
 
-    // Pending RFQs (using disputes as proxy for now - in real system would have RFQ model)
-    const pendingRFQs = await Dispute.countDocuments({
+    const openDisputes = await Dispute.countDocuments({
       sellerId: sellerObjectId,
       status: 'new',
     });
@@ -607,8 +606,14 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
           change: `${aovChange.startsWith('-') ? '' : '+'}${aovChange}%`,
           trend: parseFloat(aovChange) >= 0 ? 'up' : 'down',
         },
+        openDisputes: {
+          value: openDisputes.toString(),
+          change: rfqChange,
+          trend: newDisputesToday >= newDisputesYesterday ? ('up' as const) : ('down' as const),
+        },
+        /** @deprecated use openDisputes */
         pendingRFQs: {
-          value: pendingRFQs.toString(),
+          value: openDisputes.toString(),
           change: rfqChange,
           trend: newDisputesToday >= newDisputesYesterday ? ('up' as const) : ('down' as const),
         },

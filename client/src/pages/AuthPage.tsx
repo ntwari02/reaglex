@@ -59,33 +59,24 @@ function AuthInput({
   rightEl?: React.ReactNode; onFocus?: () => void; onBlur?: () => void;
   required?: boolean; autoFocus?: boolean;
 }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
-  const ring = error
-    ? '0 0 0 2px rgba(239,68,68,0.45)'
+  const inputState = error
+    ? 'premium-input--error'
     : valid
-      ? '0 0 0 2px rgba(16,185,129,0.45)'
-      : focused
-        ? `0 0 0 2.5px color-mix(in srgb, var(--brand-primary) 55%, transparent), 0 0 18px color-mix(in srgb, var(--brand-primary) 15%, transparent)`
-        : `0 0 0 1.5px ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`;
-
-  const inputBg = error
-    ? 'var(--badge-error-bg)'
-    : focused
-      ? isDark ? 'rgba(255,255,255,0.05)' : 'var(--card-bg)'
-      : isDark ? 'rgba(255,255,255,0.04)' : 'var(--bg-tertiary)';
+      ? 'premium-input--valid'
+      : '';
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="auth-mobile-input-label text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
+      <label
+        className="auth-mobile-input-label premium-input-label text-[11px] font-bold uppercase tracking-[0.1em]"
+        style={{ color: 'var(--text-muted)' }}
+      >
         {label}{required ? <span style={{ color: PRIMARY }}> *</span> : ''}
       </label>
-      <div className="relative">
+      <div className="premium-input-wrap">
         {LeftIcon && (
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200"
-            style={{ color: focused && !error ? PRIMARY : 'var(--text-faint)' }}>
-            <LeftIcon size={17} />
+          <span className="premium-input-icon premium-input-icon--left" aria-hidden>
+            <LeftIcon size={18} />
           </span>
         )}
         <input
@@ -97,21 +88,25 @@ function AuthInput({
           placeholder={placeholder}
           required={required}
           autoFocus={autoFocus}
-          className="auth-mobile-input w-full h-12 sm:h-[54px] rounded-xl sm:rounded-2xl outline-none text-base sm:text-[15px] transition-all duration-200"
-          style={{
-            background: inputBg,
-            boxShadow: ring,
-            color: 'var(--text-primary)',
-            paddingLeft: LeftIcon ? '46px' : '18px',
-            paddingRight: rightEl || valid ? '46px' : '18px',
-          }}
+          className={[
+            'premium-input auth-mobile-input w-full outline-none text-base sm:text-[15px]',
+            LeftIcon ? 'premium-input--has-left-icon' : '',
+            rightEl || valid ? 'premium-input--has-right-icon' : '',
+            inputState,
+            focused && !error ? 'is-focused' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          style={{ color: 'var(--text-primary)' }}
         />
         {rightEl && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2">{rightEl}</div>
+          <span className="premium-input-icon premium-input-icon--right premium-input-icon--interactive">
+            {rightEl}
+          </span>
         )}
         {valid && !rightEl && (
-          <span className="absolute right-4 top-1/2 -translate-y-1/2">
-            <Check size={14} style={{ color: SUCCESS }} />
+          <span className="premium-input-icon premium-input-icon--right" aria-hidden>
+            <Check size={16} style={{ color: SUCCESS }} />
           </span>
         )}
       </div>
@@ -714,7 +709,7 @@ function OtpInputs({
           onChange={(e) => onChange(i, e.target.value)}
           onKeyDown={(e) => onKeyDown(i, e)}
           onPaste={onPaste}
-          className="w-[13vw] max-w-[58px] min-w-[42px] h-[58px] sm:h-[64px] rounded-2xl text-center text-[22px] font-black outline-none transition-all duration-200"
+          className="premium-input-exempt otp-digit w-[13vw] max-w-[58px] min-w-[42px] h-[58px] sm:h-[64px] rounded-2xl text-center text-[22px] font-black outline-none transition-all duration-200"
           style={{
             background: isDark ? 'rgba(255,255,255,0.06)' : '#f8f9fc',
             boxShadow: error

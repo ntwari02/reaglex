@@ -30,12 +30,20 @@ export interface MenuItem {
   badgeTone?: 'ok' | 'warn' | 'critical' | 'neutral';
 }
 
+export interface MenuSection {
+  id: string;
+  label: string;
+  items: MenuItem[];
+}
+
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   menuItems?: MenuItem[];
+  /** Grouped nav (admin panel); when set, menuItems is ignored. */
+  menuSections?: MenuSection[];
   title: string;
   tier: string;
   accentVariant?: 'emerald' | 'orange';
@@ -60,6 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   sidebarOpen,
   setSidebarOpen,
   menuItems,
+  menuSections,
   title,
   tier,
   accentVariant = 'emerald',
@@ -82,7 +91,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: t('account.profileSettings'), icon: Settings },
   ];
 
-  const itemsToRender = menuItems || defaultMenuItems;
+  const flatItems = menuItems || defaultMenuItems;
+  const useSections = Boolean(menuSections?.length);
 
   const accentClasses = accentVariant === 'emerald'
     ? {
@@ -95,6 +105,60 @@ const Sidebar: React.FC<SidebarProps> = ({
         activeBg: 'bg-gradient-to-r from-red-500 to-[var(--brand-primary)]',
         activeShadow: 'shadow-red-500/40',
       };
+
+  const renderNavButton = (item: MenuItem) => {
+    const Icon = item.icon;
+    const isActive = activeTab === item.id;
+    return (
+      <motion.button
+        key={item.id}
+        onClick={() => {
+          setActiveTab(item.id);
+          setSidebarOpen(false);
+        }}
+        className={cn(
+          'w-full flex items-center justify-between gap-2 sm:gap-3 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item min-h-[44px] lg:min-h-0',
+          isActive
+            ? `${accentClasses.activeShadow} text-white hover:bg-transparent`
+            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200',
+        )}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        {isActive && (
+          <motion.div
+            layoutId={`activeTab-${title}`}
+            className={`absolute inset-0 ${accentClasses.activeBg}`}
+            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+          />
+        )}
+        <div className="flex items-center gap-3 flex-1 min-w-0 relative z-10">
+          <Icon className="w-[18px] h-[18px] shrink-0 sidebar-nav-icon" />
+          <span
+            className={cn(
+              'font-medium transition-colors truncate text-left',
+              isActive
+                ? 'text-white'
+                : 'text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white',
+            )}
+          >
+            {item.label}
+          </span>
+        </div>
+        {item.badge && (
+          <span
+            className={cn(
+              'relative z-10 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0',
+              badgeClasses(item.badgeTone),
+              isActive && 'border-white/30 text-white bg-white/15',
+            )}
+          >
+            {item.badge}
+          </span>
+        )}
+      </motion.button>
+    );
+  };
 
   const sidebarContent = (
   <div
@@ -121,62 +185,24 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
       
       <nav className="flex-1 p-3 sm:p-4 sidebar-stats">
-        <div className="space-y-1 sm:space-y-2">
-          {itemsToRender.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            
-            return (
-              <motion.button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setSidebarOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between gap-2 sm:gap-3 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item min-h-[44px] lg:min-h-0",
-                  isActive
-                    ? `${accentClasses.activeShadow} text-white hover:bg-transparent`
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200"
-                )}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId={`activeTab-${title}`}
-                    className={`absolute inset-0 ${accentClasses.activeBg}`}
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <div className="flex items-center gap-3 flex-1 min-w-0 relative z-10">
-                  <Icon className="w-[18px] h-[18px] shrink-0 sidebar-nav-icon" />
-                  <span
-                    className={cn(
-                      'font-medium transition-colors truncate text-left',
-                      isActive
-                        ? 'text-white'
-                        : 'text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white',
-                    )}
-                  >
-                    {item.label}
-                  </span>
+        {useSections ? (
+          <div className="space-y-4">
+            {menuSections!.map((section) => (
+              <div key={section.id}>
+                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  {section.label}
+                </p>
+                <div className="space-y-1">
+                  {section.items.map((item) => renderNavButton(item))}
                 </div>
-                {item.badge && (
-                  <span
-                    className={cn(
-                      'relative z-10 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0',
-                      badgeClasses(item.badgeTone),
-                      isActive && 'border-white/30 text-white bg-white/15',
-                    )}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-1 sm:space-y-2">
+            {flatItems.map((item) => renderNavButton(item))}
+          </div>
+        )}
       </nav>
 
       <div className="p-4 border-t bg-gray-50 dark:bg-dark-secondary border-gray-200 dark:border-[var(--border-card)] transition-colors duration-300 text-xs text-gray-500 dark:text-[var(--text-muted)]">

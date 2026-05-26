@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useAdminHubTab } from '@/hooks/useAdminHubTab';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -37,8 +37,10 @@ type TabId =
   | 'reports'
   | 'tools';
 
+const SUPPORT_TABS = ['dashboard', 'tickets', 'disputes', 'chat', 'staff', 'knowledge', 'fraud', 'reports', 'tools'] as const;
+
 export default function SupportCenter() {
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const { activeTab, setActiveTab } = useAdminHubTab<TabId>('support', 'dashboard', SUPPORT_TABS);
 
   const tabs = [
     { id: 'dashboard' as TabId, label: 'Dashboard', icon: LayoutDashboard },

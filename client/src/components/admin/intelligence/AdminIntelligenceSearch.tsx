@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  AlertTriangle,
   Box,
   Command,
   CreditCard,
@@ -10,6 +11,8 @@ import {
   Loader2,
   Package,
   Search,
+  Shield,
+  Sparkles,
   Store,
   Truck,
   User,
@@ -17,10 +20,15 @@ import {
 } from 'lucide-react';
 import {
   adminIntelligenceSearchApi,
+  type IntelligenceAssistantAction,
+  type IntelligenceAssistantBrief,
   type IntelligenceEntityPreview,
   type IntelligenceSearchHit,
   type IntelligenceSearchResponse,
 } from '@/services/adminIntelligenceSearchApi';
+import { explainQueryLocally, EXAMPLE_QUERIES } from '@/lib/intelligenceQueryHints';
+import { buildLocalTypingBrief } from '@/lib/intelligenceAssistantLocal';
+import { IntelligenceAssistantCard } from '@/components/admin/intelligence/IntelligenceAssistantCard';
 import { useAdminIntelligenceSearchStore } from '@/stores/adminIntelligenceSearchStore';
 import '@/styles/admin-intelligence-search.css';
 
@@ -33,6 +41,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   truck: Truck,
   'life-buoy': LifeBuoy,
   crown: Crown,
+  alert: AlertTriangle,
 };
 
 function HitIcon({ name }: { name: string }) {
@@ -52,24 +61,86 @@ export default function AdminIntelligenceSearch() {
   const navigate = useNavigate();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<IntelligenceSearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [preview, setPreview] = useState<IntelligenceEntityPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [aiConfig, setAiConfig] = useState<{
+    geminiConfigured: boolean;
+    userAiAssistEnabled: boolean;
+    aiAvailable: boolean;
+  } | null>(null);
+  const [aiToggling, setAiToggling] = useState(false);
+  const [aiTypingHint, setAiTypingHint] = useState<string | null>(null);
+  const [typingBrief, setTypingBrief] = useState<IntelligenceAssistantBrief | null>(null);
+  const [showMoreResults, setShowMoreResults] = useState(false);
+  const [previewFieldsExpanded, setPreviewFieldsExpanded] = useState(false);
+  const [previewRelatedExpanded, setPreviewRelatedExpanded] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const suggestAbortRef = useRef<AbortController | null>(null);
 
-  const hits = useMemo(() => flatHits(result?.groups || []), [result]);
+  const localUnderstanding = useMemo(() => explainQueryLocally(query), [query]);
+
+  const activeBrief = useMemo((): IntelligenceAssistantBrief | null => {
+    if (result?.assistant) return result.assistant;
+    if (query.trim().length >= 2) {
+      return (
+        typingBrief ||
+        buildLocalTypingBrief(query, localUnderstanding, aiTypingHint)
+      );
+    }
+    return null;
+  }, [result?.assistant, query, typingBrief, localUnderstanding, aiTypingHint]);
+
+  const hits = useMemo(() => {
+    if (!result) return [];
+    const top = result.assistant?.topResults?.length
+      ? result.assistant.topResults
+      : flatHits(result.groups).slice(0, 3);
+    const topIds = new Set(top.map((h) => h.id));
+    const rest = flatHits(result.groups).filter((h) => !topIds.has(h.id));
+    return [...top, ...rest];
+  }, [result]);
+
+  const moreHits = useMemo(() => {
+    if (!result?.assistant?.topResults?.length) return hits.slice(3);
+    return hits.slice(result.assistant.topResults.length);
+  }, [hits, result?.assistant?.topResults]);
+
   const activeHit = hits[activeIndex] || null;
 
   const close = useCallback(() => {
+    abortRef.current?.abort();
     setOpen(false);
     setQuery('');
     setResult(null);
     setPreview(null);
+    setError(null);
     setActiveIndex(0);
+    setTypingBrief(null);
+    setShowMoreResults(false);
+    setPreviewFieldsExpanded(false);
+    setPreviewRelatedExpanded(false);
   }, [setOpen]);
+
+  const handleAssistantAction = useCallback(
+    (action: IntelligenceAssistantAction) => {
+      if (action.kind === 'navigate' && action.href) {
+        close();
+        navigate(action.href);
+        return;
+      }
+      if (action.kind === 'search' || action.kind === 'deep_search') {
+        if (action.query) setQuery(action.query);
+        return;
+      }
+    },
+    [close, navigate],
+  );
 
   const openHit = useCallback(
     (hit: IntelligenceSearchHit) => {
@@ -82,8 +153,26 @@ export default function AdminIntelligenceSearch() {
   useEffect(() => {
     if (open) {
       requestAnimationFrame(() => inputRef.current?.focus());
+      adminIntelligenceSearchApi
+        .getConfig()
+        .then(setAiConfig)
+        .catch(() => setAiConfig(null));
     }
   }, [open]);
+
+  const toggleAiAssist = async () => {
+    if (!aiConfig?.geminiConfigured || aiToggling) return;
+    setAiToggling(true);
+    try {
+      const next = !aiConfig.userAiAssistEnabled;
+      const cfg = await adminIntelligenceSearchApi.setAiAssist(next);
+      setAiConfig(cfg);
+    } catch {
+      /* keep previous */
+    } finally {
+      setAiToggling(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -101,24 +190,60 @@ export default function AdminIntelligenceSearch() {
   useEffect(() => {
     if (!open) return;
     clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+
     if (query.trim().length < 2) {
       setResult(null);
       setLoading(false);
+      setError(null);
+      setAiTypingHint(null);
+      setTypingBrief(null);
       return;
     }
-    setLoading(true);
-    debounceRef.current = setTimeout(() => {
+
+    if (query.trim().length >= 2) {
+      suggestAbortRef.current?.abort();
+      const sac = new AbortController();
+      suggestAbortRef.current = sac;
+      setTypingBrief(buildLocalTypingBrief(query, localUnderstanding, null));
       adminIntelligenceSearchApi
-        .search(query.trim())
+        .suggest(query.trim())
+        .then((s) => {
+          if (sac.signal.aborted) return;
+          setAiTypingHint(s.aiTypingHint || null);
+          setTypingBrief(
+            s.assistant || buildLocalTypingBrief(query, localUnderstanding, s.aiTypingHint),
+          );
+        })
+        .catch(() => {});
+    } else {
+      setAiTypingHint(null);
+      setTypingBrief(null);
+    }
+
+    setLoading(true);
+    setError(null);
+    debounceRef.current = setTimeout(() => {
+      const ac = new AbortController();
+      abortRef.current = ac;
+      adminIntelligenceSearchApi
+        .search(query.trim(), 24, ac.signal)
         .then((res) => {
+          if (ac.signal.aborted) return;
           setResult(res);
           setActiveIndex(0);
         })
-        .catch(() => setResult(null))
-        .finally(() => setLoading(false));
-    }, 280);
+        .catch((err: unknown) => {
+          if (ac.signal.aborted) return;
+          setResult(null);
+          setError(err instanceof Error ? err.message : 'Search failed');
+        })
+        .finally(() => {
+          if (!ac.signal.aborted) setLoading(false);
+        });
+    }, 320);
     return () => clearTimeout(debounceRef.current);
-  }, [query, open]);
+  }, [query, open, localUnderstanding]);
 
   useEffect(() => {
     if (!activeHit) {
@@ -149,8 +274,6 @@ export default function AdminIntelligenceSearch() {
     }
   };
 
-  let flatIdx = -1;
-
   return (
     <AnimatePresence>
       {open && (
@@ -178,16 +301,14 @@ export default function AdminIntelligenceSearch() {
               <input
                 ref={inputRef}
                 className="intel-search-input"
-                placeholder="Search users, orders, payments, vehicles…"
+                placeholder="Phone, email, order, payment, seller name…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onInputKeyDown}
                 autoComplete="off"
                 spellCheck={false}
+                maxLength={100}
               />
-              {result?.intentLabel && query.length >= 2 && (
-                <span className="intel-search-intent">{result.intentLabel}</span>
-              )}
               <button
                 type="button"
                 onClick={close}
@@ -197,6 +318,34 @@ export default function AdminIntelligenceSearch() {
                 <X className="w-4 h-4" />
               </button>
             </motion.div>
+
+            {activeBrief && query.length >= 2 && (
+              <IntelligenceAssistantCard
+                brief={activeBrief}
+                loading={loading}
+                onAction={handleAssistantAction}
+                onAltQuery={(q) => setQuery(q)}
+              />
+            )}
+
+            <div className="intel-search-trust-bar">
+              <Shield className="w-3.5 h-3.5 text-emerald-400/80" />
+              <span>Admin-only · rate-limited · audited</span>
+              {aiConfig?.geminiConfigured ? (
+                <button
+                  type="button"
+                  className={`intel-search-ai-toggle${aiConfig.userAiAssistEnabled ? ' is-on' : ''}`}
+                  onClick={toggleAiAssist}
+                  disabled={aiToggling}
+                  title="Gemini helps interpret your search and suggest next steps"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {aiToggling ? 'Saving…' : aiConfig.userAiAssistEnabled ? 'Gemini assist on' : 'Gemini assist off'}
+                </button>
+              ) : (
+                <span className="intel-search-trust-rule">Set GEMINI_API_KEY for AI assist</span>
+              )}
+            </div>
 
             {livePulses.length > 0 && (
               <div className="intel-search-live-strip">
@@ -224,89 +373,128 @@ export default function AdminIntelligenceSearch() {
 
             <motion.div className="intel-search-body" layout>
               <div className="intel-search-results">
-                {loading && (
-                  <motion.div
-                    className="intel-search-empty flex items-center justify-center gap-2"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <Loader2 className="w-5 h-5 animate-spin text-emerald-400/70" />
-                    Searching platform…
-                  </motion.div>
-                )}
-
-                {!loading && query.length < 2 && (
-                  <div className="intel-search-empty">
-                    <p className="text-white/50 mb-2">Platform intelligence</p>
-                    <p className="text-xs">Try an email, order ID, payment ref, phone, or seller name.</p>
+                {loading && query.length >= 2 && (
+                  <div className="intel-search-skeleton">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="intel-search-skeleton-row" style={{ animationDelay: `${i * 0.06}s` }} />
+                    ))}
                   </div>
                 )}
 
-                {!loading && query.length >= 2 && hits.length === 0 && (
-                  <motion.div
-                    className="intel-search-empty"
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    No matches for &ldquo;{query}&rdquo;
+                {error && !loading && (
+                  <div className="intel-search-empty text-amber-200/90">
+                    <AlertTriangle className="w-5 h-5 mx-auto mb-2 opacity-70" />
+                    {error}
+                  </div>
+                )}
+
+                {!loading && !error && query.length < 2 && (
+                  <div className="intel-search-empty">
+                    <p className="text-white/60 mb-1 font-semibold">Registry intelligence</p>
+                    <p className="text-xs text-white/40 mb-5 max-w-sm mx-auto">
+                      One search links buyer, seller, order, payment method, disputes, and support — without loading the whole database at once.
+                    </p>
+                    <div className="intel-search-examples">
+                      {EXAMPLE_QUERIES.map((ex) => (
+                        <button
+                          key={ex.label}
+                          type="button"
+                          className="intel-search-example-chip"
+                          onClick={() => setQuery(ex.value)}
+                        >
+                          <span className="font-semibold text-white/80">{ex.label}</span>
+                          <span className="text-white/35">{ex.hint}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!loading && !error && query.length >= 2 && hits.length === 0 && (
+                  <motion.div className="intel-search-empty" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+                    <p>No matches for &ldquo;{query}&rdquo;</p>
+                    <p className="text-xs mt-2 text-white/35">Try phone digits, full email, or order number</p>
                   </motion.div>
                 )}
 
-                {!loading &&
-                  result?.groups.map((group) => (
-                    <motion.div
-                      key={group.entityType}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <motion.div className="intel-search-group-label" layout="position">
-                        <HitIcon name={group.icon} />
-                        {group.label}
-                      </motion.div>
-                      {group.hits.map((hit) => {
-                        flatIdx += 1;
-                        const idx = flatIdx;
-                        return (
-                          <motion.button
-                            key={hit.id}
-                            type="button"
-                            className={`intel-search-hit${idx === activeIndex ? ' is-active' : ''}`}
-                            onMouseEnter={() => setActiveIndex(idx)}
-                            onClick={() => openHit(hit)}
-                            initial={{ opacity: 0, x: -4 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.02, duration: 0.18 }}
-                          >
-                            <div className="intel-search-hit-icon">
-                              <HitIcon name={group.icon} />
-                            </div>
-                            <div className="intel-search-hit-main">
-                              <motion.div className="intel-search-hit-title">{hit.title}</motion.div>
-                              <motion.div className="intel-search-hit-sub" layout="position">
-                                {hit.subtitle}
-                              </motion.div>
-                              <div className="intel-search-hit-meta">
-                                {hit.status && (
-                                  <span className={`intel-search-badge intel-search-badge--${hit.statusTone || 'info'}`}>
-                                    {hit.status}
-                                  </span>
-                                )}
-                                <span className="intel-search-module">{hit.moduleLabel}</span>
-                              </div>
-                            </div>
-                          </motion.button>
-                        );
-                      })}
-                    </motion.div>
-                  ))}
+                {!loading && !error && hits.length > 0 && (
+                  <>
+                    <div className="intel-search-group-label">
+                      <HitIcon name="package" />
+                      Priority matches
+                      <span className="text-white/25 font-normal ml-1">
+                        ({Math.min(3, hits.length)})
+                      </span>
+                    </div>
+                    {hits.slice(0, 3).map((hit, idx) => (
+                      <button
+                        key={hit.id}
+                        type="button"
+                        className={`intel-search-hit${idx === activeIndex ? ' is-active' : ''}`}
+                        onMouseEnter={() => setActiveIndex(idx)}
+                        onClick={() => openHit(hit)}
+                      >
+                        <div className="intel-search-hit-icon">
+                          <HitIcon name={hit.entityType === 'payment' ? 'credit-card' : hit.entityType === 'user' ? 'user' : 'package'} />
+                        </div>
+                        <div className="intel-search-hit-main">
+                          <div className="intel-search-hit-title">{hit.title}</div>
+                          <div className="intel-search-hit-sub">{hit.subtitle}</div>
+                          <div className="intel-search-hit-meta">
+                            {hit.status && (
+                              <span className={`intel-search-badge intel-search-badge--${hit.statusTone || 'info'}`}>
+                                {hit.status}
+                              </span>
+                            )}
+                            <span className="intel-search-module">{hit.moduleLabel}</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    {moreHits.length > 0 && (
+                      <>
+                        <button
+                          type="button"
+                          className="intel-search-more-toggle"
+                          onClick={() => setShowMoreResults((v) => !v)}
+                        >
+                          {showMoreResults ? 'Hide' : 'More results'} ({moreHits.length})
+                        </button>
+                        {showMoreResults &&
+                          moreHits.map((hit, i) => {
+                            const idx = i + Math.min(3, hits.length);
+                            return (
+                              <button
+                                key={hit.id}
+                                type="button"
+                                className={`intel-search-hit${idx === activeIndex ? ' is-active' : ''}`}
+                                onMouseEnter={() => setActiveIndex(idx)}
+                                onClick={() => openHit(hit)}
+                              >
+                                <div className="intel-search-hit-icon">
+                                  <HitIcon name="box" />
+                                </div>
+                                <div className="intel-search-hit-main">
+                                  <div className="intel-search-hit-title">{hit.title}</div>
+                                  <div className="intel-search-hit-sub">{hit.subtitle}</div>
+                                  <div className="intel-search-hit-meta">
+                                    <span className="intel-search-module">{hit.moduleLabel}</span>
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                      </>
+                    )}
+                  </>
+                )}
               </div>
 
               <aside className="intel-search-preview">
                 {previewLoading && (
                   <div className="flex items-center gap-2 text-white/40 text-sm py-8 justify-center">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading context…
+                    Building dossier…
                   </div>
                 )}
                 {!previewLoading && !preview && activeHit && (
@@ -325,7 +513,7 @@ export default function AdminIntelligenceSearch() {
                   </motion.div>
                 )}
                 {!previewLoading && preview && (
-                  <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
+                  <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}>
                     <p className="intel-search-preview-title">{preview.title}</p>
                     <p className="intel-search-preview-sub">{preview.subtitle}</p>
                     {preview.status && (
@@ -334,18 +522,76 @@ export default function AdminIntelligenceSearch() {
                       </span>
                     )}
                     <div className="mt-5 space-y-0">
-                      {preview.fields.map((f) => (
+                      {(previewFieldsExpanded ? preview.fields : preview.fields.slice(0, 4)).map((f) => (
                         <div key={f.label} className="intel-search-field">
                           <span className="intel-search-field-label">{f.label}</span>
                           <span className="intel-search-field-value">{f.value}</span>
                         </div>
                       ))}
+                      {preview.fields.length > 4 && (
+                        <button
+                          type="button"
+                          className="intel-search-more-toggle w-full mt-2"
+                          onClick={() => setPreviewFieldsExpanded((v) => !v)}
+                        >
+                          {previewFieldsExpanded ? 'Less details' : 'More details'}
+                        </button>
+                      )}
                     </div>
+                    {preview.connectedRecords && preview.connectedRecords.length > 0 && (
+                      <div className="mt-5">
+                        <button
+                          type="button"
+                          className="intel-search-more-toggle mb-2"
+                          onClick={() => setPreviewRelatedExpanded((v) => !v)}
+                        >
+                          {previewRelatedExpanded ? 'Hide linked records' : 'Related information'}
+                        </button>
+                        {previewRelatedExpanded && (
+                        <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
+                          {preview.connectedRecords.map((c) => (
+                            <button
+                              key={`${c.entityType}-${c.entityId}`}
+                              type="button"
+                              className="intel-search-rel w-full text-left"
+                              onClick={() => {
+                                close();
+                                navigate(c.href);
+                              }}
+                            >
+                              <span className="block font-semibold text-white/90">{c.title}</span>
+                              <span className="block text-[0.7rem] text-white/45 truncate">{c.subtitle}</span>
+                            </button>
+                          ))}
+                        </div>
+                        )}
+                      </div>
+                    )}
+                    {previewRelatedExpanded && preview.timeline && preview.timeline.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-[0.65rem] font-bold uppercase tracking-wider text-white/30 mb-2">Timeline</p>
+                        {preview.timeline.map((t, i) => (
+                          <div key={i} className="intel-search-field">
+                            <span className="intel-search-field-label">{t.label}</span>
+                            <span className="intel-search-field-value text-xs">{t.at}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {preview.relationships.length > 0 && (
                       <div className="mt-5">
-                        <p className="text-[0.65rem] font-bold uppercase tracking-wider text-white/30 mb-2">Related</p>
+                        <p className="text-[0.65rem] font-bold uppercase tracking-wider text-white/30 mb-2">Counts</p>
                         {preview.relationships.map((r) => (
-                          <a key={r.label} href={r.href} className="intel-search-rel" onClick={(e) => { e.preventDefault(); close(); navigate(r.href); }}>
+                          <a
+                            key={r.label}
+                            href={r.href}
+                            className="intel-search-rel"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              close();
+                              navigate(r.href);
+                            }}
+                          >
                             <span>{r.label}</span>
                             <span>{r.count}</span>
                           </a>
@@ -358,7 +604,10 @@ export default function AdminIntelligenceSearch() {
                           key={a.href}
                           type="button"
                           className={`intel-search-action${a.primary ? ' intel-search-action--primary' : ''}`}
-                          onClick={() => { close(); navigate(a.href); }}
+                          onClick={() => {
+                            close();
+                            navigate(a.href);
+                          }}
                         >
                           {a.label}
                         </button>
@@ -367,7 +616,9 @@ export default function AdminIntelligenceSearch() {
                   </motion.div>
                 )}
                 {!previewLoading && !preview && !activeHit && (
-                  <div className="intel-search-empty text-sm py-12">Select a result to preview connections</div>
+                  <div className="intel-search-empty text-sm py-12">
+                    Select a result to see the full dossier
+                  </div>
                 )}
               </aside>
             </motion.div>
@@ -376,12 +627,15 @@ export default function AdminIntelligenceSearch() {
               <span>
                 {result ? (
                   <>
-                    {result.total} results · {result.tookMs}ms · {result.engine}
+                    {result.total} results · {result.tookMs}ms
+                    {typeof result.graphExpanded === 'number' && result.graphExpanded > 0
+                      ? ` · +${result.graphExpanded} linked`
+                      : ''}
+                    {result.truncated ? ' · capped' : ''}
                     {result.cached ? ' · cached' : ''}
-                    {liveConnected ? ' · live' : ''}
                   </>
                 ) : (
-                  <>Intelligence search{liveConnected ? ' · live' : ''}</>
+                  <>Type to search — graph links only when needed</>
                 )}
               </span>
               <span className="flex gap-3">

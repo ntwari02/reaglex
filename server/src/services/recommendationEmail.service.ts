@@ -19,6 +19,7 @@ import {
   recordFlowRun,
 } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from './pushNotificationService';
+import { assertBuyerMarketingEligible } from './marketingRecipient.service';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -108,6 +109,8 @@ export async function recordRecommendationActivity(input: {
   meta?: Record<string, unknown>;
 }) {
   if (!input.userId) return;
+  const eligible = await assertBuyerMarketingEligible(input.userId);
+  if (!eligible.ok) return;
   const payload: Record<string, unknown> = {
     userId: input.userId,
     eventType: input.eventType,
@@ -364,6 +367,11 @@ export async function generateRecommendationsForUser(userId: string) {
 }
 
 export async function sendRecommendationEmailToUser(userId: string) {
+  const gate = await assertBuyerMarketingEligible(userId, {
+    checkDailyCap: true,
+    requirePreferenceEnabled: true,
+  });
+  if (!gate.ok) return { success: false, reason: gate.reason };
   const user = await User.findById(userId).select('fullName email preferences').lean();
   if (!user?.email) return { success: false, reason: 'no_email' };
   const { pref, products } = await generateRecommendationsForUser(userId);
@@ -377,7 +385,7 @@ export async function sendRecommendationEmailToUser(userId: string) {
     return { success: false, reason: 'daily_cap' };
   }
 
-  const gate = await getPersonalizationGate(userId);
+  const personalizationGate = await getPersonalizationGate(userId);
 
   // Dedupe: avoid sending the exact same batch repeatedly (common after restarts / limited catalog).
   const currentIds = products.map((p: any) => String(p._id));
@@ -407,7 +415,7 @@ export async function sendRecommendationEmailToUser(userId: string) {
     firstName,
     campaign: 'recommendation',
     mode: pref.mode === 'deals_only' ? 'deals_only' : 'mixed',
-    allowPersonalized: gate.allowPersonalized,
+    allowPersonalized: personalizationGate.allowPersonalized,
     products: products.map((p: any) => ({
       id: String(p._id),
       name: String(p.name || ''),
@@ -426,7 +434,7 @@ export async function sendRecommendationEmailToUser(userId: string) {
     productIds: products.map((p: any) => p._id),
     products: products.map((p: any) => ({ productId: p._id, score: Number(p.score || 0), reason: String(p.reason || 'Recommended deal') })),
     status: 'sent',
-    error: gate.allowPersonalized ? undefined : `low_confidence:${gate.confidenceScore}:${gate.confidenceReason}`,
+    error: personalizationGate.allowPersonalized ? undefined : `low_confidence:${personalizationGate.confidenceScore}:${personalizationGate.confidenceReason}`,
   });
 
   const unsubscribeUrl = `${CLIENT_URL}/recommendations/unsubscribe/${pref.unsubscribeToken}`;
@@ -438,7 +446,7 @@ export async function sendRecommendationEmailToUser(userId: string) {
     firstName,
     campaign: 'recommendation',
     mode: pref.mode === 'deals_only' ? 'deals_only' : 'mixed',
-    allowPersonalized: gate.allowPersonalized,
+    allowPersonalized: personalizationGate.allowPersonalized,
     products: products as any[],
     historyId: String(history._id),
     displayCurrency,

@@ -619,7 +619,7 @@ function MainHeader({
               onFocus={() => { setSearchFocus(true); setSuggestionsOpen(true); }}
               onBlur={() => setTimeout(() => setSearchFocus(false), 180)}
               placeholder={t('search.placeholder')}
-              className="w-full px-3 py-2 text-sm outline-none min-w-0 search-input bg-transparent"
+              className="premium-input-exempt w-full px-3 py-2 text-sm outline-none min-w-0 search-input bg-transparent"
               style={{ color: 'var(--text-primary)', letterSpacing: '0.01em' }}
             />
             <AnimatePresence>

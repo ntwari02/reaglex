@@ -97,7 +97,7 @@ export default function InputDialog({
             placeholder={placeholder}
             min={min}
             max={max}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="premium-input w-full"
             autoComplete={type === 'password' ? 'current-password' : undefined}
             autoFocus
           />

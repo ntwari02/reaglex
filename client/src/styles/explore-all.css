@@ -351,6 +351,71 @@
   background: var(--bg-tertiary);
 }
 
+/* Vertical product cards + swipe gestures */
+.ex-card-vertical {
+  display: flex;
+  flex-direction: column;
+}
+
+.ex-card-media--vertical {
+  aspect-ratio: 4 / 5;
+}
+
+.ex-gesture-card {
+  min-width: 0;
+}
+
+.ex-gesture-card-drag {
+  position: relative;
+  border-radius: var(--ex-radius-md);
+  overflow: hidden;
+}
+
+.ex-gesture-reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  pointer-events: none;
+}
+
+.ex-gesture-reveal--cart {
+  justify-content: flex-end;
+}
+
+.ex-gesture-reveal--wish {
+  justify-content: flex-start;
+}
+
+.ex-gesture-card-surface {
+  position: relative;
+  z-index: 1;
+}
+
+.ex-gesture-hint {
+  margin: 4px 2px 0;
+  font-size: 9px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--ex-meta);
+  opacity: 0.85;
+  line-height: 1.2;
+}
+
+.ex-ai-hero-wrap {
+  margin-bottom: 10px;
+}
+
+.ex-rail-card.ex-gesture-card {
+  flex: 0 0 152px;
+}
+
 .ex-grid-card-media img {
   width: 100%;
   height: 100%;

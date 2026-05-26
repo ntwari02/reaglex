@@ -81,7 +81,8 @@ export type FeedSectionId =
   | 'fresh'
   | 'bestsellers'
   | 'near_you'
-  | 'inspired';
+  | 'inspired'
+  | 'upcoming';
 
 export interface FeedSection {
   id: FeedSectionId;

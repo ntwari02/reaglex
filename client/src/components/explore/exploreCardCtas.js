@@ -1,7 +1,7 @@
 export const EXPLORE_CARD_CTA = {
-  trending: { label: 'Shop now', tone: 'hot' },
-  bestseller: { label: 'Buy now', tone: 'gold' },
-  ai: { label: 'View pick', tone: 'ai' },
-  viewed: { label: 'Open', tone: 'neutral' },
-  new: { label: 'See new', tone: 'fresh' },
+  trending: { label: 'Quick view', tone: 'hot' },
+  bestseller: { label: 'Quick view', tone: 'gold' },
+  ai: { label: 'Quick view', tone: 'ai' },
+  viewed: { label: 'Quick view', tone: 'neutral' },
+  new: { label: 'Quick view', tone: 'fresh' },
 };

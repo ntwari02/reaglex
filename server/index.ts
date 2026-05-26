@@ -41,6 +41,7 @@ import blogRoutes from './src/routes/blogRoutes';
 import affiliateRoutes from './src/routes/affiliateRoutes';
 import trackingRoutes from './src/routes/trackingRoutes';
 import adminRoutes from './src/routes/adminRoutes';
+import adminStaffRoutes from './src/routes/adminStaffRoutes';
 import adminFinanceRoutes from './src/routes/adminFinanceRoutes';
 import adminSupportRoutes from './src/routes/adminSupportRoutes';
 import adminLogisticsRoutes from './src/routes/adminLogisticsRoutes';
@@ -91,6 +92,7 @@ import { startBuyerInsightWorker } from './src/jobs/buyerInsightWorker';
 import { startLifecycleEmailWorker } from './src/jobs/lifecycleEmailWorker';
 import { startCartPulseEmailWorker } from './src/jobs/cartPulseEmailWorker';
 import { startBrowseAbandonEmailWorker } from './src/jobs/browseAbandonEmailWorker';
+import { startOrderFulfillmentGuardWorker } from './src/jobs/orderFulfillmentGuardWorker';
 import { startComplianceCertificateReminderJob } from './src/jobs/complianceCertificateReminderJob';
 import pushDeviceRoutes from './src/routes/pushDeviceRoutes';
 import warehouseRoutes from './src/routes/warehouseRoutes';
@@ -98,6 +100,7 @@ import pickupRoutes from './src/routes/pickupRoutes';
 import marketplaceInnovationRoutes from './src/routes/marketplaceInnovationRoutes';
 import liveCommerceRoutes from './src/routes/liveCommerceRoutes';
 import { logMicroblinkStartupCheck } from './src/services/microblink.service';
+import { assertJwtSecretForProduction } from './src/config/jwtSecret';
 
 const app = express();
 const httpServer = createServer(app);
@@ -105,13 +108,11 @@ const PORT = Number(process.env.PORT) || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || '';
 
-if (process.env.NODE_ENV === 'production') {
-  const jwtSecret = (process.env.JWT_SECRET || '').trim();
-  if (!jwtSecret || jwtSecret === 'dev_secret') {
-    console.warn(
-      '⚠️  JWT_SECRET is missing or using the dev default. Set a strong JWT_SECRET in production.',
-    );
-  }
+try {
+  assertJwtSecretForProduction();
+} catch (err: unknown) {
+  console.error('❌', err instanceof Error ? err.message : err);
+  process.exit(1);
 }
 
 process.on('unhandledRejection', (reason) => {
@@ -181,7 +182,7 @@ app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }), strip
 app.use(express.json());
 app.use(sanitizeInput);
 app.use(cookieParser());
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // System monitor: sample API latency & errors (additive, in-memory).
 app.use((req, res, next) => {
@@ -233,8 +234,18 @@ app.use((req, res, next) => {
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: false,
+    contentSecurityPolicy:
+      process.env.NODE_ENV === 'production'
+        ? {
+            useDefaults: true,
+            directives: {
+              defaultSrc: ["'none'"],
+              frameAncestors: ["'none'"],
+            },
+          }
+        : false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true } : false,
   }),
 );
 app.use(compression({ threshold: 1024 }));
@@ -322,6 +333,7 @@ app.use('/api/coupons', couponRoutes);
 // Shipping (quotes)
 app.use('/api/shipping', shippingRoutes);
 // Admin routes
+app.use('/api/admin/staff', adminStaffRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/kyc-queues', adminKycQueueRoutes);
 app.use('/api/admin/finance', adminFinanceRoutes);
@@ -443,6 +455,11 @@ const connectDB = async () => {
     
     console.log('✅ Connected to MongoDB');
 
+    await runStartupStep('system monitor config', async () => {
+      const { hydrateMonitorSettingsFromDb } = await import('./src/services/systemMonitor.service');
+      await hydrateMonitorSettingsFromDb();
+    });
+
     await runStartupStep('payment gateways', async () => {
       const { ensureCorePaymentGateways } = await import('./src/services/paymentGateway.service');
       await ensureCorePaymentGateways();
@@ -457,6 +474,7 @@ const connectDB = async () => {
       startLifecycleEmailWorker();
       startCartPulseEmailWorker();
       startBrowseAbandonEmailWorker();
+      startOrderFulfillmentGuardWorker();
       startExchangeRateWorker();
       startComplianceCertificateReminderJob();
       startMarketplaceAIWorker();

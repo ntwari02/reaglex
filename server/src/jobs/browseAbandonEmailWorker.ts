@@ -16,6 +16,7 @@ import {
   recordFlowRun,
 } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from '../services/pushNotificationService';
+import { assertBuyerMarketingEligible } from '../services/marketingRecipient.service';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -133,11 +134,10 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
 
   if (await hasIntentAfter(uid, lastViewedAt, seedIds)) return 'skipped';
 
+  const eligibility = await assertBuyerMarketingEligible(userId, { checkDailyCap: true });
+  if (!eligibility.ok) return 'skipped';
   const user = await User.findById(uid).select('fullName email notifications accountStatus preferences').lean();
   if (!user?.email) return 'skipped';
-  if ((user as any).accountStatus === 'banned') return 'skipped';
-  const promoAllowed = Boolean((user as any)?.notifications?.email?.promotions ?? true);
-  if (!promoAllowed) return 'skipped';
 
   const gate = await getPersonalizationGate(userId);
   const maxProducts = getIntEnv('BROWSE_ABANDON_MAX_PRODUCTS', 14);

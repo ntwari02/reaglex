@@ -1,0 +1,52 @@
+/**
+ * Auth pages — typography only (no layout changes).
+ * Headings: Satoshi · Body / inputs / buttons / labels: Inter
+ */
+
+.auth-root h1,
+.auth-root h2,
+.auth-root h3,
+.auth-root h4,
+.auth-root .auth-mobile-title,
+.auth-root .auth-mobile-otp-title {
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif !important;
+}
+
+.auth-root,
+.auth-root label,
+.auth-root input,
+.auth-root button,
+.auth-root textarea,
+.auth-root select,
+.auth-root p,
+.auth-root span,
+.auth-root a,
+.auth-root li,
+.auth-root .auth-mobile-subtitle,
+.auth-root .auth-mobile-input-label,
+.auth-root .auth-mobile-tab-link,
+.auth-root .auth-mobile-footer-legal {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.login-signup-wrapper.auth-main-shell h1,
+.login-signup-wrapper.auth-main-shell h2,
+.login-signup-wrapper.auth-main-shell h3 {
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif !important;
+}
+
+.login-signup-wrapper.auth-main-shell label,
+.login-signup-wrapper.auth-main-shell input,
+.login-signup-wrapper.auth-main-shell button,
+.login-signup-wrapper.auth-main-shell p,
+.login-signup-wrapper.auth-main-shell a,
+.login-signup-wrapper.auth-main-shell .auth-form-modern {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Seller / buyer auth modal (same typography as /auth page) */
+.auth-root .text-2xl.font-bold,
+.auth-root h2,
+.auth-root h3 {
+  font-family: 'Satoshi', 'Inter', system-ui, sans-serif !important;
+}

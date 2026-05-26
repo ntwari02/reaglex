@@ -1,14 +1,6 @@
 import { Router, Response } from 'express';
 import mongoose from 'mongoose';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth';
-
-function adminOnly(req: AuthenticatedRequest, res: Response): boolean {
-  if (!req.user || req.user.role !== 'admin') {
-    res.status(403).json({ message: 'Admin only' });
-    return false;
-  }
-  return true;
-}
+import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth';
 import {
   LiveCommerceSession,
   ILiveCommerceSession,
@@ -529,8 +521,7 @@ router.post('/session/:sessionId/clip', authenticate, async (req: AuthenticatedR
 
 /* ── Admin ─────────────────────────────────────────────────────────────── */
 
-router.get('/admin/settings', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  if (!adminOnly(req, res)) return;
+router.get('/admin/settings', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const settings = await getLiveCommerceSettings();
     return res.json({ settings });
@@ -539,8 +530,7 @@ router.get('/admin/settings', authenticate, async (req: AuthenticatedRequest, re
   }
 });
 
-router.put('/admin/settings', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  if (!adminOnly(req, res)) return;
+router.put('/admin/settings', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const settings = await getLiveCommerceSettings();
     const body = req.body as Partial<typeof settings>;
@@ -579,8 +569,7 @@ router.put('/admin/settings', authenticate, async (req: AuthenticatedRequest, re
   }
 });
 
-router.get('/admin/sessions', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  if (!adminOnly(req, res)) return;
+router.get('/admin/sessions', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const limit = Math.min(50, Number(req.query.limit) || 20);
     const sessions = await LiveCommerceSession.find()
@@ -593,8 +582,7 @@ router.get('/admin/sessions', authenticate, async (req: AuthenticatedRequest, re
   }
 });
 
-router.patch('/admin/session/:sessionId', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  if (!adminOnly(req, res)) return;
+router.patch('/admin/session/:sessionId', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { status, adminFrozen } = req.body as { status?: string; adminFrozen?: boolean };
     const session = await LiveCommerceSession.findById(req.params.sessionId);
@@ -612,8 +600,7 @@ router.patch('/admin/session/:sessionId', authenticate, async (req: Authenticate
   }
 });
 
-router.get('/admin/sellers/live-permissions', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  if (!adminOnly(req, res)) return;
+router.get('/admin/sellers/live-permissions', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const q = String(req.query.q || '').trim();
     const filter: Record<string, unknown> = { role: 'seller' };
@@ -644,8 +631,7 @@ router.get('/admin/sellers/live-permissions', authenticate, async (req: Authenti
   }
 });
 
-router.patch('/admin/seller/:sellerId/live-permission', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  if (!adminOnly(req, res)) return;
+router.patch('/admin/seller/:sellerId/live-permission', authenticate, authorize('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { approved } = req.body as { approved?: boolean };
     const user = await User.findByIdAndUpdate(

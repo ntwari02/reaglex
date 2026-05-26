@@ -17,7 +17,7 @@ import {
   touchSellerHeartbeat,
 } from '../services/liveSellerPresence';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+import { getJwtSecret } from '../config/jwtSecret';
 
 type LiveSocket = Socket & {
   userId?: string;
@@ -108,7 +108,7 @@ export function attachLiveCommerceSockets(io: Server): void {
         : '');
     if (token) {
       try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { id?: string; role?: string };
+        const decoded = jwt.verify(token, getJwtSecret()) as { id?: string; role?: string };
         socket.userId = decoded.id;
         socket.userRole = decoded.role;
       } catch {

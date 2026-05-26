@@ -9,7 +9,7 @@ const TAB_SECTION = {
   ai: 'foryou',
   viewed: 'inspired',
   new: 'fresh',
-  upcoming: 'fresh',
+  upcoming: 'upcoming',
 };
 
 async function loadSection(id, limit) {

@@ -1,3 +1,12 @@
+export interface AdminAccessInfo {
+  tier: 'super' | 'scoped';
+  isSuperAdmin: boolean;
+  scopes: string[];
+  preset?: string;
+  label: string;
+  require2FA?: boolean;
+}
+
 export interface Profile {
   id: string;
   email: string;
@@ -6,6 +15,7 @@ export interface Profile {
   phone?: string;
   avatar_url?: string;
   role: 'buyer' | 'seller' | 'admin';
+  adminAccess?: AdminAccessInfo;
   // Seller-specific fields (for MongoDB-backed auth)
   seller_status?: 'pending' | 'approved' | 'rejected';
   seller_verified?: boolean;

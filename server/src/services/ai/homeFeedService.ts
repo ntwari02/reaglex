@@ -20,6 +20,7 @@
 
 import mongoose from 'mongoose';
 import { Product, type IProduct } from '../../models/Product';
+import { buyerUpcomingProductFilter } from '../../utils/publicProductQuery';
 import { BuyerInsightProfile } from '../../models/BuyerInsightProfile';
 import { BuyerSessionIntent } from '../../models/BuyerSessionIntent';
 import { ProductSignalSnapshot } from '../../models/ProductSignalSnapshot';
@@ -51,7 +52,8 @@ export type FeedSectionId =
   | 'fresh'
   | 'bestsellers'
   | 'near_you'
-  | 'inspired';
+  | 'inspired'
+  | 'upcoming';
 
 export interface FeedProductCard {
   _id: string;
@@ -66,6 +68,8 @@ export interface FeedProductCard {
   category?: string;
   sellerId?: string;
   stock?: number;
+  listingMode?: string;
+  launchAt?: string;
   /** All marketplace-AI metadata. UI can ignore safely. */
   aiMeta?: {
     score: number;
@@ -74,6 +78,7 @@ export interface FeedProductCard {
     sponsored?: boolean;
     badges?: ReturnType<typeof computePsychologyBadges>;
     trustTier?: string;
+    launchAt?: string;
   };
 }
 
@@ -113,6 +118,7 @@ const DEFAULT_LIMITS: Record<FeedSectionId, number> = {
   bestsellers: 12,
   near_you: 10,
   inspired: 10,
+  upcoming: 8,
 };
 
 /**
@@ -150,6 +156,8 @@ function toCard(rp: RankedProduct, extra?: Partial<FeedProductCard['aiMeta']>): 
     category: p.category || p.categorySlug,
     sellerId: p.sellerId ? String(p.sellerId) : undefined,
     stock: p.stock,
+    listingMode: p.listingMode,
+    launchAt: p.launchAt ? new Date(p.launchAt).toISOString() : undefined,
     aiMeta: {
       score: Math.round(rp.score),
       reasons: rp.reasons,
@@ -359,6 +367,46 @@ async function buildDealsSection(
     subtitle: 'Curated discounts that match your taste',
     layout: 'grid',
     products: fair.map((r) => toCard(r)),
+  };
+}
+
+async function buildUpcomingSection(
+  _cfg: IMarketplaceAIConfig,
+  _input: HomeFeedInput,
+  limit: number,
+): Promise<FeedSection | null> {
+  const docs = await Product.find(buyerUpcomingProductFilter())
+    .sort({ launchAt: 1 })
+    .limit(limit)
+    .lean();
+  if (!docs.length) return null;
+  const products: FeedProductCard[] = (docs as IProduct[]).map((p) => ({
+    _id: String((p as any)._id),
+    name: String(p.name || 'Upcoming drop'),
+    price: Number(p.price) || 0,
+    compareAtPrice: (p as any).compareAtPrice,
+    discount: (p as any).discount,
+    thumbnail: (p as any).images?.[0] || (p as any).image,
+    images: Array.isArray((p as any).images) ? (p as any).images.slice(0, 4) : undefined,
+    category: (p as any).category,
+    sellerId: (p as any).sellerId ? String((p as any).sellerId) : undefined,
+    stock: (p as any).stock,
+    listingMode: 'upcoming',
+    launchAt: (p as any).launchAt ? new Date((p as any).launchAt).toISOString() : undefined,
+    aiMeta: {
+      score: 80,
+      reasons: ['Scheduled drop'],
+      topReason: 'Launching soon',
+      badges: computePsychologyBadges(p as any),
+      launchAt: (p as any).launchAt ? new Date((p as any).launchAt).toISOString() : undefined,
+    },
+  }));
+  return {
+    id: 'upcoming',
+    title: 'Upcoming drops',
+    subtitle: 'Seller-scheduled launches — notify before they go live',
+    layout: 'carousel',
+    products,
   };
 }
 
@@ -612,6 +660,7 @@ export async function buildHomeFeed(input: HomeFeedInput): Promise<HomeFeedResul
     bestsellers: () => buildBestsellersSection(cfg, input, limit, directive),
     near_you: () => buildNearYouSection(cfg, input, limit, directive),
     inspired: () => buildInspiredSection(cfg, input, limit, directive),
+    upcoming: () => buildUpcomingSection(cfg, input, limit),
   };
 
   // Build sections in the orchestrator's order, in parallel.
@@ -679,6 +728,8 @@ export async function buildHomeSection(
       return buildNearYouSection(cfg, input, limit, directive);
     case 'inspired':
       return buildInspiredSection(cfg, input, limit, directive);
+    case 'upcoming':
+      return buildUpcomingSection(cfg, input, limit);
     default:
       return null;
   }

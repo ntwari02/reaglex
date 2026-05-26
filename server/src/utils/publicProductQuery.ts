@@ -16,13 +16,37 @@ export function buyerVisibleProductFilter(extra: ProductBuyerFilter = {}): Produ
       {
         status: { $in: ['in_stock', 'low_stock'] },
       },
+      {
+        $or: [{ listingMode: { $exists: false } }, { listingMode: 'live' }],
+      },
     ],
   };
 }
 
-export function isProductBuyerVisible(product: { publicationStatus?: string } | null | undefined): boolean {
+export function isProductBuyerVisible(product: { publicationStatus?: string; listingMode?: string } | null | undefined): boolean {
   if (!product) return false;
+  if (product.listingMode === 'upcoming') return false;
   const ps = product.publicationStatus;
   if (!ps || ps === 'published') return true;
   return false;
+}
+
+/** Upcoming drops — seller-scheduled, not yet purchasable. */
+export function buyerUpcomingProductFilter(extra: ProductBuyerFilter = {}): ProductBuyerFilter {
+  const now = new Date();
+  return {
+    ...extra,
+    listingMode: 'upcoming',
+    launchAt: { $gt: now },
+    $and: [
+      ...(extra.$and ? (Array.isArray(extra.$and) ? extra.$and : [extra.$and]) : []),
+      {
+        $or: [
+          { publicationStatus: { $exists: false } },
+          { publicationStatus: 'published' },
+          { publicationStatus: 'pending_verification' },
+        ],
+      },
+    ],
+  };
 }

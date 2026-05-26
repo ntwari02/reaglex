@@ -965,11 +965,12 @@ export const adminFinanceAPI = {
       revenueStreams: Record<string, number>;
     }>);
   },
-  getPayouts: (params?: { section?: string; status?: string; search?: string; page?: number; limit?: number }) => {
+  getPayouts: (params?: { section?: string; status?: string; search?: string; sellerId?: string; page?: number; limit?: number }) => {
     const sp = new URLSearchParams();
     if (params?.section) sp.append('section', params.section);
     if (params?.status) sp.append('status', params.status);
     if (params?.search) sp.append('search', params.search);
+    if (params?.sellerId) sp.append('sellerId', params.sellerId);
     if (params?.page) sp.append('page', String(params.page));
     if (params?.limit) sp.append('limit', String(params.limit));
     const q = sp.toString() ? `?${sp.toString()}` : '';
@@ -1169,6 +1170,7 @@ export const adminSupportAPI = {
     category?: string;
     priority?: string;
     search?: string;
+    sellerId?: string;
     page?: number;
     limit?: number;
     sortBy?: string;
@@ -1179,6 +1181,7 @@ export const adminSupportAPI = {
     if (params?.category) sp.append('category', params.category);
     if (params?.priority) sp.append('priority', params.priority);
     if (params?.search) sp.append('search', params.search);
+    if (params?.sellerId) sp.append('sellerId', params.sellerId);
     if (params?.page) sp.append('page', String(params.page));
     if (params?.limit) sp.append('limit', String(params.limit));
     if (params?.sortBy) sp.append('sortBy', params.sortBy);
@@ -1214,10 +1217,11 @@ export const adminSupportAPI = {
       body: JSON.stringify(body),
     }).then(handleResponse<{ message: string; ticket: any }>),
 
-  getDisputes: (params?: { status?: string; type?: string; page?: number; limit?: number }) => {
+  getDisputes: (params?: { status?: string; type?: string; sellerId?: string; page?: number; limit?: number }) => {
     const sp = new URLSearchParams();
     if (params?.status) sp.append('status', params.status);
     if (params?.type) sp.append('type', params.type);
+    if (params?.sellerId) sp.append('sellerId', params.sellerId);
     if (params?.page) sp.append('page', String(params.page));
     if (params?.limit) sp.append('limit', String(params.limit));
     const q = sp.toString() ? `?${sp.toString()}` : '';

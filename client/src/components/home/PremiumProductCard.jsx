@@ -123,7 +123,7 @@ export default function PremiumProductCard({ product, index = 0 }) {
     if (now - lastTap.current < 280) {
       lastTap.current = 0;
       e.preventDefault();
-      addToWishlist(user?.id, wishlistProduct);
+      handleSwipeCart();
       return;
     }
     lastTap.current = now;

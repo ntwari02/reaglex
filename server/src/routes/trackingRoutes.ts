@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authenticate, authorize } from '../middleware/auth';
 import {
   trackOrder,
@@ -11,11 +12,19 @@ import {
 
 const router = Router();
 
-// Public routes (for tracking)
-router.get('/:identifier', trackOrder); // Track by order number or tracking number
-
-// Authenticated routes
+// Authenticated routes (must be registered before /:identifier)
 router.get('/my-orders', authenticate, getMyOrders);
+
+const trackGuestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many tracking attempts. Please try again later.' },
+});
+
+// Public guest tracking — requires matching email or phone query param
+router.get('/:identifier', trackGuestLimiter, trackOrder);
 
 // Seller/Admin routes (for updating tracking)
 router.post('/events', authenticate, authorize('seller', 'admin'), addTrackingEvent);
