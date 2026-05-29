@@ -221,6 +221,22 @@ const POOLS: Record<SellerNotificationEvent, PoolVariant[]> = {
       message: (c) => `${orderRef(c)} reflects the refund; no extra steps unless you add a note.`,
     },
   ],
+  order_cancelled: [
+    {
+      tone: 'operational',
+      priority: 'medium',
+      actionLabel: 'View order',
+      title: () => 'Order cancelled by buyer',
+      message: (c) => `Order ${orderRef(c)} was cancelled before fulfillment — inventory has been restored.`,
+    },
+    {
+      tone: 'soft',
+      priority: 'low',
+      actionLabel: 'Open orders',
+      title: () => 'A pending order was cancelled',
+      message: (c) => `${orderRef(c)} is no longer active in your queue.`,
+    },
+  ],
   low_stock: [
     {
       tone: 'operational',
@@ -341,7 +357,7 @@ const POOLS: Record<SellerNotificationEvent, PoolVariant[]> = {
 
 function ctaPoolFor(event: SellerNotificationEvent): string[] {
   if (event === 'shipping_delay' || event === 'shipping_soon') return CTA_POOLS.ship;
-  if (event === 'new_order' || event === 'order_refunded' || event === 'funds_released') {
+  if (event === 'new_order' || event === 'order_refunded' || event === 'order_cancelled' || event === 'funds_released') {
     return CTA_POOLS.order;
   }
   if (event === 'return_opened') return CTA_POOLS.return;

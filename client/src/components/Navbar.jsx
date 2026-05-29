@@ -3,8 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ShoppingBag, Heart, Bell, X, ChevronDown, ChevronRight,
-  Package, MapPin, CreditCard, Star, RotateCcw, Settings, LogOut, Clock, Flame,
-  Globe, DollarSign, HelpCircle, Sun, Moon, Shield, User, SlidersHorizontal, Camera,
+  Clock, Flame,
+  Globe, DollarSign, HelpCircle, SlidersHorizontal, Camera,
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -21,6 +21,10 @@ import { useImmersiveSearch } from '../stores/immersiveSearchStore';
 import { useScrollChrome } from '../stores/scrollChromeStore';
 import { useMotionUi } from '../stores/motionUiStore';
 import MobileBuyerTopBar from './buyer/MobileBuyerTopBar';
+import AccountMenuButton from './header/AccountMenuButton';
+import DeliveryLocationBar from './delivery/DeliveryLocationBar';
+import '../styles/delivery-location.css';
+import PremiumCategoryChips from './home/PremiumCategoryChips';
 import {
   getRecentSearches,
   addRecentSearch,
@@ -121,9 +125,12 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) 
         zIndex: 103,
       }}
     >
-      <p className="text-xs truncate topbar-text" style={{ maxWidth: 220 }}>
-        {t('header.freeShipping')} 🚚
-      </p>
+      <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+        <p className="text-xs truncate topbar-text hidden lg:block" style={{ maxWidth: 160 }}>
+          {t('header.freeShipping')} 🚚
+        </p>
+        <DeliveryLocationBar compact />
+      </div>
 
       <div className="flex-1 flex justify-center min-w-0 mx-4">
         <div className="overflow-hidden text-center">
@@ -259,20 +266,12 @@ function resolveImg(src) {
   return `${SERVER_URL}${src}`;
 }
 
-function resolveAvatar(src) {
-  if (!src) return null;
-  if (typeof src !== 'string') return null;
-  if (src.startsWith('http') || src.startsWith('data:')) return src;
-  return `${SERVER_URL}${src}`;
-}
-
 // ── Tier 2: Main header ───────────────────────────────────────────────────────
 function MainHeader({
   searchQuery, setSearchQuery, searchFocus, setSearchFocus, category, setCategory,
   language, currency, openAuth, user, signOut, onLogoutClick, cartCount, openCart, cartItems, wishlistCount,
   t,
 }) {
-  const { theme, toggleTheme } = useTheme();
   const openVisualSearch = useMotionUi((s) => s.openVisualSearch);
   const navigate = useNavigate();
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -283,13 +282,11 @@ function MainHeader({
   const [notifUnreadCount, setNotifUnreadCount] = useState(0);
   const [bellRing, setBellRing] = useState(false);
   const prevNotifUnreadRef = useRef(0);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [cartHoverOpen, setCartHoverOpen] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const searchRef = useRef(null);
   const suggestRef = useRef(null);
   const notifRef = useRef(null);
-  const profileRef = useRef(null);
   const cartRef = useRef(null);
   const categoryRef = useRef(null);
   const { isSeller, isLoggedIn, isSellerPending } = useSellerAccess();
@@ -436,7 +433,6 @@ function MainHeader({
     return () => window.removeEventListener('systemInboxUnreadRefresh', refresh);
   }, [user]);
 
-  useClickOutside(profileRef, () => setProfileOpen(false));
   useClickOutside(cartRef, () => setCartHoverOpen(false));
   useClickOutside(categoryRef, () => setCategoryDropdownOpen(false));
 
@@ -849,21 +845,7 @@ function MainHeader({
       </form>
 
       {/* Right actions */}
-      <div className="flex items-center gap-2 md:gap-5 flex-shrink-0">
-        {/* Theme toggle — desktop only (Appearance lives under Account → Settings) */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="hidden md:flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full border border-gray-200 dark:border-gray-700 p-0 leading-none hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          aria-label={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
-          title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-yellow-400" />
-          ) : (
-            <Moon className="w-5 h-5 text-gray-600" />
-          )}
-        </button>
+      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
         <div className="relative hidden md:block" ref={notifRef}>
           <button
             type="button"
@@ -930,141 +912,11 @@ function MainHeader({
           </button>
         </div>
 
-        <div className="hidden md:block w-px h-6" style={{ background: 'var(--divider-strong)' }} />
-
-        {/* Profile / Login — desktop dropdown */}
-        <div className="relative hidden md:block" ref={profileRef}>
-          {user ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full overflow-hidden flex-shrink-0 p-0 leading-none transition"
-                style={{ background: PRIMARY }}
-              >
-                {resolveAvatar(user.avatar_url) ? (
-                  <img
-                    src={resolveAvatar(user.avatar_url)}
-                    alt={user.full_name || 'Profile'}
-                    className="block w-full h-full object-cover rounded-full"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
-                ) : (
-                  <span className="text-white font-bold text-sm">
-                    {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </button>
-              <AnimatePresence>
-                {profileOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    className="absolute right-0 top-full mt-1 w-60 rounded-xl border py-3 z-[200]"
-                    style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)', boxShadow: 'var(--card-shadow-hover)' }}
-                  >
-                    <div className="px-4 pb-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: PRIMARY }}>
-                        {resolveAvatar(user.avatar_url) ? (
-                          <img
-                            src={resolveAvatar(user.avatar_url)}
-                            alt={user.full_name || 'Profile'}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        ) : (
-                          <span className="text-white font-bold text-sm">
-                            {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate text-gray-900 dark:text-white">{user.full_name || t('nav.profile')}</p>
-                        <p className="text-xs truncate text-gray-500 dark:text-gray-400">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-100 dark:border-gray-700 py-2">
-                      {[
-                        { icon: Package, labelKey: 'nav.orders', to: '/account?tab=orders' },
-                        { icon: Heart, labelKey: 'nav.wishlist', to: '/account?tab=wishlist' },
-                        { icon: MapPin, labelKey: 'account.addresses', to: '/account?tab=addresses' },
-                        { icon: CreditCard, labelKey: 'account.paymentMethods', to: '/account?tab=payment' },
-                        { icon: Star, labelKey: 'nav.messages', to: '/account?tab=reviews' },
-                        { icon: RotateCcw, labelKey: 'header.returns', to: '/returns' },
-                        { icon: Shield, labelKey: 'header.buyerProtection', to: '/buyer-protection' },
-                        { icon: Settings, labelKey: 'account.profileSettings', to: '/account?tab=settings&section=appearance' },
-                      ].map(({ icon: Icon, labelKey, to }) => (
-                        <Link
-                          key={labelKey}
-                          to={to}
-                          onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] transition text-gray-700 dark:text-gray-300"
-                        >
-                          <Icon className="w-4 h-4 flex-shrink-0" /> {t(labelKey)}
-                        </Link>
-                      ))}
-                    </div>
-                    <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => { onLogoutClick(); setProfileOpen(false); }}
-                        className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition text-red-600 dark:text-red-400"
-                      >
-                        <LogOut className="w-4 h-4" /> {t('buttons.logout')}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => openAuth('login')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
-              style={{ background: PRIMARY }}
-            >
-              {t('header.loginRegister')}
-            </button>
-          )}
-        </div>
-
-        {/* Mobile: account avatar shortcut */}
-        {user ? (
-          <Link
-            to="/account"
-            className="md:hidden flex items-center justify-center w-8 h-8 min-w-[32px] rounded-full overflow-hidden flex-shrink-0 transition-opacity hover:opacity-90 active:opacity-95"
-            style={{ background: PRIMARY }}
-            aria-label={t('nav.profile')}
-          >
-            {resolveAvatar(user.avatar_url) ? (
-              <img
-                src={resolveAvatar(user.avatar_url)}
-                alt=""
-                className="block w-full h-full object-cover"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            ) : (
-              <span className="text-white font-bold text-sm">
-                {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-              </span>
-            )}
-          </Link>
-        ) : (
-          <Link
-            to="/auth?tab=login"
-            className="md:hidden flex items-center justify-center w-8 h-8 min-w-[32px] rounded-full border transition active:scale-[0.97]"
-            style={{
-              borderColor: 'var(--border-card)',
-              background: 'var(--bg-secondary)',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-            aria-label={t('header.loginRegister')}
-          >
-            <User className="w-4 h-4" strokeWidth={1.85} style={{ color: 'var(--text-muted)' }} />
-          </Link>
-        )}
+        <AccountMenuButton
+          variant="desktop"
+          onLogoutClick={onLogoutClick}
+          openAuth={openAuth}
+        />
       </div>
     </div>
   );
@@ -1162,7 +1014,12 @@ export default function Navbar() {
   const openCart = useBuyerCart((s) => s.openCart);
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
   const wishlistItems = useWishlistStore((s) => s.items);
+  const fetchWishlist = useWishlistStore((s) => s.fetchWishlist);
   const wishlistCount = wishlistItems.length;
+
+  useEffect(() => {
+    if (user?.id) void fetchWishlist(user.id);
+  }, [user?.id, fetchWishlist]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -1227,7 +1084,10 @@ export default function Navbar() {
           t={t}
         />
 
-        <MobileBuyerTopBar />
+        <MobileBuyerTopBar
+          onLogoutClick={() => setShowLogoutConfirm(true)}
+          openAuth={openAuth}
+        />
 
         {/* Mobile: search — single tap to open */}
         <form
@@ -1275,6 +1135,14 @@ export default function Navbar() {
             </Link>
           </motion.button>
         </form>
+
+        {/* Mobile category chips — compact row under search */}
+        <div
+          className="md:hidden border-b pb-0"
+          style={{ borderColor: 'color-mix(in srgb, var(--header-border) 65%, transparent)' }}
+        >
+          <PremiumCategoryChips />
+        </div>
       </div>
 
       {/* Tier 3 */}

@@ -13,6 +13,7 @@ import {
   Shield,
   Plug,
   AlertTriangle,
+  Globe,
 } from 'lucide-react';
 import DeliveryPartners from './DeliveryPartners';
 import ShippingZones from './ShippingZones';
@@ -25,6 +26,8 @@ import AutomationSettings from './AutomationSettings';
 import AccessControl from './AccessControl';
 import SystemIntegrations from './SystemIntegrations';
 import ExceptionManagement from './ExceptionManagement';
+import DeliveryDestinations from './DeliveryDestinations';
+import PlatformShippingPolicy from './PlatformShippingPolicy';
 import { pageTransition } from './logisticsAnimations';
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader';
 import { AdminHubTabs } from '@/components/admin/layout/AdminHubTabs';
@@ -32,7 +35,9 @@ import { adminMobileClasses } from '@/components/admin/layout/adminMobileClasses
 
 type TabId =
   | 'partners'
+  | 'platform'
   | 'zones'
+  | 'destinations'
   | 'fleet'
   | 'warehouse'
   | 'tracking'
@@ -45,7 +50,9 @@ type TabId =
 
 const LOGISTICS_TABS = [
   'partners',
+  'platform',
   'zones',
+  'destinations',
   'fleet',
   'warehouse',
   'tracking',
@@ -62,7 +69,9 @@ export default function LogisticsCenter() {
 
   const tabs = [
     { id: 'partners' as TabId, label: 'Delivery Partners', icon: Truck },
+    { id: 'platform' as TabId, label: 'Rwanda Policy', icon: Globe },
     { id: 'zones' as TabId, label: 'Shipping Zones', icon: MapPin },
+    { id: 'destinations' as TabId, label: 'Deliver To Cities', icon: MapPin },
     { id: 'fleet' as TabId, label: 'Fleet & Drivers', icon: Users },
     { id: 'warehouse' as TabId, label: 'Warehouses', icon: Warehouse },
     { id: 'tracking' as TabId, label: 'Live Tracking', icon: Package },
@@ -78,8 +87,12 @@ export default function LogisticsCenter() {
     switch (activeTab) {
       case 'partners':
         return <DeliveryPartners />;
+      case 'platform':
+        return <PlatformShippingPolicy />;
       case 'zones':
         return <ShippingZones />;
+      case 'destinations':
+        return <DeliveryDestinations />;
       case 'fleet':
         return <FleetDrivers />;
       case 'warehouse':

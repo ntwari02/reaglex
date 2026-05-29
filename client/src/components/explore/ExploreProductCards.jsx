@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -15,6 +15,7 @@ import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useWishlistStore } from '../../stores/wishlistStore';
 import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { useMotionUi } from '../../stores/motionUiStore';
+import { usePlatformFeature } from '../../hooks/useSystemFeatures';
 import { navigateToProduct } from '../../lib/productNavigation';
 import MobileAddCta from '../home/mobile/MobileAddCta';
 import { EXPLORE_CARD_CTA } from './exploreCardCtas';
@@ -82,7 +83,10 @@ export function ExploreSponsoredCard({ item }) {
   );
 }
 
-export function ExploreTrendingRailCard({ product, index = 0 }) {
+export function ExploreTrendingRailCard({ product, index = 0, cardDensity = 'standard', className = '' }) {
+  const [expanded, setExpanded] = useState(false);
+  const expandable = cardDensity === 'compact_expandable';
+  const { enabled: wishlistOn } = usePlatformFeature('product_wishlist');
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const addToWishlist = useWishlistStore((s) => s.addToWishlist);
@@ -94,36 +98,47 @@ export function ExploreTrendingRailCard({ product, index = 0 }) {
 
   return (
     <motion.article
-      className="ex-rail-card"
+      className={`ex-rail-card ${className} ${expandable && expanded ? 'ex-card--expanded' : ''}`.trim()}
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.24, delay: index * 0.03 }}
+      onClick={expandable ? () => setExpanded((v) => !v) : undefined}
     >
       <div className="ex-rail-card-hit">
+        {expandable && !expanded && <span className="ex-card-expand-hint">Tap to expand</span>}
         <button
           type="button"
           className="ex-rail-card-tap"
-          onClick={() => navigateToProduct(navigate, product)}
+          onClick={(e) => {
+            if (expandable) {
+              e.stopPropagation();
+              setExpanded((v) => !v);
+              return;
+            }
+            navigateToProduct(navigate, product);
+          }}
         >
           <div className="ex-rail-card-media">
             <img src={resolveProductImage(product)} alt="" loading="lazy" />
             <span className="ex-badge ex-badge--trending">🔥 Hot</span>
-            <button
-              type="button"
-              className="ex-wish-btn ex-wish-btn--sm"
-              aria-label="Save"
-              onClick={(e) => {
-                e.stopPropagation();
-                addToWishlist(user?.id, { ...product, id });
-              }}
-            >
-              <Heart
-                size={14}
-                strokeWidth={1.75}
-                fill={wishlisted ? 'var(--brand-primary)' : 'none'}
-                color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
-              />
-            </button>
+            {wishlistOn && (
+              <button
+                type="button"
+                className="ex-wish-btn ex-wish-btn--sm"
+                aria-label="Save"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addToWishlist(user?.id, { ...product, id });
+                }}
+              >
+                <Heart
+                  size={14}
+                  strokeWidth={1.75}
+                  fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+                  color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
+                />
+              </button>
+            )}
           </div>
           <div className="ex-rail-card-body">
             <h3 className="ex-card-title">{productDisplayName(product)}</h3>
@@ -186,7 +201,10 @@ export function ExploreAIHeroCard({ product }) {
   );
 }
 
-export function ExploreGridCard({ product, variant = 'trending', index = 0, sub }) {
+export function ExploreGridCard({ product, variant = 'trending', index = 0, sub, cardDensity = 'standard', className = '' }) {
+  const [expanded, setExpanded] = useState(false);
+  const expandable = cardDensity === 'compact_expandable';
+  const { enabled: wishlistOn } = usePlatformFeature('product_wishlist');
   const navigate = useNavigate();
   const cardRef = useRef(null);
   const user = useAuthStore((s) => s.user);
@@ -222,17 +240,26 @@ export function ExploreGridCard({ product, variant = 'trending', index = 0, sub 
   return (
     <motion.article
       ref={cardRef}
-      className={`ex-grid-card ex-grid-card--${variant}`}
+      className={`ex-grid-card ex-grid-card--${variant} ${className} ${expandable && expanded ? 'ex-card--expanded' : ''}`.trim()}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, delay: Math.min(index * 0.025, 0.2) }}
-      whileTap={{ scale: 0.98 }}
+      whileTap={expandable ? undefined : { scale: 0.98 }}
+      onClick={expandable ? () => setExpanded((v) => !v) : undefined}
     >
       <div className="ex-grid-card-hit">
+        {expandable && !expanded && <span className="ex-card-expand-hint">Tap to expand</span>}
         <button
           type="button"
           className="ex-grid-card-tap"
-          onClick={() => navigateToProduct(navigate, product)}
+          onClick={(e) => {
+            if (expandable) {
+              e.stopPropagation();
+              setExpanded((v) => !v);
+              return;
+            }
+            navigateToProduct(navigate, product);
+          }}
         >
           <div className="ex-grid-card-media">
             <img src={resolveProductImage(product)} alt="" loading="lazy" />
@@ -240,22 +267,24 @@ export function ExploreGridCard({ product, variant = 'trending', index = 0, sub 
               <BadgeIcon size={10} strokeWidth={1.85} />
               {badge.label}
             </span>
-            <button
-              type="button"
-              className="ex-wish-btn ex-wish-btn--sm"
-              aria-label="Save"
-              onClick={(e) => {
-                e.stopPropagation();
-                addToWishlist(user?.id, { ...product, id });
-              }}
-            >
-              <Heart
-                size={14}
-                strokeWidth={1.75}
-                fill={wishlisted ? 'var(--brand-primary)' : 'none'}
-                color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
-              />
-            </button>
+            {wishlistOn && (
+              <button
+                type="button"
+                className="ex-wish-btn ex-wish-btn--sm"
+                aria-label="Save"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addToWishlist(user?.id, { ...product, id });
+                }}
+              >
+                <Heart
+                  size={14}
+                  strokeWidth={1.75}
+                  fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+                  color={wishlisted ? 'var(--brand-primary)' : 'var(--text-muted)'}
+                />
+              </button>
+            )}
           </div>
           <div className="ex-grid-card-body">
             <h3 className="ex-card-title">{productDisplayName(product)}</h3>

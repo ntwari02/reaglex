@@ -9,6 +9,7 @@ import {
   estimateDeliveryPrediction,
 } from '../services/fulfillmentIntelligence.service';
 import { buildPickupCredentials } from '../services/pickupService';
+import { evaluateOrderDeliverySLA } from '../services/sellerDeliverySLA.service';
 
 // GET /api/seller/orders
 export async function getSellerOrders(req: AuthenticatedRequest, res: Response) {
@@ -120,6 +121,11 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
         previousStatus: prior.status,
         actorUserId: req.user.id,
       });
+      if (updated.status === 'delivered') {
+        void evaluateOrderDeliverySLA(updated).catch((e) =>
+          console.error('[sellerDeliverySLA] evaluate on delivered:', e),
+        );
+      }
     }
 
     return res.json({ order: updated });

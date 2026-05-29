@@ -16,6 +16,8 @@ export function estimateLiveSessionScore(input: {
 }
 
 export async function isLiveGloballyEnabled(): Promise<boolean> {
+  const { isSystemFeatureEnabled } = await import('./systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('live_commerce'))) return false;
   const settings = await getLiveCommerceSettings();
   return Boolean(settings.globallyEnabled);
 }
@@ -31,10 +33,10 @@ export function resolveLivePermissionMode(settings: {
 }
 
 export async function canSellerGoLive(sellerId: string): Promise<{ ok: boolean; reason?: string }> {
-  const settings = await getLiveCommerceSettings();
-  if (!settings.globallyEnabled) {
+  if (!(await isLiveGloballyEnabled())) {
     return { ok: false, reason: 'Live commerce is disabled platform-wide' };
   }
+  const settings = await getLiveCommerceSettings();
   if (!mongoose.Types.ObjectId.isValid(sellerId)) {
     return { ok: false, reason: 'Invalid seller' };
   }
@@ -161,6 +163,11 @@ export async function placeBid(input: {
   amount: number;
   autoMax?: number;
 }) {
+  const { isSystemFeatureEnabled } = await import('./systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('live_commerce_auctions'))) {
+    throw new Error('Live auctions are disabled platform-wide');
+  }
+
   const session = await LiveCommerceSession.findById(input.sessionId);
   if (!session) throw new Error('Session not found');
   if (session.adminFrozen) throw new Error('Auction is frozen');

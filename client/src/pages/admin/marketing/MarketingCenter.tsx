@@ -2,6 +2,7 @@ import React from 'react';
 import { useAdminHubTab } from '@/hooks/useAdminHubTab';
 import {
   LayoutDashboard,
+  LayoutGrid,
   Megaphone,
   Ticket,
   Users,

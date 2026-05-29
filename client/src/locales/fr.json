@@ -194,7 +194,8 @@
     "placeOrder": "Passer la commande",
     "subtotal": "Sous-total",
     "shipping": "Livraison",
-    "tax10": "Taxe (10%)",
+    "tax10": "TVA",
+    "taxVat": "TVA",
     "total": "Total",
     "escrowProtected": "Protégé par séquestre",
     "paymentMethods": {

@@ -28,6 +28,8 @@ export function isGeminiConfigured(): boolean {
 }
 
 async function getPlatformAiEnabled(): Promise<boolean> {
+  const { isSystemFeatureEnabled } = await import('./systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('admin_intelligence_gemini'))) return false;
   const row = await AdminIntelligenceConfig.findOne({ key: 'default' }).lean();
   if (!row) return true;
   return row.platformAiEnabled !== false;

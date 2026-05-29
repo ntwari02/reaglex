@@ -4,6 +4,12 @@ import { ReferralSettings } from '../models/ReferralSettings';
 /** Unauthenticated: whether new referral signups / rewards are active (admin-controlled). */
 export async function getPublicReferralProgramStatus(_req: Request, res: Response) {
   try {
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('buyer_referrals'))) {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.set('Pragma', 'no-cache');
+      return res.json({ referralProgramEnabled: false });
+    }
     const s = await ReferralSettings.findOne().select('programEnabled').lean();
     const enabled = !s || (s as { programEnabled?: boolean }).programEnabled !== false;
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');

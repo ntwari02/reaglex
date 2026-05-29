@@ -19,6 +19,7 @@ import { splitOrderGroups } from '../services/fulfillmentEngine';
 import { createLockerAccess } from '../services/lockerService';
 import { digitalEscrowReleaseEligibleAt } from '../services/digitalDeliveryService';
 import { predictCancellationReason } from '../services/cancellationIntelligence.service';
+import { deliverSellerNotification } from '../services/sellerNotificationService';
 import { verifyPickupProof } from '../services/pickupVerificationService';
 import { releaseEscrow } from '../services/escrowService';
 import { completeAdminOrder } from '../services/orderLifecycle.service';
@@ -28,6 +29,96 @@ import {
   fingerprintShippingAddress,
 } from '../services/reaglexShipping.service';
 import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
+import {
+  evaluateOrderDeliverySLA,
+  resolveEstimatedDeliveryAt,
+} from '../services/sellerDeliverySLA.service';
+import {
+  finalizeCodOrders,
+  isCodAllowedForDestination,
+  isCodPaymentMethod,
+  orderIsCashOnDelivery,
+} from '../services/codCheckout.service';
+import { getPlatformSalesTaxRate, computeSalesTax } from '../services/platformTax.service';
+import { canBuyerCancelWithRefund, refundPaidOrder } from '../services/orderRefund.service';
+
+async function findBuyerOrder(buyerId: mongoose.Types.ObjectId, orderIdParam: string) {
+  if (mongoose.Types.ObjectId.isValid(orderIdParam)) {
+    return Order.findOne({ _id: new mongoose.Types.ObjectId(orderIdParam), buyerId } as any)
+      .populate('sellerId', 'fullName email storeName')
+      .populate('items.productId', 'name images price')
+      .lean();
+  }
+  return Order.findOne({ orderNumber: orderIdParam, buyerId } as any)
+    .populate('sellerId', 'fullName email storeName')
+    .populate('items.productId', 'name images price')
+    .lean();
+}
+
+function formatBuyerOrder(order: any) {
+  const seller = order.sellerId as any;
+  const estimatedAt = resolveEstimatedDeliveryAt(order);
+  return {
+    id: order._id,
+    order_number: order.orderNumber,
+    status: order.status,
+    created_at: order.createdAt,
+    updated_at: order.updatedAt,
+    can_confirm_receipt: order.status === 'delivered',
+    estimated_delivery: estimatedAt.toISOString(),
+    estimated_delivery_to: order.reaglexShipping?.estimatedDeliveryTo || estimatedAt.toISOString(),
+    auto_completion: order.autoCompletion || null,
+    items: (order.items || []).map((item: any) => {
+      const product = item.productId as any;
+      const productId = product?._id || product || item.productId;
+      const productName = product?.name || item.name || '';
+      let productImage = '';
+      if (product?.images && Array.isArray(product.images)) {
+        const firstImage = product.images[0];
+        productImage =
+          typeof firstImage === 'string' ? firstImage : firstImage?.url || firstImage?.path || '';
+      }
+      return {
+        id: String(productId),
+        product_id: String(productId),
+        product_title: productName,
+        product_image: productImage,
+        variant: item.variant || '',
+        quantity: item.quantity,
+        price: item.price,
+        total: item.price * item.quantity,
+      };
+    }),
+    subtotal: order.subtotal,
+    shipping: order.shipping,
+    tax: order.tax,
+    discount: 0,
+    total: order.total,
+    currency: order.payment?.currency || order.currencySnapshot?.currency || 'RWF',
+    escrow: order.escrow
+      ? { status: order.escrow.status }
+      : undefined,
+    payment: order.payment?.paidAt
+      ? { paidAt: order.payment.paidAt, method: order.payment.method }
+      : undefined,
+    shipping_address: {
+      fullName: order.shippingAddress?.name,
+      address: order.shippingAddress?.street,
+      city: order.shippingAddress?.city,
+      country: order.shippingAddress?.country,
+      postalCode: order.shippingAddress?.zip,
+      phone: order.customerPhone,
+    },
+    payment_method: order.paymentMethod,
+    tracking_number: order.trackingNumber || order.reaglexShipping?.trackingNumber,
+    seller: {
+      id: seller?._id || order.sellerId,
+      name: seller?.fullName || seller?.name || 'Unknown Seller',
+    },
+    timeline: order.timeline || [],
+    delivery_sla: order.deliverySLA || null,
+  };
+}
 
 function normalizeShippingMethodKey(raw?: string): ReaglexShippingMethodKey {
   const m = String(raw || 'standard').toLowerCase();
@@ -121,6 +212,16 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
 
     const buyerId = new mongoose.Types.ObjectId(req.user.id);
     const orders: mongoose.Document[] = [];
+
+    const isCodCheckout = isCodPaymentMethod(paymentMethod);
+    if (isCodCheckout) {
+      const codOk = await isCodAllowedForDestination(shippingAddress?.country || '');
+      if (!codOk) {
+        return res.status(400).json({
+          message: 'Cash on delivery is not available for your delivery location. Choose online payment or change city.',
+        });
+      }
+    }
 
     const requestedCurrency = String(req.body?.displayCurrency || '').trim().toUpperCase();
     const checkoutCurrency = requestedCurrency || detectCurrencyFromRequest(req);
@@ -247,6 +348,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
     };
 
     const planned: Planned[] = [];
+    const salesTaxRate = await getPlatformSalesTaxRate();
 
     for (const [groupKey, g] of groupMap) {
       const sellerOid = new mongoose.Types.ObjectId(g.sellerId);
@@ -273,7 +375,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
         sellerTotal > 0 ? (groupSubtotal / sellerTotal) * sellerDisc : 0;
 
       const subtotalAfterDiscount = Math.max(0, groupSubtotal - groupDiscount);
-      const tax = subtotalAfterDiscount * 0.1;
+      const tax = computeSalesTax(subtotalAfterDiscount, salesTaxRate);
 
       const hasManualMethod = Boolean(
         shippingMethods?.[groupKey] || shippingMethods?.[g.sellerId]
@@ -342,7 +444,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
           groupSubtotal += p.price * l.quantity;
         }
         const subtotalAfterDiscount = groupSubtotal;
-        const tax = fg.type === 'digital' || fg.type === 'service' ? 0 : subtotalAfterDiscount * 0.1;
+        const tax = fg.type === 'digital' || fg.type === 'service' ? 0 : computeSalesTax(subtotalAfterDiscount, salesTaxRate);
         planned.push({
           groupKey: `${fg.type}|${sellerId}`,
           sellerOid,
@@ -426,7 +528,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
           zip: shippingAddress.postal_code || '',
           country: shippingAddress.country,
         },
-        paymentMethod,
+        paymentMethod: isCodCheckout ? 'cash_on_delivery' : paymentMethod,
         reaglexShipping: p.fulfillmentType === 'shipping' ? (p.snapshot as any) : undefined,
         fulfillment: {
           type: p.fulfillmentType,
@@ -541,8 +643,17 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       /* ignore */
     }
 
+    if (isCodCheckout && orders.length) {
+      await finalizeCodOrders(
+        orders.map((o) => String(o._id)),
+        String(req.user.id),
+      );
+    }
+
     return res.status(201).json({
       success: true,
+      paymentMode: isCodCheckout ? 'cod' : 'online',
+      skipPaymentInit: isCodCheckout,
       orderOptimization: orchestration.optimized.orderOptimization,
       aiSplitPlan: orchestration.optimized.byGroup,
       orderGroups: fulfillmentGroups.map((g) => ({ type: g.type, count: g.items.length })),
@@ -616,65 +727,7 @@ export async function getBuyerOrders(req: AuthenticatedRequest, res: Response) {
     console.log(`Found ${orders.length} orders out of ${total} total for buyer ${buyerId.toString()}`);
 
     return res.json({
-      orders: orders.map(order => {
-        const seller = order.sellerId as any;
-        return {
-          id: order._id,
-          order_number: order.orderNumber,
-          status: order.status,
-          created_at: order.createdAt,
-          updated_at: order.updatedAt,
-          items: order.items.map(item => {
-            const product = item.productId as any;
-            const productId = product?._id || product || item.productId;
-            const productName = product?.name || '';
-            // Handle images - could be array of strings or array of objects with url
-            let productImage = '';
-            if (product?.images && Array.isArray(product.images)) {
-              if (product.images.length > 0) {
-                const firstImage = product.images[0];
-                productImage = typeof firstImage === 'string' 
-                  ? firstImage 
-                  : firstImage?.url || firstImage?.path || '';
-              }
-            }
-            
-            return {
-              id: String(productId),
-              product_id: String(productId),
-              product_title: productName,
-              product_image: productImage,
-              variant: item.variant || '',
-              quantity: item.quantity,
-              price: item.price,
-              total: item.price * item.quantity,
-            };
-          }),
-          subtotal: order.subtotal,
-          shipping: order.shipping,
-          tax: order.tax,
-          discount: 0, // Add discount field (can be calculated from coupons if needed)
-          total: order.total,
-          shipping_address: {
-            fullName: order.shippingAddress.name,
-            address: order.shippingAddress.street,
-            city: order.shippingAddress.city,
-            country: order.shippingAddress.country,
-            postalCode: order.shippingAddress.zip,
-            phone: order.customerPhone,
-          },
-          payment_method: order.paymentMethod,
-          tracking_number: order.trackingNumber,
-          estimated_delivery: order.status === 'shipped' 
-            ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-            : undefined,
-          seller: {
-            id: seller?._id || order.sellerId,
-            name: seller?.fullName || 'Unknown Seller',
-          },
-          timeline: order.timeline,
-        };
-      }),
+      orders: orders.map((order) => formatBuyerOrder(order)),
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -700,72 +753,14 @@ export async function getOrderById(req: AuthenticatedRequest, res: Response) {
   try {
     const buyerId = new mongoose.Types.ObjectId(req.user.id);
     const { orderId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      return res.status(400).json({ message: 'Invalid order ID' });
-    }
-
-    const orderObjectId = new mongoose.Types.ObjectId(orderId);
-    const order = await Order.findOne({
-      _id: orderObjectId,
-      buyerId,
-    } as any)
-      .populate('sellerId', 'name email')
-      .populate('items.productId', 'name images price description')
-      .lean();
+    const order = await findBuyerOrder(buyerId, orderId);
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    const seller = order.sellerId as any;
     return res.json({
-      order: {
-        id: order._id,
-        order_number: order.orderNumber,
-        status: order.status,
-        created_at: order.createdAt,
-        updated_at: order.updatedAt,
-        items: order.items.map(item => {
-          const product = item.productId as any;
-          const productId = product?._id || product || item.productId;
-          const productName = product?.name || '';
-          const productImage = product?.images?.[0] || '';
-          
-          return {
-            id: productId,
-            product_id: productId,
-            product_title: productName,
-            product_image: productImage,
-            variant: item.variant,
-            quantity: item.quantity,
-            price: item.price,
-            total: item.price * item.quantity,
-          };
-        }),
-        subtotal: order.subtotal,
-        shipping: order.shipping,
-        tax: order.tax,
-        total: order.total,
-        shipping_address: {
-          fullName: order.shippingAddress.name,
-          address: order.shippingAddress.street,
-          city: order.shippingAddress.city,
-          country: order.shippingAddress.country,
-          postalCode: order.shippingAddress.zip,
-          phone: order.customerPhone,
-        },
-        payment_method: order.paymentMethod,
-        tracking_number: order.trackingNumber,
-        estimated_delivery: order.status === 'shipped' 
-          ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-          : undefined,
-        seller: {
-          id: seller?._id || order.sellerId,
-          name: seller?.name || 'Unknown Seller',
-        },
-        timeline: order.timeline,
-      },
+      order: formatBuyerOrder(order),
     });
   } catch (err: any) {
     console.error('Error fetching order:', err);
@@ -799,22 +794,48 @@ export async function trackOrder(req: AuthenticatedRequest, res: Response) {
         return res.status(403).json({ message: 'Unauthorized to view this order' });
       }
     } else {
-      // For guest tracking, verify email or phone matches
-      if (email && order.customerEmail !== email) {
-        return res.status(403).json({ message: 'Email does not match order' });
+      if (!email?.trim() && !phone?.trim()) {
+        return res.status(400).json({ message: 'Email or phone is required to track this order' });
       }
-      if (phone && order.customerPhone !== phone) {
-        return res.status(403).json({ message: 'Phone does not match order' });
+      const norm = (p: string) => String(p || '').replace(/\D/g, '');
+      const emailOk = email?.trim() && String(order.customerEmail || '').toLowerCase() === email.trim().toLowerCase();
+      const phoneOk = phone?.trim() && norm(order.customerPhone || '') === norm(phone);
+      if (!emailOk && !phoneOk) {
+        return res.status(403).json({ message: 'Details do not match this order. Check email or phone.' });
       }
     }
 
+    const items = ((order as any).items || []).map((it: any) => ({
+      product_title: it.productTitle || it.name,
+      name: it.productTitle || it.name,
+      quantity: it.quantity,
+      product_image: it.productImage,
+    }));
+
+    const currency =
+      (order as any).payment?.currency ||
+      (order as any).currencySnapshot?.currency ||
+      'RWF';
+
     return res.json({
       order: {
+        id: order._id,
+        order_number: order.orderNumber,
         orderNumber: order.orderNumber,
         status: order.status,
+        tracking_number: order.trackingNumber,
         trackingNumber: order.trackingNumber,
+        payment_method: (order as any).paymentMethod,
+        paymentMethod: (order as any).paymentMethod,
+        subtotal: (order as any).subtotal,
+        shipping: (order as any).shipping,
+        tax: (order as any).tax,
+        total: (order as any).total,
+        currency,
+        can_confirm_receipt: order.status === 'delivered',
         timeline: order.timeline,
-        estimatedDelivery: order.status === 'shipped' 
+        items,
+        estimatedDelivery: order.status === 'shipped'
           ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
           : undefined,
         seller: {
@@ -855,33 +876,64 @@ export async function cancelOrder(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Only allow cancellation of pending/processing/paused orders
-    if (order.status !== 'pending' && order.status !== 'processing' && order.status !== 'paused') {
-      return res.status(400).json({ 
-        message: `Cannot cancel order with status: ${order.status}. Only pending, processing, or paused orders can be cancelled.` 
+    if (!canBuyerCancelWithRefund(order as any)) {
+      return res.status(400).json({
+        message:
+          'This order cannot be cancelled online. If it already shipped, use Returns & Refunds or contact support.',
       });
     }
 
-    // Update order status to cancelled
-    order.status = 'cancelled';
-    order.timeline.push({
-      status: 'cancelled',
-      date: new Date(),
-      time: new Date().toLocaleTimeString(),
-    });
-    await order.save();
+    const isCod = orderIsCashOnDelivery(order as any);
+    const wasPaidOnline = Boolean(order.payment?.paidAt) || order.escrow?.status === 'ESCROW_HOLD';
+    let refundInfo: { message?: string; mode?: string } | null = null;
+
+    if (wasPaidOnline && !isCod) {
+      try {
+        const refund = await refundPaidOrder(orderId, 'buyer_cancelled', String(buyerId));
+        refundInfo = { message: refund.message, mode: refund.mode };
+      } catch (refundErr: any) {
+        console.error('Refund on cancel failed:', refundErr);
+        return res.status(502).json({
+          message:
+            refundErr?.message ||
+            'Could not process refund automatically. Please contact support with your order number.',
+        });
+      }
+    } else {
+      order.status = 'cancelled';
+      order.timeline.push({
+        status: 'cancelled',
+        date: new Date(),
+        time: new Date().toLocaleTimeString(),
+      });
+      await order.save();
+    }
 
     void restoreInventoryForOrder(orderId, 'order_cancelled').catch((e) => {
       console.error('Failed to restore inventory on buyer cancellation:', e);
     });
 
+    const sellerId = String((order as any).sellerId || '');
+    if (sellerId) {
+      void deliverSellerNotification(
+        'order_cancelled',
+        {
+          sellerId,
+          orderId: String(order._id),
+          orderNumber: String(order.orderNumber || order._id),
+        },
+        String(buyerId),
+      );
+    }
+
     return res.json({ 
       success: true,
-      message: 'Order cancelled successfully',
+      message: refundInfo?.message || 'Order cancelled successfully',
+      refund: refundInfo,
       order: {
         id: order._id,
         orderNumber: order.orderNumber,
-        status: order.status,
+        status: 'cancelled',
       }
     });
   } catch (err: any) {
@@ -1339,16 +1391,19 @@ export async function confirmOrderReceipt(req: AuthenticatedRequest, res: Respon
   try {
     const buyerId = new mongoose.Types.ObjectId(req.user.id);
     const { orderId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.status(400).json({ message: 'Invalid order ID' });
-
-    const order = await Order.findOne({ _id: new mongoose.Types.ObjectId(orderId), buyerId } as any).lean();
+    const order = await findBuyerOrder(buyerId, orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (String(order.status) !== 'delivered') {
       return res.status(400).json({ message: 'Only delivered orders can be confirmed' });
     }
 
-    const result = await completeAdminOrder(orderId, req.user.id, { releasePayout: true });
-    await Order.findByIdAndUpdate(orderId, {
+    const mongoOrderId = String(order._id);
+    await evaluateOrderDeliverySLA(order);
+
+    const result = await completeAdminOrder(mongoOrderId, req.user.id, {
+      releasePayout: !orderIsCashOnDelivery(order as any),
+    });
+    await Order.findByIdAndUpdate(mongoOrderId, {
       $set: {
         'autoCompletion.state': 'completed',
         'autoCompletion.reason': 'buyer_confirmed',
@@ -1366,7 +1421,7 @@ export async function confirmOrderReceipt(req: AuthenticatedRequest, res: Respon
 
     return res.json({
       success: true,
-      orderId,
+      orderId: mongoOrderId,
       orderNumber: result.order.orderNumber,
       status: 'completed',
       escrowReleased: result.escrowReleased,

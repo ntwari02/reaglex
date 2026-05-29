@@ -7,6 +7,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Copy, Loader2, Radio, Square } from 'lucide-react';
 
 import { liveCommerceApi } from '../../services/liveCommerceApi';
+import { useSystemFeatures } from '../../hooks/useSystemFeatures';
 
 
 
@@ -49,7 +50,7 @@ function copyText(text, setMsg) {
 
 
 export default function SellerLiveDashboard() {
-
+  const { isEnabled, loading: featuresLoading } = useSystemFeatures();
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
@@ -188,7 +189,23 @@ export default function SellerLiveDashboard() {
 
   });
 
+  if (!featuresLoading && !isEnabled('live_commerce')) {
+    return (
+      <section
+        className="rounded-2xl border p-4"
+        style={{ borderColor: 'var(--border-card)', background: 'var(--card-bg)' }}
+      >
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          Live selling is temporarily disabled platform-wide. Your existing orders and products are unaffected.
+        </p>
+      </section>
+    );
+  }
 
+  const auctionsOn = featuresLoading || isEnabled('live_commerce_auctions');
+  const visibleModes = MODES.filter(
+    (m) => auctionsOn || (m.id !== 'auction' && m.id !== 'flash_deal'),
+  );
 
   return (
 
@@ -296,7 +313,7 @@ export default function SellerLiveDashboard() {
 
         <div className="flex flex-wrap gap-2">
 
-          {MODES.map((m) => (
+          {visibleModes.map((m) => (
 
             <button
 

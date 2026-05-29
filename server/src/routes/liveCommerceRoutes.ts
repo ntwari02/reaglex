@@ -67,9 +67,10 @@ function parseSessionMode(mode: unknown): LiveSessionMode {
 router.get('/settings/public', async (_req, res: Response) => {
   try {
     const settings = await getLiveCommerceSettings();
+    const globallyOn = await isLiveGloballyEnabled();
     const streaming = await getStreamingConfig();
     return res.json({
-      enabled: settings.globallyEnabled,
+      enabled: globallyOn,
       livePermissionMode: resolveLivePermissionMode(settings),
       features: settings.features,
       streaming: {
@@ -204,6 +205,16 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
     if (!title) return res.status(400).json({ message: 'title is required' });
 
     const sessionMode = parseSessionMode(modeInput);
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (
+      (sessionMode === 'auction' || sessionMode === 'flash_deal') &&
+      !(await isSystemFeatureEnabled('live_commerce_auctions'))
+    ) {
+      return res.status(503).json({
+        message: 'Live auctions are disabled platform-wide',
+        code: 'FEATURE_DISABLED',
+      });
+    }
     let resolvedProvider =
       (streamProvider as StreamProviderType) || (await getDefaultProvider());
     try {
@@ -221,6 +232,8 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
     }
 
     const settings = await getLiveCommerceSettings();
+    const chatPlatformOn = await isSystemFeatureEnabled('live_commerce_chat');
+    const auctionsOn = await isSystemFeatureEnabled('live_commerce_auctions');
     const now = new Date();
     const auctionEndsAt =
       sessionMode === 'auction' || sessionMode === 'flash_deal'
@@ -245,12 +258,15 @@ router.post('/session', authenticate, async (req: AuthenticatedRequest, res: Res
       minBidIncrement: Math.max(1, Number(minBidIncrement) || 1),
       currentPrice: reservePrice != null ? Number(reservePrice) : 0,
       features: {
-        chat: features.chat !== false,
-        bidding: sessionMode === 'auction' ? features.bidding !== false : false,
+        chat: chatPlatformOn && features.chat !== false,
+        bidding:
+          auctionsOn &&
+          (sessionMode === 'auction' || sessionMode === 'flash_deal') &&
+          features.bidding !== false,
         reactions: features.reactions !== false,
         replay: features.replay !== false,
-        instantBuy: features.instantBuy !== false,
-        autoBid: features.autoBid !== false,
+        instantBuy: auctionsOn && features.instantBuy !== false,
+        autoBid: auctionsOn && features.autoBid !== false,
       },
       isPrivate: Boolean(isPrivate) || sessionMode === 'private',
       aiInsight: 'Demand trending · viewers engaging now',

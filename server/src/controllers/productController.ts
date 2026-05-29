@@ -359,6 +359,11 @@ export async function getProductBySlug(req: AuthenticatedRequest, res: Response)
  */
 export async function toggleWishlist(req: AuthenticatedRequest, res: Response) {
   try {
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('product_wishlist'))) {
+      return res.status(503).json({ message: 'Wishlist is temporarily disabled', code: 'FEATURE_DISABLED' });
+    }
+
     const { productId } = req.params;
     if (!req.user?.id) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -395,6 +400,65 @@ export async function toggleWishlist(req: AuthenticatedRequest, res: Response) {
     }
     console.error('Toggle wishlist error:', error);
     return res.status(500).json({ message: 'Failed to update wishlist' });
+  }
+}
+
+/**
+ * List authenticated user's wishlist with product details.
+ * GET /api/products/wishlist/mine
+ */
+export async function listUserWishlist(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('product_wishlist'))) {
+      return res.json({ success: true, items: [] });
+    }
+    const uid = new mongoose.Types.ObjectId(String(req.user.id));
+    const rows = await ProductWishlist.find({ userId: uid })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+
+    const productIds = rows.map((r) => r.productId);
+    const products = await Product.find({ _id: { $in: productIds }, ...buyerVisibleProductFilter() })
+      .select('name slug price images averageRating totalReviews sellerId category')
+      .lean();
+    const pmap = new Map(products.map((p) => [String(p._id), p]));
+
+    const items = rows
+      .map((row) => {
+        const p = pmap.get(String(row.productId));
+        if (!p) return null;
+        const primaryImg = Array.isArray((p as any).images)
+          ? (p as any).images.find((i: { is_primary?: boolean }) => i?.is_primary) || (p as any).images[0]
+          : null;
+        return {
+          id: String(row._id),
+          product_id: String(p._id),
+          created_at: row.createdAt,
+          product: {
+            id: String(p._id),
+            title: (p as any).name,
+            name: (p as any).name,
+            slug: (p as any).slug,
+            price: (p as any).price,
+            image: primaryImg?.url || primaryImg?.secure_url || null,
+            images: (p as any).images,
+            averageRating: (p as any).averageRating,
+            reviewCount: (p as any).totalReviews,
+            category: (p as any).category,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    return res.json({ success: true, items });
+  } catch (error: any) {
+    console.error('List wishlist error:', error);
+    return res.status(500).json({ message: 'Failed to fetch wishlist' });
   }
 }
 

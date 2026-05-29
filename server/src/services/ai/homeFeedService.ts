@@ -543,7 +543,10 @@ async function buildHeroSection(
   // Sponsored injection — gated by the directive's sponsored cap.
   const sponsoredIds = new Set<string>();
   const sponsoredCards: RankedProduct[] = [];
-  const sponsoredEnabled = directive ? directive.sponsored.enabled : cfg.sponsored?.enabled !== false;
+  const { isSystemFeatureEnabled } = await import('../systemFeatureSettings.service');
+  const sponsoredFeatureOn = await isSystemFeatureEnabled('marketplace_ai_sponsored');
+  const sponsoredEnabled =
+    sponsoredFeatureOn && (directive ? directive.sponsored.enabled : cfg.sponsored?.enabled !== false);
   if (sponsoredEnabled) {
     try {
       const candidates = await getSponsoredCandidates(cfg, { surface: 'homepage', limit: 4 });
@@ -600,6 +603,14 @@ async function buildHeroSection(
  * post-processed by the Fairness Engine.
  */
 export async function buildHomeFeed(input: HomeFeedInput): Promise<HomeFeedResult> {
+  const { isSystemFeatureEnabled } = await import('../systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('marketplace_ai_recommendations'))) {
+    return {
+      config: { mode: 'balanced', confidence: 0 },
+      sections: [],
+      generatedAt: new Date().toISOString(),
+    };
+  }
   const cfg = await getMarketplaceAIConfig();
   if (!cfg.enabled) {
     return {

@@ -244,7 +244,8 @@
     "placeOrder": "Place Order",
     "subtotal": "Subtotal",
     "shipping": "Shipping",
-    "tax10": "Tax (10%)",
+    "tax10": "VAT",
+    "taxVat": "VAT",
     "total": "Total",
     "escrowProtected": "Escrow-protected checkout",
     "paymentMethods": {

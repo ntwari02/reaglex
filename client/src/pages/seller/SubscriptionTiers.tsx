@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { subscriptionApi } from '@/services/subscriptionApi';
 import { useToastStore } from '@/stores/toastStore';
+import { useSystemFeatures } from '@/hooks/useSystemFeatures';
 import BoostAnalyticsMiniPanel from '@/components/seller/BoostAnalyticsMiniPanel';
 import SubscriptionPaymentFlow from '@/components/seller/SubscriptionPaymentFlow';
 import '@/styles/seller-subscription.css';
@@ -52,6 +53,8 @@ interface ApiInvoice {
 
 const SubscriptionTiers: React.FC = () => {
   const { showToast } = useToastStore();
+  const { isEnabled, loading: featuresLoading } = useSystemFeatures();
+  const subscriptionsOn = featuresLoading || isEnabled('seller_subscriptions');
   const [activeTab, setActiveTab] = useState<TabId>('plan');
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [plans, setPlans] = useState<ApiPlan[]>([]);
@@ -188,6 +191,10 @@ const SubscriptionTiers: React.FC = () => {
   }, [invoices, billingSort]);
 
   const handleUpgrade = async (tierId: string, planName: string, planPrice: number) => {
+    if (!subscriptionsOn) {
+      showToast('New subscription purchases are temporarily disabled by the platform.', 'error');
+      return;
+    }
     if (planPrice <= 0 && currentTierId === tierId) {
       showToast('You are already on this plan.', 'info');
       return;
@@ -345,9 +352,13 @@ const SubscriptionTiers: React.FC = () => {
           Subscription & Billing
         </h1>
         <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
-          Plans, invoices, and payment methods use the same gateways you configure in Admin → Finance.
-          MTN MoMo charges are live; card/PayPal may run in test mode until gateways are fully connected.
+          Plans, invoices, and payment methods are managed by Reaglex. Contact support if you need help with billing.
         </p>
+        {!subscriptionsOn && (
+          <p className="mt-3 text-sm font-semibold text-amber-800 dark:text-amber-300 rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 max-w-2xl">
+            New plan purchases are paused platform-wide. Your current plan stays active until it expires.
+          </p>
+        )}
       </div>
 
       <SubscriptionPaymentFlow activeStep={activeTab === 'payment' ? 2 : activeTab === 'billing' ? 4 : 1} />
@@ -502,7 +513,7 @@ const SubscriptionTiers: React.FC = () => {
                       onClick={() =>
                         handleUpgrade(tierId, plan.displayName || plan.name, price)
                       }
-                      disabled={isCurrent || upgradingPlanKey === tierId}
+                      disabled={!subscriptionsOn || isCurrent || upgradingPlanKey === tierId}
                       className={`mt-5 w-full ${
                         isCurrent
                           ? 'bg-gray-600 hover:bg-gray-600'

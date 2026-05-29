@@ -81,6 +81,7 @@ export function deepLinkFor(event: SellerNotificationEvent, ctx: SellerNotificat
     case 'shipping_delay':
     case 'shipping_soon':
     case 'order_refunded':
+    case 'order_cancelled':
     case 'funds_released':
       return ctx.orderId ? `/seller/orders/${ctx.orderId}` : '/seller/orders';
     case 'return_opened':

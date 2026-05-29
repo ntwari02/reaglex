@@ -15,19 +15,103 @@ export function resolvePreviewImage(src) {
   return `${SERVER_URL}${t.startsWith('/') ? t : `/${t}`}`;
 }
 
-export function previewGalleryImages(product) {
-  const list = [];
+/** Resolve video or image URL (returns null when missing). */
+export function resolveMediaUrl(src) {
+  if (!src) return null;
+  let c = src;
+  if (typeof c === 'object') {
+    c =
+      c?.url ||
+      c?.src ||
+      c?.secure_url ||
+      c?.path ||
+      c?.video ||
+      c?.videoUrl ||
+      c?.videoPath;
+  }
+  if (typeof c !== 'string') return null;
+  const t = c.trim();
+  if (!t) return null;
+  if (t.startsWith('http://') || t.startsWith('https://')) return t;
+  if (t.startsWith('//')) return `https:${t}`;
+  return `${SERVER_URL}${t.startsWith('/') ? t : `/${t}`}`;
+}
+
+/** Seller proof / verification video for gallery (first slide when present). */
+export function productProofVideoUrl(product) {
+  if (!product) return null;
+
+  const direct = [
+    product.videoUrl,
+    product.video,
+    product.videoPath,
+    product.verificationVideoUrl,
+    product.media?.video,
+    product.media?.videoUrl,
+    product.media?.videoPath,
+  ];
+  for (const candidate of direct) {
+    const url = resolveMediaUrl(candidate);
+    if (url) return url;
+  }
+
+  if (Array.isArray(product.videos) && product.videos.length > 0) {
+    const fromVideos = resolveMediaUrl(product.videos[0]);
+    if (fromVideos) return fromVideos;
+  }
+
+  if (Array.isArray(product.media)) {
+    const videoItem = product.media.find((item) => {
+      const kind = String(item?.type || item?.kind || item?.mediaType || '').toLowerCase();
+      const mime = String(item?.mimeType || item?.mimetype || '').toLowerCase();
+      const url = String(item?.url || item?.src || item?.path || '').toLowerCase();
+      return (
+        kind.includes('video') ||
+        mime.startsWith('video/') ||
+        /\.(mp4|webm|ogg|mov|m4v|m3u8)$/i.test(url)
+      );
+    });
+    return resolveMediaUrl(videoItem);
+  }
+
+  return null;
+}
+
+/**
+ * Gallery slides for product view / quick preview: proof video first, then images.
+ * @returns {Array<{ type: 'video'|'image', src: string, poster?: string }>}
+ */
+export function previewGalleryItems(product) {
+  const items = [];
+  const videoUrl = productProofVideoUrl(product);
+  const poster = resolvePreviewImage(
+    product?.images?.[0] || product?.image || product?.thumbnail,
+  );
+
+  if (videoUrl) {
+    items.push({ type: 'video', src: videoUrl, poster });
+  }
+
   if (Array.isArray(product?.images) && product.images.length) {
     product.images.forEach((img) => {
       const u = resolvePreviewImage(img);
-      if (u) list.push(u);
+      if (u) items.push({ type: 'image', src: u });
     });
   }
-  if (!list.length) {
+  if (!items.some((i) => i.type === 'image')) {
     const single = resolvePreviewImage(product?.image || product?.thumbnail);
-    if (single) list.push(single);
+    if (single) items.push({ type: 'image', src: single });
   }
-  return list.length ? list : [FALLBACK_IMG];
+  if (!items.length) {
+    items.push({ type: 'image', src: FALLBACK_IMG });
+  }
+  return items;
+}
+
+export function previewGalleryImages(product) {
+  return previewGalleryItems(product)
+    .filter((item) => item.type === 'image')
+    .map((item) => item.src);
 }
 
 export function stripHtml(html) {

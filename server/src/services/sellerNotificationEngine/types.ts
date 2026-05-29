@@ -7,6 +7,7 @@ export type SellerNotificationEvent =
   | 'payout_received'
   | 'funds_released'
   | 'order_refunded'
+  | 'order_cancelled'
   | 'low_stock'
   | 'new_review'
   | 'new_message'

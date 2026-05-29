@@ -450,6 +450,10 @@ async function tick(): Promise<{ sent: number; skipped: number; failed: number; 
   if (!(await isMarketingFlowEnabled('abandoned_cart'))) {
     return { sent: 0, skipped: 0, failed: 0, discovered: 0 };
   }
+  const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('abandoned_cart_emails'))) {
+    return { sent: 0, skipped: 0, failed: 0, discovered: 0 };
+  }
 
   const settings = settingsToClient(await getOrCreateCartSettings());
   if (!settings.enabled || settings.globalPause) {

@@ -269,6 +269,8 @@ async function sendCartPulse(userId: string, lastCartAddAt: Date): Promise<'sent
 async function tick(): Promise<{ sent: number; skipped: number; failed: number }> {
   const stats = { sent: 0, skipped: 0, failed: 0 };
   if (!isEmailConfigured()) return stats;
+  const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('recommendation_emails'))) return stats;
   if (!(await isMarketingFlowEnabled('cart_pulse'))) return stats;
 
   const windowMinutes = getIntEnv('CART_PULSE_WINDOW_MINUTES', 90);

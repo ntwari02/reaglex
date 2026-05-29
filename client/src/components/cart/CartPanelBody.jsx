@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingCart } from 'lucide-react';
 import CartItem from './CartItem';
 import CartSummary from './CartSummary';
 import RecommendedProducts from './RecommendedProducts';
+import DeliveryLocationSheet from '../delivery/DeliveryLocationSheet';
 import { useCartShippingPreview } from '../../hooks/useCartShippingPreview';
 
 export default function CartPanelBody({
@@ -18,6 +20,7 @@ export default function CartPanelBody({
   compactHeader = false,
 }) {
   const navigate = useNavigate();
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const { quote, loading, error, subtotal, tax, shippingTotal, grand } = useCartShippingPreview(
     items,
     shippingPreviewLocation,
@@ -140,7 +143,7 @@ export default function CartPanelBody({
                 loading={loading}
                 error={error}
                 shippingPreviewLocation={shippingPreviewLocation}
-                onChangeLocation={onChangeLocation}
+                onChangeLocation={() => setLocationSheetOpen(true)}
                 onCheckout={() => {
                   onClose();
                   navigate('/checkout');
@@ -153,6 +156,13 @@ export default function CartPanelBody({
           </>
         )}
       </div>
+
+      <DeliveryLocationSheet
+        open={locationSheetOpen}
+        onClose={() => setLocationSheetOpen(false)}
+        value={shippingPreviewLocation}
+        onSelect={onChangeLocation}
+      />
     </>
   );
 }

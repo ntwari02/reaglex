@@ -109,6 +109,14 @@ export async function getPublicCheckoutGatewayList(): Promise<
     }
     const enabled = await flagFor(g.key as PaymentGatewayKey);
     if (!enabled) continue;
+    if (g.key === 'mtn_momo') {
+      const { isSystemFeatureEnabled } = await import('./systemFeatureSettings.service');
+      if (!(await isSystemFeatureEnabled('momo_payments'))) continue;
+    }
+    if (g.key === 'airtel_money') {
+      const { isSystemFeatureEnabled } = await import('./systemFeatureSettings.service');
+      if (!(await isSystemFeatureEnabled('airtel_payments'))) continue;
+    }
     rows.push({
       key: g.key,
       name: g.name,

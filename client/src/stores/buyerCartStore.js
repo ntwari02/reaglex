@@ -2,7 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { trackRecommendationActivity } from '../services/recommendationEmailApi';
 
-const defaultShipPreview = { country: 'RW', city: 'Kigali', state: '', zip: '' };
+const defaultShipPreview = {
+  country: 'RW',
+  countryName: 'Rwanda',
+  city: 'Kigali',
+  state: '',
+  zip: '',
+  displayLabel: 'Kigali, Rwanda',
+};
 
 export const useBuyerCart = create(
   persist(
@@ -15,9 +22,11 @@ export const useBuyerCart = create(
         set({
           shippingPreviewLocation: {
             country: String(loc.country || defaultShipPreview.country).trim() || defaultShipPreview.country,
+            countryName: String(loc.countryName || loc.country || defaultShipPreview.countryName).trim(),
             city: String(loc.city || defaultShipPreview.city).trim() || defaultShipPreview.city,
             state: String(loc.state ?? '').trim(),
             zip: String(loc.zip ?? '').trim(),
+            displayLabel: String(loc.displayLabel || '').trim(),
           },
         }),
       openCart:  () => set({ cartOpen: true }),

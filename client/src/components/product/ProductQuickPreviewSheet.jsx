@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Sheet } from 'react-modal-sheet';
@@ -13,9 +13,8 @@ import {
   Zap,
   Minus,
   Plus,
-  ExternalLink,
-  Sparkles,
   Loader2,
+  Play,
 } from 'lucide-react';
 import { useMotionUi } from '../../stores/motionUiStore';
 import { useBuyerCart } from '../../stores/buyerCartStore';
@@ -27,11 +26,9 @@ import { productAPI } from '../../services/api';
 import { productDisplayName } from '../home/mobile/productUtils';
 import { springSheet, EASE_OUT_EXPO } from '../../motion/presets';
 import {
-  previewGalleryImages,
-  stripHtml,
+  previewGalleryItems,
   productOldPrice,
   PREVIEW_SIZES,
-  PREVIEW_TRUST,
   resolvePreviewImage,
 } from './productPreviewUtils';
 import '../../styles/product-quick-preview.css';
@@ -63,7 +60,6 @@ export default function ProductQuickPreviewSheet() {
   const closeQuickPreview = useMotionUi((s) => s.closeQuickPreview);
   const openQuickPreview = useMotionUi((s) => s.openQuickPreview);
   const triggerFlyToCart = useMotionUi((s) => s.triggerFlyToCart);
-  const openAr = useMotionUi((s) => s.openAr);
   const addItem = useBuyerCart((s) => s.addItem);
   const addToWishlist = useWishlistStore((s) => s.addToWishlist);
   const isInWishlist = useWishlistStore((s) => s.isInWishlist);
@@ -76,7 +72,6 @@ export default function ProductQuickPreviewSheet() {
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [size, setSize] = useState('M');
-  const [descExpanded, setDescExpanded] = useState(false);
   const [addState, setAddState] = useState('idle');
 
   const {
@@ -114,7 +109,9 @@ export default function ProductQuickPreviewSheet() {
     staleTime: 120_000,
   });
 
-  const gallery = useMemo(() => previewGalleryImages(product), [product]);
+  const gallery = useMemo(() => previewGalleryItems(product), [product]);
+  const activeSlide = gallery[activeImage] || gallery[0];
+  const videoRef = useRef(null);
   const id = String(product?._id || product?.id || '');
   const name = productDisplayName(product) || 'Product';
   const price = Number(product?.price || 0);
@@ -123,20 +120,10 @@ export default function ProductQuickPreviewSheet() {
   const reviewCount = Number(product?.reviewCount || product?.totalReviews || 0);
   const stock = Math.max(0, product?.stockQuantity ?? product?.stock ?? 99);
   const wishlisted = isInWishlist(id);
-  const img = gallery[activeImage] || gallery[0];
-  const description = useMemo(() => {
-    const raw =
-      product?.shortDescription ||
-      product?.description ||
-      product?.seoDescription ||
-      '';
-    const text = typeof raw === 'string' ? stripHtml(raw) : '';
-    return (
-      text ||
-      'Premium quality item from a verified seller. Add to cart or buy now — open the full page for reviews, specs, and delivery details.'
-    );
-  }, [product]);
-
+  const img =
+    gallery.find((item) => item.type === 'image')?.src ||
+    activeSlide?.poster ||
+    activeSlide?.src;
   const sizes = useMemo(() => {
     const fromProduct = Array.isArray(product?.sizes) ? product.sizes.filter(Boolean) : [];
     return fromProduct.length ? fromProduct.map(String) : PREVIEW_SIZES;
@@ -147,7 +134,6 @@ export default function ProductQuickPreviewSheet() {
     setActiveImage(0);
     setQuantity(1);
     setSize(sizes[2] || sizes[0] || 'M');
-    setDescExpanded(false);
     setAddState('idle');
     window.history.pushState({ productPreviewSheet: true }, '');
     const onPop = () => closeQuickPreview();
@@ -158,6 +144,17 @@ export default function ProductQuickPreviewSheet() {
   useEffect(() => {
     setActiveImage((i) => Math.min(i, Math.max(0, gallery.length - 1)));
   }, [gallery.length]);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    try {
+      el.pause();
+      el.currentTime = 0;
+    } catch {
+      /* ignore */
+    }
+  }, [activeImage]);
 
   useEffect(() => {
     if (!open || !id) return;
@@ -199,13 +196,13 @@ export default function ProductQuickPreviewSheet() {
 
   const selectRelated = useCallback(
     (p) => {
-      setDescExpanded(false);
       openQuickPreview(p);
     },
     [openQuickPreview],
   );
 
-  const lineTotal = price * quantity;
+  const discountPct =
+    oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
 
   return (
     <Sheet isOpen={open} onClose={closeSheet} detent="large" className="pqp-sheet">
@@ -220,7 +217,9 @@ export default function ProductQuickPreviewSheet() {
         <Sheet.Header>
           <div className="pqp-drag-pill" aria-hidden />
           <div className="pqp-topbar">
-            <span className="pqp-topbar-title">Product view</span>
+            <button type="button" className="pqp-topbar-link" onClick={openFullPage}>
+              Full details
+            </button>
             <button type="button" className="pqp-icon-btn" onClick={closeSheet} aria-label="Close">
               <X size={18} />
             </button>
@@ -239,12 +238,32 @@ export default function ProductQuickPreviewSheet() {
                 className="flex min-h-0 flex-1 flex-col"
               >
                 <div className="pqp-scroll">
-                  <div className="pqp-gallery">
+                  <div className="pqp-gallery pqp-gallery--edge">
                     <div className="pqp-gallery-main">
                       {detailLoading && !gallery[0] ? (
                         <div className="pqp-skeleton h-full w-full" />
+                      ) : activeSlide?.type === 'video' ? (
+                        <video
+                          ref={videoRef}
+                          key={activeSlide.src}
+                          className="pqp-gallery-video"
+                          src={activeSlide.src}
+                          poster={activeSlide.poster}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       ) : (
-                        <img src={gallery[activeImage] || gallery[0]} alt="" />
+                        <img src={activeSlide?.src} alt="" />
+                      )}
+                      {activeSlide?.type === 'video' && (
+                        <span className="pqp-proof-badge">Proof video</span>
+                      )}
+                      {gallery.length > 1 && (
+                        <span className="pqp-gallery-index" aria-live="polite">
+                          {activeImage + 1}/{gallery.length}
+                        </span>
                       )}
                       {gallery.length > 1 && (
                         <>
@@ -254,7 +273,7 @@ export default function ProductQuickPreviewSheet() {
                             onClick={() =>
                               setActiveImage((i) => (i - 1 + gallery.length) % gallery.length)
                             }
-                            aria-label="Previous image"
+                            aria-label="Previous media"
                           >
                             <ChevronLeft size={18} />
                           </button>
@@ -262,7 +281,7 @@ export default function ProductQuickPreviewSheet() {
                             type="button"
                             className="pqp-gallery-nav pqp-gallery-nav--next"
                             onClick={() => setActiveImage((i) => (i + 1) % gallery.length)}
-                            aria-label="Next image"
+                            aria-label="Next media"
                           >
                             <ChevronRight size={18} />
                           </button>
@@ -273,29 +292,33 @@ export default function ProductQuickPreviewSheet() {
                                 type="button"
                                 className={`pqp-gallery-dot${idx === activeImage ? ' is-active' : ''}`}
                                 onClick={() => setActiveImage(idx)}
-                                aria-label={`Image ${idx + 1}`}
+                                aria-label={`${gallery[idx]?.type === 'video' ? 'Video' : 'Image'} ${idx + 1}`}
                               />
                             ))}
                           </div>
                         </>
                       )}
-                      <div className="pqp-price-float">
-                        <strong>{currencyPricing.formatLocalWithUsd(price)}</strong>
-                        {oldPrice && oldPrice > price && (
-                          <span>{currencyPricing.formatLocalWithUsd(oldPrice)}</span>
-                        )}
-                      </div>
                     </div>
                     {gallery.length > 1 && (
                       <div className="pqp-thumbs">
-                        {gallery.map((src, idx) => (
+                        {gallery.map((slide, idx) => (
                           <button
-                            key={src + idx}
+                            key={`${slide.type}-${slide.src}-${idx}`}
                             type="button"
-                            className={`pqp-thumb${idx === activeImage ? ' is-active' : ''}`}
+                            className={`pqp-thumb${idx === activeImage ? ' is-active' : ''}${slide.type === 'video' ? ' pqp-thumb--video' : ''}`}
                             onClick={() => setActiveImage(idx)}
+                            aria-label={slide.type === 'video' ? 'Proof video' : `Image ${idx + 1}`}
                           >
-                            <img src={src} alt="" />
+                            {slide.type === 'video' ? (
+                              <>
+                                <img src={slide.poster || slide.src} alt="" />
+                                <span className="pqp-thumb-play" aria-hidden>
+                                  <Play size={14} fill="currentColor" />
+                                </span>
+                              </>
+                            ) : (
+                              <img src={slide.src} alt="" />
+                            )}
                           </button>
                         ))}
                       </div>
@@ -303,6 +326,22 @@ export default function ProductQuickPreviewSheet() {
                   </div>
 
                   <div className="pqp-body">
+                    <div className="pqp-price-block">
+                      <div className="pqp-price-row">
+                        <span className="pqp-price-current">
+                          {currencyPricing.formatLocalWithUsd(price)}
+                        </span>
+                        {discountPct != null && (
+                          <span className="pqp-discount-tag">-{discountPct}%</span>
+                        )}
+                      </div>
+                      {oldPrice && oldPrice > price && (
+                        <span className="pqp-price-was">
+                          {currencyPricing.formatLocalWithUsd(oldPrice)}
+                        </span>
+                      )}
+                    </div>
+
                     <h2 className="pqp-title">{name}</h2>
                     <div className="pqp-meta">
                       <span className="pqp-rating-pill">
@@ -322,9 +361,10 @@ export default function ProductQuickPreviewSheet() {
                       )}
                     </div>
 
-                    <p className="pqp-section-label">Quantity</p>
-                    <div className="pqp-qty-row">
-                      <div className="pqp-qty-control">
+                    <div className="pqp-variant-row">
+                      <div className="pqp-variant-block">
+                        <p className="pqp-section-label">Quantity</p>
+                        <div className="pqp-qty-control">
                         <button
                           type="button"
                           className="pqp-qty-btn"
@@ -344,11 +384,11 @@ export default function ProductQuickPreviewSheet() {
                         >
                           <Plus size={16} />
                         </button>
+                        </div>
                       </div>
-                    </div>
-
-                    <p className="pqp-section-label">Size</p>
-                    <div className="pqp-sizes">
+                      <div className="pqp-variant-block pqp-variant-block--size">
+                        <p className="pqp-section-label">Size</p>
+                        <div className="pqp-sizes">
                       {sizes.map((s) => (
                         <button
                           key={s}
@@ -359,37 +399,19 @@ export default function ProductQuickPreviewSheet() {
                           {s}
                         </button>
                       ))}
-                    </div>
-
-                    <div className="pqp-trust-grid">
-                      {PREVIEW_TRUST.map((t) => (
-                        <div key={t.key} className="pqp-trust-card">
-                          <strong>{t.label}</strong>
-                          <span>{t.sub}</span>
                         </div>
-                      ))}
+                      </div>
                     </div>
 
-                    <p className="pqp-section-label">About this item</p>
-                    <p className={`pqp-desc${descExpanded ? '' : ' is-clamped'}`}>{description}</p>
-                    {description.length > 160 && (
-                      <button
-                        type="button"
-                        className="pqp-read-more"
-                        onClick={() => setDescExpanded((v) => !v)}
-                      >
-                        {descExpanded ? 'Show less' : 'Read more'}
-                      </button>
-                    )}
                   </div>
 
                   {related.length > 0 && (
                     <section className="pqp-related" aria-label="You may also like">
                       <div className="pqp-related-head">
                         <h3>You may also like</h3>
-                        <span>{related.length} picks</span>
+                        <span>{related.length} items</span>
                       </div>
-                      <div className="pqp-related-track">
+                      <div className="pqp-related-grid">
                         {related.map((p) => (
                           <PreviewRelatedCard
                             key={String(p._id || p.id)}
@@ -403,30 +425,27 @@ export default function ProductQuickPreviewSheet() {
                   )}
                 </div>
 
-                <footer className="pqp-footer">
-                  <div className="pqp-footer-summary">
-                    <span>
-                      {quantity} × {size}
-                    </span>
-                    <strong>{currencyPricing.formatLocalWithUsd(lineTotal)}</strong>
-                  </div>
-                  <div className="pqp-cta-row">
+                <footer className="pqp-footer pqp-footer--ali">
+                  <div className="pqp-footer-ali-actions">
                     <motion.button
                       type="button"
-                      whileTap={{ scale: 0.98 }}
+                      whileTap={{ scale: 0.96 }}
                       transition={springSheet}
-                      className="pqp-cta-buy"
-                      disabled={stock <= 0}
-                      onClick={handleBuyNow}
+                      className="pqp-footer-wish"
+                      aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                      onClick={() => addToWishlist(user?.id, { ...product, id })}
                     >
-                      <Zap size={18} />
-                      Buy now
+                      <Heart
+                        size={20}
+                        fill={wishlisted ? 'var(--brand-primary)' : 'none'}
+                        stroke={wishlisted ? 'var(--brand-primary)' : 'currentColor'}
+                      />
                     </motion.button>
                     <motion.button
                       type="button"
                       whileTap={{ scale: 0.98 }}
                       transition={springSheet}
-                      className="pqp-cta-cart"
+                      className="pqp-footer-cart"
                       disabled={stock <= 0 || addState === 'adding'}
                       onClick={handleAdd}
                     >
@@ -436,37 +455,22 @@ export default function ProductQuickPreviewSheet() {
                         <ShoppingBag size={18} />
                       )}
                       {addState === 'added'
-                        ? 'Added ✓'
+                        ? 'Added'
                         : addState === 'adding'
                           ? 'Adding…'
                           : 'Add to cart'}
                     </motion.button>
-                  </div>
-                  <div className="pqp-footer-tools">
-                    <button
+                    <motion.button
                       type="button"
-                      className="pqp-tool-btn"
-                      onClick={() => addToWishlist(user?.id, { ...product, id })}
+                      whileTap={{ scale: 0.98 }}
+                      transition={springSheet}
+                      className="pqp-footer-buy"
+                      disabled={stock <= 0}
+                      onClick={handleBuyNow}
                     >
-                      <Heart
-                        size={16}
-                        fill={wishlisted ? 'var(--brand-primary)' : 'none'}
-                        color={wishlisted ? 'var(--brand-primary)' : 'currentColor'}
-                      />
-                      {wishlisted ? 'Saved' : 'Wishlist'}
-                    </button>
-                    <button type="button" className="pqp-tool-btn" onClick={openFullPage}>
-                      <ExternalLink size={15} />
-                      Full page
-                    </button>
-                    <button
-                      type="button"
-                      className="pqp-tool-btn pqp-tool-icon"
-                      aria-label="Open AR preview"
-                      onClick={() => openAr?.(product)}
-                    >
-                      <Sparkles size={16} />
-                    </button>
+                      <Zap size={17} />
+                      Buy now
+                    </motion.button>
                   </div>
                 </footer>
               </motion.div>

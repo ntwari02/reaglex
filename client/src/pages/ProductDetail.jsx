@@ -13,6 +13,7 @@ import './ProductDetail.css';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import ProductCard from '../components/ProductCard';
 import PremiumAutoProductCarousel from '../components/home/PremiumAutoProductCarousel';
+import ProductDeliveryEstimate from '../components/product/ProductDeliveryEstimate';
 import { productAPI } from '../services/api';
 import { homeFeedApi } from '../services/homeFeedApi';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -24,6 +25,7 @@ import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 import { productImageLayoutId } from '../motion/presets';
 import LiveProductTeaser from '../components/live/LiveProductTeaser';
+import { previewGalleryItems } from '../components/product/productPreviewUtils';
 
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
@@ -47,18 +49,6 @@ function productOldPrice(p) {
   if (!p || typeof p !== 'object') return null;
   const v = p.compareAtPrice ?? p.originalPrice ?? p.compare_at_price ?? null;
   return v != null && Number(v) > 0 ? Number(v) : null;
-}
-
-function resolveMedia(src) {
-  if (!src) return null;
-  let c = src;
-  if (typeof c === 'object') c = c?.url || c?.src || c?.path || c?.video || c?.videoUrl || c?.videoPath;
-  if (typeof c !== 'string') return null;
-  const t = c.trim();
-  if (!t) return null;
-  if (t.startsWith('http://') || t.startsWith('https://')) return t;
-  if (t.startsWith('//')) return `https:${t}`;
-  return `${SERVER_URL}${t.startsWith('/') ? t : `/${t}`}`;
 }
 
 /* ─── static data ────────────────────────────────────────────────────────── */
@@ -538,46 +528,18 @@ export default function ProductDetail() {
 
   const previewPrice = product?.price || 0;
   const previewOldPrice = productOldPrice(product);
-  const productVideoUrl = useMemo(() => {
-    const direct =
-      product?.videoUrl ||
-      product?.video ||
-      product?.videoPath ||
-      product?.media?.video ||
-      product?.media?.videoUrl ||
-      product?.media?.videoPath;
-    const directResolved = resolveMedia(direct);
-    if (directResolved) return directResolved;
-
-    if (Array.isArray(product?.videos) && product.videos.length > 0) {
-      const fromVideos = resolveMedia(product.videos[0]);
-      if (fromVideos) return fromVideos;
-    }
-
-    if (Array.isArray(product?.media)) {
-      const videoItem = product.media.find((item) => {
-        const kind = String(item?.type || item?.kind || item?.mediaType || '').toLowerCase();
-        const mime = String(item?.mimeType || item?.mimetype || '').toLowerCase();
-        const url = String(item?.url || item?.src || item?.path || '').toLowerCase();
-        return (
-          kind.includes('video') ||
-          mime.startsWith('video/') ||
-          /\.(mp4|webm|ogg|mov|m4v|m3u8)$/i.test(url)
-        );
-      });
-      return resolveMedia(videoItem);
-    }
-
-    return null;
-  }, [product]);
   const galleryItems = useMemo(() => {
-    const items = [];
-    if (productVideoUrl) items.push({ type: 'video', src: productVideoUrl });
-    for (const img of images || []) items.push({ type: 'image', src: resolveImage(img) });
-    if (!items.length && product?.image) items.push({ type: 'image', src: resolveImage(product.image) });
-    if (!items.length) items.push({ type: 'image', src: resolveImage(null) });
-    return items;
-  }, [images, productVideoUrl, product?.image]);
+    if (!product) {
+      return [{ type: 'image', src: resolveImage(null) }];
+    }
+    return previewGalleryItems({
+      ...product,
+      images: images?.length ? images : product.images,
+      image: product.image,
+    }).map((item) =>
+      item.type === 'image' ? { ...item, src: resolveImage(item.src) } : item,
+    );
+  }, [product, images]);
   useEffect(() => {
     setActiveImage((i) => Math.min(Math.max(0, i), Math.max(0, galleryItems.length - 1)));
   }, [galleryItems.length]);
@@ -966,6 +928,7 @@ export default function ProductDetail() {
                     <motion.video
                       key={`v-${activeImage}`}
                       src={galleryItems[activeImage]?.src}
+                      poster={galleryItems[activeImage]?.poster}
                       controls
                       preload="metadata"
                       playsInline
@@ -1077,18 +1040,11 @@ export default function ProductDetail() {
                   </>
                 )}
 
-                {/* Media counter */}
-                <div
-                  className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                  style={{
-                    background: 'rgba(0,0,0,0.55)',
-                    color: '#fff',
-                    border: '1px solid rgba(255,255,255,0.18)',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                >
-                  {galleryItems[activeImage]?.type === 'video' ? 'Video' : 'Image'} {activeImage + 1}/{galleryItems.length}
-                </div>
+                {galleryItems.length > 1 && (
+                  <div className="pd2-gallery-index" aria-live="polite">
+                    {activeImage + 1}/{galleryItems.length}
+                  </div>
+                )}
               </div>
 
               {/* Thumbnails */}
@@ -1126,6 +1082,27 @@ export default function ProductDetail() {
                   ))}
                 </div>
               )}
+
+              {/* Mobile: AliExpress-style price + delivery under gallery */}
+              <div className="pd2-mobile-commerce-hero md:hidden">
+                <div className="pd2-mobile-price-row">
+                  <span className="pd2-mobile-price-current">
+                    {currencyPricing.formatLocalWithUsd(price)}
+                  </span>
+                  {showDiscount && (
+                    <span className="pd2-mobile-discount">-{discount}%</span>
+                  )}
+                  {oldPrice && (
+                    <span className="pd2-mobile-price-was">
+                      {currencyPricing.formatLocalWithUsd(oldPrice)}
+                    </span>
+                  )}
+                </div>
+                <div className="pd2-mobile-delivery">
+                  <ProductDeliveryEstimate productId={resolvedId} compact />
+                  <span><Shield size={14} /> Buyer protection</span>
+                </div>
+              </div>
             </motion.div>
 
             {/* ── Purchase Panel ── */}
@@ -1207,8 +1184,8 @@ export default function ProductDetail() {
                   </span>
                 </div>
 
-                {/* Price + discount block */}
-                <div className="order-3 lg:order-3 w-full min-w-0 mb-3 lg:mb-0 space-y-2">
+                {/* Price + discount block (desktop; mobile uses hero under gallery) */}
+                <div className="order-3 lg:order-3 w-full min-w-0 mb-3 lg:mb-0 space-y-2 hidden md:block">
                   <div>
                     <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-1">
                       <span className="pd2-price-num tabular-nums">
@@ -1967,35 +1944,35 @@ export default function ProductDetail() {
 
       {/* Mobile sticky CTAs — above bottom nav, thumb-sized */}
       <div className="md:hidden fixed left-0 right-0 z-[95] px-2 sm:px-3 pb-2 pt-1.5 bottom-[calc(60px+env(safe-area-inset-bottom,0px))] pointer-events-none">
-        <div
-          className="pd2-sticky-cta-inner pointer-events-auto grid grid-cols-2 gap-2 p-2 rounded-2xl max-w-[100vw] mx-auto"
-          style={{
-            background: 'color-mix(in srgb, var(--card-bg) 92%, transparent)',
-            border: '1px solid var(--border-card)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            boxShadow: 'var(--shadow-lg)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={stock === 0 || addState === 'adding'}
-            className="min-h-[48px] rounded-xl text-sm font-bold touch-manipulation flex items-center justify-center gap-2"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--divider)' }}
-          >
-            {addState === 'adding' && <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
-            {addState === 'added' ? 'Added' : 'Add to Cart'}
-          </button>
-          <button
-            type="button"
-            onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
-            disabled={stock === 0}
-            className="min-h-[48px] rounded-xl text-sm font-bold text-white touch-manipulation flex items-center justify-center gap-1.5 disabled:opacity-45"
-            style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
-          >
-            <Zap size={16} /> Buy Now
-          </button>
+        <div className="pd2-sticky-cta-inner pd2-sticky-cta-inner--ali pointer-events-auto p-2 rounded-2xl max-w-[100vw] mx-auto">
+          <div className="pd2-sticky-cta-grid">
+            <button
+              type="button"
+              onClick={handleToggleWishlist}
+              className="pd2-sticky-wish touch-manipulation"
+              aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <Heart size={20} fill={wishlisted ? '#ef4444' : 'none'} stroke={wishlisted ? '#ef4444' : 'currentColor'} />
+            </button>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={stock === 0 || addState === 'adding'}
+              className="pd2-sticky-cart touch-manipulation"
+            >
+              {addState === 'adding' && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              <ShoppingBag size={17} />
+              {addState === 'added' ? 'Added' : 'Add to cart'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
+              disabled={stock === 0}
+              className="pd2-sticky-buy touch-manipulation disabled:opacity-45"
+            >
+              <Zap size={16} /> Buy now
+            </button>
+          </div>
         </div>
       </div>
 

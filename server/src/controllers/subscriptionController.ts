@@ -346,6 +346,14 @@ export async function addPaymentMethod(req: AuthenticatedRequest, res: Response)
       return res.status(401).json({ message: 'Authentication required' });
     }
 
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('seller_subscriptions'))) {
+      return res.status(503).json({
+        message: 'Subscription billing is temporarily disabled by the platform.',
+        code: 'SELLER_SUBSCRIPTIONS_DISABLED',
+      });
+    }
+
     const { type, cardNumber, expiryMonth, expiryYear, cvv, cardholderName, phoneNumber, accountName, provider, paypalEmail } = req.body;
 
     // Determine payment method type
@@ -985,6 +993,14 @@ export async function upgradeSubscription(req: AuthenticatedRequest, res: Respon
       return res.status(401).json({ message: 'Authentication required' });
     }
 
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('seller_subscriptions'))) {
+      return res.status(503).json({
+        message: 'New subscription purchases are temporarily disabled by the platform.',
+        code: 'SELLER_SUBSCRIPTIONS_DISABLED',
+      });
+    }
+
     const { tierId, paymentMethodId, billingCycle: billingCycleBody } = req.body;
     const billingCycle: BillingCycleChoice =
       billingCycleBody === 'annual' ? 'annual' : 'monthly';
@@ -1601,6 +1617,14 @@ export async function submitB2BPaymentRequest(req: AuthenticatedRequest, res: Re
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('seller_subscriptions'))) {
+      return res.status(503).json({
+        message: 'Subscription billing requests are temporarily disabled by the platform.',
+        code: 'SELLER_SUBSCRIPTIONS_DISABLED',
+      });
     }
 
     const {

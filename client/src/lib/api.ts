@@ -1420,6 +1420,47 @@ export const adminLogisticsAPI = {
       credentials: 'include',
     }).then(handleResponse<{ message: string }>),
 
+  getDestinations: () =>
+    fetch(`${LOGISTICS_BASE}/destinations`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ destinations: any[] }>),
+  createDestination: (body: Record<string, unknown>) =>
+    fetch(`${LOGISTICS_BASE}/destinations`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ destination: any }>),
+  updateDestination: (id: string, body: Record<string, unknown>) =>
+    fetch(`${LOGISTICS_BASE}/destinations/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ destination: any }>),
+  deleteDestination: (id: string) =>
+    fetch(`${LOGISTICS_BASE}/destinations/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ message: string }>),
+
+  getPlatformPolicy: () =>
+    fetch(`${LOGISTICS_BASE}/platform-policy`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ policy: any; context: any }>),
+  updatePlatformPolicy: (body: Record<string, unknown>) =>
+    fetch(`${LOGISTICS_BASE}/platform-policy`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ policy: any; context: any }>),
+
   getDrivers: (params?: { search?: string }) => {
     const q = params?.search ? `?search=${encodeURIComponent(params.search)}` : '';
     return fetch(`${LOGISTICS_BASE}/drivers${q}`, {
@@ -2018,6 +2059,35 @@ export const adminSiteContentAPI = {
       credentials: 'include',
       body: JSON.stringify({ slides }),
     }).then(handleResponse<{ ok: boolean; slides: any[] }>),
+  getHomeProductLayout: () =>
+    fetch(`${ADMIN_SITE_BASE}/home-product-layout`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<any>),
+  putHomeProductLayout: (sections: unknown) =>
+    fetch(`${ADMIN_SITE_BASE}/home-product-layout`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ sections }),
+    }).then(handleResponse<any>),
+  resetHomeProductLayout: () =>
+    fetch(`${ADMIN_SITE_BASE}/home-product-layout/reset`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<any>),
+  publishHomeProductLayout: (body: {
+    superAdminPassword: string;
+    acknowledgment: string;
+    confirmPhrase: string;
+  }) =>
+    fetch(`${ADMIN_SITE_BASE}/home-product-layout/publish`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<any>),
 };
 
 const PUBLIC_CONTENT_BASE = `${API_BASE_URL}/public`;
@@ -2030,6 +2100,10 @@ export const publicSiteContentAPI = {
   getHomePromoBanners: () =>
     fetch(`${PUBLIC_CONTENT_BASE}/home-promo-banners`, { credentials: 'include' }).then(
       handleResponse<{ banners: any[] }>,
+    ),
+  getHomeProductLayout: () =>
+    fetch(`${PUBLIC_CONTENT_BASE}/home-product-layout`, { credentials: 'include' }).then(
+      handleResponse<{ sections: Record<string, unknown> }>,
     ),
 };
 
@@ -3131,6 +3205,19 @@ export const buyerReturnsAPI = {
       credentials: 'include',
       body: JSON.stringify(body),
     }).then(handleResponse<{ message: string; chat: any[] }>),
+  listMyReviews: () =>
+    fetch(`${BUYER_RETURNS_BASE}/post-delivery/reviews`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ reviews: any[] }>),
+  submitReview: (body: { orderId: string; productId: string; rating: number; message?: string }) =>
+    fetch(`${BUYER_RETURNS_BASE}/post-delivery/reviews`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ success: boolean; review: any; reward?: { points: number } }>),
 };
 
 const SELLER_RETURNS_BASE = `${API_BASE_URL}/seller/returns`;

@@ -20,6 +20,7 @@ import {
   Bell,
   Radio,
   UserCog,
+  SlidersHorizontal,
 } from 'lucide-react';
 import type { AdminScope } from './adminPermissions';
 import type { Profile } from '../types';
@@ -76,6 +77,7 @@ const ROUTE_ICONS: Record<string, LucideIcon> = {
   collections: FolderKanban,
   compliance: ShieldCheck,
   settings: Settings,
+  'system-controls': SlidersHorizontal,
 };
 
 /** Route id → permission scope (mirrors server ADMIN_UI_ROUTE_SCOPES). */
@@ -102,6 +104,7 @@ export const ADMIN_ROUTE_SCOPES: Record<string, AdminScope | 'super'> = {
   compliance: 'compliance',
   settings: 'settings',
   team: 'super',
+  'system-controls': 'super',
 };
 
 interface NavItemDef {
@@ -113,6 +116,7 @@ interface NavItemDef {
 const NAV_ITEMS: NavItemDef[] = [
   { routeId: 'dashboard', label: 'Dashboard', categoryId: 'overview' },
   { routeId: 'team', label: 'Admin team', categoryId: 'overview' },
+  { routeId: 'system-controls', label: 'System controls', categoryId: 'platform' },
   { routeId: 'system-analysis', label: 'System', categoryId: 'platform' },
   { routeId: 'security-analysis', label: 'Security', categoryId: 'platform' },
   { routeId: 'compliance', label: 'Compliance', categoryId: 'platform' },
@@ -145,7 +149,7 @@ function buildVisibleAdminMenuItems(
   badges?: Partial<Record<string, { text: string; tone: MenuItem['badgeTone'] }>>,
 ): MenuItem[] {
   return NAV_ITEMS.filter((item) => {
-    if (item.routeId === 'team') return isSuperAdmin(user);
+    if (item.routeId === 'team' || item.routeId === 'system-controls') return isSuperAdmin(user);
     return canAccessAdminRoute(user, item.routeId);
   }).map((item) => {
     const icon = ROUTE_ICONS[item.routeId] || LayoutDashboard;

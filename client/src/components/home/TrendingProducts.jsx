@@ -7,6 +7,14 @@ import { homeFeedApi } from '../../services/homeFeedApi';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
+import { useHomeLayoutForSection } from '../../hooks/useHomeLayoutConfig';
+import '../../styles/home-layout-cards.css';
+
+function densityArticleClass(density) {
+  if (density === 'compact') return 'home-card-density--compact';
+  if (density === 'compact_expandable') return 'home-card-density--compact home-card-density--expandable';
+  return '';
+}
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -29,7 +37,9 @@ const TRENDING_CACHE_TTL = 5 * 60 * 1000;
 let trendingCache = { data: null, ts: 0 };
 
 /* ─── Product card ───────────────────────────────────────────────────────── */
-function TrendCard({ product, index, onAdd }) {
+function TrendCard({ product, index, onAdd, cardDensity = 'standard' }) {
+  const [expanded, setExpanded] = useState(false);
+  const expandable = cardDensity === 'compact_expandable';
   const [wished, setWished] = useState(false);
   const [adding, setAdding] = useState(false);
   const img = resolveImg(product.thumbnail || product.images?.[0]);
@@ -45,8 +55,9 @@ function TrendCard({ product, index, onAdd }) {
 
   return (
     <motion.div
-      className="group relative w-full min-w-0"
+      className={`group relative w-full min-w-0 ${densityArticleClass(cardDensity)} ${expandable && expanded ? 'home-card-density--expanded' : ''}`.trim()}
       initial={{ opacity: 0, y: 24 }}
+      onClick={expandable ? () => setExpanded((v) => !v) : undefined}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.5, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
@@ -176,6 +187,18 @@ function TrendCard({ product, index, onAdd }) {
 /* ─── Section ────────────────────────────────────────────────────────────── */
 export default function TrendingProducts() {
   const { addItem } = useBuyerCart();
+  const { layout: layoutSettings } = useHomeLayoutForSection('trending', 'desktop');
+  const layoutMode = layoutSettings?.mode || 'grid';
+  const railCount = Math.max(1, Math.min(8, Number(layoutSettings?.railCount) || 4));
+  const gridCols = layoutSettings?.gridColumns || 4;
+  const gridClass =
+    gridCols === 2
+      ? 'grid grid-cols-2 gap-4'
+      : gridCols === 3
+        ? 'grid grid-cols-2 sm:grid-cols-3 gap-4'
+        : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-5 sm:gap-5 md:gap-6';
+  const cardDensity = layoutSettings?.cardDensity || 'standard';
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const headerRef = useRef(null);
@@ -303,9 +326,9 @@ export default function TrendingProducts() {
           </motion.div>
         </div>
 
-        {/* Grid */}
+        {/* Product layout (configurable; default = 4-col grid) */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className={gridClass}>
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
@@ -320,14 +343,46 @@ export default function TrendingProducts() {
               </div>
             ))}
           </div>
+        ) : products.length > 0 && layoutMode === 'trending_rail' ? (
+          <>
+            <div
+              className="flex gap-4 overflow-x-auto pb-4 scroll-touch mb-6"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {products.slice(0, railCount).map((p, i) => (
+                <div key={p._id} className="flex-shrink-0 w-[min(72vw,280px)]">
+                  <TrendCard product={p} index={i} onAdd={handleAdd} cardDensity={cardDensity} />
+                </div>
+              ))}
+            </div>
+            {products.length > railCount && (
+              <div className={gridClass}>
+                {products.slice(railCount).map((p, i) => (
+                  <TrendCard key={p._id} product={p} index={i + railCount} onAdd={handleAdd} cardDensity={cardDensity} />
+                ))}
+              </div>
+            )}
+          </>
+        ) : products.length > 0 && layoutMode === 'horizontal_carousel' ? (
+          <div
+            className="flex gap-4 overflow-x-auto pb-4 scroll-touch"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {products.map((p, i) => (
+              <div key={p._id} className="flex-shrink-0 w-[min(72vw,260px)]">
+                <TrendCard product={p} index={i} onAdd={handleAdd} cardDensity={cardDensity} />
+              </div>
+            ))}
+          </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-5 sm:gap-5 md:gap-6">
+          <div className={gridClass}>
             {products.map((p, i) => (
               <TrendCard
                 key={p._id}
                 product={p}
                 index={i}
                 onAdd={handleAdd}
+                cardDensity={cardDensity}
               />
             ))}
           </div>

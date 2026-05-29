@@ -208,4 +208,5 @@ export const ADMIN_UI_ROUTE_SCOPES: Record<string, AdminScope | 'super'> = {
   compliance: 'compliance',
   settings: 'settings',
   team: 'super',
+  'system-controls': 'super',
 };

@@ -53,23 +53,24 @@ type SettingsShape = {
 
 const emptySettings = (): SettingsShape => ({
   enabled: true,
-  currency: 'USD',
+  currency: 'RWF',
   warehouses: [
     {
       warehouseId: 'default',
       label: 'Main warehouse',
       address: '',
-      country: 'Rwanda',
+      city: 'Kigali',
+      country: 'RW',
       lat: -1.9441,
       lng: 30.0619,
       pickupAvailable: false,
     },
   ],
   defaults: {
-    baseFee: 5,
-    ratePerKm: 0.35,
+    baseFee: 1500,
+    ratePerKm: 150,
     handlingFee: 0,
-    minShippingFee: 3,
+    minShippingFee: 1000,
     freeShippingThreshold: undefined,
   },
   zones: [],
@@ -152,6 +153,7 @@ const SellerShippingSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsShape>(emptySettings);
+  const [platform, setPlatform] = useState<any>(null);
   const [initialSnapshot, setInitialSnapshot] = useState('');
   const loadMethods = useMemo(
     () => (savedMethods?: MethodRule[]) =>
@@ -162,6 +164,29 @@ const SellerShippingSettings: React.FC = () => {
     []
   );
 
+  const allowedMethodKeys = useMemo(
+    () => new Set<string>(platform?.policy?.enabledMethods || ['standard', 'express', 'pickup']),
+    [platform],
+  );
+
+  const displayMethods = useMemo(
+    () => settings.methods.filter((m) => allowedMethodKeys.has(m.key)),
+    [settings.methods, allowedMethodKeys],
+  );
+
+  const currency = platform?.policy?.currency || settings.currency || 'RWF';
+
+  const feeLimitHint = (key: 'baseFee' | 'ratePerKm' | 'handlingFee' | 'minShippingFee') => {
+    const range = platform?.policy?.feeLimits?.[key];
+    if (!range) return null;
+    return (
+      <span className="font-normal text-gray-400">
+        {' '}
+        ({range.min}–{range.max} {currency})
+      </span>
+    );
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -169,6 +194,7 @@ const SellerShippingSettings: React.FC = () => {
       try {
         const data = await sellerShippingAPI.get();
         if (cancelled) return;
+        if (data?.platform) setPlatform(data.platform);
         if (data?.settings) {
           const base = emptySettings();
           const incoming = data.settings as SettingsShape;
@@ -254,7 +280,7 @@ const SellerShippingSettings: React.FC = () => {
     }
     setSaving(true);
     try {
-      await sellerShippingAPI.put({
+      const res = await sellerShippingAPI.put({
         ...settings,
         warehouses: settings.warehouses.map((w) => ({
           ...w,
@@ -277,8 +303,22 @@ const SellerShippingSettings: React.FC = () => {
           estimatedDays: Number(m.estimatedDays) || 0,
         })),
       });
-      setInitialSnapshot(JSON.stringify(settings));
-      showToast('Shipping settings saved.', 'success');
+      if (res?.platform) setPlatform(res.platform);
+      if (res?.settings) {
+        const merged: SettingsShape = {
+          ...settings,
+          ...res.settings,
+          methods: loadMethods(res.settings.methods),
+        };
+        setSettings(merged);
+        setInitialSnapshot(JSON.stringify(merged));
+      } else {
+        setInitialSnapshot(JSON.stringify(settings));
+      }
+      showToast(
+        res?.settings ? 'Shipping settings saved within platform limits.' : 'Shipping settings saved.',
+        'success',
+      );
     } catch (e: any) {
       showToast(e?.response?.data?.message || 'Save failed', 'error');
     } finally {
@@ -336,7 +376,7 @@ const SellerShippingSettings: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Shipping Settings</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Configure delivery defaults, warehouse origins, methods, and zones in one place.
+            Set your warehouse and rates within Reaglex Rwanda platform rules. Buyers choose delivery city in the site header.
           </p>
         </div>
         <Button type="button" disabled={saving} onClick={save} className="ship-save-top-btn rounded-lg bg-[var(--brand-primary)] px-5">
@@ -345,18 +385,52 @@ const SellerShippingSettings: React.FC = () => {
         </Button>
       </div>
 
+      {platform && (
+        <section className="ship-card border-emerald-200 bg-emerald-50/40">
+          <div className="ship-card-body space-y-3">
+            <p className="text-sm font-semibold text-emerald-900">
+              Reaglex {platform.policy?.marketName || 'Rwanda'} — shared delivery network
+            </p>
+            <p className="text-xs text-emerald-800">
+              Admin manages cities ({platform.destinations?.length || 0}) and zones ({platform.zones?.length || 0}).
+              You manage warehouse location, fees ({platform.policy?.currency}), and delivery methods allowed by the platform.
+            </p>
+            {platform.destinations?.length > 0 && (
+              <p className="text-xs text-gray-600">
+                Buyers can deliver to:{' '}
+                {platform.destinations.slice(0, 6).map((d: { displayLabel: string }) => d.displayLabel).join(' · ')}
+                {platform.destinations.length > 6 ? ' …' : ''}
+              </p>
+            )}
+            {platform.roles?.seller?.length > 0 && (
+              <ul className="text-xs text-emerald-900/80 list-disc pl-4 space-y-0.5">
+                {platform.roles.seller.map((r: string) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      )}
+
       <section className="ship-card">
         <div className="ship-card-head">
           <h2 className="text-lg font-semibold text-gray-900">Default Fees</h2>
-          <p className="text-xs text-gray-500">Set your baseline shipping pricing model.</p>
+          <p className="text-xs text-gray-500">
+            Your rates are clamped to admin limits on save. Distance quotes use your warehouse + buyer city from the header.
+          </p>
         </div>
         <div className="ship-card-body">
         <div className="ship-grid-2 grid gap-4 sm:grid-cols-2">
           <label>
-            <span className="ship-label">Base fee</span>
+            <span className="ship-label">
+              Base fee
+              {feeLimitHint('baseFee')}
+            </span>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">RWF</span>
-            Base fee
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                {currency}
+              </span>
             <input
               type="number"
               className="ship-input pl-12"
@@ -369,9 +443,12 @@ const SellerShippingSettings: React.FC = () => {
             <div className="ship-help">Base cost applied to every shipment.</div>
           </label>
           <label>
-            <span className="ship-label">Rate per km</span>
+            <span className="ship-label">
+              Rate per km
+              {feeLimitHint('ratePerKm')}
+            </span>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">RWF</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{currency}</span>
             <input
               type="number"
               step="0.01"
@@ -385,9 +462,12 @@ const SellerShippingSettings: React.FC = () => {
             <div className="ship-help">Distance multiplier for route-based pricing.</div>
           </label>
           <label>
-            <span className="ship-label">Handling fee</span>
+            <span className="ship-label">
+              Handling fee
+              {feeLimitHint('handlingFee')}
+            </span>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">RWF</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{currency}</span>
             <input
               type="number"
               className="ship-input pl-12"
@@ -400,9 +480,12 @@ const SellerShippingSettings: React.FC = () => {
             <div className="ship-help">Packaging and processing surcharge.</div>
           </label>
           <label>
-            <span className="ship-label">Minimum shipping</span>
+            <span className="ship-label">
+              Minimum shipping
+              {feeLimitHint('minShippingFee')}
+            </span>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">RWF</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{currency}</span>
             <input
               type="number"
               className="ship-input pl-12"
@@ -432,7 +515,13 @@ const SellerShippingSettings: React.FC = () => {
               }
             />
             <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
-              Orders above this threshold can automatically qualify for free shipping.
+              Orders above this threshold can automatically qualify for free shipping from your store.
+              {platform?.policy?.platformFreeShippingThreshold ? (
+                <span className="block mt-1 text-orange-800">
+                  Platform-wide free shipping may also apply at{' '}
+                  {platform.policy.platformFreeShippingThreshold.toLocaleString()} {currency} (admin setting).
+                </span>
+              ) : null}
             </div>
           </label>
         </div>
@@ -512,10 +601,16 @@ const SellerShippingSettings: React.FC = () => {
       <section className="ship-card">
         <div className="ship-card-head">
           <h2 className="text-lg font-semibold text-gray-900">Shipping Methods</h2>
-          <p className="text-xs text-gray-500">Enable methods and configure each one only when needed.</p>
+          <p className="text-xs text-gray-500">
+            Only methods enabled by Reaglex admin appear here. ETA days must stay within platform limits (
+            {platform?.policy?.etaLimits?.min ?? 1}–{platform?.policy?.etaLimits?.max ?? 21} days).
+          </p>
         </div>
         <div className="ship-card-body space-y-3">
-          {settings.methods.map((m) => (
+          {displayMethods.length === 0 && (
+            <p className="text-sm text-gray-500">No delivery methods are enabled for sellers on this marketplace.</p>
+          )}
+          {displayMethods.map((m) => (
             <div
               key={m.key}
               style={{
@@ -577,8 +672,13 @@ const SellerShippingSettings: React.FC = () => {
         <div className="ship-card-head flex items-center justify-between gap-2">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Delivery Zones</h2>
-            <p className="text-xs text-gray-500">Apply country-based surcharges when needed.</p>
+            <p className="text-xs text-gray-500">
+              {platform?.policy?.sellerCanDefineZones
+                ? 'Apply country-based surcharges when needed.'
+                : 'Managed by Reaglex admin — platform zones apply to all sellers.'}
+            </p>
           </div>
+        {!platform?.policy?.sellerCanDefineZones ? null : (
         <Button
           type="button"
           variant="outline"
@@ -592,15 +692,32 @@ const SellerShippingSettings: React.FC = () => {
         >
           <Plus className="mr-1 h-4 w-4" /> Add zone
         </Button>
+        )}
         </div>
         <div className="ship-card-body">
         <div className="space-y-3">
-          {settings.zones.length === 0 && (
+          {!platform?.policy?.sellerCanDefineZones && (
+            <ul className="text-sm space-y-2">
+              {(platform?.zones || []).map((z: { id: string; name: string; baseRate: number; countries: string[] }) => (
+                <li key={z.id} className="rounded-lg border border-gray-100 px-3 py-2 flex justify-between gap-2">
+                  <span className="font-medium text-gray-800">{z.name}</span>
+                  <span className="text-gray-500 text-xs">
+                    {(z.countries || []).join(', ') || '—'} · +{z.baseRate} {platform?.policy?.currency}
+                  </span>
+                </li>
+              ))}
+              {!platform?.zones?.length && (
+                <p className="text-sm text-gray-500">No platform zones configured yet.</p>
+              )}
+            </ul>
+          )}
+          {platform?.policy?.sellerCanDefineZones && settings.zones.length === 0 && (
             <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
               No delivery zones yet. Add a zone to customize country-level surcharges.
             </div>
           )}
-          {settings.zones.map((z, zi) => (
+          {platform?.policy?.sellerCanDefineZones &&
+          settings.zones.map((z, zi) => (
             <div key={z.id} className="ship-grid-2 grid items-end gap-3 rounded-lg border border-gray-100 p-3 sm:grid-cols-[1.1fr_1.3fr_.8fr_auto]">
               <label>
                 <span className="ship-label">Zone name</span>

@@ -110,7 +110,7 @@ export function hasAdminScope(user: Profile | null | undefined, scope: AdminScop
 }
 
 export function canAccessAdminRoute(user: Profile | null | undefined, routeId: string): boolean {
-  if (routeId === 'team') return isSuperAdmin(user);
+  if (routeId === 'team' || routeId === 'system-controls') return isSuperAdmin(user);
   const scope = ADMIN_ROUTE_SCOPES[routeId];
   if (!scope) return isSuperAdmin(user);
   if (scope === 'super') return isSuperAdmin(user);

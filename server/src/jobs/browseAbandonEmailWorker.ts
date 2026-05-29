@@ -237,6 +237,8 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
 async function tick(): Promise<{ sent: number; skipped: number; failed: number }> {
   const stats = { sent: 0, skipped: 0, failed: 0 };
   if (!isEmailConfigured()) return stats;
+  const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('recommendation_emails'))) return stats;
   if (!(await isMarketingFlowEnabled('browse_abandon'))) return stats;
 
   const windowHours = getIntEnv('BROWSE_ABANDON_WINDOW_HOURS', 24);

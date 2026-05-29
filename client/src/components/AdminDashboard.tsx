@@ -38,6 +38,7 @@ import SystemAnalysisPage from '@/pages/admin/SystemAnalysisPage';
 import SecurityAnalysisPage from '@/pages/admin/SecurityAnalysisPage';
 import NotificationStudio from '@/pages/admin/notifications/NotificationStudio';
 import LiveCommerceControl from '@/pages/admin/LiveCommerceControl';
+import SystemFeatureControl from '@/pages/admin/SystemFeatureControl';
 import KycVerificationQueues from '@/pages/admin/kyc/KycVerificationQueues';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import { useAdminIntelligenceSearchStore } from '@/stores/adminIntelligenceSearchStore';
@@ -217,6 +218,7 @@ const AdminDashboard: React.FC = () => {
             <Route path="system-analysis" element={<AdminScopeGuard routeId="system-analysis"><SystemAnalysisPage /></AdminScopeGuard>} />
             <Route path="security-analysis" element={<AdminScopeGuard routeId="security-analysis"><SecurityAnalysisPage /></AdminScopeGuard>} />
             <Route path="team" element={<AdminScopeGuard routeId="team"><AdminTeamManagement /></AdminScopeGuard>} />
+            <Route path="system-controls" element={<AdminScopeGuard routeId="system-controls"><SystemFeatureControl /></AdminScopeGuard>} />
             <Route path="users" element={<AdminScopeGuard routeId="users"><UserManagement /></AdminScopeGuard>} />
             <Route path="sellers" element={<AdminScopeGuard routeId="sellers"><SellerStoreManagement /></AdminScopeGuard>} />
             <Route path="kyc-queues" element={<AdminScopeGuard routeId="kyc-queues"><KycVerificationQueues /></AdminScopeGuard>} />

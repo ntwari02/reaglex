@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
+import { useSystemFeatures } from '@/hooks/useSystemFeatures';
 
 export interface MenuItem {
   id: string;
@@ -77,6 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   hub = 'seller',
 }) => {
   const { t } = useTranslation();
+  const { isEnabled, loading: featuresLoading } = useSystemFeatures();
   const sellerSupportEmail = 'reaglexltd@gmail.com';
   const sellerDefaultMenuItems: MenuItem[] = [
     { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
@@ -94,9 +96,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: t('account.profileSettings'), icon: Settings },
   ];
 
+  const sellerMenuItems = useMemo(() => {
+    if (hub !== 'seller') return sellerDefaultMenuItems;
+    if (featuresLoading || isEnabled('seller_subscriptions')) return sellerDefaultMenuItems;
+    return sellerDefaultMenuItems.filter((item) => item.id !== 'subscription');
+  }, [hub, featuresLoading, isEnabled, sellerDefaultMenuItems]);
+
   const flatItems =
     menuItems ??
-    (hub === 'admin' ? [] : sellerDefaultMenuItems);
+    (hub === 'admin' ? [] : sellerMenuItems);
   const useSections = Boolean(menuSections?.length);
   const showEmptyAdminNav =
     hub === 'admin' && !useSections && flatItems.length === 0;

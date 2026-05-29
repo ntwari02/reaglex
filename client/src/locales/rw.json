@@ -241,7 +241,8 @@
     "placeOrder": "Ohereza itumiza",
     "subtotal": "Igiteranyo",
     "shipping": "Kohereza",
-    "tax10": "Umusoro 10%",
+    "tax10": "Umusoro (VAT)",
+    "taxVat": "Umusoro (VAT)",
     "total": "Igiteranyo rusange",
     "escrowProtected": "Ibikingiwe n'ububiko bwizewe",
     "paymentMethods": {

@@ -9,7 +9,7 @@ import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useMotionUi } from '../../stores/motionUiStore';
 
 /**
- * Swipe right → cart · swipe left → wishlist · press & hold or tap → quick preview · double-tap → add to cart
+ * Swipe right → cart · swipe left → wishlist · press & hold or tap → quick preview · double-tap → wishlist
  */
 const ExploreGestureCard = forwardRef(function ExploreGestureCard(
   {
@@ -66,7 +66,7 @@ const ExploreGestureCard = forwardRef(function ExploreGestureCard(
       }
       openPreview();
     },
-    onDoubleTap: handleSwipeCart,
+    onDoubleTap: handleSwipeWishlist,
   });
 
   const xStyle = useMotionTemplate`translateX(${x}px)`;
@@ -98,7 +98,7 @@ const ExploreGestureCard = forwardRef(function ExploreGestureCard(
         onKeyDown={(e) => {
           if (e.key === 'Enter') openPreview();
         }}
-        aria-label="Press and hold or tap to view. Swipe right to add to cart."
+        aria-label="Press and hold or tap to view. Swipe right to add to cart. Double-tap to wishlist."
       >
         <motion.div
           className="ex-gesture-reveal ex-gesture-reveal--cart"
@@ -119,7 +119,7 @@ const ExploreGestureCard = forwardRef(function ExploreGestureCard(
       </motion.div>
       {showHint && (
         <p className="ex-gesture-hint" aria-hidden>
-          Hold or tap to view · Swipe → cart
+          Hold or tap to view · Swipe → cart · Double-tap ♥
         </p>
       )}
     </motion.article>

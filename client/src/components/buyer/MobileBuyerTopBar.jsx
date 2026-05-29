@@ -5,9 +5,12 @@ import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { buyerNotificationsApi } from '../../services/buyerNotificationsApi';
 import NotificationsDropdown from '../NotificationsDropdown';
+import AccountMenuButton from '../header/AccountMenuButton';
+import DeliveryLocationBar from '../delivery/DeliveryLocationBar';
+import '../../styles/delivery-location.css';
 import { useMobileMenuOverlay } from '../../stores/mobileMenuOverlayStore';
 
-export default function MobileBuyerTopBar() {
+export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
   const openMenu = useMobileMenuOverlay((s) => s.open);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
@@ -56,7 +59,8 @@ export default function MobileBuyerTopBar() {
           <Menu size={20} strokeWidth={1.85} />
         </button>
 
-        <Link to="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 max-w-[52%]">
+        <Link to="/" className="flex items-center gap-1.5">
           <img
             src="/logo.jpg"
             alt=""
@@ -70,6 +74,8 @@ export default function MobileBuyerTopBar() {
             REAG<span style={{ color: 'var(--brand-primary)' }}>LEX</span>
           </span>
         </Link>
+        <DeliveryLocationBar compact className="scale-[0.92] origin-center" />
+        </div>
 
         <div className="flex items-center gap-1 shrink-0">
           <div className="relative" ref={notifRef}>
@@ -122,6 +128,12 @@ export default function MobileBuyerTopBar() {
               </span>
             )}
           </button>
+
+          <AccountMenuButton
+            variant="mobile"
+            onLogoutClick={onLogoutClick}
+            openAuth={openAuth}
+          />
         </div>
       </div>
 

@@ -21,6 +21,8 @@ import SellerRoute from './components/SellerRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './components/AdminDashboard';
 import { useAuthStore } from './stores/authStore';
+import { useSystemFeatures } from './hooks/useSystemFeatures';
+import LiveCommerceRouteGuard from './components/platform/LiveCommerceRouteGuard';
 import BuyerShellGuard from './components/BuyerShellGuard';
 import NotFoundRedirect from './components/NotFoundRedirect';
 import { canAccessBuyerUi, getDashboardPathForRole } from './lib/authRouting';
@@ -92,7 +94,9 @@ function GlobalMobileMenuOverlay() {
 
 function GlobalAssistantChat() {
   const user = useAuthStore((s) => s.user);
+  const { isEnabled, loading } = useSystemFeatures();
   if (user && !canAccessBuyerUi(user)) return null;
+  if (!loading && !isEnabled('buyer_assistant_chat')) return null;
   return <AssistantChat />;
 }
 
@@ -311,8 +315,8 @@ function App() {
               <Route path="/search" element={<SearchResults />} />
               <Route path="/products" element={<SearchResults />} />
               <Route path="/explore" element={<ExploreAll />} />
-              <Route path="/live" element={<LiveDiscover />} />
-              <Route path="/live/:sessionId" element={<LiveSession />} />
+              <Route path="/live" element={<LiveCommerceRouteGuard><LiveDiscover /></LiveCommerceRouteGuard>} />
+              <Route path="/live/:sessionId" element={<LiveCommerceRouteGuard><LiveSession /></LiveCommerceRouteGuard>} />
               <Route path="/category/:slug" element={<CategoryBrowse />} />
               <Route path="/product/:slug" element={<BuyerProductDetail />} />
               <Route path="/products/:id" element={<BuyerProductDetail />} />

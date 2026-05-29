@@ -2,6 +2,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { shippingAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
+let taxRateCache = 0.18;
+let taxRateCacheAt = 0;
+
+async function getSalesTaxRate() {
+  if (Date.now() - taxRateCacheAt < 5 * 60 * 1000) return taxRateCache;
+  try {
+    const ctx = await shippingAPI.getPlatformContext();
+    const rate = Number(ctx?.policy?.salesTaxRate);
+    if (Number.isFinite(rate) && rate >= 0 && rate <= 1) {
+      taxRateCache = rate;
+      taxRateCacheAt = Date.now();
+    }
+  } catch {
+    /* keep cached/default */
+  }
+  return taxRateCache;
+}
+
 /**
  * Live shipping preview for the cart drawer (multi-seller, zone + distance rules).
  * Uses /shipping/estimate when logged out; /shipping/quote with estimate:true when logged in.
@@ -11,7 +29,12 @@ export function useCartShippingPreview(items, shippingPreviewLocation) {
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [taxRate, setTaxRate] = useState(taxRateCache);
   const timerRef = useRef(null);
+
+  useEffect(() => {
+    void getSalesTaxRate().then(setTaxRate);
+  }, []);
 
   const run = useCallback(async () => {
     if (!items?.length || !shippingPreviewLocation?.country?.trim() || !shippingPreviewLocation?.city?.trim()) {
@@ -73,10 +96,10 @@ export function useCartShippingPreview(items, shippingPreviewLocation) {
     };
   }, [run]);
 
-  const tax = (items || []).reduce((s, i) => s + i.price * i.quantity, 0) * 0.1;
   const subtotal = (items || []).reduce((s, i) => s + i.price * i.quantity, 0);
+  const tax = subtotal * taxRate;
   const shippingTotal = quote?.totalShipping != null ? Number(quote.totalShipping) : 0;
   const grand = subtotal + shippingTotal + tax;
 
-  return { quote, loading, error, subtotal, tax, shippingTotal, grand, refresh: run };
+  return { quote, loading, error, subtotal, tax, taxRate, shippingTotal, grand, refresh: run };
 }

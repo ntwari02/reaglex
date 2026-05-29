@@ -15,6 +15,15 @@ import {
   type ReaglexShippingMethodRule,
   defaultReaglexSellerShipping,
 } from '../types/reaglexShipping.types';
+import {
+  applyDestinationEtaToMethods,
+  findDeliveryDestination,
+} from './deliveryDestination.service';
+import {
+  getPlatformShippingContext,
+  platformZoneSurcharge,
+  applyPlatformPolicyToSellerConfig,
+} from './platformShippingPolicy.service';
 
 export const GROUP_KEY_SEP = '|';
 
@@ -168,6 +177,8 @@ export function computeMethodPrice(params: {
   cartSubtotal: number;
   buyerCountry: string;
   platformFreeThreshold?: number;
+  /** When set (platform-managed zones), replaces seller zone surcharges. */
+  externalZoneSurcharge?: number;
 }): {
   shippingTotal: number;
   freeShippingApplied: boolean;
@@ -177,7 +188,7 @@ export function computeMethodPrice(params: {
   minShippingFee: number;
   zoneSurcharge: number;
 } {
-  const { cfg, methodKey, distanceKm, groupSubtotal, cartSubtotal, buyerCountry, platformFreeThreshold } = params;
+  const { cfg, methodKey, distanceKm, groupSubtotal, cartSubtotal, buyerCountry, platformFreeThreshold, externalZoneSurcharge } = params;
   const merged = mergeMethodRule(cfg, methodKey);
   if (!merged.enabled && methodKey !== 'pickup') {
     return {
@@ -191,7 +202,10 @@ export function computeMethodPrice(params: {
     };
   }
 
-  const zoneSurcharge = zoneSurchargeForCountry(cfg, buyerCountry);
+  const zoneSurcharge =
+    externalZoneSurcharge != null
+      ? externalZoneSurcharge
+      : zoneSurchargeForCountry(cfg, buyerCountry);
 
   let freeShippingApplied = false;
   if (platformFreeThreshold != null && cartSubtotal >= platformFreeThreshold) {
@@ -332,29 +346,43 @@ export async function quoteReaglexShipments(params: {
     .filter(Boolean)
     .join(', ');
 
-  let destCoords: LatLng | null = null;
-  destCoords = await geocodeAddressFreeform(destText);
+  const buyerCountry = String(params.shippingAddress.country || '').toUpperCase();
+  const buyerCity = String(params.shippingAddress.city || '').trim();
+  const deliveryDest = await findDeliveryDestination(buyerCountry, buyerCity);
+
+  let destCoords: LatLng | null = await geocodeAddressFreeform(destText);
+  if (!destCoords && deliveryDest?.lat != null && deliveryDest?.lng != null) {
+    destCoords = { lat: Number(deliveryDest.lat), lng: Number(deliveryDest.lng) };
+    warnings.push(`Using ${deliveryDest.displayLabel || buyerCity} coordinates for distance estimate.`);
+  }
   if (!destCoords) {
-    warnings.push('Could not geocode buyer address; using straight-line distance fallback from city centroid is not implemented — distance may use seller region only.');
+    warnings.push('Could not geocode buyer address; using default 5 km estimate.');
     destCoords = { lat: 0, lng: 0 };
   }
-
-  const buyerCountry = String(params.shippingAddress.country || '').toUpperCase();
   const cartSubtotal = params.lines.reduce((s, l) => {
     const p = pmap.get(String(l.productId));
     return s + (p ? p.price * l.quantity : 0);
   }, 0);
 
+  const platformCtx = await getPlatformShippingContext();
+  const policy = platformCtx.policy;
   const platformFreeRaw = process.env.REAGLEX_PLATFORM_FREE_SHIPPING_THRESHOLD;
   const platformFreeThreshold =
-    platformFreeRaw != null && String(platformFreeRaw).trim() !== '' ? Number(platformFreeRaw) : undefined;
+    policy.platformFreeShippingThreshold ??
+    (platformFreeRaw != null && String(platformFreeRaw).trim() !== ''
+      ? Number(platformFreeRaw)
+      : undefined);
 
   const groups: ShipmentGroupQuote[] = [];
   let totalShipping = 0;
 
   for (const [groupKey, g] of groupMap) {
     const seller = await User.findById(g.sellerId).select('reaglexSellerShipping fullName').lean();
-    const cfg = resolveSellerShippingConfig((seller as { reaglexSellerShipping?: unknown })?.reaglexSellerShipping);
+    const rawCfg = resolveSellerShippingConfig((seller as { reaglexSellerShipping?: unknown })?.reaglexSellerShipping);
+    const cfg = applyPlatformPolicyToSellerConfig(rawCfg, policy as any);
+    const externalZoneSurcharge = policy.sellerCanDefineZones
+      ? undefined
+      : platformZoneSurcharge(buyerCountry, platformCtx.zones);
     const wh = cfg.warehouses.find((w) => w.warehouseId === g.warehouseId) || cfg.warehouses[0];
     if (!wh || !Number.isFinite(wh.lat) || !Number.isFinite(wh.lng)) {
       warnings.push(`Seller ${g.sellerId} missing warehouse coordinates; using defaults.`);
@@ -400,6 +428,7 @@ export async function quoteReaglexShipments(params: {
         cartSubtotal,
         buyerCountry,
         platformFreeThreshold,
+        externalZoneSurcharge,
       });
       methodEntries.push({
         key,
@@ -416,6 +445,8 @@ export async function quoteReaglexShipments(params: {
         pickupAvailable: Boolean(wh?.pickupAvailable),
       });
     }
+
+    applyDestinationEtaToMethods(methodEntries, deliveryDest);
 
     const chosen = keys.includes(selected) ? selected : 'standard';
     const chosenPrice =

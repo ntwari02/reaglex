@@ -112,6 +112,7 @@ export const productAPI = {
 
   /** Toggle wishlist (auth required) */
   toggleWishlist: (id: string) => api.post(`/products/${id}/wishlist`).then((r) => r.data),
+  listWishlist: () => api.get('/products/wishlist/mine').then((r) => r.data),
 };
 
 /** Public category taxonomy + hub metadata (guest-safe, cached on API). */
@@ -136,16 +137,38 @@ export const authAPI = {
 
 export const orderAPI = {
   create: (body: unknown) => api.post('/orders', body).then((r) => r.data),
+  list: (params?: { status?: string; page?: number; limit?: number }) =>
+    api.get('/orders', { params }).then((r) => r.data),
+  trackByNumber: (orderNumber: string, query: { email?: string; phone?: string }) =>
+    api.get(`/orders/track/${encodeURIComponent(orderNumber)}`, { params: query }).then((r) => r.data),
+  getById: (orderId: string) => api.get(`/orders/${orderId}`).then((r) => r.data),
   cancel: (orderId: string) => api.patch(`/orders/${orderId}/cancel`).then((r) => r.data),
+  confirmReceipt: (orderId: string) =>
+    api.post(`/orders/${orderId}/confirm-receipt`).then((r) => r.data),
   checkoutIntelligence: (body: unknown) =>
     api.post('/orders/checkout-intelligence', body).then((r) => r.data),
 };
 
 /** Reaglex multi-seller distance-based shipping quotes (buyer). */
 export const shippingAPI = {
+  /** Admin-configured cities/countries for “Deliver to …” picker */
+  getDestinations: () => publicApi.get('/shipping/destinations').then((r) => r.data),
+  /** Unified admin + seller shipping rules (Rwanda market) */
+  getPlatformContext: () => publicApi.get('/shipping/platform-context').then((r) => r.data),
+  resolveDestination: (country: string, city: string) =>
+    publicApi
+      .get('/shipping/destinations/resolve', { params: { country, city } })
+      .then((r) => r.data),
   quote: (body: unknown) => api.post('/shipping/quote', body).then((r) => r.data),
   /** Public coarse quote for guests (cart preview). */
   estimate: (body: unknown) => publicApi.post('/shipping/estimate', body).then((r) => r.data),
+  /** Single-product delivery preview for PDP */
+  estimateProduct: (body: { productId: string; quantity?: number; destination: { country: string; city: string; state?: string; postal_code?: string } }) =>
+    publicApi.post('/shipping/estimate', {
+      lines: [{ productId: body.productId, quantity: body.quantity ?? 1 }],
+      destination: body.destination,
+      selectedMethods: {},
+    }).then((r) => r.data),
 };
 
 /** Seller shipping rules (warehouses, methods, zones). */

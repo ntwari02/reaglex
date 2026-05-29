@@ -13,6 +13,7 @@ import {
   Smartphone,
   Shield,
   Wallet,
+  Banknote,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -79,6 +80,29 @@ export default function Checkout() {
     mtn_momo: 'RWF',
   });
   const [gwLoaded, setGwLoaded] = useState(false);
+  const [codEnabled, setCodEnabled] = useState(false);
+  const [salesTaxRate, setSalesTaxRate] = useState(0.18);
+  const [loginHint, setLoginHint] = useState(false);
+
+  useEffect(() => {
+    shippingAPI
+      .getPlatformContext()
+      .then((ctx) => {
+        setCodEnabled(ctx?.policy?.codEnabled !== false);
+        const rate = Number(ctx?.policy?.salesTaxRate);
+        if (Number.isFinite(rate) && rate >= 0 && rate <= 1) setSalesTaxRate(rate);
+      })
+      .catch(() => {
+        setCodEnabled(false);
+        setSalesTaxRate(0.18);
+      });
+  }, []);
+
+  const codEligible = useMemo(() => {
+    if (!codEnabled) return false;
+    const c = String(address.country || shippingPreviewLocation?.country || '').toUpperCase();
+    return c === 'RW' || c === 'RWA' || c.includes('RWANDA');
+  }, [codEnabled, address.country, shippingPreviewLocation?.country]);
 
   const loadGateways = useCallback(() => {
     fetch(`${API_BASE_URL}/public/payment-gateways?t=${Date.now()}`, { cache: 'no-store' })
@@ -169,9 +193,12 @@ export default function Checkout() {
     if (!shippingPreviewLocation?.country && !shippingPreviewLocation?.city) return;
     setAddress((a) => ({
       ...a,
-      country: a.country?.trim() ? a.country : shippingPreviewLocation.country,
+      country:
+        a.country?.trim()
+          ? a.country
+          : shippingPreviewLocation.country || shippingPreviewLocation.countryCode || 'RW',
       city: a.city?.trim() ? a.city : shippingPreviewLocation.city,
-      state: a.state?.trim() ? a.state : shippingPreviewLocation.state || '',
+      state: a.state?.trim() ? a.state : shippingPreviewLocation.state || shippingPreviewLocation.region || '',
       zip: a.zip?.trim() ? a.zip : shippingPreviewLocation.zip || '',
     }));
   }, [shippingPreviewLocation]);
@@ -191,8 +218,9 @@ export default function Checkout() {
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
   const shippingCost = Number(shippingQuote?.totalShipping) || 0;
-  const tax = subtotal * 0.1;
-  const total = subtotal + shippingCost + tax;
+  const tax = Math.round(subtotal * salesTaxRate * 100) / 100;
+  const total = Math.round((subtotal + shippingCost + tax) * 100) / 100;
+  const vatLabel = `VAT (${Math.round(salesTaxRate * 100)}%)`;
 
   const quoteFingerprint = useMemo(() => {
     const hasFull =
@@ -323,7 +351,10 @@ export default function Checkout() {
     gateways.mtn_momo ||
     gateways.stripe ||
     gateways.paypal ||
-    gateways.airtel_money;
+    gateways.airtel_money ||
+    codEligible;
+
+  const canProceedToReview = anyGatewayEnabled && (checkoutProvider !== 'cod' || codEligible);
 
   const nextStep = () => setStep((s) => Math.min(4, s + 1));
   const prevStep = () => setStep((s) => Math.max(1, s - 1));
@@ -331,22 +362,25 @@ export default function Checkout() {
   const placeOrder = async () => {
     if (!agreedTerms) return alert(t('checkout.errors.agreeTerms'));
     if (!user?.id) {
+      setLoginHint(true);
       navigate(`/auth?tab=login&redirect=${encodeURIComponent('/checkout')}`);
       return;
     }
+    const isCod = checkoutProvider === 'cod';
     const gwOk = (k) => {
+      if (k === 'cod') return codEligible;
       if (k === 'momo') return gateways.mtn_momo;
       if (k === 'airtel') return gateways.airtel_money;
       return gateways[k];
     };
     if (!gwOk(checkoutProvider)) {
-      return alert(t('checkout.errors.gatewayDisabled'));
+      return alert(isCod ? 'Cash on delivery is not available for this address.' : t('checkout.errors.gatewayDisabled'));
     }
-    if (checkoutProvider === 'momo') {
+    if (!isCod && checkoutProvider === 'momo') {
       const ph = (momoPhone || address.phone || '').trim();
       if (!ph) return alert(t('checkout.errors.momoPhoneRequired'));
     }
-    if (checkoutProvider === 'airtel') {
+    if (!isCod && checkoutProvider === 'airtel') {
       const ph = (airtelPhone || address.phone || '').trim();
       if (!ph) return alert(t('checkout.errors.airtelPhoneRequired'));
     }
@@ -433,8 +467,9 @@ export default function Checkout() {
           postal_code: address.zip,
           country: address.country,
         },
-        paymentMethod:
-          checkoutProvider === 'momo'
+        paymentMethod: isCod
+          ? 'cash_on_delivery'
+          : checkoutProvider === 'momo'
             ? gatewayOrderCurrency.mtn_momo
             : checkoutProvider === 'airtel'
               ? 'RWF'
@@ -459,6 +494,19 @@ export default function Checkout() {
       }
 
       createdOrders = orders;
+
+      if (createRes?.skipPaymentInit || createRes?.paymentMode === 'cod') {
+        clearCart();
+        setPlacing(false);
+        navigate('/account?tab=orders&placed=cod', {
+          state: {
+            message: 'Order placed! Pay cash when your delivery arrives.',
+            orderNumbers: orders.map((o) => o.orderNumber || o.id),
+          },
+        });
+        return;
+      }
+
       try {
         if (orders.length > 1 && typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem(
@@ -918,6 +966,32 @@ export default function Checkout() {
                           </p>
                         </button>
                       )}
+                      {codEligible && (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutProvider('cod')}
+                          className="flex flex-col rounded-2xl border-2 p-5 text-left transition hover:shadow-md sm:col-span-2"
+                          style={{
+                            borderColor: checkoutProvider === 'cod' ? 'var(--brand-primary)' : 'var(--divider)',
+                            background: checkoutProvider === 'cod' ? 'var(--brand-tint)' : 'var(--card-bg)',
+                          }}
+                        >
+                          <div className="mb-3 flex items-center gap-2">
+                            <div
+                              className="flex h-10 w-10 items-center justify-center rounded-xl"
+                              style={{ background: 'linear-gradient(135deg,#059669,#047857)' }}
+                            >
+                              <Banknote className="h-5 w-5 text-white" />
+                            </div>
+                            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
+                              Pay on delivery (Cash)
+                            </span>
+                          </div>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                            Popular in Rwanda — pay the driver or seller when you receive your order. No mobile money needed now.
+                          </p>
+                        </button>
+                      )}
                     </div>
                     {!anyGatewayEnabled && gwLoaded && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -971,6 +1045,11 @@ export default function Checkout() {
                         {t('checkout.paypalHosted')}
                       </div>
                     )}
+                    {checkoutProvider === 'cod' && (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100">
+                        You will pay in cash (RWF) when the order arrives. Keep your phone nearby for delivery updates.
+                      </div>
+                    )}
                     <div className="flex gap-3 pt-2">
                       <button
                         onClick={prevStep}
@@ -983,7 +1062,7 @@ export default function Checkout() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={nextStep}
-                        disabled={!anyGatewayEnabled}
+                        disabled={!canProceedToReview}
                         className="flex-1 rounded-2xl py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                         style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                       >
@@ -1210,7 +1289,7 @@ export default function Checkout() {
                 <span>{fmtMoney(shippingCost)}</span>
               </div>
               <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
-                <span>{t('checkout.tax10')}</span>
+                <span>{vatLabel}</span>
                 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {fmtMoney(tax)}
                 </span>

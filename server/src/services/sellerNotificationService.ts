@@ -27,6 +27,7 @@ const EVENT_PREF: Partial<Record<SellerNotificationEvent, PreferenceKey>> = {
   return_opened: 'newDisputes',
   payout_received: 'paymentReceived',
   funds_released: 'paymentReceived',
+  order_cancelled: 'newOrders',
   low_stock: 'lowStock',
   new_message: 'newMessages',
   new_review: 'newReviews',

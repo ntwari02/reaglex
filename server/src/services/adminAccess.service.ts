@@ -137,6 +137,12 @@ export async function canAccessAdminApiPath(userId: string, method: string, path
   if (p.startsWith('/api/admin/intelligence/settings')) {
     return false;
   }
+  if (p.startsWith('/api/admin/system-features')) {
+    return false;
+  }
+  if (p.includes('/home-product-layout')) {
+    return false;
+  }
   if (p.startsWith('/api/admin/staff')) {
     return false;
   }

@@ -1,4 +1,13 @@
 import { HOME_PRODUCT_LIMIT } from '../../../hooks/useHomeFeedSections';
+import { useHomeLayoutForSection } from '../../../hooks/useHomeLayoutConfig';
+import { layoutModeToExploreLayout } from '../../../constants/buyerHomeLayoutDefaults';
+import '../../../styles/home-layout-cards.css';
+
+function cardDensityClass(density) {
+  if (density === 'compact') return 'ex-card--compact';
+  if (density === 'compact_expandable') return 'ex-card--compact ex-card--expandable';
+  return '';
+}
 import MobileSectionHeader from './MobileSectionHeader';
 import {
   ExploreAIHeroCard,
@@ -7,29 +16,46 @@ import {
 } from '../../explore/ExploreProductCards';
 
 export { HOME_PRODUCT_LIMIT };
-const TRENDING_RAIL_COUNT = 4;
+const TRENDING_RAIL_COUNT_DEFAULT = 4;
 
 /**
  * Home sections reuse Explore All card system (rail + 2-col grid).
  */
 export default function HomeExploreSection({
   id,
+  sectionKey,
   title,
   subtitle,
   href,
   products = [],
   loading = false,
-  layout = 'grid',
+  layout: layoutProp,
+  layoutOverride = null,
   variant = 'trending',
 }) {
+  const key = sectionKey || id?.replace(/^mob-/, '') || 'trending';
+  const { layout: fetchedLayout } = useHomeLayoutForSection(key, 'mobile');
+  const layoutSettings = layoutOverride || fetchedLayout;
+  const layout = layoutProp || layoutModeToExploreLayout(layoutSettings?.mode || 'grid');
+  const railCount = Math.max(1, Math.min(8, Number(layoutSettings?.railCount) || TRENDING_RAIL_COUNT_DEFAULT));
+  const cardDensity = layoutSettings?.cardDensity || 'standard';
+  const densityCls = cardDensityClass(cardDensity);
+
   const items = (Array.isArray(products) ? products : []).slice(0, HOME_PRODUCT_LIMIT);
 
   if (!loading && items.length === 0) return null;
 
-  const railItems = layout === 'trending' ? items.slice(0, TRENDING_RAIL_COUNT) : [];
+  const railItems = layout === 'trending' ? items.slice(0, railCount) : [];
   const gridItems =
-    layout === 'trending' ? items.slice(TRENDING_RAIL_COUNT) : layout === 'ai' ? items.slice(1) : items;
+    layout === 'trending'
+      ? items.slice(railCount)
+      : layout === 'ai'
+        ? items.slice(1)
+        : layout === 'carousel'
+          ? []
+          : items;
   const heroProduct = layout === 'ai' ? items[0] : null;
+  const carouselItems = layout === 'carousel' ? items : [];
 
   return (
     <section className="mob-section mob-home-ex" aria-labelledby={id}>
@@ -43,7 +69,30 @@ export default function HomeExploreSection({
             <div className="ex-rail-wrap mob-home-ex-rail">
               <div className="ex-rail-scroll">
                 {railItems.map((p, i) => (
-                  <ExploreTrendingRailCard key={p._id || p.id || `rail-${i}`} product={p} index={i} />
+                  <ExploreTrendingRailCard
+                    key={p._id || p.id || `rail-${i}`}
+                    product={p}
+                    index={i}
+                    cardDensity={cardDensity}
+                    className={densityCls}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {layout === 'carousel' && carouselItems.length > 0 && (
+            <div className="ex-rail-wrap mob-home-ex-rail">
+              <div className="ex-rail-scroll">
+                {carouselItems.map((p, i) => (
+                  <ExploreGridCard
+                    key={p._id || p.id || `car-${i}`}
+                    product={p}
+                    variant={variant}
+                    index={i}
+                    cardDensity={cardDensity}
+                    className={densityCls}
+                  />
                 ))}
               </div>
             </div>
@@ -59,6 +108,8 @@ export default function HomeExploreSection({
                   product={p}
                   variant={variant}
                   index={i}
+                  cardDensity={cardDensity}
+                  className={densityCls}
                 />
               ))}
             </div>
@@ -70,6 +121,18 @@ export default function HomeExploreSection({
 }
 
 function HomeExploreSkeleton({ layout }) {
+  if (layout === 'carousel') {
+    return (
+      <div className="ex-rail-wrap mob-home-ex-rail">
+        <div className="ex-rail-scroll">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="ex-skeleton-rail" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (layout === 'trending') {
     return (
       <>

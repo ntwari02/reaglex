@@ -4,6 +4,7 @@ import { Product } from '../models/Product';
 import { User } from '../models/User';
 import { initializePayment } from './paymentService';
 import { getMomoResolvedConfig } from './paymentGatewayCredentials.service';
+import { getPlatformSalesTaxRate, computeSalesTax } from './platformTax.service';
 
 export type ShippingSpeed = 'standard' | 'express' | 'international';
 
@@ -111,7 +112,8 @@ export async function performCheckoutSingleProduct(
     const subtotal = product.price * qty;
     const discount = 0;
     const subtotalAfterDiscount = subtotal - discount;
-    const tax = subtotalAfterDiscount * 0.1;
+    const salesTaxRate = await getPlatformSalesTaxRate();
+    const tax = computeSalesTax(subtotalAfterDiscount, salesTaxRate);
     const ship = shippingCost(input.shippingSpeed);
     const total = subtotalAfterDiscount + tax + ship;
 

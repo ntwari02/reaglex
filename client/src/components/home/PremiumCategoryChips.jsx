@@ -50,9 +50,9 @@ export default function PremiumCategoryChips({ activeId = 'all', onSelect }) {
     categories.length > 0 ? buildChipsFromApi(categories) : FALLBACK_CHIPS;
 
   return (
-    <section className="px-4 pb-1 pt-0 md:pb-2" aria-label="Categories">
+    <section className="mob-cat-strip px-3 pb-0 pt-0 md:px-4 md:pb-2" aria-label="Categories">
       <motion.div
-        className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide"
+        className="mob-cat-strip-scroll flex gap-1 overflow-x-auto pb-0.5 scrollbar-hide md:gap-2.5 md:pb-1"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {chips.map((c) => {
@@ -63,15 +63,15 @@ export default function PremiumCategoryChips({ activeId = 'all', onSelect }) {
               key={c.id}
               to={c.href}
               onClick={() => onSelect?.(c.id)}
-              className="mob-cat-chip flex w-[52px] shrink-0 flex-col items-center gap-1 md:w-[56px]"
+              className="mob-cat-chip flex w-[44px] shrink-0 flex-col items-center gap-0.5 md:w-[56px] md:gap-1"
             >
               <motion.span
                 whileTap={{ scale: 0.94 }}
                 transition={springSnappy}
-                className="mob-cat-chip-icon flex h-10 w-10 items-center justify-center rounded-xl md:h-11 md:w-11"
+                className="mob-cat-chip-icon flex h-9 w-9 items-center justify-center rounded-lg md:h-11 md:w-11 md:rounded-xl"
                 data-active={active ? 'true' : 'false'}
               >
-                <Icon size={18} strokeWidth={1.65} className="md:hidden" aria-hidden />
+                <Icon size={16} strokeWidth={1.65} className="md:hidden" aria-hidden />
                 <Icon size={22} strokeWidth={1.65} className="hidden md:block" aria-hidden />
               </motion.span>
               <span className="mob-cat-chip-label max-w-full truncate text-center" data-active={active ? 'true' : 'false'}>

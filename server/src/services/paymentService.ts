@@ -199,6 +199,17 @@ export async function finalizeSuccessfulEscrowPayment(
       const insurancePremium = Number(order.escrow?.insurance?.premium || 0);
       const baseWithoutInsurance = Math.max(0, feeBaseAmount - insurancePremium);
 
+      const { isSystemFeatureEnabled } = await import('./systemFeatureSettings.service');
+      const escrowEnabled = await isSystemFeatureEnabled('escrow_payments');
+      const releaseEligibleAt =
+        (order as any)?.fulfillment?.type === 'digital'
+          ? new Date(Date.now() + 10 * 60 * 1000)
+          : (order as any)?.fulfillment?.type === 'shipping'
+            ? new Date(
+                Date.now() + parseInt(process.env.AUTO_RELEASE_DAYS || '3', 10) * 24 * 60 * 60 * 1000
+              )
+            : undefined;
+
       await Order.findByIdAndUpdate(
         orderId,
         {
@@ -219,24 +230,31 @@ export async function finalizeSuccessfulEscrowPayment(
           ...(ctx.paypalOrderId ? { 'payment.paypalOrderId': ctx.paypalOrderId } : {}),
           ...(ctx.paypalCaptureId ? { 'payment.paypalCaptureId': ctx.paypalCaptureId } : {}),
           ...(ctx.airtelTransactionId ? { 'payment.airtelTransactionId': ctx.airtelTransactionId } : {}),
-          'escrow.status': 'ESCROW_HOLD',
-          'escrow.heldAt': new Date(),
+          'escrow.status': escrowEnabled ? 'ESCROW_HOLD' : 'RELEASED',
+          ...(escrowEnabled
+            ? {
+                'escrow.heldAt': new Date(),
+                'escrow.releasedProductAmount': 0,
+                'escrow.releasedShippingAmount': 0,
+                'escrow.releasedTaxAmount': 0,
+                'escrow.releasedSellerReserve': 0,
+                'escrow.releaseEligibleAt': releaseEligibleAt,
+                'escrow.autoReleaseScheduled':
+                  (order as any)?.fulfillment?.type === 'shipping' ||
+                  (order as any)?.fulfillment?.type === 'digital',
+              }
+            : {
+                'escrow.releasedAt': new Date(),
+                'escrow.releasedProductAmount': Number(order.subtotal || 0),
+                'escrow.releasedShippingAmount': Number(order.shipping || 0),
+                'escrow.releasedTaxAmount': Number(order.tax || 0),
+                'escrow.releasedSellerReserve': Number(fees.sellerReceives || 0),
+                'escrow.autoReleaseScheduled': false,
+              }),
           'escrow.productAmount': Number(order.subtotal || 0),
           'escrow.shippingAmount': Number(order.shipping || 0),
           'escrow.taxAmount': Number(order.tax || 0),
           'escrow.sellerReserve': Number(fees.sellerReceives || 0),
-          'escrow.releasedProductAmount': 0,
-          'escrow.releasedShippingAmount': 0,
-          'escrow.releasedTaxAmount': 0,
-          'escrow.releasedSellerReserve': 0,
-          'escrow.releaseEligibleAt':
-            (order as any)?.fulfillment?.type === 'digital'
-              ? new Date(Date.now() + 10 * 60 * 1000)
-              : (order as any)?.fulfillment?.type === 'shipping'
-                ? new Date(
-                    Date.now() + parseInt(process.env.AUTO_RELEASE_DAYS || '3', 10) * 24 * 60 * 60 * 1000
-                  )
-                : undefined,
           'escrow.trustScore.buyer': trustScore.buyer,
           'escrow.trustScore.seller': trustScore.seller,
           'escrow.trustScore.riskTier': trustScore.riskTier,
@@ -256,15 +274,14 @@ export async function finalizeSuccessfulEscrowPayment(
           'fees.platformFeeAmount': fees.platformFee,
           'fees.sellerAmount': fees.sellerReceives,
           'fees.flutterwaveFee': fees.flutterwaveFee,
-          'escrow.autoReleaseScheduled': (order as any)?.fulfillment?.type === 'shipping' || (order as any)?.fulfillment?.type === 'digital',
         },
         { session },
       );
 
-      await EscrowWallet.updateOne({}, { $inc: { totalHeld: feeBaseAmount } }, { upsert: true, session });
+      if (escrowEnabled) {
+        await EscrowWallet.updateOne({}, { $inc: { totalHeld: feeBaseAmount } }, { upsert: true, session });
+      }
 
-      // Keep seller-facing wallet balances in sync:
-      // funds are held in pending until delivery release moves them to available.
       await SellerWallet.updateOne(
         { sellerId: order.sellerId },
         {
@@ -272,7 +289,9 @@ export async function finalizeSuccessfulEscrowPayment(
             sellerId: order.sellerId,
             currency: ctx.currency || 'USD',
           },
-          $inc: { 'balance.pending': fees.sellerReceives },
+          $inc: escrowEnabled
+            ? { 'balance.pending': fees.sellerReceives }
+            : { 'balance.available': fees.sellerReceives },
         },
         { upsert: true, session },
       );

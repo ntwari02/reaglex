@@ -12,9 +12,13 @@
     --mob-space-5: 20px;
     --mob-space-6: 24px;
 
-    --mob-header-row: 44px;
+    --mob-header-row: 48px;
     --mob-search-row: 48px;
-    --mob-header-total: calc(var(--mob-header-row) + var(--mob-search-row) + env(safe-area-inset-top, 0px));
+    --mob-cat-row: 52px;
+    --mob-header-total: calc(
+      var(--mob-header-row) + var(--mob-search-row) + var(--mob-cat-row) +
+        env(safe-area-inset-top, 0px)
+    );
     --mob-dock-height: 60px;
     --mob-dock-bottom: calc(var(--mob-dock-height) + max(8px, env(safe-area-inset-bottom, 0px)) + 8px);
 
@@ -130,6 +134,20 @@
     gap: var(--mob-space-2) !important;
   }
 
+  /* Category strip under mobile header — tight horizontal spacing */
+  .mob-cat-strip {
+    margin-top: -2px;
+  }
+
+  .mob-cat-strip-scroll {
+    gap: 4px;
+    scroll-padding-inline: 12px;
+  }
+
+  .mob-cat-chip {
+    min-width: 44px;
+  }
+
   /* Category chips — reference: gray tile, orange ring when active */
   .mob-cat-chip-icon {
     background: var(--bg-secondary, #f3f4f6);
@@ -145,9 +163,9 @@
   }
 
   .mob-cat-chip-label {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 500;
-    line-height: 1.2;
+    line-height: 1.15;
     color: var(--text-secondary);
   }
 

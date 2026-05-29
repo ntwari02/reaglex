@@ -575,8 +575,44 @@ export async function createInstantResolution(req: AuthenticatedRequest, res: Re
   }
 }
 
+export async function listMyReviews(req: AuthenticatedRequest, res: Response) {
+  try {
+    const buyerId = buyerIdFrom(req);
+    if (!buyerId) return res.status(401).json({ message: 'Authentication required' });
+
+    const reviews = await ProductReview.find({ userId: buyerId })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    return res.json({
+      reviews: reviews.map((r) => ({
+        id: String(r._id),
+        productId: String(r.productId),
+        productName: r.productName,
+        orderId: r.orderId,
+        rating: r.rating,
+        message: r.message,
+        status: r.status,
+        createdAt: r.createdAt,
+        verifiedPurchase: r.verifiedPurchase,
+      })),
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || 'Failed to load reviews' });
+  }
+}
+
 export async function submitRewardedReview(req: AuthenticatedRequest, res: Response) {
   try {
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('product_reviews'))) {
+      return res.status(503).json({
+        message: 'Product reviews are temporarily disabled',
+        code: 'FEATURE_DISABLED',
+      });
+    }
+
     const buyerId = buyerIdFrom(req);
     if (!buyerId) return res.status(401).json({ message: 'Authentication required' });
     const {
@@ -599,9 +635,9 @@ export async function submitRewardedReview(req: AuthenticatedRequest, res: Respo
     const order = await Order.findOne({
       _id: new mongoose.Types.ObjectId(orderId),
       buyerId,
-      status: { $in: ['delivered', 'shipped'] },
+      status: { $in: ['delivered', 'shipped', 'completed'] },
     } as any).lean();
-    if (!order) return res.status(404).json({ message: 'Delivered order not found' });
+    if (!order) return res.status(404).json({ message: 'Eligible order not found for review' });
 
     const product = await Product.findById(productId).select('name').lean();
     if (!product) return res.status(404).json({ message: 'Product not found' });

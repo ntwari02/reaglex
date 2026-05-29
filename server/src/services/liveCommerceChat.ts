@@ -71,6 +71,8 @@ export async function postLiveChatMessage(input: {
 
   const session = await LiveCommerceSession.findById(input.sessionId).lean();
   if (!session || session.status !== 'live') return null;
+  const { isSystemFeatureEnabled } = await import('./systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('live_commerce_chat'))) return null;
   if (session.features?.chat === false) return null;
 
   let replyToId: mongoose.Types.ObjectId | undefined;

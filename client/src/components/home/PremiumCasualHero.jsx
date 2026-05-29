@@ -5,6 +5,7 @@ import { Autoplay, Parallax } from 'swiper/modules';
 import { useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useHeroCarousel } from '../../hooks/useBuyerSiteContent';
+import { usePlatformFeature } from '../../hooks/useSystemFeatures';
 import UpcomingHeroSlide from './mobile/UpcomingHeroSlide';
 import { UPCOMING_HERO_TEASER } from './mobile/upcomingProductsData';
 import '../../styles/upcoming-products.css';
@@ -78,6 +79,7 @@ function mapApiSlides(slides) {
 export default function PremiumCasualHero({ isDark, className = '', compact = false }) {
   const reduceMotion = useReducedMotion();
   const [active, setActive] = useState(0);
+  const { enabled: heroOn } = usePlatformFeature('hero_carousel');
   const { data: heroData } = useHeroCarousel();
   const baseSlides =
     heroData?.slides?.length > 0 ? mapApiSlides(heroData.slides) : FALLBACK_SLIDES;
@@ -103,6 +105,8 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
   const articleMinH = compact
     ? ''
     : 'min-h-[248px] md:min-h-[280px] lg:min-h-[360px] xl:min-h-[420px]';
+
+  if (!heroOn) return null;
 
   return (
     <section

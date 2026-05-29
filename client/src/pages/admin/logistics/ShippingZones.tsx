@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Plus, Edit, Trash2, DollarSign, Package, Navigation, Zap } from 'lucide-react';
 import { adminLogisticsAPI } from '@/lib/api';
 import { pageTransition, listRowStagger } from './logisticsAnimations';
+import { Link } from 'react-router-dom';
 
 interface ShippingZone {
   id: string;
@@ -73,7 +74,11 @@ export default function ShippingZones() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Shipping Zones & Rates</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Configure shipping zones and delivery rates. Data from backend.
+            Country/region surcharges applied to all sellers when platform manages zones (default). Sellers see these read-only; configure limits under{' '}
+            <Link to="/admin/logistics?tab=platform" className="font-semibold text-emerald-700 hover:underline">
+              Rwanda Policy
+            </Link>
+            .
           </p>
         </div>
         <button
@@ -175,13 +180,13 @@ export default function ShippingZones() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        ${zone.baseRate}
+                        ${zone.baseRate} RWF
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       {zone.freeShippingThreshold != null ? (
                         <span className="text-sm text-gray-700 dark:text-gray-300">
-                          ${zone.freeShippingThreshold}+
+                          ${zone.freeShippingThreshold}+ RWF
                         </span>
                       ) : (
                         <span className="text-sm text-gray-400 dark:text-gray-500">N/A</span>
