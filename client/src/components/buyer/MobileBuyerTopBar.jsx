@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { Menu, Bell, ShoppingBag } from 'lucide-react';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { buyerNotificationsApi } from '../../services/buyerNotificationsApi';
 import NotificationsDropdown from '../NotificationsDropdown';
 import AccountMenuButton from '../header/AccountMenuButton';
+import BrandMarkR from '../header/BrandMarkR';
 import DeliveryLocationBar from '../delivery/DeliveryLocationBar';
 import '../../styles/delivery-location.css';
 import { useMobileMenuOverlay } from '../../stores/mobileMenuOverlayStore';
@@ -43,46 +43,35 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
 
   return (
     <>
-      <div className="md:hidden relative flex items-center justify-between gap-2 w-full px-4 min-h-[48px] max-h-[52px] py-2">
-        <button
-          type="button"
-          onClick={openMenu}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border active:scale-95 transition-transform"
-          style={{
-            WebkitTapHighlightColor: 'transparent',
-            borderColor: 'var(--border-card)',
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-          }}
-          aria-label="Open menu"
-        >
-          <Menu size={20} strokeWidth={1.85} />
-        </button>
-
-        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 max-w-[52%]">
-        <Link to="/" className="flex items-center gap-1.5">
-          <img
-            src="/logo.jpg"
-            alt=""
-            className="h-7 w-7 rounded-full object-cover"
-            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
-          />
-          <span
-            className="text-[11px] font-extrabold tracking-[0.06em]"
-            style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}
+      <div className="md:hidden mob-header-row w-full px-3 min-h-[48px] max-h-[52px] py-1.5">
+        <div className="mob-header-row__left">
+          <button
+            type="button"
+            onClick={openMenu}
+            className="mob-header-icon-btn"
+            style={{
+              WebkitTapHighlightColor: 'transparent',
+              borderColor: 'var(--border-card)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+            }}
+            aria-label="Open menu"
           >
-            REAG<span style={{ color: 'var(--brand-primary)' }}>LEX</span>
-          </span>
-        </Link>
-        <DeliveryLocationBar compact className="scale-[0.92] origin-center" />
+            <Menu size={20} strokeWidth={1.85} />
+          </button>
+          <BrandMarkR />
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="mob-header-row__center">
+          <DeliveryLocationBar headerCenter />
+        </div>
+
+        <div className="mob-header-row__right">
           <div className="relative" ref={notifRef}>
             <button
               type="button"
               onClick={() => setNotifOpen((v) => !v)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl border active:scale-95 transition-transform"
+              className="mob-header-icon-btn"
               style={{
                 borderColor: 'var(--border-card)',
                 background: 'var(--bg-secondary)',
@@ -110,7 +99,7 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
             type="button"
             data-cart-target="badge"
             onClick={openCart}
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl border active:scale-95 transition-transform"
+            className="mob-header-icon-btn"
             style={{
               borderColor: 'var(--border-card)',
               background: 'var(--bg-secondary)',
@@ -136,7 +125,6 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
           />
         </div>
       </div>
-
     </>
   );
 }

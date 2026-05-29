@@ -19,6 +19,19 @@ const DEFAULT_DESTINATIONS: Array<Partial<IDeliveryDestination>> = [
   {
     countryCode: 'RW',
     countryName: 'Rwanda',
+    city: 'Nyamagabe',
+    region: 'Nyamagabe',
+    displayLabel: 'Nyamagabe, Rwanda',
+    extraEtaDays: 1,
+    etaDaysMin: 3,
+    etaDaysMax: 8,
+    lat: -2.35,
+    lng: 29.55,
+    sortOrder: 1,
+  },
+  {
+    countryCode: 'RW',
+    countryName: 'Rwanda',
     city: 'Muhanga',
     region: 'Southern Province',
     displayLabel: 'Muhanga, Rwanda',
@@ -27,7 +40,7 @@ const DEFAULT_DESTINATIONS: Array<Partial<IDeliveryDestination>> = [
     etaDaysMax: 7,
     lat: -2.0764,
     lng: 29.7556,
-    sortOrder: 1,
+    sortOrder: 2,
   },
   {
     countryCode: 'RW',
@@ -38,7 +51,7 @@ const DEFAULT_DESTINATIONS: Array<Partial<IDeliveryDestination>> = [
     extraEtaDays: 1,
     etaDaysMin: 3,
     etaDaysMax: 8,
-    sortOrder: 2,
+    sortOrder: 3,
   },
   {
     countryCode: 'RW',
@@ -49,7 +62,7 @@ const DEFAULT_DESTINATIONS: Array<Partial<IDeliveryDestination>> = [
     extraEtaDays: 2,
     etaDaysMin: 4,
     etaDaysMax: 9,
-    sortOrder: 3,
+    sortOrder: 4,
   },
   {
     countryCode: 'RW',
@@ -60,7 +73,7 @@ const DEFAULT_DESTINATIONS: Array<Partial<IDeliveryDestination>> = [
     extraEtaDays: 2,
     etaDaysMin: 4,
     etaDaysMax: 10,
-    sortOrder: 4,
+    sortOrder: 5,
   },
   {
     countryCode: 'KE',

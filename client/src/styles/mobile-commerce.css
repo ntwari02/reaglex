@@ -40,6 +40,16 @@
   .mob-page {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+
+  .mob-page .premium-casual-hero {
+    overflow: visible;
+  }
+
+  .mob-page .premium-casual-hero > div {
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .mob-section {

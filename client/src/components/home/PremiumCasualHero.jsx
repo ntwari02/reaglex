@@ -97,7 +97,7 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
   const fullWidthLg = !compact;
 
   const sectionPad = compact
-    ? 'px-4 pb-3'
+    ? 'px-3 pb-3'
     : 'w-full px-4 pb-6 sm:px-6 lg:px-0 lg:pb-8';
   const shellRadius = fullWidthLg ? 'rounded-[24px] lg:rounded-none' : 'overflow-hidden';
   const shellLg = fullWidthLg ? 'lg:border-x-0 lg:border-t-0 lg:shadow-none' : '';
@@ -119,6 +119,7 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
           borderRadius: fullWidthLg ? undefined : radius,
           boxShadow: compact ? 'var(--shadow-sm)' : 'var(--shadow-md)',
           border: '1px solid color-mix(in srgb, var(--border-card) 55%, transparent)',
+          overflow: 'visible',
         }}
       >
         <Swiper
@@ -147,7 +148,7 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
                 {slide.videoUrl ? (
                   <video
                     src={slide.videoUrl}
-                    className="absolute inset-0 h-full w-full object-cover scale-[1.06]"
+                    className="absolute inset-0 h-full w-full object-cover"
                     autoPlay
                     muted
                     loop
@@ -158,7 +159,7 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
                   <img
                     src={slide.image}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover select-none scale-[1.06]"
+                    className="absolute inset-0 h-full w-full object-cover select-none"
                     loading={i === 0 ? 'eager' : 'lazy'}
                     decoding="async"
                     draggable={false}
@@ -178,8 +179,8 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
                   style={compact ? { minHeight: slideMinH } : undefined}
                 >
                   <div
-                    className={`flex max-w-[58%] flex-col justify-center pr-2 ${
-                      compact ? 'px-3.5 py-4' : 'px-5 py-7 lg:max-w-[48%] lg:px-10 lg:py-10 xl:px-14'
+                    className={`flex flex-col justify-center pr-2 ${
+                      compact ? 'max-w-[72%] px-3 py-4' : 'max-w-[58%] px-5 py-7 lg:max-w-[48%] lg:px-10 lg:py-10 xl:px-14'
                     }`}
                     data-swiper-parallax="-120"
                   >

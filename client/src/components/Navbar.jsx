@@ -23,6 +23,7 @@ import { useMotionUi } from '../stores/motionUiStore';
 import MobileBuyerTopBar from './buyer/MobileBuyerTopBar';
 import AccountMenuButton from './header/AccountMenuButton';
 import DeliveryLocationBar from './delivery/DeliveryLocationBar';
+import BrandMarkR from './header/BrandMarkR';
 import '../styles/delivery-location.css';
 import PremiumCategoryChips from './home/PremiumCategoryChips';
 import {
@@ -125,15 +126,18 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) 
         zIndex: 103,
       }}
     >
-      <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+      <div className="flex items-center gap-3 min-w-0 flex-shrink-0 max-w-[28%]">
         <p className="text-xs truncate topbar-text hidden lg:block" style={{ maxWidth: 160 }}>
           {t('header.freeShipping')} 🚚
         </p>
-        <DeliveryLocationBar compact />
       </div>
 
-      <div className="flex-1 flex justify-center min-w-0 mx-4">
-        <div className="overflow-hidden text-center">
+      <div className="flex-1 flex justify-center min-w-0 px-2">
+        <DeliveryLocationBar headerCenter />
+      </div>
+
+      <div className="flex items-center gap-3 flex-shrink-0 justify-end max-w-[44%]">
+        <div className="overflow-hidden text-center hidden xl:block max-w-[200px]">
           <AnimatePresence mode="wait">
             <motion.p
               key={announcementIndex}
@@ -141,15 +145,12 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) 
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3 }}
-              className="text-xs topbar-text"
+              className="text-xs topbar-text truncate"
             >
               {t(ANNOUNCEMENT_KEYS[announcementIndex])}
             </motion.p>
           </AnimatePresence>
         </div>
-      </div>
-
-      <div className="flex items-center gap-3 flex-shrink-0">
         <div className="relative" ref={langRef}>
           <button
             type="button"
@@ -452,38 +453,9 @@ function MainHeader({
     <div
       className="hidden md:flex items-center justify-between gap-2 md:gap-4 w-full px-3 sm:px-6 lg:px-8 xl:px-12 min-h-[48px] md:h-[70px] md:min-h-0 py-1.5 md:py-0"
     >
-      {/* Logo */}
-      <Link
-        to="/"
-        className="flex items-center gap-2 flex-shrink-0 md:flex-1 md:max-w-[200px]"
-      >
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          transition={{ duration: 0.2 }}
-          className="flex items-center gap-2"
-        >
-          <img
-            src="/logo.jpg"
-            alt="Reaglex"
-            className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover flex-shrink-0"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-          />
-          <div className="hidden sm:block">
-            <span
-              className="font-bold block leading-tight"
-              style={{ fontSize: 20, color: 'var(--text-primary)', fontFamily: "'Mea Culpa', serif" }}
-            >
-              Reag<span style={{ color: PRIMARY, fontFamily: "'Mea Culpa', serif" }}>lex</span>
-            </span>
-            <span
-              className="text-[10px] block leading-tight"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Buy & Sell Anything
-            </span>
-          </div>
-        </motion.div>
-      </Link>
+      <div className="flex items-center gap-2 flex-shrink-0 md:max-w-[72px]">
+        <BrandMarkR />
+      </div>
 
       {/* ── Enhanced futuristic search bar ── */}
       <form

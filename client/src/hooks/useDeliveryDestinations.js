@@ -45,10 +45,19 @@ export function useDeliveryDestinations() {
 }
 
 export function formatDeliverToLabel(loc) {
-  if (!loc?.city) return 'Select location';
+  if (!loc?.city && !loc?.district) return 'Select location';
   const country = loc.countryName || loc.country || '';
-  if (country && country.length > 2 && country !== loc.city) {
-    return `${loc.city}, ${country}`;
+  const place = loc.district || loc.city;
+  if (country && country.length > 2 && country !== place) {
+    return `${place}, ${country}`;
   }
-  return loc.city;
+  return place;
+}
+
+/** Compact header line: "delivery in nyamagabe" (lowercase district). */
+export function formatHeaderDeliveryLabel(loc, { detecting = false } = {}) {
+  if (detecting) return 'detecting location…';
+  const place = String(loc?.district || loc?.city || '').trim();
+  if (!place) return 'choose delivery area';
+  return `delivery in ${place.toLowerCase()}`;
 }

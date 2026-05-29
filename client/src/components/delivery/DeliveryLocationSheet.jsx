@@ -121,6 +121,7 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
                             country: d.countryCode,
                             countryName: d.countryName,
                             city: d.city,
+                            district: d.region || d.city,
                             state: d.region || '',
                             zip: '',
                             displayLabel: d.displayLabel,
