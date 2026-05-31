@@ -26,6 +26,7 @@ import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttr
 import { productImageLayoutId } from '../motion/presets';
 import LiveProductTeaser from '../components/live/LiveProductTeaser';
 import { previewGalleryItems } from '../components/product/productPreviewUtils';
+import { resolveProductPriceUsd } from '../lib/resolveProductPrice';
 
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
@@ -198,7 +199,7 @@ export default function ProductDetail() {
         jsonLd: undefined,
       };
     }
-    const price = product?.price || 0;
+    const price = resolveProductPriceUsd(product);
     const stock = product?.stockQuantity ?? product?.stock ?? 0;
     const rating = Number(product?.ratingAverage || product?.averageRating || product?.rating || 0);
     const reviewsCount = Number(product?.reviewCount || product?.totalReviews || 0);
@@ -526,7 +527,7 @@ export default function ProductDetail() {
     setShareOpen(false);
   };
 
-  const previewPrice = product?.price || 0;
+  const previewPrice = resolveProductPriceUsd(productPreview || product);
   const previewOldPrice = productOldPrice(product);
   const galleryItems = useMemo(() => {
     if (!product) {
@@ -615,9 +616,9 @@ export default function ProductDetail() {
             ) : (
               <div className="h-8 w-3/4 rounded-xl pwa-skeleton" />
             )}
-            {productPreview?.price != null ? (
+            {previewPrice > 0 ? (
               <p className="text-xl font-bold" style={{ color: 'var(--brand-primary)' }}>
-                {currencyPricing.formatLocalWithUsd(productPreview.price)}
+                {currencyPricing.formatLocalWithUsd(previewPrice)}
               </p>
             ) : (
               <div className="h-7 w-28 rounded-lg pwa-skeleton" />
@@ -650,8 +651,8 @@ export default function ProductDetail() {
   );
 
   /* ── derived values (product is guaranteed non-null below) ── */
-  const price        = product.price || 0;
-  const basePrice    = product.price || 0;
+  const price        = resolveProductPriceUsd(product);
+  const basePrice    = price;
   const totalPrice   = basePrice * quantity;
   const oldPrice     = productOldPrice(product);
   const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;

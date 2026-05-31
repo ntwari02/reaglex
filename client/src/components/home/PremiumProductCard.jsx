@@ -5,6 +5,7 @@ import { Heart, Star, ShoppingBag } from 'lucide-react';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useWishlistStore } from '../../stores/wishlistStore';
+import { resolveProductPriceUsd } from '../../lib/resolveProductPrice';
 import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { useProductCardGestures } from '../../hooks/useProductCardGestures';
 import { useMotionUi } from '../../stores/motionUiStore';
@@ -41,7 +42,7 @@ export default function PremiumProductCard({ product, index = 0 }) {
   const currencyPricing = useCurrencyPricing();
 
   const name = product.title || product.name || 'Product';
-  const price = product.price || 0;
+  const price = resolveProductPriceUsd(product);
   const rating = Number(product.averageRating || product.rating || 4.6);
   const reviews = product.totalReviews || product.reviewCount || 0;
   const primary = Array.isArray(product.images)

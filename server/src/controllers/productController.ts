@@ -9,6 +9,7 @@ import { recordRecommendationActivity } from '../services/recommendationEmail.se
 import { buyerVisibleProductFilter, isProductBuyerVisible } from '../utils/publicProductQuery';
 import { ensureProductHasSlug } from '../utils/productSlug';
 import { buildCategorySlugFilter } from '../constants/storefrontCategories';
+import { withResolvedProductPrice } from '../utils/productPricing';
 
 /** Public product listing & detail (buyer-visible + SEO slugs). */
 
@@ -54,6 +55,10 @@ function normalizeProductMedia(product: any) {
   }
 
   return product;
+}
+
+function normalizeProductPricing(product: any) {
+  return withResolvedProductPrice(product || {});
 }
 
 /**
@@ -134,7 +139,7 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
       Product.countDocuments(filter),
     ]);
 
-    const normalizedProducts = products.map((p) => normalizeProductMedia(p));
+    const normalizedProducts = products.map((p) => normalizeProductPricing(normalizeProductMedia(p)));
 
     return res.json({
       products: normalizedProducts,
@@ -205,7 +210,7 @@ async function enrichAndSendProduct(
   leanProduct: Record<string, unknown> | null,
   productIdForAnalytics: string,
 ) {
-  const product = normalizeProductMedia(leanProduct) as Record<string, unknown> | null;
+  const product = normalizeProductPricing(normalizeProductMedia(leanProduct)) as Record<string, unknown> | null;
 
   if (!product) {
     return res.status(404).json({ message: 'Product not found' });
@@ -424,7 +429,7 @@ export async function listUserWishlist(req: AuthenticatedRequest, res: Response)
 
     const productIds = rows.map((r) => r.productId);
     const products = await Product.find({ _id: { $in: productIds }, ...buyerVisibleProductFilter() })
-      .select('name slug price images averageRating totalReviews sellerId category')
+      .select('name slug price listingPriceAmount listingCurrency listingExchangeRate images averageRating totalReviews sellerId category')
       .lean();
     const pmap = new Map(products.map((p) => [String(p._id), p]));
 
@@ -435,16 +440,20 @@ export async function listUserWishlist(req: AuthenticatedRequest, res: Response)
         const primaryImg = Array.isArray((p as any).images)
           ? (p as any).images.find((i: { is_primary?: boolean }) => i?.is_primary) || (p as any).images[0]
           : null;
+        const priced = normalizeProductPricing(p as any);
         return {
           id: String(row._id),
           product_id: String(p._id),
           created_at: row.createdAt,
           product: {
             id: String(p._id),
-            title: (p as any).name,
-            name: (p as any).name,
-            slug: (p as any).slug,
-            price: (p as any).price,
+            title: (priced as any).name,
+            name: (priced as any).name,
+            slug: (priced as any).slug,
+            price: (priced as any).price,
+            listingPriceAmount: (priced as any).listingPriceAmount,
+            listingCurrency: (priced as any).listingCurrency,
+            listingExchangeRate: (priced as any).listingExchangeRate,
             image: primaryImg?.url || primaryImg?.secure_url || null,
             images: (p as any).images,
             averageRating: (p as any).averageRating,

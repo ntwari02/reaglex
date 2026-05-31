@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '../../stores/authStore';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useWishlistStore } from '../../stores/wishlistStore';
+import { resolveProductPriceUsd } from '../../lib/resolveProductPrice';
 import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { useMotionUi } from '../../stores/motionUiStore';
 import { usePlatformFeature } from '../../hooks/useSystemFeatures';
@@ -142,7 +143,7 @@ export function ExploreTrendingRailCard({ product, index = 0, cardDensity = 'sta
           </div>
           <div className="ex-rail-card-body">
             <h3 className="ex-card-title">{productDisplayName(product)}</h3>
-            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
+            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(resolveProductPriceUsd(product))}</p>
             <div className="ex-rating">
               <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />
               <span>{Number(product.rating || product.averageRating || 4.7).toFixed(1)}</span>
@@ -183,7 +184,7 @@ export function ExploreAIHeroCard({ product }) {
           <h3 className="ex-ai-hero-title">{productDisplayName(product)}</h3>
           <p className="ex-ai-hero-reason">{reason}</p>
           <p className="ex-card-price ex-ai-hero-price">
-            {currencyPricing.formatLocalWithUsd(product.price || 0)}
+            {currencyPricing.formatLocalWithUsd(resolveProductPriceUsd(product))}
           </p>
         </div>
       </button>
@@ -292,7 +293,7 @@ export function ExploreGridCard({ product, variant = 'trending', index = 0, sub,
               <p className="ex-card-store">{product.sellerName || product.storeName || 'Verified'}</p>
             )}
             {meta && <p className="ex-card-meta">{meta}</p>}
-            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(product.price || 0)}</p>
+            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(resolveProductPriceUsd(product))}</p>
             {(variant === 'trending' || variant === 'bestseller') && (
               <div className="ex-rating">
                 <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />

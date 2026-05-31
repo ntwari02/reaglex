@@ -42,6 +42,7 @@ import { getSponsoredCandidates, planSponsoredSlots } from './sponsoredAdEngine'
 import { applyFairness, commitImpressionCounters } from './fairnessEngine';
 import { expandCategories } from './categoryAdjacencyEngine';
 import { bootstrapSessionIfNew } from './coldStartEngine';
+import { resolveCanonicalProductPriceUsd } from '../../utils/productPricing';
 import { decideMarketplaceDirective, type MarketplaceDirective } from './marketplaceOrchestrator';
 
 export type FeedSectionId =
@@ -146,7 +147,7 @@ function toCard(rp: RankedProduct, extra?: Partial<FeedProductCard['aiMeta']>): 
   const card: FeedProductCard = {
     _id: String(p._id),
     name: String(p.name || 'Product'),
-    price: Number(p.price) || 0,
+    price: resolveCanonicalProductPriceUsd(p),
     compareAtPrice: p.compareAtPrice,
     discount: p.discount,
     thumbnail: p.thumbnail || p.images?.[0] || p.image,
@@ -383,7 +384,7 @@ async function buildUpcomingSection(
   const products: FeedProductCard[] = (docs as IProduct[]).map((p) => ({
     _id: String((p as any)._id),
     name: String(p.name || 'Upcoming drop'),
-    price: Number(p.price) || 0,
+    price: resolveCanonicalProductPriceUsd(p as any),
     compareAtPrice: (p as any).compareAtPrice,
     discount: (p as any).discount,
     thumbnail: (p as any).images?.[0] || (p as any).image,

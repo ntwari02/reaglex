@@ -24,12 +24,18 @@ function resolvePreviewImage(product: Record<string, unknown>) {
   return value.startsWith('http') ? value : `${SERVER_URL}${value.startsWith('/') ? value : `/${value}`}`;
 }
 
+import { resolveProductPriceUsd } from './resolveProductPrice';
+
 export function buildProductPreview(product: Record<string, unknown>) {
   const id = String(product._id || product.id || '');
   return {
     id,
     title: String(product.title || product.name || 'Product'),
     image: resolvePreviewImage(product),
+    price: resolveProductPriceUsd(product),
+    listingPriceAmount: product.listingPriceAmount,
+    listingCurrency: product.listingCurrency,
+    listingExchangeRate: product.listingExchangeRate,
   };
 }
 
