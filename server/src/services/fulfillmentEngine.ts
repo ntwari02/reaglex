@@ -4,16 +4,16 @@ export type FulfillmentType = 'shipping' | 'pickup' | 'digital' | 'service';
 
 export interface FulfillmentGroup {
   type: FulfillmentType;
-  items: Array<{ productId: string; quantity: number }>;
+  items: Array<{ productId: string; quantity: number; variantSku?: string }>;
 }
 
 export function splitOrderGroups(params: {
-  lines: Array<{ productId: string; quantity: number }>;
+  lines: Array<{ productId: string; quantity: number; variantSku?: string }>;
   productsById: Map<string, { fulfillmentType?: FulfillmentType }>;
   fulfillmentByProduct?: Record<string, FulfillmentType>;
   fallbackType?: FulfillmentType;
 }): FulfillmentGroup[] {
-  const byType = new Map<FulfillmentType, Array<{ productId: string; quantity: number }>>();
+  const byType = new Map<FulfillmentType, Array<{ productId: string; quantity: number; variantSku?: string }>>();
   const fallback = params.fallbackType || 'shipping';
   for (const line of params.lines || []) {
     if (!mongoose.Types.ObjectId.isValid(String(line.productId))) continue;
@@ -24,6 +24,7 @@ export function splitOrderGroups(params: {
     byType.get(type)!.push({
       productId: String(line.productId),
       quantity: Math.max(1, Math.min(999, Number(line.quantity) || 1)),
+      variantSku: line.variantSku ? String(line.variantSku).trim() : undefined,
     });
   }
 

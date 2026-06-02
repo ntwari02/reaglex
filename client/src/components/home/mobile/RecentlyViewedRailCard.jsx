@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Heart, Star, ShoppingBag } from 'lucide-react';
+import { Heart, Star } from 'lucide-react';
+import MobileAddCta from './MobileAddCta';
 import { useNavigate } from 'react-router-dom';
 import { useBuyerCart } from '../../../stores/buyerCartStore';
 import { useAuthStore } from '../../../stores/authStore';
@@ -70,18 +71,6 @@ export default function RecentlyViewedRailCard({ product, index = 0, showHotBadg
               />
             </button>
           )}
-          <button
-            type="button"
-            className="rv-ymal-card__cart"
-            aria-label="Add to cart"
-            disabled={stock <= 0}
-            onClick={(e) => {
-              e.stopPropagation();
-              addItem(product, 1);
-            }}
-          >
-            <ShoppingBag size={15} strokeWidth={1.85} />
-          </button>
         </div>
         <div className="rv-ymal-card__body">
           <h3 className="rv-ymal-card__title">{name}</h3>
@@ -100,9 +89,19 @@ export default function RecentlyViewedRailCard({ product, index = 0, showHotBadg
             ))}
             <span>{rating.toFixed(1)}</span>
           </div>
-          <p className="rv-ymal-card__price">
-            {currencyPricing.formatLocalWithUsd(product.price || 0)}
-          </p>
+          <div className="rv-ymal-card__price-row">
+            <p className="rv-ymal-card__price">
+              {currencyPricing.formatLocalWithUsd(product.price || 0)}
+            </p>
+            <MobileAddCta
+              iconType="cart"
+              disabled={stock <= 0}
+              onClick={(e) => {
+                e.stopPropagation();
+                addItem(product, 1);
+              }}
+            />
+          </div>
         </div>
       </div>
     </motion.article>

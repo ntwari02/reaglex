@@ -25,6 +25,38 @@
     flex: 0 0 148px;
   }
 
+  /* Trending Now — unified 16px card radius (rail + grid) */
+  #mob-trending .rv-ymal-card__inner,
+  #mob-trending .ex-grid-card-hit {
+    border-radius: 16px;
+  }
+
+  #mob-trending .rv-ymal-card__media {
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .mob-home-ex .ex-price-cart-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .mob-home-ex .ex-card-price--inline {
+    margin-top: 0;
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+
+  .mob-home-ex .ex-grid-card--trending .ex-grid-card-hit:has(.ex-price-cart-row) .ex-card-actions {
+    display: none;
+  }
+
   .ex-skeleton-ai-hero {
     height: 108px;
     margin-bottom: 10px;

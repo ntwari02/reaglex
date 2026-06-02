@@ -41,6 +41,37 @@ import {
 } from '../services/codCheckout.service';
 import { getPlatformSalesTaxRate, computeSalesTax } from '../services/platformTax.service';
 import { canBuyerCancelWithRefund, refundPaidOrder } from '../services/orderRefund.service';
+import type { ProductVariant } from '../models/Product';
+
+type CheckoutProductMeta = {
+  sellerId: mongoose.Types.ObjectId;
+  name: string;
+  price: number;
+  warehouseId?: string;
+  fulfillmentType?: 'shipping' | 'pickup' | 'digital' | 'service';
+  variants?: ProductVariant[];
+};
+
+function resolveLinePricing(
+  product: CheckoutProductMeta,
+  variantId?: string,
+): { price: number; variant?: string } {
+  const key = String(variantId || '').trim();
+  if (!key) return { price: product.price };
+  const variants = product.variants || [];
+  const match = variants.find(
+    (v) => v.sku === key || String((v as { _id?: unknown })._id) === key,
+  );
+  if (!match) return { price: product.price, variant: key };
+  const unit =
+    typeof match.priceUsd === 'number' && match.priceUsd > 0 ? match.priceUsd : product.price;
+  return { price: unit, variant: match.sku };
+}
+
+function lineSubtotal(product: CheckoutProductMeta, quantity: number, variantId?: string) {
+  const { price } = resolveLinePricing(product, variantId);
+  return price * quantity;
+}
 
 async function findBuyerOrder(buyerId: mongoose.Types.ObjectId, orderIdParam: string) {
   if (mongoose.Types.ObjectId.isValid(orderIdParam)) {
@@ -226,7 +257,6 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
     const requestedCurrency = String(req.body?.displayCurrency || '').trim().toUpperCase();
     const checkoutCurrency = requestedCurrency || detectCurrencyFromRequest(req);
 
-    const qtyByProduct = new Map<string, number>();
     const normalizedGroups =
       Array.isArray(sellerGroups) && sellerGroups.length
         ? sellerGroups
@@ -238,21 +268,30 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
             subtotal: 0,
             discount: 0,
           }];
+
+    const checkoutLines: Array<{ productId: string; quantity: number; variantId?: string }> = [];
     for (const group of normalizedGroups || []) {
       for (const item of group.items || []) {
         const pid = String(item.product_id || '').trim();
-        if (!pid) continue;
-        qtyByProduct.set(pid, (qtyByProduct.get(pid) || 0) + Math.max(1, Math.min(999, Number(item.quantity) || 1)));
+        if (!pid || !mongoose.Types.ObjectId.isValid(pid)) continue;
+        const variantRaw = (item as { variant_id?: string }).variant_id;
+        checkoutLines.push({
+          productId: pid,
+          quantity: Math.max(1, Math.min(999, Number(item.quantity) || 1)),
+          variantId: variantRaw ? String(variantRaw).trim() : undefined,
+        });
       }
     }
 
-    const productIds = [...qtyByProduct.keys()].filter((id) => mongoose.Types.ObjectId.isValid(id));
+    const productIds = [...new Set(checkoutLines.map((l) => l.productId))];
     if (!productIds.length) {
       return res.status(400).json({ message: 'No valid line items' });
     }
 
     const productDocs = await Product.find({ _id: { $in: productIds } })
-      .select('sellerId name price warehouseId fulfillmentType listingMode launchAt publicationStatus status stock')
+      .select(
+        'sellerId name price warehouseId fulfillmentType listingMode launchAt publicationStatus status stock variants',
+      )
       .lean();
     if (productDocs.length !== productIds.length) {
       return res.status(404).json({ message: 'One or more products were not found' });
@@ -269,16 +308,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       });
     }
 
-    const pmap = new Map<
-      string,
-      {
-        sellerId: mongoose.Types.ObjectId;
-        name: string;
-        price: number;
-        warehouseId?: string;
-        fulfillmentType?: 'shipping' | 'pickup' | 'digital' | 'service';
-      }
-    >();
+    const pmap = new Map<string, CheckoutProductMeta>();
     for (const p of productDocs) {
       pmap.set(String(p._id), {
         sellerId: p.sellerId as mongoose.Types.ObjectId,
@@ -286,12 +316,14 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
         price: p.price,
         warehouseId: (p as { warehouseId?: string }).warehouseId,
         fulfillmentType: (p as any).fulfillmentType || 'shipping',
+        variants: (p as { variants?: ProductVariant[] }).variants,
       });
     }
 
-    const lines = productIds.map((productId) => ({
-      productId,
-      quantity: qtyByProduct.get(productId) || 1,
+    const lines = checkoutLines.map((l) => ({
+      productId: l.productId,
+      quantity: l.quantity,
+      variantSku: l.variantId,
     }));
 
     const fulfillmentGroups = splitOrderGroups({
@@ -322,7 +354,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       let s = 0;
       for (const l of g.lines) {
         const p = pmap.get(String(l.productId));
-        if (p) s += p.price * l.quantity;
+        if (p) s += lineSubtotal(p, l.quantity, l.variantSku);
       }
       sellerSubtotalSum.set(g.sellerId, (sellerSubtotalSum.get(g.sellerId) || 0) + s);
     }
@@ -360,13 +392,15 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
       for (const l of g.lines) {
         const p = pmap.get(String(l.productId));
         if (!p) continue;
+        const priced = resolveLinePricing(p, l.variantSku);
         orderItems.push({
           productId: new mongoose.Types.ObjectId(l.productId),
           name: p.name,
           quantity: l.quantity,
-          price: p.price,
+          price: priced.price,
+          variant: priced.variant,
         });
-        groupSubtotal += p.price * l.quantity;
+        groupSubtotal += priced.price * l.quantity;
       }
 
       const sellerTotal = sellerSubtotalSum.get(g.sellerId) || groupSubtotal;
@@ -435,13 +469,15 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
         for (const l of itemsForSeller) {
           const p = pmap.get(String(l.productId));
           if (!p) continue;
+          const priced = resolveLinePricing(p, l.variantSku);
           orderItems.push({
             productId: new mongoose.Types.ObjectId(l.productId),
             name: p.name,
             quantity: l.quantity,
-            price: p.price,
+            price: priced.price,
+            variant: priced.variant,
           });
-          groupSubtotal += p.price * l.quantity;
+          groupSubtotal += priced.price * l.quantity;
         }
         const subtotalAfterDiscount = groupSubtotal;
         const tax = fg.type === 'digital' || fg.type === 'service' ? 0 : computeSalesTax(subtotalAfterDiscount, salesTaxRate);

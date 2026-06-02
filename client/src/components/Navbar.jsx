@@ -75,7 +75,7 @@ const LANG_OPTIONS = [
 
 const NAV_LINKS = [
   { to: '/', labelKey: 'nav.home' },
-  { to: '/products', labelKey: 'footer.links.shop.allProducts' },
+  { to: '/category/all', labelKey: 'footer.links.shop.allProducts' },
   { to: '/search?sort=newest', labelKey: 'nav.newArrivals' },
   { to: '/search?sort=discount', labelKey: 'nav.deals', badge: 'HOT' },
   { to: '/search?sort=rating', labelKey: 'nav.topSellers' },

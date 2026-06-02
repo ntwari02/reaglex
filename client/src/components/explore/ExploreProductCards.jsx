@@ -202,7 +202,15 @@ export function ExploreAIHeroCard({ product }) {
   );
 }
 
-export function ExploreGridCard({ product, variant = 'trending', index = 0, sub, cardDensity = 'standard', className = '' }) {
+export function ExploreGridCard({
+  product,
+  variant = 'trending',
+  index = 0,
+  sub,
+  cardDensity = 'standard',
+  className = '',
+  cartNearPrice = false,
+}) {
   const [expanded, setExpanded] = useState(false);
   const expandable = cardDensity === 'compact_expandable';
   const { enabled: wishlistOn } = usePlatformFeature('product_wishlist');
@@ -293,7 +301,23 @@ export function ExploreGridCard({ product, variant = 'trending', index = 0, sub,
               <p className="ex-card-store">{product.sellerName || product.storeName || 'Verified'}</p>
             )}
             {meta && <p className="ex-card-meta">{meta}</p>}
-            <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(resolveProductPriceUsd(product))}</p>
+            {cartNearPrice && variant === 'trending' ? (
+              <div className="ex-price-cart-row">
+                <p className="ex-card-price ex-card-price--inline">
+                  {currencyPricing.formatLocalWithUsd(resolveProductPriceUsd(product))}
+                </p>
+                <MobileAddCta
+                  iconType="cart"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addItem(product, 1);
+                    flyFromCard();
+                  }}
+                />
+              </div>
+            ) : (
+              <p className="ex-card-price">{currencyPricing.formatLocalWithUsd(resolveProductPriceUsd(product))}</p>
+            )}
             {(variant === 'trending' || variant === 'bestseller') && (
               <div className="ex-rating">
                 <Star size={10} fill="var(--brand-primary)" color="var(--brand-primary)" />
@@ -302,15 +326,17 @@ export function ExploreGridCard({ product, variant = 'trending', index = 0, sub,
             )}
           </div>
         </button>
-        <ExploreCardActions
-          variant={variant}
-          onView={() => navigateToProduct(navigate, product)}
-          onAdd={(e) => {
-            e.stopPropagation();
-            addItem(product, 1);
-            flyFromCard();
-          }}
-        />
+        {!(cartNearPrice && variant === 'trending') && (
+          <ExploreCardActions
+            variant={variant}
+            onView={() => navigateToProduct(navigate, product)}
+            onAdd={(e) => {
+              e.stopPropagation();
+              addItem(product, 1);
+              flyFromCard();
+            }}
+          />
+        )}
       </div>
     </motion.article>
   );

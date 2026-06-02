@@ -79,8 +79,8 @@ export default function MobileMenuOverlay() {
         label: 'Shop',
         items: [
           { icon: Home, label: t('nav.home'), to: '/', match: (p) => p === '/' },
-          { icon: LayoutGrid, label: t('nav.categories'), to: '/products' },
-          { icon: Store, label: t('footer.links.shop.allProducts'), to: '/products' },
+          { icon: LayoutGrid, label: t('nav.categories'), to: '/category/all' },
+          { icon: Store, label: t('footer.links.shop.allProducts'), to: '/category/all' },
           { icon: Radio, label: 'Live shopping', to: '/live' },
         ],
       },

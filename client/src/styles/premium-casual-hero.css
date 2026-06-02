@@ -40,45 +40,66 @@ html[data-theme='dark'] .premium-casual-slide--compact .premium-casual-slide__me
   align-items: stretch;
   height: 100%;
   min-height: inherit;
-  padding: 12px 12px 12px 14px;
-  gap: 6px;
+  padding: 0;
 }
 
 .premium-casual-slide--compact .premium-casual-slide__copy {
+  position: relative;
+  z-index: 2;
   flex: 1;
   min-width: 0;
-  max-width: 58%;
+  max-width: 62%;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  padding: 12px 14px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--card-bg, #fff) 94%, transparent) 0%,
+    color-mix(in srgb, var(--card-bg, #fff) 55%, transparent) 55%,
+    transparent 100%
+  );
+}
+
+html[data-theme='dark'] .premium-casual-slide--compact .premium-casual-slide__copy,
+.premium-casual-slide--compact[data-theme-mode='dark'] .premium-casual-slide__copy {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, #0c121a 92%, transparent) 0%,
+    color-mix(in srgb, #0c121a 50%, transparent) 55%,
+    transparent 100%
+  );
 }
 
 .premium-casual-slide--compact .premium-casual-slide__visual {
-  flex: 0 0 40%;
-  max-width: 42%;
-  min-width: 88px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-bottom: 2px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  flex: none;
+  max-width: none;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .premium-casual-slide--compact .premium-casual-slide__img,
 .premium-casual-slide--compact .premium-casual-slide__video {
-  position: relative;
-  z-index: 1;
-  max-height: 156px;
-  max-width: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  max-width: none;
+  object-fit: cover;
   object-position: center center;
-  border-radius: 10px;
-  filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--text-primary) 18%, transparent));
+  border-radius: 0;
+  filter: none;
 }
 
 .premium-casual-slide--compact .premium-casual-slide__video {
-  max-height: 140px;
+  max-height: none;
 }
 
 /* Full-width hero — show more of the photo (less crop than before) */

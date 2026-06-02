@@ -52,7 +52,9 @@ router.delete('/warehouses/:id', deleteWarehouse);
 // Stock history
 router.get('/history', listStockHistory);
 
-// Temporary endpoint to transfer all products to current seller (for testing/debugging)
-router.post('/products/transfer-all-to-me', transferAllProductsToMe);
+// Debug-only — never exposed in production
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/products/transfer-all-to-me', transferAllProductsToMe);
+}
 
 export default router;

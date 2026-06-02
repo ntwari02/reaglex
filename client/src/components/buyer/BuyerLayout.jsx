@@ -8,7 +8,8 @@ import PremiumMobileFooter from '../footer/PremiumMobileFooter';
  * Mobile header: compact row (48px) + search row (48px) ≈ 96px + safe-area.
  * Desktop: UtilityBar + MainHeader + CategoryNav.
  */
-export default function BuyerLayout({ children, className = '', focused = false }) {
+export default function BuyerLayout({ children, className = '', focused = false, noHeaderPad = false }) {
+  const skipHeaderPad = focused || noHeaderPad;
   return (
     <div
       className={`min-h-screen ${className}`}
@@ -19,7 +20,7 @@ export default function BuyerLayout({ children, className = '', focused = false 
     >
       <div
         className={
-          focused
+          skipHeaderPad
             ? 'pb-[env(safe-area-inset-bottom,0px)]'
             : 'pt-[var(--mob-header-total,calc(108px+env(safe-area-inset-top,0px)))] md:pt-[calc(158px+env(safe-area-inset-top,0px))] pb-0 md:pb-0'
         }

@@ -59,9 +59,9 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
             <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
               {item.seller}
             </p>
-            {item.variant && (
+            {(item.variant || item.variantSku || item.selectedColor || item.selectedSize) && (
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {item.variant}
+                {[item.variant, item.variantSku, item.selectedColor, item.selectedSize].filter(Boolean).join(' · ')}
               </p>
             )}
           </div>
@@ -71,7 +71,7 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
             whileHover={{ scale: 1.15, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
             transition={{ duration: 0.18 }}
-            onClick={() => onRemove(item.id)}
+            onClick={() => onRemove(item.cartKey || item.id)}
             className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
             onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
@@ -84,8 +84,8 @@ export default function CartItem({ item, onRemove, onUpdateQty, index = 0 }) {
         <div className="flex items-center justify-between mt-3">
           <QuantitySelector
             quantity={item.quantity}
-            onDecrease={() => onUpdateQty(item.id, item.quantity - 1)}
-            onIncrease={() => onUpdateQty(item.id, item.quantity + 1)}
+            onDecrease={() => onUpdateQty(item.cartKey || item.id, item.quantity - 1)}
+            onIncrease={() => onUpdateQty(item.cartKey || item.id, item.quantity + 1)}
           />
           <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
             {currencyPricing.formatLocalWithUsd(item.price * item.quantity)}

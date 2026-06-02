@@ -1,24 +1,25 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate, Navigate, Link } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { Search, X } from 'lucide-react';
+import { ArrowLeft, Search, ShoppingBag, X } from 'lucide-react';
 // @ts-ignore JSX module without TS typings
 import BuyerLayout from '../components/buyer/BuyerLayout';
-// @ts-ignore JSX module without TS typings
-import PremiumCategoryChips from '../components/home/PremiumCategoryChips';
-// @ts-ignore JSX module without TS typings
-import { SearchProductCard } from '../components/SearchProductCard';
+import CategoryBrowseChips from '../components/category/CategoryBrowseChips';
+import { ExploreGridCard } from '../components/explore/ExploreProductCards';
 import { PageSeo } from '../components/seo/PageSeo';
 import { categoriesAPI, productAPI } from '../services/api';
 import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { buildLocaleAlternates } from '../utils/localeAlternateLinks';
+// @ts-ignore Zustand JS store
+import { useBuyerCart } from '../stores/buyerCartStore';
 import '../styles/category-browse.css';
+import '../styles/explore-all.css';
 
 type CategoryMeta = { slug: string; name: string; description: string; productCount?: number };
 
 const ALL_META: CategoryMeta = {
   slug: 'all',
-  name: 'All',
+  name: 'All categories',
   description: 'Browse every product from verified sellers on Reaglex.',
 };
 
@@ -58,6 +59,8 @@ export default function CategoryBrowse() {
   const slug = normalizeSlug(slugParam);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const openCart = useBuyerCart((s) => s.openCart);
+  const cartCount = useBuyerCart((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
   const qParam = searchParams.get('q') || '';
   const [searchDraft, setSearchDraft] = useState(qParam);
@@ -65,11 +68,6 @@ export default function CategoryBrowse() {
   useEffect(() => {
     setSearchDraft(qParam);
   }, [qParam]);
-
-  useEffect(() => {
-    document.body.classList.add('cat-browse-active');
-    return () => document.body.classList.remove('cat-browse-active');
-  }, []);
 
   const activeId = isAllCategory(slug) ? 'all' : slug;
 
@@ -170,6 +168,10 @@ export default function CategoryBrowse() {
     [navigate, qParam],
   );
 
+  const handleCategoryClear = useCallback(() => {
+    handleCategorySelect('all');
+  }, [handleCategorySelect]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     applySearch(searchDraft);
@@ -181,12 +183,13 @@ export default function CategoryBrowse() {
 
   const titleBase = meta ? `${meta.name} | Reaglex` : 'Categories | Reaglex';
   const title = page > 1 ? `${titleBase} — Page ${page}` : titleBase;
+  const pageTitle = meta?.name || 'Categories';
   const resultLabel = qParam.trim()
-    ? `${total} result${total === 1 ? '' : 's'} for “${qParam.trim()}”`
+    ? `${total} result${total === 1 ? '' : 's'}`
     : `${total} product${total === 1 ? '' : 's'}`;
 
   return (
-    <BuyerLayout>
+    <BuyerLayout noHeaderPad className="cat-browse-wrap">
       <PageSeo
         title={title}
         description={
@@ -200,15 +203,38 @@ export default function CategoryBrowse() {
         hreflangAlternates={hreflangAlternates}
       />
 
-      <div className="cat-browse">
-        <div className="cat-browse-toolbar">
+      <div className="cat-browse ex-page">
+        <header className="cat-browse-topbar ex-topbar">
+          <button
+            type="button"
+            className="ex-back"
+            onClick={() => navigate(-1)}
+            aria-label="Back"
+          >
+            <ArrowLeft size={20} strokeWidth={1.85} />
+          </button>
+          <h1 className="ex-page-title">{pageTitle}</h1>
+          <button
+            type="button"
+            className="ex-cart-link relative"
+            onClick={() => openCart()}
+            aria-label="Open cart"
+          >
+            <ShoppingBag size={20} strokeWidth={1.75} />
+            {cartCount > 0 && (
+              <span className="cat-browse-cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>
+            )}
+          </button>
+        </header>
+
+        <div className="cat-browse-sticky">
           <div className="cat-browse-search-wrap">
             <form className="cat-browse-search" onSubmit={handleSearchSubmit} role="search">
               <Search size={18} strokeWidth={2} className="cat-browse-search__icon" aria-hidden />
               <input
                 type="search"
                 className="cat-browse-search__input"
-                placeholder="Search in this category…"
+                placeholder={`Search${!isAllCategory(slug) ? ` in ${meta?.name || 'category'}` : ' products'}…`}
                 value={searchDraft}
                 onChange={(e) => setSearchDraft(e.target.value)}
                 aria-label="Search products"
@@ -232,15 +258,24 @@ export default function CategoryBrowse() {
           </div>
 
           <div className="cat-browse-cats">
-            <PremiumCategoryChips
+            <CategoryBrowseChips
               activeId={activeId}
               onSelect={handleCategorySelect}
-              selectMode
+              onClear={handleCategoryClear}
             />
           </div>
         </div>
 
         <div className="cat-browse-body">
+          {!notFound && !loading && (
+            <div className="cat-browse-meta-row">
+              <p className="cat-browse-meta" aria-live="polite">
+                {resultLabel}
+                {qParam.trim() ? ` · “${qParam.trim()}”` : ''}
+              </p>
+            </div>
+          )}
+
           {notFound && !loading && (
             <div className="cat-browse-empty">
               <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -258,31 +293,24 @@ export default function CategoryBrowse() {
           )}
 
           {!notFound && loading && products.length === 0 && (
-            <div className="cat-browse-grid" aria-hidden>
+            <div className="ex-skeleton-grid cat-browse-grid" aria-hidden>
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="cat-browse-skeleton" />
+                <div key={i} className="ex-skeleton-card" />
               ))}
             </div>
           )}
 
-          {!notFound && !loading && (
-            <p className="cat-browse-meta" aria-live="polite">
-              {isAllCategory(slug) && !qParam.trim()
-                ? 'All categories'
-                : meta?.name || 'Products'}
-              {' · '}
-              {resultLabel}
-            </p>
-          )}
-
           {!notFound && products.length > 0 && (
-            <ul className="cat-browse-grid">
+            <div className="ex-grid cat-browse-grid">
               {products.map((p: any, i: number) => (
-                <li key={String(p._id || p.id || i)}>
-                  <SearchProductCard product={p} index={i} />
-                </li>
+                <ExploreGridCard
+                  key={String(p._id || p.id || i)}
+                  product={p}
+                  variant="trending"
+                  index={i}
+                />
               ))}
-            </ul>
+            </div>
           )}
 
           {!notFound && !loading && products.length === 0 && (
@@ -293,15 +321,12 @@ export default function CategoryBrowse() {
             </p>
           )}
 
-          {!notFound && totalPages > 1 && (
-            <nav className="cat-browse-pagination" aria-label="Pagination">
-              {page > 1 && (
-                <Link to={pageUrl(slug, page - 1, qParam)}>Previous</Link>
-              )}
-              {page < totalPages && (
-                <Link to={pageUrl(slug, page + 1, qParam)}>Next</Link>
-              )}
-            </nav>
+          {!notFound && page < totalPages && (
+            <div className="cat-browse-more">
+              <Link to={pageUrl(slug, page + 1, qParam)} className="cat-browse-more-btn">
+                Load more
+              </Link>
+            </div>
           )}
         </div>
       </div>

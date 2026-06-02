@@ -55,7 +55,7 @@ import { websocketService } from './services/websocketService';
 import { useBuyerCart } from './stores/buyerCartStore';
 import CartCloudSyncBridge from './components/cart/CartCloudSyncBridge';
 // @ts-ignore JS module without TS typings
-import { isBuyerChromeHidden } from './config/buyerNavVisibility';
+import { isBuyerChromeHidden, isBuyerHeaderHidden } from './config/buyerNavVisibility';
 import { SiteWideSchemas } from './components/seo/SiteWideSchemas';
 import { ClientOnly } from './components/ClientOnly';
 
@@ -73,6 +73,7 @@ function GlobalNavbar() {
   if (isSellerPending) return <Navbar />;
   if (user && !canAccessBuyerUi(user)) return null;
   if (isBuyerChromeHidden(pathname, search)) return null;
+  if (isBuyerHeaderHidden(pathname)) return null;
   return <Navbar />;
 }
 
@@ -115,6 +116,8 @@ const MomoPaymentWait      = lazy(() => import('./pages/MomoPaymentWait'));
 const StripeReturn         = lazy(() => import('./pages/StripeReturn'));
 // @ts-ignore JSX module without TS typings
 const PayPalReturn         = lazy(() => import('./pages/PayPalReturn'));
+// @ts-ignore JSX module without TS typings
+const PaymentVerify        = lazy(() => import('./pages/PaymentVerify'));
 // @ts-ignore JSX modules without TS typings
 const OrderConfirmation    = lazy(() => import('./pages/OrderConfirmation'));
 // @ts-ignore JSX modules without TS typings
@@ -325,6 +328,7 @@ function App() {
               <Route path="/checkout/momo-wait" element={<MomoPaymentWait />} />
               <Route path="/payment/stripe-return" element={<StripeReturn />} />
               <Route path="/payment/paypal-return" element={<PayPalReturn />} />
+              <Route path="/payment/verify" element={<PaymentVerify />} />
               <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
               <Route path="/track/:orderId" element={<OrderTracking />} />
               <Route path="/track" element={<OrderTracking />} />

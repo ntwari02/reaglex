@@ -122,3 +122,51 @@
   z-index: 2;
   position: relative;
 }
+
+/* Trending Now — unified card radius (desktop) */
+.trending-now-section a.rounded-2xl {
+  border-radius: 16px;
+}
+
+/* Trending Now — first 4 horizontal rail, rest vertical grid */
+.trending-now-rail__item {
+  width: min(72vw, 220px);
+}
+
+@media (min-width: 768px) {
+  .trending-now-rail__item {
+    width: 200px;
+  }
+}
+
+.trend-card__price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.trend-card__cart-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  color: var(--text-on-accent, #fff);
+  background: var(--brand-primary);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 38%, transparent);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.trend-card__cart-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.trend-card__cart-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

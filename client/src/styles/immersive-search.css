@@ -48,6 +48,7 @@
   padding: 0 12px 0 14px;
   border-radius: 16px;
   background: var(--card-bg);
+  border: 1px solid var(--border-card);
   box-shadow: 0 2px 14px color-mix(in srgb, var(--text-primary) 5%, transparent);
 }
 
@@ -301,8 +302,8 @@
   min-height: 40px;
   padding: 0 12px 0 14px;
   border-radius: 14px;
-  border: none;
-  background: color-mix(in srgb, var(--bg-secondary) 55%, #fff);
+  border: 1px solid var(--border-card);
+  background: var(--card-bg);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent);
   transition: box-shadow 0.2s ease, background 0.2s ease;
   -webkit-tap-highlight-color: transparent;
@@ -346,8 +347,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 11px;
-  border: none;
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  border: 1px solid var(--border-card);
+  background: var(--bg-secondary);
   color: var(--text-secondary);
   transition: transform 0.15s ease, background 0.15s ease;
   -webkit-tap-highlight-color: transparent;
@@ -355,7 +356,7 @@
 
 .mob-search-filter-btn:active {
   transform: scale(0.96);
-  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--brand-primary) 10%, var(--bg-secondary));
 }
 
 .mob-search-bar--2026 {

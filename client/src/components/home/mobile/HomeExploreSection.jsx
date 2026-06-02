@@ -34,12 +34,14 @@ export default function HomeExploreSection({
   variant = 'trending',
 }) {
   const key = sectionKey || id?.replace(/^mob-/, '') || 'trending';
+  const isTrendingSection = variant === 'trending';
   const { layout: fetchedLayout } = useHomeLayoutForSection(key, 'mobile');
   const layoutSettings = layoutOverride || fetchedLayout;
-  const layout = layoutProp || layoutModeToExploreLayout(layoutSettings?.mode || 'grid');
+  const layout =
+    layoutProp ||
+    (isTrendingSection ? 'trending' : layoutModeToExploreLayout(layoutSettings?.mode || 'grid'));
   const railCount = Math.max(1, Math.min(8, Number(layoutSettings?.railCount) || TRENDING_RAIL_COUNT_DEFAULT));
   /** Trending Now — fixed 148px cards (same as recently viewed); no compact/expand. */
-  const isTrendingSection = variant === 'trending';
   const cardDensity = isTrendingSection ? 'standard' : layoutSettings?.cardDensity || 'standard';
   const densityCls = isTrendingSection ? '' : cardDensityClass(cardDensity);
 
@@ -111,6 +113,7 @@ export default function HomeExploreSection({
                   index={i}
                   cardDensity={cardDensity}
                   className={densityCls}
+                  cartNearPrice={isTrendingSection}
                 />
               ))}
             </div>

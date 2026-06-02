@@ -166,12 +166,12 @@
     height: 44px;
     border-radius: 14px;
     border: none;
-    background: color-mix(in srgb, #fff 88%, transparent);
+    background: color-mix(in srgb, var(--card-bg) 92%, transparent);
     box-shadow: 0 1px 4px color-mix(in srgb, var(--text-primary) 8%, transparent);
   }
 
   .pd2-img-btn:hover {
-    background: color-mix(in srgb, var(--bg-secondary) 92%, #fff);
+    background: color-mix(in srgb, var(--bg-secondary) 92%, var(--card-bg));
     color: var(--text-primary);
     border: none;
     box-shadow: 0 2px 8px color-mix(in srgb, var(--text-primary) 10%, transparent);
@@ -182,10 +182,10 @@
     flex: none;
     width: 100%;
     max-width: 100%;
-    height: min(56vw, 340px);
-    min-height: 220px;
-    max-height: 360px;
-    border-radius: 16px;
+    height: min(72vw, 440px);
+    min-height: 260px;
+    max-height: 480px;
+    border-radius: 18px;
     margin-left: 0;
     margin-right: 0;
     border: 1px solid var(--border-card);
@@ -409,28 +409,38 @@
   }
 
   .pd2-page--cart {
-    background: var(--bg-secondary);
+    background: var(--bg-page);
   }
 
   .pd2-fluid-wrap--cart {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .pd2-page--cart .pd2-hero-grid {
-    gap: 10px;
+    gap: 16px;
   }
 
   .pd2-page--cart .pd2-gallery-col {
-    gap: 10px;
+    gap: 12px;
+    margin-left: -14px;
+    margin-right: -14px;
+    width: calc(100% + 28px);
+    max-width: none;
+  }
+
+  .pd2-page--cart .pd2-main-img {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 
   .pd2-page--cart .pd2-purchase-flow {
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid var(--border-card);
-    background: var(--card-bg);
-    box-shadow: var(--shadow-sm);
+    padding: 4px 0 8px;
+    border-radius: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
   }
 
   .pd2-page--cart .pd2-purchase-col .pd2-title {
@@ -465,7 +475,7 @@
   cursor: pointer;
   transition: all 200ms ease;
   background: var(--card-bg, rgba(255, 255, 255, 0.9));
-  color: var(--text-secondary, #4b5563);
+  color: var(--text-secondary);
   border: 1px solid color-mix(in srgb, var(--border-card) 72%, transparent);
   box-shadow: 0 1px 4px color-mix(in srgb, var(--text-primary) 10%, transparent);
   backdrop-filter: blur(8px);
@@ -613,7 +623,7 @@
 .pd2-seller-card {
   padding: 18px;
   border-radius: 20px;
-  background: color-mix(in srgb, var(--bg-secondary) 78%, #fff);
+  background: color-mix(in srgb, var(--bg-secondary) 78%, var(--card-bg));
   border: 1px solid color-mix(in srgb, var(--border-card) 58%, transparent);
   position: relative;
   overflow: hidden;
@@ -777,6 +787,111 @@ html[data-theme='dark'] {
   background: var(--badge-info-bg);
   color: var(--badge-info-text);
   box-shadow: inset 0 0 0 1px var(--badge-info-border);
+}
+
+/* Theme-aware pills & promo blocks (light + dark) */
+.pd2-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.pd2-status-pill--success {
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
+}
+
+.pd2-status-pill--warning {
+  background: var(--badge-warning-bg);
+  color: var(--badge-warning-text);
+  border: 1px solid var(--badge-warning-border);
+}
+
+.pd2-status-pill--error {
+  background: var(--badge-error-bg);
+  color: var(--badge-error-text);
+  border: 1px solid var(--badge-error-border);
+}
+
+.pd2-promo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 16px;
+}
+
+.pd2-promo-card--info {
+  background: var(--badge-info-bg);
+  border: 1px solid var(--badge-info-border);
+  color: var(--badge-info-text);
+}
+
+.pd2-promo-card--warning {
+  background: var(--badge-warning-bg);
+  border: 1px solid var(--badge-warning-border);
+  color: var(--badge-warning-text);
+}
+
+.pd2-promo-card__label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.pd2-promo-card__value {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.pd2-icon-chip {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pd2-icon-chip--success {
+  background: var(--badge-success-bg);
+  border: 1px solid var(--badge-success-border);
+  color: var(--badge-success-text);
+}
+
+.pd2-btn-helpful {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-height: 44px;
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
+}
+
+.pd2-verified-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.375rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
 }
 
 /* ─── Mobile accordion (product details) ─────────────────────────────────── */

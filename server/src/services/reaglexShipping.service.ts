@@ -256,7 +256,7 @@ export function computeMethodPrice(params: {
   };
 }
 
-export type QuoteCartLine = { productId: string; quantity: number };
+export type QuoteCartLine = { productId: string; quantity: number; variantSku?: string };
 
 export type ShipmentGroupQuote = {
   groupKey: string;

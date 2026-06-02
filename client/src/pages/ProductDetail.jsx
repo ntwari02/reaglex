@@ -805,8 +805,8 @@ export default function ProductDetail() {
               {['Premium quality materials', 'Fast shipping worldwide', '30-day eligible returns', 'Verified seller guarantee'].map((f) => (
                 <div key={f} className="flex items-center gap-2 p-2.5 rounded-xl"
                   style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
-                  <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#f0fdf4' }}>
-                    <Check size={13} className="text-green-600" />
+                  <div className="pd2-icon-chip pd2-icon-chip--success w-6 h-6 rounded-lg">
+                    <Check size={13} />
                   </div>
                   <span className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>{f}</span>
                 </div>
@@ -853,7 +853,7 @@ export default function ProductDetail() {
                 <button type="button" className="w-full lg:w-auto px-5 py-3 rounded-xl sm:rounded-full text-sm font-bold text-white min-h-[48px]" style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
                   <MessageCircle size={14} className="inline mr-1.5" />Write a Review
                 </button>
-                <button type="button" onClick={() => setVoteUp((v) => v + 1)} className="w-full lg:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl sm:rounded-full text-sm font-semibold min-h-[44px]" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                <button type="button" onClick={() => setVoteUp((v) => v + 1)} className="pd2-btn-helpful w-full lg:w-auto">
                   <ThumbsUp size={13} /> {voteUp} Helpful
                 </button>
               </div>
@@ -960,7 +960,7 @@ export default function ProductDetail() {
             style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 5%, transparent) 0%, transparent 65%)' }} />
         </div>
 
-        <div className="relative z-10 w-full pd2-fluid-wrap pd2-fluid-wrap--cart pt-0 sm:pt-4 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] md:pb-12 lg:pb-12 max-w-[100vw]">
+        <div className="relative z-10 w-full pd2-fluid-wrap pd2-fluid-wrap--cart pt-1 sm:pt-4 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] md:pb-12 lg:pb-12 max-w-[100vw]">
 
           {/* Mobile — cart-style top bar */}
           <motion.div
@@ -1322,16 +1322,15 @@ export default function ProductDetail() {
                       </div>
                     )}
                     {couponActive && (
-                      <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-2xl"
-                        style={{ background: '#ecfeff', border: '1px solid #a5f3fc' }}>
+                      <div className="pd2-promo-card pd2-promo-card--info">
                         <div className="min-w-0">
-                          <p className="text-[11px] font-black" style={{ color: '#0e7490', letterSpacing: '0.06em' }}>COUPON</p>
-                          <p className="text-sm font-bold truncate" style={{ color: '#0e7490' }}>{couponCode}</p>
+                          <p className="pd2-promo-card__label">COUPON</p>
+                          <p className="pd2-promo-card__value truncate">{couponCode}</p>
                         </div>
                         <button
                           type="button"
                           className="px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] touch-manipulation"
-                          style={{ background: '#06b6d4', color: '#fff' }}
+                          style={{ background: 'var(--brand-primary)', color: 'var(--text-on-accent, #fff)' }}
                           onClick={async () => {
                             try { await navigator.clipboard.writeText(couponCode); }
                             catch {}
@@ -1342,13 +1341,12 @@ export default function ProductDetail() {
                       </div>
                     )}
                     {offerCountdown && (
-                      <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-2xl"
-                        style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}>
+                      <div className="pd2-promo-card pd2-promo-card--warning">
                         <div className="min-w-0">
-                          <p className="text-[11px] font-black" style={{ color: '#9a3412', letterSpacing: '0.06em' }}>OFFER ENDS IN</p>
-                          <p className="text-sm font-black tabular-nums" style={{ color: '#9a3412' }}>{offerCountdown}</p>
+                          <p className="pd2-promo-card__label">OFFER ENDS IN</p>
+                          <p className="pd2-promo-card__value tabular-nums">{offerCountdown}</p>
                         </div>
-                        <span className="text-[11px] font-semibold" style={{ color: '#9a3412' }}>Limited time</span>
+                        <span className="text-[11px] font-semibold">Limited time</span>
                       </div>
                     )}
                   </div>
@@ -1427,14 +1425,11 @@ export default function ProductDetail() {
                   </div>
                   <div>
                     {stock === 0 ? (
-                      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs sm:text-sm font-semibold"
-                        style={{ background: '#fef2f2', color: '#dc2626' }}>Out of stock</span>
+                      <span className="pd2-status-pill pd2-status-pill--error">Out of stock</span>
                     ) : stock < 10 ? (
-                      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs sm:text-sm font-semibold"
-                        style={{ background: '#fffbeb', color: '#d97706' }}>Only {stock} left</span>
+                      <span className="pd2-status-pill pd2-status-pill--warning">Only {stock} left</span>
                     ) : (
-                      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs sm:text-sm font-semibold"
-                        style={{ background: '#f0fdf4', color: '#15803d' }}>In stock</span>
+                      <span className="pd2-status-pill pd2-status-pill--success">In stock</span>
                     )}
                   </div>
                 </div>
@@ -1679,9 +1674,8 @@ export default function ProductDetail() {
                 <div className="p-4 sm:p-5 rounded-2xl"
                   style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                      style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                      <RefreshCw size={18} className="text-green-700" />
+                    <div className="pd2-icon-chip pd2-icon-chip--success">
+                      <RefreshCw size={18} />
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{product?.returnPolicy?.label || 'Returns & refunds'}</p>
@@ -1735,8 +1729,7 @@ export default function ProductDetail() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-bold text-sm break-words" style={{ color: 'var(--text-primary)' }}>{seller}</p>
-                    <span className="flex-shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
-                      style={{ background: '#f0fdf4', color: '#15803d' }}>✓ Verified</span>
+                    <span className="pd2-verified-pill">✓ Verified</span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Stars rating={sellerRating} size={11} />

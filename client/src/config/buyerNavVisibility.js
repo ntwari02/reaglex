@@ -46,6 +46,15 @@ export function isAccountSettingsRoute(pathname, search = '') {
   return tab === 'settings';
 }
 
+/** Category browse — own top bar + search; hide storefront header. */
+export function isCategoryBrowseRoute(pathname) {
+  return pathname === '/category' || pathname.startsWith('/category/');
+}
+
+export function isBuyerHeaderHidden(pathname) {
+  return isCategoryBrowseRoute(pathname);
+}
+
 /** Hide GlobalNavbar + MobileBottomNav on these routes (unless seller marketing whitelist). */
 export function isBuyerChromeHidden(pathname, search = '') {
   if (isSellerPathWithBuyerNav(pathname)) return false;

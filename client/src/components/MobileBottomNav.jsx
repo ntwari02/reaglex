@@ -8,7 +8,7 @@ import { useScrollChrome } from '../stores/scrollChromeStore';
 
 const TABS = [
   { id: 'home', icon: Home, label: 'Home', to: '/' },
-  { id: 'browse', icon: LayoutGrid, label: 'Categories', to: '/products' },
+  { id: 'browse', icon: LayoutGrid, label: 'Categories', to: '/category/all' },
   { id: 'cart', icon: ShoppingBag, label: 'Cart', to: null },
   { id: 'wishlist', icon: Heart, label: 'Saved', to: '/account?tab=wishlist' },
   { id: 'account', icon: User, label: 'Account', to: '/account' },

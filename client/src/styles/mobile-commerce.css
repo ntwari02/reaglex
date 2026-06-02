@@ -328,6 +328,14 @@
     opacity: 0.45;
   }
 
+  .mob-add-cta--cart {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--brand-primary) 92%, #000);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 38%, transparent);
+  }
+
   .mob-add-cta--pill {
     width: auto;
     min-height: 26px;

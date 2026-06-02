@@ -132,10 +132,22 @@
   color: var(--text-primary);
 }
 
+.rv-ymal-card__price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+  min-width: 0;
+}
+
 .rv-ymal-card__price {
-  margin: 2px 0 0;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
   font-size: 12px;
   font-weight: 800;
   color: var(--brand-primary);
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }

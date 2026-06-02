@@ -125,18 +125,16 @@ export default function Checkout() {
           mtn_momo: ['RWF', 'USD', 'EUR'].includes(momoOrderCurrency) ? momoOrderCurrency : 'RWF',
         });
       })
-      .catch(() =>
-        {
-          setGateways({
-            flutterwave: true,
-            mtn_momo: false,
-            stripe: false,
-            paypal: false,
-            airtel_money: false,
-          });
-          setGatewayOrderCurrency({ mtn_momo: 'RWF' });
-        }
-      )
+      .catch(() => {
+        setGateways({
+          flutterwave: false,
+          mtn_momo: false,
+          stripe: false,
+          paypal: false,
+          airtel_money: false,
+        });
+        setGatewayOrderCurrency({ mtn_momo: 'RWF' });
+      })
       .finally(() => setGwLoaded(true));
   }, []);
 
@@ -426,13 +424,19 @@ export default function Checkout() {
         const p = productById.get(line.id);
         const sid = String(p.sellerId);
         if (!linesBySeller.has(sid)) linesBySeller.set(sid, []);
-        linesBySeller.get(sid).push({ product_id: line.id, quantity: line.quantity });
+        linesBySeller.get(sid).push({
+          product_id: line.id,
+          quantity: line.quantity,
+          ...(line.variantSku ? { variant_id: line.variantSku } : {}),
+        });
       }
 
       const sellerGroups = [...linesBySeller.entries()].map(([sellerId, orderItems]) => ({
         sellerId,
         items: orderItems,
         subtotal: orderItems.reduce((s, it) => {
+          const cartLine = items.find((l) => l.id === it.product_id && (!it.variant_id || l.variantSku === it.variant_id));
+          if (cartLine?.price) return s + cartLine.price * it.quantity;
           const pr = productById.get(it.product_id);
           return s + (pr ? pr.price * it.quantity : 0);
         }, 0),
