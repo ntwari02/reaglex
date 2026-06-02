@@ -122,12 +122,15 @@
 @media (min-width: 1024px) {
   .pd2-hero-grid {
     grid-template-columns: 1.15fr 1fr;
-    /*
-     * stretch: both columns grow to the same height (the taller one).
-     * The gallery image uses flex:1 to fill its column, matching the
-     * purchase panel height exactly.
-     */
-    align-items: stretch;
+    /* Content-height gallery so thumbs + color rail stay under the hero image. */
+    align-items: start;
+  }
+
+  .pd2-main-img {
+    flex: none;
+    width: 100%;
+    height: min(52vh, 560px);
+    max-height: 560px;
   }
 }
 
@@ -140,10 +143,8 @@
 
 @media (min-width: 1024px) {
   /*
-   * sticky keeps the image anchored while the user scrolls through a
-   * purchase panel that extends below the viewport.  The column itself is
-   * stretch-sized by the grid so the image fills the same height as the
-   * right panel.
+   * Sticky keeps the gallery (image + thumbs + color) visible while scrolling
+   * the purchase panel on the right.
    */
   .pd2-gallery-col {
     position: sticky;
@@ -151,9 +152,9 @@
   }
 }
 
-/* ─── Main image — fills remaining flex space in gallery column ──────────── */
+/* ─── Main image ─────────────────────────────────────────────────────────── */
 .pd2-main-img {
-  flex: 1;           /* grows to fill the gallery col height */
+  flex: none;
   min-height: 300px;
   position: relative;
   border-radius: 20px;
@@ -342,7 +343,7 @@
 
   .pd2-gallery-col {
     max-width: 100%;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .pd2-title {
@@ -433,6 +434,12 @@
     border-radius: 0;
     border-left: none;
     border-right: none;
+  }
+
+  .pd2-page--cart .pd2-gallery-strip,
+  .pd2-page--cart .pd2-ali-commerce-stack {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .pd2-page--cart .pd2-purchase-flow {

@@ -492,8 +492,12 @@ export default function ProductDetail() {
   const variantOptions = useMemo(() => {
     const variants = Array.isArray(product?.variants) ? [...product.variants] : [];
     return variants
-      .filter((v) => v?.sku)
-      .sort((a, b) => Number(a?.sortOrder || 0) - Number(b?.sortOrder || 0));
+      .filter((v) => v && typeof v === 'object')
+      .sort((a, b) => Number(a?.sortOrder || 0) - Number(b?.sortOrder || 0))
+      .map((v, idx) => ({
+        ...v,
+        sku: v.sku || v._id || `variant-${idx}`,
+      }));
   }, [product?.variants]);
 
   const selectedVariant = useMemo(
@@ -746,10 +750,13 @@ export default function ProductDetail() {
   const baseLocalPrice = currencyPricing.convertUsdToLocal(basePrice);
   const totalUsdText = currencyPricing.formatUsd(totalPrice);
   const showSizeSelector = categoryNeedsSize(product.category) && Array.isArray(product.sizes) && product.sizes.length > 0;
-  const showColorRail =
-    colorOptions.length > 0 ||
-    (variantOptions.length > 0 &&
-      (images.length > 1 || variantOptions.some((v) => v?.color || v?.thumbnailUrl)));
+  const galleryHasVideo = galleryItems.some((g) => g.type === 'video');
+  const galleryImageCount = galleryItems.filter((g) => g.type === 'image').length;
+  const showColorRail = colorOptions.length > 0;
+  const showGalleryStrip =
+    galleryItems.length > 1 ||
+    galleryHasVideo ||
+    images.length > 1;
   const selectedColorLabel =
     colorOptions.find((c) => c.key === selectedColorKey)?.label || selectedColor || '—';
   const openReviews = () => {
@@ -763,8 +770,14 @@ export default function ProductDetail() {
     const idx = galleryIndexForColorOption(galleryItems, opt, resolveImage);
     if (idx >= 0) setActiveImage(idx);
   };
-  const galleryHasVideo = galleryItems.some((g) => g.type === 'video');
-  const galleryImageCount = galleryItems.filter((g) => g.type === 'image').length;
+  const colorRail = showColorRail ? (
+    <ProductColorRail
+      selectedLabel={selectedColorLabel}
+      options={colorOptions}
+      activeKey={selectedColorKey}
+      onSelect={handleColorSelect}
+    />
+  ) : null;
   const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
 
   const specs = [
@@ -1179,7 +1192,7 @@ export default function ProductDetail() {
               </div>
 
               {/* Thumbnails — all photos + proof video */}
-              {galleryItems.length > 1 && (
+              {showGalleryStrip && (
                 <div className="pd2-gallery-strip mb-3 md:mb-4">
                   <div className="pd2-gallery-strip__head">
                     <p className="pd2-gallery-strip__title">
@@ -1253,14 +1266,7 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              {showColorRail && (
-                <ProductColorRail
-                  selectedLabel={selectedColorLabel}
-                  options={colorOptions}
-                  activeKey={selectedColorKey}
-                  onSelect={handleColorSelect}
-                />
-              )}
+              {colorRail && <div className="md:hidden">{colorRail}</div>}
 
               {reviewMediaItems.length > 0 && (
                 <ProductReviewGalleryRail
@@ -1468,6 +1474,9 @@ export default function ProductDetail() {
                     </button>
                   )}
                 </div>
+
+                {/* Color / style (tablet & desktop — mobile rail lives under gallery) */}
+                {colorRail && <div className="hidden md:block mb-4 lg:mb-5 order-6 lg:order-7">{colorRail}</div>}
 
                 {/* Size */}
                 {showSizeSelector && (

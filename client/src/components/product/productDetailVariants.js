@@ -7,20 +7,27 @@ export function buildProductColorOptions(product, variantOptions = []) {
 
   const productImages = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
 
-  const withIdentity = variantOptions.filter((v) => v?.color || v?.label || v?.thumbnailUrl);
+  const withIdentity = variantOptions.filter(
+    (v) => v?.color || v?.label || v?.thumbnailUrl || v?.size || v?.sku,
+  );
   if (withIdentity.length) {
     const map = new Map();
     withIdentity.forEach((v, variantIdx) => {
-      const key = String(v.color || v.label || v.sku || `variant-${variantIdx}`);
+      const key = String(v.color || v.label || v.size || v.sku || `variant-${variantIdx}`);
       const existing = map.get(key);
       const thumb =
         v.thumbnailUrl ||
         productImages[variantIdx] ||
         productImages[existing ? existing.variants.length : 0];
+      const fallbackLabel =
+        v.label ||
+        v.color ||
+        v.size ||
+        (v.sku && !String(v.sku).startsWith('variant-') ? v.sku : `Option ${variantIdx + 1}`);
       const entry = {
         key,
         color: v.color || key,
-        label: v.label || v.color || key,
+        label: fallbackLabel,
         thumbnailUrl: thumb,
         swatchHex: v.swatchHex,
         badge: v.badge,

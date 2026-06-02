@@ -204,37 +204,37 @@ export default function CategoryBrowse() {
       />
 
       <div className="cat-browse ex-page">
-        <header className="cat-browse-topbar ex-topbar">
-          <button
-            type="button"
-            className="ex-back"
-            onClick={() => navigate(-1)}
-            aria-label="Back"
-          >
-            <ArrowLeft size={20} strokeWidth={1.85} />
-          </button>
-          <h1 className="ex-page-title">{pageTitle}</h1>
-          <button
-            type="button"
-            className="ex-cart-link relative"
-            onClick={() => openCart()}
-            aria-label="Open cart"
-          >
-            <ShoppingBag size={20} strokeWidth={1.75} />
-            {cartCount > 0 && (
-              <span className="cat-browse-cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>
-            )}
-          </button>
-        </header>
+        <header className="cat-browse-head">
+          <div className="cat-browse-topbar ex-topbar">
+            <button
+              type="button"
+              className="ex-back"
+              onClick={() => navigate(-1)}
+              aria-label="Back"
+            >
+              <ArrowLeft size={20} strokeWidth={1.85} />
+            </button>
+            <h1 className="ex-page-title">{pageTitle}</h1>
+            <button
+              type="button"
+              className="ex-cart-link relative"
+              onClick={() => openCart()}
+              aria-label="Open cart"
+            >
+              <ShoppingBag size={20} strokeWidth={1.75} />
+              {cartCount > 0 && (
+                <span className="cat-browse-cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>
+              )}
+            </button>
+          </div>
 
-        <div className="cat-browse-sticky">
           <div className="cat-browse-search-wrap">
             <form className="cat-browse-search" onSubmit={handleSearchSubmit} role="search">
-              <Search size={18} strokeWidth={2} className="cat-browse-search__icon" aria-hidden />
+              <Search size={16} strokeWidth={2} className="cat-browse-search__icon" aria-hidden />
               <input
                 type="search"
                 className="cat-browse-search__input"
-                placeholder={`Search${!isAllCategory(slug) ? ` in ${meta?.name || 'category'}` : ' products'}…`}
+                placeholder={`Search${!isAllCategory(slug) ? ` in ${meta?.name || 'category'}` : ''}…`}
                 value={searchDraft}
                 onChange={(e) => setSearchDraft(e.target.value)}
                 aria-label="Search products"
@@ -251,7 +251,7 @@ export default function CategoryBrowse() {
                   }}
                   aria-label="Clear search"
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               )}
             </form>
@@ -264,7 +264,7 @@ export default function CategoryBrowse() {
               onClear={handleCategoryClear}
             />
           </div>
-        </div>
+        </header>
 
         <div className="cat-browse-body">
           {!notFound && !loading && (
