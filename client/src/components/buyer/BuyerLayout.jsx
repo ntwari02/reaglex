@@ -18,7 +18,7 @@ export default function BuyerLayout({ children, className = '' }) {
       }}
     >
       <div
-        className="pt-[var(--mob-header-total,calc(108px+env(safe-area-inset-top,0px)))] md:pt-[calc(158px+env(safe-area-inset-top,0px))] pb-[var(--mob-dock-bottom,calc(76px+env(safe-area-inset-bottom,0px)))] md:pb-0"
+        className="pt-[var(--mob-header-total,calc(108px+env(safe-area-inset-top,0px)))] md:pt-[calc(158px+env(safe-area-inset-top,0px))] pb-0 md:pb-0"
         style={{ color: 'var(--text-primary, #0f172a)' }}
       >
         {children}

@@ -64,6 +64,10 @@
     padding: 0 4px;
   }
 
+  html {
+    overscroll-behavior-y: none;
+  }
+
   .mob-page {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
