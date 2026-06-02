@@ -58,7 +58,9 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
     onClose();
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -258,6 +260,7 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
