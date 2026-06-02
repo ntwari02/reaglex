@@ -94,13 +94,15 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 .mob-header-row__left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   z-index: 2;
 }
 
@@ -116,7 +118,7 @@
 .mob-header-row__right {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   z-index: 2;
 }
 
@@ -129,8 +131,10 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  border-width: 1px;
-  border-style: solid;
+  border: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-secondary);
   transition: transform 0.15s ease;
 }
 

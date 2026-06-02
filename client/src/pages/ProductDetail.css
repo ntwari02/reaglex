@@ -7,7 +7,7 @@
 :root {
   --pd2-brand:      var(--brand-primary);
   --pd2-brand-dark: var(--brand-primary-hover);
-  --pd2-brand-glow: color-mix(in srgb, var(--brand-primary) 25%, transparent);
+  --pd2-brand-glow: color-mix(in srgb, var(--brand-primary) 18%, transparent);
   --pd2-glass:      rgba(255, 255, 255, 0.72);
   --pd2-glass-dark: rgba(15, 17, 30, 0.82);
   /* Space for mobile bottom nav + sticky CTA strip */
@@ -137,9 +137,9 @@
   }
 
   .pd2-mobile-commerce-hero {
-    margin: 0 -0.625rem 12px;
-    padding: 12px 0.625rem 10px;
-    border-bottom: 1px solid var(--divider);
+    margin: 0 -0.625rem 18px;
+    padding: 16px 0.875rem 14px;
+    border-bottom: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
     background: var(--card-bg);
   }
 
@@ -147,11 +147,11 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 8px;
+    gap: 10px;
   }
 
   .pd2-mobile-price-current {
-    font-size: clamp(1.45rem, 6.5vw, 1.75rem);
+    font-size: clamp(1.5rem, 6.2vw, 1.85rem);
     font-weight: 900;
     letter-spacing: -0.03em;
     color: var(--brand-primary);
@@ -177,8 +177,8 @@
   .pd2-mobile-delivery {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-top: 10px;
+    gap: 8px;
+    margin-top: 12px;
   }
 
   .pd2-mobile-delivery span {
@@ -186,8 +186,8 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    font-weight: 600;
-    color: #15803d;
+    font-weight: 500;
+    color: var(--text-secondary);
   }
 
   .pd2-delivery-estimate {
@@ -206,10 +206,10 @@
 
   .pd2-sticky-cta-inner--ali {
     background: var(--card-bg);
-    border: 1px solid var(--border-card);
+    border: 1px solid color-mix(in srgb, var(--border-card) 65%, transparent);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 -4px 16px color-mix(in srgb, var(--text-primary) 10%, transparent);
   }
 
   .pd2-sticky-cta-grid {
@@ -224,8 +224,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 14px;
-    border: 1px solid var(--divider);
-    background: var(--bg-secondary);
+    border: 1px solid color-mix(in srgb, var(--divider) 80%, transparent);
+    background: color-mix(in srgb, var(--bg-secondary) 84%, #fff);
     color: var(--text-primary);
   }
 
@@ -245,7 +245,7 @@
       color-mix(in srgb, var(--brand-primary) 90%, #fff) 0%,
       var(--brand-primary) 100%
     );
-    box-shadow: var(--shadow-cta);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 24%, transparent);
   }
 
   .pd2-sticky-cart:disabled {
@@ -259,11 +259,11 @@
     justify-content: center;
     gap: 5px;
     border-radius: 14px;
-    border: 1.5px solid var(--brand-primary);
+    border: 1px solid var(--brand-primary);
     font-size: 13px;
     font-weight: 800;
     color: var(--brand-primary);
-    background: color-mix(in srgb, var(--brand-primary) 8%, var(--card-bg));
+    background: color-mix(in srgb, var(--brand-primary) 6%, var(--card-bg));
   }
 
   .pd2-gallery-col {
@@ -355,8 +355,8 @@
   transition: all 200ms ease;
   background: var(--card-bg, rgba(255, 255, 255, 0.9));
   color: var(--text-secondary, #4b5563);
-  border: 1px solid var(--border-card, rgba(0, 0, 0, 0.08));
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid color-mix(in srgb, var(--border-card) 72%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--text-primary) 10%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -365,7 +365,7 @@
   background: var(--pd2-brand);
   color: #fff;
   border-color: var(--pd2-brand);
-  box-shadow: 0 4px 12px var(--pd2-brand-glow);
+  box-shadow: 0 3px 8px var(--pd2-brand-glow);
   transform: translateY(-1px);
 }
 
@@ -377,7 +377,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(17, 24, 39, 0.4);
   color: #fff;
   transition: background 200ms ease, transform 200ms ease;
   backdrop-filter: blur(4px);
@@ -385,7 +385,7 @@
 }
 
 .pd2-arrow-btn:hover {
-  background: var(--pd2-brand);
+  background: color-mix(in srgb, var(--brand-primary) 80%, #000);
   transform: scale(1.08);
 }
 
@@ -442,16 +442,20 @@
 .pd2-homeish-card {
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid var(--border-card);
+  border: 1px solid color-mix(in srgb, var(--border-card) 55%, transparent);
   background: var(--card-bg);
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+.pd2-highlight-card {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
 }
 
 /* ─── Title ──────────────────────────────────────────────────────────────── */
 .pd2-title {
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.26;
   color: var(--text-primary);
   animation: pd2-title-in 400ms ease 200ms both;
 }
@@ -466,7 +470,7 @@
   font-size: clamp(2rem, 4vw, 2.5rem);
   font-weight: 900;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   animation: pd2-price-in 350ms ease 350ms both;
 }
 
@@ -477,10 +481,10 @@
 
 /* ─── Seller card ────────────────────────────────────────────────────────── */
 .pd2-seller-card {
-  padding: 16px;
-  border-radius: 18px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-card);
+  padding: 18px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--bg-secondary) 78%, #fff);
+  border: 1px solid color-mix(in srgb, var(--border-card) 58%, transparent);
   position: relative;
   overflow: hidden;
 }
@@ -504,7 +508,7 @@
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 24px var(--pd2-brand-glow);
+  box-shadow: 0 6px 14px var(--pd2-brand-glow);
   transition: box-shadow 200ms ease, transform 200ms ease;
   animation: pd2-cta-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 500ms both;
 }
@@ -542,7 +546,7 @@
 /* ─── Secondary CTA ──────────────────────────────────────────────────────── */
 .pd2-btn-secondary {
   background: transparent;
-  border: 2px solid var(--pd2-brand);
+  border: 1px solid var(--pd2-brand);
   border-radius: 14px;
   color: var(--pd2-brand);
   cursor: pointer;

@@ -150,32 +150,33 @@
   }
 
   .mob-cat-strip-scroll {
-    gap: 4px;
-    scroll-padding-inline: 12px;
+    gap: 10px;
+    scroll-padding-inline: 16px;
+    padding-block: 8px 10px;
   }
 
   .mob-cat-chip {
-    min-width: 44px;
+    min-width: 50px;
   }
 
   /* Category chips — reference: gray tile, orange ring when active */
   .mob-cat-chip-icon {
-    background: var(--bg-secondary, #f3f4f6);
+    background: color-mix(in srgb, var(--bg-secondary) 82%, #fff);
     color: var(--text-secondary);
-    border: 1px solid color-mix(in srgb, var(--border-card) 50%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-card) 38%, transparent);
   }
 
   .mob-cat-chip-icon[data-active='true'] {
-    background: color-mix(in srgb, var(--brand-primary) 12%, #fff);
+    background: color-mix(in srgb, var(--brand-primary) 8%, #fff);
     color: var(--brand-primary);
-    border: 1.5px solid var(--brand-primary);
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-primary) 18%, transparent);
+    border: 1px solid var(--brand-primary);
+    box-shadow: 0 1px 6px color-mix(in srgb, var(--brand-primary) 16%, transparent);
   }
 
   .mob-cat-chip-label {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 500;
-    line-height: 1.15;
+    line-height: 1.25;
     color: var(--text-secondary);
   }
 

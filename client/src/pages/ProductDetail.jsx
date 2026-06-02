@@ -30,6 +30,7 @@ import { resolveProductPriceUsd } from '../lib/resolveProductPrice';
 
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
+const softEase = [0.22, 1, 0.36, 1];
 
 /* ─── helpers ────────────────────────────────────────────────────────────── */
 function resolveImage(src) {
@@ -871,7 +872,7 @@ export default function ProductDetail() {
           {/* ── Breadcrumb ── */}
           <motion.div
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease }}
+            transition={{ duration: 0.28, ease: softEase }}
             className="flex items-center justify-between gap-2 mb-4 md:mb-8 flex-wrap min-w-0"
           >
             <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0 flex-1" style={{ color: 'var(--text-muted)' }}>
@@ -901,8 +902,8 @@ export default function ProductDetail() {
             {/* ── Gallery ── */}
             <motion.div
               className="pd2-gallery-col"
-              initial={{ opacity: 0, x: -28 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, ease }}
+              initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.34, ease: softEase }}
             >
               {/* Main media */}
               <div
@@ -945,9 +946,9 @@ export default function ProductDetail() {
                       layout={activeImage === 0}
                       src={galleryItems[activeImage]?.src || resolveImage(images[activeImage])}
                       alt={title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+                      transition={{ type: 'spring', stiffness: 320, damping: 32, mass: 0.75 }}
                       onError={(e) => { e.target.src = resolveImage(null); }}
                       draggable={false}
                     />
@@ -1064,7 +1065,7 @@ export default function ProductDetail() {
                         opacity: i === activeImage ? 1 : 0.65,
                         scrollSnapAlign: 'start',
                       }}
-                      whileHover={{ scale: 1.07, opacity: 1 }}
+                      whileHover={{ scale: 1.03, opacity: 1 }}
                     >
                       {m?.type === 'video' ? (
                         <div className="w-full h-full relative bg-black">
@@ -1109,8 +1110,8 @@ export default function ProductDetail() {
             {/* ── Purchase Panel ── */}
             <motion.div
               className="pd2-purchase-col"
-              initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1, ease }}
+              initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.34, delay: 0.04, ease: softEase }}
             >
               <div className="pd2-purchase-flow min-w-0">
 
@@ -1325,7 +1326,7 @@ export default function ProductDetail() {
                     {product.sizes.map((s) => (
                       <motion.button key={s} type="button"
                         onClick={() => setSelectedSize(s)}
-                        whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }}
+                        whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
                         className="pd2-size-btn-mobile min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 lg:w-10 lg:h-8 rounded-xl lg:rounded-lg text-xs font-bold transition-all duration-200 touch-manipulation"
                         style={{
                           background: selectedSize === s ? PRIMARY : 'var(--bg-secondary)',
@@ -1350,7 +1351,7 @@ export default function ProductDetail() {
                     {product.colors.map((color) => (
                       <motion.button key={color} type="button"
                         onClick={() => setSelectedColor(color)}
-                        whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
                         className="w-11 h-11 sm:w-10 sm:h-10 rounded-full transition-all touch-manipulation shrink-0"
                         style={{
                           background: color,
@@ -1486,7 +1487,7 @@ export default function ProductDetail() {
                     type="button"
                     onClick={handleAddToCart}
                     disabled={stock === 0 || addState === 'adding'}
-                    whileHover={addState === 'idle' ? { y: -2 } : {}}
+                    whileHover={addState === 'idle' ? { y: -1 } : {}}
                     whileTap={{ scale: 0.98 }}
                     className="pd2-btn-primary w-full h-14 flex items-center justify-center gap-3 text-sm font-bold"
                     style={addState === 'added' ? { background: '#16a34a', boxShadow: '0 8px 24px rgba(22,163,74,0.35)' } : {}}
@@ -1502,7 +1503,7 @@ export default function ProductDetail() {
                   <motion.button
                     type="button"
                     onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
-                    whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}
+                    whileHover={{ y: -0.5 }} whileTap={{ scale: 0.98 }}
                     className="pd2-btn-secondary w-full h-12 flex items-center justify-center gap-2 text-sm font-bold"
                   >
                     <Zap size={16} /> Buy Now
@@ -1611,7 +1612,7 @@ export default function ProductDetail() {
           <motion.div
             className="pd2-meta-strip !mb-6 md:!mb-14"
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }} transition={{ duration: 0.5 }}
+            viewport={{ once: true }} transition={{ duration: 0.36, ease: softEase }}
           >
             {/* Seller card */}
             <div className="pd2-seller-card max-w-[100vw] overflow-hidden">
@@ -1674,7 +1675,7 @@ export default function ProductDetail() {
           <motion.div
             className="flex lg:grid lg:grid-cols-4 gap-3 mb-8 md:mb-10 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0 snap-x snap-mandatory lg:snap-none scrollbar-hide -mx-0.5 px-0.5 lg:mx-0 lg:px-0"
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }} transition={{ duration: 0.5 }}
+            viewport={{ once: true }} transition={{ duration: 0.36, ease: softEase }}
           >
             {HIGHLIGHTS.map((h, i) => {
               const Icon = h.icon;
@@ -1683,8 +1684,8 @@ export default function ProductDetail() {
                   className="pd2-highlight-card flex items-center gap-3 p-3 sm:p-4 rounded-2xl min-w-[min(85vw,280px)] lg:min-w-0 flex-shrink-0 lg:flex-shrink snap-center lg:snap-none"
                   style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-card)' }}
                   initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }} transition={{ duration: 0.45, delay: i * 0.07 }}
-                  whileHover={{ y: -2 }}
+                  viewport={{ once: true }} transition={{ duration: 0.32, delay: i * 0.05, ease: softEase }}
+                  whileHover={{ y: -1 }}
                 >
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: `${h.color}14`, border: `1px solid ${h.color}25` }}>
@@ -1782,7 +1783,7 @@ export default function ProductDetail() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.18, ease: softEase }}
                 >
                   {renderDetailPanel(tabIndex, { dense: false })}
                 </motion.div>

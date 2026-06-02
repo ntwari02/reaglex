@@ -292,5 +292,7 @@
 /* Navbar trigger — borderless */
 .mob-search-bar--2026 {
   border: none !important;
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--text-primary) 8%, transparent) !important;
+  min-height: 50px;
+  border-radius: 16px !important;
 }
