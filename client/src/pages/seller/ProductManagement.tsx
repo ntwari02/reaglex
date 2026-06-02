@@ -10,6 +10,12 @@ import { SERVER_URL, API_BASE_URL } from '@/lib/config';
 import { currencyApi } from '@/services/currencyApi';
 import { formatIntNoDecimals } from '@/lib/currencyFormat';
 import { categoryNeedsColor, categoryNeedsSize } from '@/constants/categoryAttributes';
+import {
+  enrichVariantsWithProductImages,
+  mapVariantsFromApi,
+  resolveColorsForSave,
+  resolveSizesForSave,
+} from '@/lib/productVariantSync';
 
 const API_HOST = SERVER_URL;
 const API_BASE = `${API_BASE_URL}/seller/inventory`;
@@ -221,7 +227,7 @@ const ProductManagement: React.FC = () => {
     images: Array.isArray(p.images) ? p.images.map(resolveImageUrl) : undefined,
     description: p.description,
     sku: p.sku,
-    variants: p.variants,
+    variants: mapVariantsFromApi(p.variants, p),
     sizes: Array.isArray(p.sizes) ? p.sizes : [],
     colors: Array.isArray(p.colors) ? p.colors : [],
   seoTitle: p.seoTitle,
@@ -639,8 +645,12 @@ const ProductManagement: React.FC = () => {
     productSaveInFlightRef.current = true;
     setProductSubmitting(true);
     try {
+      const prepareVariants = (variants: Variant[] | undefined, images: string[] | undefined) => {
+        return enrichVariantsWithProductImages(variants || [], images || []);
+      };
+
       if (editingProduct) {
-        // Update existing product
+        const variantRows = prepareVariants(editingProduct.variants, editingProduct.images);
         const body = {
           name: editingProduct.name,
           category: editingProduct.category,
@@ -656,9 +666,19 @@ const ProductManagement: React.FC = () => {
           discount: editingProduct.discount,
           moq: editingProduct.moq,
           images: editingProduct.images,
-          variants: editingProduct.variants,
-          sizes: categoryNeedsSize(editingProduct.category) ? (editingProduct.sizes || []) : [],
-          colors: categoryNeedsColor(editingProduct.category) ? (editingProduct.colors || []) : [],
+          variants: variantRows,
+          sizes: resolveSizesForSave(
+            editingProduct.category,
+            editingProduct.sizes || [],
+            variantRows,
+            categoryNeedsSize,
+          ),
+          colors: resolveColorsForSave(
+            editingProduct.category,
+            editingProduct.colors || [],
+            variantRows,
+            categoryNeedsColor,
+          ),
           verification: verificationPayload,
           listingMode: (editingProduct as { listingMode?: string }).listingMode || 'live',
           launchAt:
@@ -682,7 +702,7 @@ const ProductManagement: React.FC = () => {
         }
         showToast('Product updated successfully.', 'success');
       } else {
-        // Create new product
+        const variantRows = prepareVariants(newProduct.variants, newProduct.images);
         const body = {
           name: newProduct.name,
           category: newProduct.category,
@@ -702,9 +722,19 @@ const ProductManagement: React.FC = () => {
             ? parseInt((newProduct as any).moq, 10)
             : undefined,
           images: newProduct.images,
-          variants: newProduct.variants,
-          sizes: categoryNeedsSize(newProduct.category) ? (newProduct.sizes || []) : [],
-          colors: categoryNeedsColor(newProduct.category) ? (newProduct.colors || []) : [],
+          variants: variantRows,
+          sizes: resolveSizesForSave(
+            newProduct.category,
+            newProduct.sizes || [],
+            variantRows,
+            categoryNeedsSize,
+          ),
+          colors: resolveColorsForSave(
+            newProduct.category,
+            newProduct.colors || [],
+            variantRows,
+            categoryNeedsColor,
+          ),
           verification: verificationPayload,
           listingMode: newProduct.listingMode,
           launchAt:
@@ -918,6 +948,13 @@ const ProductManagement: React.FC = () => {
       return;
     }
 
+    const productImages = editingProduct?.images || newProduct.images || [];
+    const existingVariantCount = (editingProduct?.variants || newProduct.variants || []).length;
+    let thumb = variantDraft.thumbnailUrl.trim();
+    if (!thumb && productImages.length) {
+      thumb = productImages[existingVariantCount % productImages.length];
+    }
+
     const newVariant: Variant = {
       color: variantDraft.color || undefined,
       size: variantDraft.size || undefined,
@@ -925,7 +962,7 @@ const ProductManagement: React.FC = () => {
       stock: stockValue,
       ...(variantListingPrice != null ? { listingPriceAmount: variantListingPrice } : {}),
       label: variantDraft.label.trim() || variantDraft.color.trim() || undefined,
-      thumbnailUrl: variantDraft.thumbnailUrl.trim() || undefined,
+      thumbnailUrl: thumb || undefined,
       badge: variantDraft.badge.trim() || undefined,
     };
 
@@ -2625,8 +2662,8 @@ const ProductManagement: React.FC = () => {
                 Variants (Colors, Sizes, Prices)
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
-                Optional per-variant price in your listing currency. Leave blank to use the main product price.
-                Add a thumbnail URL (from uploaded images) for the color picker on the product page.
+                Add a color name and pick which product photo shows on the product page for that color.
+                Optional per-variant price in your listing currency.
               </p>
 
               {/* Existing variants list */}
@@ -2652,7 +2689,14 @@ const ProductManagement: React.FC = () => {
                           <span className="text-xs"><span className="lg:hidden text-gray-500">Color: </span>{variant.color || '-'}</span>
                           <span className="text-xs"><span className="lg:hidden text-gray-500">Size: </span>{variant.size || '-'}</span>
                           <span className="font-mono text-xs break-all col-span-2 lg:col-span-1">{variant.sku}</span>
-                          <span className="text-xs">
+                          <span className="text-xs flex items-center gap-1.5">
+                            {variant.thumbnailUrl ? (
+                              <img
+                                src={variant.thumbnailUrl}
+                                alt=""
+                                className="w-8 h-8 rounded-md object-cover border border-gray-200 dark:border-gray-600"
+                              />
+                            ) : null}
                             {variant.listingPriceAmount != null
                               ? variant.listingPriceAmount
                               : variant.priceUsd != null
@@ -2738,13 +2782,40 @@ const ProductManagement: React.FC = () => {
                   />
                   <input
                     type="url"
-                    placeholder="Thumbnail image URL (optional)"
+                    placeholder="Or paste image URL"
                     value={variantDraft.thumbnailUrl}
                     onChange={(e) =>
                       setVariantDraft((prev) => ({ ...prev, thumbnailUrl: e.target.value }))
                     }
                     className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:col-span-2"
                   />
+                  {(editingProduct?.images || newProduct.images || []).length > 0 && (
+                    <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center gap-2 pt-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 w-full">
+                        Color image (from your uploads)
+                      </span>
+                      {(editingProduct?.images || newProduct.images || []).map((url, imgIdx) => {
+                        const active = variantDraft.thumbnailUrl === url;
+                        return (
+                          <button
+                            key={`${url}-${imgIdx}`}
+                            type="button"
+                            title="Use as variant color image"
+                            onClick={() =>
+                              setVariantDraft((prev) => ({ ...prev, thumbnailUrl: url }))
+                            }
+                            className={`w-11 h-11 rounded-lg overflow-hidden border-2 shrink-0 ${
+                              active
+                                ? 'border-red-500 ring-2 ring-red-400/40'
+                                : 'border-gray-300 dark:border-gray-600'
+                            }`}
+                          >
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   <input
                     type="text"
                     placeholder="Badge e.g. Trending (optional)"

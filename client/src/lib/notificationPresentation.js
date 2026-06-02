@@ -246,6 +246,21 @@ export function getTypeMeta(type, presentationType) {
   return TYPE_META[presentationType || type] || TYPE_META[type] || TYPE_META.system;
 }
 
+/** Primary CTA label for detail panel and cards. */
+export function getNotificationActionLabel(n, t) {
+  if (!n) return '';
+  if (n.actionText) return String(n.actionText);
+  const tr = (key, fallback) => (typeof t === 'function' ? t(key) : fallback);
+  if (n.type === 'order') return tr('notifications.actions.trackOrder', 'Track order');
+  if (n.type === 'live') return tr('notifications.actions.watchLive', 'Watch live');
+  if (n.type === 'message') return tr('notifications.actions.reply', 'Reply');
+  if (n.type === 'deal') return tr('notifications.actions.shopNow', 'Shop now');
+  if (n.presentationType === 'ai') return tr('notifications.actions.shopNow', 'View picks');
+  if (n.type === 'review') return tr('notifications.actions.rateNow', 'Rate now');
+  if (n.actionUrl) return tr('notifications.actions.open', 'Open');
+  return '';
+}
+
 /** Resolve in-app path when user taps a notification row. */
 export function getNotificationHref(n) {
   if (!n) return null;

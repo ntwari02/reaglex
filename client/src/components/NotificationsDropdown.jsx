@@ -1,13 +1,11 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import { useTranslation } from '../i18n/useTranslation';
 import { useIsMobile } from '../hooks/useIsMobile';
 import MobileNotificationSheet from './notifications/MobileNotificationSheet';
 import { useNotificationFeed } from './notifications/useNotificationFeed';
-import NotificationList from './notifications/NotificationList';
-import { getNotificationHref } from '../lib/notificationPresentation';
+import NotificationInbox from './notifications/NotificationInbox';
 import '../styles/notifications-os.css';
 
 const EASE = [0.22, 1, 0.36, 1];
@@ -37,7 +35,6 @@ export function NotificationsDropdown({ isOpen, onClose, onUnreadChange }) {
 }
 
 function DesktopNotificationsDropdown({ isOpen, onClose, onUnreadChange, t }) {
-  const navigate = useNavigate();
   const feed = useNotificationFeed({ enabled: isOpen, limit: 30 });
 
   useEffect(() => {
@@ -51,14 +48,6 @@ function DesktopNotificationsDropdown({ isOpen, onClose, onUnreadChange, t }) {
     if (isOpen) window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
-
-  const handleItemPress = (n) => {
-    feed.markAsRead(n.id, n);
-    onClose();
-    const href = getNotificationHref(n);
-    if (href) navigate(href);
-    else navigate('/notifications');
-  };
 
   return (
     <AnimatePresence>
@@ -95,13 +84,14 @@ function DesktopNotificationsDropdown({ isOpen, onClose, onUnreadChange, t }) {
                 </div>
               </div>
             </header>
-            <NotificationList
-              {...feed}
+            <NotificationInbox
+              feed={feed}
               enableSwipe={false}
-              onItemPress={handleItemPress}
-              onMarkRead={feed.markAsRead}
-              onDelete={feed.removeNotification}
+              compact
+              showFooter
+              showPushBanner={false}
               onClose={onClose}
+              closeOnNavigate
             />
           </motion.div>
         </>

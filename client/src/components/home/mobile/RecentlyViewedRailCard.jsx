@@ -10,7 +10,7 @@ import { navigateToProduct } from '../../../lib/productNavigation';
 import { productDisplayName, resolveProductImage, productId } from './productUtils';
 import '../../../styles/recently-viewed-rail.css';
 
-export default function RecentlyViewedRailCard({ product, index = 0 }) {
+export default function RecentlyViewedRailCard({ product, index = 0, showHotBadge = false }) {
   const navigate = useNavigate();
   const addItem = useBuyerCart((s) => s.addItem);
   const user = useAuthStore((s) => s.user);
@@ -48,6 +48,11 @@ export default function RecentlyViewedRailCard({ product, index = 0 }) {
       >
         <div className="rv-ymal-card__media">
           <img src={resolveProductImage(product)} alt="" loading="lazy" />
+          {showHotBadge && (
+            <span className="rv-ymal-card__hot" aria-hidden>
+              🔥 Hot
+            </span>
+          )}
           {wishlistOn && (
             <button
               type="button"

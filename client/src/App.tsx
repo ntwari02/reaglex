@@ -67,28 +67,28 @@ import { ClientOnly } from './components/ClientOnly';
  * page, dragging the "fixed" nav along).
  */
 function GlobalNavbar() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const user = useAuthStore((s) => s.user);
   const isSellerPending = pathname === '/seller/pending';
   if (isSellerPending) return <Navbar />;
   if (user && !canAccessBuyerUi(user)) return null;
-  if (isBuyerChromeHidden(pathname)) return null;
+  if (isBuyerChromeHidden(pathname, search)) return null;
   return <Navbar />;
 }
 
 function GlobalMobileBottomNav() {
   const user = useAuthStore((s) => s.user);
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   if (user && !canAccessBuyerUi(user)) return null;
-  if (isBuyerChromeHidden(pathname)) return null;
+  if (isBuyerChromeHidden(pathname, search)) return null;
   return <MobileBottomNav />;
 }
 
 function GlobalMobileMenuOverlay() {
   const user = useAuthStore((s) => s.user);
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   if (user && !canAccessBuyerUi(user)) return null;
-  if (isBuyerChromeHidden(pathname)) return null;
+  if (isBuyerChromeHidden(pathname, search)) return null;
   return <MobileMenuOverlay />;
 }
 

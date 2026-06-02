@@ -136,7 +136,7 @@ export default function AccountMobileLayout({
 }) {
   const isHub = activeTab === 'overview';
 
-  if (!isHub) {
+  if (!isHub && activeTab !== 'settings') {
     return (
       <div className="rx-acc-mobile-layout lg:hidden">
         <AccountMobileBackBar title={tabLabel} onBack={onBackToHub} />

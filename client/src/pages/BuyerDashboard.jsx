@@ -1755,9 +1755,9 @@ export default function BuyerDashboard() {
   });
 
   return (
-    <BuyerLayout>
+    <BuyerLayout focused={tab === 'settings'}>
       <div
-        className="buyer-account-mobile min-h-screen"
+        className={`buyer-account-mobile min-h-screen${tab === 'settings' ? ' is-settings-tab' : ''}`}
         style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)', color: 'var(--text-primary)', position: 'relative' }}
       >
         {/* Subtle full-page dot grid */}
@@ -4804,6 +4804,7 @@ export default function BuyerDashboard() {
                     >
                       <AccountSettingsDashboard
                         onOpenSecurityMobile={() => setSecuritySheetOpen(true)}
+                        onBack={() => setTab('overview')}
                       />
                     </motion.div>
                   )}

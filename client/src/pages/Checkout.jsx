@@ -9,13 +9,12 @@ import {
   Check,
   Lock,
   ShoppingBag,
-  ArrowLeft,
   Smartphone,
   Shield,
   Wallet,
   Banknote,
 } from 'lucide-react';
-import BuyerLayout from '../components/buyer/BuyerLayout';
+import CheckoutFocusLayout from '../components/checkout/CheckoutFocusLayout';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { paymentAPI, orderAPI, productAPI, shippingAPI } from '../services/api';
 import { useTranslation } from '../i18n/useTranslation';
@@ -575,8 +574,8 @@ export default function Checkout() {
 
   if (items.length === 0)
     return (
-      <BuyerLayout>
-        <div className="flex h-[70vh] flex-col items-center justify-center gap-4">
+      <CheckoutFocusLayout backTo="/">
+        <div className="flex min-h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] flex-col items-center justify-center gap-4 px-4">
           <ShoppingBag className="h-14 w-14" style={{ color: 'var(--divider)' }} />
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
             {t('checkout.emptyCart')}
@@ -590,21 +589,12 @@ export default function Checkout() {
             </button>
           </Link>
         </div>
-      </BuyerLayout>
+      </CheckoutFocusLayout>
     );
 
   return (
-    <BuyerLayout>
-      <div className="w-full px-4 py-8 sm:px-6 lg:px-10 xl:px-16">
-        <motion.button
-          whileHover={{ x: -3 }}
-          onClick={() => navigate(-1)}
-          className="mb-6 flex items-center gap-2 text-sm font-semibold"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <ArrowLeft className="h-4 w-4" /> {t('checkout.backToCart')}
-        </motion.button>
-
+    <CheckoutFocusLayout>
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
         <div className="mb-8 flex items-center justify-between">
           {STEPS.map((s, i) => (
             <div key={s.id} className="flex flex-1 items-center">
@@ -1224,7 +1214,7 @@ export default function Checkout() {
           </div>
 
           <div
-            className="sticky top-20 h-fit space-y-4 rounded-2xl p-5"
+            className="sticky top-[calc(3.25rem+env(safe-area-inset-top,0px))] h-fit space-y-4 rounded-2xl p-5 lg:top-6"
             style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
           >
             <h3 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
@@ -1305,6 +1295,6 @@ export default function Checkout() {
           </div>
         </div>
       </div>
-    </BuyerLayout>
+    </CheckoutFocusLayout>
   );
 }

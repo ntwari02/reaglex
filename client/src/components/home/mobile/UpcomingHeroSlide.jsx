@@ -17,7 +17,7 @@ export default function UpcomingHeroSlide({ slide, isDark, compact }) {
     return () => window.clearInterval(id);
   }, [slide.launchAt]);
 
-  const minH = compact ? 188 : 150;
+  const minH = compact ? 196 : 150;
 
   return (
     <article

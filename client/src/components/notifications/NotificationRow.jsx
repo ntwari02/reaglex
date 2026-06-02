@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../i18n/useTranslation';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
-import { getTypeMeta, formatDealCountdown, getNotificationHref } from '../../lib/notificationPresentation';
+import {
+  getTypeMeta,
+  formatDealCountdown,
+  getNotificationHref,
+  getNotificationActionLabel,
+} from '../../lib/notificationPresentation';
 import OrderProgressTrack from './OrderProgressTrack';
 import OsNotificationCard from './OsNotificationCard';
 
@@ -55,17 +61,19 @@ export default function NotificationRow({
   index = 0,
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [dragX, setDragX] = useState(0);
   const meta = getTypeMeta(n.type, n.presentationType);
   const Icon = meta.Icon;
 
   const handleOpen = () => {
-    if (n.unread) onMarkRead?.(n.id, n);
     if (onPress) {
+      if (n.unread) onMarkRead?.(n.id, n);
       onPress(n);
       return;
     }
+    if (n.unread) onMarkRead?.(n.id, n);
     const href = getNotificationHref(n);
     if (href) navigate(href);
     else if (n.type === 'system') navigate('/notifications');
@@ -115,9 +123,7 @@ export default function NotificationRow({
     (n.type === 'deal' && n.dealEndsAt) ||
     n.presentationType === 'ai';
 
-  const actionLabel =
-    n.actionText ||
-    (n.type === 'live' ? 'Watch live' : n.type === 'message' ? 'Reply' : n.actionUrl ? 'Open' : undefined);
+  const actionLabel = getNotificationActionLabel(n, t) || undefined;
 
   return (
     <div className="rxn-row-wrap rxn-row-wrap--os">

@@ -214,6 +214,7 @@
     "emptyCart": "Ikarita irimo ubusa",
     "shopNow": "Gura ubu",
     "backToCart": "Subira mu gitebo",
+    "secureCheckout": "Kwishyura byizewe",
     "continueToDelivery": "Komeza ku kohereza",
     "multiPayNotice": "Amaduka menshi yatangijwe. Ishyura rya mbere ubu; indi ushyire mu byatumijwe.",
     "reaglexShippingTitle": "Shipping",
@@ -513,11 +514,21 @@
       "alerts": "Iburira",
       "orders": "Ibyatumijwe",
       "deals": "Ibiciro",
-      "system": "Sisitemu"
+      "system": "Sisitemu",
+      "ai": "AI"
     },
+    "detailTitle": "Ubutumwa",
+    "backToList": "Subira ku rutonde",
+    "fullMessage": "Ibisobanuro",
+    "orderProgress": "Imiterere y'itumiza",
+    "orderRef": "Itumiza",
+    "dealEnds": "Igiciro kirangira mu",
+    "relatedItems": "Ibijyanye",
     "actions": {
       "trackOrder": "Kurikirana itumiza",
       "shopNow": "Gura ubu",
+      "watchLive": "Reba live",
+      "open": "Fungura",
       "completeProfile": "Uzuza umwirondoro",
       "reply": "Subiza",
       "rateNow": "Tanga amanota"

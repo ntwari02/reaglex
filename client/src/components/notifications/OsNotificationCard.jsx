@@ -23,22 +23,28 @@ export default function OsNotificationCard({
   const reduceMotion = useReducedMotion();
   const thumbList = showThumbs && thumbnails.length ? thumbnails : [];
 
+  const interactive = typeof onClick === 'function';
+
   return (
     <motion.article
       layout
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.24), duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick?.();
-        }
-      }}
-      className={`rxn-os rxn-os--${variant}${unread ? ' rxn-os--unread' : ''}${compact ? ' rxn-os--compact' : ''}`}
+      role={interactive ? 'button' : 'article'}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? onClick : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+      className={`rxn-os rxn-os--${variant}${unread ? ' rxn-os--unread' : ''}${compact ? ' rxn-os--compact' : ''}${interactive ? '' : ' rxn-os--static'}`}
       style={{
         '--rxn-os-accent': accent,
         '--rxn-os-surface': surface,

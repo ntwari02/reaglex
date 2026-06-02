@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/config';
-import { isSellerPathWithBuyerNav } from '@/config/buyerNavVisibility';
+import { isAccountSettingsRoute, isSellerPathWithBuyerNav } from '@/config/buyerNavVisibility';
 import { useAuthStore } from '@/stores/authStore';
 import { getAssistantChatStorageKey } from '@/lib/clearAuthSession';
 
@@ -116,6 +116,8 @@ export default function AssistantChat() {
     path === '/login' || path === '/signup' ||
     path === '/forgot-password' || path === '/reset-password' ||
     path === '/verify-otp' ||
+    path.startsWith('/checkout') ||
+    isAccountSettingsRoute(path, location.search) ||
     path.startsWith('/admin');
 
   const [open,              setOpen]              = useState(false);
@@ -239,9 +241,12 @@ export default function AssistantChat() {
   /* ── Inject styles & animations ── */
   useEffect(() => {
     const styleId = 'reaglex-ai-chat-styles';
-    if (document.getElementById(styleId)) return;
-    const style = document.createElement('style');
-    style.id = styleId;
+    let style = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      document.head.appendChild(style);
+    }
     style.textContent = `
       /* Floating trigger — single rounded brand FAB (no side-tab duplicate) */
       .ai-trigger-fab {
@@ -322,13 +327,84 @@ export default function AssistantChat() {
 
       /* Header action buttons */
       .ai-hdr-btn {
-        width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.06); color: rgba(200,210,230,0.7);
+        width: 28px; height: 28px; border-radius: 8px;
+        border: 1px solid var(--ai-hdr-btn-border);
+        background: var(--ai-hdr-btn-bg);
+        color: var(--ai-hdr-btn-color);
         cursor: pointer; display: flex; align-items: center; justify-content: center;
         font-size: 14px; line-height: 1; transition: all 0.18s ease; flex-shrink: 0;
       }
-      .ai-hdr-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
-      .ai-hdr-btn-close:hover { background: rgba(239,68,68,0.28); color: #fca5a5; border-color: rgba(239,68,68,0.35); }
+      .ai-hdr-btn:hover {
+        background: var(--ai-hdr-btn-hover-bg);
+        color: var(--ai-hdr-btn-hover-color);
+      }
+      .ai-hdr-btn-close:hover {
+        background: var(--badge-error-bg);
+        color: var(--badge-error-text);
+        border-color: var(--badge-error-border);
+      }
+
+      .ai-chat-header {
+        padding: 13px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: var(--ai-chat-header-bg);
+        border-bottom: 1px solid var(--commerce-brand-border-subtle);
+        position: relative;
+        z-index: 2;
+      }
+      .ai-chat-header__title {
+        font-weight: 800;
+        font-size: 13px;
+        color: var(--ai-chat-header-title);
+        letter-spacing: 0.025em;
+        line-height: 1;
+      }
+      .ai-chat-header__meta {
+        margin-top: 3px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .ai-chat-header__online {
+        font-size: 10.5px;
+        color: var(--ai-chat-header-online);
+        font-weight: 700;
+      }
+      .ai-chat-header__model {
+        font-size: 10px;
+        color: color-mix(in srgb, var(--commerce-brand-primary) 85%, transparent);
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      .ai-chat-header__dot {
+        font-size: 10px;
+        color: var(--text-faint);
+      }
+      .ai-online-dot {
+        position: absolute;
+        bottom: -1px;
+        right: -1px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #22c55e;
+        border: 2px solid var(--ai-online-ring);
+        box-shadow: 0 0 7px rgba(34, 197, 94, 0.65);
+      }
+      .ai-fallback-notice {
+        padding: 7px 14px;
+        font-size: 11px;
+        color: var(--ai-fallback-text);
+        background: var(--ai-fallback-bg);
+        border-bottom: 1px solid var(--ai-fallback-border);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
 
       /* Checkout inputs */
       .ai-ck-input {
@@ -363,8 +439,7 @@ export default function AssistantChat() {
         50%      { opacity: 1;    }
       }
     `;
-    document.head.appendChild(style);
-    return () => { style.remove(); };
+    return () => { style?.remove(); };
   }, []);
 
   /* ── Payment gateways for inline checkout ── */
@@ -577,7 +652,7 @@ export default function AssistantChat() {
               overflow: 'hidden',
               background: 'var(--card-bg)',
               border: `1px solid ${ORANGE_GLOW}`,
-              boxShadow: '0 28px 80px rgba(0,0,0,0.38), 0 0 0 1px rgba(249,115,22,0.07), 0 0 60px rgba(249,115,22,0.06)',
+              boxShadow: 'var(--ai-chat-window-shadow)',
               position: 'relative',
             }}
           >
@@ -585,13 +660,7 @@ export default function AssistantChat() {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent 0%, ${PRIMARY_HOVER} 30%, ${PRIMARY} 70%, transparent 100%)`, zIndex: 10 }} />
 
             {/* ── Header ── */}
-            <div style={{
-              padding: '13px 16px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-              background: 'linear-gradient(135deg, rgba(10,10,22,0.98) 0%, rgba(13,15,28,0.97) 100%)',
-              borderBottom: `1px solid ${ORANGE_GLOW_SOFT}`,
-              position: 'relative', zIndex: 2,
-            }}>
+            <div className="ai-chat-header">
               {/* Left: icon + name */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
                 <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -603,24 +672,16 @@ export default function AssistantChat() {
                   }}>
                     <GeminiIcon size={21} className="gemini-animated-icon" />
                   </div>
-                  {/* Online dot */}
-                  <span style={{
-                    position: 'absolute', bottom: -1, right: -1,
-                    width: 10, height: 10, borderRadius: '50%',
-                    background: '#22c55e', border: '2px solid #0d0f1c',
-                    boxShadow: '0 0 7px rgba(34,197,94,0.65)',
-                  }} />
+                  <span className="ai-online-dot" aria-hidden />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 13, color: '#f0f4ff', letterSpacing: '0.025em', lineHeight: 1 }}>
-                    REAGLEX AI
-                  </div>
-                  <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10.5, color: '#4ade80', fontWeight: 700 }}>● Online</span>
+                  <div className="ai-chat-header__title">REAGLEX AI</div>
+                  <div className="ai-chat-header__meta">
+                    <span className="ai-chat-header__online">● Online</span>
                     {poweredByModel && (
                       <>
-                        <span style={{ fontSize: 10, color: 'rgba(148,163,184,0.4)' }}>·</span>
-                        <span style={{ fontSize: 10, color: 'rgba(251, 146, 60, 0.85)', fontWeight: 600, letterSpacing: '0.02em' }}>{poweredByModel}</span>
+                        <span className="ai-chat-header__dot">·</span>
+                        <span className="ai-chat-header__model">{poweredByModel}</span>
                       </>
                     )}
                   </div>
@@ -644,7 +705,7 @@ export default function AssistantChat() {
 
             {/* Fallback notice */}
             {fallbackNotice && (
-              <div style={{ padding: '7px 14px', fontSize: 11, color: '#b45309', background: 'rgba(251,191,36,0.12)', borderBottom: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="ai-fallback-notice">
                 <span>⚡</span> A fallback model was used to complete your request.
               </div>
             )}
@@ -730,7 +791,7 @@ export default function AssistantChat() {
                                       : <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>📦</span>
                                     }
                                     {/* Price badge */}
-                                    <div style={{ position: 'absolute', top: 6, right: 6, padding: '3px 7px', borderRadius: 8, background: 'rgba(0,0,0,0.72)', color: PRIMARY, fontWeight: 800, fontSize: 10.5, backdropFilter: 'blur(4px)' }}>
+                                    <div style={{ position: 'absolute', top: 6, right: 6, padding: '3px 7px', borderRadius: 8, background: 'color-mix(in srgb, var(--bg-page) 88%, transparent)', color: PRIMARY, fontWeight: 800, fontSize: 10.5, backdropFilter: 'blur(4px)' }}>
                                       {p.currency} {p.price.toFixed(2)}
                                     </div>
                                   </div>

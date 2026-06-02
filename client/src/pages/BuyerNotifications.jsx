@@ -3,20 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useNotificationFeed } from '../components/notifications/useNotificationFeed';
-import NotificationList from '../components/notifications/NotificationList';
-import { getNotificationHref } from '../lib/notificationPresentation';
+import NotificationInbox from '../components/notifications/NotificationInbox';
 import '../styles/notifications-os.css';
 
 export default function BuyerNotifications() {
   const navigate = useNavigate();
   const [limit, setLimit] = useState(50);
   const feed = useNotificationFeed({ enabled: true, limit });
-
-  const handleItemPress = (n) => {
-    feed.markAsRead(n.id, n);
-    const href = getNotificationHref(n);
-    if (href) navigate(href);
-  };
 
   return (
     <BuyerLayout>
@@ -42,15 +35,13 @@ export default function BuyerNotifications() {
         </header>
 
         <div className="rxn-page-body">
-          <NotificationList
-            {...feed}
+          <NotificationInbox
+            feed={feed}
             enableSwipe
             showFooter
             showPushBanner
-            onItemPress={handleItemPress}
-            onMarkRead={feed.markAsRead}
-            onDelete={feed.removeNotification}
             onLoadOlder={() => setLimit((l) => l + 40)}
+            closeOnNavigate={false}
           />
         </div>
       </div>

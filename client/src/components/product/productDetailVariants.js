@@ -1,48 +1,165 @@
 import { resolveVariantCompareAtUsd, resolveVariantPriceUsd } from '../../lib/resolveProductPrice';
-import { resolvePreviewImage } from './productPreviewUtils';
+import { productProofVideoUrl, resolvePreviewImage, resolveMediaUrl } from './productPreviewUtils';
 
-/** Build AliExpress-style color swatch rows from variants or legacy colors[]. */
+/** Build AliExpress-style color swatch rows from variants, legacy colors[], or product images. */
 export function buildProductColorOptions(product, variantOptions = []) {
   if (!product) return [];
 
-  const withColor = variantOptions.filter((v) => v?.color || v?.label);
-  if (withColor.length) {
+  const productImages = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+
+  const withIdentity = variantOptions.filter((v) => v?.color || v?.label || v?.thumbnailUrl);
+  if (withIdentity.length) {
     const map = new Map();
-    withColor.forEach((v) => {
-      const key = String(v.color || v.label || v.sku);
+    withIdentity.forEach((v, variantIdx) => {
+      const key = String(v.color || v.label || v.sku || `variant-${variantIdx}`);
       const existing = map.get(key);
+      const thumb =
+        v.thumbnailUrl ||
+        productImages[variantIdx] ||
+        productImages[existing ? existing.variants.length : 0];
       const entry = {
         key,
         color: v.color || key,
         label: v.label || v.color || key,
-        thumbnailUrl: v.thumbnailUrl,
+        thumbnailUrl: thumb,
         swatchHex: v.swatchHex,
         badge: v.badge,
         variants: existing ? [...existing.variants, v] : [v],
       };
       map.set(key, entry);
     });
-    return [...map.values()].map((row) => ({
+    return [...map.values()].map((row, i) => ({
       ...row,
-      thumbnailUrl: row.thumbnailUrl || product.images?.[0] || product.image,
+      thumbnailUrl:
+        row.thumbnailUrl ||
+        row.variants.find((v) => v?.thumbnailUrl)?.thumbnailUrl ||
+        productImages[i] ||
+        productImages[0] ||
+        product.image,
     }));
   }
 
   const legacyColors = Array.isArray(product.colors) ? product.colors.filter(Boolean) : [];
-  return legacyColors.map((c, i) => ({
-    key: c,
-    color: c,
-    label: typeof c === 'string' && c.startsWith('#') ? `Color ${i + 1}` : c,
-    thumbnailUrl: product.images?.[i] || product.images?.[0] || product.image,
-    swatchHex: c,
-    variants: [],
-  }));
+  if (legacyColors.length) {
+    return legacyColors.map((c, i) => ({
+      key: c,
+      color: c,
+      label: typeof c === 'string' && c.startsWith('#') ? `Color ${i + 1}` : c,
+      thumbnailUrl: product.images?.[i] || product.images?.[0] || product.image,
+      swatchHex: c,
+      variants: [],
+    }));
+  }
+
+  const imgs = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  if (imgs.length > 1) {
+    return imgs.map((img, i) => ({
+      key: `image-${i}`,
+      color: `image-${i}`,
+      label: i === 0 ? 'Main' : `Photo ${i + 1}`,
+      thumbnailUrl: img,
+      imageIndex: i,
+      variants: [],
+    }));
+  }
+
+  return [];
+}
+
+/**
+ * Full PDP gallery: proof video, all product images, then variant thumbnails (deduped).
+ * @returns {Array<{ type: 'video'|'image', src: string, poster?: string, label?: string, imageIndex?: number, variantSku?: string, colorKey?: string }>}
+ */
+export function buildProductDetailGallery(product, variantOptions = [], resolvers = {}) {
+  const resolveImg = resolvers.resolveImage || resolvePreviewImage;
+  const resolveVid = resolvers.resolveVideo || resolveMediaUrl;
+  const productImages = Array.isArray(product?.images) ? product.images.filter(Boolean) : [];
+  const items = [];
+  const seen = new Set();
+
+  const addImage = (raw, meta = {}) => {
+    const src = resolveImg(raw);
+    if (!src || seen.has(src)) return;
+    seen.add(src);
+    items.push({ type: 'image', src, ...meta });
+  };
+
+  const videoUrl = productProofVideoUrl(product);
+  const poster = resolveImg(product?.images?.[0] || product?.image || product?.thumbnail);
+  if (videoUrl) {
+    const src = resolveVid(videoUrl) || videoUrl;
+    if (src && !seen.has(src)) {
+      seen.add(src);
+      items.push({ type: 'video', src, poster, label: 'Proof video' });
+    }
+  }
+
+  if (Array.isArray(product?.images) && product.images.length) {
+    product.images.filter(Boolean).forEach((img, idx) => {
+      addImage(img, { imageIndex: idx });
+    });
+  } else if (product?.image) {
+    addImage(product.image, { imageIndex: 0 });
+  } else if (product?.thumbnail) {
+    addImage(product.thumbnail, { imageIndex: 0 });
+  }
+
+  (variantOptions || []).forEach((v, variantIdx) => {
+    const rawThumb = v?.thumbnailUrl || productImages[variantIdx];
+    if (rawThumb) {
+      addImage(rawThumb, {
+        variantSku: v.sku,
+        colorKey: v.color || v.label,
+        variantLabel: v.label || v.color,
+      });
+    }
+  });
+
+  if (!items.length) {
+    items.push({ type: 'image', src: resolveImg(null) });
+  }
+  return items;
+}
+
+/** Map a color/style option to its index in `buildProductDetailGallery` output. */
+export function galleryIndexForColorOption(galleryItems, option, resolveImg = resolvePreviewImage) {
+  if (!option || !Array.isArray(galleryItems) || !galleryItems.length) return -1;
+
+  const thumb = option.thumbnailUrl ? resolveImg(option.thumbnailUrl) : null;
+  if (thumb) {
+    const bySrc = galleryItems.findIndex((g) => g.src === thumb);
+    if (bySrc >= 0) return bySrc;
+  }
+
+  if (Number.isFinite(option.imageIndex)) {
+    const byIdx = galleryItems.findIndex((g) => g.imageIndex === option.imageIndex);
+    if (byIdx >= 0) return byIdx;
+  }
+
+  const colorKey = option.color || option.key;
+  if (colorKey) {
+    const byColor = galleryItems.findIndex(
+      (g) => g.colorKey === colorKey || g.variantSku && option.variants?.some((v) => v.sku === g.variantSku),
+    );
+    if (byColor >= 0) return byColor;
+  }
+
+  return -1;
 }
 
 export function pickVariantForSelection(variantOptions, { colorKey, size }) {
   if (!variantOptions.length) return null;
+  if (colorKey?.startsWith('image-')) {
+    const idx = Number(colorKey.replace('image-', ''));
+    return variantOptions[idx] || variantOptions[0] || null;
+  }
   const pool = variantOptions.filter((v) => {
-    if (colorKey && v.color && v.color !== colorKey) return false;
+    if (colorKey) {
+      const matchesColor = v.color === colorKey || v.label === colorKey;
+      if (v.color || v.label) {
+        if (!matchesColor) return false;
+      }
+    }
     if (size && v.size && v.size !== size) return false;
     return true;
   });
@@ -52,7 +169,13 @@ export function pickVariantForSelection(variantOptions, { colorKey, size }) {
 export function flattenReviewGalleryMedia(reviewGallery = [], resolveImg = resolvePreviewImage) {
   const items = [];
   reviewGallery.forEach((row, rowIdx) => {
-    const imgs = Array.isArray(row?.images) ? row.images : [];
+    if (typeof row === 'string') {
+      const src = resolveImg(row);
+      if (src) items.push({ id: `s-${rowIdx}`, src });
+      return;
+    }
+    const imgs = Array.isArray(row?.images) ? [...row.images] : [];
+    if (!imgs.length && row?.image) imgs.push(row.image);
     imgs.forEach((img, imgIdx) => {
       const src = resolveImg(img);
       if (src) {

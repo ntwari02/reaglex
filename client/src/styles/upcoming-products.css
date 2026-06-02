@@ -289,7 +289,7 @@ html[data-theme='dark'] .up-section {
 
 @media (max-width: 767px) {
   .mob-page .up-hero-slide {
-    min-height: 188px;
+    min-height: 196px;
   }
 
   .mob-page .up-hero-slide-inner {
@@ -302,7 +302,7 @@ html[data-theme='dark'] .up-section {
   }
 
   .mob-page .up-hero-img {
-    max-height: 132px;
+    max-height: 148px;
   }
 }
 

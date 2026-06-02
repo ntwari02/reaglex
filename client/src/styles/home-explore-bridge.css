@@ -20,6 +20,11 @@
     margin-top: 0;
   }
 
+  /* Trending Now rail — same card shell as recently viewed (148px, --border-card) */
+  .mob-trending-rail .ex-rail-card {
+    flex: 0 0 148px;
+  }
+
   .ex-skeleton-ai-hero {
     height: 108px;
     margin-bottom: 10px;

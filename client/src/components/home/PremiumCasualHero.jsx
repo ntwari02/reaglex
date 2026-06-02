@@ -9,6 +9,7 @@ import { usePlatformFeature } from '../../hooks/useSystemFeatures';
 import UpcomingHeroSlide from './mobile/UpcomingHeroSlide';
 import { UPCOMING_HERO_TEASER } from './mobile/upcomingProductsData';
 import '../../styles/upcoming-products.css';
+import '../../styles/premium-casual-hero.css';
 
 import 'swiper/css';
 
@@ -22,8 +23,8 @@ const FALLBACK_SLIDES = [
     cta: 'Shop now',
     href: '/search?sort=discount',
     image:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1400&q=88',
-    imgPosition: '92% center',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=max&w=900&q=88',
+    imgPosition: 'center center',
   },
   {
     id: 'street-edit',
@@ -34,8 +35,8 @@ const FALLBACK_SLIDES = [
     cta: 'Explore',
     href: '/category/clothing',
     image:
-      'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1400&q=88',
-    imgPosition: '80% center',
+      'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=max&w=900&q=88',
+    imgPosition: 'center center',
   },
   {
     id: 'everyday-tech',
@@ -46,8 +47,8 @@ const FALLBACK_SLIDES = [
     cta: 'Shop tech',
     href: '/category/electronics',
     image:
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1400&q=88',
-    imgPosition: '75% center',
+      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=max&w=900&q=88',
+    imgPosition: 'center center',
   },
 ];
 
@@ -92,7 +93,7 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
   const textMuted = isDark ? 'rgba(255,255,255,0.72)' : '#777777';
   const eyebrowColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(17,17,17,0.45)';
 
-  const slideMinH = compact ? 188 : 248;
+  const slideMinH = compact ? 196 : 248;
   const radius = compact ? 16 : 24;
   const fullWidthLg = !compact;
 
@@ -142,88 +143,150 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
                 <UpcomingHeroSlide slide={slide} isDark={isDark} compact={compact} />
               ) : (
               <article
-                className={`relative overflow-hidden ${articleMinH || ''}`.trim()}
-                style={compact ? { minHeight: slideMinH } : undefined}
+                className={`premium-casual-slide ${compact ? 'premium-casual-slide--compact' : 'premium-casual-slide--full relative overflow-hidden'} ${articleMinH || ''}`.trim()}
+                style={{
+                  ...(compact ? { minHeight: slideMinH } : { '--casual-img-pos': slide.imgPosition || 'center center' }),
+                }}
+                data-theme-mode={isDark ? 'dark' : 'light'}
               >
-                {slide.videoUrl ? (
-                  <video
-                    src={slide.videoUrl}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    poster={slide.image}
-                  />
-                ) : (
-                  <img
-                    src={slide.image}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover select-none"
-                    loading={i === 0 ? 'eager' : 'lazy'}
-                    decoding="async"
-                    draggable={false}
-                    data-swiper-parallax="-18%"
-                    data-swiper-parallax-scale="1.08"
-                    style={{ objectPosition: slide.imgPosition }}
-                  />
-                )}
-                <div
-                  className="absolute inset-0"
-                  style={{ background: overlay }}
-                  data-swiper-parallax-opacity="0.35"
-                />
-
-                <div
-                  className={`relative z-[1] flex w-full flex-row items-stretch ${articleMinH || ''}`.trim()}
-                  style={compact ? { minHeight: slideMinH } : undefined}
-                >
-                  <div
-                    className={`flex flex-col justify-center pr-2 ${
-                      compact ? 'max-w-[72%] px-3 py-4' : 'max-w-[58%] px-5 py-7 lg:max-w-[48%] lg:px-10 lg:py-10 xl:px-14'
-                    }`}
-                    data-swiper-parallax="-120"
-                  >
-                    <p
-                      className={`font-semibold uppercase tracking-[0.18em] ${compact ? 'text-[9px]' : 'text-[10px]'}`}
-                      style={{ color: eyebrowColor }}
+                {compact ? (
+                  <>
+                    <div className="premium-casual-slide__mesh" aria-hidden />
+                    <div
+                      className="premium-casual-slide__inner"
+                      style={{ minHeight: slideMinH }}
                     >
-                      {slide.eyebrow}
-                    </p>
-                    <h2
-                      className={`mt-1 font-bold leading-[1.08] tracking-tight ${compact ? 'text-lg' : ''}`}
-                      style={{
-                        color: textPrimary,
-                        fontFamily: "'Inter', system-ui, sans-serif",
-                        fontSize: compact ? undefined : 'clamp(1.75rem, 7vw, 2.15rem)',
-                      }}
-                    >
-                      {slide.line1}
-                      <br />
-                      <span style={{ color: 'var(--brand-primary)' }}>{slide.line2}</span>
-                    </h2>
-                    {!compact && (
-                      <p className="mt-2 text-[13px] leading-relaxed" style={{ color: textMuted }}>
-                        {slide.detail}
-                      </p>
-                    )}
-                    <div className={compact ? 'mt-2.5' : 'mt-5'} data-swiper-parallax="-60">
-                      <Link
-                        to={slide.href}
-                        className={`inline-flex items-center justify-center gap-1 rounded-full font-semibold transition-transform active:scale-[0.97] ${compact ? 'min-h-8 px-3.5 py-1 text-[11px]' : 'min-h-[44px] px-6 py-2.5 text-[13px]'}`}
-                        style={{
-                          background: 'var(--brand-primary)',
-                          color: '#ffffff',
-                          boxShadow: 'var(--shadow-cta)',
-                        }}
-                      >
-                        {slide.cta === 'Shop now' || slide.cta === 'Shop Now' ? 'Shop Now' : slide.cta}
-                        <ArrowRight size={compact ? 12 : 14} strokeWidth={2.25} />
-                      </Link>
+                      <div className="premium-casual-slide__copy">
+                        <p
+                          className="font-semibold uppercase tracking-[0.18em] text-[9px]"
+                          style={{ color: eyebrowColor }}
+                        >
+                          {slide.eyebrow}
+                        </p>
+                        <h2
+                          className="mt-1 text-lg font-bold leading-[1.08] tracking-tight"
+                          style={{ color: textPrimary, fontFamily: "'Inter', system-ui, sans-serif" }}
+                        >
+                          {slide.line1}
+                          <br />
+                          <span style={{ color: 'var(--brand-primary)' }}>{slide.line2}</span>
+                        </h2>
+                        <div className="mt-2.5">
+                          <Link
+                            to={slide.href}
+                            className="inline-flex min-h-8 items-center justify-center gap-1 rounded-full px-3.5 py-1 text-[11px] font-semibold transition-transform active:scale-[0.97]"
+                            style={{
+                              background: 'var(--brand-primary)',
+                              color: '#ffffff',
+                              boxShadow: 'var(--shadow-cta)',
+                            }}
+                          >
+                            {slide.cta === 'Shop now' || slide.cta === 'Shop Now' ? 'Shop Now' : slide.cta}
+                            <ArrowRight size={12} strokeWidth={2.25} />
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="premium-casual-slide__visual">
+                        {slide.videoUrl ? (
+                          <video
+                            src={slide.videoUrl}
+                            className="premium-casual-slide__video"
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            poster={slide.image}
+                          />
+                        ) : (
+                          <img
+                            src={slide.image}
+                            alt=""
+                            className="premium-casual-slide__img select-none"
+                            loading={i === 0 ? 'eager' : 'lazy'}
+                            decoding="async"
+                            draggable={false}
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="min-w-0 flex-1" aria-hidden />
-                </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="premium-casual-slide__media">
+                      {slide.videoUrl ? (
+                        <video
+                          src={slide.videoUrl}
+                          className="premium-casual-slide__video"
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          poster={slide.image}
+                        />
+                      ) : (
+                        <img
+                          src={slide.image}
+                          alt=""
+                          className="premium-casual-slide__img select-none"
+                          loading={i === 0 ? 'eager' : 'lazy'}
+                          decoding="async"
+                          draggable={false}
+                          data-swiper-parallax="-12%"
+                        />
+                      )}
+                    </div>
+                    <div
+                      className="absolute inset-0"
+                      style={{ background: overlay }}
+                      data-swiper-parallax-opacity="0.3"
+                    />
+                    <div
+                      className={`relative z-[1] flex w-full flex-row items-stretch ${articleMinH || ''}`.trim()}
+                    >
+                      <div
+                        className="flex max-w-[58%] flex-col justify-center px-5 py-7 lg:max-w-[48%] lg:px-10 lg:py-10 xl:px-14"
+                        data-swiper-parallax="-120"
+                      >
+                        <p
+                          className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+                          style={{ color: eyebrowColor }}
+                        >
+                          {slide.eyebrow}
+                        </p>
+                        <h2
+                          className="mt-1 font-bold leading-[1.08] tracking-tight"
+                          style={{
+                            color: textPrimary,
+                            fontFamily: "'Inter', system-ui, sans-serif",
+                            fontSize: 'clamp(1.75rem, 7vw, 2.15rem)',
+                          }}
+                        >
+                          {slide.line1}
+                          <br />
+                          <span style={{ color: 'var(--brand-primary)' }}>{slide.line2}</span>
+                        </h2>
+                        <p className="mt-2 text-[13px] leading-relaxed" style={{ color: textMuted }}>
+                          {slide.detail}
+                        </p>
+                        <div className="mt-5" data-swiper-parallax="-60">
+                          <Link
+                            to={slide.href}
+                            className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-full px-6 py-2.5 text-[13px] font-semibold transition-transform active:scale-[0.97]"
+                            style={{
+                              background: 'var(--brand-primary)',
+                              color: '#ffffff',
+                              boxShadow: 'var(--shadow-cta)',
+                            }}
+                          >
+                            {slide.cta === 'Shop now' || slide.cta === 'Shop Now' ? 'Shop Now' : slide.cta}
+                            <ArrowRight size={14} strokeWidth={2.25} />
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1" aria-hidden />
+                    </div>
+                  </>
+                )}
               </article>
               )}
             </SwiperSlide>

@@ -167,6 +167,7 @@
     "emptyCart": "Votre panier est vide",
     "shopNow": "Acheter maintenant",
     "backToCart": "Retour au panier",
+    "secureCheckout": "Paiement sécurisé",
     "continueToDelivery": "Continuer vers la livraison",
     "multiPayNotice": "Plusieurs commandes ont été créées. Payez la première maintenant ; payez les autres vendeurs depuis Mes commandes.",
     "reaglexShippingTitle": "Shipping",
@@ -466,11 +467,21 @@
       "alerts": "Alertes",
       "orders": "Commandes",
       "deals": "Offres",
-      "system": "Système"
+      "system": "Système",
+      "ai": "IA"
     },
+    "detailTitle": "Notification",
+    "backToList": "Retour à la liste",
+    "fullMessage": "Détails",
+    "orderProgress": "Suivi de commande",
+    "orderRef": "Commande",
+    "dealEnds": "L'offre se termine dans",
+    "relatedItems": "Articles liés",
     "actions": {
       "trackOrder": "Suivre la commande",
       "shopNow": "Acheter maintenant",
+      "watchLive": "Voir le live",
+      "open": "Ouvrir",
       "completeProfile": "Compléter le profil",
       "reply": "Répondre",
       "rateNow": "Évaluer maintenant"

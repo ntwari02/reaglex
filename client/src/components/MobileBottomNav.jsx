@@ -55,7 +55,7 @@ export default function MobileBottomNav() {
   const current = activeTab(location.pathname, location.search);
   const navHidden = useScrollChrome((s) => s.navHidden);
 
-  if (isBuyerChromeHidden(location.pathname)) return null;
+  if (isBuyerChromeHidden(location.pathname, location.search)) return null;
 
   const handlePress = (tab) => {
     if (tab.id === 'cart') {

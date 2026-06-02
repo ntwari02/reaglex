@@ -1,18 +1,12 @@
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, CheckCheck, ChevronDown, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Bell, CheckCheck, ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../../i18n/useTranslation';
 import NotificationRow from './NotificationRow';
 import NotificationPushBanner from './NotificationPushBanner';
 
-const TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'orders', label: 'Orders' },
-  { id: 'deals', label: 'Deals' },
-  { id: 'system', label: 'System' },
-  { id: 'ai', label: 'AI' },
-];
+const TAB_IDS = ['all', 'orders', 'deals', 'system', 'ai'];
 
 function groupByDay(items) {
   const today = [];
@@ -112,18 +106,18 @@ export default function NotificationList({
       )}
 
       <div className="rxn-tabs rxn-tabs--premium" role="tablist" aria-label="Filter notifications">
-        {TABS.map((tab) => (
+        {TAB_IDS.map((tabId) => (
           <button
-            key={tab.id}
+            key={tabId}
             type="button"
             role="tab"
-            aria-selected={activeTab === tab.id}
-            className={`rxn-tab${activeTab === tab.id ? ' is-active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            aria-selected={activeTab === tabId}
+            className={`rxn-tab${activeTab === tabId ? ' is-active' : ''}`}
+            onClick={() => setActiveTab(tabId)}
           >
-            {tab.label}
-            {(tabCounts[tab.id] ?? 0) > 0 && (
-              <span className="rxn-tab-count">{tabCounts[tab.id]}</span>
+            {t(`notifications.filters.${tabId}`)}
+            {(tabCounts[tabId] ?? 0) > 0 && (
+              <span className="rxn-tab-count">{tabCounts[tabId]}</span>
             )}
           </button>
         ))}
@@ -159,10 +153,10 @@ export default function NotificationList({
           <Link
             to="/account?tab=settings&section=notifications"
             className="rxn-footer-icon-btn"
-            aria-label="Notification settings"
+            aria-label={t('notifications.settings')}
             onClick={onClose}
           >
-            <Trash2 size={16} strokeWidth={1.75} />
+            <SlidersHorizontal size={16} strokeWidth={1.75} />
           </Link>
           <span className="rxn-footer-meta">
             Showing {filtered.length} of {total}

@@ -14,6 +14,8 @@ import {
 } from '../services/recommendationEmailApi';
 import { profileAPI } from '../lib/api';
 import WebPushOptInCard from './notifications/WebPushOptInCard';
+import { SettingsTopBar, SettingsNavCard } from './account/SettingsPageShell';
+import '../styles/account-settings.css';
 
 const PRIMARY = 'var(--brand-primary)';
 const SUCCESS = '#10b981';
@@ -23,13 +25,31 @@ const EASE = [0.25, 0.46, 0.45, 0.94];
 const CARD_STYLE = { boxShadow: '0 4px 20px rgba(0,0,0,0.06)', borderRadius: 16 };
 
 const SETTINGS_TABS = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'security', label: 'Security', icon: Lock },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'appearance', label: 'Appearance', icon: Palette },
-  { id: 'preferences', label: 'Preferences', icon: Shield },
-  { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
+  { id: 'profile', label: 'Profile', icon: User, desc: 'Photo, name & contact' },
+  { id: 'security', label: 'Security', icon: Lock, desc: 'Password, 2FA & sessions' },
+  { id: 'notifications', label: 'Notifications', icon: Bell, desc: 'Orders, deals & alerts' },
+  { id: 'appearance', label: 'Appearance', icon: Palette, desc: 'Light or dark theme' },
+  { id: 'preferences', label: 'Preferences', icon: Shield, desc: 'Language & privacy' },
+  { id: 'danger', label: 'Danger zone', icon: AlertTriangle, desc: 'Deactivate or delete' },
 ];
+
+const SETTINGS_SECTION_META = Object.fromEntries(
+  SETTINGS_TABS.map((t) => [t.id, { title: t.label, sub: t.desc }]),
+);
+
+function useIsMobileAccount() {
+  const [mobile, setMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 1023px)').matches : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const onChange = () => setMobile(mq.matches);
+    mq.addEventListener('change', onChange);
+    onChange();
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return mobile;
+}
 
 const COUNTRIES = [
   { code: 'RW', flag: '🇷🇼', name: 'Rwanda' },
@@ -38,20 +58,27 @@ const COUNTRIES = [
   { code: 'FR', flag: '🇫🇷', name: 'France' },
 ];
 
-export default function AccountSettingsDashboard({ onOpenSecurityMobile } = {}) {
+export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack } = {}) {
   const [sp, setSp] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const showToast = useToastStore((s) => s.showToast);
   const { theme, setTheme } = useTheme();
+  const isMobile = useIsMobileAccount();
 
-  const section = sp.get('section') || 'profile';
+  const sectionParam = sp.get('section') || '';
+  const section = isMobile ? (sectionParam || '') : (sectionParam || 'profile');
   const settingsTabsScrollRef = useRef(null);
   const [showTabsLeftFade, setShowTabsLeftFade] = useState(false);
   const [showTabsRightFade, setShowTabsRightFade] = useState(false);
   const [tabsHintDismissed, setTabsHintDismissed] = useState(false);
   useEffect(() => {
-    if (sp.get('tab') === 'settings' && !sp.get('section')) setSp((prev) => { const n = new URLSearchParams(prev); n.set('section', 'profile'); return n; });
-  }, []);
+    if (sp.get('tab') !== 'settings' || sp.get('section') || isMobile) return;
+    setSp((prev) => {
+      const n = new URLSearchParams(prev);
+      n.set('section', 'profile');
+      return n;
+    });
+  }, [sp.get('tab'), sp.get('section'), setSp, isMobile]);
   const setSection = useCallback((s) => {
     setSp((prev) => {
       const n = new URLSearchParams(prev);
@@ -309,34 +336,62 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile } = {}) 
     setNotifDirty(true);
   };
 
+  const showMobileHub = isMobile && !section;
+  const sectionMeta = SETTINGS_SECTION_META[section] || { title: 'Settings', sub: 'Your account' };
+
+  const handleSettingsBack = () => {
+    if (isMobile && section) {
+      setSp((prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete('section');
+        return n;
+      });
+      return;
+    }
+    onBack?.();
+  };
+
+  const openSettingsSection = (id) => {
+    if (id === 'security' && onOpenSecurityMobile && isMobile) {
+      onOpenSecurityMobile();
+      return;
+    }
+    setSection(id);
+  };
+
   return (
     <div
-      className="min-h-[520px]"
-      style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)' }}
+      className="rx-settings-page min-h-[520px]"
+      style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
     >
-      <div className="max-w-[1300px] mx-auto px-4 sm:px-5 lg:px-7 py-6 space-y-6">
-        <nav className="rx-settings-mobile-menu lg:hidden" aria-label="Settings sections">
-          {SETTINGS_TABS.map((t) => {
-            const TabIcon = t.icon;
-            return (
-              <button
+      <div className="max-w-[1300px] mx-auto px-3 sm:px-5 lg:px-7 py-3 sm:py-6 space-y-4">
+        <SettingsTopBar
+          title={showMobileHub ? 'Settings' : sectionMeta.title}
+          subtitle={showMobileHub ? 'Manage your Reaglex account' : sectionMeta.sub}
+          onBack={handleSettingsBack}
+          backLabel={showMobileHub ? 'Back to account' : 'Back'}
+        />
+
+        {showMobileHub && (
+          <nav className="rx-settings-hub" aria-label="Settings sections">
+            {SETTINGS_TABS.map((t) => (
+              <SettingsNavCard
                 key={t.id}
-                type="button"
-                onClick={() => {
-                  if (t.id === 'security' && onOpenSecurityMobile) {
-                    onOpenSecurityMobile();
-                    return;
-                  }
-                  setSection(t.id);
-                }}
-              >
-                <TabIcon size={18} strokeWidth={1.85} />
-                {t.label}
-                <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.4 }} />
-              </button>
-            );
-          })}
-        </nav>
+                icon={t.icon}
+                label={t.label}
+                description={t.desc}
+                danger={t.id === 'danger'}
+                onClick={() => openSettingsSection(t.id)}
+              />
+            ))}
+          </nav>
+        )}
+
+        <div
+          className={
+            showMobileHub ? 'rx-settings-body rx-settings-body--hidden-mobile space-y-6' : 'space-y-6'
+          }
+        >
         {/* Tabs — desktop */}
         <motion.div
           className="hidden lg:flex items-center justify-between gap-4 flex-wrap"
@@ -1462,6 +1517,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile } = {}) 
             </div>
           </motion.div>
         )}
+        </div>
         </div>
       </div>
 

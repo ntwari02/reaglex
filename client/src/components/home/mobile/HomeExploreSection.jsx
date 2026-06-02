@@ -9,10 +9,10 @@ function cardDensityClass(density) {
   return '';
 }
 import MobileSectionHeader from './MobileSectionHeader';
+import RecentlyViewedRailCard from './RecentlyViewedRailCard';
 import {
   ExploreAIHeroCard,
   ExploreGridCard,
-  ExploreTrendingRailCard,
 } from '../../explore/ExploreProductCards';
 
 export { HOME_PRODUCT_LIMIT };
@@ -38,8 +38,10 @@ export default function HomeExploreSection({
   const layoutSettings = layoutOverride || fetchedLayout;
   const layout = layoutProp || layoutModeToExploreLayout(layoutSettings?.mode || 'grid');
   const railCount = Math.max(1, Math.min(8, Number(layoutSettings?.railCount) || TRENDING_RAIL_COUNT_DEFAULT));
-  const cardDensity = layoutSettings?.cardDensity || 'standard';
-  const densityCls = cardDensityClass(cardDensity);
+  /** Trending Now — fixed 148px cards (same as recently viewed); no compact/expand. */
+  const isTrendingSection = variant === 'trending';
+  const cardDensity = isTrendingSection ? 'standard' : layoutSettings?.cardDensity || 'standard';
+  const densityCls = isTrendingSection ? '' : cardDensityClass(cardDensity);
 
   const items = (Array.isArray(products) ? products : []).slice(0, HOME_PRODUCT_LIMIT);
 
@@ -66,15 +68,14 @@ export default function HomeExploreSection({
       ) : (
         <>
           {layout === 'trending' && railItems.length > 0 && (
-            <div className="ex-rail-wrap mob-home-ex-rail">
+            <div className="ex-rail-wrap mob-home-ex-rail mob-trending-rail">
               <div className="ex-rail-scroll">
                 {railItems.map((p, i) => (
-                  <ExploreTrendingRailCard
+                  <RecentlyViewedRailCard
                     key={p._id || p.id || `rail-${i}`}
                     product={p}
                     index={i}
-                    cardDensity={cardDensity}
-                    className={densityCls}
+                    showHotBadge
                   />
                 ))}
               </div>

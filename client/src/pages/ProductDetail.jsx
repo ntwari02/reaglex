@@ -26,11 +26,13 @@ import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 import { productImageLayoutId } from '../motion/presets';
 import LiveProductTeaser from '../components/live/LiveProductTeaser';
-import { previewGalleryItems, resolveMediaUrl } from '../components/product/productPreviewUtils';
+import { resolveMediaUrl } from '../components/product/productPreviewUtils';
 import ProductColorRail from '../components/product/ProductColorRail';
 import ProductReviewGalleryRail from '../components/product/ProductReviewGalleryRail';
 import {
   buildProductColorOptions,
+  buildProductDetailGallery,
+  galleryIndexForColorOption,
   pickVariantForSelection,
   flattenReviewGalleryMedia,
   productPricingForVariant,
@@ -514,6 +516,24 @@ export default function ProductDetail() {
     [product, selectedVariant],
   );
 
+  const galleryItems = useMemo(() => {
+    if (!product) {
+      return [{ type: 'image', src: resolveImage(null) }];
+    }
+    return buildProductDetailGallery(
+      {
+        ...product,
+        images: images?.length ? images : product.images,
+        image: product.image,
+        verificationVideoUrl: product.verificationVideoUrl,
+        videoProofUrl: product.videoProofUrl,
+        videoUrl: product.videoUrl,
+      },
+      variantOptions,
+      { resolveImage, resolveVideo: resolveMediaUrl },
+    );
+  }, [product, images, variantOptions]);
+
   useEffect(() => {
     if (!colorOptions.length) return;
     setSelectedColorKey((prev) => {
@@ -532,7 +552,13 @@ export default function ProductDetail() {
     if (match?.sku) setSelectedVariantSku(match.sku);
     if (match?.color) setSelectedColor(match.color);
     if (match?.size) setSelectedSize(match.size);
-  }, [selectedColorKey, selectedSize, variantOptions]);
+    if (match?.thumbnailUrl) {
+      const idx = galleryItems.findIndex(
+        (g) => g.src === resolveImage(match.thumbnailUrl) || g.variantSku === match.sku,
+      );
+      if (idx >= 0) setActiveImage(idx);
+    }
+  }, [selectedColorKey, selectedSize, variantOptions, galleryItems]);
 
   useEffect(() => {
     const onInventoryUpdated = (e) => {
@@ -601,22 +627,6 @@ export default function ProductDetail() {
 
   const previewPrice = resolveProductPriceUsd(productPreview || product);
   const previewOldPrice = productOldPrice(product);
-  const galleryItems = useMemo(() => {
-    if (!product) {
-      return [{ type: 'image', src: resolveImage(null) }];
-    }
-    return previewGalleryItems({
-      ...product,
-      images: images?.length ? images : product.images,
-      image: product.image,
-      verificationVideoUrl: product.verificationVideoUrl,
-      videoProofUrl: product.videoProofUrl,
-    }).map((item) =>
-      item.type === 'video'
-        ? { ...item, src: resolveMediaUrl(item.src) || item.src }
-        : { ...item, src: resolveImage(item.src) },
-    );
-  }, [product, images]);
   useEffect(() => {
     setActiveImage((i) => Math.min(Math.max(0, i), Math.max(0, galleryItems.length - 1)));
   }, [galleryItems.length]);
@@ -736,7 +746,10 @@ export default function ProductDetail() {
   const baseLocalPrice = currencyPricing.convertUsdToLocal(basePrice);
   const totalUsdText = currencyPricing.formatUsd(totalPrice);
   const showSizeSelector = categoryNeedsSize(product.category) && Array.isArray(product.sizes) && product.sizes.length > 0;
-  const showColorRail = colorOptions.length > 0;
+  const showColorRail =
+    colorOptions.length > 0 ||
+    (variantOptions.length > 0 &&
+      (images.length > 1 || variantOptions.some((v) => v?.color || v?.thumbnailUrl)));
   const selectedColorLabel =
     colorOptions.find((c) => c.key === selectedColorKey)?.label || selectedColor || '—';
   const openReviews = () => {
@@ -744,6 +757,14 @@ export default function ProductDetail() {
     setMobileDetailOpen('reviews');
     document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
   };
+  const handleColorSelect = (opt) => {
+    setSelectedColorKey(opt.key);
+    if (opt.color) setSelectedColor(opt.color);
+    const idx = galleryIndexForColorOption(galleryItems, opt, resolveImage);
+    if (idx >= 0) setActiveImage(idx);
+  };
+  const galleryHasVideo = galleryItems.some((g) => g.type === 'video');
+  const galleryImageCount = galleryItems.filter((g) => g.type === 'image').length;
   const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
 
   const specs = [
@@ -1113,7 +1134,10 @@ export default function ProductDetail() {
                   </div>
 
                   {/* Zoom */}
-                  <button type="button" className="pd2-img-btn" onClick={(e) => { e.stopPropagation(); setLightbox(true); }} aria-label="Zoom">
+                  <button type="button" className="pd2-img-btn" onClick={(e) => {
+                    e.stopPropagation();
+                    if (galleryItems[activeImage]?.type !== 'video') setLightbox(true);
+                  }} aria-label="Zoom">
                     <ZoomIn size={16} />
                   </button>
 
@@ -1154,10 +1178,21 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              {/* Thumbnails */}
+              {/* Thumbnails — all photos + proof video */}
               {galleryItems.length > 1 && (
-                <div className="pd2-thumbs-row flex gap-2 md:gap-2.5 overflow-x-auto pb-1 scroll-touch" style={{ scrollSnapType: 'x mandatory' }}>
-                  {galleryItems.slice(0, 7).map((m, i) => (
+                <div className="pd2-gallery-strip mb-3 md:mb-4">
+                  <div className="pd2-gallery-strip__head">
+                    <p className="pd2-gallery-strip__title">
+                      Photos &amp; video
+                      <span>
+                        {galleryHasVideo ? ' · Proof video' : ''}
+                        {galleryImageCount > 0 ? ` · ${galleryImageCount} photo${galleryImageCount > 1 ? 's' : ''}` : ''}
+                      </span>
+                    </p>
+                    <span className="pd2-gallery-strip__count">{activeImage + 1}/{galleryItems.length}</span>
+                  </div>
+                  <div className="pd2-thumbs-row flex gap-2 md:gap-2.5 overflow-x-auto pb-1 scroll-touch" style={{ scrollSnapType: 'x mandatory' }}>
+                  {galleryItems.map((m, i) => (
                     <motion.button
                       key={i} type="button"
                       onClick={() => setActiveImage(i)}
@@ -1187,10 +1222,12 @@ export default function ProductDetail() {
                       )}
                     </motion.button>
                   ))}
+                  </div>
                 </div>
               )}
 
-              {/* Mobile: AliExpress-style price + delivery under gallery */}
+              {/* AliExpress-style commerce stack: color, reviews, commitments */}
+              <div className="pd2-ali-commerce-stack">
               <div className="pd2-mobile-commerce-hero md:hidden">
                 <div className="pd2-mobile-price-row">
                   <span className="pd2-mobile-price-current">
@@ -1221,10 +1258,7 @@ export default function ProductDetail() {
                   selectedLabel={selectedColorLabel}
                   options={colorOptions}
                   activeKey={selectedColorKey}
-                  onSelect={(opt) => {
-                    setSelectedColorKey(opt.key);
-                    if (opt.color) setSelectedColor(opt.color);
-                  }}
+                  onSelect={handleColorSelect}
                 />
               )}
 
@@ -1235,6 +1269,39 @@ export default function ProductDetail() {
                   onSeeAll={openReviews}
                 />
               )}
+
+              {(product?.shippingInfo?.costLabel || product?.returnPolicy?.label || product?.securityNote) && (
+                <section className="pd2-ali-block pd2-ali-commitments" aria-label="Store commitments">
+                  <p className="pd2-ali-block__title">Reaglex commitment</p>
+                  <ul className="pd2-ali-commitments__list">
+                    {(product?.shippingInfo?.costLabel || product?.shippingInfo?.estimatedDeliveryLabel) && (
+                      <li>
+                        <Truck size={16} />
+                        <span>
+                          {product.shippingInfo?.costLabel || 'Shipping'}
+                          {product.shippingInfo?.estimatedDeliveryLabel
+                            ? ` · ${product.shippingInfo.estimatedDeliveryLabel}`
+                            : ''}
+                        </span>
+                      </li>
+                    )}
+                    {product?.returnPolicy?.label && (
+                      <li>
+                        <RefreshCw size={16} />
+                        <span>{product.returnPolicy.label}</span>
+                      </li>
+                    )}
+                    {(product?.securityNote || product?.paymentSafetyNote) && (
+                      <li>
+                        <Shield size={16} />
+                        <span>{product.securityNote || product.paymentSafetyNote}</span>
+                      </li>
+                    )}
+                  </ul>
+                </section>
+              )}
+              </div>
+
             </motion.div>
 
             {/* ── Purchase Panel ── */}
@@ -1407,18 +1474,6 @@ export default function ProductDetail() {
                   )}
                 </div>
 
-                {reviewMediaItems.length > 0 && (
-                  <div className="order-6 lg:order-6 mb-4 hidden md:block">
-                    <ProductReviewGalleryRail
-                      items={reviewMediaItems}
-                      totalCount={reviewsCount}
-                      onSeeAll={openReviews}
-                    />
-                  </div>
-                )}
-
-                <div className="hidden lg:block pd2-divider mb-5 order-7 lg:order-7" />
-
                 {/* Size */}
                 {showSizeSelector && (
                 <div className="mb-4 lg:mb-5 order-7 lg:order-8">
@@ -1449,24 +1504,6 @@ export default function ProductDetail() {
                 </div>
                 )}
 
-                {showColorRail && (
-                  <div className="mb-4 lg:mb-5 order-8 lg:order-9 hidden md:block">
-                    {activePricing.priceDiffers && (
-                      <p className="pd2-variant-price-hint">
-                        Selected option: <strong>{selectedColorLabel}</strong>
-                      </p>
-                    )}
-                    <ProductColorRail
-                      selectedLabel={selectedColorLabel}
-                      options={colorOptions}
-                      activeKey={selectedColorKey}
-                      onSelect={(opt) => {
-                        setSelectedColorKey(opt.key);
-                        if (opt.color) setSelectedColor(opt.color);
-                      }}
-                    />
-                  </div>
-                )}
                 {(showSizeSelector && (sizeGuideRows.length > 0 || product?.sizeGuide?.circumferenceNote)) && (
                   <div className="mb-4 lg:mb-5 order-9 lg:order-9">
                     <button

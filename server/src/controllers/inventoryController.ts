@@ -208,6 +208,51 @@ function normalizeProductVariants(
   return rows.length ? rows : undefined;
 }
 
+function deriveColorsFromVariants(variants: Array<Record<string, unknown>> | undefined): string[] {
+  if (!Array.isArray(variants)) return [];
+  const colors: string[] = [];
+  variants.forEach((v) => {
+    const c = String(v?.color || '').trim();
+    if (c && !colors.includes(c)) colors.push(c);
+  });
+  return colors;
+}
+
+function deriveSizesFromVariants(variants: Array<Record<string, unknown>> | undefined): string[] {
+  if (!Array.isArray(variants)) return [];
+  const sizes: string[] = [];
+  variants.forEach((v) => {
+    const s = String(v?.size || '').trim();
+    if (s && !sizes.includes(s)) sizes.push(s);
+  });
+  return sizes;
+}
+
+/** Attach product image URLs to variants missing thumbnailUrl (same order as seller upload). */
+function attachVariantThumbnailsFromImages(
+  variants: Array<Record<string, unknown>> | undefined,
+  images: unknown,
+): Array<Record<string, unknown>> | undefined {
+  if (!Array.isArray(variants) || !variants.length) return variants;
+  const imgs = Array.isArray(images) ? images.filter(Boolean).map(String) : [];
+  if (!imgs.length) return variants;
+  return variants.map((v, i) => {
+    if (v?.thumbnailUrl) return v;
+    return { ...v, thumbnailUrl: imgs[i % imgs.length] };
+  });
+}
+
+function mergeUniqueStrings(...lists: string[][]): string[] {
+  const out: string[] = [];
+  lists.forEach((list) => {
+    list.forEach((item) => {
+      const t = String(item || '').trim();
+      if (t && !out.includes(t)) out.push(t);
+    });
+  });
+  return out;
+}
+
 // ===== Products =====
 
 export async function listProducts(req: AuthenticatedRequest, res: Response) {
@@ -397,12 +442,21 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ message: canonical.message });
     }
 
-    const normalizedSizes = categoryNeedsSize(category) ? normalizeStringArray(sizes) : [];
-    const normalizedColors = categoryNeedsColor(category) ? normalizeStringArray(colors) : [];
-    const normalizedVariants = normalizeProductVariants(variants, {
+    const normalizedVariantsRaw = normalizeProductVariants(variants, {
       listingCurrency: canonical.listingCurrency,
       listingExchangeRate: canonical.listingExchangeRate,
     });
+    const normalizedVariants = attachVariantThumbnailsFromImages(normalizedVariantsRaw, images);
+    const derivedColors = deriveColorsFromVariants(normalizedVariants);
+    const derivedSizes = deriveSizesFromVariants(normalizedVariants);
+    const normalizedSizes = mergeUniqueStrings(
+      categoryNeedsSize(category) ? normalizeStringArray(sizes) : [],
+      derivedSizes,
+    );
+    const normalizedColors = mergeUniqueStrings(
+      categoryNeedsColor(category) ? normalizeStringArray(colors) : [],
+      derivedColors,
+    );
 
     const kycVerified = await isSellerKycVerified(sellerId);
     const publicationStatus = resolvePublicationStatusForSeller(kycVerified);
@@ -597,21 +651,32 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
     }
 
     if (!categoryNeedsSize(existing.category || '')) {
-      (existing as any).sizes = [];
+      const derivedSizes = deriveSizesFromVariants((existing as any).variants);
+      (existing as any).sizes = derivedSizes.length ? derivedSizes : [];
     } else {
-      (existing as any).sizes = normalizeStringArray((existing as any).sizes);
-    }
-    if (!categoryNeedsColor(existing.category || '')) {
-      (existing as any).colors = [];
-    } else {
-      (existing as any).colors = normalizeStringArray((existing as any).colors);
+      (existing as any).sizes = mergeUniqueStrings(
+        normalizeStringArray((existing as any).sizes),
+        deriveSizesFromVariants((existing as any).variants),
+      );
     }
 
     if ('variants' in req.body) {
-      (existing as any).variants = normalizeProductVariants((req.body as any).variants, {
+      const imgs = (req.body as any).images ?? (existing as any).images;
+      const normalizedRaw = normalizeProductVariants((req.body as any).variants, {
         listingCurrency: (existing as any).listingCurrency || 'USD',
         listingExchangeRate: (existing as any).listingExchangeRate || 1,
       });
+      (existing as any).variants = attachVariantThumbnailsFromImages(normalizedRaw, imgs);
+    }
+
+    if (!categoryNeedsColor(existing.category || '')) {
+      const derivedColors = deriveColorsFromVariants((existing as any).variants);
+      (existing as any).colors = derivedColors.length ? derivedColors : [];
+    } else {
+      (existing as any).colors = mergeUniqueStrings(
+        normalizeStringArray((existing as any).colors),
+        deriveColorsFromVariants((existing as any).variants),
+      );
     }
 
     const verificationBody = (req.body as any).verification;

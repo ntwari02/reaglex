@@ -1,18 +1,15 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
 import { useTranslation } from '../../i18n/useTranslation';
 import OverlayPortal from '../OverlayPortal';
 import { useNotificationFeed } from './useNotificationFeed';
-import NotificationList from './NotificationList';
-import { getNotificationHref } from '../../lib/notificationPresentation';
+import NotificationInbox from './NotificationInbox';
 
 const EASE = [0.22, 1, 0.36, 1];
 
 export default function MobileNotificationSheet({ isOpen, onClose, onUnreadChange }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const dragControls = useDragControls();
 
   const feed = useNotificationFeed({ enabled: isOpen, limit: 40 });
@@ -36,14 +33,6 @@ export default function MobileNotificationSheet({ isOpen, onClose, onUnreadChang
       window.removeEventListener('keydown', onKey);
     };
   }, [isOpen, onClose]);
-
-  const handleItemPress = (n) => {
-    feed.markAsRead(n.id, n);
-    onClose();
-    const href = getNotificationHref(n);
-    if (href) navigate(href);
-    else navigate('/notifications');
-  };
 
   return (
     <OverlayPortal active={isOpen}>
@@ -102,14 +91,14 @@ export default function MobileNotificationSheet({ isOpen, onClose, onUnreadChang
               </button>
             </header>
 
-            <NotificationList
-              {...feed}
+            <NotificationInbox
+              feed={feed}
               compact
               enableSwipe
-              onItemPress={handleItemPress}
-              onMarkRead={feed.markAsRead}
-              onDelete={feed.removeNotification}
+              showFooter
+              showPushBanner
               onClose={onClose}
+              closeOnNavigate
             />
           </motion.section>
           </div>

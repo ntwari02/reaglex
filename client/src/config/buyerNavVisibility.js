@@ -19,6 +19,7 @@ export function isSellerPathWithBuyerNav(pathname) {
  * Match with strict boundaries: exact path or `prefix/` (avoids `/auth` matching unrelated paths).
  */
 export const NO_BUYER_CHROME_PREFIXES = [
+  '/checkout',
   '/auth',
   '/login',
   '/signup',
@@ -38,8 +39,16 @@ function matchesChromeHidePrefix(pathname, prefix) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+/** Account settings — distraction-free (no storefront navbar / bottom nav). */
+export function isAccountSettingsRoute(pathname, search = '') {
+  if (pathname !== '/account') return false;
+  const tab = new URLSearchParams(search).get('tab');
+  return tab === 'settings';
+}
+
 /** Hide GlobalNavbar + MobileBottomNav on these routes (unless seller marketing whitelist). */
-export function isBuyerChromeHidden(pathname) {
+export function isBuyerChromeHidden(pathname, search = '') {
   if (isSellerPathWithBuyerNav(pathname)) return false;
+  if (isAccountSettingsRoute(pathname, search)) return true;
   return NO_BUYER_CHROME_PREFIXES.some((p) => matchesChromeHidePrefix(pathname, p));
 }
