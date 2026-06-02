@@ -291,16 +291,16 @@
 
 /* Navbar mobile search — primary focal point */
 .mob-header-search-wrap {
-  padding: 4px 16px 14px;
+  padding: 2px 12px 6px;
 }
 
 .mob-search-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 52px;
-  padding: 0 14px 0 16px;
-  border-radius: 16px;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 12px 0 14px;
+  border-radius: 14px;
   border: none;
   background: color-mix(in srgb, var(--bg-secondary) 55%, #fff);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary) 4%, transparent);
@@ -340,8 +340,8 @@
 
 .mob-search-filter-btn {
   display: flex;
-  height: 36px;
-  width: 36px;
+  height: 32px;
+  width: 32px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;

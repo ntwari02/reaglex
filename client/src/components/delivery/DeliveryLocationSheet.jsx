@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, X, Search, Check, ChevronRight } from 'lucide-react';
 import { useDeliveryDestinations, formatDeliverToLabel } from '../../hooks/useDeliveryDestinations';
@@ -70,15 +71,16 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
             aria-hidden
           />
           <motion.div
-            initial={{ y: '100%' }}
+            initial={{ y: '-100%' }}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 340 }}
+            exit={{ y: '-100%' }}
+            transition={{ type: 'spring', damping: 32, stiffness: 380 }}
             className="dloc-sheet"
             role="dialog"
             aria-modal="true"
             aria-labelledby="dloc-sheet-title"
           >
+            <div className="dloc-sheet-handle" aria-hidden />
             {step === 'confirm' ? (
               <>
                 <div className="dloc-sheet-head">
@@ -121,7 +123,7 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
                 </div>
               </>
             ) : (
-              <>
+              <div className="dloc-picker-body">
                 <div className="dloc-sheet-head">
                   <button
                     type="button"
@@ -130,9 +132,9 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
                   >
                     ← Back
                   </button>
-                  <h2 className="dloc-sheet-title">Select delivery area</h2>
+                  <h2 className="dloc-sheet-title">Change location</h2>
                   <button type="button" onClick={onClose} className="dloc-close" aria-label="Close">
-                    <X size={22} strokeWidth={1.75} />
+                    <X size={20} strokeWidth={1.75} />
                   </button>
                 </div>
 
@@ -153,7 +155,7 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
                       onClick={() => setCountryFilter('')}
                       className={`dloc-country-chip${!countryFilter ? ' is-active' : ''}`}
                     >
-                      All
+                      All regions
                     </button>
                     {countries.map((c) => (
                       <button
@@ -168,12 +170,44 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
                   </div>
                 </div>
 
+                {!query.trim() && filtered.length > 0 && (
+                  <>
+                    <p className="dloc-quick-label">Popular</p>
+                    <div className="dloc-quick-grid">
+                      {filtered.slice(0, 8).map((d) => {
+                        const selected =
+                          value?.country === d.countryCode &&
+                          value?.city?.toLowerCase() === d.city?.toLowerCase();
+                        return (
+                          <button
+                            key={`quick-${d.id}`}
+                            type="button"
+                            className={`dloc-quick-chip${selected ? ' is-selected' : ''}`}
+                            onClick={() => {
+                              onSelect({
+                                country: d.countryCode,
+                                countryName: d.countryName,
+                                city: d.city,
+                                district: d.region || d.city,
+                                state: d.region || '',
+                                zip: '',
+                                displayLabel: d.displayLabel,
+                              });
+                              onClose();
+                            }}
+                          >
+                            {d.displayLabel}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
                 <div className="dloc-list">
-                  {loading && (
-                    <p className="dloc-list-empty">Loading locations…</p>
-                  )}
+                  {loading && <p className="dloc-list-empty">Loading locations…</p>}
                   {!loading && filtered.length === 0 && (
-                    <p className="dloc-list-empty">No locations found. Ask admin to add your city.</p>
+                    <p className="dloc-list-empty">No locations found. Try another search.</p>
                   )}
                   <ul className="dloc-list-ul">
                     {filtered.map((d) => {
@@ -198,16 +232,19 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
                             }}
                             className={`dloc-list-item${selected ? ' is-selected' : ''}`}
                           >
-                            <div>
-                              <p className="dloc-list-item__title">{d.displayLabel}</p>
-                              {(d.etaDaysMin != null || d.extraEtaDays > 0) && (
-                                <p className="dloc-list-item__meta">
-                                  Est.{' '}
-                                  {d.etaDaysMin != null && d.etaDaysMax != null
-                                    ? `${d.etaDaysMin}–${d.etaDaysMax} days`
-                                    : `+${d.extraEtaDays} day(s) vs capital`}
-                                </p>
-                              )}
+                            <div className="dloc-list-item__main">
+                              <MapPin size={16} className="dloc-list-item__pin" aria-hidden />
+                              <div>
+                                <p className="dloc-list-item__title">{d.displayLabel}</p>
+                                {(d.etaDaysMin != null || d.extraEtaDays > 0) && (
+                                  <p className="dloc-list-item__meta">
+                                    Est.{' '}
+                                    {d.etaDaysMin != null && d.etaDaysMax != null
+                                      ? `${d.etaDaysMin}–${d.etaDaysMax} days`
+                                      : `+${d.extraEtaDays} day(s)`}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             {selected && <Check size={18} className="dloc-list-check" />}
                           </button>
@@ -216,7 +253,7 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
                     })}
                   </ul>
                 </div>
-              </>
+              </div>
             )}
           </motion.div>
         </>

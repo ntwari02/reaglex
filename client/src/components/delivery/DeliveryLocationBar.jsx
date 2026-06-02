@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MapPin, ChevronDown } from 'lucide-react';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import {
@@ -124,7 +125,18 @@ export default function DeliveryLocationBar({
           <MapPin size={compact ? 14 : 15} strokeWidth={2} className="delivery-loc-bar__icon" aria-hidden />
         )}
         {headerCenter ? (
-          <span className="delivery-loc-bar__header-line">{headerLabel}</span>
+          <span className="delivery-loc-bar__header-line">
+            {/^delivery in /i.test(headerLabel) ? (
+              <>
+                <span className="delivery-loc-bar__header-muted">delivery in </span>
+                <span className="delivery-loc-bar__header-place">
+                  {headerLabel.replace(/^delivery in\s*/i, '')}
+                </span>
+              </>
+            ) : (
+              <span className="delivery-loc-bar__header-muted">{headerLabel}</span>
+            )}
+          </span>
         ) : (
           <>
             <span className="delivery-loc-bar__prefix">Deliver to</span>
