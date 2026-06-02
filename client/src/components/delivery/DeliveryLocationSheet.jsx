@@ -175,8 +175,8 @@ export default function DeliveryLocationSheet({ open, onClose, value, onSelect }
                 {!query.trim() && filtered.length > 0 && (
                   <>
                     <p className="dloc-quick-label">Popular</p>
-                    <div className="dloc-quick-grid">
-                      {filtered.slice(0, 8).map((d) => {
+                    <div className="dloc-quick-rail scrollbar-hide">
+                      {filtered.slice(0, 10).map((d) => {
                         const selected =
                           value?.country === d.countryCode &&
                           value?.city?.toLowerCase() === d.city?.toLowerCase();
