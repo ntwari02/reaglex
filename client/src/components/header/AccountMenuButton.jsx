@@ -49,10 +49,10 @@ export default function AccountMenuButton({ onLogoutClick, openAuth, variant = '
       <button
         type="button"
         onClick={() => openAuth?.('login')}
-        className={`account-menu-trigger account-menu-trigger--${variant}`}
+        className={`account-menu-trigger account-menu-trigger--${variant}${isMobile ? ' mob-header-icon-btn' : ''}`}
         aria-label={t('header.loginRegister')}
       >
-        <CircleUser size={isMobile ? 20 : 22} strokeWidth={1.75} />
+        <CircleUser size={22} strokeWidth={1.75} />
       </button>
     );
   }
@@ -62,7 +62,7 @@ export default function AccountMenuButton({ onLogoutClick, openAuth, variant = '
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`account-menu-trigger account-menu-trigger--${variant}${open ? ' is-open' : ''}`}
+        className={`account-menu-trigger account-menu-trigger--${variant}${isMobile ? ' mob-header-icon-btn' : ''}${open ? ' is-open' : ''}`}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={t('nav.profile')}

@@ -124,6 +124,9 @@ export default function DeliveryLocationBar({
         {!isHeader && (
           <MapPin size={compact ? 14 : 15} strokeWidth={2} className="delivery-loc-bar__icon" aria-hidden />
         )}
+        {headerCenter && (
+          <MapPin size={16} strokeWidth={2} className="delivery-loc-bar__icon delivery-loc-bar__icon--header" aria-hidden />
+        )}
         {headerCenter ? (
           <span className="delivery-loc-bar__header-line">
             {/^delivery in /i.test(headerLabel) ? (

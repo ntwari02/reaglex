@@ -31,11 +31,14 @@
 .account-menu-trigger--mobile {
   width: 38px;
   height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   border-radius: 12px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
   box-shadow: none;
+  padding: 0;
 }
 
 .account-menu-trigger--mobile.is-open {
@@ -45,14 +48,25 @@
 }
 
 .account-menu-trigger--mobile .account-menu-initial {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-secondary);
+}
+
+.account-menu-trigger--mobile .account-menu-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .account-menu-trigger--mobile:has(.account-menu-avatar) {
   background: transparent;
   border: none;
+}
+
+.account-menu-root:has(.account-menu-trigger--mobile) {
+  flex-shrink: 0;
 }
 
 .account-menu-trigger--desktop {

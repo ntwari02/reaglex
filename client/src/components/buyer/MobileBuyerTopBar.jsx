@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Menu, Bell, ShoppingBag } from 'lucide-react';
+import { Menu, Bell, ShoppingCart } from 'lucide-react';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { buyerNotificationsApi } from '../../services/buyerNotificationsApi';
 import NotificationsDropdown from '../NotificationsDropdown';
 import AccountMenuButton from '../header/AccountMenuButton';
-import BrandMarkR from '../header/BrandMarkR';
 import DeliveryLocationBar from '../delivery/DeliveryLocationBar';
+
+const MOB_ICON = 22;
+const MOB_STROKE = 1.75;
 import '../../styles/delivery-location.css';
 import { useMobileMenuOverlay } from '../../stores/mobileMenuOverlayStore';
 
@@ -51,9 +53,8 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
             className="mob-header-icon-btn"
             aria-label="Open menu"
           >
-            <Menu size={21} strokeWidth={1.75} aria-hidden />
+            <Menu size={MOB_ICON} strokeWidth={MOB_STROKE} aria-hidden />
           </button>
-          <BrandMarkR />
         </div>
 
         <div className="mob-header-row__center">
@@ -68,7 +69,7 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
               className="mob-header-icon-btn"
               aria-label="Notifications"
             >
-              <Bell size={21} strokeWidth={1.65} aria-hidden />
+              <Bell size={MOB_ICON} strokeWidth={MOB_STROKE} aria-hidden />
               {notifCount > 0 && (
                 <span className="mob-header-badge">
                   {notifCount > 9 ? '9+' : notifCount}
@@ -89,7 +90,7 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
             className="mob-header-icon-btn"
             aria-label="Cart"
           >
-            <ShoppingBag size={21} strokeWidth={1.65} aria-hidden />
+            <ShoppingCart size={MOB_ICON} strokeWidth={MOB_STROKE} aria-hidden />
             {cartCount > 0 && (
               <span data-cart-target="badge" className="mob-header-badge">
                 {cartCount > 9 ? '9+' : cartCount}
