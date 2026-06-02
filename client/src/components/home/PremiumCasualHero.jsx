@@ -92,12 +92,12 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
   const textMuted = isDark ? 'rgba(255,255,255,0.72)' : '#777777';
   const eyebrowColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(17,17,17,0.45)';
 
-  const slideMinH = compact ? 160 : 248;
+  const slideMinH = compact ? 188 : 248;
   const radius = compact ? 16 : 24;
   const fullWidthLg = !compact;
 
   const sectionPad = compact
-    ? 'px-3 pb-3'
+    ? 'px-3 pt-2 pb-3'
     : 'w-full px-4 pb-6 sm:px-6 lg:px-0 lg:pb-8';
   const shellRadius = fullWidthLg ? 'rounded-[24px] lg:rounded-none' : 'overflow-hidden';
   const shellLg = fullWidthLg ? 'lg:border-x-0 lg:border-t-0 lg:shadow-none' : '';
@@ -119,7 +119,7 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
           borderRadius: fullWidthLg ? undefined : radius,
           boxShadow: compact ? 'var(--shadow-sm)' : 'var(--shadow-md)',
           border: '1px solid color-mix(in srgb, var(--border-card) 55%, transparent)',
-          overflow: 'visible',
+          overflow: compact ? 'hidden' : 'visible',
         }}
       >
         <Swiper

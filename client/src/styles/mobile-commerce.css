@@ -16,9 +16,9 @@
     --mob-header-row: 42px;
     --mob-search-row: 44px;
     --mob-cat-row: 46px;
+    /* Categories sit below hero — not in fixed header stack */
     --mob-header-total: calc(
-      var(--mob-header-row) + var(--mob-search-row) + var(--mob-cat-row) +
-        env(safe-area-inset-top, 0px)
+      var(--mob-header-row) + var(--mob-search-row) + env(safe-area-inset-top, 0px)
     );
     --mob-shadow-soft: 0 1px 3px rgba(15, 23, 42, 0.04);
     --mob-shadow-search: 0 1px 3px rgba(15, 23, 42, 0.05);
@@ -54,9 +54,14 @@
     background: var(--header-bg) !important;
   }
 
-  .mob-header-cat-rail {
-    padding-bottom: 2px;
+  .mob-home-cat-rail {
+    padding: 0 8px 8px;
+    background: var(--bg-page);
     border-bottom: 1px solid color-mix(in srgb, var(--header-border) 28%, transparent);
+  }
+
+  .mob-home-cat-rail .mob-cat-strip {
+    padding: 0 4px;
   }
 
   .mob-page {
@@ -67,11 +72,23 @@
 
   .mob-page .premium-casual-hero {
     overflow: visible;
+    padding-top: 6px;
   }
 
   .mob-page .premium-casual-hero > div {
     margin-left: 0;
     margin-right: 0;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .mob-page .premium-casual-swiper {
+    min-height: 188px !important;
+  }
+
+  .mob-page .premium-casual-swiper .swiper-slide > article,
+  .mob-page .premium-casual-swiper .up-hero-slide {
+    min-height: 188px;
   }
 
   .mob-section {

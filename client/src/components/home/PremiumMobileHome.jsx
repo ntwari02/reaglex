@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useHomeFeedBundle } from '../../hooks/useHomeFeedSections';
 import { HOME_PRODUCT_LIMIT } from './mobile/HomeExploreSection';
 import PremiumCasualHero from './PremiumCasualHero';
+import PremiumCategoryChips from './PremiumCategoryChips';
 import { useTheme } from '../../contexts/ThemeContext';
 import HomeExploreSection from './mobile/HomeExploreSection';
 import UpcomingProductsSection from './mobile/UpcomingProductsSection';
@@ -38,6 +39,10 @@ export default function PremiumMobileHome() {
       style={{ background: 'var(--bg-page)' }}
     >
       <PremiumCasualHero isDark={isDark} compact />
+
+      <div className="mob-home-cat-rail" aria-label="Categories">
+        <PremiumCategoryChips />
+      </div>
 
       <MobileTrustStrip />
 

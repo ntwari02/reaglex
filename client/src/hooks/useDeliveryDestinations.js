@@ -54,10 +54,20 @@ export function formatDeliverToLabel(loc) {
   return place;
 }
 
-/** Compact header line: "delivery in nyamagabe" (lowercase district). */
+/** Title-case each word (e.g. "nyamagabe" → "Nyamagabe", "kigali city" → "Kigali City"). */
+export function titleCaseWords(str) {
+  if (!str) return '';
+  return String(str)
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+/** Compact header line: "Delivery In Nyamagabe". */
 export function formatHeaderDeliveryLabel(loc, { detecting = false } = {}) {
-  if (detecting) return 'detecting location…';
+  if (detecting) return 'Detecting Location…';
   const place = String(loc?.district || loc?.city || '').trim();
-  if (!place) return 'choose delivery area';
-  return `delivery in ${place.toLowerCase()}`;
+  if (!place) return 'Choose Delivery Area';
+  return `Delivery In ${titleCaseWords(place)}`;
 }

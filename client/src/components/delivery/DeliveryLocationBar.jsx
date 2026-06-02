@@ -131,7 +131,7 @@ export default function DeliveryLocationBar({
           <span className="delivery-loc-bar__header-line">
             {/^delivery in /i.test(headerLabel) ? (
               <>
-                <span className="delivery-loc-bar__header-muted">delivery in </span>
+                <span className="delivery-loc-bar__header-muted">Delivery In </span>
                 <span className="delivery-loc-bar__header-place">
                   {headerLabel.replace(/^delivery in\s*/i, '')}
                 </span>

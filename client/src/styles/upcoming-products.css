@@ -287,6 +287,25 @@ html[data-theme='dark'] .up-section {
   min-height: 140px;
 }
 
+@media (max-width: 767px) {
+  .mob-page .up-hero-slide {
+    min-height: 188px;
+  }
+
+  .mob-page .up-hero-slide-inner {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+
+  .mob-page .up-hero-title {
+    font-size: 17px;
+  }
+
+  .mob-page .up-hero-img {
+    max-height: 132px;
+  }
+}
+
 html[data-theme='light'] .up-hero-slide,
 .up-hero-slide[data-theme-mode='light'] {
   --up-hero-grad: linear-gradient(120deg, #f0f4fa 0%, #e4ebf4 50%, #d8e2ee 100%);

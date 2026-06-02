@@ -97,13 +97,11 @@
 
 .delivery-loc-bar__header-muted {
   color: var(--text-muted);
-  text-transform: lowercase;
 }
 
 .delivery-loc-bar__header-place {
   color: var(--text-primary);
   font-weight: 600;
-  text-transform: lowercase;
 }
 
 /* Mobile header grid — compact */

@@ -25,7 +25,6 @@ import AccountMenuButton from './header/AccountMenuButton';
 import DeliveryLocationBar from './delivery/DeliveryLocationBar';
 import BrandMarkR from './header/BrandMarkR';
 import '../styles/delivery-location.css';
-import PremiumCategoryChips from './home/PremiumCategoryChips';
 import {
   getRecentSearches,
   addRecentSearch,
@@ -1097,10 +1096,6 @@ export default function Navbar() {
           </motion.button>
         </form>
 
-        {/* Mobile category chips — compact row under search */}
-        <div className="md:hidden mob-header-cat-rail">
-          <PremiumCategoryChips />
-        </div>
       </div>
 
       {/* Tier 3 */}
