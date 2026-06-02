@@ -230,7 +230,7 @@ export default function CategoryBrowse() {
 
           <div className="cat-browse-search-wrap">
             <form className="cat-browse-search" onSubmit={handleSearchSubmit} role="search">
-              <Search size={16} strokeWidth={2} className="cat-browse-search__icon" aria-hidden />
+              <Search size={14} strokeWidth={2.25} className="cat-browse-search__icon" aria-hidden />
               <input
                 type="search"
                 className="cat-browse-search__input"
@@ -251,7 +251,7 @@ export default function CategoryBrowse() {
                   }}
                   aria-label="Clear search"
                 >
-                  <X size={14} />
+                  <X size={12} strokeWidth={2.5} />
                 </button>
               )}
             </form>

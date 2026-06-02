@@ -51,8 +51,13 @@ export function isCategoryBrowseRoute(pathname) {
   return pathname === '/category' || pathname.startsWith('/category/');
 }
 
+/** Product detail — own mobile top bar; hide storefront header. */
+export function isProductDetailRoute(pathname) {
+  return pathname.startsWith('/product/') || pathname.startsWith('/products/');
+}
+
 export function isBuyerHeaderHidden(pathname) {
-  return isCategoryBrowseRoute(pathname);
+  return isCategoryBrowseRoute(pathname) || isProductDetailRoute(pathname);
 }
 
 /** Hide GlobalNavbar + MobileBottomNav on these routes (unless seller marketing whitelist). */

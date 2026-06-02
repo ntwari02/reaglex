@@ -674,9 +674,9 @@ export default function ProductDetail() {
 
   /* ── loading / error ── */
   if (loading) return (
-    <BuyerLayout>
+    <BuyerLayout noHeaderPad>
       {pdpSeo}
-      <motion.div className="px-4 py-4 md:px-8" style={{ background: 'var(--bg-page)' }}>
+      <motion.div className="px-4 py-4 md:px-8" style={{ background: 'var(--bg-page)', paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' }}>
         <div className="pd2-hero-grid gap-4 md:gap-6 max-w-6xl mx-auto">
           <motion.div className="overflow-hidden rounded-3xl" style={{ aspectRatio: '1 / 1', background: 'var(--bg-secondary)' }}>
             {productPreview?.image ? (
@@ -716,9 +716,9 @@ export default function ProductDetail() {
   );
 
   if (error || !product || typeof product !== 'object') return (
-    <BuyerLayout>
+    <BuyerLayout noHeaderPad>
       <PageSeo title="Product not found | Reaglex" description={error || 'Product not found.'} canonicalUrl={canonicalUrl} noIndex />
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)' }}>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <span className="text-6xl">😕</span>
         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error || 'Product not found.'}</p>
         <button onClick={() => navigate(-1)}
@@ -960,7 +960,7 @@ export default function ProductDetail() {
      RENDER
   ════════════════════════════════════════════════════════════════════ */
   return (
-    <BuyerLayout>
+    <BuyerLayout noHeaderPad>
       {pdpSeo}
       <div className="pd2-page pd2-page--cart relative min-h-screen" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
