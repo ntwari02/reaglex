@@ -70,7 +70,9 @@
   max-width: none;
   margin: 0;
   padding: 20px 16px;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(
+    16px + var(--mob-dock-height, 60px) + max(8px, env(safe-area-inset-bottom, 0px))
+  );
   display: flex;
   flex-direction: column;
   gap: 16px;

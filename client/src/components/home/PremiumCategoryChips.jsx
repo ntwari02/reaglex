@@ -22,7 +22,7 @@ const ICON_BY_SLUG = {
 };
 
 const FALLBACK_CHIPS = [
-  { id: 'all', label: 'All', icon: Layers, href: '/search' },
+  { id: 'all', label: 'All', icon: Layers, href: '/category/all' },
   { id: 'clothing', label: 'Fashion', icon: Shirt, href: '/category/clothing' },
   { id: 'electronics', label: 'Electronics', icon: Cpu, href: '/category/electronics' },
   { id: 'shoes', label: 'Shoes', icon: Footprints, href: '/category/shoes' },
@@ -41,10 +41,14 @@ function buildChipsFromApi(categories) {
     icon: ICON_BY_SLUG[c.slug] || Layers,
     href: `/category/${encodeURIComponent(c.slug)}`,
   }));
-  return [{ id: 'all', label: 'All', icon: Layers, href: '/search' }, ...fromApi];
+  return [{ id: 'all', label: 'All', icon: Layers, href: '/category/all' }, ...fromApi];
 }
 
-export default function PremiumCategoryChips({ activeId = 'all', onSelect }) {
+export default function PremiumCategoryChips({
+  activeId = 'all',
+  onSelect,
+  selectMode = false,
+}) {
   const { data: categories = [] } = useStorefrontCategories();
   const chips =
     categories.length > 0 ? buildChipsFromApi(categories) : FALLBACK_CHIPS;
@@ -58,13 +62,9 @@ export default function PremiumCategoryChips({ activeId = 'all', onSelect }) {
         {chips.map((c) => {
           const Icon = c.icon;
           const active = activeId === c.id;
-          return (
-            <Link
-              key={c.id}
-              to={c.href}
-              onClick={() => onSelect?.(c.id)}
-              className="mob-cat-chip flex shrink-0 flex-col items-center md:w-[56px] md:gap-1"
-            >
+          const chipClass = 'mob-cat-chip flex shrink-0 flex-col items-center md:w-[56px] md:gap-1';
+          const inner = (
+            <>
               <motion.span
                 whileTap={{ scale: 0.96 }}
                 transition={springSnappy}
@@ -74,9 +74,38 @@ export default function PremiumCategoryChips({ activeId = 'all', onSelect }) {
                 <Icon size={16} strokeWidth={1.65} className="md:hidden" aria-hidden />
                 <Icon size={22} strokeWidth={1.65} className="hidden md:block" aria-hidden />
               </motion.span>
-              <span className="mob-cat-chip-label max-w-full truncate text-center" data-active={active ? 'true' : 'false'}>
+              <span
+                className="mob-cat-chip-label max-w-full truncate text-center"
+                data-active={active ? 'true' : 'false'}
+              >
                 {c.label}
               </span>
+            </>
+          );
+
+          if (selectMode && onSelect) {
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onSelect(c.id)}
+                className={`${chipClass} border-0 bg-transparent p-0 cursor-pointer`}
+                aria-pressed={active}
+                aria-label={c.label}
+              >
+                {inner}
+              </button>
+            );
+          }
+
+          return (
+            <Link
+              key={c.id}
+              to={c.href}
+              onClick={() => onSelect?.(c.id)}
+              className={chipClass}
+            >
+              {inner}
             </Link>
           );
         })}

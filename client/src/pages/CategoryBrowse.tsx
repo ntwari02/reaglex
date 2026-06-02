@@ -1,69 +1,112 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useParams, useSearchParams, useNavigate, Navigate, Link } from 'react-router-dom';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { Search, X } from 'lucide-react';
 // @ts-ignore JSX module without TS typings
 import BuyerLayout from '../components/buyer/BuyerLayout';
+// @ts-ignore JSX module without TS typings
+import PremiumCategoryChips from '../components/home/PremiumCategoryChips';
 // @ts-ignore JSX module without TS typings
 import { SearchProductCard } from '../components/SearchProductCard';
 import { PageSeo } from '../components/seo/PageSeo';
 import { categoriesAPI, productAPI } from '../services/api';
 import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { buildLocaleAlternates } from '../utils/localeAlternateLinks';
+import '../styles/category-browse.css';
 
 type CategoryMeta = { slug: string; name: string; description: string; productCount?: number };
 
+const ALL_META: CategoryMeta = {
+  slug: 'all',
+  name: 'All',
+  description: 'Browse every product from verified sellers on Reaglex.',
+};
+
+function normalizeSlug(raw: string | undefined): string {
+  const s = String(raw || '').trim().toLowerCase();
+  return s || 'all';
+}
+
+function isAllCategory(slug: string): boolean {
+  return slug === 'all' || slug === '';
+}
+
+async function fetchCategoryProducts(
+  slug: string,
+  page: number,
+  q: string,
+): Promise<{ items: any[]; totalPages: number; total: number }> {
+  const params: Record<string, unknown> = {
+    page,
+    limit: 24,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  };
+  if (q.trim()) params.search = q.trim();
+  if (!isAllCategory(slug)) params.categorySlug = slug;
+
+  const data = await productAPI.getProducts(params);
+  const items = Array.isArray(data) ? data : data.products || data.items || [];
+  const totalPages =
+    Number(data.pagination?.totalPages ?? data.pagination?.pages ?? 1) || 1;
+  const total = Number(data.pagination?.total ?? items.length) || items.length;
+  return { items, totalPages, total };
+}
+
 export default function CategoryBrowse() {
   const { slug: slugParam } = useParams<{ slug: string }>();
-  const slug = String(slugParam || '').trim().toLowerCase();
-  const [searchParams] = useSearchParams();
+  const slug = normalizeSlug(slugParam);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
-
-  const [meta, setMeta] = useState<CategoryMeta | null>(null);
-  const [products, setProducts] = useState<any[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const origin = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
+  const qParam = searchParams.get('q') || '';
+  const [searchDraft, setSearchDraft] = useState(qParam);
 
   useEffect(() => {
-    if (!slug) return;
-    let alive = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const catRes = await categoriesAPI.getBySlug(slug);
-        if (!alive) return;
-        setMeta(catRes.category);
-        const data = await productAPI.getProducts({
-          categorySlug: slug,
-          page,
-          limit: 24,
-          sortBy: 'createdAt',
-          sortOrder: 'desc',
-        } as Record<string, unknown>);
-        if (!alive) return;
-        const items = Array.isArray(data) ? data : data.products || data.items || [];
-        setProducts(items);
-        setTotalPages(
-          Number(data.pagination?.totalPages ?? data.pagination?.pages ?? 1) || 1,
-        );
-      } catch {
-        if (!alive) return;
-        setError('not_found');
-        setMeta(null);
-        setProducts([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [slug, page]);
+    setSearchDraft(qParam);
+  }, [qParam]);
 
-  const canonicalPath = `/category/${encodeURIComponent(slug)}${page > 1 ? `?page=${page}` : ''}`;
+  useEffect(() => {
+    document.body.classList.add('cat-browse-active');
+    return () => document.body.classList.remove('cat-browse-active');
+  }, []);
+
+  const activeId = isAllCategory(slug) ? 'all' : slug;
+
+  const metaQuery = useQuery({
+    queryKey: ['category-meta', slug],
+    queryFn: async () => {
+      if (isAllCategory(slug)) return ALL_META;
+      const res = await categoriesAPI.getBySlug(slug);
+      return res.category as CategoryMeta;
+    },
+    enabled: Boolean(slug),
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
+
+  const productsQuery = useQuery({
+    queryKey: ['category-products', slug, page, qParam],
+    queryFn: () => fetchCategoryProducts(slug, page, qParam),
+    placeholderData: keepPreviousData,
+    enabled: isAllCategory(slug) || metaQuery.isSuccess,
+  });
+
+  const meta = isAllCategory(slug) ? ALL_META : metaQuery.data ?? null;
+  const products = productsQuery.data?.items ?? [];
+  const totalPages = productsQuery.data?.totalPages ?? 1;
+  const total = productsQuery.data?.total ?? 0;
+  const loading = metaQuery.isLoading || productsQuery.isLoading;
+  const notFound = !isAllCategory(slug) && metaQuery.isError;
+
+  const origin = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
+  const canonicalPath = (() => {
+    const params = new URLSearchParams();
+    if (qParam.trim()) params.set('q', qParam.trim());
+    if (page > 1) params.set('page', String(page));
+    const qs = params.toString();
+    return `/category/${encodeURIComponent(slug)}${qs ? `?${qs}` : ''}`;
+  })();
   const canonicalUrl = origin ? `${origin}${canonicalPath}` : canonicalPath;
 
   const jsonLd = useMemo(() => {
@@ -73,8 +116,12 @@ export default function CategoryBrowse() {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: origin ? `${origin}/` : '/' },
-        { '@type': 'ListItem', position: 2, name: 'Products', item: origin ? `${origin}/products` : '/products' },
-        { '@type': 'ListItem', position: 3, name: meta.name, item: canonicalUrl },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: meta.name,
+          item: canonicalUrl,
+        },
       ],
     };
     const collection = {
@@ -83,24 +130,60 @@ export default function CategoryBrowse() {
       name: meta.name,
       description: meta.description,
       url: canonicalUrl,
-      numberOfItems: meta.productCount,
+      numberOfItems: meta.productCount ?? total,
     };
     return [breadcrumb, collection];
-  }, [meta, canonicalUrl, origin]);
+  }, [meta, canonicalUrl, origin, total]);
 
   const hreflangAlternates =
     meta && origin ? buildLocaleAlternates(origin, canonicalPath) : undefined;
 
-  if (!slug) {
-    return (
-      <BuyerLayout>
-        <div className="max-w-xl mx-auto px-4 py-20 text-center">Invalid category.</div>
-      </BuyerLayout>
-    );
+  const applySearch = useCallback(
+    (value: string) => {
+      const next = new URLSearchParams(searchParams);
+      const trimmed = value.trim();
+      if (trimmed) next.set('q', trimmed);
+      else next.delete('q');
+      next.delete('page');
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (searchDraft.trim() !== qParam.trim()) {
+        applySearch(searchDraft);
+      }
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [searchDraft, qParam, applySearch]);
+
+  const handleCategorySelect = useCallback(
+    (id: string) => {
+      const nextSlug = id === 'all' ? 'all' : id;
+      const params = new URLSearchParams();
+      if (qParam.trim()) params.set('q', qParam.trim());
+      const qs = params.toString();
+      navigate(`/category/${encodeURIComponent(nextSlug)}${qs ? `?${qs}` : ''}`);
+    },
+    [navigate, qParam],
+  );
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    applySearch(searchDraft);
+  };
+
+  if (!slugParam) {
+    return <Navigate to="/category/all" replace />;
   }
 
-  const titleBase = meta ? `${meta.name} | Reaglex` : 'Category | Reaglex';
+  const titleBase = meta ? `${meta.name} | Reaglex` : 'Categories | Reaglex';
   const title = page > 1 ? `${titleBase} — Page ${page}` : titleBase;
+  const resultLabel = qParam.trim()
+    ? `${total} result${total === 1 ? '' : 's'} for “${qParam.trim()}”`
+    : `${total} product${total === 1 ? '' : 's'}`;
 
   return (
     <BuyerLayout>
@@ -117,88 +200,108 @@ export default function CategoryBrowse() {
         hreflangAlternates={hreflangAlternates}
       />
 
-      <div className="min-h-screen pb-16" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
-          <nav className="text-sm flex flex-wrap items-center gap-1 mb-6" aria-label="Breadcrumb">
-            <Link to="/" className="hover:underline" style={{ color: 'var(--link-color)' }}>
-              Home
-            </Link>
-            <ChevronRight className="w-4 h-4 opacity-45 flex-shrink-0" aria-hidden />
-            <Link to="/products" className="hover:underline" style={{ color: 'var(--link-color)' }}>
-              Products
-            </Link>
-            <ChevronRight className="w-4 h-4 opacity-45 flex-shrink-0" aria-hidden />
-            <span style={{ color: 'var(--text-muted)' }}>{meta?.name || slug}</span>
-          </nav>
+      <div className="cat-browse">
+        <div className="cat-browse-toolbar">
+          <div className="cat-browse-search-wrap">
+            <form className="cat-browse-search" onSubmit={handleSearchSubmit} role="search">
+              <Search size={18} strokeWidth={2} className="cat-browse-search__icon" aria-hidden />
+              <input
+                type="search"
+                className="cat-browse-search__input"
+                placeholder="Search in this category…"
+                value={searchDraft}
+                onChange={(e) => setSearchDraft(e.target.value)}
+                aria-label="Search products"
+                enterKeyHint="search"
+                autoComplete="off"
+              />
+              {searchDraft.length > 0 && (
+                <button
+                  type="button"
+                  className="cat-browse-search__clear"
+                  onClick={() => {
+                    setSearchDraft('');
+                    applySearch('');
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </form>
+          </div>
 
-          {loading && (
-            <div className="py-24 text-center" style={{ color: 'var(--text-secondary)' }}>
-              Loading category…
-            </div>
-          )}
+          <div className="cat-browse-cats">
+            <PremiumCategoryChips
+              activeId={activeId}
+              onSelect={handleCategorySelect}
+              selectMode
+            />
+          </div>
+        </div>
 
-          {error === 'not_found' && !loading && (
-            <div className="py-24 text-center space-y-3">
-              <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+        <div className="cat-browse-body">
+          {notFound && !loading && (
+            <div className="cat-browse-empty">
+              <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
                 Category not found
-              </h1>
-              <Link to="/products" style={{ color: 'var(--link-color)' }} className="underline">
+              </p>
+              <button
+                type="button"
+                className="text-sm font-semibold"
+                style={{ color: 'var(--brand-primary)' }}
+                onClick={() => navigate('/category/all')}
+              >
                 Browse all products
-              </Link>
+              </button>
             </div>
           )}
 
-          {!loading && !error && meta && (
-            <>
-              <header className="mb-8">
-                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
-                  {meta.name}
-                </h1>
-                <p className="max-w-2xl text-base" style={{ color: 'var(--text-secondary)' }}>
-                  {meta.description}
-                </p>
-                <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
-                  {typeof meta.productCount === 'number' ? `${meta.productCount} listings` : null}
-                </p>
-              </header>
+          {!notFound && loading && products.length === 0 && (
+            <div className="cat-browse-grid" aria-hidden>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="cat-browse-skeleton" />
+              ))}
+            </div>
+          )}
 
-              <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 list-none p-0 m-0">
-                {products.map((p: any, i: number) => (
-                  <li key={String(p._id || p.id || i)}>
-                    <SearchProductCard product={p} index={i} />
-                  </li>
-                ))}
-              </ul>
+          {!notFound && !loading && (
+            <p className="cat-browse-meta" aria-live="polite">
+              {isAllCategory(slug) && !qParam.trim()
+                ? 'All categories'
+                : meta?.name || 'Products'}
+              {' · '}
+              {resultLabel}
+            </p>
+          )}
 
-              {products.length === 0 && (
-                <p className="py-12 text-center" style={{ color: 'var(--text-secondary)' }}>
-                  No products in this category yet.
-                </p>
+          {!notFound && products.length > 0 && (
+            <ul className="cat-browse-grid">
+              {products.map((p: any, i: number) => (
+                <li key={String(p._id || p.id || i)}>
+                  <SearchProductCard product={p} index={i} />
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {!notFound && !loading && products.length === 0 && (
+            <p className="cat-browse-empty">
+              {qParam.trim()
+                ? 'No products match your search. Try another term or category.'
+                : 'No products in this category yet.'}
+            </p>
+          )}
+
+          {!notFound && totalPages > 1 && (
+            <nav className="cat-browse-pagination" aria-label="Pagination">
+              {page > 1 && (
+                <Link to={pageUrl(slug, page - 1, qParam)}>Previous</Link>
               )}
-
-              {totalPages > 1 && (
-                <nav className="flex justify-center gap-2 mt-10" aria-label="Pagination">
-                  {page > 1 && (
-                    <Link
-                      className="px-4 py-2 rounded-xl border font-medium"
-                      style={{ borderColor: 'var(--divider)', color: 'var(--text-primary)' }}
-                      to={`${categoryPath(slug)}?page=${page - 1}`}
-                    >
-                      Previous
-                    </Link>
-                  )}
-                  {page < totalPages && (
-                    <Link
-                      className="px-4 py-2 rounded-xl border font-medium"
-                      style={{ borderColor: 'var(--divider)', color: 'var(--text-primary)' }}
-                      to={`${categoryPath(slug)}?page=${page + 1}`}
-                    >
-                      Next
-                    </Link>
-                  )}
-                </nav>
+              {page < totalPages && (
+                <Link to={pageUrl(slug, page + 1, qParam)}>Next</Link>
               )}
-            </>
+            </nav>
           )}
         </div>
       </div>
@@ -206,6 +309,10 @@ export default function CategoryBrowse() {
   );
 }
 
-function categoryPath(s: string) {
-  return `/category/${encodeURIComponent(s)}`;
+function pageUrl(slug: string, page: number, q: string) {
+  const params = new URLSearchParams();
+  if (page > 1) params.set('page', String(page));
+  if (q.trim()) params.set('q', q.trim());
+  const qs = params.toString();
+  return `/category/${encodeURIComponent(slug)}${qs ? `?${qs}` : ''}`;
 }

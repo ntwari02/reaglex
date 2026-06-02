@@ -317,6 +317,7 @@ function App() {
               <Route path="/explore" element={<ExploreAll />} />
               <Route path="/live" element={<LiveCommerceRouteGuard><LiveDiscover /></LiveCommerceRouteGuard>} />
               <Route path="/live/:sessionId" element={<LiveCommerceRouteGuard><LiveSession /></LiveCommerceRouteGuard>} />
+              <Route path="/category" element={<CategoryBrowse />} />
               <Route path="/category/:slug" element={<CategoryBrowse />} />
               <Route path="/product/:slug" element={<BuyerProductDetail />} />
               <Route path="/products/:id" element={<BuyerProductDetail />} />

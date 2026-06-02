@@ -962,6 +962,8 @@ function CategoryNav({ t }) {
 // ── Main Navbar export ───────────────────────────────────────────────────────
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isCategoryBrowse = /^\/category(\/|$)/.test(location.pathname);
   const { language, setLanguage, currency, setCurrency } = useTheme();
   const { t } = useTranslation();
   const openImmersiveSearch = useImmersiveSearch((s) => s.openSearch);
@@ -1060,41 +1062,43 @@ export default function Navbar() {
           openAuth={openAuth}
         />
 
-        {/* Mobile: search — single tap to open */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            openImmersiveSearch(searchQuery);
-          }}
-          className="md:hidden mob-header-search-wrap"
-        >
-          <motion.button
-            type="button"
-            role="search"
-            onClick={() => openImmersiveSearch(searchQuery)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                openImmersiveSearch(searchQuery);
-              }
+        {/* Mobile: search — hidden on category browse (page has its own search) */}
+        {!isCategoryBrowse && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              openImmersiveSearch(searchQuery);
             }}
-            className={`mob-search-bar mob-search-bar--2026 w-full text-left${searchQuery ? ' has-value' : ''}`}
-            aria-label="Search"
+            className="md:hidden mob-header-search-wrap"
           >
-            <Search className="mob-search-bar__icon" strokeWidth={2} aria-hidden />
-            <span className="mob-search-bar__placeholder">
-              {searchQuery || 'Search products, brands…'}
-            </span>
-            <Link
-              to="/products"
-              className="mob-search-filter-btn"
-              aria-label={t('footer.links.shop.allProducts')}
-              onClick={(e) => e.stopPropagation()}
+            <motion.button
+              type="button"
+              role="search"
+              onClick={() => openImmersiveSearch(searchQuery)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  openImmersiveSearch(searchQuery);
+                }
+              }}
+              className={`mob-search-bar mob-search-bar--2026 w-full text-left${searchQuery ? ' has-value' : ''}`}
+              aria-label="Search"
             >
-              <SlidersHorizontal className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
-            </Link>
-          </motion.button>
-        </form>
+              <Search className="mob-search-bar__icon" strokeWidth={2} aria-hidden />
+              <span className="mob-search-bar__placeholder">
+                {searchQuery || 'Search products, brands…'}
+              </span>
+              <Link
+                to="/category/all"
+                className="mob-search-filter-btn"
+                aria-label={t('footer.links.shop.allProducts')}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <SlidersHorizontal className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
+              </Link>
+            </motion.button>
+          </form>
+        )}
 
       </div>
 

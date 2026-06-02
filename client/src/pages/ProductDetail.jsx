@@ -123,6 +123,9 @@ export default function ProductDetail() {
   const navigationType = useNavigationType();
   const productPreview = location.state?.productPreview;
   const addItem      = useBuyerCart((s) => s.addItem);
+  const openCart     = useBuyerCart((s) => s.openCart);
+  const cartItems    = useBuyerCart((s) => s.items);
+  const cartCount    = cartItems.reduce((sum, i) => sum + i.quantity, 0);
   const currencyPricing = useCurrencyPricing();
   const addRecent    = useRecentlyViewed((s) => s.addProduct);
   const recentItems  = useRecentlyViewed((s) => s.items);
@@ -856,10 +859,10 @@ export default function ProductDetail() {
   return (
     <BuyerLayout>
       {pdpSeo}
-      <div className="pd2-page relative min-h-screen" style={{ background: 'var(--bg-page)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="pd2-page pd2-page--cart relative min-h-screen" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-        {/* ── Background decoration ── */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* ── Background decoration (desktop only) ── */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden hidden md:block">
           <GridMesh />
           <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full"
             style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 7%, transparent) 0%, transparent 65%)' }} />
@@ -867,13 +870,42 @@ export default function ProductDetail() {
             style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 5%, transparent) 0%, transparent 65%)' }} />
         </div>
 
-        <div className="relative z-10 w-full pd2-fluid-wrap pt-2 sm:pt-4 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] md:pb-12 lg:pb-12 max-w-[100vw]">
+        <div className="relative z-10 w-full pd2-fluid-wrap pd2-fluid-wrap--cart pt-0 sm:pt-4 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] md:pb-12 lg:pb-12 max-w-[100vw]">
 
-          {/* ── Breadcrumb ── */}
+          {/* Mobile — cart-style top bar */}
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: softEase }}
+            className="pd2-cart-bar md:hidden"
+          >
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="pd2-cart-bar__icon"
+              aria-label="Go back"
+            >
+              <ChevronLeft size={20} strokeWidth={2} />
+            </button>
+            <span className="pd2-cart-bar__title">Product details</span>
+            <button
+              type="button"
+              onClick={openCart}
+              className="pd2-cart-bar__icon pd2-cart-bar__icon--cart"
+              aria-label="Open cart"
+            >
+              <ShoppingBag size={20} strokeWidth={2} />
+              {cartCount > 0 && (
+                <span className="pd2-cart-bar__badge">{cartCount > 9 ? '9+' : cartCount}</span>
+              )}
+            </button>
+          </motion.div>
+
+          {/* ── Breadcrumb (tablet/desktop) ── */}
           <motion.div
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28, ease: softEase }}
-            className="flex items-center justify-between gap-2 mb-4 md:mb-8 flex-wrap min-w-0"
+            className="hidden md:flex items-center justify-between gap-2 mb-4 md:mb-8 flex-wrap min-w-0"
           >
             <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0 flex-1" style={{ color: 'var(--text-muted)' }}>
               <Link to="/" className="hover:text-[var(--brand-primary)] transition-colors shrink-0">Home</Link>
@@ -890,7 +922,7 @@ export default function ProductDetail() {
             <button type="button" onClick={() => navigate(-1)}
               className="flex items-center gap-1 text-xs sm:text-sm font-medium hover:text-[var(--brand-primary)] transition-colors shrink-0 touch-manipulation py-2"
               style={{ color: 'var(--text-muted)' }}>
-              <ChevronLeft size={16} /> <span className="hidden sm:inline">Back</span>
+              <ChevronLeft size={16} /> <span>Back</span>
             </button>
           </motion.div>
 
@@ -907,7 +939,7 @@ export default function ProductDetail() {
             >
               {/* Main media */}
               <div
-                className="pd2-main-img group relative overflow-hidden rounded-3xl cursor-zoom-in mb-2 md:mb-4"
+                className="pd2-main-img group relative overflow-hidden rounded-2xl md:rounded-3xl cursor-zoom-in mb-2 md:mb-4"
                 style={{
                   background: 'var(--bg-secondary)',
                 }}
@@ -1945,8 +1977,8 @@ export default function ProductDetail() {
       </div>
 
       {/* Mobile sticky CTAs — above bottom nav, thumb-sized */}
-      <div className="md:hidden fixed left-0 right-0 z-[95] px-2 sm:px-3 pb-2 pt-1.5 bottom-[calc(60px+env(safe-area-inset-bottom,0px))] pointer-events-none">
-        <div className="pd2-sticky-cta-inner pd2-sticky-cta-inner--ali pointer-events-auto p-2 rounded-2xl max-w-[100vw] mx-auto">
+      <div className="md:hidden fixed left-0 right-0 z-[95] bottom-[calc(60px+env(safe-area-inset-bottom,0px))] pointer-events-none">
+        <div className="pd2-sticky-cta-inner pd2-sticky-cta-inner--cart pointer-events-auto">
           <div className="pd2-sticky-cta-grid">
             <button
               type="button"
