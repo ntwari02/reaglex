@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate, Navigate, Link } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { ArrowLeft, Search, ShoppingBag, X } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, X } from 'lucide-react';
 // @ts-ignore JSX module without TS typings
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import CategoryBrowseChips from '../components/category/CategoryBrowseChips';
@@ -230,7 +230,6 @@ export default function CategoryBrowse() {
 
           <div className="cat-browse-search-wrap">
             <form className="cat-browse-search" onSubmit={handleSearchSubmit} role="search">
-              <Search size={14} strokeWidth={2.25} className="cat-browse-search__icon" aria-hidden />
               <input
                 type="search"
                 className="cat-browse-search__input"

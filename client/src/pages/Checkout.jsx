@@ -38,6 +38,32 @@ const inp =
   'w-full px-4 py-2.5 rounded-xl text-sm outline-none border bg-[var(--card-bg)] placeholder-gray-400 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_18%,transparent)] transition';
 const inpStyle = { borderColor: 'var(--divider)' };
 
+/** Must match server `fingerprintShippingAddress`. */
+function fingerprintCheckoutAddress(address) {
+  return [
+    address.street?.toLowerCase().trim(),
+    address.city?.toLowerCase().trim(),
+    address.zip?.toLowerCase().trim(),
+    String(address.country || '').toUpperCase().trim(),
+  ].join('|');
+}
+
+function resolveShippingTotals(quote, methodsByGroup) {
+  const byGroup = {};
+  let totalShipping = 0;
+  for (const g of quote?.groups || []) {
+    const mk = methodsByGroup[g.groupKey] || 'standard';
+    const m =
+      (g.methods || []).find((x) => x.key === mk && x.enabled) ||
+      (g.methods || []).find((x) => x.key === mk) ||
+      (g.methods || []).find((x) => x.key === 'standard');
+    const amt = Number(m?.price ?? 0);
+    byGroup[g.groupKey] = amt;
+    totalShipping += amt;
+  }
+  return { byGroup, totalShipping: Math.round(totalShipping * 100) / 100 };
+}
+
 export default function Checkout() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -213,8 +239,12 @@ export default function Checkout() {
     }
   }, [gwLoaded, gateways, checkoutProvider]);
 
+  const resolvedShipping = useMemo(
+    () => resolveShippingTotals(shippingQuote, shippingMethodsByGroup),
+    [shippingQuote, shippingMethodsByGroup],
+  );
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const shippingCost = Number(shippingQuote?.totalShipping) || 0;
+  const shippingCost = resolvedShipping.totalShipping;
   const tax = Math.round(subtotal * salesTaxRate * 100) / 100;
   const total = Math.round((subtotal + shippingCost + tax) * 100) / 100;
   const vatLabel = `VAT (${Math.round(salesTaxRate * 100)}%)`;
@@ -258,6 +288,7 @@ export default function Checkout() {
           const intelligence = await orderAPI.checkoutIntelligence({
             lines,
             strategy: 'lowest_cost',
+            selectedMethods: shippingMethodsByGroup,
             shippingAddress: hasFull
               ? {
                   full_name: fullName,
@@ -297,7 +328,7 @@ export default function Checkout() {
           };
           const suggestedMethods = intelligence?.optimization?.selectedMethods || {};
           if (Object.keys(suggestedMethods).length) {
-            setShippingMethodsByGroup((prev) => ({ ...suggestedMethods, ...prev }));
+            setShippingMethodsByGroup((prev) => ({ ...prev, ...suggestedMethods }));
           }
         } else {
           data = await shippingAPI.estimate({
@@ -382,6 +413,9 @@ export default function Checkout() {
       if (!ph) return alert(t('checkout.errors.airtelPhoneRequired'));
     }
 
+    if (shippingQuoteLoading) {
+      return alert(t('checkout.errors.shippingNotReady'));
+    }
     if (shippingQuoteErr) {
       return alert(shippingQuoteErr);
     }
@@ -390,6 +424,13 @@ export default function Checkout() {
     }
     if (shippingQuote?.isEstimate) {
       return alert(t('checkout.errors.finalizeShippingAddress'));
+    }
+    const liveAddressFp = fingerprintCheckoutAddress(address);
+    if (
+      shippingQuote?.addressFingerprint &&
+      liveAddressFp !== shippingQuote.addressFingerprint
+    ) {
+      return alert(t('checkout.errors.shippingQuoteChanged'));
     }
     if (
       !address.street?.trim() ||
@@ -450,13 +491,10 @@ export default function Checkout() {
         }
       }
 
-      const byGroup = {};
-      for (const g of shippingQuote?.groups || []) {
-        const mk = shippingMethodsPayload[g.groupKey] || 'standard';
-        const m = (g.methods || []).find((x) => x.key === mk && x.enabled);
-        const amt = m?.freeShippingApplied ? 0 : Number(m?.price ?? 0);
-        byGroup[g.groupKey] = amt;
-      }
+      const { byGroup, totalShipping: lockTotalShipping } = resolveShippingTotals(
+        shippingQuote,
+        shippingMethodsPayload,
+      );
 
       const createRes = await orderAPI.create({
         sellerGroups,
@@ -484,7 +522,7 @@ export default function Checkout() {
           shippingQuote?.addressFingerprint && shippingQuote.isEstimate === false
             ? {
                 addressFingerprint: shippingQuote.addressFingerprint,
-                totalShipping: Number(shippingQuote.totalShipping) || 0,
+                totalShipping: lockTotalShipping,
                 byGroup,
               }
             : undefined,
@@ -569,7 +607,7 @@ export default function Checkout() {
       setPlacing(false);
       const msg = err?.response?.data?.message || err?.message || t('checkout.errors.paymentInitFailed');
       if (err?.response?.status === 409) {
-        alert(t('checkout.errors.shippingQuoteChanged'));
+        alert(msg || t('checkout.errors.shippingQuoteChanged'));
       } else {
         alert(msg);
       }

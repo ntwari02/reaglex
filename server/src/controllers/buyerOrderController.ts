@@ -1092,6 +1092,7 @@ export async function getUnifiedCheckoutIntelligence(req: AuthenticatedRequest, 
       shippingAddress,
       strategy,
       productId,
+      selectedMethods,
       assistantContext,
       sharedCartId,
     } = req.body as {
@@ -1112,6 +1113,7 @@ export async function getUnifiedCheckoutIntelligence(req: AuthenticatedRequest, 
       };
       strategy?: 'lowest_cost' | 'fastest_delivery' | 'green_shipping';
       productId?: string;
+      selectedMethods?: Record<string, string>;
       assistantContext?: {
         nearestWarehouseAvailable?: boolean;
         importTaxApplied?: boolean;
@@ -1146,6 +1148,7 @@ export async function getUnifiedCheckoutIntelligence(req: AuthenticatedRequest, 
           lines,
           shippingAddress,
           strategy,
+          selectedMethods: selectedMethods as Record<string, 'standard' | 'express' | 'pickup'> | undefined,
         });
         optimization = {
           strategy: orchestration.optimized.orderOptimization.strategy,
