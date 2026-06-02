@@ -55,15 +55,14 @@ export default function TrendingCarouselCard({ product, index = 0 }) {
               e.stopPropagation();
               addToWishlist(user?.id, { ...product, id });
             }}
-            className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full shadow-sm"
-            style={{ background: '#fff' }}
+            className="ex-wish-btn ex-wish-btn--sm ex-wish-btn--plain mob-trending-wish"
             aria-label="Save"
           >
             <Heart
-              size={13}
+              size={16}
               fill={wishlisted ? 'var(--brand-primary)' : 'none'}
-              stroke={wishlisted ? 'var(--brand-primary)' : '#94a3b8'}
-              strokeWidth={1.75}
+              stroke={wishlisted ? 'var(--brand-primary)' : 'rgba(255,255,255,0.92)'}
+              strokeWidth={1.85}
             />
           </button>
         </div>

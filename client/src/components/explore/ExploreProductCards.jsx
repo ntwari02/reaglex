@@ -125,7 +125,7 @@ export function ExploreTrendingRailCard({ product, index = 0, cardDensity = 'sta
             {wishlistOn && (
               <button
                 type="button"
-                className="ex-wish-btn ex-wish-btn--sm"
+                className="ex-wish-btn ex-wish-btn--sm ex-wish-btn--plain"
                 aria-label="Save"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -271,7 +271,7 @@ export function ExploreGridCard({ product, variant = 'trending', index = 0, sub,
             {wishlistOn && (
               <button
                 type="button"
-                className="ex-wish-btn ex-wish-btn--sm"
+                className="ex-wish-btn ex-wish-btn--sm ex-wish-btn--plain"
                 aria-label="Save"
                 onClick={(e) => {
                   e.stopPropagation();

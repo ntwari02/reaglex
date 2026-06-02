@@ -29,9 +29,30 @@
 }
 
 .account-menu-trigger--mobile {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.account-menu-trigger--mobile.is-open {
+  border: none;
+  box-shadow: none;
+  color: var(--text-primary);
+}
+
+.account-menu-trigger--mobile .account-menu-initial {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.account-menu-trigger--mobile:has(.account-menu-avatar) {
+  background: transparent;
+  border: none;
 }
 
 .account-menu-trigger--desktop {

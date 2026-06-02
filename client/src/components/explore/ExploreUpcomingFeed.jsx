@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import UpcomingFeaturedDrop from '../home/mobile/UpcomingFeaturedDrop';
-import UpcomingDropMiniCard from '../home/mobile/UpcomingDropMiniCard';
+import UpcomingRailCard from '../home/mobile/UpcomingRailCard';
 import { mergeUpcomingList, enrichDrop } from '../home/mobile/upcomingProductsData';
 import '../../styles/upcoming-drops-premium.css';
 
@@ -23,16 +22,15 @@ export default function ExploreUpcomingFeed({ products, loading }) {
     );
   }
 
-  const [featured, ...rest] = drops;
-
   return (
-    <div className="ud-explore-feed">
-      {featured && <UpcomingFeaturedDrop drop={featured} />}
-      {rest.length > 0 && (
-        <div className="ud-mini-rail ud-mini-rail--explore">
-          {rest.map((drop, i) => (
-            <UpcomingDropMiniCard key={drop.id} drop={drop} index={i} />
-          ))}
+    <div className="ud-explore-feed mob-home-ex">
+      {drops.length > 0 && (
+        <div className="ex-rail-wrap mob-home-ex-rail">
+          <div className="ex-rail-scroll">
+            {drops.map((drop, i) => (
+              <UpcomingRailCard key={drop.id} drop={drop} index={i} />
+            ))}
+          </div>
         </div>
       )}
     </div>

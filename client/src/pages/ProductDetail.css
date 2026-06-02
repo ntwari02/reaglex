@@ -104,6 +104,17 @@
     width: 44px;
     height: 44px;
     border-radius: 14px;
+    border: none;
+    background: color-mix(in srgb, #fff 88%, transparent);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--text-primary) 8%, transparent);
+  }
+
+  .pd2-img-btn:hover {
+    background: color-mix(in srgb, var(--bg-secondary) 92%, #fff);
+    color: var(--text-primary);
+    border: none;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--text-primary) 10%, transparent);
+    transform: none;
   }
 
   .pd2-main-img {
@@ -205,11 +216,12 @@
   }
 
   .pd2-sticky-cta-inner--ali {
-    background: var(--card-bg);
-    border: 1px solid color-mix(in srgb, var(--border-card) 65%, transparent);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 -4px 16px color-mix(in srgb, var(--text-primary) 10%, transparent);
+    background: color-mix(in srgb, var(--card-bg) 96%, #fff);
+    border: none;
+    border-top: 1px solid color-mix(in srgb, var(--divider) 55%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 -2px 12px color-mix(in srgb, var(--text-primary) 5%, transparent);
   }
 
   .pd2-sticky-cta-grid {
@@ -224,9 +236,10 @@
     align-items: center;
     justify-content: center;
     border-radius: 14px;
-    border: 1px solid color-mix(in srgb, var(--divider) 80%, transparent);
-    background: color-mix(in srgb, var(--bg-secondary) 84%, #fff);
-    color: var(--text-primary);
+    border: none;
+    background: color-mix(in srgb, var(--bg-secondary) 75%, #fff);
+    color: var(--text-secondary);
+    box-shadow: none;
   }
 
   .pd2-sticky-cart {

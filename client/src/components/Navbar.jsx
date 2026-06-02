@@ -1004,7 +1004,7 @@ export default function Navbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-[100] flex flex-col transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:translate-y-0"
+      className="mob-storefront-header fixed top-0 left-0 right-0 z-[100] flex flex-col transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:translate-y-0"
       style={{
         fontFamily: 'Inter, system-ui, sans-serif',
         background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)',
@@ -1027,7 +1027,7 @@ export default function Navbar() {
 
       {/* Tier 2 */}
       <div
-        className="flex flex-col"
+        className="mob-header-tier flex flex-col"
         style={{
           background: 'var(--header-bg)',
           borderBottom: '1px solid var(--header-border)',
@@ -1067,7 +1067,7 @@ export default function Navbar() {
             e.preventDefault();
             openImmersiveSearch(searchQuery);
           }}
-          className="md:hidden px-3 pb-2"
+          className="md:hidden mob-header-search-wrap"
         >
           <motion.button
             type="button"
@@ -1079,40 +1079,26 @@ export default function Navbar() {
                 openImmersiveSearch(searchQuery);
               }
             }}
-            className="mob-search-bar mob-search-bar--2026 flex items-center gap-2 min-h-[44px] max-h-[48px] rounded-2xl px-3 transition-[box-shadow] duration-200 w-full text-left"
-            style={{
-              background: 'var(--card-bg)',
-            }}
+            className={`mob-search-bar mob-search-bar--2026 w-full text-left${searchQuery ? ' has-value' : ''}`}
             aria-label="Search"
           >
-            <Search className="w-4 h-4 flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
-            <span
-              className="flex-1 min-w-0 text-[14px] truncate select-none"
-              style={{ color: searchQuery ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: '-0.01em' }}
-            >
+            <Search className="mob-search-bar__icon" strokeWidth={2} aria-hidden />
+            <span className="mob-search-bar__placeholder">
               {searchQuery || 'Search products, brands…'}
             </span>
             <Link
               to="/products"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
-              style={{
-                background: 'color-mix(in srgb, var(--brand-primary) 9%, transparent)',
-                color: 'var(--text-secondary)',
-                WebkitTapHighlightColor: 'transparent',
-              }}
+              className="mob-search-filter-btn"
               aria-label={t('footer.links.shop.allProducts')}
               onClick={(e) => e.stopPropagation()}
             >
-              <SlidersHorizontal className="w-4 h-4" strokeWidth={1.85} />
+              <SlidersHorizontal className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
             </Link>
           </motion.button>
         </form>
 
         {/* Mobile category chips — compact row under search */}
-        <div
-          className="md:hidden border-b pb-0"
-          style={{ borderColor: 'color-mix(in srgb, var(--header-border) 65%, transparent)' }}
-        >
+        <div className="md:hidden mob-header-cat-rail">
           <PremiumCategoryChips />
         </div>
       </div>

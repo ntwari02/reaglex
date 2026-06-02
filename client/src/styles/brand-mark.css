@@ -15,8 +15,8 @@
     #ea580c 100%
   );
   box-shadow:
-    0 2px 8px color-mix(in srgb, var(--brand-primary) 45%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    0 1px 4px color-mix(in srgb, var(--brand-primary) 22%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }

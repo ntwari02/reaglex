@@ -43,21 +43,15 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
 
   return (
     <>
-      <div className="md:hidden mob-header-row w-full px-3 min-h-[48px] max-h-[52px] py-1.5">
+      <div className="md:hidden mob-header-row w-full">
         <div className="mob-header-row__left">
           <button
             type="button"
             onClick={openMenu}
             className="mob-header-icon-btn"
-            style={{
-              WebkitTapHighlightColor: 'transparent',
-              borderColor: 'var(--border-card)',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-            }}
             aria-label="Open menu"
           >
-            <Menu size={20} strokeWidth={1.85} />
+            <Menu size={21} strokeWidth={1.75} aria-hidden />
           </button>
           <BrandMarkR />
         </div>
@@ -72,18 +66,11 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
               type="button"
               onClick={() => setNotifOpen((v) => !v)}
               className="mob-header-icon-btn"
-              style={{
-                borderColor: 'var(--border-card)',
-                background: 'var(--bg-secondary)',
-              }}
               aria-label="Notifications"
             >
-              <Bell size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
+              <Bell size={21} strokeWidth={1.65} aria-hidden />
               {notifCount > 0 && (
-                <span
-                  className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
-                  style={{ background: 'var(--brand-primary)' }}
-                >
+                <span className="mob-header-badge">
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
@@ -100,19 +87,11 @@ export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
             data-cart-target="badge"
             onClick={openCart}
             className="mob-header-icon-btn"
-            style={{
-              borderColor: 'var(--border-card)',
-              background: 'var(--bg-secondary)',
-            }}
             aria-label="Cart"
           >
-            <ShoppingBag size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
+            <ShoppingBag size={21} strokeWidth={1.65} aria-hidden />
             {cartCount > 0 && (
-              <span
-                data-cart-target="badge"
-                className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
-                style={{ background: 'var(--brand-primary)' }}
-              >
+              <span data-cart-target="badge" className="mob-header-badge">
                 {cartCount > 9 ? '9+' : cartCount}
               </span>
             )}

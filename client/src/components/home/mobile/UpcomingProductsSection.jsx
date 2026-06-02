@@ -1,8 +1,7 @@
 import { useHomeFeedSection } from '../../../hooks/useHomeFeedSections';
 import { HOME_PRODUCT_LIMIT } from './HomeExploreSection';
 import { mergeUpcomingList, enrichDrop } from './upcomingProductsData';
-import UpcomingFeaturedDrop from './UpcomingFeaturedDrop';
-import UpcomingDropMiniCard from './UpcomingDropMiniCard';
+import UpcomingRailCard from './UpcomingRailCard';
 import MobileSectionHeader from './MobileSectionHeader';
 import { explorePath } from '../../explore/exploreConfig';
 import { useToastStore } from '../../../stores/toastStore';
@@ -22,10 +21,8 @@ export default function UpcomingProductsSection() {
 
   if (!isPending && !drops.length) return null;
 
-  const [featured, ...rest] = drops;
-
   return (
-    <section className="ud-section mob-section" aria-labelledby="upcoming-drops-heading">
+    <section className="ud-section mob-section mob-home-ex" aria-labelledby="upcoming-drops-heading">
       <MobileSectionHeader
         id="upcoming-drops-heading"
         title="Upcoming Drops"
@@ -34,20 +31,23 @@ export default function UpcomingProductsSection() {
       />
 
       {isPending && !drops.length ? (
-        <div className="ud-skeleton-featured" />
+        <div className="ex-rail-wrap">
+          <div className="ex-rail-scroll">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="ex-skeleton-rail" />
+            ))}
+          </div>
+        </div>
       ) : (
         <>
-          {featured && <UpcomingFeaturedDrop drop={featured} onNotify={handleNotify} />}
-
-          {rest.length > 0 && (
-            <>
-              <h3 className="ud-rail-title">More Drops You&apos;ll Love</h3>
-              <div className="ud-mini-rail">
-                {rest.map((drop, i) => (
-                  <UpcomingDropMiniCard key={drop.id} drop={drop} index={i} onNotify={handleNotify} />
+          {drops.length > 0 && (
+            <div className="ex-rail-wrap mob-home-ex-rail">
+              <div className="ex-rail-scroll">
+                {drops.map((drop, i) => (
+                  <UpcomingRailCard key={drop.id} drop={drop} index={i} onNotify={handleNotify} />
                 ))}
               </div>
-            </>
+            </div>
           )}
 
           <div className="ud-promo ud-promo--alerts">
@@ -56,7 +56,7 @@ export default function UpcomingProductsSection() {
               <p className="ud-promo-title">Never Miss a Drop</p>
               <p className="ud-promo-sub">Get instant alerts when hype products go live</p>
             </div>
-            <button type="button" className="ud-promo-cta" onClick={() => handleNotify(featured || drops[0])}>
+            <button type="button" className="ud-promo-cta" onClick={() => handleNotify(drops[0])}>
               Enable Alerts
             </button>
           </div>

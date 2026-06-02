@@ -492,24 +492,81 @@
   color: var(--text-secondary);
 }
 
-/* Wish */
+/* Wish — plain heart on image (no white circle) */
 .ex-wish-btn {
   position: absolute;
   right: 6px;
   top: 6px;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--card-bg) 94%, transparent);
-  border: 1px solid var(--ex-border-subtle);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .ex-wish-btn--sm {
-  width: 26px;
-  height: 26px;
+  width: auto;
+  height: auto;
+  right: 8px;
+  top: 8px;
+}
+
+.ex-wish-btn--plain {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.ex-wish-btn:active {
+  transform: scale(0.92);
+}
+
+.mob-trending-wish {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.ex-countdown-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.ex-card-meta--clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ex-card-cta--upcoming {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
+  color: var(--brand-primary);
+  background: var(--brand-tint);
+  border-color: var(--brand-border-subtle);
+}
+
+.ex-card-actions:has(.ex-card-cta--upcoming) {
+  padding-right: 8px;
+}
+
+.ex-card-actions:has(.ex-card-cta--upcoming) .mob-add-cta {
+  display: none;
 }
 
 /* Sponsored */

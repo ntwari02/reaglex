@@ -44,6 +44,19 @@ export function formatCountdown(ms) {
   return `${String(d).padStart(2, '0')}D : ${String(h).padStart(2, '0')}H : ${String(m).padStart(2, '0')}M`;
 }
 
+/** Compact countdown for rail cards (e.g. 2d 14h · 45m 12s) */
+export function formatCountdownCompact(ms) {
+  if (!ms || ms <= 0) return 'Live soon';
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m ${s}s`;
+}
+
 /** HRS : MINS : SECS for featured hero */
 export function formatCountdownHMS(ms) {
   if (!ms || ms <= 0) return '00 : 00 : 00';

@@ -11,14 +11,17 @@
     --mob-space-4: 16px;
     --mob-space-5: 20px;
     --mob-space-6: 24px;
+    --mob-space-7: 28px;
 
-    --mob-header-row: 48px;
-    --mob-search-row: 48px;
-    --mob-cat-row: 52px;
+    --mob-header-row: 56px;
+    --mob-search-row: 58px;
+    --mob-cat-row: 58px;
     --mob-header-total: calc(
       var(--mob-header-row) + var(--mob-search-row) + var(--mob-cat-row) +
         env(safe-area-inset-top, 0px)
     );
+    --mob-shadow-soft: 0 1px 3px rgba(15, 23, 42, 0.04);
+    --mob-shadow-search: 0 1px 3px rgba(15, 23, 42, 0.05);
     --mob-dock-height: 60px;
     --mob-dock-bottom: calc(var(--mob-dock-height) + max(8px, env(safe-area-inset-bottom, 0px)) + 8px);
 
@@ -33,8 +36,27 @@
     --mob-radius-sm: 10px;
     --mob-radius-md: 14px;
     --mob-radius-lg: 16px;
-    --mob-shadow-card: 0 2px 12px rgba(15, 23, 42, 0.06);
-    --mob-shadow-dock: 0 -4px 24px rgba(15, 23, 42, 0.08);
+    --mob-shadow-card: 0 1px 8px rgba(15, 23, 42, 0.05);
+    --mob-shadow-dock: 0 -2px 16px rgba(15, 23, 42, 0.06);
+  }
+
+  /* Storefront header — clean white, minimal chrome */
+  .mob-storefront-header {
+    background: var(--header-bg) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .mob-header-tier {
+    border-bottom: 1px solid color-mix(in srgb, var(--header-border) 35%, transparent) !important;
+    box-shadow: none !important;
+    background: var(--header-bg) !important;
+  }
+
+  .mob-header-cat-rail {
+    padding-bottom: 2px;
+    border-bottom: 1px solid color-mix(in srgb, var(--header-border) 28%, transparent);
   }
 
   .mob-page {
@@ -144,40 +166,50 @@
     gap: var(--mob-space-2) !important;
   }
 
-  /* Category strip under mobile header — tight horizontal spacing */
+  /* Category strip under mobile header */
   .mob-cat-strip {
-    margin-top: -2px;
+    margin-top: 0;
+    padding: 0 12px;
   }
 
   .mob-cat-strip-scroll {
-    gap: 10px;
+    gap: 14px;
     scroll-padding-inline: 16px;
-    padding-block: 8px 10px;
+    padding-block: 12px 14px;
   }
 
   .mob-cat-chip {
-    min-width: 50px;
+    width: 54px;
+    gap: 6px;
   }
 
-  /* Category chips — reference: gray tile, orange ring when active */
   .mob-cat-chip-icon {
-    background: color-mix(in srgb, var(--bg-secondary) 82%, #fff);
-    color: var(--text-secondary);
-    border: 1px solid color-mix(in srgb, var(--border-card) 38%, transparent);
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-secondary) 70%, #fff);
+    color: var(--text-muted);
+    border: none;
+    box-shadow: none;
+    transition:
+      background 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.18s ease;
   }
 
   .mob-cat-chip-icon[data-active='true'] {
-    background: color-mix(in srgb, var(--brand-primary) 8%, #fff);
+    background: color-mix(in srgb, var(--brand-primary) 10%, #fff);
     color: var(--brand-primary);
-    border: 1px solid var(--brand-primary);
-    box-shadow: 0 1px 6px color-mix(in srgb, var(--brand-primary) 16%, transparent);
+    border: none;
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--brand-primary) 55%, transparent);
   }
 
   .mob-cat-chip-label {
     font-size: 10px;
     font-weight: 500;
-    line-height: 1.25;
-    color: var(--text-secondary);
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    color: var(--text-muted);
   }
 
   .mob-cat-chip-label[data-active='true'] {
