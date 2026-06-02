@@ -2,6 +2,7 @@
 
 .rx-mfooter {
   position: relative;
+  width: 100%;
   font-family: Inter, system-ui, -apple-system, sans-serif;
   color: var(--text-muted, #a1a1aa);
   overflow: hidden;
@@ -11,14 +12,12 @@
 
 .rx-mfooter-shell {
   position: relative;
-  margin: 0 auto;
-  max-width: 100%;
-  border-radius: 28px 28px 0 0;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-bottom: none;
-  box-shadow:
-    0 -1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 -24px 80px rgba(88, 28, 135, 0.12);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .rx-mfooter-bg {
@@ -67,11 +66,15 @@
 .rx-mfooter-inner {
   position: relative;
   z-index: 1;
-  padding: 24px;
-  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 20px 16px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  box-sizing: border-box;
 }
 
 /* ── Header ── */
@@ -141,7 +144,8 @@
 
 .rx-mfooter-desc {
   margin: 0;
-  max-width: 70%;
+  width: 100%;
+  max-width: none;
   font-size: 13px;
   font-weight: 400;
   line-height: 1.5;
@@ -445,25 +449,34 @@
   color: #71717a;
 }
 
-/* Features grid */
+/* Features grid — full width, left-aligned */
 .rx-mfooter-features {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  padding: 4px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .rx-mfooter-feat {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 12px 6px;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .rx-mfooter-feat:last-child {
-  border-right: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .rx-mfooter-feat-icon {
@@ -473,7 +486,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.rx-mfooter-feat-copy {
+  flex: 1;
+  min-width: 0;
 }
 
 .rx-mfooter-feat-icon--purple {
@@ -500,7 +519,7 @@
 
 .rx-mfooter-feat-title {
   margin: 0;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: #fff;
   line-height: 1.25;
@@ -520,6 +539,7 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .rx-mfooter-row-label {
@@ -533,7 +553,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  flex: 1;
 }
 
 .rx-mfooter-social-btn {
@@ -558,7 +579,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  flex: 1;
 }
 
 .rx-mfooter-pay-badge {
@@ -625,19 +647,6 @@
 }
 
 @media (max-width: 360px) {
-  .rx-mfooter-features {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .rx-mfooter-feat {
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  }
-
-  .rx-mfooter-feat:nth-child(odd) {
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-  }
-
   .rx-mfooter-sub-row {
     flex-direction: column;
   }
@@ -654,8 +663,13 @@ html[data-theme='light'] .rx-mfooter {
 }
 
 html[data-theme='light'] .rx-mfooter-shell {
-  border-color: color-mix(in srgb, var(--border-card) 80%, transparent);
-  box-shadow: 0 -12px 40px color-mix(in srgb, var(--brand-primary) 8%, transparent);
+  border: none;
+  box-shadow: none;
+}
+
+html[data-theme='light'] .rx-mfooter-feat {
+  border-color: color-mix(in srgb, var(--border-card) 70%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 92%, transparent);
 }
 
 html[data-theme='light'] .rx-mfooter-bg {

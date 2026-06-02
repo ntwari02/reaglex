@@ -337,34 +337,42 @@ export default function PremiumMobileFooter() {
             </form>
           </div>
 
-          <div className="rx-mfooter-glass rx-mfooter-features">
+          <div className="rx-mfooter-features">
             <div className="rx-mfooter-feat">
               <div className="rx-mfooter-feat-icon rx-mfooter-feat-icon--purple">
                 <Shield size={16} />
               </div>
-              <p className="rx-mfooter-feat-title">Secure Payments</p>
-              <p className="rx-mfooter-feat-sub">100% safe transactions</p>
+              <div className="rx-mfooter-feat-copy">
+                <p className="rx-mfooter-feat-title">Secure Payments</p>
+                <p className="rx-mfooter-feat-sub">100% safe transactions</p>
+              </div>
             </div>
             <div className="rx-mfooter-feat">
               <div className="rx-mfooter-feat-icon rx-mfooter-feat-icon--orange">
                 <Zap size={16} />
               </div>
-              <p className="rx-mfooter-feat-title">Fast Delivery</p>
-              <p className="rx-mfooter-feat-sub">Quick & reliable shipping</p>
+              <div className="rx-mfooter-feat-copy">
+                <p className="rx-mfooter-feat-title">Fast Delivery</p>
+                <p className="rx-mfooter-feat-sub">Quick & reliable shipping</p>
+              </div>
             </div>
             <div className="rx-mfooter-feat">
               <div className="rx-mfooter-feat-icon rx-mfooter-feat-icon--blue">
                 <Users size={16} />
               </div>
-              <p className="rx-mfooter-feat-title">Verified Sellers</p>
-              <p className="rx-mfooter-feat-sub">Trusted sellers worldwide</p>
+              <div className="rx-mfooter-feat-copy">
+                <p className="rx-mfooter-feat-title">Verified Sellers</p>
+                <p className="rx-mfooter-feat-sub">Trusted sellers worldwide</p>
+              </div>
             </div>
             <div className="rx-mfooter-feat">
               <div className="rx-mfooter-feat-icon rx-mfooter-feat-icon--green">
                 <Globe size={16} />
               </div>
-              <p className="rx-mfooter-feat-title">Global Marketplace</p>
-              <p className="rx-mfooter-feat-sub">Available in 120+ countries</p>
+              <div className="rx-mfooter-feat-copy">
+                <p className="rx-mfooter-feat-title">Global Marketplace</p>
+                <p className="rx-mfooter-feat-sub">Available in 120+ countries</p>
+              </div>
             </div>
           </div>
 
