@@ -9,6 +9,9 @@ export interface ProductVariant {
   size?: string;
   sku: string;
   stock: number;
+  /** Canonical USD unit price when this variant differs from base product.price. */
+  priceUsd?: number;
+  compareAtPriceUsd?: number;
   /** Optional commerce-facing metadata (PDP swatches/thumbnails/badges). */
   label?: string;
   thumbnailUrl?: string;
@@ -168,6 +171,8 @@ const productSchema = new Schema<IProduct>(
         size: { type: String, trim: true },
         sku: { type: String, required: true, trim: true },
         stock: { type: Number, required: true, default: 0 },
+        priceUsd: { type: Number, min: 0 },
+        compareAtPriceUsd: { type: Number, min: 0 },
         label: { type: String, trim: true },
         thumbnailUrl: { type: String, trim: true },
         swatchHex: { type: String, trim: true },

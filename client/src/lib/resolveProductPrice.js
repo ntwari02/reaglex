@@ -29,6 +29,21 @@ export function resolveProductPriceUsd(product) {
   return 0;
 }
 
+/** Unit price for a variant row, falling back to the parent product. */
+export function resolveVariantPriceUsd(variant, product) {
+  const variantPrice = Number(variant?.priceUsd);
+  if (Number.isFinite(variantPrice) && variantPrice > 0) return variantPrice;
+  return resolveProductPriceUsd(product);
+}
+
+export function resolveVariantCompareAtUsd(variant, product) {
+  const variantWas = Number(variant?.compareAtPriceUsd);
+  if (Number.isFinite(variantWas) && variantWas > 0) return variantWas;
+  const p = product?.compareAtPrice ?? product?.originalPrice ?? product?.compare_at_price;
+  const n = Number(p);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 /** Prefer seller listing amount when buyer currency matches listing currency. */
 export function resolveProductDisplayUsd(product, buyerCurrency = 'USD') {
   const usd = resolveProductPriceUsd(product);

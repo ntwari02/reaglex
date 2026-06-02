@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { uploadProductImages } = require('../../config/cloudinary');
+const { uploadProductImages, uploadProductVideoProof } = require('../../config/cloudinary');
 import {
   listProducts,
   createProduct,
@@ -35,6 +35,12 @@ router.post('/products/upload-images', uploadProductImages, async (req: Request,
 
   const urls = safeFiles.map((f) => f.path);
   return res.status(201).json({ urls, provider: 'cloudinary' });
+});
+
+router.post('/products/upload-video-proof', uploadProductVideoProof, async (req: Request, res: Response) => {
+  const file = (req as any).file as Express.Multer.File | undefined;
+  if (!file?.path) return res.status(400).json({ message: 'No video uploaded.' });
+  return res.status(201).json({ url: file.path, provider: 'cloudinary' });
 });
 
 // Warehouses

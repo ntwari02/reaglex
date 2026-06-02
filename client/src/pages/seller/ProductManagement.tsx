@@ -25,6 +25,13 @@ type Variant = {
   size?: string;
   sku: string;
   stock: number;
+  /** Whole amount in listing currency when this variant costs more/less than base price. */
+  listingPriceAmount?: number;
+  priceUsd?: number;
+  label?: string;
+  thumbnailUrl?: string;
+  swatchHex?: string;
+  badge?: string;
 };
 
 interface Product {
@@ -130,6 +137,7 @@ const ProductManagement: React.FC = () => {
     imei: '',
     qrCode: '',
     videoProofUploaded: false,
+    videoProofUrl: '',
     labelProofUploaded: false,
   });
 
@@ -138,12 +146,18 @@ const ProductManagement: React.FC = () => {
     size: '',
     sku: '',
     stock: '',
+    listingPriceAmount: '',
+    label: '',
+    thumbnailUrl: '',
+    badge: '',
   });
   const [videoProof, setVideoProof] = useState<{
     fileName: string;
     previewUrl: string;
     size: number;
+    remoteUrl?: string;
   } | null>(null);
+  const [videoProofUploading, setVideoProofUploading] = useState(false);
   const [scanStatus, setScanStatus] = useState<'idle' | 'running' | 'pass' | 'warning'>('idle');
   const [scanProgress, setScanProgress] = useState(0);
   const [scanBreakdown, setScanBreakdown] = useState({
@@ -323,7 +337,10 @@ const ProductManagement: React.FC = () => {
               serialNumber: verificationInput.serialNumber,
               imei: verificationInput.imei,
               qrCode: verificationInput.qrCode,
-              videoProofUploaded: Boolean(videoProof) || verificationInput.videoProofUploaded,
+              videoProofUploaded:
+                Boolean(videoProof?.remoteUrl || verificationInput.videoProofUrl) ||
+                verificationInput.videoProofUploaded,
+              videoProofUrl: videoProof?.remoteUrl || verificationInput.videoProofUrl || undefined,
               labelProofUploaded: verificationInput.labelProofUploaded,
               videoImageSimilarity: videoImageSimilarity ?? undefined,
               scanPassed,
@@ -607,7 +624,10 @@ const ProductManagement: React.FC = () => {
       serialNumber: verificationInput.serialNumber.trim() || undefined,
       imei: verificationInput.imei.trim() || undefined,
       qrCode: verificationInput.qrCode.trim() || undefined,
-      videoProofUploaded: Boolean(videoProof) || verificationInput.videoProofUploaded,
+      videoProofUploaded:
+        Boolean(videoProof?.remoteUrl || verificationInput.videoProofUrl) ||
+        verificationInput.videoProofUploaded,
+      videoProofUrl: videoProof?.remoteUrl || verificationInput.videoProofUrl || undefined,
       videoImageSimilarity: videoImageSimilarity ?? undefined,
       scanPassed,
       labelProofUploaded: verificationInput.labelProofUploaded,
@@ -739,6 +759,10 @@ const ProductManagement: React.FC = () => {
         size: '',
         sku: '',
         stock: '',
+        listingPriceAmount: '',
+        label: '',
+        thumbnailUrl: '',
+        badge: '',
       });
       setVerificationInput({
         barcode: '',
@@ -774,6 +798,50 @@ const ProductManagement: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
+  };
+
+  const openProductEditor = (product: Product) => {
+    setEditingProduct(product);
+    const proofUrl =
+      String((product as Product & { videoProofUrl?: string }).videoProofUrl || product.videoUrl || '').trim();
+    if (proofUrl) {
+      const resolved = resolveImageUrl(proofUrl);
+      setVideoProof({
+        fileName: 'Seller proof video',
+        previewUrl: resolved,
+        size: 0,
+        remoteUrl: proofUrl,
+      });
+      setVerificationInput((p) => ({
+        ...p,
+        videoProofUploaded: true,
+        videoProofUrl: proofUrl,
+      }));
+    } else {
+      setVideoProof(null);
+      setVerificationInput((p) => ({
+        ...p,
+        videoProofUploaded: false,
+        videoProofUrl: '',
+      }));
+    }
+  };
+
+  const uploadVideoProofFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('video', file);
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE}/products/upload-video-proof`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+      credentials: 'include',
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to upload video proof');
+    }
+    return resolveImageUrl(String(data.url || ''));
   };
 
   const uploadImageFiles = async (files: File[]) => {
@@ -841,11 +909,24 @@ const ProductManagement: React.FC = () => {
 
     setFormError(null);
 
+    const variantPriceRaw = variantDraft.listingPriceAmount.trim();
+    const variantListingPrice = variantPriceRaw
+      ? Math.round(Number(variantPriceRaw))
+      : undefined;
+    if (variantPriceRaw && (!Number.isFinite(variantListingPrice!) || variantListingPrice! <= 0)) {
+      setFormError('Variant price must be a positive whole number in your listing currency.');
+      return;
+    }
+
     const newVariant: Variant = {
       color: variantDraft.color || undefined,
       size: variantDraft.size || undefined,
       sku: trimmedSku,
       stock: stockValue,
+      ...(variantListingPrice != null ? { listingPriceAmount: variantListingPrice } : {}),
+      label: variantDraft.label.trim() || variantDraft.color.trim() || undefined,
+      thumbnailUrl: variantDraft.thumbnailUrl.trim() || undefined,
+      badge: variantDraft.badge.trim() || undefined,
     };
 
     if (editingProduct) {
@@ -865,6 +946,10 @@ const ProductManagement: React.FC = () => {
       size: '',
       sku: '',
       stock: '',
+      listingPriceAmount: '',
+      label: '',
+      thumbnailUrl: '',
+      badge: '',
     });
   };
 
@@ -898,12 +983,12 @@ const ProductManagement: React.FC = () => {
     }
   };
 
-  const handleVideoProofUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleVideoProofUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const previewUrl = URL.createObjectURL(file);
     setVideoProof((prev) => {
-      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+      if (prev?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(prev.previewUrl);
       return {
         fileName: file.name,
         previewUrl,
@@ -911,11 +996,37 @@ const ProductManagement: React.FC = () => {
       };
     });
     setVerificationInput((p) => ({ ...p, videoProofUploaded: true }));
+    setVideoProofUploading(true);
+    setFormError(null);
+    try {
+      const remoteUrl = await uploadVideoProofFile(file);
+      setVideoProof((prev) =>
+        prev
+          ? {
+              ...prev,
+              remoteUrl,
+              previewUrl: resolveImageUrl(remoteUrl),
+            }
+          : null,
+      );
+      setVerificationInput((p) => ({
+        ...p,
+        videoProofUploaded: true,
+        videoProofUrl: remoteUrl,
+      }));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Video upload failed';
+      setFormError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setVideoProofUploading(false);
+      if (videoInputRef.current) videoInputRef.current.value = '';
+    }
   };
 
   const runSimilarityScan = () => {
     const imageCount = (editingProduct?.images || newProduct.images || []).length;
-    if (!videoProof || imageCount === 0) {
+    if ((!videoProof?.remoteUrl && !verificationInput.videoProofUrl) || imageCount === 0) {
       setFormError('Upload at least one product image and one video proof before running similarity scan.');
       return;
     }
@@ -1692,7 +1803,7 @@ const ProductManagement: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    onClick={() => setEditingProduct(product)}
+                    onClick={() => openProductEditor(product)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -1864,7 +1975,7 @@ const ProductManagement: React.FC = () => {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                            onClick={() => setEditingProduct(product)}
+                            onClick={() => openProductEditor(product)}
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
@@ -2422,15 +2533,15 @@ const ProductManagement: React.FC = () => {
                   onChange={handleVideoProofUpload}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" className="rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]" onClick={() => videoInputRef.current?.click()}>
+                  <Button type="button" className="rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]" disabled={videoProofUploading} onClick={() => videoInputRef.current?.click()}>
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Video Proof
+                    {videoProofUploading ? 'Uploading…' : 'Upload Video Proof'}
                   </Button>
                   {videoProof && (
                     <Button type="button" variant="outline" className="rounded-full border-gray-300 dark:border-gray-700" onClick={() => {
-                      if (videoProof.previewUrl) URL.revokeObjectURL(videoProof.previewUrl);
+                      if (videoProof.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(videoProof.previewUrl);
                       setVideoProof(null);
-                      setVerificationInput((p) => ({ ...p, videoProofUploaded: false }));
+                      setVerificationInput((p) => ({ ...p, videoProofUploaded: false, videoProofUrl: '' }));
                     }}>
                       Remove Video
                     </Button>
@@ -2511,17 +2622,23 @@ const ProductManagement: React.FC = () => {
             <section className="space-y-4">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Tag className="w-5 h-5 text-red-400" />
-                Variants (Colors, Sizes, etc.)
+                Variants (Colors, Sizes, Prices)
               </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+                Optional per-variant price in your listing currency. Leave blank to use the main product price.
+                Add a thumbnail URL (from uploaded images) for the color picker on the product page.
+              </p>
 
               {/* Existing variants list */}
               {((editingProduct?.variants && editingProduct.variants.length > 0) ||
                 (newProduct as any).variants?.length > 0) && (
                 <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs dark:border-gray-700 dark:bg-gray-800/60">
-                  <div className="hidden sm:grid sm:grid-cols-5 gap-2 font-semibold text-gray-700 dark:text-gray-300">
+                  <div className="hidden lg:grid lg:grid-cols-7 gap-2 font-semibold text-gray-700 dark:text-gray-300">
                     <span>Color</span>
                     <span>Size</span>
                     <span>SKU</span>
+                    <span>Price</span>
+                    <span>Label</span>
                     <span className="text-right">Stock</span>
                     <span className="text-right">Actions</span>
                   </div>
@@ -2530,11 +2647,19 @@ const ProductManagement: React.FC = () => {
                       (variant: Variant, idx: number) => (
                         <div
                           key={idx}
-                          className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-center text-gray-800 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2"
+                          className="grid grid-cols-2 lg:grid-cols-7 gap-2 items-center text-gray-800 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2"
                         >
-                          <span className="text-xs"><span className="sm:hidden text-gray-500">Color: </span>{variant.color || '-'}</span>
-                          <span className="text-xs"><span className="sm:hidden text-gray-500">Size: </span>{variant.size || '-'}</span>
-                          <span className="font-mono text-xs break-all col-span-2 sm:col-span-1">{variant.sku}</span>
+                          <span className="text-xs"><span className="lg:hidden text-gray-500">Color: </span>{variant.color || '-'}</span>
+                          <span className="text-xs"><span className="lg:hidden text-gray-500">Size: </span>{variant.size || '-'}</span>
+                          <span className="font-mono text-xs break-all col-span-2 lg:col-span-1">{variant.sku}</span>
+                          <span className="text-xs">
+                            {variant.listingPriceAmount != null
+                              ? variant.listingPriceAmount
+                              : variant.priceUsd != null
+                                ? `~$${variant.priceUsd}`
+                                : 'Base'}
+                          </span>
+                          <span className="text-xs truncate">{variant.label || '-'}</span>
                           <span className="text-right text-xs">{variant.stock}</span>
                           <div className="flex justify-end">
                             <Button
@@ -2556,16 +2681,22 @@ const ProductManagement: React.FC = () => {
 
               {/* Add variant form */}
               <div className="space-y-2 rounded-xl border border-dashed border-gray-300 p-3 text-xs dark:border-gray-700">
-                <p className="text-gray-600 dark:text-gray-400">
-                  Add variants for different colors / sizes. Each variant must have its own SKU and stock.
-                </p>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   <input
                     type="text"
-                    placeholder="Color (optional)"
+                    placeholder="Color (e.g. Silver)"
                     value={variantDraft.color}
                     onChange={(e) =>
                       setVariantDraft((prev) => ({ ...prev, color: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Display label (optional)"
+                    value={variantDraft.label}
+                    onChange={(e) =>
+                      setVariantDraft((prev) => ({ ...prev, label: e.target.value }))
                     }
                     className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   />
@@ -2589,6 +2720,15 @@ const ProductManagement: React.FC = () => {
                   />
                   <input
                     type="number"
+                    placeholder={`Price (${editingProduct?.listingCurrency || newProduct.listingCurrency || 'USD'}, optional)`}
+                    value={variantDraft.listingPriceAmount}
+                    onChange={(e) =>
+                      setVariantDraft((prev) => ({ ...prev, listingPriceAmount: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                  <input
+                    type="number"
                     placeholder="Stock *"
                     value={variantDraft.stock}
                     onChange={(e) =>
@@ -2596,7 +2736,25 @@ const ProductManagement: React.FC = () => {
                     }
                     className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   />
-                  <div className="flex items-stretch md:justify-end">
+                  <input
+                    type="url"
+                    placeholder="Thumbnail image URL (optional)"
+                    value={variantDraft.thumbnailUrl}
+                    onChange={(e) =>
+                      setVariantDraft((prev) => ({ ...prev, thumbnailUrl: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:col-span-2"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Badge e.g. Trending (optional)"
+                    value={variantDraft.badge}
+                    onChange={(e) =>
+                      setVariantDraft((prev) => ({ ...prev, badge: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                  <div className="flex items-stretch sm:col-span-2 lg:col-span-1">
                     <Button
                       type="button"
                       variant="outline"

@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { deleteImage } = require('../../config/cloudinary');
 import { Product } from '../models/Product';
+import { ProductVerification } from '../models/ProductVerification';
 import { assertCanCreateProduct } from '../services/subscriptionEntitlements.service';
 import { Warehouse } from '../models/Warehouse';
 import { StockHistory } from '../models/StockHistory';
@@ -143,6 +144,70 @@ async function computeCanonicalListingPricing(body: {
   };
 }
 
+type VariantPricingCtx = {
+  listingCurrency: string;
+  listingExchangeRate: number;
+};
+
+/** Seller variant rows → canonical Product.variants (optional per-variant USD price). */
+function normalizeProductVariants(
+  raw: unknown,
+  ctx: VariantPricingCtx,
+): Array<Record<string, unknown>> | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const currency = String(ctx.listingCurrency || 'USD').trim().toUpperCase();
+  const rate = Number(ctx.listingExchangeRate) > 0 ? Number(ctx.listingExchangeRate) : 1;
+
+  const rows = raw
+    .map((v: any, idx: number) => {
+      const sku = String(v?.sku || '').trim();
+      if (!sku) return null;
+      const stock = Math.max(0, Math.round(Number(v?.stock) || 0));
+
+      const toUsd = (listingAmount: number) => {
+        const amt = Math.round(listingAmount);
+        if (amt <= 0) return undefined;
+        if (currency === 'USD') return Math.round(amt * 100) / 100;
+        return Math.round((amt / rate) * 100) / 100;
+      };
+
+      let priceUsd: number | undefined;
+      const storedUsd = Number(v?.priceUsd);
+      if (Number.isFinite(storedUsd) && storedUsd > 0) {
+        priceUsd = Math.round(storedUsd * 100) / 100;
+      } else if (v?.listingPriceAmount != null && v?.listingPriceAmount !== '') {
+        priceUsd = toUsd(Number(v.listingPriceAmount));
+      } else if (v?.price != null && v?.price !== '') {
+        priceUsd = toUsd(Number(v.price));
+      }
+
+      let compareAtPriceUsd: number | undefined;
+      const storedCompare = Number(v?.compareAtPriceUsd);
+      if (Number.isFinite(storedCompare) && storedCompare > 0) {
+        compareAtPriceUsd = Math.round(storedCompare * 100) / 100;
+      } else if (v?.compareAtListingAmount != null && v?.compareAtListingAmount !== '') {
+        compareAtPriceUsd = toUsd(Number(v.compareAtListingAmount));
+      }
+
+      return {
+        color: v?.color ? String(v.color).trim() : undefined,
+        size: v?.size ? String(v.size).trim() : undefined,
+        sku,
+        stock,
+        ...(priceUsd != null ? { priceUsd } : {}),
+        ...(compareAtPriceUsd != null ? { compareAtPriceUsd } : {}),
+        label: v?.label ? String(v.label).trim() : undefined,
+        thumbnailUrl: v?.thumbnailUrl ? String(v.thumbnailUrl).trim() : undefined,
+        swatchHex: v?.swatchHex ? String(v.swatchHex).trim() : undefined,
+        badge: v?.badge ? String(v.badge).trim() : undefined,
+        sortOrder: Number.isFinite(Number(v?.sortOrder)) ? Number(v.sortOrder) : idx,
+      };
+    })
+    .filter(Boolean) as Array<Record<string, unknown>>;
+
+  return rows.length ? rows : undefined;
+}
+
 // ===== Products =====
 
 export async function listProducts(req: AuthenticatedRequest, res: Response) {
@@ -170,6 +235,28 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
     console.log(`[DEBUG] Filter:`, JSON.stringify(filter, null, 2));
     
     const products = await Product.find(filter as any).sort({ createdAt: -1 }).lean();
+    const productIds = products.map((p) => p._id).filter(Boolean);
+    const verificationRows =
+      productIds.length > 0
+        ? await ProductVerification.find({ productId: { $in: productIds } })
+            .select('productId aiChecks.videoProofUrl aiChecks.videoProofUploaded')
+            .lean()
+        : [];
+    const verificationByProduct = new Map(
+      verificationRows.map((row) => [String(row.productId), row]),
+    );
+    const productsWithVerification = products.map((p) => {
+      const ver = verificationByProduct.get(String(p._id));
+      const videoProofUrl =
+        (typeof ver?.aiChecks?.videoProofUrl === 'string' && ver.aiChecks.videoProofUrl.trim()) ||
+        (typeof (p as any).videoUrl === 'string' && (p as any).videoUrl.trim()) ||
+        undefined;
+      return {
+        ...p,
+        videoProofUrl,
+        videoProofUploaded: Boolean(ver?.aiChecks?.videoProofUploaded || videoProofUrl),
+      };
+    });
     console.log(`[DEBUG] Found ${products.length} products for seller ${sellerId}`);
     
     // Debug: Check what's actually in the database
@@ -186,11 +273,17 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
       }
     }
     
-    return res.json({ products });
+    return res.json({ products: productsWithVerification });
   } catch (err: any) {
     console.error('Error fetching products:', err);
     return res.status(500).json({ message: 'Failed to fetch products', error: err.message });
   }
+}
+
+async function syncProductProofVideo(productId: mongoose.Types.ObjectId, videoProofUrl?: string) {
+  const url = typeof videoProofUrl === 'string' ? videoProofUrl.trim() : '';
+  if (!url) return;
+  await Product.findByIdAndUpdate(productId, { $set: { videoUrl: url } });
 }
 
 export async function createProduct(req: AuthenticatedRequest, res: Response) {
@@ -306,6 +399,10 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
 
     const normalizedSizes = categoryNeedsSize(category) ? normalizeStringArray(sizes) : [];
     const normalizedColors = categoryNeedsColor(category) ? normalizeStringArray(colors) : [];
+    const normalizedVariants = normalizeProductVariants(variants, {
+      listingCurrency: canonical.listingCurrency,
+      listingExchangeRate: canonical.listingExchangeRate,
+    });
 
     const kycVerified = await isSellerKycVerified(sellerId);
     const publicationStatus = resolvePublicationStatusForSeller(kycVerified);
@@ -329,7 +426,7 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
       launchAt,
       publicationStatus,
       location,
-      variants,
+      variants: normalizedVariants,
       sizes: normalizedSizes,
       colors: normalizedColors,
       tiers,
@@ -389,6 +486,7 @@ export async function createProduct(req: AuthenticatedRequest, res: Response) {
         scanPassed: vDraft.scanPassed,
       },
     });
+    await syncProductProofVideo(product._id as mongoose.Types.ObjectId, vDraft.videoProofUrl);
 
     const productOut = await Product.findById(product._id).lean();
     return res.status(201).json({
@@ -509,6 +607,13 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
       (existing as any).colors = normalizeStringArray((existing as any).colors);
     }
 
+    if ('variants' in req.body) {
+      (existing as any).variants = normalizeProductVariants((req.body as any).variants, {
+        listingCurrency: (existing as any).listingCurrency || 'USD',
+        listingExchangeRate: (existing as any).listingExchangeRate || 1,
+      });
+    }
+
     const verificationBody = (req.body as any).verification;
     if (verificationBody !== undefined) {
       const trustEval = await evaluateProductTrustForSeller(
@@ -561,6 +666,7 @@ export async function updateProduct(req: AuthenticatedRequest, res: Response) {
           scanPassed: v.scanPassed,
         },
       });
+      await syncProductProofVideo(existing._id as mongoose.Types.ObjectId, v.videoProofUrl);
     }
 
     // Record stock history if stock changed

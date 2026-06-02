@@ -46,6 +46,9 @@ export function productProofVideoUrl(product) {
     product.video,
     product.videoPath,
     product.verificationVideoUrl,
+    product.videoProofUrl,
+    product.verification?.videoProofUrl,
+    product.aiChecks?.videoProofUrl,
     product.media?.video,
     product.media?.videoUrl,
     product.media?.videoPath,
@@ -89,7 +92,7 @@ export function previewGalleryItems(product) {
   );
 
   if (videoUrl) {
-    items.push({ type: 'video', src: videoUrl, poster });
+    items.push({ type: 'video', src: videoUrl, poster, label: 'Proof video' });
   }
 
   if (Array.isArray(product?.images) && product.images.length) {

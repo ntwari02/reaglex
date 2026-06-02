@@ -7,12 +7,13 @@ import {
   ShoppingBag, Heart, Star, ChevronLeft, ChevronRight, ChevronDown,
   Truck, Shield, Plus, Minus, Share2, ZoomIn, Check,
   X, Link2, ThumbsUp, BadgeCheck, Package, RefreshCw,
-  Zap, MessageCircle,
+  Zap, MessageCircle, Play,
 } from 'lucide-react';
 import './ProductDetail.css';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import ProductCard from '../components/ProductCard';
 import PremiumAutoProductCarousel from '../components/home/PremiumAutoProductCarousel';
+import RecentlyViewedRail from '../components/home/mobile/RecentlyViewedRail';
 import ProductDeliveryEstimate from '../components/product/ProductDeliveryEstimate';
 import { productAPI } from '../services/api';
 import { homeFeedApi } from '../services/homeFeedApi';
@@ -25,8 +26,17 @@ import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 import { productImageLayoutId } from '../motion/presets';
 import LiveProductTeaser from '../components/live/LiveProductTeaser';
-import { previewGalleryItems } from '../components/product/productPreviewUtils';
+import { previewGalleryItems, resolveMediaUrl } from '../components/product/productPreviewUtils';
+import ProductColorRail from '../components/product/ProductColorRail';
+import ProductReviewGalleryRail from '../components/product/ProductReviewGalleryRail';
+import {
+  buildProductColorOptions,
+  pickVariantForSelection,
+  flattenReviewGalleryMedia,
+  productPricingForVariant,
+} from '../components/product/productDetailVariants';
 import { resolveProductPriceUsd } from '../lib/resolveProductPrice';
+import '../styles/product-detail-ali.css';
 
 const PRIMARY = 'var(--brand-primary)';
 const ease = [0.25, 0.46, 0.45, 0.94];
@@ -145,6 +155,7 @@ export default function ProductDetail() {
   const [shareOpen,    setShareOpen]    = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [selectedColorKey, setSelectedColorKey] = useState('');
   const [expandedQa,   setExpandedQa]   = useState(null);
   const [reviewPage,   setReviewPage]   = useState(0);
   const [voteUp,       setVoteUp]       = useState(187);
@@ -476,6 +487,53 @@ export default function ProductDetail() {
     setSelectedVariantSku((prev) => prev || variants[0]?.sku || '');
   }, [product]);
 
+  const variantOptions = useMemo(() => {
+    const variants = Array.isArray(product?.variants) ? [...product.variants] : [];
+    return variants
+      .filter((v) => v?.sku)
+      .sort((a, b) => Number(a?.sortOrder || 0) - Number(b?.sortOrder || 0));
+  }, [product?.variants]);
+
+  const selectedVariant = useMemo(
+    () => variantOptions.find((v) => v?.sku === selectedVariantSku) || variantOptions[0] || null,
+    [variantOptions, selectedVariantSku],
+  );
+
+  const colorOptions = useMemo(
+    () => buildProductColorOptions(product, variantOptions),
+    [product, variantOptions],
+  );
+
+  const reviewMediaItems = useMemo(
+    () => flattenReviewGalleryMedia(product?.reviewGallery || [], resolveImage),
+    [product?.reviewGallery],
+  );
+
+  const activePricing = useMemo(
+    () => productPricingForVariant(product, selectedVariant),
+    [product, selectedVariant],
+  );
+
+  useEffect(() => {
+    if (!colorOptions.length) return;
+    setSelectedColorKey((prev) => {
+      if (prev && colorOptions.some((c) => c.key === prev)) return prev;
+      return colorOptions[0].key;
+    });
+    const first = colorOptions[0];
+    if (first?.color) setSelectedColor(first.color);
+  }, [product?._id, product?.id, colorOptions]);
+
+  useEffect(() => {
+    const match = pickVariantForSelection(variantOptions, {
+      colorKey: selectedColorKey,
+      size: selectedSize,
+    });
+    if (match?.sku) setSelectedVariantSku(match.sku);
+    if (match?.color) setSelectedColor(match.color);
+    if (match?.size) setSelectedSize(match.size);
+  }, [selectedColorKey, selectedSize, variantOptions]);
+
   useEffect(() => {
     const onInventoryUpdated = (e) => {
       const updatedId = e?.detail?.productId;
@@ -492,7 +550,17 @@ export default function ProductDetail() {
   const handleAddToCart = () => {
     if (!product || addState !== 'idle') return;
     setAddState('adding');
-    addItem(product, quantity);
+    addItem(
+      {
+        ...product,
+        price: activePricing.unitUsd,
+        sku: selectedVariant?.sku || product.sku,
+        variantSku: selectedVariant?.sku,
+        selectedColor: selectedColorKey || selectedColor,
+        selectedSize,
+      },
+      quantity,
+    );
     setTimeout(() => setAddState('added'), 500);
     setTimeout(() => setAddState('idle'), 2500);
   };
@@ -541,8 +609,12 @@ export default function ProductDetail() {
       ...product,
       images: images?.length ? images : product.images,
       image: product.image,
+      verificationVideoUrl: product.verificationVideoUrl,
+      videoProofUrl: product.videoProofUrl,
     }).map((item) =>
-      item.type === 'image' ? { ...item, src: resolveImage(item.src) } : item,
+      item.type === 'video'
+        ? { ...item, src: resolveMediaUrl(item.src) || item.src }
+        : { ...item, src: resolveImage(item.src) },
     );
   }, [product, images]);
   useEffect(() => {
@@ -576,16 +648,6 @@ export default function ProductDetail() {
     const pad = (n) => String(n).padStart(2, '0');
     return d > 0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
   }, [promoActive, offerEndsAt, countdownNow]);
-  const variantOptions = useMemo(() => {
-    const variants = Array.isArray(product?.variants) ? [...product.variants] : [];
-    return variants
-      .filter((v) => v?.sku)
-      .sort((a, b) => Number(a?.sortOrder || 0) - Number(b?.sortOrder || 0));
-  }, [product?.variants]);
-  const selectedVariant = useMemo(
-    () => variantOptions.find((v) => v?.sku === selectedVariantSku) || variantOptions[0] || null,
-    [variantOptions, selectedVariantSku]
-  );
   const sizeGuideRows = Array.isArray(product?.sizeGuide?.rows) ? product.sizeGuide.rows : [];
   const serviceCommitments = Array.isArray(product?.serviceCommitments) && product.serviceCommitments.length
     ? product.serviceCommitments
@@ -655,11 +717,11 @@ export default function ProductDetail() {
   );
 
   /* ── derived values (product is guaranteed non-null below) ── */
-  const price        = resolveProductPriceUsd(product);
+  const price        = activePricing.unitUsd;
   const basePrice    = price;
   const totalPrice   = basePrice * quantity;
-  const oldPrice     = productOldPrice(product);
-  const discount     = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
+  const oldPrice     = activePricing.compareUsd;
+  const discount     = oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const showDiscount = Number(discount || 0) > 0 && product.discountActive !== false;
   const rating       = Number(product.ratingAverage || product.averageRating || product.rating || 0) || 0;
   const reviewsCount = Number(product.reviewCount || product.totalReviews || 0) || 0;
@@ -674,7 +736,14 @@ export default function ProductDetail() {
   const baseLocalPrice = currencyPricing.convertUsdToLocal(basePrice);
   const totalUsdText = currencyPricing.formatUsd(totalPrice);
   const showSizeSelector = categoryNeedsSize(product.category) && Array.isArray(product.sizes) && product.sizes.length > 0;
-  const showColorSelector = categoryNeedsColor(product.category) && Array.isArray(product.colors) && product.colors.length > 0;
+  const showColorRail = colorOptions.length > 0;
+  const selectedColorLabel =
+    colorOptions.find((c) => c.key === selectedColorKey)?.label || selectedColor || '—';
+  const openReviews = () => {
+    setTabIndex(2);
+    setMobileDetailOpen('reviews');
+    document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
   const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
 
   const specs = [
@@ -987,6 +1056,10 @@ export default function ProductDetail() {
                   )}
                 </AnimatePresence>
 
+                {galleryItems[activeImage]?.type === 'video' && (
+                  <span className="pd2-proof-badge">Proof video</span>
+                )}
+
                 {/* Floating badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
                   <span className="pd2-badge pd2-badge--green">NEW</span>
@@ -1101,11 +1174,11 @@ export default function ProductDetail() {
                     >
                       {m?.type === 'video' ? (
                         <div className="w-full h-full relative bg-black">
-                          <video src={m.src} className="w-full h-full object-cover opacity-80" preload="metadata" playsInline muted />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                              style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.22)' }}>
-                              <span className="text-white text-sm" style={{ transform: 'translateX(1px)' }}>▶</span>
+                          <img src={m.poster || resolveImage(images[0])} alt="" className="w-full h-full object-cover opacity-85" draggable={false} />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                              style={{ background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.28)' }}>
+                              <Play size={14} fill="currentColor" aria-hidden />
                             </div>
                           </div>
                         </div>
@@ -1136,7 +1209,32 @@ export default function ProductDetail() {
                   <ProductDeliveryEstimate productId={resolvedId} compact />
                   <span><Shield size={14} /> Buyer protection</span>
                 </div>
+                {activePricing.priceDiffers && (
+                  <p className="pd2-variant-price-hint mt-2">
+                    Price for <strong>{selectedColorLabel}</strong>
+                  </p>
+                )}
               </div>
+
+              {showColorRail && (
+                <ProductColorRail
+                  selectedLabel={selectedColorLabel}
+                  options={colorOptions}
+                  activeKey={selectedColorKey}
+                  onSelect={(opt) => {
+                    setSelectedColorKey(opt.key);
+                    if (opt.color) setSelectedColor(opt.color);
+                  }}
+                />
+              )}
+
+              {reviewMediaItems.length > 0 && (
+                <ProductReviewGalleryRail
+                  items={reviewMediaItems}
+                  totalCount={reviewsCount}
+                  onSeeAll={openReviews}
+                />
+              )}
             </motion.div>
 
             {/* ── Purchase Panel ── */}
@@ -1309,35 +1407,13 @@ export default function ProductDetail() {
                   )}
                 </div>
 
-                {hasReviewData && (
-                  <div className="order-6 lg:order-6 mb-4 rounded-2xl p-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-card)' }}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-black uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Review Snapshot</p>
-                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                          {rating ? `${rating.toFixed(1)} average` : 'Customer feedback'}{reviewsCount ? ` · ${reviewsCount} reviews` : ''}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTabIndex(2);
-                          setMobileDetailOpen('reviews');
-                          document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                        className="min-h-[44px] px-3 rounded-xl text-xs font-bold touch-manipulation"
-                        style={{ background: 'var(--brand-tint)', color: PRIMARY, border: '1px solid var(--brand-border-subtle)' }}
-                      >
-                        Full reviews
-                      </button>
-                    </div>
-                    {reviewThumbs.length > 0 && (
-                      <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
-                        {reviewThumbs.map((src, idx) => (
-                          <img key={`${src}-${idx}`} src={src} alt={`Review media ${idx + 1}`} className="w-12 h-12 rounded-lg object-cover border" style={{ borderColor: 'var(--divider)' }} />
-                        ))}
-                      </div>
-                    )}
+                {reviewMediaItems.length > 0 && (
+                  <div className="order-6 lg:order-6 mb-4 hidden md:block">
+                    <ProductReviewGalleryRail
+                      items={reviewMediaItems}
+                      totalCount={reviewsCount}
+                      onSeeAll={openReviews}
+                    />
                   </div>
                 )}
 
@@ -1373,66 +1449,22 @@ export default function ProductDetail() {
                 </div>
                 )}
 
-                {/* Color */}
-                {showColorSelector && (
-                <div className="mb-4 lg:mb-5 order-8 lg:order-9">
-                  <p className="text-xs sm:text-sm font-bold mb-2 lg:mb-3" style={{ color: 'var(--text-primary)' }}>
-                    Color: <span style={{ color: PRIMARY }}>{selectedColor}</span>
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {product.colors.map((color) => (
-                      <motion.button key={color} type="button"
-                        onClick={() => setSelectedColor(color)}
-                        whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-                        className="w-11 h-11 sm:w-10 sm:h-10 rounded-full transition-all touch-manipulation shrink-0"
-                        style={{
-                          background: color,
-                          border: `2px solid ${selectedColor === color ? PRIMARY : 'transparent'}`,
-                          boxShadow: selectedColor === color
-                            ? `0 0 0 3px var(--brand-border-subtle), var(--shadow-sm)`
-                            : '0 2px 6px rgba(0,0,0,0.12)',
-                        }}
-                        title={color}
-                        aria-label={color}
-                      />
-                    ))}
-                  </div>
-                </div>
-                )}
-                {variantOptions.length > 0 && (
-                  <div className="mb-4 lg:mb-5 order-8 lg:order-9">
-                    <p className="text-xs sm:text-sm font-bold mb-2 lg:mb-3" style={{ color: 'var(--text-primary)' }}>
-                      Style
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {variantOptions.map((variant) => {
-                        const isActive = selectedVariant?.sku === variant?.sku;
-                        const thumb = resolveImage(variant?.thumbnailUrl || product?.image);
-                        return (
-                          <button
-                            key={variant.sku}
-                            type="button"
-                            onClick={() => {
-                              setSelectedVariantSku(variant.sku);
-                              if (variant?.size) setSelectedSize(variant.size);
-                              if (variant?.color) setSelectedColor(variant.color);
-                            }}
-                            className="relative rounded-xl overflow-hidden w-14 h-14"
-                            style={{
-                              border: `2px solid ${isActive ? PRIMARY : 'var(--border-card)'}`,
-                              boxShadow: isActive ? 'var(--shadow-cta)' : 'none',
-                            }}
-                          >
-                            <img src={thumb} alt={variant?.label || variant?.sku} className="w-full h-full object-cover" />
-                            {variant?.badge && (
-                              <span className="absolute left-1 right-1 bottom-1 rounded px-1 py-0.5 text-[9px] font-black bg-black/70 text-white truncate">
-                                {variant.badge}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                {showColorRail && (
+                  <div className="mb-4 lg:mb-5 order-8 lg:order-9 hidden md:block">
+                    {activePricing.priceDiffers && (
+                      <p className="pd2-variant-price-hint">
+                        Selected option: <strong>{selectedColorLabel}</strong>
+                      </p>
+                    )}
+                    <ProductColorRail
+                      selectedLabel={selectedColorLabel}
+                      options={colorOptions}
+                      activeKey={selectedColorKey}
+                      onSelect={(opt) => {
+                        setSelectedColorKey(opt.key);
+                        if (opt.color) setSelectedColor(opt.color);
+                      }}
+                    />
                   </div>
                 )}
                 {(showSizeSelector && (sizeGuideRows.length > 0 || product?.sizeGuide?.circumferenceNote)) && (
@@ -1534,7 +1566,17 @@ export default function ProductDetail() {
                   {/* Buy Now */}
                   <motion.button
                     type="button"
-                    onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
+                    onClick={() => {
+                      addItem(
+                        {
+                          ...product,
+                          price: activePricing.unitUsd,
+                          sku: selectedVariant?.sku || product.sku,
+                        },
+                        quantity,
+                      );
+                      navigate('/checkout');
+                    }}
                     whileHover={{ y: -0.5 }} whileTap={{ scale: 0.98 }}
                     className="pd2-btn-secondary w-full h-12 flex items-center justify-center gap-2 text-sm font-bold"
                   >
@@ -1942,34 +1984,25 @@ export default function ProductDetail() {
               RECENTLY VIEWED
           ════════════════════════════════════════════════ */}
           {recentFiltered.length > 0 && (
-            <section className="mb-8 pd2-homeish-block">
-              <div className="flex items-end justify-between mb-5">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: 'var(--text-faint)' }}>
-                    Continue Shopping
-                  </p>
-                  <h2 className="text-2xl sm:text-[2rem] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                    RECENTLY VIEWED
-                  </h2>
-                </div>
-              </div>
-              <div className="flex gap-4 overflow-x-auto pb-4 scroll-touch" style={{
-                scrollbarWidth: 'none',
-                paddingLeft: 'max(0.2rem, calc((100vw - 1280px) / 2 + 0.2rem))',
-                paddingRight: 'max(0.2rem, calc((100vw - 1280px) / 2 + 0.2rem))',
-              }}>
-                {recentFiltered.map((p, idx) => (
-                  <motion.div key={p._id || p.id}
-                    className="flex-shrink-0 w-[200px] sm:w-[220px]"
-                    initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }} transition={{ delay: idx * 0.06 }}
-                  >
-                    <div className="pd2-homeish-card">
-                      <ProductCard product={p} index={idx} compact ctaStyle="home" />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+            <section className="mb-8 pd2-homeish-block md:hidden -mx-2 sm:-mx-3">
+              <RecentlyViewedRail
+                items={recentFiltered}
+                id="pd2-recent"
+                title="Recently viewed"
+                subtitle="You might also like"
+                href="/search"
+                className="!px-0"
+              />
+            </section>
+          )}
+          {recentFiltered.length > 0 && (
+            <section className="mb-14 hidden md:block">
+              <PremiumAutoProductCarousel
+                products={recentFiltered.slice(0, 8)}
+                title="Recently viewed"
+                subtitle="You might also like"
+                viewAllHref="/search"
+              />
             </section>
           )}
         </div>
@@ -2000,7 +2033,20 @@ export default function ProductDetail() {
             </button>
             <button
               type="button"
-              onClick={() => { addItem(product, quantity); navigate('/checkout'); }}
+              onClick={() => {
+                addItem(
+                  {
+                    ...product,
+                    price: activePricing.unitUsd,
+                    sku: selectedVariant?.sku || product.sku,
+                    variantSku: selectedVariant?.sku,
+                    selectedColor: selectedColorKey || selectedColor,
+                    selectedSize,
+                  },
+                  quantity,
+                );
+                navigate('/checkout');
+              }}
               disabled={stock === 0}
               className="pd2-sticky-buy touch-manipulation disabled:opacity-45"
             >
