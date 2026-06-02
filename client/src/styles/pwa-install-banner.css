@@ -1,0 +1,114 @@
+/* PWA install prompt — compact, centered above bottom nav */
+
+.pwa-install-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--mob-dock-bottom, calc(68px + env(safe-area-inset-bottom, 0px)));
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 0 16px 8px;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .pwa-install-wrap {
+    bottom: 20px;
+    padding-bottom: 0;
+  }
+}
+
+.pwa-install-card {
+  position: relative;
+  pointer-events: auto;
+  width: min(300px, 100%);
+  padding: 10px 36px 10px 10px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-card);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--text-primary) 14%, transparent);
+}
+
+.pwa-install-card__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-brand-cta, linear-gradient(135deg, var(--brand-primary), var(--brand-primary)));
+  color: #fff;
+  box-shadow: var(--shadow-cta, 0 4px 12px color-mix(in srgb, var(--brand-primary) 30%, transparent));
+}
+
+.pwa-install-card__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.pwa-install-card__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.pwa-install-card__sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
+.pwa-install-card__cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--brand-primary);
+  box-shadow: var(--shadow-cta);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pwa-install-card__close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.pwa-install-card__close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.pwa-install-card__close:active {
+  transform: scale(0.94);
+}

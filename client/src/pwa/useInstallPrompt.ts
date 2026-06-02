@@ -11,7 +11,19 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = 'reaglex-install-dismissed-at';
+const DISMISS_PERMANENT_KEY = 'reaglex-install-dismissed-permanent';
 const DISMISS_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 2 weeks
+
+function readDismissed(): boolean {
+  try {
+    if (localStorage.getItem(DISMISS_PERMANENT_KEY) === '1') return true;
+    const v = localStorage.getItem(DISMISS_KEY);
+    if (!v) return false;
+    return Date.now() - Number(v) < DISMISS_TTL_MS;
+  } catch {
+    return false;
+  }
+}
 
 export function isStandaloneInstalled(): boolean {
   if (typeof window === 'undefined') return false;
@@ -25,15 +37,7 @@ export function isStandaloneInstalled(): boolean {
 export function useInstallPrompt() {
   const [event, setEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState<boolean>(isStandaloneInstalled());
-  const [dismissed, setDismissed] = useState<boolean>(() => {
-    try {
-      const v = localStorage.getItem(DISMISS_KEY);
-      if (!v) return false;
-      return Date.now() - Number(v) < DISMISS_TTL_MS;
-    } catch {
-      return false;
-    }
-  });
+  const [dismissed, setDismissed] = useState<boolean>(readDismissed);
 
   useEffect(() => {
     function onBeforeInstall(e: Event) {
@@ -72,10 +76,14 @@ export function useInstallPrompt() {
     }
   }, [event]);
 
-  const dismiss = useCallback(() => {
+  const dismiss = useCallback((permanent = true) => {
     setDismissed(true);
     try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()));
+      if (permanent) {
+        localStorage.setItem(DISMISS_PERMANENT_KEY, '1');
+      } else {
+        localStorage.setItem(DISMISS_KEY, String(Date.now()));
+      }
     } catch {
       /* ignore */
     }

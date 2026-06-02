@@ -77,8 +77,8 @@ export default function MobileBottomNav() {
     <motion.nav
       data-mobile-nav="buyer"
       className="md:hidden fixed bottom-0 left-0 right-0 z-[140] flex justify-center px-3 pointer-events-none"
-      animate={{ y: navHidden ? 100 : 0, opacity: navHidden ? 0 : 1 }}
-      transition={{ type: 'spring', stiffness: 440, damping: 36 }}
+      animate={{ y: navHidden ? 100 : 0, opacity: navHidden ? 0.92 : 1 }}
+      transition={{ type: 'tween', duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       style={{
         paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))',
       }}

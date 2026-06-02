@@ -1281,8 +1281,18 @@ input[type="range"].slider::-moz-range-thumb:hover {
 }
 
 /* ── Product listing & animations ─────────────────────────────────────────── */
-html {
-  scroll-behavior: smooth;
+@media (min-width: 768px) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+@media (max-width: 767px) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+html.pwa-standalone {
+  scroll-behavior: auto;
 }
 
 @keyframes fadeSlideUp {
@@ -1700,9 +1710,11 @@ button, a {
   user-select: none;
 }
 
-/* Smooth scroll globally */
-html {
-  scroll-behavior: smooth;
+/* Smooth scroll on desktop only — mobile/PWA use native momentum (auto) */
+@media (min-width: 768px) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* Mobile card press feedback */
@@ -1754,74 +1766,54 @@ nav[data-mobile-nav="seller"] > div {
 
 /* ──────────────────────────────────────────────────────────────────────
    PWA STANDALONE MODE
-   When the user installs Reaglex to the home screen / dock the manifest's
-   "display: standalone" mode is active. We apply native-app polish so the
-   surface stops feeling like a browser tab:
-     - Disable user text-selection on UI chrome (still allowed on text content)
-     - Hide pull-to-refresh native gesture (we render our own)
-     - Lock overscroll bounce so the page never rubber-bands into white space
-     - Respect device safe-area insets for notches / home indicators
-     - Smooth out font rendering
-   These styles are no-ops in regular browser tabs.
+   Light touch only — avoid scroll locks that make the installed app feel stiff.
+   Use one document scroll path, native momentum, and no smooth-scroll lag.
    ──────────────────────────────────────────────────────────────────── */
 @media all and (display-mode: standalone) {
   html {
-    height: 100%;
-    -webkit-user-select: none;
-    user-select: none;
+    scroll-behavior: auto;
   }
   body {
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
     overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: auto;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   #root {
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
-    display: flex;
-    flex-direction: column;
+    min-height: 0;
+    display: block;
   }
-  /* Keep prose / input fields selectable */
-  input, textarea, [contenteditable="true"],
-  p, span, h1, h2, h3, h4, h5, h6, li, a, td, th,
-  .selectable, .prose, .prose * {
-    -webkit-user-select: text;
-    user-select: text;
-  }
-  /* Inputs already have OS-native styles — make them feel app-like */
   input, textarea, select {
     -webkit-tap-highlight-color: transparent;
   }
-  /* Buttons / interactive elements get a tap-friendly press feel */
   button, a, [role="button"] {
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
   }
 }
 
 /* HTML-level flag set by PwaRoot (works on iOS where matchMedia is unreliable) */
 html.pwa-standalone {
-  height: 100%;
+  scroll-behavior: auto;
 }
 html.pwa-standalone body {
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+  overflow-x: hidden;
+  overscroll-behavior-y: auto;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 html.pwa-standalone #root {
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
-  display: flex;
-  flex-direction: column;
+  min-height: 0;
+  display: block;
+}
+
+/* Nested scroll areas inside the installed app — do not trap momentum */
+html.pwa-standalone [class*='overflow-y-auto'],
+html.pwa-standalone [class*='overflow-y-scroll'],
+html.pwa-standalone .ex-rail-scroll,
+html.pwa-standalone .mob-cat-strip-scroll,
+html.pwa-standalone .cat-browse-toolbar {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
 }
 
 /* Soft GPU-accelerated transitions everywhere a route change happens */

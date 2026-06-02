@@ -1005,7 +1005,7 @@ export default function Navbar() {
 
   return (
     <header
-      className="mob-storefront-header fixed top-0 left-0 right-0 z-[100] flex flex-col transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:translate-y-0"
+      className="mob-storefront-header fixed top-0 left-0 right-0 z-[100] flex flex-col transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:translate-y-0"
       style={{
         fontFamily: 'Inter, system-ui, sans-serif',
         background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)',
