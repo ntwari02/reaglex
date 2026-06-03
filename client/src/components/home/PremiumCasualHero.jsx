@@ -98,8 +98,8 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
   const fullWidthLg = !compact;
 
   const sectionPad = compact
-    ? 'px-3 pt-2 pb-3'
-    : 'w-full px-4 pb-6 sm:px-6 lg:px-0 lg:pb-8';
+    ? 'px-0 pt-0 pb-0'
+    : 'w-full px-4 pb-6 sm:px-6 lg:px-0 lg:pb-8 pt-4 sm:pt-5';
   const shellRadius = fullWidthLg ? 'rounded-[24px] lg:rounded-none' : 'overflow-hidden';
   const shellLg = fullWidthLg ? 'lg:border-x-0 lg:border-t-0 lg:shadow-none' : '';
 
@@ -231,7 +231,6 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
                           loading={i === 0 ? 'eager' : 'lazy'}
                           decoding="async"
                           draggable={false}
-                          data-swiper-parallax="-12%"
                         />
                       )}
                     </div>

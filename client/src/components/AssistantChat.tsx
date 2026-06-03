@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/config';
+import { buyerProductPath } from '@/lib/productUrl';
 import { isAccountSettingsRoute, isSellerPathWithBuyerNav } from '@/config/buyerNavVisibility';
 import { useAuthStore } from '@/stores/authStore';
 import { getAssistantChatStorageKey } from '@/lib/clearAuthSession';
@@ -213,9 +214,9 @@ export default function AssistantChat() {
     };
   }, []);
 
-  /* ── Close on outside click ── */
+  /* ── Close on outside click (desktop floating panel) ── */
   useEffect(() => {
-    if (!open) return;
+    if (!open || isMobileViewport) return;
     const handleOutside = (e: MouseEvent | TouchEvent) => {
       const target = e.target as Node | null;
       if (!target) return;
@@ -228,7 +229,7 @@ export default function AssistantChat() {
       window.removeEventListener('mousedown', handleOutside);
       window.removeEventListener('touchstart', handleOutside);
     };
-  }, [open]);
+  }, [open, isMobileViewport]);
 
   /* ── Viewport breakpoint for floating position ── */
   useEffect(() => {
@@ -237,6 +238,16 @@ export default function AssistantChat() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  /* ── Lock body scroll when mobile chat is open ── */
+  useEffect(() => {
+    if (!open || !isMobileViewport) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open, isMobileViewport]);
 
   /* ── Inject styles & animations ── */
   useEffect(() => {
@@ -606,56 +617,62 @@ export default function AssistantChat() {
 
   if (isHidden) return null;
 
-  /* No floating FAB — PwaRoot AssistantFab is the single entry; chat opens via events */
-  if (!open) return null;
-
   const isSellerHub =
     path.startsWith('/seller') &&
     path !== '/seller/pending' &&
     !isSellerPathWithBuyerNav(path);
   const panelBottom = isMobileViewport
-    ? isSellerHub
+    ? '0'
+    : isSellerHub
       ? 'calc(5.75rem + env(safe-area-inset-bottom, 0px))'
-      : 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
-    : 'max(1.25rem, env(safe-area-inset-bottom, 0px))';
+      : 'max(1.25rem, env(safe-area-inset-bottom, 0px))';
   const panelRight = isMobileViewport
-    ? 'max(1rem, env(safe-area-inset-right, 0px))'
+    ? '0'
     : 'max(1.25rem, env(safe-area-inset-right, 0px))';
 
-  return (
+  const chatWindow = (
     <motion.div
-      className="ai-assistant-commerce"
+      key="ai-chat-window"
+      ref={chatWindowRef}
+      initial={
+        isMobileViewport
+          ? { opacity: 0, y: '100%' }
+          : { opacity: 0, scale: 0.88, y: 20, transformOrigin: 'bottom right' }
+      }
+      animate={isMobileViewport ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+      exit={
+        isMobileViewport
+          ? { opacity: 0, y: '100%' }
+          : { opacity: 0, scale: 0.88, y: 20 }
+      }
+      transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+      className={isMobileViewport ? 'ai-chat-window--mobile ai-assistant-commerce' : 'ai-assistant-commerce'}
       style={{
+        width: isMobileViewport ? '100%' : 400,
+        maxWidth: isMobileViewport ? '100%' : '92vw',
+        borderRadius: isMobileViewport ? '24px 24px 0 0' : 22,
+        overflow: 'hidden',
+        background: 'var(--card-bg)',
+        border: `1px solid ${ORANGE_GLOW}`,
+        boxShadow: 'var(--ai-chat-window-shadow)',
         position: 'fixed',
-        bottom: panelBottom,
-        right: panelRight,
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        gap: 12,
+        ...(isMobileViewport
+          ? {
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 10050,
+              display: 'flex',
+              flexDirection: 'column' as const,
+            }
+          : {
+              bottom: panelBottom,
+              right: panelRight,
+              zIndex: 9999,
+            }),
       }}
     >
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="ai-chat-window"
-            ref={chatWindowRef}
-            initial={{ opacity: 0, scale: 0.88, y: 20, transformOrigin: 'bottom right' }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.88, y: 20 }}
-            transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-            style={{
-              width: 400,
-              maxWidth: '92vw',
-              borderRadius: 22,
-              overflow: 'hidden',
-              background: 'var(--card-bg)',
-              border: `1px solid ${ORANGE_GLOW}`,
-              boxShadow: 'var(--ai-chat-window-shadow)',
-              position: 'relative',
-            }}
-          >
+      {isMobileViewport && <div className="ai-chat-handle" aria-hidden />}
             {/* Top accent line */}
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent 0%, ${PRIMARY_HOVER} 30%, ${PRIMARY} 70%, transparent 100%)`, zIndex: 10 }} />
 
@@ -714,7 +731,16 @@ export default function AssistantChat() {
             <div
               ref={messagesRef}
               className="ai-msgs"
-              style={{ maxHeight: 420, overflowY: 'auto', padding: '14px 14px 8px', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column', gap: 0 }}
+              style={{
+                maxHeight: isMobileViewport ? undefined : 420,
+                overflowY: 'auto',
+                padding: '14px 14px 8px',
+                background: 'var(--bg-page)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0,
+                ...(isMobileViewport ? { flex: 1, minHeight: 0 } : {}),
+              }}
             >
               {/* Quick action chips — only before any user message */}
               {messages.length <= 1 && !checkoutTarget && (
@@ -905,7 +931,7 @@ export default function AssistantChat() {
                         type={type || 'text'}
                         min={min} max={max}
                         placeholder={placeholder}
-                        className="ai-ck-input"
+                        className="ai-ck-input premium-input-exempt"
                         value={String((checkoutForm as any)[key])}
                         onChange={(e) => setCheckoutForm((f) => ({ ...f, [key]: type === 'number' ? Math.max(1, Math.min(99, Number(e.target.value) || 1)) : e.target.value }))}
                       />
@@ -916,7 +942,7 @@ export default function AssistantChat() {
                     Shipping
                     <select value={checkoutForm.shippingSpeed}
                       onChange={(e) => setCheckoutForm((f) => ({ ...f, shippingSpeed: e.target.value as typeof f.shippingSpeed }))}
-                      className="ai-ck-input">
+                      className="ai-ck-input premium-input-exempt">
                       <option value="standard">Standard</option>
                       <option value="express">Express</option>
                       <option value="international">International</option>
@@ -925,7 +951,7 @@ export default function AssistantChat() {
                   {/* Payment */}
                   <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', gridColumn: '1/-1' }}>
                     Payment
-                    <select value={checkoutPaymentProvider} onChange={(e) => setCheckoutPaymentProvider(e.target.value as AssistantPaymentProvider)} disabled={!gwLoaded} className="ai-ck-input">
+                    <select value={checkoutPaymentProvider} onChange={(e) => setCheckoutPaymentProvider(e.target.value as AssistantPaymentProvider)} disabled={!gwLoaded} className="ai-ck-input premium-input-exempt">
                       {!gwLoaded && <option value="flutterwave">Loading…</option>}
                       {gwLoaded && !checkoutGateways.flutterwave && !checkoutGateways.stripe && !checkoutGateways.paypal && !checkoutGateways.mtn_momo && !checkoutGateways.airtel_money && <option value="flutterwave">No gateway enabled</option>}
                       {checkoutGateways.flutterwave && <option value="flutterwave">Card / Bank (Flutterwave)</option>}
@@ -938,13 +964,13 @@ export default function AssistantChat() {
                   {checkoutPaymentProvider === 'momo' && (
                     <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', gridColumn: '1/-1' }}>
                       MoMo wallet
-                      <input value={checkoutForm.momoWallet} onChange={(e) => setCheckoutForm((f) => ({ ...f, momoWallet: e.target.value }))} placeholder="Uses Phone if empty" className="ai-ck-input" />
+                      <input value={checkoutForm.momoWallet} onChange={(e) => setCheckoutForm((f) => ({ ...f, momoWallet: e.target.value }))} placeholder="Uses Phone if empty" className="ai-ck-input premium-input-exempt" />
                     </label>
                   )}
                   {checkoutPaymentProvider === 'airtel' && (
                     <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', gridColumn: '1/-1' }}>
                       Airtel wallet
-                      <input value={checkoutForm.airtelWallet} onChange={(e) => setCheckoutForm((f) => ({ ...f, airtelWallet: e.target.value }))} placeholder="Uses Phone if empty" className="ai-ck-input" />
+                      <input value={checkoutForm.airtelWallet} onChange={(e) => setCheckoutForm((f) => ({ ...f, airtelWallet: e.target.value }))} placeholder="Uses Phone if empty" className="ai-ck-input premium-input-exempt" />
                     </label>
                   )}
                 </div>
@@ -957,7 +983,7 @@ export default function AssistantChat() {
             )}
 
             {/* ── Input footer ── */}
-            <div style={{ padding: '11px 14px 13px', borderTop: '1px solid var(--divider)', background: 'var(--card-bg)', display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div className="ai-chat-input-footer" style={{ padding: '11px 14px 13px', borderTop: '1px solid var(--divider)', background: 'var(--card-bg)', display: 'flex', flexDirection: 'column', gap: 9 }}>
               {/* Cooldown indicator */}
               {cooldownSec > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: 'var(--text-faint)' }}>
@@ -973,7 +999,7 @@ export default function AssistantChat() {
                   value={input}
                   onChange={handleInputChange}
                   placeholder="Ask about products, orders, shipping…"
-                  className="ai-textarea"
+                  className="ai-textarea premium-input-exempt"
                   rows={1}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && !sendDisabled) { e.preventDefault(); void handleSend(); }
@@ -1002,8 +1028,26 @@ export default function AssistantChat() {
             </div>
 
           </motion.div>
+  );
+
+  return (
+    <>
+      <AnimatePresence>
+        {open && isMobileViewport && (
+          <motion.button
+            type="button"
+            key="ai-chat-backdrop"
+            aria-label="Close assistant chat"
+            className="ai-chat-backdrop md:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setOpen(false)}
+          />
         )}
       </AnimatePresence>
-    </motion.div>
+      <AnimatePresence>{open && chatWindow}</AnimatePresence>
+    </>
   );
 }

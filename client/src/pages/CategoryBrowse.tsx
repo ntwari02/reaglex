@@ -232,7 +232,7 @@ export default function CategoryBrowse() {
             <form className="cat-browse-search" onSubmit={handleSearchSubmit} role="search">
               <input
                 type="search"
-                className="cat-browse-search__input"
+                className="cat-browse-search__input premium-input-exempt"
                 placeholder={`Search${!isAllCategory(slug) ? ` in ${meta?.name || 'category'}` : ''}…`}
                 value={searchDraft}
                 onChange={(e) => setSearchDraft(e.target.value)}

@@ -136,7 +136,12 @@ export default function AccountMobileLayout({
 }) {
   const isHub = activeTab === 'overview';
 
-  if (!isHub && activeTab !== 'settings') {
+  /* Settings uses its own top bar + section hub — avoid duplicate account menu */
+  if (activeTab === 'settings') {
+    return null;
+  }
+
+  if (!isHub) {
     return (
       <div className="rx-acc-mobile-layout lg:hidden">
         <AccountMobileBackBar title={tabLabel} onBack={onBackToHub} />

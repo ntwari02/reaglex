@@ -3,7 +3,13 @@ import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Command as CmdIcon } from 'lucide-react';
 import { haptic } from '../haptics';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { openCommandPalette } from './CommandPalette';
+
+function openAssistantChat() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event('reaglex:assistant:open'));
+}
 
 const STORAGE_KEY = 'reaglex-fab-coachmark-dismissed';
 
@@ -29,6 +35,7 @@ function shouldHideFab(pathname: string): boolean {
 
 export default function AssistantFab() {
   const { pathname } = useLocation();
+  const isMobile = useIsMobile();
   const [expanded, setExpanded] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const hidden = shouldHideFab(pathname);
@@ -91,7 +98,8 @@ export default function AssistantFab() {
         aria-label="Open AI assistant and command palette"
         onClick={() => {
           haptic('selection');
-          openCommandPalette();
+          if (isMobile) openAssistantChat();
+          else openCommandPalette();
         }}
         whileTap={{ scale: 0.92 }}
         animate={{

@@ -72,7 +72,10 @@
 
   .mob-page .premium-casual-hero {
     overflow: visible;
-    padding-top: 6px;
+    padding-top: 14px;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: 10px;
   }
 
   .mob-page .premium-casual-hero > div {

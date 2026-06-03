@@ -8,6 +8,13 @@ type ProductRef = {
   id?: string | null;
 };
 
+async function fetchProductDetail(slug?: string, id?: string) {
+  const data = slug
+    ? await productAPI.getProductBySlug(slug)
+    : await productAPI.getProductById(String(id));
+  return data.product || data;
+}
+
 export function prefetchProduct(product: ProductRef) {
   const slug = product.slug?.trim();
   const id = String(product._id || product.id || '').trim();
@@ -15,7 +22,7 @@ export function prefetchProduct(product: ProductRef) {
   if (slug) {
     void queryClient.prefetchQuery({
       queryKey: productKeys.detailBySlug(slug),
-      queryFn: () => productAPI.getProductBySlug(slug),
+      queryFn: () => fetchProductDetail(slug),
       staleTime: 5 * 60 * 1000,
     });
     return;
@@ -24,7 +31,7 @@ export function prefetchProduct(product: ProductRef) {
   if (id) {
     void queryClient.prefetchQuery({
       queryKey: productKeys.detailById(id),
-      queryFn: () => productAPI.getProductById(id),
+      queryFn: () => fetchProductDetail(undefined, id),
       staleTime: 5 * 60 * 1000,
     });
   }

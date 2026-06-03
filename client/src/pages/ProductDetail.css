@@ -437,7 +437,8 @@
   }
 
   .pd2-page--cart .pd2-gallery-strip,
-  .pd2-page--cart .pd2-ali-commerce-stack {
+  .pd2-page--cart .pd2-ali-commerce-stack,
+  .pd2-page--cart .pd2-gallery-media-rail {
     padding-left: 14px;
     padding-right: 14px;
   }

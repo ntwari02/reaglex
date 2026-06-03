@@ -194,3 +194,73 @@
 .rx-settings-page .rx-settings-card label {
   color: var(--text-muted);
 }
+
+/* Settings tab — flush mobile layout inside account shell */
+.buyer-account-mobile.is-settings-tab .account-main-pad {
+  padding: 0 !important;
+}
+
+.buyer-account-mobile.is-settings-tab .rx-settings-page {
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px));
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+.buyer-account-mobile.is-settings-tab .rx-settings-inner {
+  padding-top: 0;
+}
+
+.buyer-account-mobile.is-settings-tab .rx-settings-topbar {
+  margin-left: 0;
+  margin-right: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+
+/* Compact profile fields — override global premium 60px inputs */
+.rx-settings-page .premium-input-exempt,
+.rx-settings-page .profile-field-wrap input,
+.rx-settings-page .profile-field-wrap select,
+.rx-settings-page .profile-field-wrap textarea {
+  min-height: 48px !important;
+  height: auto;
+  border-radius: 12px !important;
+  padding-left: 2.5rem;
+  font-size: 14px;
+}
+
+.rx-settings-page .profile-field-wrap textarea {
+  min-height: 100px !important;
+  padding-top: 12px;
+  padding-left: 1rem;
+}
+
+.rx-settings-save-bar {
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+
+.rx-settings-banner {
+  background: var(--card-bg) !important;
+}
+
+.rx-settings-card--danger {
+  background: color-mix(in srgb, #ef4444 4%, var(--card-bg));
+}
+
+/* Profile cover — theme-aware */
+.rx-settings-page .profile-cover-btn {
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
+  color: var(--text-primary);
+}
+
+@media (max-width: 1023px) {
+  .buyer-account-mobile:not(.is-settings-tab) .account-main-pad {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 0 !important;
+  }
+
+  .buyer-account-mobile:not(.is-settings-tab) main {
+    padding-top: 4px;
+  }
+}

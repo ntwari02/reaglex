@@ -22,7 +22,12 @@ const SUCCESS = '#10b981';
 const ERROR = '#ef4444';
 const WARNING = '#f59e0b';
 const EASE = [0.25, 0.46, 0.45, 0.94];
-const CARD_STYLE = { boxShadow: '0 4px 20px rgba(0,0,0,0.06)', borderRadius: 16 };
+const CARD_STYLE = {
+  boxShadow: 'var(--shadow-card)',
+  borderRadius: 16,
+  background: 'var(--card-bg)',
+  border: '1px solid var(--border-card)',
+};
 
 const SETTINGS_TABS = [
   { id: 'profile', label: 'Profile', icon: User, desc: 'Photo, name & contact' },
@@ -364,7 +369,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
       className="rx-settings-page min-h-[520px]"
       style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
     >
-      <div className="max-w-[1300px] mx-auto px-3 sm:px-5 lg:px-7 py-3 sm:py-6 space-y-4">
+      <div className="rx-settings-inner max-w-[1300px] mx-auto px-3 sm:px-5 lg:px-7 py-3 sm:py-6 space-y-4">
         <SettingsTopBar
           title={showMobileHub ? 'Settings' : sectionMeta.title}
           subtitle={showMobileHub ? 'Manage your Reaglex account' : sectionMeta.sub}
@@ -518,19 +523,18 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
             transition={{ duration: 0.25, ease: EASE }}
           >
             <div
-              className="rounded-[24px] overflow-hidden"
+              className="rounded-[24px] overflow-hidden rx-settings-card"
               style={{
                 background: 'var(--card-bg)',
-                boxShadow:
-                  '0 18px 45px rgba(15,23,42,0.55), inset 0 1px 0 rgba(255,255,255,0.04)',
+                boxShadow: 'var(--shadow-card)',
+                border: '1px solid var(--border-card)',
               }}
             >
               {/* Top banner */}
               <div
-                className="relative h-[120px]"
+                className="relative profile-banner h-[88px] sm:h-[120px]"
                 style={{
-                  background:
-                    'var(--panel-deep-bg)',
+                  background: 'var(--panel-deep-bg)',
                 }}
               >
                 <div
@@ -543,19 +547,15 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 />
                 <button
                   type="button"
-                  className="absolute top-4 right-4 text-[12px] px-3 py-1.5 rounded-lg"
-                  style={{
-                    background: 'rgba(255,255,255,0.12)',
-                    color: '#ffffff',
-                  }}
+                  className="absolute top-4 right-4 text-[12px] px-3 py-1.5 rounded-lg profile-cover-btn"
                 >
                   ✏ Edit Cover
                 </button>
 
                 {/* Avatar overlapping */}
-                <div className="absolute left-8 -bottom-12">
+                <div className="absolute left-4 sm:left-8 -bottom-10 sm:-bottom-12">
                   <div
-                    className="relative w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold text-white cursor-pointer overflow-hidden"
+                    className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold text-white cursor-pointer overflow-hidden"
                     style={{
                       background: PRIMARY,
                       border: '4px solid var(--card-bg)',
@@ -636,7 +636,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
               </div>
 
               {/* Main content inside card */}
-              <div className="px-6 sm:px-8 pt-16 pb-7 space-y-6">
+              <div className="px-4 sm:px-8 pt-14 sm:pt-16 pb-6 sm:pb-7 space-y-6">
                 {/* Name + status + edit */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-start gap-4">
@@ -679,7 +679,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                     className="self-start text-xs sm:text-sm font-semibold px-4 py-2 rounded-[10px]"
                     style={{
                       background: 'transparent',
-                      boxShadow: '0 0 0 1.5px var(--divider)',
+                      boxShadow: '0 0 0 1.5px var(--border-card)',
                       color: 'var(--text-secondary)',
                     }}
                   >
@@ -797,7 +797,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                           <select
                             value={profileForm[f.key] || ''}
                             onChange={(e) => handleProfileChange(f.key, e.target.value)}
-                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
+                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] premium-input-exempt"
                             style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                           >
                             <option value="">Select</option>
@@ -810,7 +810,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                           <select
                             value={profileForm.country || 'RW'}
                             onChange={(e) => handleProfileChange('country', e.target.value)}
-                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
+                            className="w-full h-12 pl-10 pr-4 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] premium-input-exempt"
                             style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                           >
                             {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
@@ -823,7 +823,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                             type={f.type}
                             value={profileForm[f.key] || ''}
                             onChange={(e) => handleProfileChange(f.key, e.target.value)}
-                            className="w-full h-12 pl-10 pr-10 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)]"
+                            className="w-full h-12 pl-10 pr-10 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] premium-input-exempt"
                             style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                           />
                           {profileForm[f.key] && <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />}
@@ -850,7 +850,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                       onChange={(e) => handleProfileChange('bio', e.target.value.slice(0, 200))}
                       rows={4}
                       placeholder="Tell buyers and sellers about yourself..."
-                      className="w-full px-4 py-3 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] resize-y min-h-[100px]"
+                      className="w-full px-4 py-3 rounded-xl outline-none transition-all focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_30%,transparent)] resize-y min-h-[100px] premium-input-exempt"
                       style={{ border: '1.5px solid var(--divider)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                     />
                     <span className={`absolute bottom-2 right-3 text-xs ${profileForm.bio.length >= 200 ? 'text-red-500' : profileForm.bio.length >= 180 ? 'text-[var(--brand-primary)]' : 'text-gray-400'}`}>
@@ -875,7 +875,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                       setProfileDirty(false);
                     }}
                     className="px-4 py-2.5 rounded-xl border-2 font-semibold text-sm"
-                    style={{ borderColor: '#e5e7eb', color: '#64748b' }}
+                    style={{ borderColor: 'var(--border-card)', color: 'var(--text-secondary)' }}
                   >
                     Cancel
                   </button>
@@ -908,32 +908,32 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
 
         {section === 'security' && (
           <motion.div key="security" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="space-y-6 hidden lg:block">
-            <div className="rounded-2xl bg-white p-7" style={CARD_STYLE}>
-              <h3 className="font-bold text-lg mb-5 flex items-center gap-2" style={{ color: '#0f172a' }}>🔒 Change Password</h3>
+            <div className="rounded-2xl rx-settings-card p-7" style={CARD_STYLE}>
+              <h3 className="font-bold text-lg mb-5 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>🔒 Change Password</h3>
               <div className="space-y-4 max-w-md">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>Current Password</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Current Password</label>
                   <div className="relative">
-                    <input type={showCurrentPass ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full h-12 pl-4 pr-12 rounded-xl border-2" style={{ borderColor: '#e5e7eb' }} />
+                    <input type={showCurrentPass ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full h-12 pl-4 pr-12 rounded-xl border premium-input-exempt" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
                     <button type="button" onClick={() => setShowCurrentPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2">{showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>New Password</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>New Password</label>
                   <div className="relative">
-                    <input type={showNewPass ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full h-12 pl-4 pr-12 rounded-xl border-2" style={{ borderColor: '#e5e7eb' }} />
+                    <input type={showNewPass ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full h-12 pl-4 pr-12 rounded-xl border premium-input-exempt" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
                     <button type="button" onClick={() => setShowNewPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2">{showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                   </div>
                   <div className="flex gap-1 mt-2">
                     {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex-1 h-1 rounded-full" style={{ background: newPassword.length >= i * 3 ? (i >= 3 ? SUCCESS : i >= 2 ? WARNING : PRIMARY) : '#e5e7eb' }} />
+                      <div key={i} className="flex-1 h-1 rounded-full" style={{ background: newPassword.length >= i * 3 ? (i >= 3 ? SUCCESS : i >= 2 ? WARNING : PRIMARY) : 'var(--border-card)' }} />
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>Confirm New Password</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Confirm New Password</label>
                   <div className="relative">
-                    <input type={showConfirmPass ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full h-12 pl-4 pr-12 rounded-xl border-2" style={{ borderColor: '#e5e7eb' }} />
+                    <input type={showConfirmPass ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full h-12 pl-4 pr-12 rounded-xl border premium-input-exempt" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
                     {confirmPassword && <span className="absolute right-3 top-1/2 -translate-y-1/2">{newPassword === confirmPassword ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}</span>}
                   </div>
                 </div>
@@ -942,39 +942,39 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 </button>
               </div>
             </div>
-            <div className="rounded-2xl bg-white p-7" style={CARD_STYLE}>
-              <h3 className="font-bold text-lg mb-2 flex items-center gap-2" style={{ color: '#0f172a' }}>🛡️ Two-Factor Authentication</h3>
-              <p className="text-sm mb-4" style={{ color: '#64748b' }}>Add extra security to your account</p>
+            <div className="rounded-2xl rx-settings-card p-7" style={CARD_STYLE}>
+              <h3 className="font-bold text-lg mb-2 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>🛡️ Two-Factor Authentication</h3>
+              <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Add extra security to your account</p>
               <div className="flex items-center justify-between">
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${twoFaEnabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{twoFaEnabled ? 'Enabled' : 'Disabled'}</span>
-                <button type="button" onClick={() => setTwoFaEnabled((v) => !v)} className={`relative w-12 h-6 rounded-full transition-colors ${twoFaEnabled ? '' : 'bg-gray-200'}`} style={{ background: twoFaEnabled ? PRIMARY : undefined }}>
+                <button type="button" onClick={() => setTwoFaEnabled((v) => !v)} className="relative w-12 h-6 rounded-full transition-colors" style={{ background: twoFaEnabled ? PRIMARY : 'var(--border-card)' }}>
                   <motion.div animate={{ x: twoFaEnabled ? 24 : 4 }} className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow" />
                 </button>
               </div>
             </div>
-            <div className="rounded-2xl bg-white p-7" style={CARD_STYLE}>
-              <h3 className="font-bold text-lg mb-4" style={{ color: '#0f172a' }}>📱 Active Sessions</h3>
+            <div className="rounded-2xl rx-settings-card p-7" style={CARD_STYLE}>
+              <h3 className="font-bold text-lg mb-4" style={{ color: 'var(--text-primary)' }}>📱 Active Sessions</h3>
               {sessions.map((s) => (
-                <div key={s.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                <div key={s.id} className="flex items-center justify-between py-3 border-b last:border-0" style={{ borderColor: 'var(--border-card)' }}>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{s.current ? '💻' : '📱'}</span>
                     <div>
-                      <p className="font-medium text-sm" style={{ color: '#0f172a' }}>{s.device}</p>
-                      <p className="text-xs" style={{ color: '#64748b' }}>{s.location} · <span style={{ color: s.current ? SUCCESS : '#94a3b8' }}>{s.time}</span></p>
+                      <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{s.device}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.location} · <span style={{ color: s.current ? SUCCESS : 'var(--text-faint)' }}>{s.time}</span></p>
                     </div>
                   </div>
-                  {s.current ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100" style={{ color: SUCCESS }}>This device</span> : <button type="button" className="text-xs font-semibold" style={{ color: ERROR }}>Sign Out</button>}
+                  {s.current ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--badge-success-bg)', color: SUCCESS }}>This device</span> : <button type="button" className="text-xs font-semibold" style={{ color: ERROR }}>Sign Out</button>}
                 </div>
               ))}
               <button type="button" className="mt-4 px-4 py-2 rounded-xl border-2 font-semibold text-sm" style={{ borderColor: ERROR, color: ERROR }}>Sign Out All Other Devices</button>
             </div>
-            <div className="rounded-2xl bg-white p-7" style={CARD_STYLE}>
-              <h3 className="font-bold text-lg mb-4" style={{ color: '#0f172a' }}>Login History</h3>
+            <div className="rounded-2xl rx-settings-card p-7" style={CARD_STYLE}>
+              <h3 className="font-bold text-lg mb-4" style={{ color: 'var(--text-primary)' }}>Login History</h3>
               <div className="space-y-2">
                 {loginHistory.map((h, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-gray-50">
-                    <span style={{ color: '#64748b' }}>{h.date}</span>
-                    <span style={{ color: '#64748b' }}>{h.device} · {h.location}</span>
+                  <div key={i} className="flex items-center justify-between text-sm py-2 border-b" style={{ borderColor: 'color-mix(in srgb, var(--border-card) 50%, transparent)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{h.date}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{h.device} · {h.location}</span>
                     <span className={`font-medium ${h.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>{h.status === 'success' ? 'Success' : 'Failed'}</span>
                   </div>
                 ))}
@@ -995,11 +995,11 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
           >
             {/* Banner */}
             <div
-              className="rounded-[20px] px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
+              className="rounded-[20px] px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 rx-settings-banner"
               style={{
-                background:
-                  'var(--panel-deep-bg)',
-                boxShadow: '0 18px 45px rgba(0,0,0,0.5)',
+                background: 'var(--panel-deep-bg)',
+                boxShadow: 'var(--shadow-card)',
+                border: '1px solid var(--border-card)',
               }}
             >
               <div className="flex items-start gap-4">
@@ -1016,13 +1016,13 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 <div className="space-y-1">
                   <h2
                     className="text-xl sm:text-2xl font-bold"
-                    style={{ color: '#ffffff' }}
+                    style={{ color: 'var(--text-primary)' }}
                   >
                     Notification Preferences
                   </h2>
                   <p
                     className="text-sm"
-                    style={{ color: 'rgba(255,255,255,0.7)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     Manage how and when Reaglex notifies you.
                   </p>
@@ -1032,7 +1032,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 <div className="flex items-center gap-3">
                   <span
                     className="text-xs font-medium"
-                    style={{ color: 'rgba(255,255,255,0.75)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     Pause All
                   </span>
@@ -1082,11 +1082,11 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.05 }}
-                className="rounded-[20px] p-6"
+                className="rounded-[20px] p-6 rx-settings-card"
                 style={{
                   background: 'var(--card-bg)',
-                  boxShadow:
-                    '0 14px 40px rgba(15,23,42,0.55), inset 0 1px 0 rgba(255,255,255,0.04)',
+                  boxShadow: 'var(--shadow-card)',
+                  border: '1px solid var(--border-card)',
                 }}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -1238,10 +1238,11 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.08 }}
-                className="rounded-[20px] p-6"
+                className="rounded-[20px] p-6 rx-settings-card"
                 style={{
                   background: 'var(--card-bg)',
-                  boxShadow: '0 14px 40px rgba(15,23,42,0.35)',
+                  boxShadow: 'var(--shadow-card)',
+                  border: '1px solid var(--border-card)',
                 }}
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1286,7 +1287,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                         setRecEmailPrefs((p) => ({ ...p, frequency: e.target.value }));
                         setNotifDirty(true);
                       }}
-                      className="mt-2 w-full h-11 rounded-xl px-3"
+                      className="mt-2 w-full h-11 rounded-xl px-3 premium-input-exempt"
                       style={{ background: 'var(--bg-secondary)', border: '1px solid var(--card-border)', color: 'var(--text-primary)' }}
                     >
                       <option value="daily">Daily</option>
@@ -1301,7 +1302,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                         setRecEmailPrefs((p) => ({ ...p, mode: e.target.value }));
                         setNotifDirty(true);
                       }}
-                      className="mt-2 w-full h-11 rounded-xl px-3"
+                      className="mt-2 w-full h-11 rounded-xl px-3 premium-input-exempt"
                       style={{ background: 'var(--bg-secondary)', border: '1px solid var(--card-border)', color: 'var(--text-primary)' }}
                     >
                       <option value="mixed">Mixed recommendations</option>
@@ -1402,20 +1403,20 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
         )}
 
         {section === 'preferences' && (
-          <motion.div key="preferences" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="rounded-2xl bg-white p-7" style={CARD_STYLE}>
-            <h3 className="font-bold text-lg mb-6" style={{ color: '#0f172a' }}>Display Preferences</h3>
+          <motion.div key="preferences" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="rounded-2xl rx-settings-card p-7" style={CARD_STYLE}>
+            <h3 className="font-bold text-lg mb-6" style={{ color: 'var(--text-primary)' }}>Display Preferences</h3>
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>Language</label>
-                <select value={prefs.language} onChange={(e) => { setPrefs((p) => ({ ...p, language: e.target.value })); setPrefsDirty(true); }} className="h-12 px-4 rounded-xl border-2 w-full max-w-xs" style={{ borderColor: '#e5e7eb' }}>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Language</label>
+                <select value={prefs.language} onChange={(e) => { setPrefs((p) => ({ ...p, language: e.target.value })); setPrefsDirty(true); }} className="h-12 px-4 rounded-xl border w-full max-w-xs premium-input-exempt" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
                   <option value="en">🇬🇧 English</option>
                   <option value="rw">🇷🇼 Kinyarwanda</option>
                   <option value="fr">🇫🇷 French</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#94a3b8' }}>Currency</label>
-                <select value={prefs.currency} onChange={(e) => { setPrefs((p) => ({ ...p, currency: e.target.value })); setPrefsDirty(true); }} className="h-12 px-4 rounded-xl border-2 w-full max-w-xs" style={{ borderColor: '#e5e7eb' }}>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Currency</label>
+                <select value={prefs.currency} onChange={(e) => { setPrefs((p) => ({ ...p, currency: e.target.value })); setPrefsDirty(true); }} className="h-12 px-4 rounded-xl border w-full max-w-xs premium-input-exempt" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
                   <option value="USD">$ USD</option>
                   <option value="RWF">RWF</option>
                   <option value="EUR">€ EUR</option>
@@ -1425,15 +1426,15 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 Theme is controlled from the <strong style={{ color: 'var(--text-primary)' }}>Appearance</strong> tab for a consistent experience across Reaglex.
               </p>
             </div>
-            <h3 className="font-bold text-lg mt-8 mb-4" style={{ color: '#0f172a' }}>Privacy</h3>
+            <h3 className="font-bold text-lg mt-8 mb-4" style={{ color: 'var(--text-primary)' }}>Privacy</h3>
             {[
               { key: 'showProfile', label: 'Show my profile to sellers' },
               { key: 'personalizedRec', label: 'Allow personalized recommendations' },
               { key: 'shareHistory', label: 'Share purchase history for better deals' },
             ].map(({ key, label }) => (
               <div key={key} className="flex items-center justify-between py-2">
-                <span className="text-sm" style={{ color: '#0f172a' }}>{label}</span>
-                <button type="button" onClick={() => { setPrefs((p) => ({ ...p, [key]: !p[key] })); setPrefsDirty(true); }} className={`relative w-12 h-6 rounded-full ${prefs[key] ? '' : 'bg-gray-200'}`} style={{ background: prefs[key] ? PRIMARY : undefined }}>
+                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                <button type="button" onClick={() => { setPrefs((p) => ({ ...p, [key]: !p[key] })); setPrefsDirty(true); }} className="relative w-12 h-6 rounded-full" style={{ background: prefs[key] ? PRIMARY : 'var(--border-card)' }}>
                   <motion.div animate={{ x: prefs[key] ? 24 : 4 }} className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow" />
                 </button>
               </div>
@@ -1448,8 +1449,8 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="rounded-2xl p-7 border-2"
-            style={{ ...CARD_STYLE, borderColor: '#fee2e2', background: 'white' }}
+            className="rounded-2xl p-7 border-2 rx-settings-card rx-settings-card--danger"
+            style={{ ...CARD_STYLE, borderColor: 'color-mix(in srgb, #ef4444 35%, var(--border-card))' }}
           >
             <h3
               className="font-bold text-lg mb-1 flex items-center gap-2"
@@ -1457,15 +1458,15 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
             >
               ⚠️ Danger Zone
             </h3>
-            <p className="text-sm mb-6" style={{ color: '#64748b' }}>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
               These actions are irreversible. Please proceed with caution.
             </p>
             <div className="space-y-6">
               <div>
-                <p className="font-medium text-sm mb-1" style={{ color: '#0f172a' }}>
+                <p className="font-medium text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
                   Deactivate Account
                 </p>
-                <p className="text-xs mb-2" style={{ color: '#64748b' }}>
+                <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
                   Temporarily disable your account. You can reactivate anytime.
                 </p>
                 <button
@@ -1478,10 +1479,10 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 </button>
               </div>
               <div>
-                <p className="font-medium text-sm mb-1" style={{ color: '#0f172a' }}>
+                <p className="font-medium text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
                   Delete Account
                 </p>
-                <p className="text-xs mb-2" style={{ color: '#64748b' }}>
+                <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
                   Permanently delete your account and all data. This cannot be undone.
                 </p>
                 <button
@@ -1494,7 +1495,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 </button>
               </div>
               <div>
-                <p className="font-medium text-sm mb-1" style={{ color: '#0f172a' }}>
+                <p className="font-medium text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
                   📥 Download a copy of all your data
                 </p>
                 <button
@@ -1504,7 +1505,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                     showToast("We'll email you a download link within 24 hours.");
                   }}
                   className="px-4 py-2 rounded-xl border-2 font-semibold text-sm"
-                  style={{ borderColor: '#e5e7eb', color: '#475569' }}
+                  style={{ borderColor: 'var(--border-card)', color: 'var(--text-secondary)' }}
                 >
                   Request Data Export
                 </button>
@@ -1529,11 +1530,11 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4"
+            className="rx-settings-save-bar fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-10 py-4"
             style={{
               background: 'var(--card-bg)',
-              boxShadow: '0 -8px 32px rgba(0,0,0,0.35)',
-              borderRadius: '20px 20px 0 0',
+              boxShadow: '0 -8px 32px color-mix(in srgb, var(--text-primary) 12%, transparent)',
+              borderTop: '1px solid var(--border-card)',
             }}
           >
             <div className="flex items-center gap-2">
@@ -1629,12 +1630,12 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
       <AnimatePresence>
         {deactivateModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={() => setDeactivateModal(false)}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="rounded-2xl bg-white p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-              <h3 className="font-bold text-lg mb-2" style={{ color: '#0f172a' }}>Deactivate account?</h3>
-              <p className="text-sm mb-4" style={{ color: '#64748b' }}>Type DEACTIVATE to confirm.</p>
-              <input type="text" value={deactivateConfirm} onChange={(e) => setDeactivateConfirm(e.target.value)} placeholder="DEACTIVATE" className="w-full h-12 px-4 rounded-xl border-2 mb-4" style={{ borderColor: '#e5e7eb' }} />
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="rounded-2xl rx-settings-card p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>Deactivate account?</h3>
+              <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Type DEACTIVATE to confirm.</p>
+              <input type="text" value={deactivateConfirm} onChange={(e) => setDeactivateConfirm(e.target.value)} placeholder="DEACTIVATE" className="w-full h-12 px-4 rounded-xl border mb-4 premium-input-exempt" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
               <div className="flex gap-3">
-                <button type="button" onClick={() => setDeactivateModal(false)} className="flex-1 py-2.5 rounded-xl border-2 font-semibold" style={{ borderColor: '#e5e7eb' }}>Cancel</button>
+                <button type="button" onClick={() => setDeactivateModal(false)} className="flex-1 py-2.5 rounded-xl border-2 font-semibold" style={{ borderColor: 'var(--border-card)', color: 'var(--text-secondary)' }}>Cancel</button>
                 <button type="button" onClick={() => { if (deactivateConfirm === 'DEACTIVATE') { setDeactivateModal(false); setDeactivateConfirm(''); showToast('Account deactivated'); } }} disabled={deactivateConfirm !== 'DEACTIVATE'} className="flex-1 py-2.5 rounded-xl font-semibold text-white disabled:opacity-50" style={{ background: PRIMARY }}>Confirm Deactivation</button>
               </div>
             </motion.div>
@@ -1646,22 +1647,22 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
       <AnimatePresence>
         {deleteModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" onClick={() => { setDeleteModal(false); setDeleteStep(0); setDeletePassword(''); setDeleteConfirm(''); }}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="rounded-2xl bg-white p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="rounded-2xl rx-settings-card p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="font-bold text-lg mb-2" style={{ color: ERROR }}>Delete account permanently</h3>
               {deleteStep === 0 && (
                 <>
-                  <p className="text-sm mb-4" style={{ color: '#64748b' }}>This will delete your profile, orders history, and all data. This cannot be undone.</p>
+                  <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>This will delete your profile, orders history, and all data. This cannot be undone.</p>
                   <button type="button" onClick={() => setDeleteStep(1)} className="w-full py-2.5 rounded-xl font-semibold text-white" style={{ background: ERROR }}>Continue</button>
                 </>
               )}
               {deleteStep === 1 && (
                 <>
-                  <p className="text-sm mb-2" style={{ color: '#64748b' }}>Enter your password</p>
-                  <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 mb-4" style={{ borderColor: '#e5e7eb' }} placeholder="Password" />
-                  <p className="text-sm mb-2" style={{ color: '#64748b' }}>Type DELETE MY ACCOUNT to confirm</p>
-                  <input type="text" value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 mb-4" style={{ borderColor: '#e5e7eb' }} placeholder="DELETE MY ACCOUNT" />
+                  <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>Enter your password</p>
+                  <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full h-12 px-4 rounded-xl border mb-4 premium-input-exempt" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="Password" />
+                  <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>Type DELETE MY ACCOUNT to confirm</p>
+                  <input type="text" value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} className="w-full h-12 px-4 rounded-xl border mb-4 premium-input-exempt" style={{ borderColor: 'var(--border-card)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="DELETE MY ACCOUNT" />
                   <div className="flex gap-3">
-                    <button type="button" onClick={() => setDeleteStep(0)} className="flex-1 py-2.5 rounded-xl border-2 font-semibold" style={{ borderColor: '#e5e7eb' }}>Back</button>
+                    <button type="button" onClick={() => setDeleteStep(0)} className="flex-1 py-2.5 rounded-xl border-2 font-semibold" style={{ borderColor: 'var(--border-card)', color: 'var(--text-secondary)' }}>Back</button>
                     <button type="button" onClick={() => { if (deleteConfirm === 'DELETE MY ACCOUNT') { setDeleteModal(false); showToast('Account deletion requested'); } }} disabled={deleteConfirm !== 'DELETE MY ACCOUNT'} className="flex-1 py-2.5 rounded-xl font-semibold text-white disabled:opacity-50" style={{ background: ERROR }}>Delete Everything</button>
                   </div>
                 </>

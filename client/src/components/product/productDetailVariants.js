@@ -1,11 +1,16 @@
 import { resolveVariantCompareAtUsd, resolveVariantPriceUsd } from '../../lib/resolveProductPrice';
-import { productProofVideoUrl, resolvePreviewImage, resolveMediaUrl } from './productPreviewUtils';
+import {
+  collectProductImages,
+  productProofVideoUrl,
+  resolvePreviewImage,
+  resolveMediaUrl,
+} from './productPreviewUtils';
 
 /** Build AliExpress-style color swatch rows from variants, legacy colors[], or product images. */
 export function buildProductColorOptions(product, variantOptions = []) {
   if (!product) return [];
 
-  const productImages = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  const productImages = collectProductImages(product);
 
   const withIdentity = variantOptions.filter(
     (v) => v?.color || v?.label || v?.thumbnailUrl || v?.size || v?.sku,
@@ -52,13 +57,13 @@ export function buildProductColorOptions(product, variantOptions = []) {
       key: c,
       color: c,
       label: typeof c === 'string' && c.startsWith('#') ? `Color ${i + 1}` : c,
-      thumbnailUrl: product.images?.[i] || product.images?.[0] || product.image,
+      thumbnailUrl: productImages[i] || productImages[0] || product.image,
       swatchHex: c,
       variants: [],
     }));
   }
 
-  const imgs = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+  const imgs = collectProductImages(product);
   if (imgs.length > 1) {
     return imgs.map((img, i) => ({
       key: `image-${i}`,
@@ -80,7 +85,7 @@ export function buildProductColorOptions(product, variantOptions = []) {
 export function buildProductDetailGallery(product, variantOptions = [], resolvers = {}) {
   const resolveImg = resolvers.resolveImage || resolvePreviewImage;
   const resolveVid = resolvers.resolveVideo || resolveMediaUrl;
-  const productImages = Array.isArray(product?.images) ? product.images.filter(Boolean) : [];
+  const productImages = collectProductImages(product);
   const items = [];
   const seen = new Set();
 
@@ -92,7 +97,7 @@ export function buildProductDetailGallery(product, variantOptions = [], resolver
   };
 
   const videoUrl = productProofVideoUrl(product);
-  const poster = resolveImg(product?.images?.[0] || product?.image || product?.thumbnail);
+  const poster = resolveImg(productImages[0] || product?.image || product?.thumbnail);
   if (videoUrl) {
     const src = resolveVid(videoUrl) || videoUrl;
     if (src && !seen.has(src)) {
@@ -101,15 +106,9 @@ export function buildProductDetailGallery(product, variantOptions = [], resolver
     }
   }
 
-  if (Array.isArray(product?.images) && product.images.length) {
-    product.images.filter(Boolean).forEach((img, idx) => {
-      addImage(img, { imageIndex: idx });
-    });
-  } else if (product?.image) {
-    addImage(product.image, { imageIndex: 0 });
-  } else if (product?.thumbnail) {
-    addImage(product.thumbnail, { imageIndex: 0 });
-  }
+  productImages.forEach((img, idx) => {
+    addImage(img, { imageIndex: idx });
+  });
 
   (variantOptions || []).forEach((v, variantIdx) => {
     const rawThumb = v?.thumbnailUrl || productImages[variantIdx];

@@ -74,7 +74,7 @@ export default function Home() {
         <PremiumMobileHome />
       </div>
 
-      <div className="hidden md:block w-full pt-2">
+      <div className="hidden md:block w-full">
         <PremiumCasualHero isDark={isDark} />
       </div>
 

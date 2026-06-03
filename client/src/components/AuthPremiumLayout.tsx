@@ -119,13 +119,11 @@ export default function AuthPremiumLayout({
 
       {/* ═══ RIGHT PANEL — Form ═══ */}
       <main
-        className="flex flex-col flex-1 min-w-0 overflow-y-auto overflow-x-hidden"
+        className="relative flex flex-col flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden"
         style={{
           flexBasis: '50%',
           background: 'var(--auth-premium-form-bg)',
           minHeight: '100dvh',
-          /* On mobile: no horizontal padding, the card itself handles it.
-             On desktop: generous side padding so card centres nicely. */
           padding: '0',
         }}
       >

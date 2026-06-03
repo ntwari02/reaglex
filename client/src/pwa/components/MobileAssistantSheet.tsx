@@ -278,7 +278,7 @@ export default function MobileAssistantSheet({ open, onClose }: MobileAssistantS
                   iconStyle={{ background: 'rgba(59, 130, 246, 0.18)', color: '#60a5fa' }}
                   title="Categories"
                   subtitle="Browse all categories"
-                  onClick={() => go(() => navigate('/products'))}
+                  onClick={() => go(() => navigate('/category/all'))}
                 />
                 <ActionRow
                   icon={Zap}

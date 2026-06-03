@@ -30,11 +30,21 @@ function normalizeMediaUrl(maybeUrl: unknown): unknown {
   return maybeUrl;
 }
 
+function normalizeImageEntry(entry: unknown): unknown {
+  if (typeof entry === 'string') return normalizeMediaUrl(entry);
+  if (entry && typeof entry === 'object') {
+    const o = entry as Record<string, unknown>;
+    const url = o.url ?? o.src ?? o.secure_url ?? o.path;
+    if (typeof url === 'string') return normalizeMediaUrl(url);
+  }
+  return entry;
+}
+
 function normalizeProductMedia(product: any) {
   if (!product) return product;
 
   if (Array.isArray(product.images)) {
-    product.images = product.images.map(normalizeMediaUrl);
+    product.images = product.images.map(normalizeImageEntry).filter(Boolean);
   }
 
   // Some older data may store a single `image` field.
@@ -262,14 +272,22 @@ async function enrichAndSendProduct(
     typeof verificationDoc?.aiChecks?.videoProofUrl === 'string'
       ? normalizeMediaUrl(verificationDoc.aiChecks.videoProofUrl)
       : undefined;
+  const directVideoUrl =
+    typeof (product as any)?.videoUrl === 'string' ? normalizeMediaUrl((product as any).videoUrl) : undefined;
   const hasDirectVideo =
-    typeof (product as any)?.videoUrl === 'string' && String((product as any).videoUrl).trim().length > 0;
+    typeof directVideoUrl === 'string' && directVideoUrl.trim().length > 0;
+  const resolvedVideoUrl = hasDirectVideo
+    ? directVideoUrl
+    : typeof verificationVideoUrl === 'string'
+      ? verificationVideoUrl
+      : undefined;
 
   return res.json({
     product: {
       ...product,
-      ...(hasDirectVideo ? {} : verificationVideoUrl ? { videoUrl: verificationVideoUrl } : {}),
-      verificationVideoUrl,
+      ...(resolvedVideoUrl ? { videoUrl: resolvedVideoUrl } : {}),
+      verificationVideoUrl: verificationVideoUrl || resolvedVideoUrl,
+      videoProofUrl: verificationVideoUrl || resolvedVideoUrl,
       verificationVideoUploaded: Boolean(verificationDoc?.aiChecks?.videoProofUploaded),
       ratingAverage: avgRating || (product as any)?.averageRating || (product as any)?.rating || 0,
       reviewCount: reviewCount || (product as any)?.totalReviews || (product as any)?.reviewCount || 0,

@@ -484,7 +484,7 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       <ErrorBanner message={error} />
 
       {/* Name + Email */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="auth-mobile-field-grid grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <AuthInput label="Full Name" value={fd.fullName} onChange={f('fullName')} placeholder="Your full name"
           leftIcon={User} valid={fd.fullName.trim().length >= 2}
           focused={focused === 'name'} onFocus={() => setFocused('name')} onBlur={() => setFocused(null)} required autoFocus />
@@ -998,12 +998,12 @@ export default function AuthPage() {
       <div className="flex flex-col flex-1 min-h-0 w-full">
 
         {/* Card area */}
-        <div className="auth-mobile-card-wrap flex-1 flex flex-col items-center justify-center min-h-0
-                        px-2 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10">
+        <div className="auth-mobile-card-wrap flex-1 flex flex-col items-stretch sm:items-center justify-start sm:justify-center min-h-0 w-full
+                        px-3 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10">
           <motion.div
             initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="auth-mobile-card w-full sm:max-w-[520px] relative overflow-hidden rounded-xl sm:rounded-2xl"
+            className="auth-mobile-card w-full sm:max-w-[520px] relative overflow-hidden rounded-2xl sm:rounded-2xl flex-shrink-0"
             style={{
               background: cardBg,
               boxShadow: cardShadow,
@@ -1056,8 +1056,11 @@ export default function AuthPage() {
                     exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
                   >
                     {/* Tab switcher */}
-                    <div className="auth-mobile-tab-bar flex items-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl mb-4 sm:mb-7 relative"
-                      style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
+                    <div
+                      className="auth-mobile-tab-bar flex items-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl mb-4 sm:mb-7 relative"
+                      data-active-tab={validTab === 'signup' ? 'signup' : 'login'}
+                      style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
+                    >
                       <Link
                         to="/auth?tab=login"
                         className="auth-mobile-tab-link relative z-10 flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[13px] sm:text-[14px] font-bold transition-colors"
@@ -1074,17 +1077,18 @@ export default function AuthPage() {
                       </Link>
                       <motion.span
                         layoutId="auth-v2-pill"
-                        className="absolute top-1.5 rounded-xl"
+                        className="auth-mobile-tab-pill absolute rounded-xl pointer-events-none"
                         style={{
                           background: 'var(--card-bg)',
                           boxShadow: (validTab === 'login' || validTab === 'forgot')
                             ? `var(--shadow-cta), 0 0 0 1px color-mix(in srgb, var(--brand-primary) 18%, transparent)`
                             : `0 2px 12px var(--navbar-violet-glow-soft), 0 0 0 1px var(--navbar-violet-mix)`,
-                          height: 'calc(100% - 12px)',
+                          top: 4,
+                          bottom: 4,
+                          width: 'calc(50% - 4px)',
                         }}
                         animate={{
-                          left:  validTab === 'signup' ? 'calc(50% + 6px)' : '6px',
-                          width: 'calc(50% - 12px)',
+                          left: validTab === 'signup' ? 'calc(50%)' : 4,
                         }}
                         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                       />
@@ -1292,7 +1296,8 @@ export default function AuthPage() {
 
               </AnimatePresence>
 
-              {/* Footer inside card */}
+              {/* Footer inside card — hide on signup (terms already in form) */}
+              {validTab !== 'signup' && (
               <p className="auth-mobile-footer-legal mt-4 sm:mt-6 text-[11px] sm:text-[12px] text-center leading-relaxed"
                 style={{ color: 'var(--text-faint)' }}>
                 By continuing you agree to our{' '}
@@ -1300,6 +1305,7 @@ export default function AuthPage() {
                 {' '}and{' '}
                 <a href="/privacy" className="hover:underline font-semibold" style={{ color: PRIMARY }}>Privacy Policy</a>.
               </p>
+              )}
             </div>
           </motion.div>
         </div>

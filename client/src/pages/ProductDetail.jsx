@@ -26,7 +26,7 @@ import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttributes';
 import { productImageLayoutId } from '../motion/presets';
 import LiveProductTeaser from '../components/live/LiveProductTeaser';
-import { resolveMediaUrl } from '../components/product/productPreviewUtils';
+import { resolveMediaUrl, collectProductImages, isProductDetailPreview } from '../components/product/productPreviewUtils';
 import ProductColorRail from '../components/product/ProductColorRail';
 import ProductReviewGalleryRail from '../components/product/ProductReviewGalleryRail';
 import {
@@ -181,10 +181,7 @@ export default function ProductDetail() {
   const resolvedId   = product?._id || product?.id || legacyId || null;
   const title        = product?.title || product?.name || 'Product';
   const category     = product?.category || 'General';
-  const images       = useMemo(() => {
-    const list = (product?.images?.length ? product.images : [product?.image]).filter(Boolean);
-    return list;
-  }, [product]);
+  const images       = useMemo(() => collectProductImages(product), [product]);
   const origin       = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
   const canonicalPath = useMemo(() => {
     if (product?.slug) return `/product/${encodeURIComponent(product.slug)}`;
@@ -391,6 +388,8 @@ export default function ProductDetail() {
   const {
     data: fetchedProduct,
     isPending: productPending,
+    isPlaceholderData: productIsPreviewData,
+    isFetching: productFetching,
     isError: productQueryError,
   } = useQuery({
     queryKey: [...productQueryKey, inventoryRefreshTick],
@@ -402,10 +401,12 @@ export default function ProductDetail() {
     },
     enabled: Boolean(slugParam || legacyId),
     staleTime: 5 * 60 * 1000,
-    initialData: productPreview || undefined,
+    placeholderData: productPreview || undefined,
   });
 
-  const loading = productPending && !product;
+  const loading = (productPending || productIsPreviewData || productFetching) && (
+    !fetchedProduct || isProductDetailPreview(fetchedProduct) || productIsPreviewData
+  );
 
   useEffect(() => {
     if (!slugParam && !legacyId) return;
@@ -416,6 +417,7 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (!fetchedProduct || typeof fetchedProduct !== 'object') return;
+    if (productIsPreviewData || isProductDetailPreview(fetchedProduct)) return;
     const p = fetchedProduct;
     setProduct(p);
     setError(null);
@@ -430,7 +432,7 @@ export default function ProductDetail() {
     if (legacyId && p.slug && location.pathname.startsWith('/products/')) {
       navigate(`/product/${encodeURIComponent(String(p.slug).trim())}`, { replace: true });
     }
-  }, [fetchedProduct, legacyId, location.pathname, navigate, addRecent]);
+  }, [fetchedProduct, productIsPreviewData, legacyId, location.pathname, navigate, addRecent]);
 
   useEffect(() => {
     if (productQueryError) {
@@ -527,7 +529,7 @@ export default function ProductDetail() {
     return buildProductDetailGallery(
       {
         ...product,
-        images: images?.length ? images : product.images,
+        images,
         image: product.image,
         verificationVideoUrl: product.verificationVideoUrl,
         videoProofUrl: product.videoProofUrl,
@@ -756,7 +758,8 @@ export default function ProductDetail() {
   const showGalleryStrip =
     galleryItems.length > 1 ||
     galleryHasVideo ||
-    images.length > 1;
+    images.length > 1 ||
+    colorOptions.length > 1;
   const selectedColorLabel =
     colorOptions.find((c) => c.key === selectedColorKey)?.label || selectedColor || '—';
   const openReviews = () => {
@@ -1266,7 +1269,7 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              {colorRail && <div className="md:hidden">{colorRail}</div>}
+              {colorRail && <div className="pd2-gallery-media-rail">{colorRail}</div>}
 
               {reviewMediaItems.length > 0 && (
                 <ProductReviewGalleryRail
@@ -1474,9 +1477,6 @@ export default function ProductDetail() {
                     </button>
                   )}
                 </div>
-
-                {/* Color / style (tablet & desktop — mobile rail lives under gallery) */}
-                {colorRail && <div className="hidden md:block mb-4 lg:mb-5 order-6 lg:order-7">{colorRail}</div>}
 
                 {/* Size */}
                 {showSizeSelector && (

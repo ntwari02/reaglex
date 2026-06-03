@@ -128,6 +128,70 @@ export function productOldPrice(p) {
   return v != null && Number(v) > 0 ? Number(v) : null;
 }
 
+/** Navigation preview from cards — not a full API product payload. */
+export function isProductDetailPreview(p) {
+  if (!p || typeof p !== 'object') return false;
+  if (Array.isArray(p.images) || Array.isArray(p.variants)) return false;
+  if (p.slug || p.name) return false;
+  if (p.videoUrl || p.verificationVideoUrl || p.videoProofUrl) return false;
+  return Boolean(p.title || p.image);
+}
+
+function mediaIdentity(raw) {
+  if (!raw) return '';
+  if (typeof raw === 'object') {
+    return String(raw.url || raw.src || raw.secure_url || raw.path || raw.image || '').trim().toLowerCase();
+  }
+  return String(raw).trim().toLowerCase();
+}
+
+/** Merge images from product.images, image, thumbnail, variants, and media[]. */
+export function collectProductImages(product) {
+  if (!product || typeof product !== 'object') return [];
+  const seen = new Set();
+  const out = [];
+  const add = (raw) => {
+    const key = mediaIdentity(raw);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(raw);
+  };
+
+  if (Array.isArray(product.images)) {
+    product.images.filter(Boolean).forEach(add);
+  } else if (product.images) {
+    add(product.images);
+  }
+
+  add(product.image);
+  add(product.thumbnail);
+  add(product.thumbnailUrl);
+
+  if (Array.isArray(product.media)) {
+    product.media.forEach((item) => {
+      if (!item) return;
+      if (typeof item === 'string') {
+        add(item);
+        return;
+      }
+      const kind = String(item.type || item.kind || item.mediaType || '').toLowerCase();
+      const mime = String(item.mimeType || item.mimetype || '').toLowerCase();
+      const url = String(item.url || item.src || item.path || '').toLowerCase();
+      const isVideo =
+        kind.includes('video') ||
+        mime.startsWith('video/') ||
+        /\.(mp4|webm|ogg|mov|m4v|m3u8)$/i.test(url);
+      if (!isVideo) add(item.url || item.src || item.path || item);
+    });
+  }
+
+  if (Array.isArray(product.variants)) {
+    product.variants.forEach((v) => add(v?.thumbnailUrl));
+  }
+
+  return out;
+}
+
 export const PREVIEW_SIZES = ['XS', 'S', 'M', 'L', 'XL'];
 
 export const PREVIEW_TRUST = [
