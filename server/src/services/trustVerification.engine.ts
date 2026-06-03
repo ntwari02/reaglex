@@ -97,33 +97,14 @@ export function isValidBarcodeStrict(raw: string): { ok: boolean; normalized: st
   return { ok: false, normalized: digits, reason: 'unsupported_length' };
 }
 
-export function categoryRequiresBarcode(category: string): boolean {
-  const c = norm(category);
-  if (!c) return false;
-  const keys = [
-    'electronics',
-    'electronic',
-    'phone',
-    'mobile',
-    'smartphone',
-    'tablet',
-    'laptop',
-    'computer',
-    'pc',
-    'gadget',
-    'camera',
-    'audio',
-    'headphone',
-    'television',
-    'tv',
-    'console',
-    'gaming',
-  ];
-  return keys.some((k) => c.includes(k));
+/** Barcode is optional for all seller listings (no UI capture). */
+export function categoryRequiresBarcode(_category: string): boolean {
+  return false;
 }
 
-export function categoryRequiresVideo(category: string): boolean {
-  return categoryRequiresBarcode(category);
+/** Proof video is required so buyers can verify the item on the product page. */
+export function categoryRequiresVideo(_category: string): boolean {
+  return true;
 }
 
 export function isValidImei(raw: string): boolean {
@@ -310,15 +291,7 @@ export function evaluateTrustDraft(input: TrustDraftInput): TrustEvaluationResul
         state: 'fail',
         detail: 'Video proof required for this category.',
       });
-    } else if (!input.scanPassed) {
-      blockers.push('Run the video vs image trust check before submitting.');
-      breakdown.push({
-        key: 'video',
-        label: 'Video match',
-        state: 'fail',
-        detail: 'Similarity scan not completed.',
-      });
-    } else if (similarity == null || similarity < 0.6) {
+    } else if (!input.scanPassed && (similarity == null || similarity < 0.6)) {
       blockers.push('Video does not match product images (similarity below 0.6).');
       breakdown.push({
         key: 'video',

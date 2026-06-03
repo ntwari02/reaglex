@@ -75,7 +75,8 @@ Emails now use `sendRichNotificationEmail()` with category accent colors instead
 
 - Master switch for all marketing flows
 - Per-flow email/push toggles (recommendation, cart pulse, browse abandon, winback, abandoned cart)
-- Daily email cap per user (default **8**; `0` = unlimited)
+- Daily email cap per user (default **4**; `0` = unlimited). Recommendation-lane quota: **2–4/day** by buyer activity (`RECOMMENDATION_DAILY_MIN` / `RECOMMENDATION_DAILY_MAX`).
+- **Per-buyer send times** from `BuyerInsightProfile.activeHoursUtc` + unique minute offset (not one shared batch). Worker runs every **15m** and only emails buyers whose profile window is open now (`listBuyersInRecommendationSendWindow`).
 - Rich templates on/off
 - Gemini marketing copy on/off
 - Gemini transactional polish on/off (default **off**)
@@ -92,6 +93,7 @@ Settings persist in `MarketingAutomationSettings` (singleton). Also respects **A
 - `GEMINI_API_KEY` — dynamic marketing + optional transactional polish
 - `EMAIL_COPY_USE_GEMINI=false` — force fallback pools only (overrides admin Gemini toggles)
 - `DAILY_MARKETING_EMAIL_CAP` — optional env override of admin daily cap
+- `RECOMMENDATION_DAILY_MIN` (default 2), `RECOMMENDATION_DAILY_MAX` (default 4), `RECOMMENDATION_EMAIL_MIN_GAP_HOURS` (default 3), `RECOMMENDATION_EMAIL_TICK_MINUTES` (default 15)
 - `EMAIL_COPY_MODEL` — override Gemini model (default `gemini-1.5-flash-latest`)
 
 ## Future

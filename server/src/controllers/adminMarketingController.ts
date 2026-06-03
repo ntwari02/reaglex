@@ -1407,7 +1407,7 @@ export async function getAutomationOverview(req: AuthenticatedRequest, res: Resp
     const email = resolveEmailNotificationSettings(settings);
     res.json({
       globalEnabled: Boolean(settings.globalEnabled),
-      dailyEmailCap: Number(settings.dailyEmailCap ?? 8),
+      dailyEmailCap: Number(settings.dailyEmailCap ?? 4),
       email,
       system: {
         emailProviderConfigured: isEmailConfigured(),

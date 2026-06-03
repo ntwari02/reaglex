@@ -10,13 +10,17 @@ import { buildMarketingEmailContent } from '../email/marketingEmailBuilder';
 import { getClientUrl } from '../config/publicEnv';
 import { getPersonalizationGate } from '../services/personalizationGate.service';
 import {
-  getDailyMarketingEmailCap,
   isMarketingFlowEnabled,
   isMarketingFlowPushEnabled,
   recordFlowRun,
 } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from '../services/pushNotificationService';
 import { assertBuyerMarketingEligible } from '../services/marketingRecipient.service';
+import {
+  assertRecommendationLaneSend,
+  getRecentMarketingCopyContext,
+} from '../services/marketingEmailOrchestration.service';
+import { marketingDayKey } from '../email/copyEngine';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -29,18 +33,6 @@ function getIntEnv(name: string, fallback: number) {
 function hoursSince(date?: Date | null) {
   if (!date) return Number.POSITIVE_INFINITY;
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60);
-}
-
-async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
-  const cap = await getDailyMarketingEmailCap();
-  if (cap <= 0) return false;
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const count = await RecommendationEmailHistory.countDocuments({
-    userId: new mongoose.Types.ObjectId(userId),
-    status: 'sent',
-    sentAt: { $gte: since },
-  });
-  return count >= cap;
 }
 
 async function purchasedAfter(userId: mongoose.Types.ObjectId, after: Date) {
@@ -165,12 +157,11 @@ async function sendCartPulse(userId: string, lastCartAddAt: Date): Promise<'sent
   const uid = new mongoose.Types.ObjectId(userId);
 
   if (!isEmailConfigured()) return 'skipped';
-  if (await isOverDailyMarketingCap(userId)) return 'skipped';
 
-  // Cooldown per user for this lane (AliExpress sends often, but not every minute)
-  const cooldownHours = getIntEnv('CART_PULSE_COOLDOWN_HOURS', 3);
-  const profile = await BuyerInsightProfile.findOne({ userId: uid }).select('lastCartPulseSentAt').lean();
-  if (profile?.lastCartPulseSentAt && hoursSince(profile.lastCartPulseSentAt) < cooldownHours) return 'skipped';
+  const laneGate = await assertRecommendationLaneSend(userId, 'cart_pulse', {
+    triggerAt: lastCartAddAt,
+  });
+  if (!laneGate.ok) return 'skipped';
 
   // If purchased after the cart add, skip.
   if (await purchasedAfter(uid, lastCartAddAt)) return 'skipped';
@@ -186,12 +177,16 @@ async function sendCartPulse(userId: string, lastCartAddAt: Date): Promise<'sent
   const gate = await getPersonalizationGate(userId);
 
   const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
+  const copyContext = await getRecentMarketingCopyContext(userId);
   const copy = await generateMarketingEmailCopy({
     userId,
     firstName,
     campaign: 'cart_pulse',
     mode: 'mixed',
     allowPersonalized: gate.allowPersonalized,
+    recentSubjects: copyContext.subjects,
+    recentCampaigns: copyContext.campaigns,
+    copyDayKey: marketingDayKey(),
     products: products.map((p: any) => ({
       id: String(p._id),
       name: String(p.name || ''),

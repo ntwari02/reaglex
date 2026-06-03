@@ -765,6 +765,25 @@
   display: none;
 }
 
+.pd2-fetch-bar {
+  height: 2px;
+  margin: 0 2px 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--brand-primary) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: pd2-fetch-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes pd2-fetch-slide {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 /* Mobile product head (below gallery) */
 .pd2-mobile-product-head {
   padding: 2px 2px 4px;

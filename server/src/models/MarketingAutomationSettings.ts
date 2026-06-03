@@ -80,7 +80,7 @@ const emailSettingsSchema = new Schema<IEmailNotificationSettings>(
 const marketingAutomationSettingsSchema = new Schema<IMarketingAutomationSettings>(
   {
     globalEnabled: { type: Boolean, default: true },
-    dailyEmailCap: { type: Number, default: 8 },
+    dailyEmailCap: { type: Number, default: 4 },
     email: {
       type: emailSettingsSchema,
       default: () => ({
@@ -160,10 +160,10 @@ export async function getDailyMarketingEmailCap(): Promise<number> {
   }
   try {
     const s = await getMarketingAutomationSettings();
-    const cap = Number(s.dailyEmailCap ?? 8);
-    return Number.isFinite(cap) && cap >= 0 ? Math.floor(cap) : 8;
+    const cap = Number(s.dailyEmailCap ?? 4);
+    return Number.isFinite(cap) && cap >= 0 ? Math.floor(cap) : 4;
   } catch {
-    return 8;
+    return 4;
   }
 }
 

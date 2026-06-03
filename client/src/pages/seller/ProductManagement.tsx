@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Box, Plus, Edit, Trash2, Eye, Search, Filter, Upload, Download, X, Check, Image as ImageIcon, Tag, DollarSign, Package, Globe, LayoutGrid, Rows, FileSpreadsheet, FileText, AlertCircle, CheckCircle2, Loader2, Barcode, QrCode, Smartphone, FileVideo, ScanSearch, ShieldCheck, Layers, Sparkles } from 'lucide-react';
+import { Box, Plus, Edit, Trash2, Eye, Search, Filter, Upload, Download, X, Check, Image as ImageIcon, Tag, DollarSign, Package, Globe, LayoutGrid, Rows, FileSpreadsheet, FileText, AlertCircle, CheckCircle2, Loader2, FileVideo, ScanSearch, ShieldCheck, Layers, Sparkles } from 'lucide-react';
+import '../../styles/seller-product-management.css';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToastStore } from '@/stores/toastStore';
@@ -19,6 +20,8 @@ import {
 
 const API_HOST = SERVER_URL;
 const API_BASE = `${API_BASE_URL}/seller/inventory`;
+const MAX_PRODUCT_IMAGES = 12;
+const IMAGE_UPLOAD_BATCH = 5;
 
 const LISTING_CURRENCIES = ['USD', 'RWF', 'KES', 'UGX', 'TZS', 'NGN', 'EUR', 'GBP'] as const;
 const SIZE_OPTIONS = [
@@ -57,6 +60,8 @@ interface Product {
   views: number;
   rating: number;
   images?: string[];
+  videoProofUrl?: string;
+  videoUrl?: string;
   description?: string;
   sku?: string;
   weight?: number;
@@ -137,15 +142,7 @@ const ProductManagement: React.FC = () => {
     listingMode: 'live' as 'live' | 'upcoming',
     launchAt: '',
   });
-  const [verificationInput, setVerificationInput] = useState({
-    barcode: '',
-    serialNumber: '',
-    imei: '',
-    qrCode: '',
-    videoProofUploaded: false,
-    videoProofUrl: '',
-    labelProofUploaded: false,
-  });
+  const [imageUploading, setImageUploading] = useState(false);
 
   const [variantDraft, setVariantDraft] = useState({
     color: '',
@@ -184,9 +181,43 @@ const ProductManagement: React.FC = () => {
 
   const resolveImageUrl = (url: string): string => {
     if (!url) return url;
-    return url.startsWith('http://') || url.startsWith('https://')
-      ? url
-      : `${API_HOST}${url.startsWith('/') ? '' : '/'}${url}`;
+    const t = String(url).trim();
+    if (t.startsWith('http://') || t.startsWith('https://') || t.startsWith('//')) {
+      return t.startsWith('//') ? `https:${t}` : t;
+    }
+    return `${API_HOST}${t.startsWith('/') ? '' : '/'}${t}`;
+  };
+
+  const normalizeUploadedUrl = (url: string): string => {
+    const t = String(url || '').trim();
+    if (!t) return '';
+    if (t.startsWith('http://') || t.startsWith('https://')) return t;
+    if (t.startsWith('//')) return `https:${t}`;
+    return resolveImageUrl(t);
+  };
+
+  const currentImages = () => editingProduct?.images || newProduct.images || [];
+
+  const setProductImages = (next: string[]) => {
+    const capped = next.slice(0, MAX_PRODUCT_IMAGES);
+    if (editingProduct) {
+      setEditingProduct({ ...editingProduct, images: capped });
+    } else {
+      setNewProduct((prev) => ({ ...prev, images: capped }));
+    }
+  };
+
+  const buildVerificationPayload = () => {
+    const videoUrl = videoProof?.remoteUrl || '';
+    return {
+      videoProofUploaded: Boolean(videoUrl),
+      videoProofUrl: videoUrl || undefined,
+      videoImageSimilarity: videoImageSimilarity ?? undefined,
+      scanPassed,
+      labelProofUploaded: Boolean(videoUrl && currentImages().length > 0),
+      imageSimilarityScore,
+      stolenImageSuspected: false,
+    };
   };
 
   const getAuthHeaders = (): Record<string, string> => {
@@ -225,6 +256,8 @@ const ProductManagement: React.FC = () => {
     views: 0,
     rating: 0,
     images: Array.isArray(p.images) ? p.images.map(resolveImageUrl) : undefined,
+    videoProofUrl: p.videoProofUrl ? normalizeUploadedUrl(String(p.videoProofUrl)) : undefined,
+    videoUrl: p.videoUrl ? normalizeUploadedUrl(String(p.videoUrl)) : undefined,
     description: p.description,
     sku: p.sku,
     variants: mapVariantsFromApi(p.variants, p),
@@ -338,21 +371,7 @@ const ProductManagement: React.FC = () => {
             description: editingProduct?.description ?? newProduct.description,
             images: editingProduct?.images ?? newProduct.images ?? [],
             excludeProductId: editingProduct?.id,
-            verification: {
-              barcode: verificationInput.barcode,
-              serialNumber: verificationInput.serialNumber,
-              imei: verificationInput.imei,
-              qrCode: verificationInput.qrCode,
-              videoProofUploaded:
-                Boolean(videoProof?.remoteUrl || verificationInput.videoProofUrl) ||
-                verificationInput.videoProofUploaded,
-              videoProofUrl: videoProof?.remoteUrl || verificationInput.videoProofUrl || undefined,
-              labelProofUploaded: verificationInput.labelProofUploaded,
-              videoImageSimilarity: videoImageSimilarity ?? undefined,
-              scanPassed,
-              imageSimilarityScore,
-              stolenImageSuspected: false,
-            },
+            verification: buildVerificationPayload(),
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -377,7 +396,6 @@ const ProductManagement: React.FC = () => {
     editingProduct?.description,
     editingProduct?.images,
     editingProduct?.id,
-    verificationInput,
     videoProof,
     videoImageSimilarity,
     scanPassed,
@@ -625,21 +643,20 @@ const ProductManagement: React.FC = () => {
       return;
     }
 
-    const verificationPayload = {
-      barcode: verificationInput.barcode.trim() || undefined,
-      serialNumber: verificationInput.serialNumber.trim() || undefined,
-      imei: verificationInput.imei.trim() || undefined,
-      qrCode: verificationInput.qrCode.trim() || undefined,
-      videoProofUploaded:
-        Boolean(videoProof?.remoteUrl || verificationInput.videoProofUrl) ||
-        verificationInput.videoProofUploaded,
-      videoProofUrl: videoProof?.remoteUrl || verificationInput.videoProofUrl || undefined,
-      videoImageSimilarity: videoImageSimilarity ?? undefined,
-      scanPassed,
-      labelProofUploaded: verificationInput.labelProofUploaded,
-      imageSimilarityScore,
-      stolenImageSuspected: false,
-    };
+    const verificationPayload = buildVerificationPayload();
+
+    if (!currentImages().length) {
+      setFormError('Add at least one product photo (first photo is the cover image on the product page).');
+      return;
+    }
+    if (!verificationPayload.videoProofUrl) {
+      setFormError('Upload a proof video so buyers can verify your item.');
+      return;
+    }
+    if (!scanPassed) {
+      setFormError('Wait for the media trust check to finish after uploading photos and video.');
+      return;
+    }
 
     if (productSaveInFlightRef.current) return;
     productSaveInFlightRef.current = true;
@@ -794,14 +811,6 @@ const ProductManagement: React.FC = () => {
         thumbnailUrl: '',
         badge: '',
       });
-      setVerificationInput({
-        barcode: '',
-        serialNumber: '',
-        imei: '',
-        qrCode: '',
-        videoProofUploaded: false,
-        labelProofUploaded: false,
-      });
       setTrustPreview(null);
       setVideoImageSimilarity(null);
       setScanPassed(false);
@@ -832,28 +841,26 @@ const ProductManagement: React.FC = () => {
 
   const openProductEditor = (product: Product) => {
     setEditingProduct(product);
-    const proofUrl =
-      String((product as Product & { videoProofUrl?: string }).videoProofUrl || product.videoUrl || '').trim();
+    setScanStatus('idle');
+    setScanProgress(0);
+    setScanPassed(false);
+    setVideoImageSimilarity(null);
+    setImageSimilarityScore(0);
+    const proofUrl = normalizeUploadedUrl(
+      String(product.videoProofUrl || product.videoUrl || ''),
+    );
     if (proofUrl) {
-      const resolved = resolveImageUrl(proofUrl);
       setVideoProof({
-        fileName: 'Seller proof video',
-        previewUrl: resolved,
+        fileName: 'Proof video',
+        previewUrl: proofUrl,
         size: 0,
         remoteUrl: proofUrl,
       });
-      setVerificationInput((p) => ({
-        ...p,
-        videoProofUploaded: true,
-        videoProofUrl: proofUrl,
-      }));
+      if ((product.images || []).length > 0) {
+        window.setTimeout(() => runSimilarityScan({ silent: true }), 120);
+      }
     } else {
       setVideoProof(null);
-      setVerificationInput((p) => ({
-        ...p,
-        videoProofUploaded: false,
-        videoProofUrl: '',
-      }));
     }
   };
 
@@ -871,42 +878,53 @@ const ProductManagement: React.FC = () => {
     if (!response.ok) {
       throw new Error(data.message || 'Failed to upload video proof');
     }
-    return resolveImageUrl(String(data.url || ''));
+    const raw = String(data.url || '').trim();
+    return normalizeUploadedUrl(raw);
   };
 
   const uploadImageFiles = async (files: File[]) => {
     if (!files.length) return;
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('images', file);
-    });
-
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE}/products/upload-images`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      body: formData,
-      credentials: 'include',
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to upload images');
+    const existing = currentImages();
+    const room = MAX_PRODUCT_IMAGES - existing.length;
+    if (room <= 0) {
+      showToast(`Maximum ${MAX_PRODUCT_IMAGES} photos per product.`, 'warning');
+      return;
     }
-
-    const urls: string[] = (data.urls || []).map((u: string) =>
-      resolveImageUrl(u)
-    );
-
-    if (editingProduct) {
-      setEditingProduct({
-        ...editingProduct,
-        images: [...(editingProduct.images || []), ...urls],
-      });
-    } else {
-      setNewProduct((prev) => ({
-        ...prev,
-        images: [...(prev.images || []), ...urls],
-      }));
+    const batch = files.slice(0, room);
+    setImageUploading(true);
+    setFormError(null);
+    try {
+      const uploaded: string[] = [];
+      for (let i = 0; i < batch.length; i += IMAGE_UPLOAD_BATCH) {
+        const chunk = batch.slice(i, i + IMAGE_UPLOAD_BATCH);
+        const formData = new FormData();
+        chunk.forEach((file) => formData.append('images', file));
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE}/products/upload-images`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body: formData,
+          credentials: 'include',
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to upload images');
+        }
+        const urls: string[] = (data.urls || []).map((u: string) => normalizeUploadedUrl(u)).filter(Boolean);
+        uploaded.push(...urls);
+      }
+      setProductImages([...existing, ...uploaded]);
+      if (uploaded.length) {
+        showToast(
+          uploaded.length === 1 ? 'Photo uploaded.' : `${uploaded.length} photos uploaded.`,
+          'success',
+        );
+      }
+      if (videoProof?.remoteUrl) {
+        window.setTimeout(() => runSimilarityScan({ silent: true }), 200);
+      }
+    } finally {
+      setImageUploading(false);
     }
   };
 
@@ -918,8 +936,10 @@ const ProductManagement: React.FC = () => {
 
     try {
       await uploadImageFiles(Array.from(files));
-    } catch (e) {
-      console.error('Image upload failed:', e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Image upload failed';
+      setFormError(msg);
+      showToast(msg, 'error');
     } finally {
       // reset input so same file can be selected again if needed
       if (fileInputRef.current) {
@@ -1004,19 +1024,22 @@ const ProductManagement: React.FC = () => {
     }
   };
 
+  const handleSetPrimaryImage = (index: number) => {
+    const imgs = [...currentImages()];
+    if (index <= 0 || index >= imgs.length) return;
+    const [picked] = imgs.splice(index, 1);
+    imgs.unshift(picked);
+    setProductImages(imgs);
+  };
+
   const handleRemoveProductImage = (index: number) => {
-    if (editingProduct) {
-      const next = [...(editingProduct.images || [])];
-      next.splice(index, 1);
-      setEditingProduct({
-        ...editingProduct,
-        images: next,
-      });
-    } else {
-      setNewProduct((prev) => ({
-        ...prev,
-        images: prev.images.filter((_, i) => i !== index),
-      }));
+    const next = currentImages().filter((_, i) => i !== index);
+    setProductImages(next);
+    if (videoProof?.remoteUrl && next.length) {
+      window.setTimeout(() => runSimilarityScan({ silent: true }), 200);
+    } else if (!next.length) {
+      setScanPassed(false);
+      setScanStatus('idle');
     }
   };
 
@@ -1032,7 +1055,6 @@ const ProductManagement: React.FC = () => {
         size: file.size,
       };
     });
-    setVerificationInput((p) => ({ ...p, videoProofUploaded: true }));
     setVideoProofUploading(true);
     setFormError(null);
     try {
@@ -1042,15 +1064,14 @@ const ProductManagement: React.FC = () => {
           ? {
               ...prev,
               remoteUrl,
-              previewUrl: resolveImageUrl(remoteUrl),
+              previewUrl: remoteUrl,
             }
           : null,
       );
-      setVerificationInput((p) => ({
-        ...p,
-        videoProofUploaded: true,
-        videoProofUrl: remoteUrl,
-      }));
+      showToast('Proof video uploaded.', 'success');
+      if (currentImages().length > 0) {
+        window.setTimeout(() => runSimilarityScan({ silent: true }), 200);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Video upload failed';
       setFormError(msg);
@@ -1061,13 +1082,15 @@ const ProductManagement: React.FC = () => {
     }
   };
 
-  const runSimilarityScan = () => {
-    const imageCount = (editingProduct?.images || newProduct.images || []).length;
-    if ((!videoProof?.remoteUrl && !verificationInput.videoProofUrl) || imageCount === 0) {
-      setFormError('Upload at least one product image and one video proof before running similarity scan.');
+  const runSimilarityScan = (opts: { silent?: boolean } = {}) => {
+    const imageCount = currentImages().length;
+    if (!videoProof?.remoteUrl || imageCount === 0) {
+      if (!opts.silent) {
+        setFormError('Upload at least one product photo, then your proof video.');
+      }
       return;
     }
-    setFormError(null);
+    if (!opts.silent) setFormError(null);
     setScanStatus('running');
     setScanProgress(0);
     const timer = window.setInterval(() => {
@@ -1075,9 +1098,9 @@ const ProductManagement: React.FC = () => {
         const next = Math.min(100, prev + 10);
         if (next >= 100) {
           window.clearInterval(timer);
-          const visual = Math.min(96, 55 + imageCount * 8);
-          const label = verificationInput.labelProofUploaded ? 88 : 58;
-          const structure = verificationInput.barcode || verificationInput.qrCode ? 90 : 62;
+          const visual = Math.min(96, 58 + imageCount * 10);
+          const label = videoProof?.remoteUrl ? 85 : 55;
+          const structure = imageCount >= 2 ? 88 : 72;
           setScanBreakdown({
             visualMatch: visual,
             labelMatch: label,
@@ -1090,6 +1113,9 @@ const ProductManagement: React.FC = () => {
           const passed = sim01 >= 0.6;
           setScanPassed(passed);
           setScanStatus(passed ? 'pass' : 'warning');
+          if (!opts.silent && passed) {
+            showToast('Media check passed — ready to publish.', 'success');
+          }
         }
         return next;
       });
@@ -2073,7 +2099,7 @@ const ProductManagement: React.FC = () => {
               </DialogDescription>
             </div>
           </DialogHeader>
-          <div className="h-[calc(94vh-84px)] overflow-y-auto px-4 sm:px-6 pb-28 pt-4 space-y-7">
+          <div className="seller-product-dialog__scroll space-y-7">
             {formError && (
               <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/40 rounded-lg px-3 py-2">
                 {formError}
@@ -2493,8 +2519,10 @@ const ProductManagement: React.FC = () => {
                   if (!files.length) return;
                   try {
                     await uploadImageFiles(files);
-                  } catch (err) {
-                    console.error('Image upload failed:', err);
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : 'Image upload failed';
+                    setFormError(msg);
+                    showToast(msg, 'error');
                   }
                 }}
                 className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-6 sm:p-8 text-center bg-gray-50/50 dark:bg-gray-800/20"
@@ -2503,7 +2531,9 @@ const ProductManagement: React.FC = () => {
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Drag and drop images here
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Use clear front, side, and detail shots for better trust scoring.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  First photo is the cover image on the product page. Add up to {MAX_PRODUCT_IMAGES} photos.
+                </p>
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -2516,36 +2546,49 @@ const ProductManagement: React.FC = () => {
                   variant="outline"
                   className="border-gray-300 dark:border-gray-700 rounded-full px-5"
                   type="button"
+                  disabled={imageUploading}
                   onClick={handleSelectImagesClick}
                 >
-                  Select Images
+                  {imageUploading ? 'Uploading…' : 'Select Images'}
                 </Button>
-                {(editingProduct?.images && editingProduct.images.length > 0) ||
-                newProduct.images.length > 0 ? (
-                  <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                    {(editingProduct?.images || newProduct.images).map(
-                      (url, idx) => (
+                {currentImages().length > 0 ? (
+                  <div className="mt-4 seller-product-images__grid">
+                    {currentImages().map((url, idx) => (
                         <div
                           key={`${url}-${idx}`}
-                          className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 group"
+                          className={`seller-product-images__tile ${idx === 0 ? 'seller-product-images__tile--cover' : ''}`}
                         >
                           <img
                             src={resolveImageUrl(url)}
-                            alt={`Product ${idx + 1}`}
+                            alt={idx === 0 ? 'Cover photo' : `Product photo ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
-                          <button
-                            type="button"
-                            aria-label="Remove image"
-                            title="Remove image"
-                            onClick={() => handleRemoveProductImage(idx)}
-                            className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-bl-md bg-black/70 text-white opacity-100 transition hover:bg-red-600 md:opacity-0 md:group-hover:opacity-100"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
+                          {idx === 0 ? (
+                            <span className="seller-product-images__cover-badge">Cover</span>
+                          ) : null}
+                          <div className="seller-product-images__actions">
+                            {idx > 0 ? (
+                              <button
+                                type="button"
+                                className="seller-product-images__action-btn"
+                                title="Set as cover"
+                                onClick={() => handleSetPrimaryImage(idx)}
+                              >
+                                ★
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              aria-label="Remove image"
+                              title="Remove image"
+                              onClick={() => handleRemoveProductImage(idx)}
+                              className="seller-product-images__action-btn"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      )
-                    )}
+                      ))}
                   </div>
                 ) : null}
               </div>
@@ -2560,7 +2603,7 @@ const ProductManagement: React.FC = () => {
               </h3>
               <div className="rounded-2xl border border-red-200/70 dark:border-red-900/60 bg-red-50/50 dark:bg-red-950/20 p-4 sm:p-5 space-y-4">
                 <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  Upload a short proof video showing the full item, slow rotation, and label/tag/serial/barcode close-up. Video proof has higher trust value than images alone.
+                  Upload a short proof video (full item, slow rotation, clear details). Buyers will see this video first on the product page.
                 </p>
                 <input
                   ref={videoInputRef}
@@ -2578,7 +2621,8 @@ const ProductManagement: React.FC = () => {
                     <Button type="button" variant="outline" className="rounded-full border-gray-300 dark:border-gray-700" onClick={() => {
                       if (videoProof.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(videoProof.previewUrl);
                       setVideoProof(null);
-                      setVerificationInput((p) => ({ ...p, videoProofUploaded: false, videoProofUrl: '' }));
+                      setScanPassed(false);
+                      setScanStatus('idle');
                     }}>
                       Remove Video
                     </Button>
@@ -2586,8 +2630,8 @@ const ProductManagement: React.FC = () => {
                 </div>
                 {videoProof ? (
                   <div className="space-y-2">
-                    <div className="aspect-video rounded-xl overflow-hidden bg-black">
-                      <video src={videoProof.previewUrl} controls className="h-full w-full object-contain" />
+                    <div className="seller-product-video-preview">
+                      <video src={videoProof.previewUrl} controls playsInline preload="metadata" className="h-full w-full object-contain" />
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 flex flex-wrap gap-3">
                       <span>{videoProof.fileName}</span>
@@ -2615,7 +2659,7 @@ const ProductManagement: React.FC = () => {
                     variant="outline"
                     className="rounded-full border-gray-300 dark:border-gray-700"
                     disabled={scanStatus === 'running'}
-                    onClick={runSimilarityScan}
+                    onClick={() => runSimilarityScan()}
                   >
                     {scanStatus === 'running' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ScanSearch className="w-4 h-4 mr-2" />}
                     {scanStatus === 'running' ? 'Scanning...' : 'Run Trust Similarity Scan'}
@@ -2916,7 +2960,7 @@ const ProductManagement: React.FC = () => {
                     {trustPreviewLoading ? ' · …' : ''}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Score is computed from barcode, images, video match, and metadata consistency only — no default 100%.
+                    Score uses your photos, proof video, and listing details. Upload media to run the check automatically.
                   </p>
                 </div>
                 <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
@@ -2954,62 +2998,11 @@ const ProductManagement: React.FC = () => {
                     {trustPreview.blockers.join(' ')}
                   </div>
                 ) : null}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1"><Barcode className="w-4 h-4" /> Barcode / UPC / EAN</label>
-                  <input
-                    type="text"
-                    value={verificationInput.barcode}
-                    onChange={(e) => setVerificationInput((p) => ({ ...p, barcode: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Scan or enter code"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1"><Smartphone className="w-4 h-4" /> Serial / IMEI</label>
-                  <input
-                    type="text"
-                    value={verificationInput.serialNumber}
-                    onChange={(e) => setVerificationInput((p) => ({ ...p, serialNumber: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Optional serial for electronics"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">IMEI (if applicable)</label>
-                  <input
-                    type="text"
-                    value={verificationInput.imei}
-                    onChange={(e) => setVerificationInput((p) => ({ ...p, imei: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="15-digit IMEI"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1"><QrCode className="w-4 h-4" /> QR / Reaglex tag code</label>
-                  <input
-                    type="text"
-                    value={verificationInput.qrCode}
-                    onChange={(e) => setVerificationInput((p) => ({ ...p, qrCode: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Optional printable trust tag code"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Proof uploads</label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input type="checkbox" checked={verificationInput.videoProofUploaded} onChange={(e) => setVerificationInput((p) => ({ ...p, videoProofUploaded: e.target.checked }))} />
-                    Product video proof uploaded
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input type="checkbox" checked={verificationInput.labelProofUploaded} onChange={(e) => setVerificationInput((p) => ({ ...p, labelProofUploaded: e.target.checked }))} />
-                    Label/tag close-up uploaded
-                  </label>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Products with stronger verification data receive higher trust and are less likely to be flagged for manual review.
-              </p>
+                <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1 list-disc pl-4">
+                  <li>At least one product photo (first = cover on product page)</li>
+                  <li>Proof video required — shown to buyers in the gallery</li>
+                  <li>Media trust check runs automatically after uploads</li>
+                </ul>
               </div>
             </section>
 
@@ -3039,7 +3032,7 @@ const ProductManagement: React.FC = () => {
                   variant="outline"
                   className="w-full sm:w-auto rounded-full border-gray-300 dark:border-gray-700"
                   disabled={productSubmitting}
-                  onClick={runSimilarityScan}
+                  onClick={() => runSimilarityScan()}
                 >
                   <ScanSearch className="w-4 h-4 mr-2" />
                   Run Trust Check

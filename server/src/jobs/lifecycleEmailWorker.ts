@@ -8,38 +8,37 @@ import { buildMarketingEmailContent } from '../email/marketingEmailBuilder';
 import { sendRecommendationDealsEmail, isEmailConfigured } from '../services/emailService';
 import { getClientUrl } from '../config/publicEnv';
 import {
-  getDailyMarketingEmailCap,
   isMarketingFlowEnabled,
   isMarketingFlowPushEnabled,
   recordFlowRun,
 } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from '../services/pushNotificationService';
 import { assertBuyerMarketingEligible } from '../services/marketingRecipient.service';
+import {
+  assertRecommendationLaneSend,
+  getRecentMarketingCopyContext,
+} from '../services/marketingEmailOrchestration.service';
+import { marketingDayKey } from '../email/copyEngine';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
+
+function getIntEnv(name: string, fallback: number) {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
 
 function daysSince(date?: Date | null): number {
   if (!date) return Number.MAX_SAFE_INTEGER;
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
 }
 
-async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
-  const cap = await getDailyMarketingEmailCap();
-  if (cap <= 0) return false;
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const count = await RecommendationEmailHistory.countDocuments({
-    userId: new mongoose.Types.ObjectId(userId),
-    status: 'sent',
-    sentAt: { $gte: since },
-  });
-  return count >= cap;
-}
-
 async function sendWinback(profile: any): Promise<'sent' | 'skipped' | 'failed'> {
   const userId = String(profile.userId || '');
   if (!mongoose.Types.ObjectId.isValid(userId)) return 'skipped';
-  if (await isOverDailyMarketingCap(userId)) return 'skipped';
+
+  const laneGate = await assertRecommendationLaneSend(userId, 'winback');
+  if (!laneGate.ok) return 'skipped';
 
   if (daysSince(profile.lastActivityAt) < 30) return 'skipped';
   if (daysSince(profile.lastWinbackSentAt) < 14) return 'skipped';
@@ -53,12 +52,16 @@ async function sendWinback(profile: any): Promise<'sent' | 'skipped' | 'failed'>
   if (!products?.length) return 'skipped';
 
   const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
+  const copyContext = await getRecentMarketingCopyContext(userId);
   const copy = await generateMarketingEmailCopy({
     userId,
     firstName,
     campaign: 'winback',
     mode: 'mixed',
     allowPersonalized: true,
+    recentSubjects: copyContext.subjects,
+    recentCampaigns: copyContext.campaigns,
+    copyDayKey: marketingDayKey(),
     products: products.map((p: any) => ({
       id: String(p._id),
       name: String(p.name || ''),

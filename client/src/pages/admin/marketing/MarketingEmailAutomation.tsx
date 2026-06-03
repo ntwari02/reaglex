@@ -38,7 +38,7 @@ export default function MarketingEmailAutomation() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [globalEnabled, setGlobalEnabled] = useState(true);
-  const [dailyEmailCap, setDailyEmailCap] = useState(8);
+  const [dailyEmailCap, setDailyEmailCap] = useState(4);
   const [email, setEmail] = useState<EmailSettings>({
     richTemplatesEnabled: true,
     geminiMarketingCopy: true,
@@ -60,7 +60,7 @@ export default function MarketingEmailAutomation() {
       .getAutomationOverview()
       .then((res) => {
         setGlobalEnabled(res.globalEnabled !== false);
-        setDailyEmailCap(res.dailyEmailCap ?? 8);
+        setDailyEmailCap(res.dailyEmailCap ?? 4);
         setEmail({
           richTemplatesEnabled: res.email?.richTemplatesEnabled !== false,
           geminiMarketingCopy: res.email?.geminiMarketingCopy !== false,

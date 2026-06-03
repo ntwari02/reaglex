@@ -79,7 +79,7 @@ export function buildProductColorOptions(product, variantOptions = []) {
 }
 
 /**
- * Full PDP gallery: proof video, all product images, then variant thumbnails (deduped).
+ * Full PDP gallery: product images (first = cover), proof video, then variant thumbnails (deduped).
  * @returns {Array<{ type: 'video'|'image', src: string, poster?: string, label?: string, imageIndex?: number, variantSku?: string, colorKey?: string }>}
  */
 export function buildProductDetailGallery(product, variantOptions = [], resolvers = {}) {
@@ -96,6 +96,10 @@ export function buildProductDetailGallery(product, variantOptions = [], resolver
     items.push({ type: 'image', src, ...meta });
   };
 
+  productImages.forEach((img, idx) => {
+    addImage(img, { imageIndex: idx });
+  });
+
   const videoUrl = productProofVideoUrl(product);
   const poster = resolveImg(productImages[0] || product?.image || product?.thumbnail);
   if (videoUrl) {
@@ -105,10 +109,6 @@ export function buildProductDetailGallery(product, variantOptions = [], resolver
       items.push({ type: 'video', src, poster, label: 'Proof video' });
     }
   }
-
-  productImages.forEach((img, idx) => {
-    addImage(img, { imageIndex: idx });
-  });
 
   (variantOptions || []).forEach((v, variantIdx) => {
     const rawThumb = v?.thumbnailUrl || productImages[variantIdx];

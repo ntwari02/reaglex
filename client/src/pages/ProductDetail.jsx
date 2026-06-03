@@ -27,6 +27,7 @@ import { categoryNeedsColor, categoryNeedsSize } from '../constants/categoryAttr
 import { productImageLayoutId } from '../motion/presets';
 import LiveProductTeaser from '../components/live/LiveProductTeaser';
 import { resolveMediaUrl, collectProductImages, isProductDetailPreview } from '../components/product/productPreviewUtils';
+import { cacheProductDetail } from '../hooks/queries/prefetchProduct';
 import ProductColorRail from '../components/product/ProductColorRail';
 import ProductReviewGalleryRail from '../components/product/ProductReviewGalleryRail';
 import {
@@ -38,6 +39,7 @@ import {
   productPricingForVariant,
 } from '../components/product/productDetailVariants';
 import { resolveProductPriceUsd } from '../lib/resolveProductPrice';
+import { queryClient } from '../lib/queryClient';
 import '../styles/product-detail-ali.css';
 
 const PRIMARY = 'var(--brand-primary)';
@@ -163,7 +165,6 @@ export default function ProductDetail() {
   const [voteUp,       setVoteUp]       = useState(187);
   const [descExpanded, setDescExpanded] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
-  const [inventoryRefreshTick, setInventoryRefreshTick] = useState(0);
   const [countdownNow, setCountdownNow] = useState(Date.now());
   /** Mobile stacked sections: which detail accordion is open (null = all collapsed) */
   const [mobileDetailOpen, setMobileDetailOpen] = useState('description');
@@ -177,7 +178,9 @@ export default function ProductDetail() {
   /* ── refs ── */
   const ctaRef = useRef(null);
   const relatedScrollRef = useRef(null);
+  const trackedProductRef = useRef(null);
   const [relatedPaused, setRelatedPaused] = useState(false);
+  const hasInstantPreview = Boolean(productPreview?.image || productPreview?.title);
 
   /* ── SEO ── */
   const resolvedId   = product?._id || product?.id || legacyId || null;
@@ -390,26 +393,26 @@ export default function ProductDetail() {
   const {
     data: fetchedProduct,
     isPending: productPending,
-    isPlaceholderData: productIsPreviewData,
     isFetching: productFetching,
     isError: productQueryError,
   } = useQuery({
-    queryKey: [...productQueryKey, inventoryRefreshTick],
+    queryKey: productQueryKey,
     queryFn: async () => {
       const data = slugParam
         ? await productAPI.getProductBySlug(slugParam)
         : await productAPI.getProductById(String(legacyId));
-      return data.product || data;
+      const product = data.product || data;
+      cacheProductDetail(product);
+      return product;
     },
     enabled: Boolean(slugParam || legacyId),
     staleTime: 5 * 60 * 1000,
-    placeholderData: productPreview || undefined,
+    refetchOnMount: false,
   });
 
   const detailsReady = Boolean(
     fetchedProduct &&
     typeof fetchedProduct === 'object' &&
-    !productIsPreviewData &&
     !isProductDetailPreview(fetchedProduct),
   );
 
@@ -426,30 +429,46 @@ export default function ProductDetail() {
   const p = displayProduct || product || productPreview || {};
 
   useEffect(() => {
+    trackedProductRef.current = null;
+  }, [slugParam, legacyId]);
+
+  useEffect(() => {
     if (!slugParam && !legacyId) return;
     if (navigationType === 'POP') return;
     window.scrollTo({ top: 0, behavior: 'auto' });
     setActiveImage(0);
+    setTitleExpanded(false);
   }, [slugParam, legacyId, navigationType]);
 
   useEffect(() => {
     if (!fetchedProduct || typeof fetchedProduct !== 'object') return;
-    if (productIsPreviewData || isProductDetailPreview(fetchedProduct)) return;
-    const p = fetchedProduct;
-    setProduct(p);
+    if (isProductDetailPreview(fetchedProduct)) return;
+    const full = fetchedProduct;
+    const rid = String(full._id || full.id || '');
+
+    setProduct((prev) => {
+      if (prev && rid && String(prev._id || prev.id) === rid && !isProductDetailPreview(prev)) {
+        return prev;
+      }
+      return full;
+    });
     setError(null);
-    setWishlisted(!!p?.wishlisted);
-    setWishlistCount(Number(p?.wishlistCount || 0));
-    addRecent(p);
-    const rid = String(p._id || p.id || '');
-    if (rid) {
+    setWishlisted(!!full?.wishlisted);
+    setWishlistCount(Number(full?.wishlistCount || 0));
+    addRecent(full);
+
+    if (rid && trackedProductRef.current !== rid) {
+      trackedProductRef.current = rid;
       productAPI.trackView(rid).catch(() => null);
       homeFeedApi.track({ type: 'view', productId: rid });
     }
-    if (legacyId && p.slug && location.pathname.startsWith('/products/')) {
-      navigate(`/product/${encodeURIComponent(String(p.slug).trim())}`, { replace: true });
+
+    if (legacyId && full.slug && location.pathname.startsWith('/products/')) {
+      cacheProductDetail(full);
+      const canonical = `/product/${encodeURIComponent(String(full.slug).trim())}`;
+      navigate(canonical, { replace: true, state: location.state });
     }
-  }, [fetchedProduct, productIsPreviewData, legacyId, location.pathname, navigate, addRecent]);
+  }, [fetchedProduct, legacyId, location.pathname, location.state, navigate, addRecent]);
 
   useEffect(() => {
     if (productQueryError) {
@@ -509,7 +528,8 @@ export default function ProductDetail() {
   }, [product]);
 
   const variantOptions = useMemo(() => {
-    const variants = Array.isArray(product?.variants) ? [...product.variants] : [];
+    const source = detailsReady ? fetchedProduct : product;
+    const variants = Array.isArray(source?.variants) ? [...source.variants] : [];
     return variants
       .filter((v) => v && typeof v === 'object')
       .sort((a, b) => Number(a?.sortOrder || 0) - Number(b?.sortOrder || 0))
@@ -517,7 +537,7 @@ export default function ProductDetail() {
         ...v,
         sku: v.sku || v._id || `variant-${idx}`,
       }));
-  }, [product?.variants]);
+  }, [detailsReady, fetchedProduct, product?.variants]);
 
   const selectedVariant = useMemo(
     () => variantOptions.find((v) => v?.sku === selectedVariantSku) || variantOptions[0] || null,
@@ -525,18 +545,18 @@ export default function ProductDetail() {
   );
 
   const colorOptions = useMemo(
-    () => buildProductColorOptions(product, variantOptions),
-    [product, variantOptions],
+    () => buildProductColorOptions(displayProduct || product, variantOptions),
+    [displayProduct, product, variantOptions],
   );
 
   const reviewMediaItems = useMemo(
-    () => flattenReviewGalleryMedia(product?.reviewGallery || [], resolveImage),
-    [product?.reviewGallery],
+    () => flattenReviewGalleryMedia(p?.reviewGallery || [], resolveImage),
+    [p?.reviewGallery],
   );
 
   const activePricing = useMemo(
-    () => productPricingForVariant(product, selectedVariant),
-    [product, selectedVariant],
+    () => productPricingForVariant(displayProduct || product, selectedVariant),
+    [displayProduct, product, selectedVariant],
   );
 
   const galleryItems = useMemo(() => {
@@ -589,12 +609,12 @@ export default function ProductDetail() {
       const updatedId = e?.detail?.productId;
       const cmp = resolvedId ? String(resolvedId) : legacyId ? String(legacyId) : '';
       if (updatedId && cmp && String(updatedId) === cmp) {
-        setInventoryRefreshTick((v) => v + 1);
+        void queryClient.invalidateQueries({ queryKey: productQueryKey });
       }
     };
     window.addEventListener('inventoryUpdated', onInventoryUpdated);
     return () => window.removeEventListener('inventoryUpdated', onInventoryUpdated);
-  }, [resolvedId, legacyId]);
+  }, [resolvedId, legacyId, productQueryKey]);
 
   /* ── actions ── */
   const handleAddToCart = () => {
@@ -1049,8 +1069,9 @@ export default function ProductDetail() {
             {/* ── Gallery ── */}
             <motion.div
               className="pd2-gallery-col"
-              initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.34, ease: softEase }}
+              initial={hasInstantPreview ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: hasInstantPreview ? 0 : 0.34, ease: softEase }}
             >
               {/* Main media — AliExpress / premium carousel */}
               <div
@@ -1109,14 +1130,15 @@ export default function ProductDetail() {
                     </motion.div>
                   ) : (
                     <motion.img
-                      key={`i-${activeImage}-${activeGalleryItem?.src}`}
+                      key={`i-${activeImage}`}
                       layoutId={activeImage === 0 ? imageLayoutId : undefined}
-                      layout={activeImage === 0}
                       src={activeGalleryItem?.src || resolveImage(images[activeImage])}
                       alt={title}
                       className="absolute inset-0 z-[1] w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02] cursor-zoom-in"
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 320, damping: 32, mass: 0.75 }}
+                      initial={hasInstantPreview && activeImage === 0 ? false : { opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={hasInstantPreview && activeImage === 0 ? { duration: 0.15 } : { duration: 0.2 }}
                       onError={(e) => { e.target.src = resolveImage(null); }}
                       draggable={false}
                     />
@@ -1246,6 +1268,11 @@ export default function ProductDetail() {
                   </div>
                 </div>
               </div>
+
+              {/* Subtle fetch indicator — one request, no full-page swap */}
+              {productFetching && !detailsReady && (
+                <div className="pd2-fetch-bar md:hidden" role="status" aria-label="Loading product details" />
+              )}
 
               {/* Mobile title + rating (AliExpress-style, below gallery) */}
               <div className="pd2-mobile-product-head md:hidden">

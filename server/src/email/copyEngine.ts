@@ -34,6 +34,15 @@ function hashSeed(seed: string): number {
   return h >>> 0;
 }
 
+/** UTC date (YYYY-MM-DD) so marketing copy rotates daily per user. */
+export function marketingDayKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function daySeed(base: string, dayKey = marketingDayKey()): string {
+  return `${base}:${dayKey}`;
+}
+
 export function pickVariant<T>(seed: string, pool: T[]): T {
   if (!pool.length) throw new Error('copy pool empty');
   return pool[hashSeed(seed) % pool.length];
@@ -88,20 +97,53 @@ const REC_INTROS = [
   'New arrivals and discounts picked just for you.',
 ];
 
-export function recommendationSubject(name: string, userId: string): string {
-  const fn = pickVariant(`rec-subj:${userId}`, REC_SUBJECTS);
+export function recommendationSubject(name: string, userId: string, dayKey?: string): string {
+  const fn = pickVariant(daySeed(`rec-subj:${userId}`, dayKey), REC_SUBJECTS);
   return fn(name.split(' ')[0] || 'there');
 }
 
-export function recommendationIntro(userId: string, mode?: 'deals_only' | 'mixed'): string {
+export function recommendationIntro(userId: string, mode?: 'deals_only' | 'mixed', dayKey?: string): string {
   if (mode === 'deals_only') {
-    return pickVariant(`rec-intro-deals:${userId}`, [
+    return pickVariant(daySeed(`rec-intro-deals:${userId}`, dayKey), [
       'Limited-time deal drops you can grab today.',
       'Discount highlights picked from your interests.',
       'Today’s best price cuts, selected for you.',
     ]);
   }
-  return pickVariant(`rec-intro:${userId}`, REC_INTROS);
+  return pickVariant(daySeed(`rec-intro:${userId}`, dayKey), REC_INTROS);
+}
+
+const CART_PULSE_INTROS = [
+  'You added items recently — here are complementary picks to round out your order.',
+  'Shoppers often pair these with what’s already in your cart.',
+  'A few add-ons that match your cart, plus trending deals today.',
+  'Complete your look with these popular matches for your saved items.',
+];
+
+export function cartPulseIntro(userId: string, dayKey?: string): string {
+  return pickVariant(daySeed(`cart-pulse-intro:${userId}`, dayKey), CART_PULSE_INTROS);
+}
+
+const BROWSE_ABANDON_INTROS = [
+  'You checked these out recently — similar items and today’s deals are still in stock.',
+  'Your browsing session left a trail — we saved the best matches for you.',
+  'Still deciding? These picks line up with what you viewed.',
+  'Take another pass at items from your last visit, plus fresh discounts.',
+];
+
+export function browseAbandonIntro(userId: string, dayKey?: string): string {
+  return pickVariant(daySeed(`browse-intro:${userId}`, dayKey), BROWSE_ABANDON_INTROS);
+}
+
+const WINBACK_INTROS = [
+  'It’s been a while — here’s what’s new and worth a look on the marketplace.',
+  'Your feed has fresh arrivals and deals since your last visit.',
+  'We pulled trending picks in case you want to browse again.',
+  'A quick roundup of popular items you might have missed.',
+];
+
+export function winbackIntro(userId: string, dayKey?: string): string {
+  return pickVariant(daySeed(`winback-intro:${userId}`, dayKey), WINBACK_INTROS);
 }
 
 const CART_SUBJECTS = [
@@ -134,8 +176,8 @@ const CART_PULSE_SUBJECTS = [
   (n: string) => `Shoppers like you also grabbed these, ${n}`,
 ];
 
-export function cartPulseSubject(name: string, userId: string): string {
-  const fn = pickVariant(`cart-pulse-subj:${userId}`, CART_PULSE_SUBJECTS);
+export function cartPulseSubject(name: string, userId: string, dayKey?: string): string {
+  const fn = pickVariant(daySeed(`cart-pulse-subj:${userId}`, dayKey), CART_PULSE_SUBJECTS);
   return fn(name.split(' ')[0] || 'there');
 }
 
@@ -146,8 +188,8 @@ const BROWSE_ABANDON_SUBJECTS = [
   (n: string) => `Picks from your browsing session, ${n}`,
 ];
 
-export function browseAbandonSubject(name: string, userId: string): string {
-  const fn = pickVariant(`browse-subj:${userId}`, BROWSE_ABANDON_SUBJECTS);
+export function browseAbandonSubject(name: string, userId: string, dayKey?: string): string {
+  const fn = pickVariant(daySeed(`browse-subj:${userId}`, dayKey), BROWSE_ABANDON_SUBJECTS);
   return fn(name.split(' ')[0] || 'there');
 }
 
@@ -157,7 +199,7 @@ const WINBACK_SUBJECTS = [
   (n: string) => `Your marketplace feed has updates, ${n}`,
 ];
 
-export function winbackSubject(name: string, userId: string): string {
-  const fn = pickVariant(`winback-subj:${userId}`, WINBACK_SUBJECTS);
+export function winbackSubject(name: string, userId: string, dayKey?: string): string {
+  const fn = pickVariant(daySeed(`winback-subj:${userId}`, dayKey), WINBACK_SUBJECTS);
   return fn(name.split(' ')[0] || 'there');
 }

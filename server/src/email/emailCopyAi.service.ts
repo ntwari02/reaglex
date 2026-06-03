@@ -3,13 +3,17 @@
  * Never blocks sends when AI is unavailable.
  */
 import {
+  browseAbandonIntro,
   browseAbandonSubject,
   cartIntro,
+  cartPulseIntro,
   cartPulseSubject,
   cartSubject,
+  marketingDayKey,
   pickCta,
   recommendationIntro,
   recommendationSubject,
+  winbackIntro,
   winbackSubject,
   type EmailCategory,
 } from './copyEngine';
@@ -44,6 +48,10 @@ export type MarketingCopyInput = {
   mode?: 'deals_only' | 'mixed';
   cartTemplate?: string;
   allowPersonalized?: boolean;
+  /** Avoid repeating recent recommendation-lane subject lines */
+  recentSubjects?: string[];
+  recentCampaigns?: string[];
+  copyDayKey?: string;
   products: Array<{
     id: string;
     name: string;
@@ -101,8 +109,27 @@ function isSpammy(s: string): boolean {
   return banned.some((b) => lower.includes(b));
 }
 
+function normalizeCopyLine(s: string): string {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function subjectTooSimilar(subject: string, recentSubjects: string[]): boolean {
+  const n = normalizeCopyLine(subject);
+  if (!n) return false;
+  return recentSubjects.some((r) => {
+    const rn = normalizeCopyLine(r);
+    return rn && (rn === n || rn.includes(n) || n.includes(rn));
+  });
+}
+
 function fallbackMarketingCopy(input: MarketingCopyInput): MarketingCopyResult {
   const { userId, firstName, campaign, mode, cartTemplate, allowPersonalized } = input;
+  const dayKey = input.copyDayKey || marketingDayKey();
+  const recentSubjects = input.recentSubjects || [];
   const productDescriptions: Record<string, string> = {};
   for (const p of input.products) {
     productDescriptions[p.id] = sanitizeText(
@@ -126,47 +153,59 @@ function fallbackMarketingCopy(input: MarketingCopyInput): MarketingCopyResult {
   }
 
   if (campaign === 'cart_pulse') {
+    let subject = cartPulseSubject(firstName, userId, dayKey);
+    if (subjectTooSimilar(subject, recentSubjects)) {
+      subject = cartPulseSubject(firstName, `${userId}:alt`, dayKey);
+    }
     return {
-      subject: cartPulseSubject(firstName, userId),
-      headline: 'More for your cart',
-      intro: allowPersonalized
-        ? recommendationIntro(userId, mode)
-        : 'Trending picks and deals based on marketplace activity.',
-      ctaLabel: pickCta('recommendation', `${userId}:cart-pulse`),
+      subject,
+      headline: 'Complete your cart',
+      intro: allowPersonalized ? cartPulseIntro(userId, dayKey) : cartPulseIntro(`${userId}:generic`, dayKey),
+      ctaLabel: pickCta('cart', `${userId}:cart-pulse:${dayKey}`),
       productDescriptions,
       source: 'fallback',
     };
   }
 
   if (campaign === 'browse_abandon') {
+    let subject = browseAbandonSubject(firstName, userId, dayKey);
+    if (subjectTooSimilar(subject, recentSubjects)) {
+      subject = browseAbandonSubject(firstName, `${userId}:alt`, dayKey);
+    }
     return {
-      subject: browseAbandonSubject(firstName, userId),
-      headline: 'Picks from your recent views',
-      intro: allowPersonalized
-        ? 'You checked these out recently — here are similar items and today’s best deals.'
-        : 'Popular picks and deals you may like.',
-      ctaLabel: pickCta('recommendation', `${userId}:browse`),
+      subject,
+      headline: 'From your recent browsing',
+      intro: allowPersonalized ? browseAbandonIntro(userId, dayKey) : browseAbandonIntro(`${userId}:generic`, dayKey),
+      ctaLabel: pickCta('recommendation', `${userId}:browse:${dayKey}`),
       productDescriptions,
       source: 'fallback',
     };
   }
 
   if (campaign === 'winback') {
+    let subject = winbackSubject(firstName, userId, dayKey);
+    if (subjectTooSimilar(subject, recentSubjects)) {
+      subject = winbackSubject(firstName, `${userId}:alt`, dayKey);
+    }
     return {
-      subject: winbackSubject(firstName, userId),
-      headline: 'We’d love to see you back',
-      intro: recommendationIntro(userId, mode),
-      ctaLabel: pickCta('recommendation', `${userId}:winback`),
+      subject,
+      headline: 'Welcome back to Reaglex',
+      intro: winbackIntro(userId, dayKey),
+      ctaLabel: pickCta('recommendation', `${userId}:winback:${dayKey}`),
       productDescriptions,
       source: 'fallback',
     };
   }
 
+  let subject = recommendationSubject(firstName, userId, dayKey);
+  if (subjectTooSimilar(subject, recentSubjects)) {
+    subject = recommendationSubject(firstName, `${userId}:alt`, dayKey);
+  }
   return {
-    subject: recommendationSubject(firstName, userId),
+    subject,
     headline: 'Curated for you',
-    intro: recommendationIntro(userId, mode),
-    ctaLabel: pickCta('recommendation', userId),
+    intro: recommendationIntro(userId, mode, dayKey),
+    ctaLabel: pickCta('recommendation', `${userId}:${dayKey}`),
     productDescriptions,
     source: 'fallback',
   };
@@ -212,12 +251,17 @@ export async function generateMarketingEmailCopy(input: MarketingCopyInput): Pro
     )
     .join('\n');
 
+  const recentSubjects = (input.recentSubjects || []).slice(0, 6);
+  const recentCampaigns = (input.recentCampaigns || []).slice(0, 6);
+
   const system = [
     'You write premium ecommerce marketing email copy for Reaglex marketplace.',
     'Tone: warm, human, concise, never spammy.',
     'No fake urgency, no ALL CAPS hype, no "act now" clichés.',
     'Use the shopper first name naturally once.',
     'Product reasons must be factual and tied to provided signals only.',
+    'Each campaign has a distinct voice: recommendation=curated picks, cart_pulse=cart add-ons, browse_abandon=recent views, winback=return visit.',
+    'Never reuse phrasing from recentSubjects — write fresh subject and intro wording.',
     'Output JSON only:',
     '{"subject":"","headline":"","intro":"","ctaLabel":"","products":[{"id":"","description":""}]}',
     'subject max 70 chars, intro max 220 chars, each product description max 90 chars.',
@@ -228,8 +272,12 @@ export async function generateMarketingEmailCopy(input: MarketingCopyInput): Pro
     `First name: ${input.firstName}`,
     `Personalized: ${input.allowPersonalized !== false}`,
     `Mode: ${input.mode || 'mixed'}`,
+    recentSubjects.length ? `Recent subjects to avoid repeating:\n${recentSubjects.map((s) => `- ${s}`).join('\n')}` : '',
+    recentCampaigns.length ? `Recent campaigns sent: ${recentCampaigns.join(', ')}` : '',
     `Products:\n${productLines || '(none)'}`,
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   try {
     const json = await callGeminiJson(system, user);
@@ -237,7 +285,9 @@ export async function generateMarketingEmailCopy(input: MarketingCopyInput): Pro
     const intro = sanitizeText(json?.intro, 220);
     const headline = sanitizeText(json?.headline || subject, 60);
     const ctaLabel = sanitizeText(json?.ctaLabel, 40);
-    if (!subject || !intro || isSpammy(subject) || isSpammy(intro)) return fallback;
+    if (!subject || !intro || isSpammy(subject) || isSpammy(intro) || subjectTooSimilar(subject, recentSubjects)) {
+      return fallback;
+    }
 
     const productDescriptions: Record<string, string> = { ...fallback.productDescriptions };
     if (Array.isArray(json?.products)) {

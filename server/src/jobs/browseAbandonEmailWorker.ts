@@ -10,13 +10,17 @@ import { buildMarketingEmailContent } from '../email/marketingEmailBuilder';
 import { getClientUrl } from '../config/publicEnv';
 import { getPersonalizationGate } from '../services/personalizationGate.service';
 import {
-  getDailyMarketingEmailCap,
   isMarketingFlowEnabled,
   isMarketingFlowPushEnabled,
   recordFlowRun,
 } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from '../services/pushNotificationService';
 import { assertBuyerMarketingEligible } from '../services/marketingRecipient.service';
+import {
+  assertRecommendationLaneSend,
+  getRecentMarketingCopyContext,
+} from '../services/marketingEmailOrchestration.service';
+import { marketingDayKey } from '../email/copyEngine';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -29,18 +33,6 @@ function getIntEnv(name: string, fallback: number) {
 function hoursSince(date?: Date | null) {
   if (!date) return Number.POSITIVE_INFINITY;
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60);
-}
-
-async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
-  const cap = await getDailyMarketingEmailCap();
-  if (cap <= 0) return false;
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const count = await RecommendationEmailHistory.countDocuments({
-    userId: new mongoose.Types.ObjectId(userId),
-    status: 'sent',
-    sentAt: { $gte: since },
-  });
-  return count >= cap;
 }
 
 async function hasIntentAfter(userId: mongoose.Types.ObjectId, after: Date, productIds: mongoose.Types.ObjectId[]) {
@@ -126,11 +118,11 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
   if (!mongoose.Types.ObjectId.isValid(userId)) return 'skipped';
   const uid = new mongoose.Types.ObjectId(userId);
   if (!isEmailConfigured()) return 'skipped';
-  if (await isOverDailyMarketingCap(userId)) return 'skipped';
 
-  const cooldownHours = getIntEnv('BROWSE_ABANDON_COOLDOWN_HOURS', 6);
-  const profile = await BuyerInsightProfile.findOne({ userId: uid }).select('lastBrowseAbandonSentAt').lean();
-  if (profile?.lastBrowseAbandonSentAt && hoursSince(profile.lastBrowseAbandonSentAt) < cooldownHours) return 'skipped';
+  const laneGate = await assertRecommendationLaneSend(userId, 'browse_abandon', {
+    triggerAt: lastViewedAt,
+  });
+  if (!laneGate.ok) return 'skipped';
 
   if (await hasIntentAfter(uid, lastViewedAt, seedIds)) return 'skipped';
 
@@ -151,12 +143,16 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
   if (!products.length) return 'skipped';
 
   const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
+  const copyContext = await getRecentMarketingCopyContext(userId);
   const copy = await generateMarketingEmailCopy({
     userId,
     firstName,
     campaign: 'browse_abandon',
     mode: 'mixed',
     allowPersonalized: gate.allowPersonalized,
+    recentSubjects: copyContext.subjects,
+    recentCampaigns: copyContext.campaigns,
+    copyDayKey: marketingDayKey(),
     products: products.map((p: any) => ({
       id: String(p._id),
       name: String(p.name || ''),
