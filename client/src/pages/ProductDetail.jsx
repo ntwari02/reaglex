@@ -423,6 +423,7 @@ export default function ProductDetail() {
   }, [detailsReady, fetchedProduct, product, productPreview]);
 
   const hasPageShell = Boolean(displayProduct) || productPending || productFetching;
+  const p = displayProduct || product || productPreview || {};
 
   useEffect(() => {
     if (!slugParam && !legacyId) return;
@@ -603,7 +604,7 @@ export default function ProductDetail() {
       {
         ...product,
         price: activePricing.unitUsd,
-        sku: selectedVariant?.sku || product.sku,
+        sku: selectedVariant?.sku || p?.sku || product?.sku,
         variantSku: selectedVariant?.sku,
         selectedColor: selectedColorKey || selectedColor,
         selectedSize,
@@ -685,15 +686,15 @@ export default function ProductDetail() {
     const pad = (n) => String(n).padStart(2, '0');
     return d > 0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
   }, [promoActive, offerEndsAt, countdownNow]);
-  const sizeGuideRows = Array.isArray(product?.sizeGuide?.rows) ? product.sizeGuide.rows : [];
-  const serviceCommitments = Array.isArray(product?.serviceCommitments) && product.serviceCommitments.length
-    ? product.serviceCommitments
+  const sizeGuideRows = Array.isArray(p?.sizeGuide?.rows) ? p.sizeGuide.rows : [];
+  const serviceCommitments = Array.isArray(p?.serviceCommitments) && p.serviceCommitments.length
+    ? p.serviceCommitments
     : [
         { title: 'Authenticity check', description: 'Products are screened before listing.' },
         { title: 'Secure payment', description: 'Checkout is encrypted and monitored.' },
         { title: 'After-sales support', description: 'Quick assistance for delivery and returns.' },
       ];
-  const detailSections = Array.isArray(product?.detailSections) ? product.detailSections.filter((s) => s?.title) : [];
+  const detailSections = Array.isArray(p?.detailSections) ? p.detailSections.filter((s) => s?.title) : [];
 
   /* ── error (only when nothing to show and fetch failed) ── */
   if ((productQueryError || error) && !hasPageShell) return (
@@ -725,8 +726,6 @@ export default function ProductDetail() {
       </div>
     </BuyerLayout>
   );
-
-  const p = displayProduct || product || productPreview || {};
 
   /* ── derived values ── */
   const price        = detailsReady ? activePricing.unitUsd : resolveProductPriceUsd(displayProduct);
@@ -790,17 +789,17 @@ export default function ProductDetail() {
     />
   ) : null;
   const shortDesc    = detailsReady
-    ? ((product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.')
+    ? ((p.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.')
     : '';
 
   const specs = [
-    { prop: 'Brand',          value: product.brand    || 'Reaglex'     },
-    { prop: 'SKU',            value: product.sku      || resolvedId    },
+    { prop: 'Brand',          value: p.brand    || 'Reaglex'     },
+    { prop: 'SKU',            value: p.sku      || resolvedId    },
     { prop: 'Category',       value: category                          },
-    { prop: 'Material',       value: product.material || 'Cotton blend'},
-    { prop: 'Sizes',          value: (Array.isArray(product.sizes) && product.sizes.length ? product.sizes : FALLBACK_SIZES).join(', ') },
-    { prop: 'Weight',         value: product.weight   || '200g'        },
-    { prop: 'Origin',         value: product.origin   || 'Imported'    },
+    { prop: 'Material',       value: p.material || 'Cotton blend'},
+    { prop: 'Sizes',          value: (Array.isArray(p.sizes) && p.sizes.length ? p.sizes : FALLBACK_SIZES).join(', ') },
+    { prop: 'Weight',         value: p.weight   || '200g'        },
+    { prop: 'Origin',         value: p.origin   || 'Imported'    },
     { prop: 'Warranty',       value: '1 year limited'                  },
   ];
 
@@ -815,7 +814,7 @@ export default function ProductDetail() {
     { q: 'Is international shipping available?', a: 'Yes! We ship to 180+ countries via tracked courier services.' },
   ];
 
-  const recentFiltered = recentItems.filter((p) => (p._id || p.id) !== resolvedId).slice(0, 6);
+  const recentFiltered = recentItems.filter((item) => (item._id || item.id) !== resolvedId).slice(0, 6);
 
   const renderDetailPanel = (panelIndex, opts = { dense: false }) => {
     const { dense } = opts;
@@ -824,7 +823,7 @@ export default function ProductDetail() {
         return (
           <div className="pt-3">
             <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-              {product.description || 'No description available.'}
+              {p.description || 'No description available.'}
             </p>
             <h4 className="font-bold text-sm mb-3" style={{ color: 'var(--text-primary)' }}>Key Features</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -885,7 +884,7 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {Array.isArray(product?.reviewGallery) && product.reviewGallery.length > 0 && (
+            {Array.isArray(p?.reviewGallery) && p.reviewGallery.length > 0 && (
               <div className="p-4 sm:p-5 rounded-2xl"
                 style={{ background: 'var(--card-bg)', border: '1px solid var(--border-card)', boxShadow: 'var(--shadow-sm)' }}>
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -902,7 +901,7 @@ export default function ProductDetail() {
                   </button>
                 </div>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                  {product.reviewGallery
+                  {p.reviewGallery
                     .flatMap((r) => (Array.isArray(r?.images) ? r.images.map((img) => ({ img })) : []))
                     .slice(0, 12)
                     .map(({ img }, idx) => (
@@ -1366,31 +1365,31 @@ export default function ProductDetail() {
                 />
               )}
 
-              {(product?.shippingInfo?.costLabel || product?.returnPolicy?.label || product?.securityNote) && (
+              {(p?.shippingInfo?.costLabel || p?.returnPolicy?.label || p?.securityNote) && (
                 <section className="pd2-ali-block pd2-ali-commitments" aria-label="Store commitments">
                   <p className="pd2-ali-block__title">Reaglex commitment</p>
                   <ul className="pd2-ali-commitments__list">
-                    {(product?.shippingInfo?.costLabel || product?.shippingInfo?.estimatedDeliveryLabel) && (
+                    {(p?.shippingInfo?.costLabel || p?.shippingInfo?.estimatedDeliveryLabel) && (
                       <li>
                         <Truck size={16} />
                         <span>
-                          {product.shippingInfo?.costLabel || 'Shipping'}
-                          {product.shippingInfo?.estimatedDeliveryLabel
-                            ? ` · ${product.shippingInfo.estimatedDeliveryLabel}`
+                          {p.shippingInfo?.costLabel || 'Shipping'}
+                          {p.shippingInfo?.estimatedDeliveryLabel
+                            ? ` · ${p.shippingInfo.estimatedDeliveryLabel}`
                             : ''}
                         </span>
                       </li>
                     )}
-                    {product?.returnPolicy?.label && (
+                    {p?.returnPolicy?.label && (
                       <li>
                         <RefreshCw size={16} />
-                        <span>{product.returnPolicy.label}</span>
+                        <span>{p.returnPolicy.label}</span>
                       </li>
                     )}
-                    {(product?.securityNote || product?.paymentSafetyNote) && (
+                    {(p?.securityNote || p?.paymentSafetyNote) && (
                       <li>
                         <Shield size={16} />
-                        <span>{product.securityNote || product.paymentSafetyNote}</span>
+                        <span>{p.securityNote || p.paymentSafetyNote}</span>
                       </li>
                     )}
                   </ul>
@@ -1560,9 +1559,9 @@ export default function ProductDetail() {
                         className={`text-xs sm:text-sm leading-relaxed ${!descExpanded ? 'line-clamp-3 lg:line-clamp-none' : ''}`}
                         style={{ color: 'var(--text-secondary)' }}
                       >
-                        {descExpanded ? (product.description || shortDesc) : shortDesc}
+                        {descExpanded ? (p.description || shortDesc) : shortDesc}
                       </p>
-                      {(product.description || '').length > 180 && (
+                      {(p.description || '').length > 180 && (
                         <button
                           type="button"
                           onClick={() => setDescExpanded((v) => !v)}
@@ -1594,7 +1593,7 @@ export default function ProductDetail() {
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {product.sizes.map((s) => (
+                    {(p.sizes || []).map((s) => (
                       <motion.button key={s} type="button"
                         onClick={() => setSelectedSize(s)}
                         whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
@@ -1612,7 +1611,7 @@ export default function ProductDetail() {
                 </div>
                 )}
 
-                {(showSizeSelector && (sizeGuideRows.length > 0 || product?.sizeGuide?.circumferenceNote)) && (
+                {(showSizeSelector && (sizeGuideRows.length > 0 || p?.sizeGuide?.circumferenceNote)) && (
                   <div className="mb-4 lg:mb-5 order-9 lg:order-9">
                     <button
                       type="button"
@@ -1632,16 +1631,16 @@ export default function ProductDetail() {
                           className="overflow-hidden"
                         >
                           <div className="mt-2 p-3 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--divider)' }}>
-                            {product?.sizeGuide?.chartImageUrl && (
+                            {p?.sizeGuide?.chartImageUrl && (
                               <img
-                                src={resolveImage(product.sizeGuide.chartImageUrl)}
+                                src={resolveImage(p.sizeGuide.chartImageUrl)}
                                 alt="Ring size chart"
                                 className="w-full rounded-lg mb-2"
                                 onError={(e) => { e.target.style.display = 'none'; }}
                               />
                             )}
-                            {!!product?.sizeGuide?.circumferenceNote && (
-                              <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>{product.sizeGuide.circumferenceNote}</p>
+                            {!!p?.sizeGuide?.circumferenceNote && (
+                              <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>{p.sizeGuide.circumferenceNote}</p>
                             )}
                             {sizeGuideRows.length > 0 && (
                               <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -1717,7 +1716,7 @@ export default function ProductDetail() {
                         {
                           ...product,
                           price: activePricing.unitUsd,
-                          sku: selectedVariant?.sku || product.sku,
+                          sku: selectedVariant?.sku || p?.sku || product?.sku,
                         },
                         quantity,
                       );
@@ -2216,7 +2215,7 @@ export default function ProductDetail() {
                   {
                     ...product,
                     price: activePricing.unitUsd,
-                    sku: selectedVariant?.sku || product.sku,
+                    sku: selectedVariant?.sku || p?.sku || product?.sku,
                     variantSku: selectedVariant?.sku,
                     selectedColor: selectedColorKey || selectedColor,
                     selectedSize,
