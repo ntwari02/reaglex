@@ -74,8 +74,8 @@
 }
 
 .pd2-color-chip[data-active='true'] .pd2-color-chip__img {
-  border-color: var(--text-primary);
-  box-shadow: 0 0 0 1px var(--text-primary);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 1px var(--brand-primary);
 }
 
 .pd2-color-chip__img img {

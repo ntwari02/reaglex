@@ -93,7 +93,7 @@ export default function PremiumCasualHero({ isDark, className = '', compact = fa
   const textMuted = isDark ? 'rgba(255,255,255,0.72)' : '#777777';
   const eyebrowColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(17,17,17,0.45)';
 
-  const slideMinH = compact ? 196 : 248;
+  const slideMinH = compact ? 260 : 280;
   const radius = compact ? 16 : 24;
   const fullWidthLg = !compact;
 

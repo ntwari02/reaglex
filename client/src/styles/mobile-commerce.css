@@ -86,12 +86,12 @@
   }
 
   .mob-page .premium-casual-swiper {
-    min-height: 196px !important;
+    min-height: 260px !important;
   }
 
   .mob-page .premium-casual-swiper .swiper-slide > article,
   .mob-page .premium-casual-swiper .up-hero-slide {
-    min-height: 196px;
+    min-height: 260px;
   }
 
   .mob-section {

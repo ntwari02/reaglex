@@ -171,6 +171,8 @@ export default function ProductDetail() {
   const [selectedVariantSku, setSelectedVariantSku] = useState('');
   const [openCommitmentIdx, setOpenCommitmentIdx] = useState(null);
   const [openDetailIdx, setOpenDetailIdx] = useState(null);
+  const [heroVideoPlaying, setHeroVideoPlaying] = useState(false);
+  const [titleExpanded, setTitleExpanded] = useState(false);
 
   /* ── refs ── */
   const ctaRef = useRef(null);
@@ -179,7 +181,7 @@ export default function ProductDetail() {
 
   /* ── SEO ── */
   const resolvedId   = product?._id || product?.id || legacyId || null;
-  const title        = product?.title || product?.name || 'Product';
+  const title        = product?.title || product?.name || productPreview?.title || 'Product';
   const category     = product?.category || 'General';
   const images       = useMemo(() => collectProductImages(product), [product]);
   const origin       = typeof window !== 'undefined' ? getPreferredSiteOrigin() : '';
@@ -404,9 +406,23 @@ export default function ProductDetail() {
     placeholderData: productPreview || undefined,
   });
 
-  const loading = (productPending || productIsPreviewData || productFetching) && (
-    !fetchedProduct || isProductDetailPreview(fetchedProduct) || productIsPreviewData
+  const detailsReady = Boolean(
+    fetchedProduct &&
+    typeof fetchedProduct === 'object' &&
+    !productIsPreviewData &&
+    !isProductDetailPreview(fetchedProduct),
   );
+
+  const displayProduct = useMemo(() => {
+    if (detailsReady) return fetchedProduct;
+    if (product && !isProductDetailPreview(product)) return product;
+    if (productPreview) return productPreview;
+    if (product) return product;
+    if (fetchedProduct) return fetchedProduct;
+    return null;
+  }, [detailsReady, fetchedProduct, product, productPreview]);
+
+  const hasPageShell = Boolean(displayProduct) || productPending || productFetching;
 
   useEffect(() => {
     if (!slugParam && !legacyId) return;
@@ -523,22 +539,23 @@ export default function ProductDetail() {
   );
 
   const galleryItems = useMemo(() => {
-    if (!product) {
+    if (!displayProduct) {
       return [{ type: 'image', src: resolveImage(null) }];
     }
+    const displayImages = collectProductImages(displayProduct);
     return buildProductDetailGallery(
       {
-        ...product,
-        images,
-        image: product.image,
-        verificationVideoUrl: product.verificationVideoUrl,
-        videoProofUrl: product.videoProofUrl,
-        videoUrl: product.videoUrl,
+        ...displayProduct,
+        images: displayImages,
+        image: displayProduct.image,
+        verificationVideoUrl: displayProduct.verificationVideoUrl,
+        videoProofUrl: displayProduct.videoProofUrl,
+        videoUrl: displayProduct.videoUrl,
       },
       variantOptions,
       { resolveImage, resolveVideo: resolveMediaUrl },
     );
-  }, [product, images, variantOptions]);
+  }, [displayProduct, variantOptions]);
 
   useEffect(() => {
     if (!colorOptions.length) return;
@@ -580,7 +597,7 @@ export default function ProductDetail() {
 
   /* ── actions ── */
   const handleAddToCart = () => {
-    if (!product || addState !== 'idle') return;
+    if (!product || !detailsReady || addState !== 'idle') return;
     setAddState('adding');
     addItem(
       {
@@ -637,6 +654,10 @@ export default function ProductDetail() {
     setActiveImage((i) => Math.min(Math.max(0, i), Math.max(0, galleryItems.length - 1)));
   }, [galleryItems.length]);
 
+  useEffect(() => {
+    setHeroVideoPlaying(false);
+  }, [activeImage, slugParam, legacyId]);
+
   const couponCode = String(product?.couponCode || product?.coupon || '').trim();
   const campaignLabel = String(product?.campaignLabel || product?.campaign || '').trim();
   const offerEndsAt = product?.offerEndsAt ? new Date(product.offerEndsAt) : null;
@@ -674,50 +695,8 @@ export default function ProductDetail() {
       ];
   const detailSections = Array.isArray(product?.detailSections) ? product.detailSections.filter((s) => s?.title) : [];
 
-  /* ── loading / error ── */
-  if (loading) return (
-    <BuyerLayout noHeaderPad>
-      {pdpSeo}
-      <motion.div className="px-4 py-4 md:px-8" style={{ background: 'var(--bg-page)', paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' }}>
-        <div className="pd2-hero-grid gap-4 md:gap-6 max-w-6xl mx-auto">
-          <motion.div className="overflow-hidden rounded-3xl" style={{ aspectRatio: '1 / 1', background: 'var(--bg-secondary)' }}>
-            {productPreview?.image ? (
-              <motion.img
-                layoutId={productPreview?.id ? `product-image-${productPreview.id}` : undefined}
-                src={productPreview.image}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-full w-full pwa-skeleton" />
-            )}
-          </motion.div>
-          <div className="space-y-4 pt-2">
-            {productPreview?.title ? (
-              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{productPreview.title}</h1>
-            ) : (
-              <div className="h-8 w-3/4 rounded-xl pwa-skeleton" />
-            )}
-            {previewPrice > 0 ? (
-              <p className="text-xl font-bold" style={{ color: 'var(--brand-primary)' }}>
-                {currencyPricing.formatLocalWithUsd(previewPrice)}
-              </p>
-            ) : (
-              <div className="h-7 w-28 rounded-lg pwa-skeleton" />
-            )}
-            {['Reviews', 'Seller', 'Recommendations'].map((label) => (
-              <div key={label}>
-                <div className="mb-2 h-4 w-24 rounded pwa-skeleton" />
-                <div className="h-20 rounded-2xl pwa-skeleton" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </motion.div>
-    </BuyerLayout>
-  );
-
-  if (error || !product || typeof product !== 'object') return (
+  /* ── error (only when nothing to show and fetch failed) ── */
+  if ((productQueryError || error) && !hasPageShell) return (
     <BuyerLayout noHeaderPad>
       <PageSeo title="Product not found | Reaglex" description={error || 'Product not found.'} canonicalUrl={canonicalUrl} noIndex />
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
@@ -732,28 +711,57 @@ export default function ProductDetail() {
     </BuyerLayout>
   );
 
-  /* ── derived values (product is guaranteed non-null below) ── */
-  const price        = activePricing.unitUsd;
+  if (!hasPageShell) return (
+    <BuyerLayout noHeaderPad>
+      <PageSeo title="Product not found | Reaglex" description="Product not found." canonicalUrl={canonicalUrl} noIndex />
+      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <span className="text-6xl">😕</span>
+        <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Product not found.</p>
+        <button onClick={() => navigate(-1)}
+          className="px-7 py-3 rounded-full text-white font-bold text-sm"
+          style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
+          Go Back
+        </button>
+      </div>
+    </BuyerLayout>
+  );
+
+  const p = displayProduct || product || productPreview || {};
+
+  /* ── derived values ── */
+  const price        = detailsReady ? activePricing.unitUsd : resolveProductPriceUsd(displayProduct);
   const basePrice    = price;
   const totalPrice   = basePrice * quantity;
-  const oldPrice     = activePricing.compareUsd;
+  const oldPrice     = detailsReady ? activePricing.compareUsd : productOldPrice(displayProduct);
   const discount     = oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
-  const showDiscount = Number(discount || 0) > 0 && product.discountActive !== false;
-  const rating       = Number(product.ratingAverage || product.averageRating || product.rating || 0) || 0;
-  const reviewsCount = Number(product.reviewCount || product.totalReviews || 0) || 0;
-  const reviewThumbs = Array.isArray(product.reviewGallery) ? product.reviewGallery.slice(0, 4).map((r) => resolveImage(r)).filter(Boolean) : [];
+  const showDiscount = Number(discount || 0) > 0 && p.discountActive !== false;
+  const rating       = Number(p.ratingAverage || p.averageRating || p.rating || 0) || 0;
+  const reviewsCount = Number(p.reviewCount || p.totalReviews || 0) || 0;
+  const reviewThumbs = Array.isArray(p.reviewGallery) ? p.reviewGallery.slice(0, 4).map((r) => resolveImage(r)).filter(Boolean) : [];
   const hasReviewData = reviewsCount > 0 || rating > 0 || reviewThumbs.length > 0;
-  const soldCount    = Number(product.soldCount || product.salesCount || 0) || 0;
-  const stock        = product.stockQuantity ?? product.stock ?? 10;
-  const seller       = product.seller?.storeName || product.sellerName || 'Premium Store';
-  const sellerRating = Math.min(5, Number(product.seller?.rating ?? rating) || rating);
+  const soldCount    = Number(p.soldCount || p.salesCount || 0) || 0;
+  const stock        = detailsReady ? (p.stockQuantity ?? p.stock ?? 10) : 0;
+  const seller       = p.seller?.storeName || p.sellerName || 'Premium Store';
+  const sellerRating = Math.min(5, Number(p.seller?.rating ?? rating) || rating);
   const installment  = currencyPricing.formatLocalWithUsd(totalPrice / 3);
   const totalLocalPrice = currencyPricing.convertUsdToLocal(totalPrice);
   const baseLocalPrice = currencyPricing.convertUsdToLocal(basePrice);
   const totalUsdText = currencyPricing.formatUsd(totalPrice);
-  const showSizeSelector = categoryNeedsSize(product.category) && Array.isArray(product.sizes) && product.sizes.length > 0;
+  const showSizeSelector = detailsReady && categoryNeedsSize(p.category) && Array.isArray(p.sizes) && p.sizes.length > 0;
   const galleryHasVideo = galleryItems.some((g) => g.type === 'video');
   const galleryImageCount = galleryItems.filter((g) => g.type === 'image').length;
+  const activeGalleryItem = galleryItems[activeImage] || galleryItems[0];
+  const isVideoSlide = activeGalleryItem?.type === 'video';
+  const firstVideoIndex = galleryItems.findIndex((g) => g.type === 'video');
+  const showVerifiedBadge = galleryHasVideo || p?.verificationVideoUrl || p?.verified || p?.seller?.verified;
+  const titleLong = title.length > 72;
+  const jumpToProofVideo = (e) => {
+    e?.stopPropagation?.();
+    if (firstVideoIndex >= 0) {
+      setActiveImage(firstVideoIndex);
+      setHeroVideoPlaying(true);
+    }
+  };
   const showColorRail = colorOptions.length > 0;
   const showGalleryStrip =
     galleryItems.length > 1 ||
@@ -781,7 +789,9 @@ export default function ProductDetail() {
       onSelect={handleColorSelect}
     />
   ) : null;
-  const shortDesc    = (product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.';
+  const shortDesc    = detailsReady
+    ? ((product.description || '').trim().slice(0, 180) || 'Premium quality — see full description below.')
+    : '';
 
   const specs = [
     { prop: 'Brand',          value: product.brand    || 'Reaglex'     },
@@ -976,7 +986,7 @@ export default function ProductDetail() {
             style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 5%, transparent) 0%, transparent 65%)' }} />
         </div>
 
-        <div className="relative z-10 w-full pd2-fluid-wrap pd2-fluid-wrap--cart pt-1 sm:pt-4 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] md:pb-12 lg:pb-12 max-w-[100vw]">
+        <div className="relative z-10 w-full pd2-fluid-wrap pd2-fluid-wrap--cart pt-0 sm:pt-2 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-10 lg:pb-10 max-w-[100vw]">
 
           {/* Mobile — cart-style top bar */}
           <motion.div
@@ -1035,7 +1045,7 @@ export default function ProductDetail() {
           {/* ════════════════════════════════════════════════
               HERO: Gallery + Purchase Panel
           ════════════════════════════════════════════════ */}
-          <div className="pd2-hero-grid gap-4 md:gap-6 lg:gap-8 mb-6 md:mb-10 min-w-0">
+          <div className="pd2-hero-grid gap-3 md:gap-5 lg:gap-6 mb-4 md:mb-6 min-w-0">
 
             {/* ── Gallery ── */}
             <motion.div
@@ -1043,15 +1053,13 @@ export default function ProductDetail() {
               initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.34, ease: softEase }}
             >
-              {/* Main media */}
+              {/* Main media — AliExpress / premium carousel */}
               <div
-                className="pd2-main-img group relative overflow-hidden rounded-2xl md:rounded-3xl cursor-zoom-in mb-2 md:mb-4"
-                style={{
-                  background: 'var(--bg-secondary)',
-                }}
+                className="pd2-main-img pd2-media-stage group relative overflow-hidden rounded-2xl md:rounded-3xl mb-1 md:mb-3"
+                style={{ background: 'var(--bg-secondary)' }}
                 onClick={() => {
-                  const cur = galleryItems[activeImage];
-                  if (cur?.type !== 'video') setLightbox(true);
+                  if (isVideoSlide) return;
+                  setLightbox(true);
                 }}
                 onTouchStart={(e) => setTouchStartX(e.changedTouches?.[0]?.clientX ?? null)}
                 onTouchEnd={(e) => {
@@ -1063,28 +1071,51 @@ export default function ProductDetail() {
                   else setActiveImage((i) => (i - 1 + galleryItems.length) % galleryItems.length);
                 }}
               >
-                <AnimatePresence mode="wait">
-                  {galleryItems[activeImage]?.type === 'video' ? (
+                <AnimatePresence initial={false}>
+                  {isVideoSlide && heroVideoPlaying ? (
                     <motion.video
-                      key={`v-${activeImage}`}
-                      src={galleryItems[activeImage]?.src}
-                      poster={galleryItems[activeImage]?.poster}
+                      key={`v-play-${activeImage}`}
+                      src={activeGalleryItem?.src}
+                      poster={activeGalleryItem?.poster}
                       controls
+                      autoPlay
                       preload="metadata"
                       playsInline
-                      className="absolute inset-0 w-full h-full object-cover bg-black"
+                      className="absolute inset-0 z-[1] w-full h-full object-cover bg-black"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       transition={{ duration: 0.25 }}
                       onClick={(e) => e.stopPropagation()}
                     />
+                  ) : isVideoSlide ? (
+                    <motion.div
+                      key={`v-poster-${activeImage}`}
+                      className="absolute inset-0 z-[1]"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    >
+                      <img
+                        src={activeGalleryItem?.poster || resolveImage(images[0])}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                        draggable={false}
+                      />
+                      <button
+                        type="button"
+                        className="pd2-media-play"
+                        onClick={(e) => { e.stopPropagation(); setHeroVideoPlaying(true); }}
+                        aria-label="Play proof video"
+                      >
+                        <span className="pd2-media-play__icon"><Play size={22} fill="currentColor" /></span>
+                        <span>Video</span>
+                      </button>
+                    </motion.div>
                   ) : (
                     <motion.img
-                      key={`i-${activeImage}`}
+                      key={`i-${activeImage}-${activeGalleryItem?.src}`}
                       layoutId={activeImage === 0 ? imageLayoutId : undefined}
                       layout={activeImage === 0}
-                      src={galleryItems[activeImage]?.src || resolveImage(images[activeImage])}
+                      src={activeGalleryItem?.src || resolveImage(images[activeImage])}
                       alt={title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                      className="absolute inset-0 z-[1] w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02] cursor-zoom-in"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       transition={{ type: 'spring', stiffness: 320, damping: 32, mass: 0.75 }}
                       onError={(e) => { e.target.src = resolveImage(null); }}
@@ -1093,20 +1124,21 @@ export default function ProductDetail() {
                   )}
                 </AnimatePresence>
 
-                {galleryItems[activeImage]?.type === 'video' && (
-                  <span className="pd2-proof-badge">Proof video</span>
+                <div className="pd2-media-gradient" aria-hidden />
+
+                {showVerifiedBadge && (
+                  <span className="pd2-media-verified">
+                    <BadgeCheck size={13} strokeWidth={2.5} />
+                    Verified
+                  </span>
                 )}
 
-                {/* Floating badges */}
-                <div className="absolute top-4 left-4 flex flex-col gap-2">
-                  <span className="pd2-badge pd2-badge--green">NEW</span>
-                  {showDiscount && <span className="pd2-badge pd2-badge--red">-{discount}%</span>}
-                  <span className="pd2-badge pd2-badge--blue">FREE SHIP</span>
-                </div>
+                {showDiscount && (
+                  <span className="pd2-media-sale-tag">-{discount}%</span>
+                )}
 
-                {/* Controls */}
-                <div className="absolute top-4 right-4 flex flex-col gap-2">
-                  {/* Share */}
+                {/* Desktop tools */}
+                <div className="pd2-media-desktop-tools hidden md:flex">
                   <div className="relative">
                     <button
                       type="button"
@@ -1148,16 +1180,12 @@ export default function ProductDetail() {
                       )}
                     </AnimatePresence>
                   </div>
-
-                  {/* Zoom */}
                   <button type="button" className="pd2-img-btn" onClick={(e) => {
                     e.stopPropagation();
-                    if (galleryItems[activeImage]?.type !== 'video') setLightbox(true);
+                    if (!isVideoSlide) setLightbox(true);
                   }} aria-label="Zoom">
                     <ZoomIn size={16} />
                   </button>
-
-                  {/* Wishlist */}
                   <motion.button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); handleToggleWishlist(); }}
@@ -1169,7 +1197,6 @@ export default function ProductDetail() {
                   </motion.button>
                 </div>
 
-                {/* Arrow nav for multi-image */}
                 {galleryItems.length > 1 && (
                   <>
                     <button
@@ -1187,14 +1214,79 @@ export default function ProductDetail() {
                   </>
                 )}
 
-                {galleryItems.length > 1 && (
-                  <div className="pd2-gallery-index" aria-live="polite">
-                    {activeImage + 1}/{galleryItems.length}
+                <div className="pd2-media-footer">
+                  {galleryItems.length > 1 && (
+                    <span className="pd2-media-counter" aria-live="polite">
+                      {activeImage + 1}/{galleryItems.length}
+                    </span>
+                  )}
+                  <div className="pd2-media-footer__actions">
+                    {galleryHasVideo && !isVideoSlide && firstVideoIndex >= 0 && (
+                      <button type="button" className="pd2-media-chip" onClick={jumpToProofVideo}>
+                        <Play size={12} fill="currentColor" aria-hidden />
+                        Video
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={`pd2-media-wish ${wishlisted ? 'pd2-media-wish--active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); handleToggleWishlist(); }}
+                      aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                    >
+                      <Heart size={14} fill={wishlisted ? '#ef4444' : 'none'} stroke={wishlisted ? '#ef4444' : 'currentColor'} />
+                      {wishlistCount > 0 && <span>{wishlistCount > 999 ? '999+' : wishlistCount.toLocaleString()}</span>}
+                    </button>
+                    <button
+                      type="button"
+                      className="pd2-media-chip md:hidden"
+                      onClick={(e) => { e.stopPropagation(); setShareOpen((v) => !v); }}
+                      aria-label="Share"
+                    >
+                      <Share2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile title + rating (AliExpress-style, below gallery) */}
+              <div className="pd2-mobile-product-head md:hidden">
+                <p className="pd2-mobile-category">{String(category).toUpperCase()}</p>
+                <div className="pd2-mobile-title-row">
+                  <h1 className={`pd2-mobile-title ${titleExpanded ? 'pd2-mobile-title--expanded' : ''}`}>{title}</h1>
+                  {titleLong && (
+                    <button
+                      type="button"
+                      className="pd2-mobile-title-toggle"
+                      onClick={() => setTitleExpanded((v) => !v)}
+                      aria-expanded={titleExpanded}
+                    >
+                      <ChevronDown size={18} className={titleExpanded ? 'rotate-180' : ''} />
+                    </button>
+                  )}
+                </div>
+                {detailsReady ? (
+                  <div className="pd2-mobile-rating-row">
+                    <Stars rating={rating} size={13} />
+                    <span className="pd2-mobile-rating-num">{rating ? rating.toFixed(1) : '—'}</span>
+                    <span className="pd2-mobile-rating-sep" aria-hidden>|</span>
+                    <button type="button" className="pd2-mobile-rating-link" onClick={openReviews}>
+                      {reviewsCount ? `${reviewsCount.toLocaleString()} reviews` : 'No reviews yet'}
+                    </button>
+                    {!!soldCount && (
+                      <>
+                        <span className="pd2-mobile-rating-sep" aria-hidden>|</span>
+                        <span className="pd2-mobile-sold">{soldCount.toLocaleString()}+ sold</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="pd2-mobile-rating-row pd2-mobile-rating-row--skeleton" aria-hidden>
+                    <div className="h-3.5 w-28 rounded pwa-skeleton" />
                   </div>
                 )}
               </div>
 
-              {/* Thumbnails — all photos + proof video */}
+              {/* Thumbnails — photos + proof video */}
               {showGalleryStrip && (
                 <div className="pd2-gallery-strip mb-3 md:mb-4">
                   <div className="pd2-gallery-strip__head">
@@ -1207,34 +1299,23 @@ export default function ProductDetail() {
                     </p>
                     <span className="pd2-gallery-strip__count">{activeImage + 1}/{galleryItems.length}</span>
                   </div>
-                  <div className="pd2-thumbs-row flex gap-2 md:gap-2.5 overflow-x-auto pb-1 scroll-touch" style={{ scrollSnapType: 'x mandatory' }}>
+                  <div className="pd2-thumbs-row">
                   {galleryItems.map((m, i) => (
                     <motion.button
                       key={i} type="button"
                       onClick={() => setActiveImage(i)}
-                      className="pd2-thumb-btn flex-shrink-0 rounded-xl overflow-hidden transition-all duration-200 touch-manipulation"
-                      style={{
-                        width: 72, height: 72,
-                        border: `2px solid ${i === activeImage ? PRIMARY : 'transparent'}`,
-                        boxShadow: 'none',
-                        background: 'var(--card-bg)',
-                        opacity: i === activeImage ? 1 : 0.65,
-                        scrollSnapAlign: 'start',
-                      }}
-                      whileHover={{ scale: 1.03, opacity: 1 }}
+                      className={`pd2-thumb-btn touch-manipulation ${i === activeImage ? 'pd2-thumb-btn--active' : ''}`}
+                      whileTap={{ scale: 0.96 }}
+                      aria-label={m?.type === 'video' ? `Proof video ${i + 1}` : `Photo ${i + 1}`}
+                      aria-current={i === activeImage ? 'true' : undefined}
                     >
                       {m?.type === 'video' ? (
-                        <div className="w-full h-full relative bg-black">
-                          <img src={m.poster || resolveImage(images[0])} alt="" className="w-full h-full object-cover opacity-85" draggable={false} />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white"
-                              style={{ background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.28)' }}>
-                              <Play size={14} fill="currentColor" aria-hidden />
-                            </div>
-                          </div>
+                        <div className="pd2-thumb-video">
+                          <img src={m.poster || resolveImage(images[0])} alt="" draggable={false} />
+                          <span className="pd2-thumb-video__play"><Play size={12} fill="currentColor" /></span>
                         </div>
                       ) : (
-                        <img src={m?.src} alt="" className="w-full h-full object-cover" draggable={false} />
+                        <img src={m?.src} alt="" draggable={false} />
                       )}
                     </motion.button>
                   ))}
@@ -1245,6 +1326,12 @@ export default function ProductDetail() {
               {/* AliExpress-style commerce stack: color, reviews, commitments */}
               <div className="pd2-ali-commerce-stack">
               <div className="pd2-mobile-commerce-hero md:hidden">
+                {(campaignActive || offerCountdown) && (
+                  <div className="pd2-mobile-sale-banner">
+                    <span>{campaignLabel || 'SALE'}</span>
+                    {offerCountdown && <span className="pd2-mobile-sale-banner__ends">Ends {offerCountdown}</span>}
+                  </div>
+                )}
                 <div className="pd2-mobile-price-row">
                   <span className="pd2-mobile-price-current">
                     {currencyPricing.formatLocalWithUsd(price)}
@@ -1361,10 +1448,11 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                <h1 className="pd2-title mb-2 lg:mb-3 order-1 lg:order-1 w-full min-w-0">{title}</h1>
+                <h1 className="pd2-title mb-1.5 lg:mb-2 order-1 lg:order-1 w-full min-w-0 hidden md:block">{title}</h1>
 
                 {/* Rating row */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 lg:mb-5 pb-3 lg:pb-4 border-b order-2 lg:order-2 w-full min-w-0" style={{ borderColor: 'var(--divider)' }}>
+                {detailsReady ? (
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 lg:mb-4 pb-2.5 lg:pb-3 border-b order-2 lg:order-2 w-full min-w-0" style={{ borderColor: 'var(--divider)' }}>
                   <Stars rating={rating} />
                   <span className="font-bold text-sm" style={{ color: PRIMARY }}>{rating ? rating.toFixed(1) : '—'}</span>
                   <button
@@ -1389,6 +1477,12 @@ export default function ProductDetail() {
                     <Heart size={12} className="inline -mt-0.5 mr-1" /> {wishlistCount.toLocaleString()} saved
                   </span>
                 </div>
+                ) : (
+                <div className="order-2 lg:order-2 w-full min-w-0 mb-3 lg:mb-4 pb-2.5 lg:pb-3 border-b space-y-2" style={{ borderColor: 'var(--divider)' }} aria-hidden>
+                  <div className="h-4 w-40 rounded-lg pwa-skeleton" />
+                  <div className="h-3 w-56 rounded-lg pwa-skeleton" />
+                </div>
+                )}
 
                 {/* Price + discount block (desktop; mobile uses hero under gallery) */}
                 <div className="order-3 lg:order-3 w-full min-w-0 mb-3 lg:mb-0 space-y-2 hidden md:block">
@@ -1460,21 +1554,31 @@ export default function ProductDetail() {
 
                 {/* Short desc */}
                 <div className="mb-3 lg:mb-4 order-5 lg:order-5">
-                  <p
-                    className={`text-xs sm:text-sm leading-relaxed ${!descExpanded ? 'line-clamp-3 lg:line-clamp-none' : ''}`}
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    {descExpanded ? (product.description || shortDesc) : shortDesc}
-                  </p>
-                  {(product.description || '').length > 180 && (
-                    <button
-                      type="button"
-                      onClick={() => setDescExpanded((v) => !v)}
-                      className="mt-1.5 text-xs font-semibold hover:underline py-1 touch-manipulation"
-                      style={{ color: PRIMARY }}
-                    >
-                      {descExpanded ? 'Read less' : 'Read more'}
-                    </button>
+                  {detailsReady ? (
+                    <>
+                      <p
+                        className={`text-xs sm:text-sm leading-relaxed ${!descExpanded ? 'line-clamp-3 lg:line-clamp-none' : ''}`}
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {descExpanded ? (product.description || shortDesc) : shortDesc}
+                      </p>
+                      {(product.description || '').length > 180 && (
+                        <button
+                          type="button"
+                          onClick={() => setDescExpanded((v) => !v)}
+                          className="mt-1.5 text-xs font-semibold hover:underline py-1 touch-manipulation"
+                          style={{ color: PRIMARY }}
+                        >
+                          {descExpanded ? 'Read less' : 'Read more'}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="space-y-2" aria-hidden>
+                      <div className="h-3 w-full rounded pwa-skeleton" />
+                      <div className="h-3 w-11/12 rounded pwa-skeleton" />
+                      <div className="h-3 w-4/5 rounded pwa-skeleton" />
+                    </div>
                   )}
                 </div>
 
@@ -1591,7 +1695,7 @@ export default function ProductDetail() {
                   <motion.button
                     type="button"
                     onClick={handleAddToCart}
-                    disabled={stock === 0 || addState === 'adding'}
+                    disabled={!detailsReady || stock === 0 || addState === 'adding'}
                     whileHover={addState === 'idle' ? { y: -1 } : {}}
                     whileTap={{ scale: 0.98 }}
                     className="pd2-btn-primary w-full h-14 flex items-center justify-center gap-3 text-sm font-bold"
@@ -1607,6 +1711,7 @@ export default function ProductDetail() {
                   {/* Buy Now */}
                   <motion.button
                     type="button"
+                    disabled={!detailsReady || stock === 0}
                     onClick={() => {
                       addItem(
                         {
@@ -1619,7 +1724,7 @@ export default function ProductDetail() {
                       navigate('/checkout');
                     }}
                     whileHover={{ y: -0.5 }} whileTap={{ scale: 0.98 }}
-                    className="pd2-btn-secondary w-full h-12 flex items-center justify-center gap-2 text-sm font-bold"
+                    className="pd2-btn-secondary w-full h-12 flex items-center justify-center gap-2 text-sm font-bold disabled:opacity-45"
                   >
                     <Zap size={16} /> Buy Now
                   </motion.button>
@@ -2048,6 +2153,40 @@ export default function ProductDetail() {
 
       </div>
 
+      {/* Mobile share sheet */}
+      <AnimatePresence>
+        {shareOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="pd2-share-sheet md:hidden"
+            onClick={() => setShareOpen(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+              className="pd2-share-sheet__panel"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="pd2-share-sheet__title">Share product</p>
+              {[['whatsapp','WhatsApp'],['facebook','Facebook'],['twitter','Twitter'],['copy','Copy link']].map(([k,l]) => (
+                <button
+                  key={k}
+                  type="button"
+                  className="pd2-share-sheet__btn"
+                  onClick={() => handleShare(k === 'copy' ? 'copy' : k)}
+                >
+                  {k === 'copy' && shared ? 'Copied!' : l}
+                </button>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Mobile sticky CTAs — above bottom nav, thumb-sized */}
       <div className="md:hidden fixed left-0 right-0 z-[95] bottom-[calc(60px+env(safe-area-inset-bottom,0px))] pointer-events-none">
         <div className="pd2-sticky-cta-inner pd2-sticky-cta-inner--cart pointer-events-auto">
@@ -2063,7 +2202,7 @@ export default function ProductDetail() {
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={stock === 0 || addState === 'adding'}
+              disabled={!detailsReady || stock === 0 || addState === 'adding'}
               className="pd2-sticky-cart touch-manipulation"
             >
               {addState === 'adding' && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
@@ -2086,7 +2225,7 @@ export default function ProductDetail() {
                 );
                 navigate('/checkout');
               }}
-              disabled={stock === 0}
+              disabled={!detailsReady || stock === 0}
               className="pd2-sticky-buy touch-manipulation disabled:opacity-45"
             >
               <Zap size={16} /> Buy now
