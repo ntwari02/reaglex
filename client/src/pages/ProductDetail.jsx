@@ -1005,7 +1005,7 @@ export default function ProductDetail() {
             style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 5%, transparent) 0%, transparent 65%)' }} />
         </div>
 
-        <div className="relative z-10 w-full pd2-fluid-wrap pd2-fluid-wrap--cart pt-0 sm:pt-2 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-10 lg:pb-10 max-w-[100vw]">
+        <div className="relative z-10 w-full pd2-fluid-wrap pd2-fluid-wrap--cart pt-0 sm:pt-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-12 lg:pb-12 max-w-[100vw] lg:max-w-none lg:mx-auto">
 
           {/* Mobile — cart-style top bar */}
           <motion.div
@@ -1064,7 +1064,7 @@ export default function ProductDetail() {
           {/* ════════════════════════════════════════════════
               HERO: Gallery + Purchase Panel
           ════════════════════════════════════════════════ */}
-          <div className="pd2-hero-grid gap-3 md:gap-5 lg:gap-6 mb-4 md:mb-6 min-w-0">
+          <div className="pd2-hero-grid gap-4 md:gap-6 lg:gap-8 mb-6 md:mb-10 min-w-0 max-w-6xl mx-auto w-full">
 
             {/* ── Gallery ── */}
             <motion.div
@@ -1860,7 +1860,7 @@ export default function ProductDetail() {
             viewport={{ once: true }} transition={{ duration: 0.36, ease: softEase }}
           >
             {/* Seller card */}
-            <div className="pd2-seller-card max-w-[100vw] overflow-hidden">
+            <div className="pd2-seller-card max-w-[100vw] lg:max-w-none overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 min-w-0">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 font-black text-white text-xl"
                   style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}>
@@ -1889,7 +1889,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Trust badges */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
               {[
                 { icon: Shield,     label: 'Buyer Protection', sub: 'Your money is safe',     color: PRIMARY      },
                 { icon: Truck,      label: 'Free Shipping',     sub: 'On orders over $35',     color: '#6366f1'    },

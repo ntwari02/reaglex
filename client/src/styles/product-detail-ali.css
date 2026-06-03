@@ -132,6 +132,16 @@
   display: none;
 }
 
+/* Desktop/laptop only — mobile keeps horizontal scroll rails */
+@media (min-width: 1024px) {
+  .pd2-color-rail,
+  .pd2-review-gallery-rail {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+}
+
 .pd2-review-gallery-item {
   flex: 0 0 auto;
   width: 108px;

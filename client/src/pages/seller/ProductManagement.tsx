@@ -3007,7 +3007,7 @@ const ProductManagement: React.FC = () => {
             </section>
 
             {/* Actions */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 sm:px-6 py-3">
+            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 sm:px-6 py-3 md:relative md:sticky md:bottom-0 md:z-10 md:mt-6 md:rounded-b-2xl">
               <div className="mx-auto w-full max-w-6xl flex flex-col sm:flex-row gap-2 sm:justify-end">
                 <Button
                   variant="outline"
