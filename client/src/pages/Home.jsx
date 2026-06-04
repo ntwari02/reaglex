@@ -3,9 +3,7 @@ import { PageSeo } from '../components/seo/PageSeo';
 import { getPreferredSiteOrigin } from '../lib/siteOrigin';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import PremiumMobileHome from '../components/home/PremiumMobileHome';
-import PremiumCasualHero from '../components/home/PremiumCasualHero';
-import { useTheme } from '../contexts/ThemeContext';
-
+import FuturisticHero from '../components/home/FuturisticHero';
 const FeaturedCategories = lazy(() => import('../components/home/FeaturedCategories'));
 const TrendingProducts = lazy(() => import('../components/home/TrendingProducts'));
 const PromoBanner = lazy(() => import('../components/home/PromoBanner'));
@@ -58,8 +56,6 @@ function DeferredSection({ children, fallbackHeight = 420, rootMargin = '400px 0
 
 export default function Home() {
   const origin = getPreferredSiteOrigin();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
   return (
     <BuyerLayout>
@@ -75,7 +71,7 @@ export default function Home() {
       </div>
 
       <div className="hidden md:block w-full">
-        <PremiumCasualHero isDark={isDark} />
+        <FuturisticHero />
       </div>
 
       <div className="hidden md:block">

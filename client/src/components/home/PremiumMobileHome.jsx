@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion';
 import { useHomeFeedBundle } from '../../hooks/useHomeFeedSections';
 import { HOME_PRODUCT_LIMIT } from './mobile/HomeExploreSection';
-import PremiumCasualHero from './PremiumCasualHero';
+import FuturisticHero from './FuturisticHero';
 import PremiumCategoryChips from './PremiumCategoryChips';
-import { useTheme } from '../../contexts/ThemeContext';
 import HomeExploreSection from './mobile/HomeExploreSection';
 import UpcomingProductsSection from './mobile/UpcomingProductsSection';
 import MobileTrustStrip from './mobile/MobileTrustStrip';
@@ -15,8 +14,6 @@ import '../../styles/explore-all.css';
 import '../../styles/home-explore-bridge.css';
 
 export default function PremiumMobileHome() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const { data: feed, isPending } = useHomeFeedBundle(HOME_PRODUCT_LIMIT);
 
   const trending = feed?.trending ?? [];
@@ -38,7 +35,7 @@ export default function PremiumMobileHome() {
       transition={{ duration: 0.28 }}
       style={{ background: 'var(--bg-page)' }}
     >
-      <PremiumCasualHero isDark={isDark} compact />
+      <FuturisticHero compact />
 
       <div className="mob-home-cat-rail" aria-label="Categories">
         <PremiumCategoryChips />
