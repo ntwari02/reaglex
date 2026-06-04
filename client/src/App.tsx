@@ -317,6 +317,7 @@ function App() {
               <Route path="/" element={<HomeRouteGuard />} />
               <Route path="/search" element={<SearchResults />} />
               <Route path="/products" element={<SearchResults />} />
+              <Route path="/category/all" element={<SearchResults />} />
               <Route path="/explore" element={<ExploreAll />} />
               <Route path="/live" element={<LiveCommerceRouteGuard><LiveDiscover /></LiveCommerceRouteGuard>} />
               <Route path="/live/:sessionId" element={<LiveCommerceRouteGuard><LiveSession /></LiveCommerceRouteGuard>} />
