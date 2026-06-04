@@ -48,6 +48,7 @@ export function isAccountSettingsRoute(pathname, search = '') {
 
 /** Category browse — own top bar + search; hide storefront header. */
 export function isCategoryBrowseRoute(pathname) {
+  if (pathname === '/category/all') return false;
   return pathname === '/category' || pathname.startsWith('/category/');
 }
 
