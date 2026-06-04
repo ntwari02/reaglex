@@ -282,7 +282,6 @@ export default function Footer() {
   return (
     <motion.footer
       className="footer"
-      style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
@@ -393,7 +392,7 @@ export default function Footer() {
                   alt="Reaglex"
                   className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                 />
-                <span className="font-bold text-2xl tracking-wide" style={{ color: 'var(--footer-on-dark-heading)', fontFamily: "'Mea Culpa', serif" }}>
+                <span className="reaglex-logo-font font-bold text-2xl tracking-wide" style={{ color: 'var(--footer-on-dark-heading)' }}>
                   Reaglex
                 </span>
               </Link>
@@ -562,7 +561,7 @@ export default function Footer() {
         }}
       >
         <p className="footer-bottom-text text-[13px] order-2 sm:order-1 text-center sm:text-left" style={{ color: 'var(--footer-on-dark-body)' }}>
-          © {currentYear} <span style={{ fontFamily: "'Mea Culpa', serif", fontWeight: 700, fontSize: '1.05em' }}>Reaglex</span>. {t('footer.rightsReservedPrefix')} <span className="footer-heart">❤️</span> {t('footer.rightsReservedSuffix')}
+          © {currentYear} <span className="reaglex-logo-font" style={{ fontWeight: 700, fontSize: '1.05em' }}>Reaglex</span>. {t('footer.rightsReservedPrefix')} <span className="footer-heart">❤️</span> {t('footer.rightsReservedSuffix')}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
           {PAYMENT_ICONS.map((payment) => (

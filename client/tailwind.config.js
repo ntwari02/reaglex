@@ -4,6 +4,12 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Times New Roman"', 'Times', 'serif'],
+        serif: ['"Times New Roman"', 'Times', 'serif'],
+        mono: ['"Times New Roman"', 'Times', 'serif'],
+        logo: ['"Mea Culpa"', 'serif'],
+      },
       colors: {
         /* Buyer dark surfaces — resolve from theme.css tokens (light: same vars, different values) */
         'dark-primary': 'var(--bg-page)',

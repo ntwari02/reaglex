@@ -74,6 +74,10 @@ export function computeSearchListingSeo(args: {
     } else {
       canonicalPath = `/search?q=${encodeURIComponent(q)}`;
     }
+  } else if (pathname === '/category/all') {
+    canonicalPath = page > 1 ? `/category/all?page=${page}` : '/category/all';
+    robotsContent = hasFacet && (sort !== 'newest' || q || categories || sellers) ? 'noindex,follow' : 'index,follow';
+    noIndexFlag = robotsContent.startsWith('noindex');
   } else if (pathname === '/products') {
     if (!hasFacet) {
       canonicalPath = '/products';

@@ -83,12 +83,21 @@ export function getColors(theme: 'light' | 'dark'): AppColors {
   };
 }
 
-/** Matches web `index.css` / buyer pages — Times-like serif for headings & body. */
-export const fontSerif = Platform.select({
-  ios: 'Georgia',
+/** Site body font — matches web `--font-body`. */
+export const fontBody = Platform.select({
+  ios: 'Times New Roman',
   android: 'serif',
-  default: 'serif',
-});
+  default: 'Times New Roman',
+}) as string;
 
-export const fontSans =
-  Platform.select({ ios: 'System', android: 'sans-serif', default: 'sans-serif' }) ?? 'System';
+/** @deprecated Use fontBody */
+export const fontSerif = fontBody;
+
+export const fontSans = fontBody;
+
+/** Reaglex logo wordmark only (web uses Mea Culpa via custom font). */
+export const fontLogo = Platform.select({
+  ios: 'Times New Roman',
+  android: 'serif',
+  default: 'Times New Roman',
+}) as string;

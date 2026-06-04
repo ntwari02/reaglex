@@ -75,7 +75,7 @@ export default function OrderTracking() {
 
   return (
     <BuyerLayout>
-      <div className="min-h-screen track-page" style={{ background: 'var(--bg-page)', fontFamily: 'Inter, sans-serif' }}>
+      <div className="min-h-screen track-page" style={{ background: 'var(--bg-page)' }}>
         {/* ═══ TIER 1: Hero banner ═══ */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

@@ -230,7 +230,6 @@ export default function BuyerNotifications() {
         style={{
           background: 'var(--bg-page, #f8fafc)',
           color: 'var(--text-primary, #0f172a)',
-          fontFamily: 'Inter, system-ui, sans-serif',
         }}
       >
         {/* Tier 1 — Banner */}

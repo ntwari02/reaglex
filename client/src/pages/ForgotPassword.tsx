@@ -58,8 +58,8 @@ export function ForgotPassword() {
       <div className="flex flex-col flex-1 min-h-0 w-full">
         {/* Mobile logo */}
         <div className="flex-shrink-0 flex items-center justify-between mb-4">
-          <Link to="/" className="text-2xl font-bold lg:hidden"
-            style={{ fontFamily: "'Mea Culpa', serif", color: 'var(--text-primary)' }}>
+          <Link to="/" className="reaglex-logo-font text-2xl font-bold lg:hidden"
+            style={{ color: 'var(--text-primary)' }}>
             Reaglex
           </Link>
         </div>

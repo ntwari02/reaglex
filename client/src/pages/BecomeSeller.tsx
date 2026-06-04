@@ -331,7 +331,7 @@ export default function BecomeSeller() {
                   >
                     {/* watermark number */}
                     <div className="absolute -top-4 -right-2 font-black leading-none select-none pointer-events-none"
-                      style={{ fontSize: '5rem', color: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)', fontFamily: 'Georgia, serif' }}>
+                      style={{ fontSize: '5rem', color: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)' }}>
                       {step.n}
                     </div>
                     {/* left accent */}

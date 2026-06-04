@@ -117,7 +117,7 @@ export default function CategoryBrowse() {
         hreflangAlternates={hreflangAlternates}
       />
 
-      <div className="min-h-screen pb-16" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="min-h-screen pb-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
           <nav className="text-sm flex flex-wrap items-center gap-1 mb-6" aria-label="Breadcrumb">
             <Link to="/" className="hover:underline" style={{ color: 'var(--link-color)' }}>

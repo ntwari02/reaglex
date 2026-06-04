@@ -76,7 +76,6 @@ export default function PremiumCarouselProductCard({ product, isActive = false, 
         boxShadow: isActive
           ? '0 22px 52px color-mix(in srgb, var(--brand-primary) 22%, transparent), var(--shadow-card)'
           : 'var(--shadow-sm)',
-        fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
       <div className="relative mx-3 mt-3 overflow-hidden rounded-[20px]" style={{ aspectRatio: '1 / 1.02', background: 'var(--bg-tertiary)' }}>

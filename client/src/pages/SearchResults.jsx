@@ -577,10 +577,7 @@ export default function SearchResults() {
         hreflangAlternates={hreflangAlternates}
       />
       <div
-        className="flex flex-col w-full relative min-h-0 overflow-hidden h-[calc(100dvh-74px-60px-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-150px)]"
-        style={{
-          fontFamily: 'Inter, system-ui, sans-serif',
-        }}
+        className="flex flex-col w-full relative min-h-0 overflow-hidden h-[calc(100dvh-74px-60px-env(safe-area-inset-bottom,0px))] md:h-auto md:min-h-0 lg:h-[calc(100dvh-158px-env(safe-area-inset-top,0px))]"
       >
         {/* Page background */}
         <div className="absolute inset-0 -z-10 bg-[var(--bg-page)] transition-colors duration-300" />
@@ -592,8 +589,7 @@ export default function SearchResults() {
         >
           {/* ── Filter sidebar (desktop, sticky with shadow on scroll) ── */}
           <aside
-            className="hidden lg:block flex-shrink-0 overflow-y-auto self-start"
-            style={{ width: 240, height: '100%', position: 'sticky', top: 80 }}
+            className="hidden lg:block flex-shrink-0 w-[240px] self-start sticky top-[158px] max-h-[calc(100dvh-170px-env(safe-area-inset-top,0px))] overflow-y-auto overscroll-contain pr-1"
           >
             <motion.div
               initial={{ opacity: 0, x: -24 }}
@@ -631,14 +627,14 @@ export default function SearchResults() {
           {/* ── Product list area (ONLY this scrolls) ── */}
           <div
             ref={productListRef}
-            className="flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden h-full relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full px-3 py-3 sm:px-4 sm:py-4 md:px-6"
+            className="flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden h-full relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full px-3 py-3 sm:px-4 sm:py-4 md:px-6 lg:min-h-0"
           >
             {/* "All Products" header row — sticky within scroll area, page-load animation */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="flex-shrink-0 sticky top-0 z-20 mb-3 sm:mb-5 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)] transition-colors duration-300 shadow-sm"
+              className="flex-shrink-0 sticky top-0 z-20 mb-3 sm:mb-5 flex flex-col gap-3 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-between lg:gap-4 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-[var(--card-bg)] border border-[var(--divider)] transition-colors duration-300 shadow-sm"
               style={{ ...CARD, paddingBottom: 12 }}
             >
                 {/* Mobile / tablet: filters + sort + view first so they stay visible */}
@@ -717,8 +713,11 @@ export default function SearchResults() {
                   </div>
                 </div>
 
-                {/* In-page search bar */}
-                <form onSubmit={handlePageSearchSubmit} className="search-page-bar flex w-full min-w-0 items-center gap-2 rounded-lg border border-[var(--divider-strong)] overflow-hidden bg-[var(--bg-secondary)] dark:bg-gray-700 lg:max-w-sm lg:flex-1">
+                {/* In-page search bar — full width on mobile; fixed width in desktop toolbar row */}
+                <form
+                  onSubmit={handlePageSearchSubmit}
+                  className="search-page-bar order-2 flex w-full min-w-0 items-center gap-2 rounded-lg border border-[var(--divider-strong)] overflow-hidden bg-[var(--bg-secondary)] dark:bg-gray-700 lg:order-1 lg:w-auto lg:min-w-[220px] lg:max-w-[280px] lg:flex-shrink-0"
+                >
                   <Search className="w-4 h-4 flex-shrink-0 ml-3 text-[var(--text-muted)]" />
                   <input
                     type="text"
@@ -731,7 +730,7 @@ export default function SearchResults() {
                 </form>
 
                 {/* Title + count — desktop */}
-                <div className="hidden min-w-0 lg:block">
+                <div className="hidden min-w-0 flex-1 lg:block lg:order-2 lg:px-2">
                   <p className="font-bold text-base text-[var(--text-primary)]">
                     {q ? `${t('search.resultsFor')} "${q}"` : t('home.exploreAllProducts')}
                   </p>
@@ -748,8 +747,8 @@ export default function SearchResults() {
                   )}
                 </div>
 
-                {/* Desktop: sort + view + filter drawer trigger not needed (sidebar) */}
-                <div className="hidden lg:flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                {/* Desktop: sort + view (filter sidebar is always visible on lg+) */}
+                <div className="hidden lg:flex items-center gap-2 shrink-0 flex-nowrap justify-end lg:order-3">
                   <div className="relative">
                     <button
                       type="button"

@@ -95,6 +95,24 @@ const SellerIdentityVerification: React.FC = () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  const parseApiResponse = async (res: Response): Promise<Record<string, unknown>> => {
+    const text = await res.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      if (res.status === 502) {
+        return {
+          message:
+            'The verification service did not respond in time. Try a smaller photo or retry in a moment.',
+          hint:
+            'If this persists, confirm MICROBLINK_LICENSE_KEY, MICROBLINK_SECRET (or MICROBLINK_SECRET_B64), and MICROBLINK_REGION on Render.',
+        };
+      }
+      return { message: text.slice(0, 200) || `Request failed (${res.status})` };
+    }
+  };
+
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
@@ -175,12 +193,12 @@ const SellerIdentityVerification: React.FC = () => {
         body: form,
         credentials: 'include',
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       if (!res.ok) {
         const detail = [data.message, data.hint].filter(Boolean).join(' ');
         throw new Error(detail || 'Document scan failed');
       }
-      showToast(data.message, data.accepted ? 'success' : 'error');
+      showToast(String(data.message ?? 'Document scanned'), data.accepted ? 'success' : 'error');
       setFrontFile(null);
       setBackFile(null);
       await loadStatus();
@@ -206,12 +224,12 @@ const SellerIdentityVerification: React.FC = () => {
         body: form,
         credentials: 'include',
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       if (!res.ok) {
         const detail = [data.message, data.hint].filter(Boolean).join(' ');
         throw new Error(detail || 'Face verification failed');
       }
-      showToast(data.message, data.accepted ? 'success' : 'error');
+      showToast(String(data.message ?? 'Face verified'), data.accepted ? 'success' : 'error');
       setSelfieFile(null);
       if (selfiePreview) URL.revokeObjectURL(selfiePreview);
       setSelfiePreview(null);

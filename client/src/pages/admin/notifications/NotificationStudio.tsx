@@ -613,7 +613,7 @@ export default function NotificationStudio() {
 
       <div
         className={cn(
-          'relative flex-1 min-h-[120px] rounded-xl border p-3 text-sm font-[system-ui] leading-relaxed overflow-y-auto',
+          'relative flex-1 min-h-[120px] rounded-xl border p-3 text-sm leading-relaxed overflow-y-auto',
           compact ? 'max-h-[min(42vh,220px)]' : 'max-h-[min(50vh,280px)]',
         )}
         style={{

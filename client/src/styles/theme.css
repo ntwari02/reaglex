@@ -5,6 +5,10 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
+  /* ── Typography ─────────────────────────────────────────────────────────────── */
+  --font-body: 'Times New Roman', Times, serif;
+  --font-logo: 'Mea Culpa', serif;
+
   /* ── Page & surface backgrounds — premium light storefront ──────────────────── */
   --bg-page:        #f7f7f8;
   --bg-secondary:   #ffffff;

@@ -1624,7 +1624,7 @@ export default function BuyerDashboard() {
     <BuyerLayout>
       <div
         className="buyer-account-mobile min-h-screen"
-        style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)', color: 'var(--text-primary)', position: 'relative' }}
+        style={{ background: 'var(--bg-page)', color: 'var(--text-primary)', position: 'relative' }}
       >
         {/* Subtle full-page dot grid */}
         <div style={{
@@ -2358,7 +2358,7 @@ export default function BuyerDashboard() {
                                     <Icon style={{ width: 16, height: 16, color: s.color }} />
                                   </div>
                                   <div>
-                                    <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{o.id}</p>
+                                    <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{o.id}</p>
                                     <p style={{ fontSize: 11, marginTop: 3, color: 'var(--text-faint)' }}>{o.date} · {o.seller} · {o.items} item{o.items !== 1 ? 's' : ''}</p>
                                   </div>
                                 </div>

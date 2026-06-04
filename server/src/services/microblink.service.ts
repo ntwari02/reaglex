@@ -1,7 +1,8 @@
 import axios, { isAxiosError } from 'axios';
 import FormData from 'form-data';
 
-const MICROBLINK_TIMEOUT_MS = 60_000;
+/** Keep under Render/proxy ~30s request limit so the client gets JSON, not a bare 502 gateway page. */
+const MICROBLINK_TIMEOUT_MS = 28_000;
 
 /** Thrown when Microblink HTTP API returns an error or an invalid payload. */
 export class MicroblinkApiError extends Error {
@@ -181,6 +182,9 @@ export function microblinkUpstreamHint(httpStatus: number): string | undefined {
   }
   if (httpStatus === 404) {
     return 'Microblink API host not found for this region. Try MICROBLINK_REGION=us-east or eu.';
+  }
+  if (httpStatus === 502 || httpStatus === 503 || httpStatus === 504) {
+    return 'Microblink or the network path is temporarily unavailable. Retry with a smaller image (under 5 MB).';
   }
   return undefined;
 }

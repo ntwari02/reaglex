@@ -311,7 +311,7 @@ export default function AccountSettingsDashboard() {
   return (
     <div
       className="min-h-[520px]"
-      style={{ fontFamily: 'Inter, system-ui, sans-serif', background: 'var(--bg-page)' }}
+      style={{ background: 'var(--bg-page)' }}
     >
       <div className="max-w-[1300px] mx-auto px-4 sm:px-5 lg:px-7 py-6 space-y-6">
         {/* Tabs */}

@@ -45,14 +45,22 @@ export const systemInboxApi = {
   },
 
   async unreadCount(): Promise<number> {
-    const res = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-      credentials: 'include',
-    });
-    if (!res.ok) return 0;
-    const d = await res.json();
-    return typeof d?.count === 'number' ? d.count : 0;
+    if (!API_BASE_URL || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      return 0;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!res.ok) return 0;
+      const d = await res.json();
+      return typeof d?.count === 'number' ? d.count : 0;
+    } catch {
+      // DNS offline, CORS, or API down — badge stays at 0
+      return 0;
+    }
   },
 
   async markRead(notificationId: string): Promise<void> {

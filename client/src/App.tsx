@@ -261,6 +261,7 @@ function App() {
               <Route path="/" element={<HomeRouteGuard />} />
               <Route path="/search" element={<SearchResults />} />
               <Route path="/products" element={<SearchResults />} />
+              <Route path="/category/all" element={<SearchResults />} />
               <Route path="/category/:slug" element={<CategoryBrowse />} />
               <Route path="/product/:slug" element={<BuyerProductDetail />} />
               <Route path="/products/:id" element={<BuyerProductDetail />} />

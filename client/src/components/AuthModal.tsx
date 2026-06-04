@@ -49,7 +49,7 @@ function LeftPanel() {
       }}
     >
       <div>
-        <div className="text-white font-bold text-2xl tracking-tight">Reaglex</div>
+        <div className="reaglex-logo-font text-white font-bold text-2xl tracking-tight">Reaglex</div>
         <p className="text-white/90 text-sm mt-2">Smart Shopping. Trusted Sellers.</p>
       </div>
       <ul className="space-y-2 text-[13px] text-white">

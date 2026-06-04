@@ -891,7 +891,7 @@ export default function ProductDetail() {
   return (
     <BuyerLayout>
       {pdpSeo}
-      <div className="pd2-page relative min-h-screen" style={{ background: 'var(--bg-page)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="pd2-page relative min-h-screen" style={{ background: 'var(--bg-page)' }}>
 
         {/* ── Background decoration ── */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">

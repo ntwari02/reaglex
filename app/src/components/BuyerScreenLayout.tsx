@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAppColors } from '../hooks/useAppColors';
-import { fontSerif } from '../theme/tokens';
+import { fontLogo } from '../theme/tokens';
 
 type Props = {
   title?: string;
@@ -63,7 +63,7 @@ export default function BuyerScreenLayout({
       >
         <View style={styles.headerRow}>
           <View style={styles.brandBlock}>
-            <Text style={[styles.wordmark, { color: c.textPrimary }, { fontFamily: fontSerif }]}>
+            <Text style={[styles.wordmark, { color: c.textPrimary }, { fontFamily: fontLogo }]}>
               Reaglex
             </Text>
             {(title || subtitle) && (

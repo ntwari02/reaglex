@@ -456,7 +456,7 @@ export default function ReimaginedHero() {
           <div key={s.id} className="min-h-screen flex items-center justify-center p-8">
             <div className="text-center">
               <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', letterSpacing: '0.2em', marginBottom: '1rem' }}>{s.label}</p>
-              <h2 style={{ color: 'var(--text-primary)', fontSize: '3rem', fontFamily: 'serif', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '1.5rem' }}>
+              <h2 style={{ color: 'var(--text-primary)', fontSize: '3rem', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '1.5rem' }}>
                 {s.title.replace('\n', ' ')}
               </h2>
               <Link to={s.ctaHref} style={{ background: 'var(--gradient-brand-cta)', color: 'var(--text-on-accent)', padding: '1rem 2rem', borderRadius: '999px', display: 'inline-block', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.15em', boxShadow: 'var(--shadow-cta)' }}>

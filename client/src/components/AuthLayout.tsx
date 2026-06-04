@@ -162,7 +162,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
               <div className="relative z-10 space-y-6">
                 <div className="flex items-center gap-3">
                   <div>
-                    <p className="text-white font-bold text-2xl tracking-tight">Reaglex</p>
+                    <p className="reaglex-logo-font text-white font-bold text-2xl tracking-tight">Reaglex</p>
                     <p
                       className="text-[13px]"
                       style={{ color: 'rgba(255,255,255,0.6)' }}

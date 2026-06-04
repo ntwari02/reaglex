@@ -128,7 +128,7 @@
   body {
     background-color: var(--bg-page);
     color: var(--text-primary);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body);
     overflow-x: hidden;
     min-height: 100dvh;
     -webkit-tap-highlight-color: transparent;
@@ -616,9 +616,15 @@
   }
 
   .font-script {
-    font-family: 'Dancing Script', 'Great Vibes', 'Allura', 'Playball', cursive;
+    font-family: var(--font-body);
     letter-spacing: 0.05em;
     font-weight: 600;
+  }
+
+  /* Reaglex wordmark only (navbar, footer, auth logos) — not body copy mentioning "Reaglex" */
+  .reaglex-logo-font,
+  .font-logo {
+    font-family: var(--font-logo) !important;
   }
 
   /* ── Product detail / browse dark-mode fixes (use data-theme) ──────────────── */

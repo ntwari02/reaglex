@@ -196,8 +196,10 @@ export async function scanIdentityDocument(req: AuthenticatedRequest, res: Respo
     const accepted = isAcceptableDocumentOutcome(result);
     const settings = await ensureSettings(sellerId);
 
-    const frontUrl = (front as Express.Multer.File & { path?: string }).path;
-    const backUrl = back ? (back as Express.Multer.File & { path?: string }).path : undefined;
+    const [frontUrl, backUrl] = await Promise.all([
+      persistIdentityImage(front),
+      back ? persistIdentityImage(back) : Promise.resolve(undefined),
+    ]);
 
     settings.identityKyc = {
       ...(settings.identityKyc || defaultIdentityKyc()),
@@ -294,7 +296,9 @@ export async function matchIdentityFace(req: AuthenticatedRequest, res: Response
       return res.status(503).json({ message: 'Identity verification is not configured.' });
     }
 
-    const selfie = (req.files as { imageSelfie?: Express.Multer.File[] } | undefined)?.imageSelfie?.[0];
+    const selfie =
+      req.file ??
+      (req.files as { imageSelfie?: Express.Multer.File[] } | undefined)?.imageSelfie?.[0];
     if (!selfie) {
       return res.status(400).json({ message: 'Selfie image is required (imageSelfie).' });
     }

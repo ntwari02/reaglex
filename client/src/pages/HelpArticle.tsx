@@ -106,7 +106,6 @@ export default function HelpArticle() {
               background: 'var(--bg-tertiary)',
               borderRadius: 12,
               padding: 16,
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
               color: 'var(--text-secondary)',
             }}
           >

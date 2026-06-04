@@ -143,7 +143,7 @@ export default function PremiumProductCard({ product, index = 0 }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.38, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
       className="relative min-w-0"
-      style={{ fontFamily: "'Inter', system-ui, sans-serif", scale: cardScale }}
+      style={{ scale: cardScale }}
     >
       <motion.div
         {...bind()}

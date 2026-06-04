@@ -474,10 +474,10 @@ function MainHeader({
           />
           <div className="hidden sm:block">
             <span
-              className="font-bold block leading-tight"
-              style={{ fontSize: 20, color: 'var(--text-primary)', fontFamily: "'Mea Culpa', serif" }}
+              className="reaglex-logo-font font-bold block leading-tight"
+              style={{ fontSize: 20, color: 'var(--text-primary)' }}
             >
-              Reag<span style={{ color: PRIMARY, fontFamily: "'Mea Culpa', serif" }}>lex</span>
+              Reag<span style={{ color: PRIMARY }}>lex</span>
             </span>
             <span
               className="text-[10px] block leading-tight"
@@ -1178,7 +1178,6 @@ export default function Navbar() {
     <header
       className="fixed top-0 left-0 right-0 z-[100] flex flex-col transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:translate-y-0"
       style={{
-        fontFamily: 'Inter, system-ui, sans-serif',
         background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',

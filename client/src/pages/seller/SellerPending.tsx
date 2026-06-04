@@ -156,7 +156,7 @@ function TipRow({ n, text, delay }: { n: string; text: string; delay: number }) 
         flexShrink: 0, width: 24, height: 24, borderRadius: 7,
         background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--brand-primary) 22%, transparent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 9, fontWeight: 900, color: PRIMARY, fontFamily: 'monospace',
+        fontSize: 9, fontWeight: 900, color: PRIMARY,
       }}>{n}</span>
       <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{text}</p>
     </motion.div>
@@ -213,7 +213,7 @@ function ElapsedTimer({ color = PRIMARY }: { color?: string }) {
   const m = Math.floor((elapsed % 3600) / 60);
   const s = elapsed % 60;
   return (
-    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 22, color, letterSpacing: '0.06em' }}>
+    <span style={{ fontWeight: 900, fontSize: 22, color, letterSpacing: '0.06em' }}>
       {fmt(h)}:{fmt(m)}:{fmt(s)}
     </span>
   );
@@ -448,7 +448,7 @@ export default function SellerPending() {
                   <ElapsedTimer color={PRIMARY} />
                 </StatPill>
                 <StatPill label="Estimated Review" color={BLUE} accentBg="rgba(59,130,246,0.06)">
-                  <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 20, color: BLUE, letterSpacing: '0.06em' }}>
+                  <span style={{ fontWeight: 900, fontSize: 20, color: BLUE, letterSpacing: '0.06em' }}>
                     24–48 HRS
                   </span>
                 </StatPill>
