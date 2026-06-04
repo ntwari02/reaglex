@@ -31,6 +31,22 @@
     padding: 1rem 1rem 1.125rem !important;
   }
 
+  .auth-root .auth-mobile-theme-row {
+    margin-bottom: 0.5rem !important;
+    padding-top: max(0.25rem, env(safe-area-inset-top, 0px));
+  }
+
+  .auth-root .auth-theme-toggle {
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .auth-root[data-auth-layout='premium-v7'] .auth-otp-digit {
+    min-width: 2.625rem;
+    min-height: 3rem;
+  }
+
   .auth-root .auth-mobile-chrome {
     display: none !important;
   }
@@ -146,6 +162,18 @@
 @media (min-width: 768px) {
   .auth-root .auth-mobile-card-wrap {
     justify-content: center;
+  }
+}
+
+/* Tablet: full-width form, compressed card */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .auth-root[data-auth-layout='premium-v7'] .auth-mobile-card {
+    max-width: 480px !important;
+  }
+
+  .auth-root[data-auth-layout='premium-v7'] .auth-mobile-card-wrap {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
   }
 }
 

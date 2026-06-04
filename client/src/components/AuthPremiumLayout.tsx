@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import '../styles/auth-premium.css';
 
-/* ─── View type ──────────────────────────────────────────────────────────── */
 export type AuthView =
   | 'login'
   | 'signup'
@@ -18,35 +19,32 @@ interface AuthPremiumLayoutProps {
   children: ReactNode;
 }
 
+const TRUST_PILLS = [
+  { icon: ShieldCheck, label: 'Escrow protected' },
+  { icon: Sparkles, label: 'Verified sellers' },
+  { icon: Zap, label: 'Fast checkout' },
+];
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Layout
-═══════════════════════════════════════════════════════════════════════════ */
-export default function AuthPremiumLayout({
-  children,
-}: AuthPremiumLayoutProps) {
+export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-
-  const currentImage = '/auth-3d.png';
+  const reduceMotion = useReducedMotion();
 
   return (
     <div
-      className="auth-root min-h-screen w-full flex flex-col md:flex-row"
+      className="auth-root auth-root--split min-h-screen w-full flex flex-col md:flex-row relative"
       style={{ overflowX: 'hidden' }}
-      data-auth-layout="premium-v6"
+      data-auth-layout="premium-v7"
     >
-      {/* ═══ LEFT PANEL — 3D illustration (desktop only) ═══ */}
+      <a href="#auth-form-panel" className="auth-skip-to-form">
+        Skip to form
+      </a>
+      {/* Left — marketing / visual (desktop & tablet md+) */}
       <aside
-        className="hidden md:flex flex-col relative overflow-hidden flex-shrink-0"
-        style={{
-          flexBasis: '50%',
-          width: '50%',
-          minHeight: '100vh',
-          background: 'var(--auth-premium-aside-bg)',
-        }}
+        className="auth-premium-aside hidden md:flex flex-col relative overflow-hidden flex-shrink-0"
+        style={{ background: 'var(--auth-premium-aside-bg)' }}
+        aria-hidden={false}
       >
-        {/* Grid mesh */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
           aria-hidden
@@ -54,10 +52,15 @@ export default function AuthPremiumLayout({
         >
           <defs>
             <pattern id="ag-grid" width="44" height="44" patternUnits="userSpaceOnUse">
-              <path d="M 44 0 L 0 0 0 44" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 9%, transparent)" strokeWidth="1" />
+              <path
+                d="M 44 0 L 0 0 0 44"
+                fill="none"
+                stroke="color-mix(in srgb, var(--brand-primary) 9%, transparent)"
+                strokeWidth="1"
+              />
             </pattern>
             <radialGradient id="ag-fade" cx="50%" cy="50%" r="65%">
-              <stop offset="0%"   stopColor="var(--auth-premium-mesh-fade)" stopOpacity="0"    />
+              <stop offset="0%" stopColor="var(--auth-premium-mesh-fade)" stopOpacity="0" />
               <stop offset="100%" stopColor="var(--auth-premium-mesh-fade)" stopOpacity="0.65" />
             </radialGradient>
           </defs>
@@ -65,84 +68,116 @@ export default function AuthPremiumLayout({
           <rect width="100%" height="100%" fill="url(#ag-fade)" />
         </svg>
 
-        {/* Glow orbs */}
-        <div className="absolute pointer-events-none" style={{
-          top: '5%', left: '-10%',
-          width: '60%', paddingBottom: '60%', borderRadius: '50%',
-          background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 22%, transparent) 0%, transparent 70%)',
-          animation: 'ag-float-a 13s ease-in-out infinite',
-        }} />
-        <div className="absolute pointer-events-none" style={{
-          bottom: '10%', right: '-6%',
-          width: '50%', paddingBottom: '50%', borderRadius: '50%',
-          background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary-hover) 18%, transparent) 0%, transparent 70%)',
-          animation: 'ag-float-b 10s ease-in-out infinite',
-        }} />
-        <div className="absolute pointer-events-none" style={{
-          top: '45%', left: '20%',
-          width: '40%', paddingBottom: '40%', borderRadius: '50%',
-          background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 12%, transparent) 0%, transparent 70%)',
-          animation: 'ag-float-c 8s ease-in-out infinite',
-        }} />
+        <div
+          className="auth-premium-orb absolute pointer-events-none"
+          style={{
+            top: '5%',
+            left: '-10%',
+            width: '60%',
+            paddingBottom: '60%',
+            borderRadius: '50%',
+            background:
+              'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 22%, transparent) 0%, transparent 70%)',
+            animation: reduceMotion ? 'none' : 'ag-float-a 13s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="auth-premium-orb absolute pointer-events-none"
+          style={{
+            bottom: '10%',
+            right: '-6%',
+            width: '50%',
+            paddingBottom: '50%',
+            borderRadius: '50%',
+            background:
+              'radial-gradient(circle, color-mix(in srgb, #6366f1 18%, transparent) 0%, transparent 70%)',
+            animation: reduceMotion ? 'none' : 'ag-float-b 10s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="auth-premium-orb auth-premium-orb--muted absolute pointer-events-none"
+          style={{
+            top: '45%',
+            left: '20%',
+            width: '40%',
+            paddingBottom: '40%',
+            borderRadius: '50%',
+            background:
+              'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 12%, transparent) 0%, transparent 70%)',
+            animation: reduceMotion ? 'none' : 'ag-float-c 8s ease-in-out infinite',
+          }}
+        />
 
-        {/* Scan line */}
-        <div className="absolute left-0 right-0 pointer-events-none" style={{
-          height: 1,
-          background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 55%, transparent), transparent)',
-          animation: 'ag-scan 8s linear infinite',
-        }} />
+        <div
+          className="auth-premium-scan absolute left-0 right-0 pointer-events-none"
+          style={{
+            height: 1,
+            background:
+              'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 55%, transparent), transparent)',
+            animation: reduceMotion ? 'none' : 'ag-scan 8s linear infinite',
+          }}
+        />
 
-        {/* 3D illustration — static, animates in once on mount only.
-            No key changes, no AnimatePresence, so tab navigation never
-            causes this image to unmount/reload. */}
-        <div className="absolute inset-0 z-10">
+        <div className="auth-premium-illustration-wrap">
           <motion.img
-            src={currentImage}
+            src="/auth-3d.png"
             alt=""
             draggable={false}
-            className="w-full h-full select-none"
+            className="auth-premium-illustration-img select-none"
             onError={(e) => {
               e.currentTarget.onerror = null;
               e.currentTarget.src = '/auth-3d.png';
             }}
-            style={{
-              objectFit: 'cover',
-              objectPosition: 'center',
-              filter: 'drop-shadow(0 12px 32px color-mix(in srgb, var(--brand-primary) 22%, transparent)) drop-shadow(0 4px 14px rgba(0,0,0,0.35))',
-            }}
-            initial={{ opacity: 0, scale: 1.04 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={reduceMotion ? false : { opacity: 0, scale: 1.04 }}
+            animate={reduceMotion ? false : { opacity: 1, scale: 1 }}
             transition={{ duration: 0.55, ease: 'easeOut' }}
           />
+
+          <div className="auth-premium-aside-copy">
+            <p className="auth-premium-aside-logo">Reaglex</p>
+            <h2 className="auth-premium-aside-headline">
+              Next-gen commerce, <span>built for trust</span>
+            </h2>
+            <p className="auth-premium-aside-sub">
+              Secure escrow checkout, verified sellers, and a marketplace experience designed for
+              buyers and sellers worldwide.
+            </p>
+            <div className="auth-premium-trust-row">
+              {TRUST_PILLS.map(({ icon: Icon, label }) => (
+                <span key={label} className="auth-premium-trust-pill">
+                  <Icon size={12} strokeWidth={2.25} aria-hidden />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* ═══ RIGHT PANEL — Form ═══ */}
+      {/* Right — scrollable form panel */}
       <main
-        className="relative flex flex-col flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden"
+        id="auth-form-panel"
+        tabIndex={-1}
+        className="auth-premium-main auth-form-panel relative flex flex-col flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden outline-none"
         style={{
-          flexBasis: '50%',
           background: 'var(--auth-premium-form-bg)',
           minHeight: '100dvh',
-          padding: '0',
         }}
       >
-        {/* Mobile: neutral bg with subtle dots */}
         <div
-          className="md:hidden absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: isDark
-              ? 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 4%, transparent) 1px, transparent 1px)'
-              : 'radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-          }}
+          className="auth-premium-dots md:hidden absolute inset-0 pointer-events-none"
+          style={
+            !isDark
+              ? {
+                  backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px)',
+                  backgroundSize: '24px 24px',
+                }
+              : undefined
+          }
         />
-        <div className="relative flex flex-col flex-1">
-          {children}
-        </div>
+        <div className="relative flex flex-col flex-1 min-h-0 w-full max-w-full">{children}</div>
       </main>
 
-      {/* Keyframes */}
       <style>{`
         @keyframes ag-float-a {
           0%,100% { transform: translate(0,0) scale(1); }
@@ -166,24 +201,6 @@ export default function AuthPremiumLayout({
         }
         @keyframes auth-check {
           to { stroke-dashoffset: 0; }
-        }
-        @keyframes auth-shake {
-          0%,100% { transform: translateX(0); }
-          15%      { transform: translateX(-6px); }
-          30%      { transform: translateX(6px); }
-          45%      { transform: translateX(-4px); }
-          60%      { transform: translateX(4px); }
-          75%      { transform: translateX(-2px); }
-        }
-        .auth-shake-anim { animation: auth-shake 0.45s ease; }
-        @keyframes btn-shimmer {
-          0%   { transform: translateX(-100%); }
-          60%  { transform: translateX(100%);  }
-          100% { transform: translateX(100%);  }
-        }
-        @keyframes auth-ring-pulse {
-          0%   { transform: scale(1); opacity: 0.5; }
-          100% { transform: scale(1.8); opacity: 0; }
         }
       `}</style>
     </div>

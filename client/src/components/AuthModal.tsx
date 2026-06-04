@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFocusTrap } from '../hooks/useFocusTrap';
+import { getAuthDraftInitial, useSaveAuthDraft } from '../hooks/useAuthDraft';
+import { clearAuthDraft, type AuthDraftScope } from '../lib/authDraftStorage';
+import { mapAuthApiErrors, focusAuthApiErrors } from '../lib/authFieldErrors';
 import { X, Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuthModal } from '../stores/authModalStore';
 import { useAuthStore } from '../stores/authStore';
@@ -41,26 +45,26 @@ const API_BASE = API_BASE_URL;
 // ── Left branded panel (desktop only) ─────────────────────────────────────────
 function LeftPanel() {
   return (
-    <div
-      className="hidden md:flex flex-col justify-between p-8 w-[40%] min-w-0"
-      style={{
-        background: 'linear-gradient(160deg, #0f0f1a, #1a1a2e)',
-        borderRadius: '24px 0 0 24px',
-      }}
-    >
-      <div>
+    <div className="auth-modal-aside hidden md:flex flex-col justify-between p-8 w-[40%] min-w-0 relative overflow-hidden">
+      <div className="relative z-10">
         <div className="reaglex-logo-font text-white font-bold text-2xl tracking-tight">Reaglex</div>
-        <p className="text-white/90 text-sm mt-2">Smart Shopping. Trusted Sellers.</p>
+        <p className="text-white/90 text-sm mt-2">Smart shopping. Trusted sellers.</p>
       </div>
-      <ul className="space-y-2 text-[13px] text-white">
-        {['Escrow Protected Payments', 'Verified Sellers Only', 'Free Buyer Protection'].map((t, i) => (
-          <li key={i} className="flex items-center gap-2">
-            <Check className="w-4 h-4 flex-shrink-0 text-green-400" />
+      <ul className="auth-modal-trust relative z-10 space-y-2.5">
+        {['Escrow protected payments', 'Verified sellers only', 'Buyer protection included'].map((t) => (
+          <li key={t} className="flex items-center gap-2">
+            <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--badge-success-text)' }} aria-hidden />
             {t}
           </li>
         ))}
       </ul>
-      <div className="h-12 opacity-30" style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 30%, transparent), transparent)' }} />
+      <div
+        className="relative z-10 h-px w-full opacity-40"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 45%, transparent), transparent)',
+        }}
+      />
     </div>
   );
 }
@@ -153,19 +157,30 @@ function Field({
 }
 
 // ── Login form ───────────────────────────────────────────────────────────────
-function LoginForm({ onShake }: { onShake: () => void }) {
+const MODAL_SCOPE: AuthDraftScope = 'modal';
+
+function LoginForm({ onShake, formEpoch }: { onShake: () => void; formEpoch: number }) {
   const { setTab, close } = useAuthModal();
   const { login } = useAuthStore();
   const { showToast } = useToastStore();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const loginDraft = getAuthDraftInitial(MODAL_SCOPE, 'login', { email: '', password: '' });
+  const [email, setEmail] = useState(loginDraft.email || '');
+  const [password, setPassword] = useState(loginDraft.password || '');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [focused, setFocused] = useState< string | null>(null);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || /^\d+$/.test(email);
+
+  useEffect(() => {
+    setError('');
+    setSuccess(false);
+    setLoading(false);
+  }, [formEpoch]);
+
+  useSaveAuthDraft(MODAL_SCOPE, 'login', { email, password }, !success);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,12 +194,15 @@ function LoginForm({ onShake }: { onShake: () => void }) {
       const result = await login(email, password);
       if (!result.success) {
         const loginError = 'error' in result ? result.error : undefined;
-        setError(loginError || 'Login failed.');
+        const { banner } = mapAuthApiErrors({ message: loginError || 'Login failed.' }, 'login');
+        setError(banner);
+        focusAuthApiErrors({}, banner);
         onShake();
         setLoading(false);
         return;
       }
       setSuccess(true);
+      clearAuthDraft(MODAL_SCOPE, 'login');
       const { user } = useAuthStore.getState();
       const name = user?.full_name?.split(' ')[0] || 'there';
       showToast(`Welcome back, ${name}! 👋`, 'success');
@@ -197,12 +215,16 @@ function LoginForm({ onShake }: { onShake: () => void }) {
     finally { if (!success) setLoading(false); }
   };
 
-  const googleAuth = () => { window.location.href = `${API_BASE}/auth/google?role=buyer`; };
+  const googleAuth = () => {
+    setError('');
+    sessionStorage.setItem('auth_oauth_role', 'buyer');
+    window.location.href = `${API_BASE}/auth/google?role=buyer`;
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <h3 className="font-bold text-2xl" style={{ color: '#111827' }}>Welcome back 👋</h3>
+        <h3 className="font-bold text-2xl" style={{ color: 'var(--text-primary)' }}>Welcome back</h3>
         <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
       </motion.div>
       {error && (
@@ -228,7 +250,7 @@ function LoginForm({ onShake }: { onShake: () => void }) {
         <button type="button" onClick={() => setTab('forgot')} className="text-sm font-medium hover:underline transition" style={{ color: PRIMARY }}>Recover Password?</button>
       </div>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-        <motion.button type="submit" disabled={loading} className="w-full h-[50px] rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all" style={{ background: success ? SUCCESS : 'var(--gradient-brand-cta)', boxShadow: success ? 'none' : 'var(--shadow-cta)' }} whileHover={!loading && !success ? { scale: 1.01 } : {}} whileTap={!loading ? { scale: 0.99 } : {}}>
+        <motion.button type="submit" disabled={loading} className="auth-mobile-btn-primary w-full h-[50px] rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all" style={{ background: success ? 'var(--accent-success-gradient)' : 'var(--gradient-brand-cta)', boxShadow: success ? 'none' : 'var(--shadow-cta)' }} whileHover={!loading && !success ? { scale: 1.01 } : {}} whileTap={!loading ? { scale: 0.99 } : {}}>
           {loading && !success && <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
           {success && <Check className="w-5 h-5" />}
           {!loading && !success && <>Sign In <ArrowRight className="w-4 h-4" /></>}
@@ -264,10 +286,25 @@ function LoginForm({ onShake }: { onShake: () => void }) {
 }
 
 // ── Signup form ──────────────────────────────────────────────────────────────
-function SignupForm({ onShake }: { onShake: () => void }) {
+function SignupForm({ onShake, formEpoch }: { onShake: () => void; formEpoch: number }) {
   const { setTab } = useAuthModal();
   const { showToast } = useToastStore();
-  const [fd, setFd] = useState({ fullName: '', email: '', password: '', confirmPassword: '', role: 'buyer' as 'buyer' | 'seller', storeName: '' });
+  const signupDraft = getAuthDraftInitial(MODAL_SCOPE, 'signup', {
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'buyer' as const,
+    storeName: '',
+  });
+  const [fd, setFd] = useState({
+    fullName: signupDraft.fullName || '',
+    email: signupDraft.email || '',
+    password: signupDraft.password || '',
+    confirmPassword: signupDraft.confirmPassword || '',
+    role: signupDraft.role || ('buyer' as const),
+    storeName: signupDraft.storeName || '',
+  });
   const [showPw, setShowPw] = useState(false);
   const [showCPw, setShowCPw] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -280,6 +317,14 @@ function SignupForm({ onShake }: { onShake: () => void }) {
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email);
   const match = fd.confirmPassword.length ? fd.password === fd.confirmPassword : null;
   const canSubmit = fd.fullName.trim().length >= 2 && emailValid && fd.password.length >= 8 && reqs.upper && reqs.number && reqs.special && fd.password === fd.confirmPassword && agreed && (fd.role !== 'seller' || fd.storeName.trim().length > 0);
+
+  useEffect(() => {
+    setError('');
+    setSuccess(false);
+    setLoading(false);
+  }, [formEpoch]);
+
+  useSaveAuthDraft(MODAL_SCOPE, 'signup', fd, !success);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
@@ -299,8 +344,15 @@ function SignupForm({ onShake }: { onShake: () => void }) {
         body: JSON.stringify({ fullName: fd.fullName, email: fd.email, password: fd.password, role: fd.role, storeName: fd.role === 'seller' ? fd.storeName : undefined }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.message || 'Registration failed.'); onShake(); return; }
+      if (!res.ok) {
+        const mapped = mapAuthApiErrors(data, 'signup');
+        setError(mapped.banner);
+        focusAuthApiErrors(mapped.fields, mapped.banner);
+        onShake();
+        return;
+      }
       setSuccess(true);
+      clearAuthDraft(MODAL_SCOPE, 'signup');
       showToast(fd.role === 'seller' ? 'Account created! Pending verification.' : 'Account created! Please sign in.', 'success');
     } catch { setError('Network error. Try again.'); onShake(); }
     finally { setLoading(false); }
@@ -321,7 +373,7 @@ function SignupForm({ onShake }: { onShake: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="font-bold text-2xl" style={{ color: '#111827' }}>Create your account 🚀</h3>
+      <h3 className="font-bold text-2xl" style={{ color: 'var(--text-primary)' }}>Create your account</h3>
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Join thousands of buyers and sellers</p>
       {error && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-red-50 border border-red-200" style={{ color: ERROR }}>
@@ -350,7 +402,15 @@ function SignupForm({ onShake }: { onShake: () => void }) {
         <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>I want to:</p>
         <div className="flex gap-2">
           {(['buyer', 'seller'] as const).map((r) => (
-            <motion.button key={r} type="button" onClick={() => setFd({ ...fd, role: r })} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            <motion.button
+              key={r}
+              type="button"
+              onClick={() => {
+                setFd({ ...fd, role: r });
+                setError('');
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all"
               style={{ borderColor: fd.role === r ? PRIMARY : 'var(--divider)', background: fd.role === r ? PRIMARY : 'var(--card-bg)', color: fd.role === r ? 'var(--text-on-accent)' : 'var(--text-muted)' }}>
               {r === 'buyer' ? '🛒' : '🏪'} {r === 'buyer' ? 'Buy' : 'Sell'}
@@ -374,7 +434,13 @@ function SignupForm({ onShake }: { onShake: () => void }) {
         {!loading && (canSubmit ? 'Create Account →' : 'Create Account')}
       </motion.button>
       <div className="flex items-center gap-3 py-2"><div className="flex-1 h-px bg-gray-200" /><span className="text-xs text-gray-400">Or sign up with</span><div className="flex-1 h-px bg-gray-200" /></div>
-      <button type="button" onClick={() => window.location.href = `${API_BASE}/auth/google?role=${fd.role}`}
+      <button
+        type="button"
+        onClick={() => {
+          setError('');
+          sessionStorage.setItem('auth_oauth_role', fd.role);
+          window.location.href = `${API_BASE}/auth/google?role=${fd.role}`;
+        }}
         className="w-full h-12 rounded-xl border flex items-center justify-center gap-2 font-semibold text-sm bg-white hover:bg-gray-50 transition" style={{ borderColor: '#e5e7eb', color: '#374151' }}>
         <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.77-6.77C35.41 2.38 30.21 0 24 0 14.67 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.5 17.79 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.16 7.09-10.29 7.09-17.55z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.67 48 24 48z"/></svg>
         Continue with Google
@@ -437,7 +503,7 @@ function ForgotForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <button type="button" onClick={() => setTab('login')} className="text-sm font-medium hover:underline mb-2 block" style={{ color: PRIMARY }}>← Back to Sign In</button>
-      <h3 className="font-bold text-xl" style={{ color: '#111827' }}>Reset Password</h3>
+      <h3 className="font-bold text-xl" style={{ color: 'var(--text-primary)' }}>Reset Password</h3>
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Enter your email and we'll send a reset link.</p>
       {error && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-red-50 border border-red-200" style={{ color: ERROR }}>
@@ -459,6 +525,7 @@ function ForgotForm() {
 export default function AuthModal() {
   const { isOpen, tab, setTab, close } = useAuthModal();
   const [shake, setShake] = useState(false);
+  const [formEpoch, setFormEpoch] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
 
   const onShake = useCallback(() => {
@@ -479,16 +546,21 @@ export default function AuthModal() {
     close();
   }, [close]);
 
+  useFocusTrap(formRef, isOpen, closeDrawer);
+
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeDrawer(); };
-    if (isOpen) window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, closeDrawer]);
+    setFormEpoch((e) => e + 1);
+  }, [tab]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormEpoch((e) => e + 1);
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
@@ -501,8 +573,7 @@ export default function AuthModal() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             onClick={closeDrawer}
-            className="fixed inset-0 z-50"
-            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
+            className="auth-modal-backdrop fixed inset-0 z-50"
           />
           <motion.div
             key="auth-modal"
@@ -514,19 +585,36 @@ export default function AuthModal() {
           >
             <div
               ref={formRef}
-              className={`auth-root relative w-full max-w-[560px] flex overflow-hidden rounded-3xl bg-white pointer-events-auto ${shake ? 'auth-shake' : ''}`}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="auth-modal-title"
+              className={`auth-root auth-modal-root relative w-full max-w-[560px] flex overflow-hidden rounded-3xl pointer-events-auto ${shake ? 'auth-shake-anim' : ''}`}
               style={{
                 maxHeight: '90vh',
                 borderRadius: 24,
-                boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+                background: 'var(--card-bg)',
+                boxShadow: '0 24px 64px rgba(0,0,0,0.28), 0 0 0 1px color-mix(in srgb, var(--border-card) 55%, transparent)',
               }}
             >
               <LeftPanel />
               <div className="flex-1 flex flex-col overflow-y-auto min-w-0 py-8 px-6 md:px-8" style={{ paddingTop: 36, paddingBottom: 36, paddingLeft: 32, paddingRight: 32 }}>
+                <h2 id="auth-modal-title" className="sr-only">
+                  {tab === 'login' ? 'Sign in' : tab === 'signup' ? 'Create account' : 'Reset password'}
+                </h2>
                 {tab !== 'forgot' && (
-                  <div className="relative flex p-1 rounded-full mb-6 self-start w-full max-w-[220px]" style={{ background: '#f3f4f6' }}>
+                  <div
+                    role="tablist"
+                    aria-label="Sign in or register"
+                    className="relative flex p-1 rounded-full mb-6 self-start w-full max-w-[220px]"
+                    style={{ background: '#f3f4f6' }}
+                  >
                     {(['login', 'signup'] as const).map((t) => (
-                      <button key={t} type="button" onClick={() => setTab(t)}
+                      <button
+                        key={t}
+                        type="button"
+                        role="tab"
+                        aria-selected={tab === t}
+                        onClick={() => setTab(t)}
                         className="relative z-10 flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
                         style={{ color: tab === t ? PRIMARY : 'var(--text-muted)' }}>
                         {t === 'login' ? 'Sign In' : 'Register'}
@@ -543,14 +631,14 @@ export default function AuthModal() {
 
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={tab}
+                    key={`${tab}-${formEpoch}`}
                     initial={{ opacity: 0, x: tab === 'forgot' ? -12 : 12 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: tab === 'forgot' ? 12 : -12 }}
                     transition={{ duration: 0.25 }}
                   >
-                    {tab === 'login' && <LoginForm onShake={onShake} />}
-                    {tab === 'signup' && <SignupForm onShake={onShake} />}
+                    {tab === 'login' && <LoginForm onShake={onShake} formEpoch={formEpoch} />}
+                    {tab === 'signup' && <SignupForm onShake={onShake} formEpoch={formEpoch} />}
                     {tab === 'forgot' && <ForgotForm />}
                   </motion.div>
                 </AnimatePresence>
@@ -561,7 +649,8 @@ export default function AuthModal() {
                 whileHover={{ rotate: 90 }}
                 transition={{ duration: 0.2 }}
                 onClick={closeDrawer}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center z-10 transition-colors"
+                aria-label="Close sign in dialog"
+                className="auth-modal-close absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center z-10 transition-colors"
                 style={{ background: '#f3f4f6', color: '#374151' }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = ERROR; e.currentTarget.style.color = 'white'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.color = '#374151'; }}

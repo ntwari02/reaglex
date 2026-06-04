@@ -1,16 +1,36 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
-  Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, AlertCircle, Sun, Moon,
+  Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, Sun, Moon,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { useTheme } from '../contexts/ThemeContext';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
+import {
+  AuthInput,
+  ErrorBanner,
+  PrimaryBtn,
+  OrDivider,
+  GoogleBtn,
+  OtpInputs,
+  applyOtpInput,
+  focusAuthErrorSummary,
+  focusAuthField,
+} from '../components/auth/AuthFormControls';
 import { authAPI } from '../lib/api';
 import { API_BASE_URL } from '../lib/config';
 import { getDashboardPathForRole, resolvePostLoginPath } from '../lib/authRouting';
+import {
+  clearAllAuthDrafts,
+  clearAuthDraft,
+  loadAuthDraft,
+  type AuthDraftScope,
+  type ResetDraft,
+} from '../lib/authDraftStorage';
+import { mapAuthApiErrors, focusAuthApiErrors } from '../lib/authFieldErrors';
+import { getAuthDraftInitial, useSaveAuthDraft } from '../hooks/useAuthDraft';
 
 const PRIMARY     = 'var(--brand-primary)';
 const SUCCESS     = 'var(--badge-success-text)';
@@ -47,187 +67,16 @@ function formatCountdown(s: number) {
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
 
-/* ─── Shared input ───────────────────────────────────────────────────────── */
-function AuthInput({
-  label, type = 'text', value, onChange, placeholder, error, valid, focused,
-  leftIcon: LeftIcon, rightEl, onFocus, onBlur, required, autoFocus,
-}: {
-  label: string; type?: string; value: string;
-  onChange: (v: string) => void; placeholder?: string;
-  error?: string; valid?: boolean; focused?: boolean;
-  leftIcon?: React.ComponentType<{ size?: string | number; style?: React.CSSProperties; className?: string }>;
-  rightEl?: React.ReactNode; onFocus?: () => void; onBlur?: () => void;
-  required?: boolean; autoFocus?: boolean;
-}) {
-  const inputState = error
-    ? 'premium-input--error'
-    : valid
-      ? 'premium-input--valid'
-      : '';
+const panelMotion = (reduceMotion: boolean) =>
+  reduceMotion
+    ? { initial: false as const, animate: false as const, exit: false as const, transition: { duration: 0 } }
+    : { initial: { opacity: 0, x: 16 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -16 }, transition: { duration: 0.28 } };
 
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        className="auth-mobile-input-label premium-input-label text-[11px] font-bold uppercase tracking-[0.1em]"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        {label}{required ? <span style={{ color: PRIMARY }}> *</span> : ''}
-      </label>
-      <div className="premium-input-wrap">
-        {LeftIcon && (
-          <span className="premium-input-icon premium-input-icon--left" aria-hidden>
-            <LeftIcon size={18} />
-          </span>
-        )}
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          placeholder={placeholder}
-          required={required}
-          autoFocus={autoFocus}
-          className={[
-            'premium-input auth-mobile-input w-full outline-none text-base sm:text-[15px]',
-            LeftIcon ? 'premium-input--has-left-icon' : '',
-            rightEl || valid ? 'premium-input--has-right-icon' : '',
-            inputState,
-            focused && !error ? 'is-focused' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          style={{ color: 'var(--text-primary)' }}
-        />
-        {rightEl && (
-          <span className="premium-input-icon premium-input-icon--right premium-input-icon--interactive">
-            {rightEl}
-          </span>
-        )}
-        {valid && !rightEl && (
-          <span className="premium-input-icon premium-input-icon--right" aria-hidden>
-            <Check size={16} style={{ color: SUCCESS }} />
-          </span>
-        )}
-      </div>
-      {error && (
-        <motion.p
-          initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-          className="text-[11px] flex items-center gap-1"
-          style={{ color: 'var(--badge-error-text)' }}
-        >
-          <AlertCircle size={10} /> {error}
-        </motion.p>
-      )}
-    </div>
-  );
-}
-
-/* ─── Error banner ───────────────────────────────────────────────────────── */
-function ErrorBanner({ message }: { message: string }) {
-  if (!message) return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-      className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-[13px] font-medium"
-      style={{
-        background: 'var(--badge-error-bg)',
-        border: '1px solid var(--badge-error-border)',
-        color: 'var(--badge-error-text)',
-      }}
-    >
-      <AlertCircle size={15} className="flex-shrink-0" />
-      {message}
-    </motion.div>
-  );
-}
-
-/* ─── Primary button ─────────────────────────────────────────────────────── */
-function PrimaryBtn({
-  children, onClick, type = 'submit', disabled, loading, success,
-}: {
-  children: React.ReactNode; onClick?: () => void; type?: 'submit'|'button';
-  disabled?: boolean; loading?: boolean; success?: boolean;
-}) {
-  const bg = success
-    ? 'var(--accent-success-gradient)'
-    : 'var(--gradient-brand-cta)';
-
-  return (
-    <motion.button
-      type={type}
-      onClick={onClick}
-      disabled={disabled || loading}
-      whileHover={!disabled && !loading ? { y: -2 } : {}}
-      whileTap={!disabled ? { scale: 0.98 } : {}}
-      className="auth-mobile-btn-primary relative w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-[15px] sm:text-[16px] flex items-center justify-center gap-2.5 overflow-hidden border-none cursor-pointer select-none"
-      style={{
-        background: bg,
-        color: 'var(--text-on-accent)',
-        boxShadow: (disabled && !success)
-          ? 'none'
-          : success
-            ? '0 8px 24px color-mix(in srgb, var(--badge-success-text) 35%, transparent)'
-            : 'var(--shadow-cta-hover), var(--shadow-cta)',
-        opacity: disabled && !success ? 0.55 : 1,
-        transition: 'box-shadow 250ms ease, transform 250ms ease',
-      }}
-    >
-      {/* Shimmer */}
-      <span className="absolute inset-0 pointer-events-none" style={{
-        background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.25) 50%, transparent 60%)',
-        animation: !disabled ? 'btn-shimmer 2.8s ease infinite' : undefined,
-      }} />
-      <span className="relative flex items-center gap-2">
-        {loading && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-        {children}
-      </span>
-      <style>{`
-        @keyframes btn-shimmer {
-          0%   { transform: translateX(-100%); }
-          60%  { transform: translateX(100%);  }
-          100% { transform: translateX(100%);  }
-        }
-      `}</style>
-    </motion.button>
-  );
-}
-
-/* ─── OR divider ─────────────────────────────────────────────────────────── */
-function OrDivider() {
-  return (
-    <div className="flex items-center gap-3 my-1">
-      <div className="flex-1 h-px" style={{ background: 'var(--divider)' }} />
-      <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: 'var(--text-faint)' }}>or</span>
-      <div className="flex-1 h-px" style={{ background: 'var(--divider)' }} />
-    </div>
-  );
-}
-
-/* ─── Google button ──────────────────────────────────────────────────────── */
-function GoogleBtn({ onClick }: { onClick: () => void }) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      whileHover={{ y: -1 }}
-      whileTap={{ scale: 0.98 }}
-      className="auth-mobile-btn-google w-full h-12 sm:h-[54px] rounded-xl sm:rounded-2xl flex items-center justify-center gap-3 text-[15px] font-semibold border-none cursor-pointer transition-all"
-      style={{
-        background: 'var(--bg-secondary)',
-        color: 'var(--text-primary)',
-        boxShadow: '0 0 0 1.5px var(--border-card)',
-      }}
-    >
-      <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 48 48">
-        <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.77-6.77C35.41 2.38 30.21 0 24 0 14.67 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.5 17.79 9.5 24 9.5z"/>
-        <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.16 7.09-10.29 7.09-17.55z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.67 48 24 48z"/>
-      </svg>
-      Continue with Google
-    </motion.button>
-  );
+function stripFieldError(errors: Record<string, string>, label: string) {
+  if (!errors[label]) return errors;
+  const next = { ...errors };
+  delete next[label];
+  return next;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -235,35 +84,55 @@ function GoogleBtn({ onClick }: { onClick: () => void }) {
 ═══════════════════════════════════════════════════════════════════════════ */
 function LoginFormContent({
   role = 'buyer',
+  storageScope = 'page',
   onRequireEmailVerification,
+  onOAuthBegin,
 }: {
   role?: 'buyer' | 'seller';
+  storageScope?: AuthDraftScope;
   onRequireEmailVerification: (email: string) => void;
+  onOAuthBegin?: () => void;
 }) {
   const navigate        = useNavigate();
   const [searchParams]  = useSearchParams();
   const redirectParam   = searchParams.get('redirect');
   const { login }       = useAuthStore();
   const { showToast }   = useToastStore();
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
+  const reduceMotion    = useReducedMotion();
+  const loginDraft      = getAuthDraftInitial(storageScope, 'login', { email: '', password: '', remember: false });
+  const [email,    setEmail]    = useState(loginDraft.email || '');
+  const [password, setPassword] = useState(loginDraft.password || '');
   const [showPw,   setShowPw]   = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [remember, setRemember] = useState(!!loginDraft.remember);
   const [loading,  setLoading]  = useState(false);
   const [success,  setSuccess]  = useState(false);
   const [error,    setError]    = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [focused,  setFocused]  = useState<string | null>(null);
   const [shake,    setShake]    = useState(false);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || /^\d+$/.test(email);
 
-  const doShake = () => { setShake(true); setTimeout(() => setShake(false), 500); };
+  useSaveAuthDraft(storageScope, 'login', { email, password, remember }, !success);
+
+  const applyApiError = (payload: { message?: string; errors?: { fieldErrors?: Record<string, string[]> } }) => {
+    const { banner, fields } = mapAuthApiErrors(payload, 'login');
+    setError(banner);
+    setFieldErrors(fields);
+    focusAuthApiErrors(fields, banner);
+  };
+
+  const doShake = () => {
+    setShake(true);
+    if (!reduceMotion) setTimeout(() => setShake(false), 500);
+    else setShake(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
-    if (!email || !password)     { setError('Please fill in both fields.');             doShake(); return; }
-    if (!emailValid)             { setError('Enter a valid email or phone.');            doShake(); return; }
-    if (password.length < 6)     { setError('Password must be ≥ 6 characters.');        doShake(); return; }
-    if (hasSQLRisk(email) || hasSQLRisk(password)) { setError('Invalid characters detected.'); return; }
+    if (!email || !password)     { setError('Please fill in both fields.'); focusAuthField(!email ? 'Email or Phone' : 'Password'); doShake(); return; }
+    if (!emailValid)             { setError('Enter a valid email or phone.'); focusAuthField('Email or Phone'); doShake(); return; }
+    if (password.length < 6)     { setError('Password must be ≥ 6 characters.'); focusAuthField('Password'); doShake(); return; }
+    if (hasSQLRisk(email) || hasSQLRisk(password)) { setError('Invalid characters detected.'); focusAuthErrorSummary(); return; }
     setLoading(true);
     try {
       const result = await login(email, password);
@@ -273,9 +142,13 @@ function LoginFormContent({
       }
       if (!result.success) {
         const loginError = 'error' in result ? result.error : undefined;
-        setError(loginError || 'Wrong email or password.'); doShake(); setLoading(false); return;
+        applyApiError({ message: loginError || 'Wrong email or password.' });
+        doShake();
+        setLoading(false);
+        return;
       }
       setSuccess(true);
+      clearAuthDraft(storageScope, 'login');
       const { user } = useAuthStore.getState();
       showToast(`Welcome back, ${user?.full_name?.split(' ')[0] || 'there'}! 👋`, 'success');
       setTimeout(() => {
@@ -288,12 +161,13 @@ function LoginFormContent({
     }
   };
 
+  const motionProps = panelMotion(!!reduceMotion);
+
   return (
       <motion.form
       onSubmit={handleSubmit}
-      initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
-      className={`auth-mobile-form flex flex-col gap-3 sm:gap-5 ${shake ? 'auth-shake-anim' : ''}`}
+      {...motionProps}
+      className={`auth-mobile-form flex flex-col gap-3 sm:gap-5 ${shake && !reduceMotion ? 'auth-shake-anim' : ''}`}
     >
       <div className="auth-mobile-panel-heading mb-0 sm:mb-1">
         <h2 className="auth-mobile-title text-xl sm:text-[26px] font-bold sm:font-black mb-0.5 sm:mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>Welcome back</h2>
@@ -304,12 +178,18 @@ function LoginFormContent({
 
       <AuthInput
         label="Email or Phone"
+        name="username"
         type="text"
+        autoComplete="username"
         value={email}
-        onChange={setEmail}
+        onChange={(v) => {
+          setEmail(v);
+          setFieldErrors((prev) => stripFieldError(prev, 'Email or Phone'));
+        }}
+        error={fieldErrors['Email or Phone']}
         placeholder="you@example.com"
         leftIcon={Mail}
-        valid={email.length > 0 && emailValid}
+        valid={email.length > 0 && emailValid && !fieldErrors['Email or Phone']}
         focused={focused === 'email'}
         onFocus={() => setFocused('email')}
         onBlur={() => setFocused(null)}
@@ -320,9 +200,15 @@ function LoginFormContent({
       <div className="flex flex-col gap-1.5">
         <AuthInput
           label="Password"
+          name="password"
           type={showPw ? 'text' : 'password'}
+          autoComplete="current-password"
           value={password}
-          onChange={setPassword}
+          onChange={(v) => {
+            setPassword(v);
+            setFieldErrors((prev) => stripFieldError(prev, 'Password'));
+          }}
+          error={fieldErrors.Password}
           placeholder="Your password"
           leftIcon={Lock}
           focused={focused === 'pw'}
@@ -331,7 +217,7 @@ function LoginFormContent({
           rightEl={
             <button type="button" onClick={() => setShowPw(!showPw)}
               className="p-1 rounded-lg transition-colors hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }} aria-label={showPw ? 'Hide' : 'Show'}>
+              style={{ color: 'var(--text-muted)' }} aria-label={showPw ? 'Hide password' : 'Show password'}>
               {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           }
@@ -347,9 +233,18 @@ function LoginFormContent({
       {/* Remember me */}
       <label className="flex items-center gap-3 cursor-pointer select-none">
         <button
-          type="button" role="checkbox" aria-checked={remember}
+          type="button"
+          role="checkbox"
+          aria-checked={remember}
+          aria-label="Remember me on this device"
           onClick={() => setRemember(!remember)}
-          className="w-11 h-6 rounded-full transition-all flex-shrink-0 relative"
+          onKeyDown={(e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault();
+              setRemember((r) => !r);
+            }
+          }}
+          className="auth-remember-toggle w-11 h-6 rounded-full transition-all flex-shrink-0 relative"
           style={{ background: remember ? PRIMARY : 'var(--bg-tertiary)', boxShadow: `0 0 0 1.5px ${remember ? 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' : 'var(--divider)'}` }}
         >
           <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform"
@@ -364,7 +259,15 @@ function LoginFormContent({
 
       <OrDivider />
 
-      <GoogleBtn onClick={() => { window.location.href = `${API_BASE}/auth/google?role=${role}`; }} />
+      <GoogleBtn
+        onClick={() => {
+          onOAuthBegin?.();
+          setError('');
+          setFieldErrors({});
+          sessionStorage.setItem('auth_oauth_role', role);
+          window.location.href = `${API_BASE}/auth/google?role=${role}`;
+        }}
+      />
 
       <p className="text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
         No account?{' '}
@@ -381,21 +284,55 @@ function LoginFormContent({
 /* ═══════════════════════════════════════════════════════════════════════════
    SIGNUP FORM
 ═══════════════════════════════════════════════════════════════════════════ */
-function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => void }) {
+function SignupFormContent({
+  onRegistered,
+  storageScope = 'page',
+  onOAuthBegin,
+}: {
+  onRegistered: (email: string) => void;
+  storageScope?: AuthDraftScope;
+  onOAuthBegin?: () => void;
+}) {
   const [searchParams]       = useSearchParams();
   const referralFromUrl      = searchParams.get('ref')?.trim() || '';
   const { showToast }        = useToastStore();
-  const [role, setRole]      = useState<'buyer' | 'seller'>('buyer');
-  const [fd, setFd]          = useState({ fullName: '', email: '', password: '', confirmPassword: '', storeName: '' });
+  const reduceMotion         = useReducedMotion();
+  const signupDraft          = getAuthDraftInitial(storageScope, 'signup', {
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    storeName: '',
+    role: 'buyer' as const,
+    agreed: false,
+    referralCode: '',
+  });
+  const [role, setRole]      = useState<'buyer' | 'seller'>(signupDraft.role || 'buyer');
+  const [fd, setFd]          = useState({
+    fullName: signupDraft.fullName || '',
+    email: signupDraft.email || '',
+    password: signupDraft.password || '',
+    confirmPassword: signupDraft.confirmPassword || '',
+    storeName: signupDraft.storeName || '',
+  });
   const [showPw,  setShowPw] = useState(false);
   const [showCPw, setShowCPw]= useState(false);
-  const [agreed,  setAgreed] = useState(false);
+  const [agreed,  setAgreed] = useState(!!signupDraft.agreed);
   const [loading, setLoading]= useState(false);
   const [error,   setError]  = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess]= useState(false);
   const [focused, setFocused]= useState<string | null>(null);
+  const [shake, setShake]     = useState(false);
   const [referralProgramEnabled, setReferralProgramEnabled] = useState(true);
-  const [referralCode, setReferralCode] = useState('');
+  const [referralCode, setReferralCode] = useState(signupDraft.referralCode || '');
+
+  useSaveAuthDraft(
+    storageScope,
+    'signup',
+    { ...fd, role, agreed, referralCode },
+    !success,
+  );
 
   const strength  = getPasswordStrength(fd.password);
   const reqs      = checkPasswordReqs(fd.password);
@@ -418,16 +355,22 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
     if (referralProgramEnabled && referralFromUrl) setReferralCode(referralFromUrl.toUpperCase());
   }, [referralProgramEnabled, referralFromUrl]);
 
+  const doShake = () => {
+    setShake(true);
+    if (!reduceMotion) setTimeout(() => setShake(false), 500);
+    else setShake(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
-    if (fd.fullName.trim().length < 2)        { setError('Full name must be ≥ 2 characters.');            return; }
-    if (!emailValid)                          { setError('Enter a valid email address.');                  return; }
-    if (fd.password.length < 8)               { setError('Password must be ≥ 8 characters.');             return; }
-    if (!reqs.upper || !reqs.number || !reqs.special) { setError('Password needs uppercase, number & special char.'); return; }
-    if (fd.password !== fd.confirmPassword)   { setError('Passwords do not match.');                      return; }
-    if (!agreed)                              { setError('Please agree to the Terms of Service.');        return; }
-    if (role === 'seller' && !fd.storeName.trim()) { setError('Store name is required for sellers.');    return; }
-    if (hasSQLRisk(fd.fullName) || hasSQLRisk(fd.email) || hasSQLRisk(fd.password)) { setError('Invalid characters detected.'); return; }
+    if (fd.fullName.trim().length < 2)        { setError('Full name must be ≥ 2 characters.'); focusAuthField('Full Name'); doShake(); return; }
+    if (!emailValid)                          { setError('Enter a valid email address.'); focusAuthField('Email Address'); doShake(); return; }
+    if (fd.password.length < 8)               { setError('Password must be ≥ 8 characters.'); focusAuthField('Password'); doShake(); return; }
+    if (!reqs.upper || !reqs.number || !reqs.special) { setError('Password needs uppercase, number & special char.'); focusAuthField('Password'); doShake(); return; }
+    if (fd.password !== fd.confirmPassword)   { setError('Passwords do not match.'); focusAuthField('Confirm Password'); doShake(); return; }
+    if (!agreed)                              { setError('Please agree to the Terms of Service.'); focusAuthErrorSummary(); doShake(); return; }
+    if (role === 'seller' && !fd.storeName.trim()) { setError('Store name is required for sellers.'); focusAuthField('Store Name'); doShake(); return; }
+    if (hasSQLRisk(fd.fullName) || hasSQLRisk(fd.email) || hasSQLRisk(fd.password)) { setError('Invalid characters detected.'); focusAuthErrorSummary(); doShake(); return; }
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
@@ -440,8 +383,15 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.message || 'Registration failed.'); return; }
+      if (!res.ok) {
+        const { banner, fields } = mapAuthApiErrors(data, 'signup');
+        setError(banner);
+        setFieldErrors(fields);
+        focusAuthApiErrors(fields, banner);
+        return;
+      }
       setSuccess(true);
+      clearAuthDraft(storageScope, 'signup');
       showToast('Account created! Verify your email to continue.', 'success');
       onRegistered(fd.email.trim().toLowerCase());
     } catch { setError('Network error. Try again.'); }
@@ -467,14 +417,32 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
     </motion.div>
   );
 
-  const f = (k: keyof typeof fd) => (v: string) => setFd({ ...fd, [k]: v });
+  const fieldLabelByKey: Record<keyof typeof fd, string> = {
+    fullName: 'Full Name',
+    email: 'Email Address',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    storeName: 'Store Name',
+  };
+
+  const f = (k: keyof typeof fd) => (v: string) => {
+    setFd({ ...fd, [k]: v });
+    setFieldErrors((prev) => stripFieldError(prev, fieldLabelByKey[k]));
+  };
+
+  const selectRole = (r: 'buyer' | 'seller') => {
+    setRole(r);
+    setError('');
+    setFieldErrors({});
+  };
+
+  const motionProps = panelMotion(!!reduceMotion);
 
   return (
     <motion.form
       onSubmit={handleSubmit}
-      initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
-      className="auth-mobile-form flex flex-col gap-3 sm:gap-4"
+      {...motionProps}
+      className={`auth-mobile-form flex flex-col gap-3 sm:gap-4 ${shake && !reduceMotion ? 'auth-shake-anim' : ''}`}
     >
       <div className="auth-mobile-panel-heading mb-0 sm:mb-1">
         <h2 className="auth-mobile-title text-xl sm:text-[26px] font-bold sm:font-black mb-0.5 sm:mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>Create account</h2>
@@ -485,32 +453,34 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
 
       {/* Name + Email */}
       <div className="auth-mobile-field-grid grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-        <AuthInput label="Full Name" value={fd.fullName} onChange={f('fullName')} placeholder="Your full name"
-          leftIcon={User} valid={fd.fullName.trim().length >= 2}
+        <AuthInput label="Full Name" name="name" autoComplete="name" value={fd.fullName} onChange={f('fullName')} placeholder="Your full name"
+          error={fieldErrors['Full Name']}
+          leftIcon={User} valid={fd.fullName.trim().length >= 2 && !fieldErrors['Full Name']}
           focused={focused === 'name'} onFocus={() => setFocused('name')} onBlur={() => setFocused(null)} required autoFocus />
-        <AuthInput label="Email Address" type="email" value={fd.email} onChange={f('email')} placeholder="you@example.com"
+        <AuthInput label="Email Address" name="email" type="email" autoComplete="email" value={fd.email} onChange={f('email')} placeholder="you@example.com"
           leftIcon={Mail}
-          error={fd.email.length > 0 && !emailValid ? 'Enter a valid email' : undefined}
-          valid={emailValid}
+          error={fieldErrors['Email Address'] || (fd.email.length > 0 && !emailValid ? 'Enter a valid email' : undefined)}
+          valid={emailValid && !fieldErrors['Email Address']}
           focused={focused === 'email'} onFocus={() => setFocused('email')} onBlur={() => setFocused(null)} required />
       </div>
 
       {/* Password */}
       <div className="flex flex-col gap-1.5 sm:gap-2">
-        <AuthInput label="Password" type={showPw ? 'text' : 'password'} value={fd.password} onChange={f('password')}
+        <AuthInput label="Password" name="new-password" type={showPw ? 'text' : 'password'} autoComplete="new-password" value={fd.password} onChange={f('password')}
+          error={fieldErrors.Password}
           placeholder="At least 8 characters" leftIcon={Lock}
           focused={focused === 'pw'} onFocus={() => setFocused('pw')} onBlur={() => setFocused(null)}
           rightEl={
             <button type="button" onClick={() => setShowPw(!showPw)}
               className="p-1 rounded-lg hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}
-              aria-label={showPw ? 'Hide' : 'Show'}>
+              aria-label={showPw ? 'Hide password' : 'Show password'}>
               {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           }
           required />
         {/* Strength bar */}
         {fd.password.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" aria-live="polite" aria-atomic="true">
             <div className="flex gap-0.5 flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
               {[0,1,2,3].map((i) => (
                 <div key={i} className="flex-1 transition-all duration-300" style={{
@@ -547,11 +517,11 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       </div>
 
       {/* Confirm password */}
-      <AuthInput label="Confirm Password" type={showCPw ? 'text' : 'password'} value={fd.confirmPassword} onChange={f('confirmPassword')}
+      <AuthInput label="Confirm Password" name="confirm-password" type={showCPw ? 'text' : 'password'} autoComplete="new-password" value={fd.confirmPassword} onChange={f('confirmPassword')}
         placeholder="Repeat your password" leftIcon={Lock}
         focused={focused === 'cpw'} onFocus={() => setFocused('cpw')} onBlur={() => setFocused(null)}
         valid={pwMatch === true}
-        error={pwMatch === false ? "Passwords don't match" : undefined}
+        error={fieldErrors['Confirm Password'] || (pwMatch === false ? "Passwords don't match" : undefined)}
         rightEl={
           pwMatch !== true
             ? <button type="button" onClick={() => setShowCPw(!showCPw)}
@@ -564,20 +534,29 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
 
       {/* Role selector */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Account type</p>
-        <div className="flex gap-2">
+        <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }} id="auth-role-label">
+          Account type
+        </p>
+        <div
+          className="auth-role-segment"
+          role="group"
+          aria-labelledby="auth-role-label"
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            selectRole(role === 'buyer' ? 'seller' : 'buyer');
+          }}
+        >
           {(['buyer', 'seller'] as const).map((r) => (
-            <motion.button key={r} type="button" onClick={() => setRole(r)}
-              whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
-              className="flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl text-[13px] font-bold transition-all"
-              style={{
-                background: role === r ? 'var(--gradient-brand-cta)' : 'var(--bg-secondary)',
-                color: role === r ? 'var(--text-on-accent)' : 'var(--text-muted)',
-                boxShadow: role === r ? 'var(--shadow-cta)' : '0 0 0 1.5px var(--border-card)',
-              }}>
-              {r === 'buyer' ? '🛒' : '🏪'}
+            <button
+              key={r}
+              type="button"
+              onClick={() => selectRole(r)}
+              className={`auth-role-segment__btn${role === r ? ' is-active' : ''}`}
+              aria-pressed={role === r}
+            >
               {r === 'buyer' ? 'Buyer' : 'Seller'}
-            </motion.button>
+            </button>
           ))}
         </div>
       </div>
@@ -586,7 +565,8 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       <AnimatePresence>
         {role === 'seller' && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-            <AuthInput label="Store Name" value={fd.storeName} onChange={f('storeName')} placeholder="Your store name"
+            <AuthInput label="Store Name" name="organization" autoComplete="organization" value={fd.storeName} onChange={f('storeName')} placeholder="Your store name"
+              error={fieldErrors['Store Name']}
               leftIcon={User}
               focused={focused === 'store'} onFocus={() => setFocused('store')} onBlur={() => setFocused(null)} required />
           </motion.div>
@@ -602,7 +582,18 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
 
       {/* Terms */}
       <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer select-none">
-        <button type="button" role="checkbox" aria-checked={agreed} onClick={() => setAgreed(!agreed)}
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={agreed}
+          aria-label="Agree to Terms of Service and Privacy Policy"
+          onClick={() => setAgreed(!agreed)}
+          onKeyDown={(e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault();
+              setAgreed((a) => !a);
+            }
+          }}
           className="w-5 h-5 rounded-lg flex-shrink-0 mt-0.5 flex items-center justify-center transition-all"
           style={{ background: agreed ? PRIMARY : 'var(--bg-secondary)', boxShadow: `0 0 0 1.5px ${agreed ? PRIMARY : 'var(--border-card)'}` }}>
           {agreed && <Check size={12} className="text-white" />}
@@ -620,7 +611,15 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       </PrimaryBtn>
 
       <OrDivider />
-      <GoogleBtn onClick={() => { window.location.href = `${API_BASE}/auth/google?role=${role}`; }} />
+      <GoogleBtn
+        onClick={() => {
+          onOAuthBegin?.();
+          setError('');
+          setFieldErrors({});
+          sessionStorage.setItem('auth_oauth_role', role);
+          window.location.href = `${API_BASE}/auth/google?role=${role}`;
+        }}
+      />
 
       <p className="text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
         Already have an account?{' '}
@@ -633,16 +632,27 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
 /* ═══════════════════════════════════════════════════════════════════════════
    FORGOT PASSWORD FORM
 ═══════════════════════════════════════════════════════════════════════════ */
-function ForgotFormContent({ onSent }: { onSent: (email: string) => void }) {
+function ForgotFormContent({
+  onSent,
+  storageScope = 'page',
+}: {
+  onSent: (email: string) => void;
+  storageScope?: AuthDraftScope;
+}) {
   const { showToast }        = useToastStore();
-  const [email,   setEmail]  = useState('');
+  const reduceMotion         = useReducedMotion();
+  const forgotDraft          = getAuthDraftInitial(storageScope, 'forgot', { email: '' });
+  const [email,   setEmail]  = useState(forgotDraft.email || '');
   const [loading, setLoading]= useState(false);
   const [error,   setError]  = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [focused, setFocused]= useState(false);
+
+  useSaveAuthDraft(storageScope, 'forgot', { email }, true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter a valid email.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter a valid email.'); focusAuthField('Email Address'); return; }
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/forgot-password`, {
@@ -651,18 +661,25 @@ function ForgotFormContent({ onSent }: { onSent: (email: string) => void }) {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.message || 'Failed to send reset email.'); return; }
+      if (!res.ok) {
+        const { banner, fields } = mapAuthApiErrors(data, 'forgot');
+        setError(banner);
+        setFieldErrors(fields);
+        focusAuthApiErrors(fields, banner);
+        return;
+      }
       showToast('Reset code sent! Check your email.', 'success');
       onSent(email.trim());
     } catch { setError('Network error. Try again.'); }
     finally { setLoading(false); }
   };
 
+  const motionProps = panelMotion(!!reduceMotion);
+
   return (
     <motion.form
       onSubmit={handleSubmit}
-      initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
+      {...motionProps}
       className="flex flex-col gap-5"
     >
       <div>
@@ -673,55 +690,29 @@ function ForgotFormContent({ onSent }: { onSent: (email: string) => void }) {
         <p className="text-[15px]" style={{ color: 'var(--text-muted)' }}>Enter your email and we'll send a 6-digit reset code.</p>
       </div>
       <ErrorBanner message={error} />
-      <AuthInput label="Email Address" type="email" value={email} onChange={setEmail}
-        placeholder="you@example.com" leftIcon={Mail}
-        focused={focused} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-        required autoFocus />
+      <AuthInput
+        label="Email Address"
+        name="email"
+        type="email"
+        autoComplete="email"
+        value={email}
+        onChange={(v) => {
+          setEmail(v);
+          setFieldErrors((prev) => stripFieldError(prev, 'Email Address'));
+        }}
+        error={fieldErrors['Email Address']}
+        placeholder="you@example.com"
+        leftIcon={Mail}
+        focused={focused}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        required
+        autoFocus
+      />
       <PrimaryBtn loading={loading}>
         {loading ? 'Sending…' : <>Send Reset Code <ArrowRight size={15} /></>}
       </PrimaryBtn>
     </motion.form>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   OTP inputs (shared)
-═══════════════════════════════════════════════════════════════════════════ */
-function OtpInputs({
-  digits, inputRefs, locked, error, onChange, onKeyDown, onPaste,
-}: {
-  digits: string[]; inputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
-  locked: boolean; error: boolean;
-  onChange: (i: number, v: string) => void;
-  onKeyDown: (i: number, e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
-}) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  return (
-    <div className="flex items-center justify-center gap-2 sm:gap-3">
-      {digits.map((d, i) => (
-        <input
-          key={i}
-          ref={(el) => { inputRefs.current[i] = el; }}
-          inputMode="numeric" autoComplete="one-time-code"
-          value={d} disabled={locked}
-          onChange={(e) => onChange(i, e.target.value)}
-          onKeyDown={(e) => onKeyDown(i, e)}
-          onPaste={onPaste}
-          className="premium-input-exempt otp-digit w-[13vw] max-w-[58px] min-w-[42px] h-[58px] sm:h-[64px] rounded-2xl text-center text-[22px] font-black outline-none transition-all duration-200"
-          style={{
-            background: isDark ? 'rgba(255,255,255,0.06)' : '#f8f9fc',
-            boxShadow: error
-              ? '0 0 0 2px rgba(239,68,68,0.45)'
-              : d ? `0 0 0 2px color-mix(in srgb, var(--brand-primary) 50%, transparent), 0 0 12px color-mix(in srgb, var(--brand-primary) 15%, transparent)`
-              : `0 0 0 1.5px ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-            color: 'var(--text-primary)',
-          }}
-          aria-label={`Digit ${i + 1}`}
-        />
-      ))}
-    </div>
   );
 }
 
@@ -734,11 +725,13 @@ const CARD_SHADOW_DARK  = '0 32px 64px -12px rgba(0,0,0,0.55), 0 8px 16px rgba(0
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
+  const reduceMotion = useReducedMotion();
   return (
     <motion.button
       type="button" onClick={toggleTheme}
-      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-      className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200"
+      whileHover={!reduceMotion ? { scale: 1.05 } : {}}
+      whileTap={!reduceMotion ? { scale: 0.95 } : {}}
+      className="auth-theme-toggle w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200"
       style={{
         background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
         color: 'var(--text-primary)',
@@ -760,6 +753,8 @@ export default function AuthPage() {
   const { setUserAndToken, user, initialized, loading } = useAuthStore();
   const { theme }           = useTheme();
   const isDark              = theme === 'dark';
+  const reduceMotion        = useReducedMotion();
+  const [formEpoch, setFormEpoch] = useState(0);
 
   useEffect(() => {
     if (!initialized || loading || !user) return;
@@ -769,7 +764,18 @@ export default function AuthPage() {
   const tab      = (searchParams.get('tab') as 'login'|'signup'|'forgot') || 'login';
   const validTab = (['login','signup','forgot'] as const).includes(tab as any) ? tab : 'login';
 
+  useEffect(() => {
+    setFormEpoch((e) => e + 1);
+  }, [validTab]);
+
   const [panel,    setPanel]   = useState<'auth'|'otp'|'success'|'reset'>('auth');
+  const prevPanelRef = useRef(panel);
+  useEffect(() => {
+    if (prevPanelRef.current !== 'auth' && panel === 'auth') {
+      setFormEpoch((e) => e + 1);
+    }
+    prevPanelRef.current = panel;
+  }, [panel]);
   const [otpEmail, setOtpEmail]= useState('');
   const [otpError, setOtpError]= useState('');
   const [otpLocked,setOtpLocked]=useState(false);
@@ -785,6 +791,7 @@ export default function AuthPage() {
 
   const [resetEmail,   setResetEmail]   = useState('');
   const [resetError,   setResetError]   = useState('');
+  const [resetFieldErrors, setResetFieldErrors] = useState<Record<string, string>>({});
   const [resetLocked,  setResetLocked]  = useState(false);
   const [resetDigits,  setResetDigits]  = useState(['','','','','','']);
   const resetRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -795,6 +802,33 @@ export default function AuthPage() {
   const [newConfirm,   setNewConfirm]   = useState('');
   const [resetting,    setResetting]    = useState(false);
   const [resetFocused, setResetFocused] = useState<string|null>(null);
+
+  const onOAuthBegin = useCallback(() => {
+    setOtpError('');
+    setOtpLocked(false);
+    setVerifying(false);
+    setSending(false);
+    setFailN(0);
+    setResetError('');
+    setResetLocked(false);
+    setResetting(false);
+  }, []);
+
+  useEffect(() => {
+    if (panel !== 'reset') return;
+    const saved = loadAuthDraft<ResetDraft>('page', 'reset');
+    if (!saved) return;
+    if (saved.digits?.length === 6) setResetDigits([...saved.digits]);
+    if (saved.newPassword) setNewPassword(saved.newPassword);
+    if (saved.newConfirm) setNewConfirm(saved.newConfirm);
+  }, [panel]);
+
+  useSaveAuthDraft(
+    'page',
+    'reset',
+    { email: resetEmail, digits: resetDigits, newPassword, newConfirm },
+    panel === 'reset',
+  );
 
   /* Deep-link: ?verifyEmail=1&email=... */
   useEffect(() => {
@@ -844,7 +878,18 @@ export default function AuthPage() {
 
   /* OTP helpers */
   const clearOtp  = () => { setOtpDigits(['','','','','','']); setOtpError(''); setFailN(0); setOtpLocked(false); setVerifying(false); };
-  const clearReset= () => { setResetDigits(['','','','','','']); setResetError(''); setResetLocked(false); setResetResendN(0); setResetResendLock(null); setResetResendCd(RESEND_CD); setNewPassword(''); setNewConfirm(''); setResetting(false); };
+  const clearReset= () => {
+    setResetDigits(['','','','','','']);
+    setResetError('');
+    setResetFieldErrors({});
+    setResetLocked(false);
+    setResetResendN(0);
+    setResetResendLock(null);
+    setResetResendCd(RESEND_CD);
+    setNewPassword('');
+    setNewConfirm('');
+    setResetting(false);
+  };
 
   const sendOtp = async (email: string, reason: 'initial'|'resend'|'autoAfterLock') => {
     const e = email.trim().toLowerCase(); if (!e) return;
@@ -883,15 +928,24 @@ export default function AuthPage() {
   };
 
   const goToReset = async (email: string) => {
-    setPanel('reset'); setResetEmail(email.trim().toLowerCase());
-    clearReset(); setResetResendN(0); setResetResendLock(null); setResetResendCd(RESEND_CD);
+    const e = email.trim().toLowerCase();
+    setPanel('reset');
+    setResetEmail(e);
+    const saved = loadAuthDraft<ResetDraft>('page', 'reset');
+    clearReset();
+    setResetResendN(0);
+    setResetResendLock(null);
+    setResetResendCd(RESEND_CD);
+    if (saved?.digits?.length === 6) setResetDigits([...saved.digits]);
+    if (saved?.newPassword) setNewPassword(saved.newPassword);
+    if (saved?.newConfirm) setNewConfirm(saved.newConfirm);
     window.setTimeout(() => resetRefs.current[0]?.focus(), 100);
   };
 
   const verifyOtp = async () => {
     const code = otpDigits.join('');
     if (otpLocked || verifying || sending) return;
-    if (!/^\d{6}$/.test(code))              { setOtpError('Enter the 6-digit code.'); return; }
+    if (!/^\d{6}$/.test(code))              { setOtpError('Enter the 6-digit code.'); otpRefs.current[0]?.focus(); return; }
     if (expiresAt && Date.now() > expiresAt) { setOtpError('Code expired. Request a new one.'); return; }
     setVerifying(true); setOtpError('');
     try {
@@ -907,10 +961,15 @@ export default function AuthPage() {
           updated_at: u.updatedAt || new Date().toISOString(),
         } as any, result.token);
       }
-      clearOtp(); setExpiresAt(null); setPanel('success');
+      clearOtp();
+      setExpiresAt(null);
+      setPanel('success');
+      clearAllAuthDrafts('page');
+      setFormEpoch((e) => e + 1);
     } catch (err: any) {
       const n = failN + 1; setFailN(n);
-      setOtpError(err?.message || 'Wrong code. Try again.');
+      const { banner, fields } = mapAuthApiErrors({ message: err?.message }, 'otp');
+      setOtpError(fields.__otp__ || banner || 'Wrong code. Try again.');
       if (n >= 5) {
         setOtpLocked(true); setOtpError('Too many attempts. A new code has been sent.');
         setOtpDigits(['','','','','','']);
@@ -922,10 +981,23 @@ export default function AuthPage() {
 
   const submitReset = async () => {
     setResetError('');
+    setResetFieldErrors({});
     const code = resetDigits.join('');
-    if (!/^\d{6}$/.test(code))         { setResetError('Enter the 6-digit code.'); return; }
-    if (newPassword.length < 6)        { setResetError('Password must be ≥ 6 characters.'); return; }
-    if (newPassword !== newConfirm)    { setResetError('Passwords do not match.'); return; }
+    if (!/^\d{6}$/.test(code)) {
+      setResetError('Enter the 6-digit code.');
+      resetRefs.current[0]?.focus();
+      return;
+    }
+    if (newPassword.length < 6) {
+      setResetFieldErrors({ 'New Password': 'Password must be ≥ 6 characters.' });
+      focusAuthField('New Password');
+      return;
+    }
+    if (newPassword !== newConfirm) {
+      setResetFieldErrors({ 'Confirm Password': 'Passwords do not match.' });
+      focusAuthField('Confirm Password');
+      return;
+    }
     setResetting(true);
     try {
       const res = await fetch(`${API_BASE}/auth/reset-password-otp`, {
@@ -934,8 +1006,21 @@ export default function AuthPage() {
         body: JSON.stringify({ email: resetEmail, code, password: newPassword }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setResetError(data.message || 'Failed to reset password.'); return; }
-      clearReset(); setPanel('auth'); navigate('/auth?tab=login');
+      if (!res.ok) {
+        const { banner, fields } = mapAuthApiErrors(data, 'reset');
+        const { __otp__, ...pwFields } = fields;
+        if (__otp__) setResetError(__otp__);
+        else setResetError(banner);
+        setResetFieldErrors(pwFields);
+        focusAuthApiErrors(fields, banner);
+        return;
+      }
+      clearReset();
+      clearAllAuthDrafts('page');
+      clearAuthDraft('page', 'forgot');
+      setFormEpoch((e) => e + 1);
+      setPanel('auth');
+      navigate('/auth?tab=login');
     } catch { setResetError('Network error. Try again.'); }
     finally { setResetting(false); }
   };
@@ -943,15 +1028,30 @@ export default function AuthPage() {
   /* OTP key handlers */
   const handleOtpChange = (i: number, raw: string) => {
     if (otpLocked) return;
-    const v = raw.replace(/\D/g,'').slice(0,1);
-    const next = [...otpDigits]; next[i] = v; setOtpDigits(next); setOtpError('');
-    if (v && i < 5) otpRefs.current[i+1]?.focus();
+    const { next, focusIndex } = applyOtpInput(i, raw, otpDigits);
+    setOtpDigits(next);
+    setOtpError('');
+    if (next[focusIndex]) otpRefs.current[focusIndex]?.focus();
+    else if (focusIndex < 5 && next[i]) otpRefs.current[Math.min(5, i + 1)]?.focus();
   };
   const handleOtpKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (otpLocked) return;
-    if (e.key === 'Backspace' && !otpDigits[i] && i > 0) otpRefs.current[i-1]?.focus();
-    if (e.key === 'ArrowLeft'  && i > 0) otpRefs.current[i-1]?.focus();
-    if (e.key === 'ArrowRight' && i < 5) otpRefs.current[i+1]?.focus();
+    if (e.key === 'Backspace') {
+      if (otpDigits[i]) {
+        const next = [...otpDigits];
+        next[i] = '';
+        setOtpDigits(next);
+        e.preventDefault();
+        return;
+      }
+      if (i > 0) {
+        e.preventDefault();
+        otpRefs.current[i - 1]?.focus();
+      }
+      return;
+    }
+    if (e.key === 'ArrowLeft'  && i > 0) { e.preventDefault(); otpRefs.current[i-1]?.focus(); }
+    if (e.key === 'ArrowRight' && i < 5) { e.preventDefault(); otpRefs.current[i+1]?.focus(); }
   };
   const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     if (otpLocked) return;
@@ -965,15 +1065,35 @@ export default function AuthPage() {
 
   const handleResetChange = (i: number, raw: string) => {
     if (resetLocked || resetting) return;
-    const v = raw.replace(/\D/g,'').slice(0,1);
-    const next = [...resetDigits]; next[i] = v; setResetDigits(next); setResetError('');
-    if (v && i < 5) resetRefs.current[i+1]?.focus();
+    const { next, focusIndex } = applyOtpInput(i, raw, resetDigits);
+    setResetDigits(next);
+    setResetError('');
+    setResetFieldErrors((prev) => {
+      const n = { ...prev };
+      delete n.__otp__;
+      return n;
+    });
+    if (next[focusIndex]) resetRefs.current[focusIndex]?.focus();
+    else if (focusIndex < 5 && next[i]) resetRefs.current[Math.min(5, i + 1)]?.focus();
   };
   const handleResetKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (resetLocked || resetting) return;
-    if (e.key === 'Backspace' && !resetDigits[i] && i > 0) resetRefs.current[i-1]?.focus();
-    if (e.key === 'ArrowLeft'  && i > 0) resetRefs.current[i-1]?.focus();
-    if (e.key === 'ArrowRight' && i < 5) resetRefs.current[i+1]?.focus();
+    if (e.key === 'Backspace') {
+      if (resetDigits[i]) {
+        const next = [...resetDigits];
+        next[i] = '';
+        setResetDigits(next);
+        e.preventDefault();
+        return;
+      }
+      if (i > 0) {
+        e.preventDefault();
+        resetRefs.current[i - 1]?.focus();
+      }
+      return;
+    }
+    if (e.key === 'ArrowLeft'  && i > 0) { e.preventDefault(); resetRefs.current[i-1]?.focus(); }
+    if (e.key === 'ArrowRight' && i < 5) { e.preventDefault(); resetRefs.current[i+1]?.focus(); }
   };
   const handleResetPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     if (resetLocked || resetting) return;
@@ -989,6 +1109,13 @@ export default function AuthPage() {
   const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
 
   /* ── RENDER ── */
+  const fadeIn = reduceMotion
+    ? { initial: false as const, animate: false as const, transition: { duration: 0 } }
+    : { initial: { opacity: 0, y: 28 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] as const } };
+  const panelSlide = reduceMotion
+    ? { initial: false as const, animate: false as const, exit: false as const, transition: { duration: 0 } }
+    : { initial: { opacity: 0, x: 12 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -12 }, transition: { duration: 0.22 } };
+
   return (
     <AuthPremiumLayout>
       {/*
@@ -1001,8 +1128,7 @@ export default function AuthPage() {
         <div className="auth-mobile-card-wrap flex-1 flex flex-col items-stretch sm:items-center justify-start sm:justify-center min-h-0 w-full
                         px-3 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10">
           <motion.div
-            initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+            {...fadeIn}
             className="auth-mobile-card w-full sm:max-w-[520px] relative overflow-hidden rounded-2xl sm:rounded-2xl flex-shrink-0"
             style={{
               background: cardBg,
@@ -1013,23 +1139,27 @@ export default function AuthPage() {
             }}
           >
             {/* Top accent line (gradient overlay) */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-20" style={{
-              background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 80%, transparent) 40%, var(--navbar-violet-strong) 70%, transparent)',
-            }} />
+            <div className="auth-mobile-card-accent absolute top-0 left-0 right-0 pointer-events-none z-20" />
 
-            {/* Corner glow top-right */}
-            <div className="absolute top-0 right-0 w-72 h-72 pointer-events-none" style={{
-              background: 'radial-gradient(circle at top right, color-mix(in srgb, var(--brand-primary) 9%, transparent) 0%, transparent 60%)',
-            }} />
-            {/* Corner glow bottom-left */}
-            <div className="absolute bottom-0 left-0 w-56 h-56 pointer-events-none" style={{
-              background: 'radial-gradient(circle at bottom left, var(--navbar-violet-glow-soft) 0%, transparent 60%)',
-            }} />
-            {/* Dot grid */}
-            <div className="absolute inset-0 pointer-events-none" style={{
-              backgroundImage: `radial-gradient(circle, ${isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.018)'} 1px, transparent 1px)`,
-              backgroundSize: '22px 22px',
-            }} />
+            <div
+              className="auth-card-deco-glow-tr absolute top-0 right-0 w-72 h-72"
+              style={{
+                background: 'radial-gradient(circle at top right, color-mix(in srgb, var(--brand-primary) 9%, transparent) 0%, transparent 60%)',
+              }}
+            />
+            <div
+              className="auth-card-deco-glow-bl absolute bottom-0 left-0 w-56 h-56"
+              style={{
+                background: 'radial-gradient(circle at bottom left, var(--navbar-violet-glow-soft) 0%, transparent 60%)',
+              }}
+            />
+            <div
+              className="auth-card-deco-dots absolute inset-0"
+              style={{
+                backgroundImage: `radial-gradient(circle, ${isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.018)'} 1px, transparent 1px)`,
+                backgroundSize: '22px 22px',
+              }}
+            />
 
             {/* Padding wrapper */}
             <div className="auth-mobile-card-inner relative z-10 p-4 sm:p-8">
@@ -1043,7 +1173,7 @@ export default function AuthPage() {
                 <div className="ml-auto"><ThemeToggle /></div>
               </div>
 
-              <div className="flex items-center justify-end mb-3 sm:hidden">
+              <div className="auth-mobile-theme-row flex items-center justify-end mb-3 sm:hidden">
                 <ThemeToggle />
               </div>
 
@@ -1051,69 +1181,110 @@ export default function AuthPage() {
 
                 {/* ── AUTH (login/signup/forgot) panel ── */}
                 {panel === 'auth' && (
-                  <motion.div key="auth"
-                    initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
-                  >
-                    {/* Tab switcher */}
+                  <motion.div key="auth" {...panelSlide}>
                     <div
+                      role="tablist"
+                      aria-label="Sign in or register"
                       className="auth-mobile-tab-bar flex items-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl mb-4 sm:mb-7 relative"
                       data-active-tab={validTab === 'signup' ? 'signup' : 'login'}
                       style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
                     >
                       <Link
+                        role="tab"
+                        aria-selected={validTab === 'login' || validTab === 'forgot'}
                         to="/auth?tab=login"
                         className="auth-mobile-tab-link relative z-10 flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[13px] sm:text-[14px] font-bold transition-colors"
-                        style={{ color: (validTab === 'login' || validTab === 'forgot') ? 'var(--text-primary)' : 'var(--text-faint)' }}
+                        style={{ color: (validTab === 'login' || validTab === 'forgot') ? 'var(--text-primary)' : 'var(--text-muted)' }}
                       >
                         Sign In
                       </Link>
                       <Link
+                        role="tab"
+                        aria-selected={validTab === 'signup'}
                         to="/auth?tab=signup"
                         className="auth-mobile-tab-link relative z-10 flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[13px] sm:text-[14px] font-bold transition-colors"
-                        style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-faint)' }}
+                        style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)' }}
                       >
                         Register
                       </Link>
-                      <motion.span
-                        layoutId="auth-v2-pill"
-                        className="auth-mobile-tab-pill absolute rounded-xl pointer-events-none"
-                        style={{
-                          background: 'var(--card-bg)',
-                          boxShadow: (validTab === 'login' || validTab === 'forgot')
-                            ? `var(--shadow-cta), 0 0 0 1px color-mix(in srgb, var(--brand-primary) 18%, transparent)`
-                            : `0 2px 12px var(--navbar-violet-glow-soft), 0 0 0 1px var(--navbar-violet-mix)`,
-                          top: 4,
-                          bottom: 4,
-                          width: 'calc(50% - 4px)',
-                        }}
-                        animate={{
-                          left: validTab === 'signup' ? 'calc(50%)' : 4,
-                        }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                      />
+                      {!reduceMotion && (
+                        <motion.span
+                          layoutId="auth-v2-pill"
+                          className="auth-mobile-tab-pill absolute rounded-xl pointer-events-none"
+                          style={{
+                            background: 'var(--card-bg)',
+                            boxShadow: (validTab === 'login' || validTab === 'forgot')
+                              ? `var(--shadow-cta), 0 0 0 1px color-mix(in srgb, var(--brand-primary) 18%, transparent)`
+                              : `0 2px 12px var(--navbar-violet-glow-soft), 0 0 0 1px var(--navbar-violet-mix)`,
+                            top: 4,
+                            bottom: 4,
+                            width: 'calc(50% - 4px)',
+                          }}
+                          animate={{
+                            left: validTab === 'signup' ? 'calc(50%)' : 4,
+                          }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                        />
+                      )}
+                      {reduceMotion && (
+                        <span
+                          className="auth-mobile-tab-pill absolute rounded-xl pointer-events-none"
+                          aria-hidden
+                          style={{
+                            background: 'var(--card-bg)',
+                            top: 4,
+                            bottom: 4,
+                            width: 'calc(50% - 4px)',
+                            left: validTab === 'signup' ? 'calc(50%)' : 4,
+                          }}
+                        />
+                      )}
                     </div>
 
                     <AnimatePresence mode="wait">
                       {validTab === 'forgot' && (
-                        <motion.div key="forgot"
-                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                          transition={{ duration: 0.18 }}>
-                          <ForgotFormContent onSent={(email) => goToReset(email).catch(() => undefined)} />
+                        <motion.div
+                          key={`forgot-${formEpoch}`}
+                          initial={reduceMotion ? false : { opacity: 0 }}
+                          animate={reduceMotion ? false : { opacity: 1 }}
+                          exit={reduceMotion ? false : { opacity: 0 }}
+                          transition={{ duration: reduceMotion ? 0 : 0.18 }}
+                        >
+                          <ForgotFormContent
+                            storageScope="page"
+                            onSent={(email) => goToReset(email).catch(() => undefined)}
+                          />
                         </motion.div>
                       )}
                       {validTab === 'login' && (
-                        <motion.div key="login"
-                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                          transition={{ duration: 0.18 }}>
-                          <LoginFormContent role="buyer" onRequireEmailVerification={(email) => goToOtp(email, true)} />
+                        <motion.div
+                          key={`login-${formEpoch}`}
+                          initial={reduceMotion ? false : { opacity: 0 }}
+                          animate={reduceMotion ? false : { opacity: 1 }}
+                          exit={reduceMotion ? false : { opacity: 0 }}
+                          transition={{ duration: reduceMotion ? 0 : 0.18 }}
+                        >
+                          <LoginFormContent
+                            role="buyer"
+                            storageScope="page"
+                            onOAuthBegin={onOAuthBegin}
+                            onRequireEmailVerification={(email) => goToOtp(email, true)}
+                          />
                         </motion.div>
                       )}
                       {validTab === 'signup' && (
-                        <motion.div key="signup"
-                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                          transition={{ duration: 0.18 }}>
-                          <SignupFormContent onRegistered={(email) => goToOtp(email, false)} />
+                        <motion.div
+                          key={`signup-${formEpoch}`}
+                          initial={reduceMotion ? false : { opacity: 0 }}
+                          animate={reduceMotion ? false : { opacity: 1 }}
+                          exit={reduceMotion ? false : { opacity: 0 }}
+                          transition={{ duration: reduceMotion ? 0 : 0.18 }}
+                        >
+                          <SignupFormContent
+                            storageScope="page"
+                            onOAuthBegin={onOAuthBegin}
+                            onRegistered={(email) => goToOtp(email, false)}
+                          />
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -1122,20 +1293,17 @@ export default function AuthPage() {
 
                 {/* ── OTP PANEL ── */}
                 {panel === 'otp' && (
-                  <motion.div key="otp"
-                    initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
-                    className="flex flex-col items-center text-center"
-                  >
+                  <motion.div key="otp" {...panelSlide} className="flex flex-col items-center text-center">
                     {/* Icon orb */}
-                    <div className="relative mb-5">
-                      <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
-                        style={{ background: 'var(--brand-tint-strong)', border: '1px solid var(--brand-border-subtle)', boxShadow: '0 0 32px color-mix(in srgb, var(--brand-primary) 15%, transparent)' }}>
-                        <Mail size={32} style={{ color: PRIMARY }} />
+                    <div className="auth-otp-icon-wrap">
+                      <div className="auth-otp-icon-box mx-auto">
+                        <Mail size={32} style={{ color: PRIMARY }} aria-hidden />
                       </div>
-                      <motion.div className="absolute inset-0 rounded-2xl pointer-events-none"
-                        animate={{ boxShadow: ['0 0 0 0 color-mix(in srgb, var(--brand-primary) 30%, transparent)', '0 0 0 10px transparent', '0 0 0 0 transparent'] }}
-                        transition={{ duration: 2, repeat: Infinity }} />
+                      {!reduceMotion && (
+                        <motion.div className="absolute inset-0 rounded-2xl pointer-events-none"
+                          animate={{ boxShadow: ['0 0 0 0 color-mix(in srgb, var(--brand-primary) 30%, transparent)', '0 0 0 10px transparent', '0 0 0 0 transparent'] }}
+                          transition={{ duration: 2, repeat: Infinity }} />
+                      )}
                     </div>
 
                     <h2 className="auth-mobile-otp-title text-xl sm:text-[26px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Verify Email</h2>
@@ -1147,17 +1315,18 @@ export default function AuthPage() {
 
                     <div className="w-full max-w-[380px] mx-auto">
                       <OtpInputs
-                        digits={otpDigits} inputRefs={otpRefs} locked={otpLocked || verifying}
-                        error={!!otpError} onChange={handleOtpChange} onKeyDown={handleOtpKey} onPaste={handleOtpPaste}
+                        digits={otpDigits}
+                        inputRefs={otpRefs}
+                        locked={otpLocked || verifying}
+                        error={!!otpError}
+                        errorMessage={otpError || undefined}
+                        onChange={handleOtpChange}
+                        onKeyDown={handleOtpKey}
+                        onPaste={handleOtpPaste}
                       />
 
-                      {otpError ? (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                          className="text-[13px] text-center mt-3" style={{ color: 'var(--badge-error-text)' }}>
-                          {otpError}
-                        </motion.p>
-                      ) : (
-                        <p className="text-[12px] text-center mt-2" style={{ color: 'var(--text-faint)' }}>{expiryText}</p>
+                      {!otpError && (
+                        <p className="text-[12px] text-center mt-2" style={{ color: 'var(--text-muted)' }}>{expiryText}</p>
                       )}
 
                       <div className="text-center my-5">
@@ -1182,7 +1351,15 @@ export default function AuthPage() {
                         {verifying ? 'Verifying…' : 'Verify Email →'}
                       </PrimaryBtn>
 
-                      <button type="button" onClick={() => { clearOtp(); setPanel('auth'); navigate('/auth?tab=login'); }}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearOtp();
+                          setOtpError('');
+                          setPanel('auth');
+                          setFormEpoch((e) => e + 1);
+                          navigate('/auth?tab=login');
+                        }}
                         className="mt-5 text-[13px] font-bold hover:underline block mx-auto" style={{ color: PRIMARY }}>
                         ← Back to Sign In
                       </button>
@@ -1192,15 +1369,10 @@ export default function AuthPage() {
 
                 {/* ── RESET PANEL ── */}
                 {panel === 'reset' && (
-                  <motion.div key="reset"
-                    initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
-                    className="flex flex-col items-center text-center"
-                  >
-                    <div className="relative mb-5">
-                      <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
-                        style={{ background: 'var(--brand-tint-strong)', border: '1px solid var(--brand-border-subtle)', boxShadow: '0 0 32px color-mix(in srgb, var(--brand-primary) 15%, transparent)' }}>
-                        <Lock size={32} style={{ color: PRIMARY }} />
+                  <motion.div key="reset" {...panelSlide} className="flex flex-col items-center text-center">
+                    <div className="auth-otp-icon-wrap">
+                      <div className="auth-otp-icon-box mx-auto">
+                        <Lock size={32} style={{ color: PRIMARY }} aria-hidden />
                       </div>
                     </div>
                     <h2 className="auth-mobile-otp-title text-xl sm:text-[26px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
@@ -1211,16 +1383,15 @@ export default function AuthPage() {
 
                     <div className="w-full max-w-[400px] mx-auto">
                       <OtpInputs
-                        digits={resetDigits} inputRefs={resetRefs} locked={resetLocked || resetting}
-                        error={!!resetError} onChange={handleResetChange} onKeyDown={handleResetKey} onPaste={handleResetPaste}
+                        digits={resetDigits}
+                        inputRefs={resetRefs}
+                        locked={resetLocked || resetting}
+                        error={!!resetError}
+                        errorMessage={resetError || undefined}
+                        onChange={handleResetChange}
+                        onKeyDown={handleResetKey}
+                        onPaste={handleResetPaste}
                       />
-
-                      {resetError && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                          className="text-[13px] text-center mt-3 mb-2" style={{ color: 'var(--badge-error-text)' }}>
-                          {resetError}
-                        </motion.p>
-                      )}
 
                       <div className="text-center mt-3 mb-6">
                         {resetResendN >= 3 ? (
@@ -1241,11 +1412,37 @@ export default function AuthPage() {
                       </div>
 
                       <div className="flex flex-col gap-4 mb-6 text-left">
-                        <AuthInput label="New Password" type="password" value={newPassword} onChange={setNewPassword}
-                          placeholder="New password" leftIcon={Lock}
-                          focused={resetFocused === 'np'} onFocus={() => setResetFocused('np')} onBlur={() => setResetFocused(null)} required />
-                        <AuthInput label="Confirm Password" type="password" value={newConfirm} onChange={setNewConfirm}
-                          placeholder="Confirm new password" leftIcon={Lock}
+                        <AuthInput
+                          label="New Password"
+                          name="new-password"
+                          type="password"
+                          autoComplete="new-password"
+                          value={newPassword}
+                          onChange={(v) => {
+                            setNewPassword(v);
+                            setResetFieldErrors((prev) => stripFieldError(prev, 'New Password'));
+                          }}
+                          error={resetFieldErrors['New Password']}
+                          placeholder="New password"
+                          leftIcon={Lock}
+                          focused={resetFocused === 'np'}
+                          onFocus={() => setResetFocused('np')}
+                          onBlur={() => setResetFocused(null)}
+                          required
+                        />
+                        <AuthInput
+                          label="Confirm Password"
+                          name="confirm-password"
+                          type="password"
+                          autoComplete="new-password"
+                          value={newConfirm}
+                          onChange={(v) => {
+                            setNewConfirm(v);
+                            setResetFieldErrors((prev) => stripFieldError(prev, 'Confirm Password'));
+                          }}
+                          error={resetFieldErrors['Confirm Password']}
+                          placeholder="Confirm new password"
+                          leftIcon={Lock}
                           focused={resetFocused === 'nc'} onFocus={() => setResetFocused('nc')} onBlur={() => setResetFocused(null)} required />
                       </div>
 
@@ -1253,7 +1450,14 @@ export default function AuthPage() {
                         {resetting ? 'Updating…' : 'Set New Password →'}
                       </PrimaryBtn>
 
-                      <button type="button" onClick={() => { clearReset(); setPanel('auth'); navigate('/auth?tab=login'); }}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearReset();
+                          setPanel('auth');
+                          setFormEpoch((e) => e + 1);
+                          navigate('/auth?tab=login');
+                        }}
                         className="mt-5 text-[13px] font-bold hover:underline block mx-auto" style={{ color: PRIMARY }}>
                         ← Back to Sign In
                       </button>
@@ -1263,23 +1467,27 @@ export default function AuthPage() {
 
                 {/* ── SUCCESS PANEL ── */}
                 {panel === 'success' && (
-                  <motion.div key="success"
-                    initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
+                  <motion.div
+                    key="success"
+                    initial={reduceMotion ? false : { opacity: 0, scale: 0.94 }}
+                    animate={reduceMotion ? false : { opacity: 1, scale: 1 }}
+                    exit={reduceMotion ? false : { opacity: 0 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.3 }}
                     className="flex flex-col items-center text-center py-4"
                   >
                     <div className="relative mb-6">
-                      <div className="w-24 h-24 rounded-full flex items-center justify-center"
-                        style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', boxShadow: '0 0 40px rgba(16,185,129,0.2)' }}>
+                      <div className="auth-success-orb mx-auto">
                         <svg width="44" height="34" viewBox="0 0 52 38" fill="none" aria-hidden>
                           <path d="M6 20.5L20 34L46 6" stroke={SUCCESS} strokeWidth="6"
                             strokeLinecap="round" strokeLinejoin="round"
                             style={{ strokeDasharray: 80, strokeDashoffset: 80, animation: 'auth-check 650ms ease-out forwards' }} />
                         </svg>
                       </div>
-                      <motion.div className="absolute inset-0 rounded-full pointer-events-none"
-                        animate={{ boxShadow: ['0 0 0 0 rgba(16,185,129,0.3)', '0 0 0 14px rgba(16,185,129,0)', '0 0 0 0 rgba(16,185,129,0)'] }}
-                        transition={{ duration: 2, repeat: Infinity }} />
+                      {!reduceMotion && (
+                        <motion.div className="absolute inset-0 rounded-full pointer-events-none"
+                          animate={{ boxShadow: ['0 0 0 0 rgba(16,185,129,0.3)', '0 0 0 14px rgba(16,185,129,0)', '0 0 0 0 rgba(16,185,129,0)'] }}
+                          transition={{ duration: 2, repeat: Infinity }} />
+                      )}
                     </div>
                     <h2 className="auth-mobile-otp-title text-xl sm:text-[28px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
                     <p className="auth-mobile-subtitle text-sm sm:text-[15px] mb-5 sm:mb-7" style={{ color: 'var(--text-muted)' }}>
