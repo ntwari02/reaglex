@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import multer from 'multer';
+import path from 'path';
+import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth';
+import { cloudinaryUploadBuffers } from '../middleware/cloudinaryMemoryUpload';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { uploadCollectionFields } = require('../../config/cloudinary');
 import {
@@ -24,6 +27,13 @@ import {
   previewCollectionRules,
 } from '../controllers/sellerCollectionController';
 import { getDashboardStats } from '../controllers/sellerDashboardController';
+import { createAdvertisingInquiry } from '../controllers/sellerAdvertisingController';
+import { getSellerOnboardingStatus } from '../controllers/sellerOnboardingController';
+import {
+  listViolationAppeals,
+  submitViolationAppeal,
+} from '../controllers/sellerViolationAppealController';
+import { getPublicFeeSchedule } from '../controllers/sellerFeeScheduleController';
 import {
   getSellerShippingSettings,
   putSellerShippingSettings,
@@ -31,10 +41,67 @@ import {
 
 const router = Router();
 
+const appealUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (
+    _req: Request,
+    file: Express.Multer.File,
+    cb: (error: Error | null, acceptFile?: boolean) => void,
+  ) => {
+    const allowedExtensions = ['.jpeg', '.jpg', '.png', '.gif', '.pdf', '.webp'];
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/pdf',
+    ];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExtensions.includes(ext) || allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type: ${file.originalname}`));
+    }
+  },
+});
+
 // All seller routes require authenticated sellers
 router.use(authenticate, authorize('seller'));
 
 router.get('/dashboard/stats', getDashboardStats);
+router.get('/onboarding/status', getSellerOnboardingStatus);
+router.get('/fee-schedule', getPublicFeeSchedule);
+router.post('/advertising/inquiries', createAdvertisingInquiry);
+router.get('/violations/appeals', listViolationAppeals);
+router.post('/violations/appeals', submitViolationAppeal);
+router.post(
+  '/violations/appeals/upload',
+  appealUpload.array('attachments', 5),
+  cloudinaryUploadBuffers('reaglex/violation-appeals'),
+  (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+        return res.status(400).json({ message: 'No files uploaded' });
+      }
+      const files = (req.files as Express.Multer.File[]).map((file) => ({
+        originalName: file.originalname,
+        path: file.path,
+        size: file.size,
+        mimetype: file.mimetype,
+      }));
+      return res.json({
+        message: 'Files uploaded successfully',
+        files,
+        urls: files.map((f) => f.path),
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload files';
+      console.error('[seller] violation appeal upload', error);
+      return res.status(500).json({ message });
+    }
+  },
+);
 router.get('/shipping-settings', getSellerShippingSettings);
 router.put('/shipping-settings', putSellerShippingSettings);
 router.get('/orders', getSellerOrders);

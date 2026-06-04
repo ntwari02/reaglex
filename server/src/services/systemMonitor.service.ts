@@ -110,6 +110,15 @@ export interface LogEntry {
   meta?: Record<string, unknown>;
 }
 
+export interface MonitorNotificationSettings {
+  emails: string[];
+  phones: string[];
+  slackWebhookUrl: string;
+  notifyOnCritical: boolean;
+  notifyOnWarning: boolean;
+  cooldownMinutes: number;
+}
+
 export interface MonitorSettings {
   monitoringEnabled: boolean;
   cpuWarn: number;
@@ -122,6 +131,7 @@ export interface MonitorSettings {
   apiSlowWarnMs: number;
   apiSlowCriticalMs: number;
   sensitivity: 'strict' | 'normal' | 'relaxed';
+  notifications?: MonitorNotificationSettings;
 }
 
 interface ApiAgg {
@@ -528,6 +538,9 @@ function recomputeAlerts(h: SystemHealthPayload, apis: ApiEndpointStat[]) {
     });
   }
   alertsCache = next.slice(0, 12);
+  void import('./systemMonitorNotify.service')
+    .then(({ notifyAdminsOfAlerts }) => notifyAdminsOfAlerts(alertsCache))
+    .catch((err) => console.warn('[systemMonitor] alert notify skipped:', err?.message));
 }
 
 export interface RecordApiTimingInput {
@@ -947,14 +960,73 @@ export function appendMonitorLog(level: LogEntry['level'], message: string, meta
   pushLog(level, message, meta);
 }
 
+let notificationSettings: MonitorNotificationSettings = {
+  emails: [],
+  phones: [],
+  slackWebhookUrl: '',
+  notifyOnCritical: true,
+  notifyOnWarning: true,
+  cooldownMinutes: 30,
+};
+
+/** Load thresholds + notification contacts from MongoDB (call after DB connect). */
+export async function hydrateMonitorSettingsFromDb(): Promise<void> {
+  try {
+    const { getPersistedMonitorSettings } = await import('./systemMonitorConfig.service');
+    const persisted = await getPersistedMonitorSettings();
+    settings = {
+      monitoringEnabled: persisted.monitoringEnabled,
+      cpuWarn: persisted.cpuWarn,
+      cpuCritical: persisted.cpuCritical,
+      ramWarn: persisted.ramWarn,
+      ramCritical: persisted.ramCritical,
+      diskWarn: persisted.diskWarn,
+      diskCritical: persisted.diskCritical,
+      errorRateWarn: persisted.errorRateWarn,
+      apiSlowWarnMs: persisted.apiSlowWarnMs,
+      apiSlowCriticalMs: persisted.apiSlowCriticalMs,
+      sensitivity: persisted.sensitivity,
+    };
+    notificationSettings = { ...persisted.notifications };
+    pushLog('info', 'Monitor settings loaded from database');
+  } catch (err) {
+    console.warn('[systemMonitor] settings hydrate failed:', err);
+  }
+}
+
 export function getMonitorSettings(): MonitorSettings {
-  return { ...settings };
+  return { ...settings, notifications: { ...notificationSettings } };
+}
+
+export async function updateMonitorSettingsAsync(
+  patch: Partial<MonitorSettings>,
+): Promise<MonitorSettings> {
+  if (patch.notifications) {
+    notificationSettings = { ...notificationSettings, ...patch.notifications };
+  }
+  const { notifications: _n, ...thresholdPatch } = patch;
+  settings = { ...settings, ...thresholdPatch };
+  try {
+    const { savePersistedMonitorSettings } = await import('./systemMonitorConfig.service');
+    await savePersistedMonitorSettings({
+      ...settings,
+      notifications: notificationSettings,
+    });
+  } catch (err) {
+    console.warn('[systemMonitor] settings persist failed:', err);
+  }
+  pushLog('info', 'Monitor settings updated', patch as Record<string, unknown>);
+  return getMonitorSettings();
 }
 
 export function updateMonitorSettings(patch: Partial<MonitorSettings>): MonitorSettings {
-  settings = { ...settings, ...patch };
-  pushLog('info', 'Monitor settings updated', patch as Record<string, unknown>);
-  return { ...settings };
+  if (patch.notifications) {
+    notificationSettings = { ...notificationSettings, ...patch.notifications };
+  }
+  const { notifications: _n, ...thresholdPatch } = patch;
+  settings = { ...settings, ...thresholdPatch };
+  void updateMonitorSettingsAsync(patch);
+  return getMonitorSettings();
 }
 
 export function noteUserRequest(userId: string, role?: string) {

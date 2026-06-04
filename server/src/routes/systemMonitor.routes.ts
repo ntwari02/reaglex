@@ -6,7 +6,7 @@ import {
   getUserSellerBehavior,
   getMonitorLogs,
   getMonitorSettings,
-  updateMonitorSettings,
+  updateMonitorSettingsAsync,
   seedMonitorLogsOnce,
   getActivityStream,
   getAlerts,
@@ -17,6 +17,11 @@ import {
   executeTerminalAction,
   type TerminalActionId,
 } from '../services/systemMonitor.service';
+import { SYSTEM_MONITOR_GUIDE } from '../content/systemMonitorGuide';
+import {
+  diagnoseSystemAlert,
+  sendTestOpsNotification,
+} from '../services/systemMonitorNotify.service';
 
 const router = Router();
 
@@ -93,9 +98,67 @@ router.get('/logs', (req: AuthenticatedRequest, res: Response) => {
   res.json({ logs: getMonitorLogs(level) });
 });
 
-router.post('/settings', (req: AuthenticatedRequest, res: Response) => {
+function parseNotificationBody(body: Record<string, unknown>) {
+  const raw = (body.notifications ?? body) as Record<string, unknown>;
+  const emails =
+    typeof raw.emails === 'string'
+      ? raw.emails.split(/[,;\s]+/).map((e) => e.trim().toLowerCase()).filter(Boolean)
+      : Array.isArray(raw.emails)
+        ? raw.emails.map((e) => String(e).trim().toLowerCase()).filter(Boolean)
+        : undefined;
+  const phones =
+    typeof raw.phones === 'string'
+      ? raw.phones.split(/[,;\s]+/).map((p) => p.trim()).filter(Boolean)
+      : Array.isArray(raw.phones)
+        ? raw.phones.map((p) => String(p).trim()).filter(Boolean)
+        : undefined;
+  const slackWebhookUrl =
+    typeof raw.slackWebhookUrl === 'string' ? raw.slackWebhookUrl.trim() : undefined;
+  return {
+    emails,
+    phones,
+    slackWebhookUrl,
+    notifyOnCritical:
+      typeof raw.notifyOnCritical === 'boolean' ? raw.notifyOnCritical : undefined,
+    notifyOnWarning: typeof raw.notifyOnWarning === 'boolean' ? raw.notifyOnWarning : undefined,
+    cooldownMinutes:
+      typeof raw.cooldownMinutes === 'number' ? raw.cooldownMinutes : undefined,
+  };
+}
+
+router.get('/guide', (_req: AuthenticatedRequest, res: Response) => {
+  res.json({ sections: SYSTEM_MONITOR_GUIDE });
+});
+
+router.post('/alerts/explain', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const alert = req.body?.alert;
+    if (!alert?.title) {
+      return res.status(400).json({ message: 'alert object required' });
+    }
+    const diagnosis = await diagnoseSystemAlert(alert, {
+      health: getSystemHealth(),
+      endpoints: getApiMonitoringList().slice(0, 10),
+      status: getGlobalStatus(),
+    });
+    return res.json({ diagnosis });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Diagnosis failed';
+    return res.status(500).json({ message });
+  }
+});
+
+router.post('/notifications/test', async (req: AuthenticatedRequest, res: Response) => {
+  const email = String(req.body?.email || '').trim();
+  const result = await sendTestOpsNotification(email);
+  return res.status(result.ok ? 200 : 400).json(result);
+});
+
+router.post('/settings', async (req: AuthenticatedRequest, res: Response) => {
   const body = req.body ?? {};
-  const next = updateMonitorSettings({
+  const notifPatch = parseNotificationBody(body);
+  const hasNotif = Object.values(notifPatch).some((v) => v !== undefined);
+  const next = await updateMonitorSettingsAsync({
     monitoringEnabled:
       typeof body.monitoringEnabled === 'boolean' ? body.monitoringEnabled : undefined,
     cpuWarn: typeof body.cpuWarn === 'number' ? body.cpuWarn : undefined,
@@ -106,10 +169,12 @@ router.post('/settings', (req: AuthenticatedRequest, res: Response) => {
     diskCritical: typeof body.diskCritical === 'number' ? body.diskCritical : undefined,
     errorRateWarn: typeof body.errorRateWarn === 'number' ? body.errorRateWarn : undefined,
     apiSlowWarnMs: typeof body.apiSlowWarnMs === 'number' ? body.apiSlowWarnMs : undefined,
-    apiSlowCriticalMs: typeof body.apiSlowCriticalMs === 'number' ? body.apiSlowCriticalMs : undefined,
+    apiSlowCriticalMs:
+      typeof body.apiSlowCriticalMs === 'number' ? body.apiSlowCriticalMs : undefined,
     sensitivity: ['strict', 'normal', 'relaxed'].includes(body.sensitivity)
       ? body.sensitivity
       : undefined,
+    notifications: hasNotif ? (notifPatch as any) : undefined,
   });
   res.json({ settings: next });
 });

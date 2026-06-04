@@ -5,8 +5,9 @@ import { User } from '../models/User';
 import { BuyerInsightProfile } from '../models/BuyerInsightProfile';
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
 import { isEmailConfigured, sendRecommendationDealsEmail } from '../services/emailService';
+import { generateMarketingEmailCopy } from '../email/emailCopyAi.service';
+import { buildMarketingEmailContent } from '../email/marketingEmailBuilder';
 import { getClientUrl } from '../config/publicEnv';
-import { formatUsdAsCurrency } from '../utils/money';
 import { getPersonalizationGate } from '../services/personalizationGate.service';
 import {
   isMarketingFlowEnabled,
@@ -14,6 +15,12 @@ import {
   recordFlowRun,
 } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from '../services/pushNotificationService';
+import { assertBuyerMarketingEligible } from '../services/marketingRecipient.service';
+import {
+  assertRecommendationLaneSend,
+  getRecentMarketingCopyContext,
+} from '../services/marketingEmailOrchestration.service';
+import { marketingDayKey } from '../email/copyEngine';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -26,18 +33,6 @@ function getIntEnv(name: string, fallback: number) {
 function hoursSince(date?: Date | null) {
   if (!date) return Number.POSITIVE_INFINITY;
   return (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60);
-}
-
-async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
-  const cap = getIntEnv('DAILY_MARKETING_EMAIL_CAP', 8);
-  if (cap <= 0) return false;
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const count = await RecommendationEmailHistory.countDocuments({
-    userId: new mongoose.Types.ObjectId(userId),
-    status: 'sent',
-    sentAt: { $gte: since },
-  });
-  return count >= cap;
 }
 
 async function hasIntentAfter(userId: mongoose.Types.ObjectId, after: Date, productIds: mongoose.Types.ObjectId[]) {
@@ -123,19 +118,18 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
   if (!mongoose.Types.ObjectId.isValid(userId)) return 'skipped';
   const uid = new mongoose.Types.ObjectId(userId);
   if (!isEmailConfigured()) return 'skipped';
-  if (await isOverDailyMarketingCap(userId)) return 'skipped';
 
-  const cooldownHours = getIntEnv('BROWSE_ABANDON_COOLDOWN_HOURS', 6);
-  const profile = await BuyerInsightProfile.findOne({ userId: uid }).select('lastBrowseAbandonSentAt').lean();
-  if (profile?.lastBrowseAbandonSentAt && hoursSince(profile.lastBrowseAbandonSentAt) < cooldownHours) return 'skipped';
+  const laneGate = await assertRecommendationLaneSend(userId, 'browse_abandon', {
+    triggerAt: lastViewedAt,
+  });
+  if (!laneGate.ok) return 'skipped';
 
   if (await hasIntentAfter(uid, lastViewedAt, seedIds)) return 'skipped';
 
+  const eligibility = await assertBuyerMarketingEligible(userId, { checkDailyCap: true });
+  if (!eligibility.ok) return 'skipped';
   const user = await User.findById(uid).select('fullName email notifications accountStatus preferences').lean();
   if (!user?.email) return 'skipped';
-  if ((user as any).accountStatus === 'banned') return 'skipped';
-  const promoAllowed = Boolean((user as any)?.notifications?.email?.promotions ?? true);
-  if (!promoAllowed) return 'skipped';
 
   const gate = await getPersonalizationGate(userId);
   const maxProducts = getIntEnv('BROWSE_ABANDON_MAX_PRODUCTS', 14);
@@ -149,12 +143,28 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
   if (!products.length) return 'skipped';
 
   const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
-  const subject = `Take another look, ${firstName}`;
+  const copyContext = await getRecentMarketingCopyContext(userId);
+  const copy = await generateMarketingEmailCopy({
+    userId,
+    firstName,
+    campaign: 'browse_abandon',
+    mode: 'mixed',
+    allowPersonalized: gate.allowPersonalized,
+    recentSubjects: copyContext.subjects,
+    recentCampaigns: copyContext.campaigns,
+    copyDayKey: marketingDayKey(),
+    products: products.map((p: any) => ({
+      id: String(p._id),
+      name: String(p.name || ''),
+      category: p.category ? String(p.category) : undefined,
+      discount: Number(p.discount || 0),
+    })),
+  });
   const history = await RecommendationEmailHistory.create({
     userId: uid,
     email: user.email,
     campaign: 'browse_abandon',
-    subject,
+    subject: copy.subject,
     frequency: 'daily',
     mode: 'mixed',
     productIds: products.map((p: any) => p._id),
@@ -165,33 +175,26 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
 
   const API_URL = ((process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || CLIENT_URL) || '').replace(/\/$/, '');
   const displayCurrency = String((user as any)?.preferences?.currency || 'USD').toUpperCase();
-
-  const emailProducts = [];
-  for (const p of products as any[]) {
-    const img = Array.isArray(p.images) && p.images[0] ? String(p.images[0]) : '';
-    const imageUrl = img && !img.startsWith('http')
-      ? `${(process.env.SERVER_URL || '').replace(/\/$/, '')}${img.startsWith('/') ? img : `/${img}`}`
-      : img;
-    const conv = await formatUsdAsCurrency(Number(p.price || 0), displayCurrency);
-    emailProducts.push({
-      id: String(p._id),
-      name: String(p.name || ''),
-      imageUrl,
-      price: Number(p.price || 0),
-      priceText: conv.formatted,
-      discount: Number(p.discount || 0),
-      description: String(p.description || '').slice(0, 90),
-      viewUrl: `${API_URL}/api/recommendation-emails/track/click/${history._id}/${p._id}`,
-    });
-  }
+  const { products: emailProducts } = await buildMarketingEmailContent({
+    userId,
+    firstName,
+    campaign: 'browse_abandon',
+    mode: 'mixed',
+    allowPersonalized: gate.allowPersonalized,
+    products: products as any[],
+    historyId: String(history._id),
+    displayCurrency,
+    serverUrl: API_URL,
+    copy,
+  });
 
   const sendResult = await sendRecommendationDealsEmail({
     to: user.email,
     name: firstName,
-    subject,
-    intro: gate.allowPersonalized
-      ? 'You viewed these items recently — here are similar picks and today’s best deals.'
-      : 'Popular picks and deals you may like.',
+    subject: copy.subject,
+    headline: copy.headline,
+    intro: copy.intro,
+    shopCtaLabel: copy.ctaLabel,
     products: emailProducts,
     unsubscribeUrl: `${CLIENT_URL}/account?tab=settings&section=notifications`,
     preferencesUrl: `${CLIENT_URL}/account?tab=settings&section=notifications`,
@@ -230,6 +233,8 @@ async function sendBrowseAbandon(userId: string, seedIds: mongoose.Types.ObjectI
 async function tick(): Promise<{ sent: number; skipped: number; failed: number }> {
   const stats = { sent: 0, skipped: 0, failed: 0 };
   if (!isEmailConfigured()) return stats;
+  const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+  if (!(await isSystemFeatureEnabled('recommendation_emails'))) return stats;
   if (!(await isMarketingFlowEnabled('browse_abandon'))) return stats;
 
   const windowHours = getIntEnv('BROWSE_ABANDON_WINDOW_HOURS', 24);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
+import { useSystemFeatures } from '@/hooks/useSystemFeatures';
 
 export interface MenuItem {
   id: string;
@@ -30,15 +31,25 @@ export interface MenuItem {
   badgeTone?: 'ok' | 'warn' | 'critical' | 'neutral';
 }
 
+export interface MenuSection {
+  id: string;
+  label: string;
+  items: MenuItem[];
+}
+
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   menuItems?: MenuItem[];
+  /** Grouped nav (admin panel); when set, menuItems is ignored. */
+  menuSections?: MenuSection[];
   title: string;
   tier: string;
   accentVariant?: 'emerald' | 'orange';
+  /** Prevents admin shell from falling back to seller nav when menus are loading/empty. */
+  hub?: 'seller' | 'admin';
 }
 
 function badgeClasses(tone: MenuItem['badgeTone']) {
@@ -60,13 +71,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   sidebarOpen,
   setSidebarOpen,
   menuItems,
+  menuSections,
   title,
   tier,
   accentVariant = 'emerald',
+  hub = 'seller',
 }) => {
   const { t } = useTranslation();
+  const { isEnabled, loading: featuresLoading } = useSystemFeatures();
   const sellerSupportEmail = 'reaglexltd@gmail.com';
-  const defaultMenuItems: MenuItem[] = [
+  const sellerDefaultMenuItems: MenuItem[] = [
     { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'inventory', label: t('header.inventory'), icon: Package },
     { id: 'orders', label: t('nav.orders'), icon: ShoppingCart },
@@ -82,7 +96,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: t('account.profileSettings'), icon: Settings },
   ];
 
-  const itemsToRender = menuItems || defaultMenuItems;
+  const sellerMenuItems = useMemo(() => {
+    if (hub !== 'seller') return sellerDefaultMenuItems;
+    if (featuresLoading || isEnabled('seller_subscriptions')) return sellerDefaultMenuItems;
+    return sellerDefaultMenuItems.filter((item) => item.id !== 'subscription');
+  }, [hub, featuresLoading, isEnabled, sellerDefaultMenuItems]);
+
+  const flatItems =
+    menuItems ??
+    (hub === 'admin' ? [] : sellerMenuItems);
+  const useSections = Boolean(menuSections?.length);
+  const showEmptyAdminNav =
+    hub === 'admin' && !useSections && flatItems.length === 0;
 
   const accentClasses = accentVariant === 'emerald'
     ? {
@@ -96,11 +121,65 @@ const Sidebar: React.FC<SidebarProps> = ({
         activeShadow: 'shadow-red-500/40',
       };
 
+  const renderNavButton = (item: MenuItem) => {
+    const Icon = item.icon;
+    const isActive = activeTab === item.id;
+    return (
+      <motion.button
+        key={item.id}
+        onClick={() => {
+          setActiveTab(item.id);
+          setSidebarOpen(false);
+        }}
+        className={cn(
+          'w-full flex items-center justify-between gap-2 sm:gap-3 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item min-h-[44px] lg:min-h-0',
+          isActive
+            ? `${accentClasses.activeShadow} text-white hover:bg-transparent`
+            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200',
+        )}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        {isActive && (
+          <motion.div
+            layoutId={`activeTab-${title}`}
+            className={`absolute inset-0 ${accentClasses.activeBg}`}
+            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+          />
+        )}
+        <div className="flex items-center gap-3 flex-1 min-w-0 relative z-10">
+          <Icon className="w-[18px] h-[18px] shrink-0 sidebar-nav-icon" />
+          <span
+            className={cn(
+              'font-medium transition-colors truncate text-left',
+              isActive
+                ? 'text-white'
+                : 'text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white',
+            )}
+          >
+            {item.label}
+          </span>
+        </div>
+        {item.badge && (
+          <span
+            className={cn(
+              'relative z-10 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0',
+              badgeClasses(item.badgeTone),
+              isActive && 'border-white/30 text-white bg-white/15',
+            )}
+          >
+            {item.badge}
+          </span>
+        )}
+      </motion.button>
+    );
+  };
+
   const sidebarContent = (
   <div
     className="dashboard-sidebar flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth sidebar transition-colors duration-300 text-gray-900 dark:text-gray-100 backdrop-blur border-r border-gray-200 dark:border-gray-800 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-600"
   >
-      <div className="p-6 flex items-center justify-between sidebar-profile border-b border-gray-200 dark:border-gray-800">
+      <div className="p-4 sm:p-5 lg:p-6 flex items-center justify-between sidebar-profile border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 ${accentClasses.badgeBg} rounded-lg flex items-center justify-center`}>
             <ShieldCheck className="w-6 h-6 text-white" />
@@ -120,63 +199,37 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
       
-      <nav className="flex-1 p-4 sidebar-stats">
-        <div className="space-y-2">
-          {itemsToRender.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            
-            return (
-              <motion.button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setSidebarOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-[10px] transition-colors duration-150 relative overflow-hidden group sidebar-nav-item",
-                  isActive
-                    ? `${accentClasses.activeShadow} text-white hover:bg-transparent`
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200"
-                )}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId={`activeTab-${title}`}
-                    className={`absolute inset-0 ${accentClasses.activeBg}`}
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <div className="flex items-center gap-3 flex-1 min-w-0 relative z-10">
-                  <Icon className="w-[18px] h-[18px] shrink-0 sidebar-nav-icon" />
-                  <span
-                    className={cn(
-                      'font-medium transition-colors truncate text-left',
-                      isActive
-                        ? 'text-white'
-                        : 'text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white',
-                    )}
-                  >
-                    {item.label}
-                  </span>
+      <nav className="flex-1 p-3 sm:p-4 sidebar-stats">
+        {useSections ? (
+          <div className="space-y-4">
+            {menuSections!.map((section) => (
+              <div key={section.id}>
+                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  {section.label}
+                </p>
+                <div className="space-y-1">
+                  {section.items.map((item) => renderNavButton(item))}
                 </div>
-                {item.badge && (
-                  <span
-                    className={cn(
-                      'relative z-10 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0',
-                      badgeClasses(item.badgeTone),
-                      isActive && 'border-white/30 text-white bg-white/15',
-                    )}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : showEmptyAdminNav ? (
+          <div
+            className="mx-2 rounded-xl px-3 py-4 text-center text-xs leading-relaxed"
+            style={{
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border-card)',
+            }}
+          >
+            No admin modules are assigned to your account yet. Ask a super admin to update your
+            role in Admin team.
+          </div>
+        ) : (
+          <div className="space-y-1 sm:space-y-2">
+            {flatItems.map((item) => renderNavButton(item))}
+          </div>
+        )}
       </nav>
 
       <div className="p-4 border-t bg-gray-50 dark:bg-dark-secondary border-gray-200 dark:border-[var(--border-card)] transition-colors duration-300 text-xs text-gray-500 dark:text-[var(--text-muted)]">
@@ -216,7 +269,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25 }}
-              className="fixed left-0 top-0 bottom-0 w-72 z-50 lg:hidden"
+              className="fixed left-0 top-0 bottom-0 w-[min(100vw-3rem,18rem)] z-50 lg:hidden"
             >
               {sidebarContent}
             </motion.aside>

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
 import { getAIRouter } from '../ai-assistant/singleton';
+import { getJwtSecret } from '../config/jwtSecret';
 
 type UserRole = 'guest' | 'buyer' | 'seller' | 'admin';
 
@@ -66,8 +67,7 @@ function getRoleFromRequest(req: Request): UserRole {
   if (!token) return 'guest';
 
   try {
-    const secret = process.env.JWT_SECRET || 'dev_secret';
-    const decoded = jwt.verify(token, secret) as { role?: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as { role?: string };
     if (decoded?.role === 'admin') return 'admin';
     if (decoded?.role === 'seller') return 'seller';
     if (decoded?.role === 'buyer') return 'buyer';

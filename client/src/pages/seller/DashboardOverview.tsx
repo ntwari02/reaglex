@@ -10,6 +10,7 @@ import { ComboChart } from '@/components/charts/ComboChart';
 import { DonutChart } from '@/components/charts/DonutChart';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
+import { sellerNotificationsApi } from '@/services/sellerNotificationsApi';
 
 interface Stat {
   title: string;
@@ -27,7 +28,8 @@ interface DashboardStats {
     conversionRate: { value: string; change: string; trend: 'up' | 'down' };
     lowStockItems: { value: string; change: string; trend: 'up' | 'down' };
     avgOrderValue: { value: string; change: string; trend: 'up' | 'down' };
-    pendingRFQs: { value: string; change: string; trend: 'up' | 'down' };
+    openDisputes: { value: string; change: string; trend: 'up' | 'down' };
+    pendingRFQs?: { value: string; change: string; trend: 'up' | 'down' };
   };
   orderStats: {
     pending: number;
@@ -97,10 +99,31 @@ const DashboardOverview: React.FC = () => {
   useAuthStore();
   const { showToast } = useToastStore();
 
+  const [notifications, setNotifications] = useState<
+    Array<{ type: string; text: string; time: string; unread: boolean }>
+  >([]);
+
   // Fetch dashboard stats from backend
   useEffect(() => {
     fetchDashboardStats();
   }, [timeRange]);
+
+  useEffect(() => {
+    sellerNotificationsApi
+      .getNotifications(5)
+      .then((data) => {
+        const rows = Array.isArray(data?.notifications) ? data.notifications : [];
+        setNotifications(
+          rows.map((n: { title?: string; message?: string; createdAt?: string; unread?: boolean }) => ({
+            type: 'info',
+            text: n.message || n.title || 'Notification',
+            time: n.createdAt ? new Date(n.createdAt).toLocaleString() : '',
+            unread: Boolean(n.unread),
+          })),
+        );
+      })
+      .catch(() => setNotifications([]));
+  }, []);
 
   const fetchDashboardStats = async () => {
     setLoading(true);
@@ -182,12 +205,15 @@ const DashboardOverview: React.FC = () => {
   ] : [];
 
   // B2B-focused KPIs
-  const b2bStats: Stat[] = dashboardData ? [
+  const openDisputesStat =
+    dashboardData?.stats.openDisputes || dashboardData?.stats.pendingRFQs;
+
+  const b2bStats: Stat[] = dashboardData && openDisputesStat ? [
     {
-      title: 'Pending RFQs',
-      value: dashboardData.stats.pendingRFQs.value,
-      change: dashboardData.stats.pendingRFQs.change,
-      trend: dashboardData.stats.pendingRFQs.trend,
+      title: 'Open Disputes',
+      value: openDisputesStat.value,
+      change: openDisputesStat.change,
+      trend: openDisputesStat.trend,
       icon: AlertTriangle,
       color: 'from-amber-500 to-[var(--brand-primary)]',
     },
@@ -212,9 +238,6 @@ const DashboardOverview: React.FC = () => {
   const actionRequired = dashboardData?.actionRequired || [];
   const accountStatus = dashboardData?.accountStatus;
   
-  // Placeholder notifications (would come from notifications API)
-  const notifications: Array<{ type: string; text: string; time: string; unread: boolean }> = [];
-
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -512,6 +535,9 @@ const DashboardOverview: React.FC = () => {
               Notifications
             </h2>
             <div className="space-y-2">
+              {notifications.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No recent notifications</p>
+              ) : null}
               {notifications.map((notif, index) => (
                 <motion.div
                   key={index}

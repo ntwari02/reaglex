@@ -1,0 +1,157 @@
+.adm-sub-panel {
+  animation: admSubFade 0.35s ease;
+}
+
+@keyframes admSubFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.adm-sub-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.dark .adm-sub-tabs {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.adm-sub-tab {
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.adm-sub-tab.is-active {
+  background: white;
+  color: #059669;
+  box-shadow: 0 1px 8px rgba(5, 150, 105, 0.15);
+}
+
+.dark .adm-sub-tab.is-active {
+  background: #111827;
+  color: #34d399;
+}
+
+.adm-sub-plan-card {
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dark .adm-sub-plan-card {
+  border-color: #374151;
+  background: #111827;
+}
+
+.adm-sub-plan-card.is-selected {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 1px #8b5cf6;
+}
+
+.adm-sub-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.adm-sub-field input,
+.adm-sub-field textarea,
+.adm-sub-field select {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #111827;
+  font-weight: 500;
+}
+
+.dark .adm-sub-field input,
+.dark .adm-sub-field textarea,
+.dark .adm-sub-field select {
+  border-color: #374151;
+  background: #0f172a;
+  color: #f9fafb;
+}
+
+.adm-sub-table th {
+  padding: 0.65rem 1rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.dark .adm-sub-table th {
+  background: #1f2937;
+}
+
+.adm-sub-table td {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.dark .adm-sub-table td {
+  border-color: #1f2937;
+}
+
+.adm-sub-status {
+  display: inline-flex;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.adm-sub-status--paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.adm-sub-status--failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.adm-sub-status--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.adm-sub-stat-pill {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+}
+
+.adm-sub-stat-pill--ok {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.adm-sub-stat-pill--warn {
+  background: #fee2e2;
+  color: #b91c1c;
+}

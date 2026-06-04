@@ -27,7 +27,13 @@ import {
   MarketingFlowKey,
   getMarketingAutomationSettings,
   invalidateMarketingAutomationSettingsCache,
+  resolveEmailNotificationSettings,
 } from '../models/MarketingAutomationSettings';
+import { isEmailConfigured } from '../services/emailService';
+import {
+  isGeminiApiConfigured,
+  invalidateEmailNotificationPolicyCache,
+} from '../email/emailNotificationPolicy.service';
 import { PushDevice } from '../models/PushDevice';
 import { User } from '../models/User';
 import {
@@ -1242,6 +1248,7 @@ export async function updateAISettings(req: AuthenticatedRequest, res: Response)
     if (body.aiEnabled != null) d.aiEnabled = Boolean(body.aiEnabled);
     if (Array.isArray(body.features)) d.features = body.features as any[];
     await d.save();
+    invalidateEmailNotificationPolicyCache();
     res.json({
       aiEnabled: d.aiEnabled,
       features: d.features,
@@ -1397,9 +1404,15 @@ export async function getAutomationOverview(req: AuthenticatedRequest, res: Resp
       }),
     );
 
+    const email = resolveEmailNotificationSettings(settings);
     res.json({
       globalEnabled: Boolean(settings.globalEnabled),
-      dailyEmailCap: Number(settings.dailyEmailCap ?? 8),
+      dailyEmailCap: Number(settings.dailyEmailCap ?? 4),
+      email,
+      system: {
+        emailProviderConfigured: isEmailConfigured(),
+        geminiApiConfigured: isGeminiApiConfigured(),
+      },
       pushDeviceCount,
       pushEnabledUserCount: pushEnabledUsers.length,
       flows,
@@ -1443,7 +1456,16 @@ export async function updateAutomationFlow(req: AuthenticatedRequest, res: Respo
 export async function updateAutomationGlobals(req: AuthenticatedRequest, res: Response) {
   if (!ensureAdmin(req, res)) return;
   try {
-    const body = (req.body || {}) as { globalEnabled?: boolean; dailyEmailCap?: number };
+    const body = (req.body || {}) as {
+      globalEnabled?: boolean;
+      dailyEmailCap?: number;
+      email?: {
+        richTemplatesEnabled?: boolean;
+        geminiMarketingCopy?: boolean;
+        geminiTransactionalPolish?: boolean;
+        geminiSellerNotifications?: boolean;
+      };
+    };
     let doc = await MarketingAutomationSettings.findOne();
     if (!doc) doc = await MarketingAutomationSettings.create({});
     if (body.globalEnabled != null) doc.globalEnabled = Boolean(body.globalEnabled);
@@ -1451,11 +1473,36 @@ export async function updateAutomationGlobals(req: AuthenticatedRequest, res: Re
       const cap = Math.max(0, Math.min(50, Math.floor(Number(body.dailyEmailCap) || 0)));
       doc.dailyEmailCap = cap;
     }
+    if (body.email && typeof body.email === 'object') {
+      const current = resolveEmailNotificationSettings(doc);
+      const next = {
+        richTemplatesEnabled:
+          body.email.richTemplatesEnabled != null
+            ? Boolean(body.email.richTemplatesEnabled)
+            : current.richTemplatesEnabled,
+        geminiMarketingCopy:
+          body.email.geminiMarketingCopy != null
+            ? Boolean(body.email.geminiMarketingCopy)
+            : current.geminiMarketingCopy,
+        geminiTransactionalPolish:
+          body.email.geminiTransactionalPolish != null
+            ? Boolean(body.email.geminiTransactionalPolish)
+            : current.geminiTransactionalPolish,
+        geminiSellerNotifications:
+          body.email.geminiSellerNotifications != null
+            ? Boolean(body.email.geminiSellerNotifications)
+            : current.geminiSellerNotifications,
+      };
+      (doc as any).email = next;
+      doc.markModified('email');
+    }
     await doc.save();
     invalidateMarketingAutomationSettingsCache();
+    invalidateEmailNotificationPolicyCache();
     res.json({
       globalEnabled: doc.globalEnabled,
       dailyEmailCap: doc.dailyEmailCap,
+      email: resolveEmailNotificationSettings(doc),
     });
   } catch (e) {
     res

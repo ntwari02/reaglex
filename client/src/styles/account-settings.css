@@ -1,0 +1,266 @@
+/* Modern account settings — focused layout, no storefront header */
+
+.rx-settings-page {
+  min-height: 100%;
+  background: var(--bg-page);
+}
+
+.rx-settings-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 12px;
+  margin: 0 -4px 16px;
+  background: color-mix(in srgb, var(--bg-page) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-card) 45%, transparent);
+}
+
+@media (min-width: 1024px) {
+  .rx-settings-topbar {
+    margin: 0 0 20px;
+    padding-top: 8px;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--border-card) 40%, transparent);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.rx-settings-back-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  background: var(--card-bg);
+  color: var(--brand-primary);
+  box-shadow:
+    0 1px 3px color-mix(in srgb, var(--text-primary) 6%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--border-card) 55%, transparent);
+}
+
+.rx-settings-back-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rx-settings-topbar-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.rx-settings-topbar-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.rx-settings-topbar-sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* Mobile settings hub */
+.rx-settings-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rx-settings-nav-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--border-card) 50%, transparent);
+  border-radius: 16px;
+  background: var(--card-bg);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--text-primary) 4%, transparent);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.rx-settings-nav-card:active {
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+
+.rx-settings-nav-card__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--brand-tint);
+  color: var(--brand-primary);
+}
+
+.rx-settings-nav-card--danger .rx-settings-nav-card__icon {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+}
+
+.rx-settings-nav-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rx-settings-nav-card__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rx-settings-nav-card__desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rx-settings-nav-card__chev {
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-faint);
+  line-height: 1;
+}
+
+.rx-settings-nav-card--danger .rx-settings-nav-card__label {
+  color: #ef4444;
+}
+
+/* Hide legacy mobile list */
+.rx-settings-page .rx-settings-mobile-menu {
+  display: none !important;
+}
+
+.rx-settings-body--hidden-mobile {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .rx-settings-body--hidden-mobile {
+    display: block;
+  }
+
+  .rx-settings-hub {
+    display: none;
+  }
+}
+
+/* Account page: no hero when on settings */
+.buyer-account-mobile.is-settings-tab .account-hero-banner {
+  display: none !important;
+}
+
+.buyer-account-mobile.is-settings-tab .account-main-pad {
+  padding-top: 12px !important;
+}
+
+/* Theme-aware cards inside settings (override hardcoded whites) */
+.rx-settings-page .rx-settings-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+}
+
+.rx-settings-page .rx-settings-card h3 {
+  color: var(--text-primary);
+}
+
+.rx-settings-page .rx-settings-card p,
+.rx-settings-page .rx-settings-card label {
+  color: var(--text-muted);
+}
+
+/* Settings tab — flush mobile layout inside account shell */
+.buyer-account-mobile.is-settings-tab .account-main-pad {
+  padding: 0 !important;
+}
+
+.buyer-account-mobile.is-settings-tab .rx-settings-page {
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px));
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+.buyer-account-mobile.is-settings-tab .rx-settings-inner {
+  padding-top: 0;
+}
+
+.buyer-account-mobile.is-settings-tab .rx-settings-topbar {
+  margin-left: 0;
+  margin-right: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+
+/* Compact profile fields — override global premium 60px inputs */
+.rx-settings-page .premium-input-exempt,
+.rx-settings-page .profile-field-wrap input,
+.rx-settings-page .profile-field-wrap select,
+.rx-settings-page .profile-field-wrap textarea {
+  min-height: 48px !important;
+  height: auto;
+  border-radius: 12px !important;
+  padding-left: 2.5rem;
+  font-size: 14px;
+}
+
+.rx-settings-page .profile-field-wrap textarea {
+  min-height: 100px !important;
+  padding-top: 12px;
+  padding-left: 1rem;
+}
+
+.rx-settings-save-bar {
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+
+.rx-settings-banner {
+  background: var(--card-bg) !important;
+}
+
+.rx-settings-card--danger {
+  background: color-mix(in srgb, #ef4444 4%, var(--card-bg));
+}
+
+/* Profile cover — theme-aware */
+.rx-settings-page .profile-cover-btn {
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
+  color: var(--text-primary);
+}
+
+@media (max-width: 1023px) {
+  .buyer-account-mobile:not(.is-settings-tab) .account-main-pad {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 0 !important;
+  }
+
+  .buyer-account-mobile:not(.is-settings-tab) main {
+    padding-top: 4px;
+  }
+}

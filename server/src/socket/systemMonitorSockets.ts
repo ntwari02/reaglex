@@ -28,7 +28,7 @@ import {
 } from '../services/securityIntelligence.service';
 import { getAuthSecurityEvents, getUserSellerBehavior } from '../services/systemMonitor.service';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+import { getJwtSecret } from '../config/jwtSecret';
 
 function adminSocketAuth(socket: Socket, next: (err?: Error) => void) {
   const handshake = socket.handshake as { auth?: { token?: string }; headers?: { authorization?: string } };
@@ -41,7 +41,7 @@ function adminSocketAuth(socket: Socket, next: (err?: Error) => void) {
     return next(new Error('Authentication error'));
   }
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { role?: string; id?: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as { role?: string; id?: string };
     if (decoded.role !== 'admin') {
       return next(new Error('Forbidden'));
     }

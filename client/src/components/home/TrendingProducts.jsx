@@ -2,11 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { Star, ShoppingCart, Heart, TrendingUp, Zap } from 'lucide-react';
+import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { productAPI } from '../../services/api';
 import { homeFeedApi } from '../../services/homeFeedApi';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
+import { useHomeLayoutForSection } from '../../hooks/useHomeLayoutConfig';
+import '../../styles/home-layout-cards.css';
+
+function densityArticleClass(density) {
+  if (density === 'compact') return 'home-card-density--compact';
+  if (density === 'compact_expandable') return 'home-card-density--compact home-card-density--expandable';
+  return '';
+}
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -29,9 +38,13 @@ const TRENDING_CACHE_TTL = 5 * 60 * 1000;
 let trendingCache = { data: null, ts: 0 };
 
 /* ─── Product card ───────────────────────────────────────────────────────── */
-function TrendCard({ product, index, onAdd }) {
+function TrendCard({ product, index, onAdd, cardDensity = 'standard', layout = 'vertical' }) {
+  const [expanded, setExpanded] = useState(false);
+  const expandable = cardDensity === 'compact_expandable';
   const [wished, setWished] = useState(false);
   const [adding, setAdding] = useState(false);
+  const currencyPricing = useCurrencyPricing();
+  const isRail = layout === 'horizontal';
   const img = resolveImg(product.thumbnail || product.images?.[0]);
   const discount = product.discount || (product.originalPrice ? Math.round((1 - product.price / product.originalPrice) * 100) : 0);
   const stock = Number(product.stockQuantity ?? product.stock ?? 0);
@@ -45,15 +58,16 @@ function TrendCard({ product, index, onAdd }) {
 
   return (
     <motion.div
-      className="group relative w-full min-w-0"
+      className={`group relative w-full min-w-0 ${densityArticleClass(cardDensity)} ${expandable && expanded ? 'home-card-density--expanded' : ''}`.trim()}
       initial={{ opacity: 0, y: 24 }}
+      onClick={expandable ? () => setExpanded((v) => !v) : undefined}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.5, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link
         to={buyerProductPath(product)}
-        className="block rounded-2xl overflow-hidden"
+        className={`block rounded-2xl overflow-hidden ${isRail ? 'trend-card--rail' : 'trend-card--grid'}`}
         style={{
           background: 'var(--card-bg)',
           border: '1px solid var(--border-card)',
@@ -62,7 +76,10 @@ function TrendCard({ product, index, onAdd }) {
         }}
       >
         {/* Image */}
-        <div className="relative overflow-hidden" style={{ aspectRatio: '1', background: 'var(--bg-tertiary)' }}>
+        <div
+          className="relative overflow-hidden trend-card__media"
+          style={{ aspectRatio: isRail ? '4 / 5' : '1', background: 'var(--bg-tertiary)' }}
+        >
           <img
             src={img}
             alt={product.name}
@@ -111,23 +128,6 @@ function TrendCard({ product, index, onAdd }) {
             <Heart size={12} fill={wished ? 'var(--badge-error-text)' : 'none'} stroke={wished ? 'var(--badge-error-text)' : 'currentColor'} />
           </button>
 
-          {/* Quick add overlay */}
-          <div className="absolute bottom-0 left-0 right-0 translate-y-0 md:translate-y-full md:group-hover:translate-y-0 transition-transform duration-300">
-            <button
-              onClick={handleAdd}
-              disabled={stock <= 0}
-              className="w-full py-2.5 md:py-2.5 flex items-center justify-center gap-2 text-xs font-bold tracking-wide"
-              style={{
-                background: 'var(--gradient-brand-cta)',
-                color: 'var(--text-on-accent)',
-                borderTop: '1px solid var(--border-subtle)',
-                opacity: stock <= 0 ? 0.45 : 1,
-              }}
-            >
-              <ShoppingCart size={13} />
-              {stock <= 0 ? 'OUT OF STOCK' : adding ? 'ADDED ✓' : 'QUICK ADD'}
-            </button>
-          </div>
         </div>
 
         {/* Info */}
@@ -156,16 +156,27 @@ function TrendCard({ product, index, onAdd }) {
             </span>
           </div>
 
-          {/* Price */}
-          <div className="flex items-baseline gap-2">
-            <span className="font-bold text-sm" style={{ color: 'var(--text-price)' }}>
-              ${product.price}
-            </span>
-            {product.originalPrice && (
-              <span className="text-xs line-through" style={{ color: 'var(--text-muted)' }}>
-                ${product.originalPrice}
+          {/* Price + cart */}
+          <div className="trend-card__price-row">
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="font-bold text-sm leading-tight" style={{ color: 'var(--text-price)' }}>
+                {currencyPricing.formatLocalWithUsd(product.price)}
               </span>
-            )}
+              {product.originalPrice && (
+                <span className="text-xs line-through" style={{ color: 'var(--text-muted)' }}>
+                  {currencyPricing.formatLocalWithUsd(product.originalPrice)}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={stock <= 0}
+              className="trend-card__cart-btn"
+              aria-label={stock <= 0 ? 'Out of stock' : adding ? 'Added to cart' : 'Add to cart'}
+            >
+              <ShoppingCart size={15} strokeWidth={2} />
+            </button>
           </div>
         </div>
       </Link>
@@ -176,6 +187,18 @@ function TrendCard({ product, index, onAdd }) {
 /* ─── Section ────────────────────────────────────────────────────────────── */
 export default function TrendingProducts() {
   const { addItem } = useBuyerCart();
+  const { layout: layoutSettings } = useHomeLayoutForSection('trending', 'desktop');
+  const layoutMode = layoutSettings?.mode || 'grid';
+  const railCount = Math.max(1, Math.min(8, Number(layoutSettings?.railCount) || 4));
+  const gridCols = layoutSettings?.gridColumns || 4;
+  const gridClass =
+    gridCols === 2
+      ? 'grid grid-cols-2 gap-4'
+      : gridCols === 3
+        ? 'grid grid-cols-2 sm:grid-cols-3 gap-4'
+        : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-5 sm:gap-5 md:gap-6';
+  const cardDensity = layoutSettings?.cardDensity || 'standard';
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const headerRef = useRef(null);
@@ -246,17 +269,19 @@ export default function TrendingProducts() {
 
   const handleAdd = (product) => {
     addItem({
-      productId: product._id,
+      _id: product._id,
+      id: product._id || product.id,
       name: product.name,
+      title: product.name,
       price: product.price,
-      image: resolveImg(product.thumbnail || product.images?.[0]),
-      quantity: 1,
-    });
+      images: product.images,
+      image: product.thumbnail || product.images?.[0],
+    }, 1);
   };
 
   return (
     <section
-      className="w-full py-20"
+      className="trending-now-section w-full py-20"
       style={{ background: 'var(--bg-page)' }}
     >
       <div className="px-4 sm:px-6 lg:px-10 xl:px-16">
@@ -303,10 +328,20 @@ export default function TrendingProducts() {
           </motion.div>
         </div>
 
-        {/* Grid */}
+        {/* Product layout (configurable; default = 4-col grid) */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <>
+            <div className="trending-now-rail flex gap-4 overflow-x-auto pb-4 mb-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={`sk-rail-${i}`}
+                  className="trending-now-rail__item flex-shrink-0 rounded-2xl"
+                  style={{ background: 'var(--bg-tertiary)', aspectRatio: '0.75' }}
+                />
+              ))}
+            </div>
+            <div className={gridClass}>
+            {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
                 className="rounded-2xl overflow-hidden"
@@ -319,15 +354,61 @@ export default function TrendingProducts() {
                 </div>
               </div>
             ))}
+            </div>
+          </>
+        ) : products.length > 0 && (layoutMode === 'trending_rail' || layoutMode === 'grid') ? (
+          <>
+            <div
+              className="trending-now-rail flex gap-4 overflow-x-auto pb-4 scroll-touch mb-6"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {products.slice(0, Math.min(4, railCount)).map((p, i) => (
+                <div key={p._id} className="trending-now-rail__item flex-shrink-0">
+                  <TrendCard
+                    product={p}
+                    index={i}
+                    onAdd={handleAdd}
+                    cardDensity={cardDensity}
+                    layout="horizontal"
+                  />
+                </div>
+              ))}
+            </div>
+            {products.length > Math.min(4, railCount) && (
+              <div className={gridClass}>
+                {products.slice(Math.min(4, railCount)).map((p, i) => (
+                  <TrendCard
+                    key={p._id}
+                    product={p}
+                    index={i + Math.min(4, railCount)}
+                    onAdd={handleAdd}
+                    cardDensity={cardDensity}
+                    layout="vertical"
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : products.length > 0 && layoutMode === 'horizontal_carousel' ? (
+          <div
+            className="flex gap-4 overflow-x-auto pb-4 scroll-touch"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {products.map((p, i) => (
+              <div key={p._id} className="flex-shrink-0 w-[min(72vw,260px)]">
+                <TrendCard product={p} index={i} onAdd={handleAdd} cardDensity={cardDensity} />
+              </div>
+            ))}
           </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-5 sm:gap-5 md:gap-6">
+          <div className={gridClass}>
             {products.map((p, i) => (
               <TrendCard
                 key={p._id}
                 product={p}
                 index={i}
                 onAdd={handleAdd}
+                cardDensity={cardDensity}
               />
             ))}
           </div>

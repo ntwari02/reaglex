@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { User } from '../models/User';
+import { assertSuperAdmin } from '../services/adminAccess.service';
 import { Order } from '../models/Order';
 import { Product } from '../models/Product';
 import { Dispute } from '../models/Dispute';
@@ -349,12 +350,21 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
+    const requestedRole = role || 'buyer';
+    if (requestedRole === 'admin') {
+      if (!req.user?.id || !(await assertSuperAdmin(req.user.id))) {
+        return res.status(403).json({
+          message: 'Only super admins can create admin accounts. Use Admin Team to add staff.',
+        });
+      }
+    }
+
     // Create user
     const userData: any = {
       fullName,
       email: email.toLowerCase(),
       phone,
-      role: role || 'buyer',
+      role: requestedRole === 'admin' ? 'admin' : requestedRole,
       location,
       accountStatus: 'active',
       warningCount: 0,
@@ -416,6 +426,21 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
     if (role !== undefined) {
       if (!['buyer', 'seller', 'admin'].includes(role)) {
         return res.status(400).json({ message: 'Invalid role' });
+      }
+      if (role === 'admin' && user.role !== 'admin') {
+        if (!req.user?.id || !(await assertSuperAdmin(req.user.id))) {
+          return res.status(403).json({
+            message: 'Only super admins can grant admin access. Use Admin Team instead.',
+          });
+        }
+      }
+      if (user.role === 'admin' && role !== 'admin' && req.user?.id !== userId) {
+        const targetSuper = (await import('../services/adminAccess.service')).resolveAdminAccess(
+          user,
+        );
+        if (targetSuper?.isSuperAdmin) {
+          return res.status(403).json({ message: 'Cannot demote a super admin account' });
+        }
       }
       user.role = role;
     }

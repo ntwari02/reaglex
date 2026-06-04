@@ -655,7 +655,7 @@ export default function ProductManagementAdmin() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-500">Products • Management</p>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Product Management</h1>
+          <h1 className="admin-page-title">Product Management</h1>
           <p className="text-gray-500 dark:text-gray-400">Manage all products across the platform</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

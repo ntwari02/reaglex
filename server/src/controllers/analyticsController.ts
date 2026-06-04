@@ -3,7 +3,14 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { Order } from '../models/Order';
 import { Product } from '../models/Product';
-import { User } from '../models/User';
+import { Message, MessageThread } from '../models/MessageThread';
+import {
+  buildBuyerCommercialProfiles,
+  orderMatchesSegmentFilters,
+  type BuyerGroupFilter,
+  type PaymentTermsFilter,
+  type SalesRepFilter,
+} from '../utils/analyticsSegmentFilters';
 
 /**
  * Helper to get seller ID from request
@@ -132,11 +139,31 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
       status: { $ne: 'cancelled' },
     } as any).lean();
 
-    const orders = allSellerOrders.filter(
-      (o) => orderTimeMs(o) >= start.getTime() && orderTimeMs(o) <= end.getTime(),
+    const segmentFilters = {
+      buyerGroup: String(buyerGroup) as BuyerGroupFilter,
+      paymentTerms: String(paymentTerms) as PaymentTermsFilter,
+      salesRep: String(salesRep) as SalesRepFilter,
+    };
+    const commercialProfiles = buildBuyerCommercialProfiles(allSellerOrders);
+    const hasSegmentFilter =
+      segmentFilters.buyerGroup !== 'all' ||
+      segmentFilters.paymentTerms !== 'all' ||
+      segmentFilters.salesRep !== 'all';
+
+    const applySegment = <T extends { buyerId?: { toString(): string } }>(list: T[]) =>
+      hasSegmentFilter
+        ? list.filter((o) => orderMatchesSegmentFilters(o, segmentFilters, commercialProfiles))
+        : list;
+
+    const orders = applySegment(
+      allSellerOrders.filter(
+        (o) => orderTimeMs(o) >= start.getTime() && orderTimeMs(o) <= end.getTime(),
+      ),
     );
-    const prevOrders = allSellerOrders.filter(
-      (o) => orderTimeMs(o) >= prevStart.getTime() && orderTimeMs(o) <= prevEnd.getTime(),
+    const prevOrders = applySegment(
+      allSellerOrders.filter(
+        (o) => orderTimeMs(o) >= prevStart.getTime() && orderTimeMs(o) <= prevEnd.getTime(),
+      ),
     );
 
     // Calculate sales stats
@@ -308,13 +335,38 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
     const prevNewCustomers = Array.from(prevUniqueBuyers).filter((buyerId) => !beforePrevBuyers.has(buyerId)).length;
     const newCustomersChange = calculateChange(newCustomers, prevNewCustomers);
 
-    // RFQ Metrics (placeholder - will need RFQ model if it exists)
+    const rfqThreads = await MessageThread.find({
+      sellerId: sellerId as any,
+      type: 'rfq',
+      createdAt: { $gte: start, $lte: end },
+    } as any)
+      .select('_id relatedOrderId status')
+      .lean();
+
+    const rfqThreadIds = rfqThreads.map((t) => t._id);
+    let quotesSent = 0;
+    if (rfqThreadIds.length > 0) {
+      const sellerReplyThreads = await Message.distinct('threadId', {
+        threadId: { $in: rfqThreadIds },
+        senderType: 'seller',
+        createdAt: { $gte: start, $lte: end },
+      });
+      quotesSent = sellerReplyThreads.length;
+    }
+
+    const totalRfqs = rfqThreads.length;
+    const quotesAccepted = rfqThreads.filter((t) => t.relatedOrderId).length;
+    const rfqConversionRate =
+      totalRfqs > 0 ? ((quotesSent / totalRfqs) * 100).toFixed(1) : '0.0';
+    const rfqToOrderRate =
+      totalRfqs > 0 ? ((quotesAccepted / totalRfqs) * 100).toFixed(1) : '0.0';
+
     const rfqStats = {
-      totalRfqs: 0,
-      quotesSent: 0,
-      quotesAccepted: 0,
-      rfqConversionRate: '0.0',
-      rfqToOrderRate: '0.0',
+      totalRfqs,
+      quotesSent,
+      quotesAccepted,
+      rfqConversionRate,
+      rfqToOrderRate,
     };
 
     // Sales chart data (daily breakdown)
@@ -428,6 +480,9 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response) {
         buyerGroup,
         paymentTerms,
         salesRep,
+        applied: hasSegmentFilter,
+        segmentSource:
+          'Derived from order history: buyer GMV tiers, payment method, and buyer assignment heuristics.',
       },
     });
   } catch (error: any) {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import ViolationAppealForm from '../../components/seller/ViolationAppealForm';
 
 type Section = {
   id: string;
@@ -2705,88 +2706,8 @@ function renderSectionContent(sectionId: string) {
             </div>
           </motion.div>
 
-          {/* Appeal mini form */}
           <motion.div variants={contentItemVariants}>
-            <div
-              className="rounded-2xl px-4 py-4 sm:px-5 sm:py-5 space-y-3"
-              style={{ background: 'var(--bg-secondary)' }}
-            >
-              <p
-                className="text-sm font-semibold"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                Submit an Appeal
-              </p>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                    Violation ticket number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. VIOL-2026-000123"
-                    className="w-full rounded-lg bg-[#0e1118] px-3 py-2 text-[11px] outline-none"
-                    style={{ color: 'var(--text-primary)', border: 'none' }}
-                    readOnly
-                  />
-                  <p
-                    className="text-[10px]"
-                    style={{ color: 'var(--text-faint)' }}
-                  >
-                    Use the ticket ID from your violation email.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                    Evidence (screenshots, receipts, etc.)
-                  </label>
-                  <div
-                    className="flex h-[96px] items-center justify-center rounded-lg border border-dashed text-[11px]"
-                    style={{
-                      borderColor: 'rgba(148,163,184,0.6)',
-                      background: '#0e1118',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    Drag &amp; drop files (mock)
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                  Explanation
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Explain clearly why you believe this violation is incorrect..."
-                  className="w-full resize-none rounded-lg bg-[#0e1118] px-3 py-2 text-[11px] outline-none"
-                  style={{ color: 'var(--text-primary)', border: 'none' }}
-                  readOnly
-                />
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  className="inline-flex items-center rounded-full px-4 py-1.5 text-[11px] font-semibold"
-                  style={{
-                    background: 'var(--gradient-brand-cta)',
-                    color: '#ffffff',
-                    border: 'none',
-                  }}
-                >
-                  Submit Appeal
-                </button>
-                <p
-                  className="text-[11px]"
-                  style={{ color: 'var(--brand-orange-text)' }}
-                >
-                  Or email{' '}
-                  <a href="mailto:seller-appeals@reaglex.com" style={{ color: 'var(--brand-orange-text)' }}>
-                    seller-appeals@reaglex.com
-                  </a>
-                </p>
-              </div>
-            </div>
+            <ViolationAppealForm />
           </motion.div>
 
           {/* Reinstatement process */}

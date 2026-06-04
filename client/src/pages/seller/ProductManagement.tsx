@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Box, Plus, Edit, Trash2, Eye, Search, Filter, Upload, Download, X, Check, Image as ImageIcon, Tag, DollarSign, Package, Globe, LayoutGrid, Rows, FileSpreadsheet, FileText, AlertCircle, CheckCircle2, Loader2, Barcode, QrCode, Smartphone, FileVideo, ScanSearch, ShieldCheck, Layers, Sparkles } from 'lucide-react';
+import { Box, Plus, Edit, Trash2, Eye, Search, Filter, Upload, Download, X, Check, Image as ImageIcon, Tag, DollarSign, Package, Globe, LayoutGrid, Rows, FileSpreadsheet, FileText, AlertCircle, CheckCircle2, Loader2, FileVideo, ScanSearch, ShieldCheck, Layers, Sparkles } from 'lucide-react';
+import '../../styles/seller-product-management.css';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToastStore } from '@/stores/toastStore';
@@ -10,9 +11,17 @@ import { SERVER_URL, API_BASE_URL } from '@/lib/config';
 import { currencyApi } from '@/services/currencyApi';
 import { formatIntNoDecimals } from '@/lib/currencyFormat';
 import { categoryNeedsColor, categoryNeedsSize } from '@/constants/categoryAttributes';
+import {
+  enrichVariantsWithProductImages,
+  mapVariantsFromApi,
+  resolveColorsForSave,
+  resolveSizesForSave,
+} from '@/lib/productVariantSync';
 
 const API_HOST = SERVER_URL;
 const API_BASE = `${API_BASE_URL}/seller/inventory`;
+const MAX_PRODUCT_IMAGES = 12;
+const IMAGE_UPLOAD_BATCH = 5;
 
 const LISTING_CURRENCIES = ['USD', 'RWF', 'KES', 'UGX', 'TZS', 'NGN', 'EUR', 'GBP'] as const;
 const SIZE_OPTIONS = [
@@ -25,6 +34,13 @@ type Variant = {
   size?: string;
   sku: string;
   stock: number;
+  /** Whole amount in listing currency when this variant costs more/less than base price. */
+  listingPriceAmount?: number;
+  priceUsd?: number;
+  label?: string;
+  thumbnailUrl?: string;
+  swatchHex?: string;
+  badge?: string;
 };
 
 interface Product {
@@ -44,6 +60,8 @@ interface Product {
   views: number;
   rating: number;
   images?: string[];
+  videoProofUrl?: string;
+  videoUrl?: string;
   description?: string;
   sku?: string;
   weight?: number;
@@ -121,27 +139,28 @@ const ProductManagement: React.FC = () => {
     seoKeywords: '',
     sizes: [] as string[],
     colors: [] as string[],
+    listingMode: 'live' as 'live' | 'upcoming',
+    launchAt: '',
   });
-  const [verificationInput, setVerificationInput] = useState({
-    barcode: '',
-    serialNumber: '',
-    imei: '',
-    qrCode: '',
-    videoProofUploaded: false,
-    labelProofUploaded: false,
-  });
+  const [imageUploading, setImageUploading] = useState(false);
 
   const [variantDraft, setVariantDraft] = useState({
     color: '',
     size: '',
     sku: '',
     stock: '',
+    listingPriceAmount: '',
+    label: '',
+    thumbnailUrl: '',
+    badge: '',
   });
   const [videoProof, setVideoProof] = useState<{
     fileName: string;
     previewUrl: string;
     size: number;
+    remoteUrl?: string;
   } | null>(null);
+  const [videoProofUploading, setVideoProofUploading] = useState(false);
   const [scanStatus, setScanStatus] = useState<'idle' | 'running' | 'pass' | 'warning'>('idle');
   const [scanProgress, setScanProgress] = useState(0);
   const [scanBreakdown, setScanBreakdown] = useState({
@@ -162,9 +181,43 @@ const ProductManagement: React.FC = () => {
 
   const resolveImageUrl = (url: string): string => {
     if (!url) return url;
-    return url.startsWith('http://') || url.startsWith('https://')
-      ? url
-      : `${API_HOST}${url.startsWith('/') ? '' : '/'}${url}`;
+    const t = String(url).trim();
+    if (t.startsWith('http://') || t.startsWith('https://') || t.startsWith('//')) {
+      return t.startsWith('//') ? `https:${t}` : t;
+    }
+    return `${API_HOST}${t.startsWith('/') ? '' : '/'}${t}`;
+  };
+
+  const normalizeUploadedUrl = (url: string): string => {
+    const t = String(url || '').trim();
+    if (!t) return '';
+    if (t.startsWith('http://') || t.startsWith('https://')) return t;
+    if (t.startsWith('//')) return `https:${t}`;
+    return resolveImageUrl(t);
+  };
+
+  const currentImages = () => editingProduct?.images || newProduct.images || [];
+
+  const setProductImages = (next: string[]) => {
+    const capped = next.slice(0, MAX_PRODUCT_IMAGES);
+    if (editingProduct) {
+      setEditingProduct({ ...editingProduct, images: capped });
+    } else {
+      setNewProduct((prev) => ({ ...prev, images: capped }));
+    }
+  };
+
+  const buildVerificationPayload = () => {
+    const videoUrl = videoProof?.remoteUrl || '';
+    return {
+      videoProofUploaded: Boolean(videoUrl),
+      videoProofUrl: videoUrl || undefined,
+      videoImageSimilarity: videoImageSimilarity ?? undefined,
+      scanPassed,
+      labelProofUploaded: Boolean(videoUrl && currentImages().length > 0),
+      imageSimilarityScore,
+      stolenImageSuspected: false,
+    };
   };
 
   const getAuthHeaders = (): Record<string, string> => {
@@ -203,9 +256,11 @@ const ProductManagement: React.FC = () => {
     views: 0,
     rating: 0,
     images: Array.isArray(p.images) ? p.images.map(resolveImageUrl) : undefined,
+    videoProofUrl: p.videoProofUrl ? normalizeUploadedUrl(String(p.videoProofUrl)) : undefined,
+    videoUrl: p.videoUrl ? normalizeUploadedUrl(String(p.videoUrl)) : undefined,
     description: p.description,
     sku: p.sku,
-    variants: p.variants,
+    variants: mapVariantsFromApi(p.variants, p),
     sizes: Array.isArray(p.sizes) ? p.sizes : [],
     colors: Array.isArray(p.colors) ? p.colors : [],
   seoTitle: p.seoTitle,
@@ -316,18 +371,7 @@ const ProductManagement: React.FC = () => {
             description: editingProduct?.description ?? newProduct.description,
             images: editingProduct?.images ?? newProduct.images ?? [],
             excludeProductId: editingProduct?.id,
-            verification: {
-              barcode: verificationInput.barcode,
-              serialNumber: verificationInput.serialNumber,
-              imei: verificationInput.imei,
-              qrCode: verificationInput.qrCode,
-              videoProofUploaded: Boolean(videoProof) || verificationInput.videoProofUploaded,
-              labelProofUploaded: verificationInput.labelProofUploaded,
-              videoImageSimilarity: videoImageSimilarity ?? undefined,
-              scanPassed,
-              imageSimilarityScore,
-              stolenImageSuspected: false,
-            },
+            verification: buildVerificationPayload(),
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -352,7 +396,6 @@ const ProductManagement: React.FC = () => {
     editingProduct?.description,
     editingProduct?.images,
     editingProduct?.id,
-    verificationInput,
     videoProof,
     videoImageSimilarity,
     scanPassed,
@@ -600,25 +643,31 @@ const ProductManagement: React.FC = () => {
       return;
     }
 
-    const verificationPayload = {
-      barcode: verificationInput.barcode.trim() || undefined,
-      serialNumber: verificationInput.serialNumber.trim() || undefined,
-      imei: verificationInput.imei.trim() || undefined,
-      qrCode: verificationInput.qrCode.trim() || undefined,
-      videoProofUploaded: Boolean(videoProof) || verificationInput.videoProofUploaded,
-      videoImageSimilarity: videoImageSimilarity ?? undefined,
-      scanPassed,
-      labelProofUploaded: verificationInput.labelProofUploaded,
-      imageSimilarityScore,
-      stolenImageSuspected: false,
-    };
+    const verificationPayload = buildVerificationPayload();
+
+    if (!currentImages().length) {
+      setFormError('Add at least one product photo (first photo is the cover image on the product page).');
+      return;
+    }
+    if (!verificationPayload.videoProofUrl) {
+      setFormError('Upload a proof video so buyers can verify your item.');
+      return;
+    }
+    if (!scanPassed) {
+      setFormError('Wait for the media trust check to finish after uploading photos and video.');
+      return;
+    }
 
     if (productSaveInFlightRef.current) return;
     productSaveInFlightRef.current = true;
     setProductSubmitting(true);
     try {
+      const prepareVariants = (variants: Variant[] | undefined, images: string[] | undefined) => {
+        return enrichVariantsWithProductImages(variants || [], images || []);
+      };
+
       if (editingProduct) {
-        // Update existing product
+        const variantRows = prepareVariants(editingProduct.variants, editingProduct.images);
         const body = {
           name: editingProduct.name,
           category: editingProduct.category,
@@ -634,10 +683,26 @@ const ProductManagement: React.FC = () => {
           discount: editingProduct.discount,
           moq: editingProduct.moq,
           images: editingProduct.images,
-          variants: editingProduct.variants,
-          sizes: categoryNeedsSize(editingProduct.category) ? (editingProduct.sizes || []) : [],
-          colors: categoryNeedsColor(editingProduct.category) ? (editingProduct.colors || []) : [],
+          variants: variantRows,
+          sizes: resolveSizesForSave(
+            editingProduct.category,
+            editingProduct.sizes || [],
+            variantRows,
+            categoryNeedsSize,
+          ),
+          colors: resolveColorsForSave(
+            editingProduct.category,
+            editingProduct.colors || [],
+            variantRows,
+            categoryNeedsColor,
+          ),
           verification: verificationPayload,
+          listingMode: (editingProduct as { listingMode?: string }).listingMode || 'live',
+          launchAt:
+            (editingProduct as { listingMode?: string; launchAt?: string }).listingMode === 'upcoming' &&
+            (editingProduct as { launchAt?: string }).launchAt
+              ? (editingProduct as { launchAt?: string }).launchAt
+              : undefined,
         };
         const response = await fetch(`${API_BASE}/products/${editingProduct.id}`, {
           method: 'PUT',
@@ -654,7 +719,7 @@ const ProductManagement: React.FC = () => {
         }
         showToast('Product updated successfully.', 'success');
       } else {
-        // Create new product
+        const variantRows = prepareVariants(newProduct.variants, newProduct.images);
         const body = {
           name: newProduct.name,
           category: newProduct.category,
@@ -674,10 +739,25 @@ const ProductManagement: React.FC = () => {
             ? parseInt((newProduct as any).moq, 10)
             : undefined,
           images: newProduct.images,
-          variants: newProduct.variants,
-          sizes: categoryNeedsSize(newProduct.category) ? (newProduct.sizes || []) : [],
-          colors: categoryNeedsColor(newProduct.category) ? (newProduct.colors || []) : [],
+          variants: variantRows,
+          sizes: resolveSizesForSave(
+            newProduct.category,
+            newProduct.sizes || [],
+            variantRows,
+            categoryNeedsSize,
+          ),
+          colors: resolveColorsForSave(
+            newProduct.category,
+            newProduct.colors || [],
+            variantRows,
+            categoryNeedsColor,
+          ),
           verification: verificationPayload,
+          listingMode: newProduct.listingMode,
+          launchAt:
+            newProduct.listingMode === 'upcoming' && newProduct.launchAt
+              ? new Date(newProduct.launchAt).toISOString()
+              : undefined,
         };
         const response = await fetch(`${API_BASE}/products`, {
           method: 'POST',
@@ -726,14 +806,10 @@ const ProductManagement: React.FC = () => {
         size: '',
         sku: '',
         stock: '',
-      });
-      setVerificationInput({
-        barcode: '',
-        serialNumber: '',
-        imei: '',
-        qrCode: '',
-        videoProofUploaded: false,
-        labelProofUploaded: false,
+        listingPriceAmount: '',
+        label: '',
+        thumbnailUrl: '',
+        badge: '',
       });
       setTrustPreview(null);
       setVideoImageSimilarity(null);
@@ -763,15 +839,36 @@ const ProductManagement: React.FC = () => {
     }
   };
 
-  const uploadImageFiles = async (files: File[]) => {
-    if (!files.length) return;
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('images', file);
-    });
+  const openProductEditor = (product: Product) => {
+    setEditingProduct(product);
+    setScanStatus('idle');
+    setScanProgress(0);
+    setScanPassed(false);
+    setVideoImageSimilarity(null);
+    setImageSimilarityScore(0);
+    const proofUrl = normalizeUploadedUrl(
+      String(product.videoProofUrl || product.videoUrl || ''),
+    );
+    if (proofUrl) {
+      setVideoProof({
+        fileName: 'Proof video',
+        previewUrl: proofUrl,
+        size: 0,
+        remoteUrl: proofUrl,
+      });
+      if ((product.images || []).length > 0) {
+        window.setTimeout(() => runSimilarityScan({ silent: true }), 120);
+      }
+    } else {
+      setVideoProof(null);
+    }
+  };
 
+  const uploadVideoProofFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('video', file);
     const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE}/products/upload-images`, {
+    const response = await fetch(`${API_BASE}/products/upload-video-proof`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: formData,
@@ -779,23 +876,55 @@ const ProductManagement: React.FC = () => {
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to upload images');
+      throw new Error(data.message || 'Failed to upload video proof');
     }
+    const raw = String(data.url || '').trim();
+    return normalizeUploadedUrl(raw);
+  };
 
-    const urls: string[] = (data.urls || []).map((u: string) =>
-      resolveImageUrl(u)
-    );
-
-    if (editingProduct) {
-      setEditingProduct({
-        ...editingProduct,
-        images: [...(editingProduct.images || []), ...urls],
-      });
-    } else {
-      setNewProduct((prev) => ({
-        ...prev,
-        images: [...(prev.images || []), ...urls],
-      }));
+  const uploadImageFiles = async (files: File[]) => {
+    if (!files.length) return;
+    const existing = currentImages();
+    const room = MAX_PRODUCT_IMAGES - existing.length;
+    if (room <= 0) {
+      showToast(`Maximum ${MAX_PRODUCT_IMAGES} photos per product.`, 'warning');
+      return;
+    }
+    const batch = files.slice(0, room);
+    setImageUploading(true);
+    setFormError(null);
+    try {
+      const uploaded: string[] = [];
+      for (let i = 0; i < batch.length; i += IMAGE_UPLOAD_BATCH) {
+        const chunk = batch.slice(i, i + IMAGE_UPLOAD_BATCH);
+        const formData = new FormData();
+        chunk.forEach((file) => formData.append('images', file));
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE}/products/upload-images`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body: formData,
+          credentials: 'include',
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to upload images');
+        }
+        const urls: string[] = (data.urls || []).map((u: string) => normalizeUploadedUrl(u)).filter(Boolean);
+        uploaded.push(...urls);
+      }
+      setProductImages([...existing, ...uploaded]);
+      if (uploaded.length) {
+        showToast(
+          uploaded.length === 1 ? 'Photo uploaded.' : `${uploaded.length} photos uploaded.`,
+          'success',
+        );
+      }
+      if (videoProof?.remoteUrl) {
+        window.setTimeout(() => runSimilarityScan({ silent: true }), 200);
+      }
+    } finally {
+      setImageUploading(false);
     }
   };
 
@@ -807,8 +936,10 @@ const ProductManagement: React.FC = () => {
 
     try {
       await uploadImageFiles(Array.from(files));
-    } catch (e) {
-      console.error('Image upload failed:', e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Image upload failed';
+      setFormError(msg);
+      showToast(msg, 'error');
     } finally {
       // reset input so same file can be selected again if needed
       if (fileInputRef.current) {
@@ -828,11 +959,31 @@ const ProductManagement: React.FC = () => {
 
     setFormError(null);
 
+    const variantPriceRaw = variantDraft.listingPriceAmount.trim();
+    const variantListingPrice = variantPriceRaw
+      ? Math.round(Number(variantPriceRaw))
+      : undefined;
+    if (variantPriceRaw && (!Number.isFinite(variantListingPrice!) || variantListingPrice! <= 0)) {
+      setFormError('Variant price must be a positive whole number in your listing currency.');
+      return;
+    }
+
+    const productImages = editingProduct?.images || newProduct.images || [];
+    const existingVariantCount = (editingProduct?.variants || newProduct.variants || []).length;
+    let thumb = variantDraft.thumbnailUrl.trim();
+    if (!thumb && productImages.length) {
+      thumb = productImages[existingVariantCount % productImages.length];
+    }
+
     const newVariant: Variant = {
       color: variantDraft.color || undefined,
       size: variantDraft.size || undefined,
       sku: trimmedSku,
       stock: stockValue,
+      ...(variantListingPrice != null ? { listingPriceAmount: variantListingPrice } : {}),
+      label: variantDraft.label.trim() || variantDraft.color.trim() || undefined,
+      thumbnailUrl: thumb || undefined,
+      badge: variantDraft.badge.trim() || undefined,
     };
 
     if (editingProduct) {
@@ -852,6 +1003,10 @@ const ProductManagement: React.FC = () => {
       size: '',
       sku: '',
       stock: '',
+      listingPriceAmount: '',
+      label: '',
+      thumbnailUrl: '',
+      badge: '',
     });
   };
 
@@ -869,44 +1024,73 @@ const ProductManagement: React.FC = () => {
     }
   };
 
+  const handleSetPrimaryImage = (index: number) => {
+    const imgs = [...currentImages()];
+    if (index <= 0 || index >= imgs.length) return;
+    const [picked] = imgs.splice(index, 1);
+    imgs.unshift(picked);
+    setProductImages(imgs);
+  };
+
   const handleRemoveProductImage = (index: number) => {
-    if (editingProduct) {
-      const next = [...(editingProduct.images || [])];
-      next.splice(index, 1);
-      setEditingProduct({
-        ...editingProduct,
-        images: next,
-      });
-    } else {
-      setNewProduct((prev) => ({
-        ...prev,
-        images: prev.images.filter((_, i) => i !== index),
-      }));
+    const next = currentImages().filter((_, i) => i !== index);
+    setProductImages(next);
+    if (videoProof?.remoteUrl && next.length) {
+      window.setTimeout(() => runSimilarityScan({ silent: true }), 200);
+    } else if (!next.length) {
+      setScanPassed(false);
+      setScanStatus('idle');
     }
   };
 
-  const handleVideoProofUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleVideoProofUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const previewUrl = URL.createObjectURL(file);
     setVideoProof((prev) => {
-      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+      if (prev?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(prev.previewUrl);
       return {
         fileName: file.name,
         previewUrl,
         size: file.size,
       };
     });
-    setVerificationInput((p) => ({ ...p, videoProofUploaded: true }));
+    setVideoProofUploading(true);
+    setFormError(null);
+    try {
+      const remoteUrl = await uploadVideoProofFile(file);
+      setVideoProof((prev) =>
+        prev
+          ? {
+              ...prev,
+              remoteUrl,
+              previewUrl: remoteUrl,
+            }
+          : null,
+      );
+      showToast('Proof video uploaded.', 'success');
+      if (currentImages().length > 0) {
+        window.setTimeout(() => runSimilarityScan({ silent: true }), 200);
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Video upload failed';
+      setFormError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setVideoProofUploading(false);
+      if (videoInputRef.current) videoInputRef.current.value = '';
+    }
   };
 
-  const runSimilarityScan = () => {
-    const imageCount = (editingProduct?.images || newProduct.images || []).length;
-    if (!videoProof || imageCount === 0) {
-      setFormError('Upload at least one product image and one video proof before running similarity scan.');
+  const runSimilarityScan = (opts: { silent?: boolean } = {}) => {
+    const imageCount = currentImages().length;
+    if (!videoProof?.remoteUrl || imageCount === 0) {
+      if (!opts.silent) {
+        setFormError('Upload at least one product photo, then your proof video.');
+      }
       return;
     }
-    setFormError(null);
+    if (!opts.silent) setFormError(null);
     setScanStatus('running');
     setScanProgress(0);
     const timer = window.setInterval(() => {
@@ -914,9 +1098,9 @@ const ProductManagement: React.FC = () => {
         const next = Math.min(100, prev + 10);
         if (next >= 100) {
           window.clearInterval(timer);
-          const visual = Math.min(96, 55 + imageCount * 8);
-          const label = verificationInput.labelProofUploaded ? 88 : 58;
-          const structure = verificationInput.barcode || verificationInput.qrCode ? 90 : 62;
+          const visual = Math.min(96, 58 + imageCount * 10);
+          const label = videoProof?.remoteUrl ? 85 : 55;
+          const structure = imageCount >= 2 ? 88 : 72;
           setScanBreakdown({
             visualMatch: visual,
             labelMatch: label,
@@ -929,6 +1113,9 @@ const ProductManagement: React.FC = () => {
           const passed = sim01 >= 0.6;
           setScanPassed(passed);
           setScanStatus(passed ? 'pass' : 'warning');
+          if (!opts.silent && passed) {
+            showToast('Media check passed — ready to publish.', 'success');
+          }
         }
         return next;
       });
@@ -1679,7 +1866,7 @@ const ProductManagement: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    onClick={() => setEditingProduct(product)}
+                    onClick={() => openProductEditor(product)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -1851,7 +2038,7 @@ const ProductManagement: React.FC = () => {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                            onClick={() => setEditingProduct(product)}
+                            onClick={() => openProductEditor(product)}
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
@@ -1912,7 +2099,7 @@ const ProductManagement: React.FC = () => {
               </DialogDescription>
             </div>
           </DialogHeader>
-          <div className="h-[calc(94vh-84px)] overflow-y-auto px-4 sm:px-6 pb-28 pt-4 space-y-7">
+          <div className="seller-product-dialog__scroll space-y-7">
             {formError && (
               <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/40 rounded-lg px-3 py-2">
                 {formError}
@@ -2230,6 +2417,57 @@ const ProductManagement: React.FC = () => {
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Low stock warning starts below 20 units.</p>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Listing type</label>
+                  <select
+                    value={
+                      editingProduct
+                        ? (editingProduct as { listingMode?: string }).listingMode || 'live'
+                        : newProduct.listingMode
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value === 'upcoming' ? 'upcoming' : 'live';
+                      if (editingProduct) {
+                        setEditingProduct({ ...editingProduct, listingMode: v } as Product);
+                      } else {
+                        setNewProduct({ ...newProduct, listingMode: v });
+                      }
+                    }}
+                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white"
+                  >
+                    <option value="live">Live now (buyable)</option>
+                    <option value="upcoming">Upcoming drop</option>
+                  </select>
+                </div>
+                {(editingProduct
+                  ? (editingProduct as { listingMode?: string }).listingMode === 'upcoming'
+                  : newProduct.listingMode === 'upcoming') && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Launch date & time *</label>
+                    <input
+                      type="datetime-local"
+                      value={
+                        editingProduct
+                          ? String((editingProduct as { launchAt?: string }).launchAt || '').slice(0, 16)
+                          : newProduct.launchAt
+                      }
+                      onChange={(e) => {
+                        if (editingProduct) {
+                          setEditingProduct({
+                            ...editingProduct,
+                            launchAt: e.target.value ? new Date(e.target.value).toISOString() : '',
+                          } as Product);
+                        } else {
+                          setNewProduct({ ...newProduct, launchAt: e.target.value });
+                        }
+                      }}
+                      className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Shown in Upcoming Drops until launch; not buyable until then.
+                    </p>
+                  </div>
+                )}
+                <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SKU</label>
                   <input
                     type="text"
@@ -2281,8 +2519,10 @@ const ProductManagement: React.FC = () => {
                   if (!files.length) return;
                   try {
                     await uploadImageFiles(files);
-                  } catch (err) {
-                    console.error('Image upload failed:', err);
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : 'Image upload failed';
+                    setFormError(msg);
+                    showToast(msg, 'error');
                   }
                 }}
                 className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-6 sm:p-8 text-center bg-gray-50/50 dark:bg-gray-800/20"
@@ -2291,7 +2531,9 @@ const ProductManagement: React.FC = () => {
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Drag and drop images here
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Use clear front, side, and detail shots for better trust scoring.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  First photo is the cover image on the product page. Add up to {MAX_PRODUCT_IMAGES} photos.
+                </p>
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -2304,36 +2546,49 @@ const ProductManagement: React.FC = () => {
                   variant="outline"
                   className="border-gray-300 dark:border-gray-700 rounded-full px-5"
                   type="button"
+                  disabled={imageUploading}
                   onClick={handleSelectImagesClick}
                 >
-                  Select Images
+                  {imageUploading ? 'Uploading…' : 'Select Images'}
                 </Button>
-                {(editingProduct?.images && editingProduct.images.length > 0) ||
-                newProduct.images.length > 0 ? (
-                  <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                    {(editingProduct?.images || newProduct.images).map(
-                      (url, idx) => (
+                {currentImages().length > 0 ? (
+                  <div className="mt-4 seller-product-images__grid">
+                    {currentImages().map((url, idx) => (
                         <div
                           key={`${url}-${idx}`}
-                          className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 group"
+                          className={`seller-product-images__tile ${idx === 0 ? 'seller-product-images__tile--cover' : ''}`}
                         >
                           <img
                             src={resolveImageUrl(url)}
-                            alt={`Product ${idx + 1}`}
+                            alt={idx === 0 ? 'Cover photo' : `Product photo ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
-                          <button
-                            type="button"
-                            aria-label="Remove image"
-                            title="Remove image"
-                            onClick={() => handleRemoveProductImage(idx)}
-                            className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-bl-md bg-black/70 text-white opacity-100 transition hover:bg-red-600 md:opacity-0 md:group-hover:opacity-100"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
+                          {idx === 0 ? (
+                            <span className="seller-product-images__cover-badge">Cover</span>
+                          ) : null}
+                          <div className="seller-product-images__actions">
+                            {idx > 0 ? (
+                              <button
+                                type="button"
+                                className="seller-product-images__action-btn"
+                                title="Set as cover"
+                                onClick={() => handleSetPrimaryImage(idx)}
+                              >
+                                ★
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              aria-label="Remove image"
+                              title="Remove image"
+                              onClick={() => handleRemoveProductImage(idx)}
+                              className="seller-product-images__action-btn"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      )
-                    )}
+                      ))}
                   </div>
                 ) : null}
               </div>
@@ -2348,7 +2603,7 @@ const ProductManagement: React.FC = () => {
               </h3>
               <div className="rounded-2xl border border-red-200/70 dark:border-red-900/60 bg-red-50/50 dark:bg-red-950/20 p-4 sm:p-5 space-y-4">
                 <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  Upload a short proof video showing the full item, slow rotation, and label/tag/serial/barcode close-up. Video proof has higher trust value than images alone.
+                  Upload a short proof video (full item, slow rotation, clear details). Buyers will see this video first on the product page.
                 </p>
                 <input
                   ref={videoInputRef}
@@ -2358,15 +2613,16 @@ const ProductManagement: React.FC = () => {
                   onChange={handleVideoProofUpload}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" className="rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]" onClick={() => videoInputRef.current?.click()}>
+                  <Button type="button" className="rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]" disabled={videoProofUploading} onClick={() => videoInputRef.current?.click()}>
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Video Proof
+                    {videoProofUploading ? 'Uploading…' : 'Upload Video Proof'}
                   </Button>
                   {videoProof && (
                     <Button type="button" variant="outline" className="rounded-full border-gray-300 dark:border-gray-700" onClick={() => {
-                      if (videoProof.previewUrl) URL.revokeObjectURL(videoProof.previewUrl);
+                      if (videoProof.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(videoProof.previewUrl);
                       setVideoProof(null);
-                      setVerificationInput((p) => ({ ...p, videoProofUploaded: false }));
+                      setScanPassed(false);
+                      setScanStatus('idle');
                     }}>
                       Remove Video
                     </Button>
@@ -2374,8 +2630,8 @@ const ProductManagement: React.FC = () => {
                 </div>
                 {videoProof ? (
                   <div className="space-y-2">
-                    <div className="aspect-video rounded-xl overflow-hidden bg-black">
-                      <video src={videoProof.previewUrl} controls className="h-full w-full object-contain" />
+                    <div className="seller-product-video-preview">
+                      <video src={videoProof.previewUrl} controls playsInline preload="metadata" className="h-full w-full object-contain" />
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 flex flex-wrap gap-3">
                       <span>{videoProof.fileName}</span>
@@ -2403,7 +2659,7 @@ const ProductManagement: React.FC = () => {
                     variant="outline"
                     className="rounded-full border-gray-300 dark:border-gray-700"
                     disabled={scanStatus === 'running'}
-                    onClick={runSimilarityScan}
+                    onClick={() => runSimilarityScan()}
                   >
                     {scanStatus === 'running' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ScanSearch className="w-4 h-4 mr-2" />}
                     {scanStatus === 'running' ? 'Scanning...' : 'Run Trust Similarity Scan'}
@@ -2447,17 +2703,23 @@ const ProductManagement: React.FC = () => {
             <section className="space-y-4">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Tag className="w-5 h-5 text-red-400" />
-                Variants (Colors, Sizes, etc.)
+                Variants (Colors, Sizes, Prices)
               </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+                Add a color name and pick which product photo shows on the product page for that color.
+                Optional per-variant price in your listing currency.
+              </p>
 
               {/* Existing variants list */}
               {((editingProduct?.variants && editingProduct.variants.length > 0) ||
                 (newProduct as any).variants?.length > 0) && (
                 <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs dark:border-gray-700 dark:bg-gray-800/60">
-                  <div className="hidden sm:grid sm:grid-cols-5 gap-2 font-semibold text-gray-700 dark:text-gray-300">
+                  <div className="hidden lg:grid lg:grid-cols-7 gap-2 font-semibold text-gray-700 dark:text-gray-300">
                     <span>Color</span>
                     <span>Size</span>
                     <span>SKU</span>
+                    <span>Price</span>
+                    <span>Label</span>
                     <span className="text-right">Stock</span>
                     <span className="text-right">Actions</span>
                   </div>
@@ -2466,11 +2728,26 @@ const ProductManagement: React.FC = () => {
                       (variant: Variant, idx: number) => (
                         <div
                           key={idx}
-                          className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-center text-gray-800 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2"
+                          className="grid grid-cols-2 lg:grid-cols-7 gap-2 items-center text-gray-800 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2"
                         >
-                          <span className="text-xs"><span className="sm:hidden text-gray-500">Color: </span>{variant.color || '-'}</span>
-                          <span className="text-xs"><span className="sm:hidden text-gray-500">Size: </span>{variant.size || '-'}</span>
-                          <span className="font-mono text-xs break-all col-span-2 sm:col-span-1">{variant.sku}</span>
+                          <span className="text-xs"><span className="lg:hidden text-gray-500">Color: </span>{variant.color || '-'}</span>
+                          <span className="text-xs"><span className="lg:hidden text-gray-500">Size: </span>{variant.size || '-'}</span>
+                          <span className="font-mono text-xs break-all col-span-2 lg:col-span-1">{variant.sku}</span>
+                          <span className="text-xs flex items-center gap-1.5">
+                            {variant.thumbnailUrl ? (
+                              <img
+                                src={variant.thumbnailUrl}
+                                alt=""
+                                className="w-8 h-8 rounded-md object-cover border border-gray-200 dark:border-gray-600"
+                              />
+                            ) : null}
+                            {variant.listingPriceAmount != null
+                              ? variant.listingPriceAmount
+                              : variant.priceUsd != null
+                                ? `~$${variant.priceUsd}`
+                                : 'Base'}
+                          </span>
+                          <span className="text-xs truncate">{variant.label || '-'}</span>
                           <span className="text-right text-xs">{variant.stock}</span>
                           <div className="flex justify-end">
                             <Button
@@ -2492,16 +2769,22 @@ const ProductManagement: React.FC = () => {
 
               {/* Add variant form */}
               <div className="space-y-2 rounded-xl border border-dashed border-gray-300 p-3 text-xs dark:border-gray-700">
-                <p className="text-gray-600 dark:text-gray-400">
-                  Add variants for different colors / sizes. Each variant must have its own SKU and stock.
-                </p>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   <input
                     type="text"
-                    placeholder="Color (optional)"
+                    placeholder="Color (e.g. Silver)"
                     value={variantDraft.color}
                     onChange={(e) =>
                       setVariantDraft((prev) => ({ ...prev, color: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Display label (optional)"
+                    value={variantDraft.label}
+                    onChange={(e) =>
+                      setVariantDraft((prev) => ({ ...prev, label: e.target.value }))
                     }
                     className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   />
@@ -2525,6 +2808,15 @@ const ProductManagement: React.FC = () => {
                   />
                   <input
                     type="number"
+                    placeholder={`Price (${editingProduct?.listingCurrency || newProduct.listingCurrency || 'USD'}, optional)`}
+                    value={variantDraft.listingPriceAmount}
+                    onChange={(e) =>
+                      setVariantDraft((prev) => ({ ...prev, listingPriceAmount: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                  <input
+                    type="number"
                     placeholder="Stock *"
                     value={variantDraft.stock}
                     onChange={(e) =>
@@ -2532,7 +2824,52 @@ const ProductManagement: React.FC = () => {
                     }
                     className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   />
-                  <div className="flex items-stretch md:justify-end">
+                  <input
+                    type="url"
+                    placeholder="Or paste image URL"
+                    value={variantDraft.thumbnailUrl}
+                    onChange={(e) =>
+                      setVariantDraft((prev) => ({ ...prev, thumbnailUrl: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:col-span-2"
+                  />
+                  {(editingProduct?.images || newProduct.images || []).length > 0 && (
+                    <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center gap-2 pt-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 w-full">
+                        Color image (from your uploads)
+                      </span>
+                      {(editingProduct?.images || newProduct.images || []).map((url, imgIdx) => {
+                        const active = variantDraft.thumbnailUrl === url;
+                        return (
+                          <button
+                            key={`${url}-${imgIdx}`}
+                            type="button"
+                            title="Use as variant color image"
+                            onClick={() =>
+                              setVariantDraft((prev) => ({ ...prev, thumbnailUrl: url }))
+                            }
+                            className={`w-11 h-11 rounded-lg overflow-hidden border-2 shrink-0 ${
+                              active
+                                ? 'border-red-500 ring-2 ring-red-400/40'
+                                : 'border-gray-300 dark:border-gray-600'
+                            }`}
+                          >
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Badge e.g. Trending (optional)"
+                    value={variantDraft.badge}
+                    onChange={(e) =>
+                      setVariantDraft((prev) => ({ ...prev, badge: e.target.value }))
+                    }
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                  <div className="flex items-stretch sm:col-span-2 lg:col-span-1">
                     <Button
                       type="button"
                       variant="outline"
@@ -2623,7 +2960,7 @@ const ProductManagement: React.FC = () => {
                     {trustPreviewLoading ? ' · …' : ''}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Score is computed from barcode, images, video match, and metadata consistency only — no default 100%.
+                    Score uses your photos, proof video, and listing details. Upload media to run the check automatically.
                   </p>
                 </div>
                 <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
@@ -2661,67 +2998,16 @@ const ProductManagement: React.FC = () => {
                     {trustPreview.blockers.join(' ')}
                   </div>
                 ) : null}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1"><Barcode className="w-4 h-4" /> Barcode / UPC / EAN</label>
-                  <input
-                    type="text"
-                    value={verificationInput.barcode}
-                    onChange={(e) => setVerificationInput((p) => ({ ...p, barcode: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Scan or enter code"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1"><Smartphone className="w-4 h-4" /> Serial / IMEI</label>
-                  <input
-                    type="text"
-                    value={verificationInput.serialNumber}
-                    onChange={(e) => setVerificationInput((p) => ({ ...p, serialNumber: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Optional serial for electronics"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">IMEI (if applicable)</label>
-                  <input
-                    type="text"
-                    value={verificationInput.imei}
-                    onChange={(e) => setVerificationInput((p) => ({ ...p, imei: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="15-digit IMEI"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1"><QrCode className="w-4 h-4" /> QR / Reaglex tag code</label>
-                  <input
-                    type="text"
-                    value={verificationInput.qrCode}
-                    onChange={(e) => setVerificationInput((p) => ({ ...p, qrCode: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Optional printable trust tag code"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Proof uploads</label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input type="checkbox" checked={verificationInput.videoProofUploaded} onChange={(e) => setVerificationInput((p) => ({ ...p, videoProofUploaded: e.target.checked }))} />
-                    Product video proof uploaded
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input type="checkbox" checked={verificationInput.labelProofUploaded} onChange={(e) => setVerificationInput((p) => ({ ...p, labelProofUploaded: e.target.checked }))} />
-                    Label/tag close-up uploaded
-                  </label>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Products with stronger verification data receive higher trust and are less likely to be flagged for manual review.
-              </p>
+                <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1 list-disc pl-4">
+                  <li>At least one product photo (first = cover on product page)</li>
+                  <li>Proof video required — shown to buyers in the gallery</li>
+                  <li>Media trust check runs automatically after uploads</li>
+                </ul>
               </div>
             </section>
 
             {/* Actions */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 sm:px-6 py-3">
+            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 sm:px-6 py-3 md:relative md:sticky md:bottom-0 md:z-10 md:mt-6 md:rounded-b-2xl">
               <div className="mx-auto w-full max-w-6xl flex flex-col sm:flex-row gap-2 sm:justify-end">
                 <Button
                   variant="outline"
@@ -2746,7 +3032,7 @@ const ProductManagement: React.FC = () => {
                   variant="outline"
                   className="w-full sm:w-auto rounded-full border-gray-300 dark:border-gray-700"
                   disabled={productSubmitting}
-                  onClick={runSimilarityScan}
+                  onClick={() => runSimilarityScan()}
                 >
                   <ScanSearch className="w-4 h-4 mr-2" />
                   Run Trust Check

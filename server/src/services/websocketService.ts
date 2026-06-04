@@ -7,9 +7,10 @@ import { User } from '../models/User';
 import mongoose from 'mongoose';
 import { getAllowedCorsOrigins } from '../config/publicEnv';
 import { attachSystemMonitorNamespaces } from '../socket/systemMonitorSockets';
+import { attachLiveCommerceSockets } from '../socket/liveCommerceSockets';
 import { socketPresenceRegister, socketPresenceUnregister } from './socketRegistry';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+import { getJwtSecret } from '../config/jwtSecret';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -53,7 +54,7 @@ class WebSocketService {
       }
 
       try {
-        const decoded = jwt.verify(token, JWT_SECRET) as AuthTokenPayload;
+        const decoded = jwt.verify(token, getJwtSecret()) as AuthTokenPayload;
         socket.userId = decoded.id;
         socket.userRole = decoded.role;
         next();
@@ -84,6 +85,7 @@ class WebSocketService {
       if (socket.userRole === 'admin') {
         socket.join('admin:kyc');
         socket.join('admin:marketing');
+        socket.join('admin:intelligence');
       }
 
       // Handle inbox events
@@ -103,6 +105,7 @@ class WebSocketService {
     });
 
     attachSystemMonitorNamespaces(this.io);
+    attachLiveCommerceSockets(this.io);
 
     console.log('✅ WebSocket server initialized');
   }
@@ -385,6 +388,24 @@ class WebSocketService {
   ) {
     if (!this.io) return;
     this.io.to('admin:marketing').emit(event, { ...payload, at: new Date().toISOString() });
+  }
+
+  /** Live platform pulse for admin intelligence search (orders, payments, etc.). */
+  emitAdminIntelligencePulse(payload: {
+    entityType: string;
+    entityId: string;
+    title: string;
+    subtitle?: string;
+    deepLink?: string;
+    moduleLabel?: string;
+    status?: string;
+    event?: 'created' | 'updated';
+  }) {
+    if (!this.io) return;
+    this.io.to('admin:intelligence').emit('admin_intelligence_pulse', {
+      ...payload,
+      at: new Date().toISOString(),
+    });
   }
 
   /**

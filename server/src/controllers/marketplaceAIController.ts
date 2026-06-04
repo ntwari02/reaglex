@@ -121,7 +121,7 @@ export async function getHomeFeedSection(req: AuthenticatedRequest, res: Respons
   try {
     const id = String(req.params.section || '') as FeedSectionId;
     const allowed: FeedSectionId[] = [
-      'hero', 'foryou', 'trending', 'deals', 'fresh', 'bestsellers', 'near_you', 'inspired',
+      'hero', 'foryou', 'trending', 'deals', 'fresh', 'bestsellers', 'near_you', 'inspired', 'upcoming',
     ];
     if (!allowed.includes(id)) return res.status(400).json({ message: 'Unknown section.' });
 

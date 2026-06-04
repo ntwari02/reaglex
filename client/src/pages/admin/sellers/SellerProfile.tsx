@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Store, Mail, Phone, MapPin, Calendar, FileText, Star, Shield } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, Store, Mail, Phone, MapPin, Calendar, FileText, Star, Shield, Loader2, AlertTriangle } from 'lucide-react';
+import { adminAPI } from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 import SellerProducts from './SellerProducts';
 import SellerPerformance from './SellerPerformance';
 import SellerOrders from './SellerOrders';
@@ -40,30 +42,91 @@ const tabs: { id: TabId; label: string }[] = [
   { id: 'settings', label: 'Store Settings' },
 ];
 
-export default function SellerProfile({ sellerId, onBack }: SellerProfileProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+type SellerView = {
+  id: string;
+  sellerName: string;
+  storeName: string;
+  email: string;
+  phone: string;
+  status: string;
+  kycStatus: string;
+  country: string;
+  city: string;
+  address: string;
+  joinDate: string;
+  totalProducts: number;
+  totalOrders: number;
+  earnings: number;
+  rating: number | null;
+  reviews: number;
+  disputes: number;
+  tickets: number;
+  warningCount: number;
+};
 
-  // Mock seller data - in real app, fetch by sellerId
-  const seller = {
-    id: sellerId,
-    sellerName: 'John Tech Store',
-    storeName: 'TechHub Electronics',
-    email: 'john@techhub.com',
-    phone: '+1 555 123 4567',
-    status: 'active' as const,
-    kycStatus: 'verified' as const,
-    country: 'United States',
-    city: 'San Francisco',
-    address: '123 Tech Street, SF, CA 94102',
-    joinDate: '2023-01-15',
-    totalProducts: 245,
-    totalOrders: 1234,
-    earnings: 125000,
-    rating: 4.8,
-    reviews: 892,
+function mapSellerDetails(raw: Awaited<ReturnType<typeof adminAPI.getSellerDetails>>['seller']): SellerView {
+  const kycMap: Record<string, string> = {
+    approved: 'verified',
+    pending: 'pending',
+    rejected: 'rejected',
   };
+  const join = raw.createdAt ? new Date(raw.createdAt).toISOString().split('T')[0] : '';
+  return {
+    id: raw.id,
+    sellerName: raw.sellerName,
+    storeName: raw.storeName,
+    email: raw.email,
+    phone: raw.phone,
+    status: raw.status,
+    kycStatus: kycMap[raw.verificationStatus] || raw.verificationStatus || 'pending',
+    country: raw.location || 'N/A',
+    city: '',
+    address: raw.location || '',
+    joinDate: join,
+    totalProducts: raw.totalProducts ?? 0,
+    totalOrders: raw.totalOrders ?? 0,
+    earnings: raw.earnings ?? 0,
+    rating: null,
+    reviews: 0,
+    disputes: raw.disputes ?? 0,
+    tickets: raw.tickets ?? 0,
+    warningCount: raw.warningCount ?? 0,
+  };
+}
+
+export default function SellerProfile({ sellerId, onBack }: SellerProfileProps) {
+  const showToast = useToastStore((s) => s.showToast);
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [seller, setSeller] = useState<SellerView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!sellerId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await adminAPI.getSellerDetails(sellerId);
+        if (!cancelled) setSeller(mapSellerDetails(res.seller));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to load seller';
+        if (!cancelled) {
+          setError(msg);
+          showToast(msg, 'error');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sellerId, showToast]);
 
   const renderTabContent = () => {
+    if (!seller) return null;
     switch (activeTab) {
       case 'overview':
         return <OverviewTab seller={seller} />;
@@ -89,6 +152,31 @@ export default function SellerProfile({ sellerId, onBack }: SellerProfileProps) 
         return null;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
+  if (error || !seller) {
+    return (
+      <div className="space-y-4">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to sellers
+        </button>
+        <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <p>{error || 'Seller not found'}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-10">
@@ -151,12 +239,8 @@ function OverviewTab({ seller }: { seller: any }) {
           <p className="text-2xl font-bold text-gray-900 dark:text-white">${seller.earnings.toLocaleString()}</p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Rating</p>
-          <div className="flex items-center gap-2">
-            <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{seller.rating}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">({seller.reviews} reviews)</p>
-          </div>
+          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Open disputes</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{seller.disputes}</p>
         </div>
       </div>
 
@@ -175,9 +259,7 @@ function OverviewTab({ seller }: { seller: any }) {
             </div>
             <div className="flex items-center gap-3">
               <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600 dark:text-gray-300">
-                {seller.address}, {seller.city}, {seller.country}
-              </span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">{seller.address || seller.country}</span>
             </div>
             <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-gray-400" />
@@ -204,29 +286,14 @@ function OverviewTab({ seller }: { seller: any }) {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-300">Store Name</span>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">{seller.storeName}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Warnings</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{seller.warningCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-300">Support tickets</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{seller.tickets}</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow dark:border-gray-800 dark:bg-gray-900">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
-        <div className="flex flex-wrap gap-2">
-          <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
-            Approve KYC
-          </button>
-          <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-300">
-            Suspend Seller
-          </button>
-          <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-300">
-            Send Message
-          </button>
-          <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-300">
-            Reset Password
-          </button>
         </div>
       </div>
     </div>

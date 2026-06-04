@@ -111,7 +111,21 @@ function isPromoCategory(category?: string): boolean {
     category === 'cart_pulse' ||
     category === 'browse_abandon' ||
     category === 'winback' ||
-    category === 'abandoned_cart'
+    category === 'abandoned_cart' ||
+    category === 'live'
+  );
+}
+
+function isMessageCategory(category?: string): boolean {
+  return category === 'message' || category === 'messages';
+}
+
+function isOrderCategory(category?: string): boolean {
+  return (
+    category === 'order' ||
+    category === 'seller' ||
+    category === 'return' ||
+    category === 'refund'
   );
 }
 
@@ -134,7 +148,11 @@ async function buildUserOptInMap(
       String(u._id),
       isPromoCategory(msg.category)
         ? Boolean(allow.promotions ?? true)
-        : Boolean(allow.orderUpdates ?? allow.messages ?? true),
+        : isMessageCategory(msg.category)
+          ? Boolean(allow.messages ?? true)
+          : isOrderCategory(msg.category)
+            ? Boolean(allow.orderUpdates ?? true)
+            : Boolean(allow.orderUpdates ?? allow.messages ?? true),
     );
   }
   return allowedByUser;

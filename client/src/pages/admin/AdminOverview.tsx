@@ -838,14 +838,14 @@ const globeMarkers = useMemo<GlobeMarker[]>(() => {
 
   return (
     <div className="w-full overflow-x-hidden">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="admin-page-shell max-w-[1600px] mx-auto px-0 py-2 space-y-4 sm:space-y-6 lg:space-y-8 sm:py-4 lg:px-0 lg:py-6">
         {/* Command Header */}
         <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
             <p className="text-xs font-semibold tracking-[0.3em] text-emerald-500 uppercase">
               Platform Control Tower
             </p>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+        <h1 className="admin-page-title">Admin Dashboard</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
             Real-time platform overview and operations
           </p>

@@ -1,16 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Loader2, RefreshCw, Search, Sparkles } from 'lucide-react';
+import { CreditCard, Loader2, Receipt, RefreshCw, Search, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToastStore } from '@/stores/toastStore';
 import { adminSellerSubscriptionsApi } from '@/services/adminSellerSubscriptionsApi';
 import PlanCompareModal, { type ComparePlan } from './PlanCompareModal';
 import SubscriptionWorkspace, { type ListRow } from './SubscriptionWorkspace';
+import SubscriptionPlanCatalog from './SubscriptionPlanCatalog';
+import SubscriptionPaymentLogs from './SubscriptionPaymentLogs';
+import '@/styles/admin-subscription.css';
+
+type AdminTab = 'sellers' | 'plans' | 'payments';
 
 type Row = Awaited<ReturnType<typeof adminSellerSubscriptionsApi.list>>['items'][number];
 
 export default function AdminSubscriptionManagementPage() {
   const showToast = useToastStore((s) => s.showToast);
+  const [adminTab, setAdminTab] = useState<AdminTab>('sellers');
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -140,6 +146,27 @@ export default function AdminSubscriptionManagementPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <div className="adm-sub-tabs mr-2">
+            {(
+              [
+                { id: 'sellers' as const, label: 'Sellers' },
+                { id: 'plans' as const, label: 'Plan catalog' },
+                { id: 'payments' as const, label: 'Payment log' },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`adm-sub-tab${adminTab === t.id ? ' is-active' : ''}`}
+                onClick={() => setAdminTab(t.id)}
+              >
+                {t.id === 'payments' && <Receipt className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />}
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {adminTab === 'sellers' && (
+            <>
           <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}>
             <Sparkles className="h-4 w-4 mr-1" />
             Compare plans
@@ -148,8 +175,16 @@ export default function AdminSubscriptionManagementPage() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             <span className="ml-2">Refresh</span>
           </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {adminTab === 'plans' && <SubscriptionPlanCatalog />}
+      {adminTab === 'payments' && <SubscriptionPaymentLogs />}
+
+      {adminTab === 'sellers' && (
+      <>
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[
@@ -344,6 +379,8 @@ export default function AdminSubscriptionManagementPage() {
           }
         }}
       />
+      </>
+      )}
     </div>
   );
 }

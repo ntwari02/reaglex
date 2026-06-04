@@ -78,6 +78,30 @@ const uploadMultiple = m10.array('images', 10);
 // Product inventory upload (field name "images", max 5)
 const uploadProductImages = m10.array('images', 5);
 
+const videoProofStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async () => ({
+    folder: 'reaglex/products/proof-videos',
+    resource_type: 'video',
+    allowed_formats: ['mp4', 'webm', 'mov', 'm4v'],
+    public_id: `proof-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+  }),
+});
+
+const videoProofFileFilter = (req, file, cb) => {
+  if (String(file.mimetype || '').startsWith('video/')) {
+    cb(null, true);
+    return;
+  }
+  cb(new Error('Invalid file type. Only video files are allowed.'), false);
+};
+
+const uploadProductVideoProof = multer({
+  storage: videoProofStorage,
+  fileFilter: videoProofFileFilter,
+  limits: { fileSize: 80 * 1024 * 1024 },
+}).single('video');
+
 const uploadAvatar = m10.single('avatar');
 const uploadLogo = m10.single('logo');
 const uploadBanner = m10.single('banner');
@@ -121,6 +145,7 @@ module.exports = {
   uploadSingle,
   uploadMultiple,
   uploadProductImages,
+  uploadProductVideoProof,
   uploadAvatar,
   uploadLogo,
   uploadBanner,

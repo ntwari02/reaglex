@@ -1,0 +1,136 @@
+/* Seller notification cards — modern, calm, visual */
+
+.sln-card {
+  position: relative;
+  display: block;
+  border-radius: 16px;
+  border: 1px solid var(--border-card);
+  background: var(--card-bg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.sln-card:hover {
+  border-color: color-mix(in srgb, var(--sln-accent, var(--brand-primary)) 35%, var(--border-card));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--sln-accent, var(--brand-primary)) 12%, transparent);
+}
+
+.sln-card--unread {
+  background: color-mix(in srgb, var(--sln-surface, var(--brand-tint)) 55%, var(--card-bg));
+}
+
+.sln-card__accent-bar {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--sln-accent, var(--brand-primary)),
+    color-mix(in srgb, var(--sln-accent, var(--brand-primary)) 40%, transparent)
+  );
+}
+
+.sln-card__body {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.sln-card--compact .sln-card__body {
+  padding: 12px 14px;
+}
+
+.sln-card__icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sln-surface, var(--brand-tint));
+  color: var(--sln-accent, var(--brand-primary));
+}
+
+.sln-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sln-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sln-card__kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sln-accent, var(--brand-primary));
+}
+
+.sln-card__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--sln-accent, var(--brand-primary));
+  flex-shrink: 0;
+}
+
+.sln-card__title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.sln-card__message {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.sln-card__thumbs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.sln-card__thumbs img {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--border-card);
+}
+
+.sln-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sln-card__time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.sln-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sln-accent, var(--brand-primary));
+}
+
+.sln-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

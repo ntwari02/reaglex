@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, User, Briefcase, Mail, AlertCircle, Check, Fingerprint, Shield } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import { getDashboardPathForRole } from '../lib/authRouting';
 import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
 import { API_BASE_URL } from '../lib/config';
@@ -142,9 +143,7 @@ export function Signup() {
     }
     showToast('Signed in with biometric. Welcome back!', 'success');
     const { user } = useAuthStore.getState();
-    if (user?.role === 'seller') navigate('/seller');
-    else if (user?.role === 'admin') navigate('/admin');
-    else navigate('/');
+    navigate(getDashboardPathForRole(user?.role));
   };
 
   return (

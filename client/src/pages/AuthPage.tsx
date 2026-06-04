@@ -10,6 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
 import { authAPI } from '../lib/api';
 import { API_BASE_URL } from '../lib/config';
+import { getDashboardPathForRole, resolvePostLoginPath } from '../lib/authRouting';
 
 const PRIMARY     = 'var(--brand-primary)';
 const SUCCESS     = 'var(--badge-success-text)';
@@ -58,33 +59,24 @@ function AuthInput({
   rightEl?: React.ReactNode; onFocus?: () => void; onBlur?: () => void;
   required?: boolean; autoFocus?: boolean;
 }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
-  const ring = error
-    ? '0 0 0 2px rgba(239,68,68,0.45)'
+  const inputState = error
+    ? 'premium-input--error'
     : valid
-      ? '0 0 0 2px rgba(16,185,129,0.45)'
-      : focused
-        ? `0 0 0 2.5px color-mix(in srgb, var(--brand-primary) 55%, transparent), 0 0 18px color-mix(in srgb, var(--brand-primary) 15%, transparent)`
-        : `0 0 0 1.5px ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`;
-
-  const inputBg = error
-    ? 'var(--badge-error-bg)'
-    : focused
-      ? isDark ? 'rgba(255,255,255,0.05)' : 'var(--card-bg)'
-      : isDark ? 'rgba(255,255,255,0.04)' : 'var(--bg-tertiary)';
+      ? 'premium-input--valid'
+      : '';
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
+      <label
+        className="auth-mobile-input-label premium-input-label text-[11px] font-bold uppercase tracking-[0.1em]"
+        style={{ color: 'var(--text-muted)' }}
+      >
         {label}{required ? <span style={{ color: PRIMARY }}> *</span> : ''}
       </label>
-      <div className="relative">
+      <div className="premium-input-wrap">
         {LeftIcon && (
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200"
-            style={{ color: focused && !error ? PRIMARY : 'var(--text-faint)' }}>
-            <LeftIcon size={17} />
+          <span className="premium-input-icon premium-input-icon--left" aria-hidden>
+            <LeftIcon size={18} />
           </span>
         )}
         <input
@@ -96,21 +88,25 @@ function AuthInput({
           placeholder={placeholder}
           required={required}
           autoFocus={autoFocus}
-          className="w-full h-[54px] rounded-2xl outline-none text-[15px] transition-all duration-200"
-          style={{
-            background: inputBg,
-            boxShadow: ring,
-            color: 'var(--text-primary)',
-            paddingLeft: LeftIcon ? '46px' : '18px',
-            paddingRight: rightEl || valid ? '46px' : '18px',
-          }}
+          className={[
+            'premium-input auth-mobile-input w-full outline-none text-base sm:text-[15px]',
+            LeftIcon ? 'premium-input--has-left-icon' : '',
+            rightEl || valid ? 'premium-input--has-right-icon' : '',
+            inputState,
+            focused && !error ? 'is-focused' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          style={{ color: 'var(--text-primary)' }}
         />
         {rightEl && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2">{rightEl}</div>
+          <span className="premium-input-icon premium-input-icon--right premium-input-icon--interactive">
+            {rightEl}
+          </span>
         )}
         {valid && !rightEl && (
-          <span className="absolute right-4 top-1/2 -translate-y-1/2">
-            <Check size={14} style={{ color: SUCCESS }} />
+          <span className="premium-input-icon premium-input-icon--right" aria-hidden>
+            <Check size={16} style={{ color: SUCCESS }} />
           </span>
         )}
       </div>
@@ -164,7 +160,7 @@ function PrimaryBtn({
       disabled={disabled || loading}
       whileHover={!disabled && !loading ? { y: -2 } : {}}
       whileTap={!disabled ? { scale: 0.98 } : {}}
-      className="relative w-full h-[56px] rounded-2xl font-bold text-[16px] flex items-center justify-center gap-2.5 overflow-hidden border-none cursor-pointer select-none"
+      className="auth-mobile-btn-primary relative w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-[15px] sm:text-[16px] flex items-center justify-center gap-2.5 overflow-hidden border-none cursor-pointer select-none"
       style={{
         background: bg,
         color: 'var(--text-on-accent)',
@@ -216,7 +212,7 @@ function GoogleBtn({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
-      className="w-full h-[54px] rounded-2xl flex items-center justify-center gap-3 text-[15px] font-semibold border-none cursor-pointer transition-all"
+      className="auth-mobile-btn-google w-full h-12 sm:h-[54px] rounded-xl sm:rounded-2xl flex items-center justify-center gap-3 text-[15px] font-semibold border-none cursor-pointer transition-all"
       style={{
         background: 'var(--bg-secondary)',
         color: 'var(--text-primary)',
@@ -283,10 +279,7 @@ function LoginFormContent({
       const { user } = useAuthStore.getState();
       showToast(`Welcome back, ${user?.full_name?.split(' ')[0] || 'there'}! 👋`, 'success');
       setTimeout(() => {
-        if (redirectParam?.startsWith('/')) navigate(redirectParam);
-        else if (user?.role === 'seller') navigate('/seller');
-        else if (user?.role === 'admin')  navigate('/admin');
-        else navigate('/');
+        navigate(resolvePostLoginPath(user?.role, redirectParam));
       }, 600);
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Unexpected error.'); doShake();
@@ -300,12 +293,11 @@ function LoginFormContent({
       onSubmit={handleSubmit}
       initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
-      className={`flex flex-col gap-5 ${shake ? 'auth-shake-anim' : ''}`}
+      className={`auth-mobile-form flex flex-col gap-3 sm:gap-5 ${shake ? 'auth-shake-anim' : ''}`}
     >
-      {/* Heading */}
-      <div className="mb-1">
-        <h2 className="text-[26px] font-black mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.1 }}>Welcome back</h2>
-        <p className="text-[15px]" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
+      <div className="auth-mobile-panel-heading mb-0 sm:mb-1">
+        <h2 className="auth-mobile-title text-xl sm:text-[26px] font-bold sm:font-black mb-0.5 sm:mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>Welcome back</h2>
+        <p className="auth-mobile-subtitle text-sm sm:text-[15px]" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -482,18 +474,17 @@ function SignupFormContent({ onRegistered }: { onRegistered: (email: string) => 
       onSubmit={handleSubmit}
       initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.28 }}
-      className="flex flex-col gap-4"
+      className="auth-mobile-form flex flex-col gap-3 sm:gap-4"
     >
-      {/* Heading */}
-      <div className="mb-1">
-        <h2 className="text-[26px] font-black mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.1 }}>Create account</h2>
-        <p className="text-[15px]" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers on Reaglex</p>
+      <div className="auth-mobile-panel-heading mb-0 sm:mb-1">
+        <h2 className="auth-mobile-title text-xl sm:text-[26px] font-bold sm:font-black mb-0.5 sm:mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>Create account</h2>
+        <p className="auth-mobile-subtitle text-sm sm:text-[15px]" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers on Reaglex</p>
       </div>
 
       <ErrorBanner message={error} />
 
       {/* Name + Email */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="auth-mobile-field-grid grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <AuthInput label="Full Name" value={fd.fullName} onChange={f('fullName')} placeholder="Your full name"
           leftIcon={User} valid={fd.fullName.trim().length >= 2}
           focused={focused === 'name'} onFocus={() => setFocused('name')} onBlur={() => setFocused(null)} required autoFocus />
@@ -718,7 +709,7 @@ function OtpInputs({
           onChange={(e) => onChange(i, e.target.value)}
           onKeyDown={(e) => onKeyDown(i, e)}
           onPaste={onPaste}
-          className="w-[13vw] max-w-[58px] min-w-[42px] h-[58px] sm:h-[64px] rounded-2xl text-center text-[22px] font-black outline-none transition-all duration-200"
+          className="premium-input-exempt otp-digit w-[13vw] max-w-[58px] min-w-[42px] h-[58px] sm:h-[64px] rounded-2xl text-center text-[22px] font-black outline-none transition-all duration-200"
           style={{
             background: isDark ? 'rgba(255,255,255,0.06)' : '#f8f9fc',
             boxShadow: error
@@ -766,9 +757,14 @@ function ThemeToggle() {
 export default function AuthPage() {
   const navigate            = useNavigate();
   const [searchParams]      = useSearchParams();
-  const { setUserAndToken } = useAuthStore();
+  const { setUserAndToken, user, initialized, loading } = useAuthStore();
   const { theme }           = useTheme();
   const isDark              = theme === 'dark';
+
+  useEffect(() => {
+    if (!initialized || loading || !user) return;
+    navigate(getDashboardPathForRole(user.role), { replace: true });
+  }, [initialized, loading, user, navigate]);
 
   const tab      = (searchParams.get('tab') as 'login'|'signup'|'forgot') || 'login';
   const validTab = (['login','signup','forgot'] as const).includes(tab as any) ? tab : 'login';
@@ -1002,12 +998,12 @@ export default function AuthPage() {
       <div className="flex flex-col flex-1 min-h-0 w-full">
 
         {/* Card area */}
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0
-                        px-3 py-5 sm:px-6 sm:py-8 md:px-8 md:py-10">
+        <div className="auth-mobile-card-wrap flex-1 flex flex-col items-stretch sm:items-center justify-start sm:justify-center min-h-0 w-full
+                        px-3 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10">
           <motion.div
             initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="w-full sm:max-w-[520px] relative overflow-hidden rounded-2xl"
+            className="auth-mobile-card w-full sm:max-w-[520px] relative overflow-hidden rounded-2xl sm:rounded-2xl flex-shrink-0"
             style={{
               background: cardBg,
               boxShadow: cardShadow,
@@ -1036,16 +1032,19 @@ export default function AuthPage() {
             }} />
 
             {/* Padding wrapper */}
-            <div className="relative z-10 p-5 sm:p-8">
+            <div className="auth-mobile-card-inner relative z-10 p-4 sm:p-8">
 
-              {/* Window dots + theme toggle */}
-              <div className="flex items-center gap-1.5 mb-5 sm:mb-6">
+              <div className="auth-mobile-chrome flex items-center gap-1.5 mb-4 sm:mb-6 max-sm:hidden">
                 <span className="w-3 h-3 rounded-full" style={{ background: '#ff5f57' }} />
                 <span className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
                 <span className="w-3 h-3 rounded-full" style={{ background: '#28c840' }} />
                 <span className="text-[10px] font-bold tracking-[0.12em] uppercase ml-3"
                   style={{ color: 'var(--text-faint)' }}>REAGLEX · SECURE</span>
                 <div className="ml-auto"><ThemeToggle /></div>
+              </div>
+
+              <div className="flex items-center justify-end mb-3 sm:hidden">
+                <ThemeToggle />
               </div>
 
               <AnimatePresence mode="wait">
@@ -1057,35 +1056,39 @@ export default function AuthPage() {
                     exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.22 }}
                   >
                     {/* Tab switcher */}
-                    <div className="flex items-center p-1.5 rounded-2xl mb-5 sm:mb-7 relative"
-                      style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
+                    <div
+                      className="auth-mobile-tab-bar flex items-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl mb-4 sm:mb-7 relative"
+                      data-active-tab={validTab === 'signup' ? 'signup' : 'login'}
+                      style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
+                    >
                       <Link
                         to="/auth?tab=login"
-                        className="relative z-10 flex-1 text-center py-2.5 rounded-xl text-[14px] font-bold transition-colors"
+                        className="auth-mobile-tab-link relative z-10 flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[13px] sm:text-[14px] font-bold transition-colors"
                         style={{ color: (validTab === 'login' || validTab === 'forgot') ? 'var(--text-primary)' : 'var(--text-faint)' }}
                       >
                         Sign In
                       </Link>
                       <Link
                         to="/auth?tab=signup"
-                        className="relative z-10 flex-1 text-center py-2.5 rounded-xl text-[14px] font-bold transition-colors"
+                        className="auth-mobile-tab-link relative z-10 flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[13px] sm:text-[14px] font-bold transition-colors"
                         style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-faint)' }}
                       >
                         Register
                       </Link>
                       <motion.span
                         layoutId="auth-v2-pill"
-                        className="absolute top-1.5 rounded-xl"
+                        className="auth-mobile-tab-pill absolute rounded-xl pointer-events-none"
                         style={{
                           background: 'var(--card-bg)',
                           boxShadow: (validTab === 'login' || validTab === 'forgot')
                             ? `var(--shadow-cta), 0 0 0 1px color-mix(in srgb, var(--brand-primary) 18%, transparent)`
                             : `0 2px 12px var(--navbar-violet-glow-soft), 0 0 0 1px var(--navbar-violet-mix)`,
-                          height: 'calc(100% - 12px)',
+                          top: 4,
+                          bottom: 4,
+                          width: 'calc(50% - 4px)',
                         }}
                         animate={{
-                          left:  validTab === 'signup' ? 'calc(50% + 6px)' : '6px',
-                          width: 'calc(50% - 12px)',
+                          left: validTab === 'signup' ? 'calc(50%)' : 4,
                         }}
                         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                       />
@@ -1135,8 +1138,8 @@ export default function AuthPage() {
                         transition={{ duration: 2, repeat: Infinity }} />
                     </div>
 
-                    <h2 className="text-[26px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Verify Email</h2>
-                    <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)', maxWidth: 320, margin: '0 auto 24px' }}>
+                    <h2 className="auth-mobile-otp-title text-xl sm:text-[26px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Verify Email</h2>
+                    <p className="auth-mobile-subtitle text-sm sm:text-[14px] mb-4 sm:mb-6" style={{ color: 'var(--text-muted)', maxWidth: 320, margin: '0 auto' }}>
                       We sent a 6-digit code to{' '}
                       <span className="font-bold" style={{ color: PRIMARY }}>{otpEmail}</span>.
                       Check your inbox and spam folder.
@@ -1200,8 +1203,8 @@ export default function AuthPage() {
                         <Lock size={32} style={{ color: PRIMARY }} />
                       </div>
                     </div>
-                    <h2 className="text-[26px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
-                    <p className="text-[14px] mb-6" style={{ color: 'var(--text-muted)', maxWidth: 320, margin: '0 auto 24px' }}>
+                    <h2 className="auth-mobile-otp-title text-xl sm:text-[26px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
+                    <p className="auth-mobile-subtitle text-sm sm:text-[14px] mb-4 sm:mb-6" style={{ color: 'var(--text-muted)', maxWidth: 320, margin: '0 auto' }}>
                       Enter the 6-digit code sent to{' '}
                       <span className="font-bold" style={{ color: PRIMARY }}>{resetEmail}</span>, then set a new password.
                     </p>
@@ -1278,15 +1281,13 @@ export default function AuthPage() {
                         animate={{ boxShadow: ['0 0 0 0 rgba(16,185,129,0.3)', '0 0 0 14px rgba(16,185,129,0)', '0 0 0 0 rgba(16,185,129,0)'] }}
                         transition={{ duration: 2, repeat: Infinity }} />
                     </div>
-                    <h2 className="text-[28px] font-black mb-2" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
-                    <p className="text-[15px] mb-7" style={{ color: 'var(--text-muted)' }}>
+                    <h2 className="auth-mobile-otp-title text-xl sm:text-[28px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
+                    <p className="auth-mobile-subtitle text-sm sm:text-[15px] mb-5 sm:mb-7" style={{ color: 'var(--text-muted)' }}>
                       Your account is ready. Welcome to Reaglex.
                     </p>
                     <PrimaryBtn type="button" onClick={() => {
                       const { user } = useAuthStore.getState();
-                      if (user?.role === 'seller') navigate('/seller');
-                      else if (user?.role === 'admin') navigate('/admin');
-                      else navigate('/');
+                      navigate(getDashboardPathForRole(user?.role));
                     }}>
                       Go to Dashboard →
                     </PrimaryBtn>
@@ -1295,14 +1296,16 @@ export default function AuthPage() {
 
               </AnimatePresence>
 
-              {/* Footer inside card */}
-              <p className="mt-6 text-[12px] text-center leading-relaxed"
+              {/* Footer inside card — hide on signup (terms already in form) */}
+              {validTab !== 'signup' && (
+              <p className="auth-mobile-footer-legal mt-4 sm:mt-6 text-[11px] sm:text-[12px] text-center leading-relaxed"
                 style={{ color: 'var(--text-faint)' }}>
                 By continuing you agree to our{' '}
                 <a href="/terms" className="hover:underline font-semibold" style={{ color: PRIMARY }}>Terms of Service</a>
                 {' '}and{' '}
                 <a href="/privacy" className="hover:underline font-semibold" style={{ color: PRIMARY }}>Privacy Policy</a>.
               </p>
+              )}
             </div>
           </motion.div>
         </div>

@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   ShoppingCart,
   Search,
-  Filter,
   Eye,
   AlertTriangle,
   Package,
@@ -12,7 +11,10 @@ import {
   Clock,
   User,
   MapPin,
+  Loader2,
 } from 'lucide-react';
+import { adminOrdersAPI } from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 
 interface SellerOrdersProps {
   sellerId: string;
@@ -43,85 +45,80 @@ interface Order {
   hasReturnRequest: boolean;
 }
 
-const mockOrders: Order[] = [
-  {
-    id: 'ORD-001',
-    customerName: 'John Doe',
-    customerEmail: 'john@example.com',
-    status: 'delivered',
-    total: 299.99,
-    items: 2,
-    orderDate: '2024-03-10',
-    shippingAddress: '123 Main St, New York, NY 10001',
-    trackingNumber: 'TRACK-123456',
-    isSuspicious: false,
-    hasRefundRequest: false,
-    hasReturnRequest: false,
-  },
-  {
-    id: 'ORD-002',
-    customerName: 'Jane Smith',
-    customerEmail: 'jane@example.com',
-    status: 'shipped',
-    total: 149.99,
-    items: 1,
-    orderDate: '2024-03-12',
-    shippingAddress: '456 Oak Ave, Los Angeles, CA 90001',
-    trackingNumber: 'TRACK-789012',
-    isSuspicious: false,
-    hasRefundRequest: false,
-    hasReturnRequest: false,
-  },
-  {
-    id: 'ORD-003',
-    customerName: 'Bob Johnson',
-    customerEmail: 'bob@example.com',
-    status: 'pending',
-    total: 89.99,
-    items: 3,
-    orderDate: '2024-03-15',
-    shippingAddress: '789 Pine Rd, Chicago, IL 60601',
-    isSuspicious: true,
-    hasRefundRequest: false,
-    hasReturnRequest: false,
-  },
-  {
-    id: 'ORD-004',
-    customerName: 'Alice Brown',
-    customerEmail: 'alice@example.com',
-    status: 'delivered',
-    total: 199.99,
-    items: 1,
-    orderDate: '2024-03-08',
-    shippingAddress: '321 Elm St, Houston, TX 77001',
-    trackingNumber: 'TRACK-345678',
-    isSuspicious: false,
-    hasRefundRequest: true,
-    hasReturnRequest: false,
-  },
-  {
-    id: 'ORD-005',
-    customerName: 'Charlie Wilson',
-    customerEmail: 'charlie@example.com',
-    status: 'cancelled',
-    total: 59.99,
-    items: 1,
-    orderDate: '2024-03-14',
-    shippingAddress: '654 Maple Dr, Phoenix, AZ 85001',
-    isSuspicious: false,
-    hasRefundRequest: false,
-    hasReturnRequest: false,
-  },
+const ORDER_STATUSES: OrderStatus[] = [
+  'pending',
+  'accepted',
+  'packed',
+  'shipped',
+  'delivered',
+  'cancelled',
+  'refunded',
+  'returned',
 ];
 
+function mapApiOrder(o: Record<string, unknown>): Order {
+  const addr = o.shippingAddress as Record<string, string> | undefined;
+  const addressStr = addr
+    ? [addr.street, addr.city, addr.state, addr.zip].filter(Boolean).join(', ')
+    : String(o.city || '');
+  const rawStatus = String(o.status || 'pending').toLowerCase();
+  const status = (ORDER_STATUSES.includes(rawStatus as OrderStatus) ? rawStatus : 'pending') as OrderStatus;
+  const paymentStatus = String(o.paymentStatus || '').toLowerCase();
+  const total = Number(o.totalAmount ?? o.total ?? 0);
+  return {
+    id: String(o.orderId || o.id),
+    customerName: String(o.customerName || 'Customer'),
+    customerEmail: String(o.customerEmail || ''),
+    status,
+    total,
+    items: Number(o.itemsCount ?? (Array.isArray(o.items) ? o.items.length : 0)),
+    orderDate: String(o.orderDate || ''),
+    shippingAddress: addressStr,
+    trackingNumber: o.trackingNumber ? String(o.trackingNumber) : undefined,
+    isSuspicious: Boolean(o.isHighValue),
+    hasRefundRequest: paymentStatus === 'refunded',
+    hasReturnRequest: status === 'returned',
+  };
+}
+
 export default function SellerOrders({ sellerId }: SellerOrdersProps) {
+  const showToast = useToastStore((s) => s.showToast);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
 
+  const loadOrders = useCallback(async () => {
+    if (!sellerId) return;
+    setLoading(true);
+    try {
+      const res = await adminOrdersAPI.getOrders({
+        sellerId,
+        search: searchQuery || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        limit: 100,
+      });
+      setOrders((res.orders || []).map((o) => mapApiOrder(o as Record<string, unknown>)));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load orders';
+      showToast(msg, 'error');
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [sellerId, searchQuery, statusFilter, showToast]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      loadOrders();
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [loadOrders]);
+
   const filteredOrders = useMemo(() => {
-    return mockOrders.filter((order) => {
+    return orders.filter((order) => {
       const matchesSearch =
         order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -148,12 +145,12 @@ export default function SellerOrders({ sellerId }: SellerOrdersProps) {
   };
 
   const orderStats = {
-    total: mockOrders.length,
-    pending: mockOrders.filter((o) => o.status === 'pending').length,
-    shipped: mockOrders.filter((o) => o.status === 'shipped').length,
-    delivered: mockOrders.filter((o) => o.status === 'delivered').length,
-    suspicious: mockOrders.filter((o) => o.isSuspicious).length,
-    refundRequests: mockOrders.filter((o) => o.hasRefundRequest).length,
+    total: orders.length,
+    pending: orders.filter((o) => o.status === 'pending').length,
+    shipped: orders.filter((o) => o.status === 'shipped').length,
+    delivered: orders.filter((o) => o.status === 'delivered').length,
+    suspicious: orders.filter((o) => o.isSuspicious).length,
+    refundRequests: orders.filter((o) => o.hasRefundRequest).length,
   };
 
   return (
@@ -163,6 +160,12 @@ export default function SellerOrders({ sellerId }: SellerOrdersProps) {
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Seller Orders</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">All orders from this seller</p>
       </div>
+
+      {loading && (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 lg:grid-cols-6">
@@ -238,6 +241,13 @@ export default function SellerOrders({ sellerId }: SellerOrdersProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {!loading && filteredOrders.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No orders found for this seller.
+                  </td>
+                </tr>
+              )}
               {filteredOrders.map((order) => (
                 <tr
                   key={order.id}

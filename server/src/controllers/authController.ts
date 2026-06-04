@@ -7,6 +7,7 @@ import QRCode from 'qrcode';
 import { User } from '../models/User';
 import { PasswordResetToken } from '../models/PasswordResetToken';
 import { generateAuthToken, generate2FAPendingToken, verify2FAPendingToken, decodeAuthToken } from '../utils/generateToken';
+import { authCookieOptions } from '../utils/authCookie';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { ActiveSession } from '../models/ActiveSession';
 import { PendingLoginRequest } from '../models/PendingLoginRequest';
@@ -23,8 +24,18 @@ import {
 import { getClientUrl, getServerUrl } from '../config/publicEnv';
 import { recordLoginFailure, recordLoginSuccess } from '../services/systemMonitor.service';
 import { ensureReferralCodeForUser, applyReferralCodeOnRegister } from '../services/referralReward.service';
+import { formatUserWithAdminAccess } from '../services/adminAccess.service';
+import type { IUser } from '../models/User';
 
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
+
+function serializeAuthUser(user: InstanceType<typeof User>) {
+  const doc =
+    typeof (user as { toObject?: () => IUser }).toObject === 'function'
+      ? (user as InstanceType<typeof User>).toObject()
+      : (user as unknown as IUser);
+  return formatUserWithAdminAccess(doc);
+}
 
 const CLIENT_URL = getClientUrl();
 const SERVER_URL = getServerUrl();
@@ -208,7 +219,7 @@ const registerSchema = z.object({
   fullName: z.string().min(2).max(100),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(['buyer', 'seller', 'admin']).optional().default('buyer'),
+  role: z.enum(['buyer', 'seller']).optional().default('buyer'),
   referralCode: z.string().max(32).optional(),
 });
 
@@ -220,7 +231,9 @@ const loginSchema = z.object({
 export async function register(req: Request, res: Response) {
   
   try {
-    const { fullName, email, password, role, referralCode: signupReferralCode } = registerSchema.parse(req.body);
+    const parsed = registerSchema.parse(req.body);
+    const { fullName, email, password, referralCode: signupReferralCode } = parsed;
+    const role = parsed.role === 'seller' ? 'seller' : 'buyer';
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -367,22 +380,9 @@ export async function login(req: Request, res: Response) {
       const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
         recordLoginSuccess(req, user.role, user.email);
         res
-          .cookie('token', token, {
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: false,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-          })
+          .cookie('token', token, authCookieOptions())
           .json({
-            user: {
-              id: user._id,
-              fullName: user.fullName,
-              email: user.email,
-              role: user.role,
-              sellerVerificationStatus: user.sellerVerificationStatus,
-              isSellerVerified: user.isSellerVerified,
-              avatarUrl: user.avatarUrl,
-            },
+            user: serializeAuthUser(user),
             token,
           });
       });
@@ -394,22 +394,9 @@ export async function login(req: Request, res: Response) {
     recordLoginSuccess(req, user.role, user.email);
     fireLoginNotificationEmail(user, req);
     return res
-      .cookie('token', token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      })
+      .cookie('token', token, authCookieOptions())
       .json({
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          sellerVerificationStatus: user.sellerVerificationStatus,
-          isSellerVerified: user.isSellerVerified,
-          avatarUrl: user.avatarUrl,
-        },
+        user: serializeAuthUser(user),
         token,
       });
   } catch (err: any) {
@@ -456,22 +443,9 @@ export async function verify2FA(req: Request, res: Response) {
     }
     const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
       res
-        .cookie('token', token, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: false,
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        })
+        .cookie('token', token, authCookieOptions())
         .json({
-          user: {
-            id: user._id,
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
-            sellerVerificationStatus: user.sellerVerificationStatus,
-            isSellerVerified: user.isSellerVerified,
-            avatarUrl: user.avatarUrl,
-          },
+          user: serializeAuthUser(user),
           token,
         });
     });
@@ -567,22 +541,9 @@ export async function setup2FAConfirm(req: Request, res: Response) {
     await user.save();
     const completed = await completeLoginWithDeviceSession(user, req, res, (token) => {
       res
-        .cookie('token', token, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: false,
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        })
+        .cookie('token', token, authCookieOptions())
         .json({
-          user: {
-            id: user._id,
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
-            sellerVerificationStatus: user.sellerVerificationStatus,
-            isSellerVerified: user.isSellerVerified,
-            avatarUrl: user.avatarUrl,
-          },
+          user: serializeAuthUser(user),
           token,
         });
     });
@@ -723,15 +684,7 @@ export async function checkPendingRequest(req: Request, res: Response) {
     return res.json({
       approved: true,
       token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        sellerVerificationStatus: user.sellerVerificationStatus,
-        isSellerVerified: user.isSellerVerified,
-        avatarUrl: user.avatarUrl,
-      },
+      user: serializeAuthUser(user),
     });
   } catch (err: any) {
     console.error('Check pending request error:', err);
@@ -775,11 +728,32 @@ export async function approveDeviceByEmail(req: Request, res: Response) {
     pending.emailApprovalToken = undefined;
     pending.emailApprovalExpires = undefined;
     await pending.save();
-    return res.redirect(`${CLIENT_URL}/auth/approve-device-success?token=${encodeURIComponent(authToken)}`);
+    return res
+      .cookie('token', authToken, authCookieOptions())
+      .redirect(`${CLIENT_URL}/auth/approve-device-success`);
   } catch (err: any) {
     console.error('Approve device by email error:', err);
     return res.redirect(`${CLIENT_URL}/login?error=approval_failed`);
   }
+}
+
+/** Sync httpOnly cookie session to SPA localStorage (no JWT in URLs). */
+export async function sessionBootstrap(req: AuthenticatedRequest, res: Response) {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  const cookieToken = (req as Request & { cookies?: { token?: string } }).cookies?.token;
+  if (!cookieToken) {
+    return res.status(401).json({ message: 'Session cookie required' });
+  }
+  const user = await User.findById(req.user.id).select('-passwordHash');
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  return res.json({
+    token: cookieToken,
+    user: serializeAuthUser(user),
+  });
 }
 
 export async function me(req: AuthenticatedRequest, res: Response) {
@@ -792,7 +766,8 @@ export async function me(req: AuthenticatedRequest, res: Response) {
     return res.status(404).json({ message: 'User not found' });
   }
 
-  return res.json({ user });
+  const { formatUserWithAdminAccess } = await import('../services/adminAccess.service');
+  return res.json({ user: formatUserWithAdminAccess(user) });
 }
 
 /**
@@ -1123,15 +1098,7 @@ export async function completeGoogleRegistration(req: Request, res: Response) {
       return res.json({
         success: true,
         token,
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          sellerVerificationStatus: user.sellerVerificationStatus,
-          isSellerVerified: user.isSellerVerified,
-          avatarUrl: user.avatarUrl,
-        },
+        user: serializeAuthUser(user),
       });
     }
 
@@ -1379,16 +1346,7 @@ export async function verifyEmail(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Email verified successfully.',
       token: authToken,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        emailVerified: user.emailVerified,
-        role: user.role,
-        sellerVerificationStatus: user.sellerVerificationStatus,
-        isSellerVerified: user.isSellerVerified,
-        avatarUrl: user.avatarUrl,
-      },
+      user: serializeAuthUser(user),
     });
   } catch (err: any) {
     console.error('Verify email error:', err);
@@ -1516,15 +1474,7 @@ export async function verifyEmailWithOtp(req: Request, res: Response) {
       return res.status(200).json({
         message: 'Email verified successfully.',
         token,
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          sellerVerificationStatus: user.sellerVerificationStatus,
-          isSellerVerified: user.isSellerVerified,
-          avatarUrl: user.avatarUrl,
-        },
+        user: serializeAuthUser(user),
       });
     }
     if (!user.emailVerificationOtp || !user.emailVerificationOtpExpires) {
@@ -1550,15 +1500,7 @@ export async function verifyEmailWithOtp(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Email verified successfully.',
       token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        sellerVerificationStatus: user.sellerVerificationStatus,
-        isSellerVerified: user.isSellerVerified,
-        avatarUrl: user.avatarUrl,
-      },
+      user: serializeAuthUser(user),
     });
   } catch (err: any) {
     if (err instanceof z.ZodError) {

@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { QueryProvider } from './providers/QueryProvider';
+import StreamProvider from './providers/StreamProvider';
 import { ScrollToTop } from './components/ScrollToTop';
 import SpaBuyerShell from './spa/SpaBuyerShell';
 import { ResetPassword } from './pages/ResetPassword';
@@ -20,6 +21,11 @@ import SellerRoute from './components/SellerRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './components/AdminDashboard';
 import { useAuthStore } from './stores/authStore';
+import { useSystemFeatures } from './hooks/useSystemFeatures';
+import LiveCommerceRouteGuard from './components/platform/LiveCommerceRouteGuard';
+import BuyerShellGuard from './components/BuyerShellGuard';
+import NotFoundRedirect from './components/NotFoundRedirect';
+import { canAccessBuyerUi, getDashboardPathForRole } from './lib/authRouting';
 import { ToastNotification } from './components/ToastNotification';
 import { SecurityTelemetryProbe } from './components/SecurityTelemetryProbe';
 // @ts-ignore JSX module without TS typings
@@ -28,6 +34,8 @@ import CartDrawer from './components/CartDrawer';
 import Navbar from './components/Navbar';
 // @ts-ignore JSX module without TS typings
 import MobileBottomNav from './components/MobileBottomNav';
+// @ts-ignore JSX module without TS typings
+import MobileMenuOverlay from './components/menu/MobileMenuOverlay';
 // @ts-ignore JSX module without TS typings
 import ImmersiveSearchLayer from './components/search/ImmersiveSearchLayer';
 // @ts-ignore JSX modules without TS typings
@@ -47,7 +55,7 @@ import { websocketService } from './services/websocketService';
 import { useBuyerCart } from './stores/buyerCartStore';
 import CartCloudSyncBridge from './components/cart/CartCloudSyncBridge';
 // @ts-ignore JS module without TS typings
-import { isBuyerChromeHidden } from './config/buyerNavVisibility';
+import { isBuyerChromeHidden, isBuyerHeaderHidden } from './config/buyerNavVisibility';
 import { SiteWideSchemas } from './components/seo/SiteWideSchemas';
 import { ClientOnly } from './components/ClientOnly';
 
@@ -59,11 +67,38 @@ import { ClientOnly } from './components/ClientOnly';
  * page, dragging the "fixed" nav along).
  */
 function GlobalNavbar() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const user = useAuthStore((s) => s.user);
   const isSellerPending = pathname === '/seller/pending';
   if (isSellerPending) return <Navbar />;
-  if (isBuyerChromeHidden(pathname)) return null;
+  if (user && !canAccessBuyerUi(user)) return null;
+  if (isBuyerChromeHidden(pathname, search)) return null;
+  if (isBuyerHeaderHidden(pathname)) return null;
   return <Navbar />;
+}
+
+function GlobalMobileBottomNav() {
+  const user = useAuthStore((s) => s.user);
+  const { pathname, search } = useLocation();
+  if (user && !canAccessBuyerUi(user)) return null;
+  if (isBuyerChromeHidden(pathname, search)) return null;
+  return <MobileBottomNav />;
+}
+
+function GlobalMobileMenuOverlay() {
+  const user = useAuthStore((s) => s.user);
+  const { pathname, search } = useLocation();
+  if (user && !canAccessBuyerUi(user)) return null;
+  if (isBuyerChromeHidden(pathname, search)) return null;
+  return <MobileMenuOverlay />;
+}
+
+function GlobalAssistantChat() {
+  const user = useAuthStore((s) => s.user);
+  const { isEnabled, loading } = useSystemFeatures();
+  if (user && !canAccessBuyerUi(user)) return null;
+  if (!loading && !isEnabled('buyer_assistant_chat')) return null;
+  return <AssistantChat />;
 }
 
 // ── Buyer pages (lazy) ────────────────────────────────────────────────────────
@@ -81,6 +116,8 @@ const MomoPaymentWait      = lazy(() => import('./pages/MomoPaymentWait'));
 const StripeReturn         = lazy(() => import('./pages/StripeReturn'));
 // @ts-ignore JSX module without TS typings
 const PayPalReturn         = lazy(() => import('./pages/PayPalReturn'));
+// @ts-ignore JSX module without TS typings
+const PaymentVerify        = lazy(() => import('./pages/PaymentVerify'));
 // @ts-ignore JSX modules without TS typings
 const OrderConfirmation    = lazy(() => import('./pages/OrderConfirmation'));
 // @ts-ignore JSX modules without TS typings
@@ -110,6 +147,16 @@ const SellerAdvertise      = lazy(() => import('./pages/seller/AdvertiseWithUs')
 const SellerPending        = lazy(() => import('./pages/seller/SellerPending'));
 const About                = lazy(() => import('./pages/About'));
 const CategoryBrowse       = lazy(() => import('./pages/CategoryBrowse'));
+// @ts-ignore JSX module without TS typings
+const ExploreAll           = lazy(() => import('./pages/ExploreAll'));
+// @ts-ignore JSX module without TS typings
+const LiveDiscover         = lazy(() => import('./pages/LiveDiscover'));
+// @ts-ignore JSX module without TS typings
+const LiveSession          = lazy(() => import('./pages/LiveSession'));
+const HelpCenter           = lazy(() => import('./pages/HelpCenter'));
+const HelpSearch           = lazy(() => import('./pages/HelpSearch'));
+const HelpCategory         = lazy(() => import('./pages/HelpCategory'));
+const HelpArticle          = lazy(() => import('./pages/HelpArticle'));
 
 /** Redirects /login and /signup to /auth?tab=... while preserving query (e.g. redirect=) */
 function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
@@ -119,7 +166,8 @@ function RedirectToAuth({ tab }: { tab: 'login' | 'signup' }) {
 }
 
 function DashboardRedirect() {
-  const { user } = useAuthStore();
+  const { user, loading, initialized } = useAuthStore();
+  if (!initialized || loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.email_verified !== true) {
     return (
@@ -129,14 +177,15 @@ function DashboardRedirect() {
       />
     );
   }
-  if (user.role === 'seller') return <Navigate to="/seller" replace />;
-  if (user.role === 'admin') return <Navigate to="/admin" replace />;
-  return <Navigate to="/account" replace />;
+  return <Navigate to={getDashboardPathForRole(user.role)} replace />;
 }
 
 function HomeRouteGuard() {
   const { user, loading, initialized } = useAuthStore();
   if (!initialized || loading) return <PageLoader />;
+  if (user && user.role !== 'buyer') {
+    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
+  }
   if (user && user.email_verified !== true) {
     return (
       <Navigate
@@ -151,7 +200,11 @@ function HomeRouteGuard() {
 function AccountRouteGuard() {
   const { user, loading, initialized } = useAuthStore();
   if (!initialized || loading) return <PageLoader />;
-  if (user && user.email_verified !== true) {
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'buyer') {
+    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
+  }
+  if (user.email_verified !== true) {
     return (
       <Navigate
         to={`/verify-otp?email=${encodeURIComponent(user.email)}`}
@@ -216,6 +269,7 @@ function App() {
     <ThemeProvider>
     <QueryProvider>
       <BrowserRouter>
+        <StreamProvider>
         <SiteWideSchemas />
         <ScrollToTop />
         <GlobalRealtimeBridge />
@@ -226,7 +280,8 @@ function App() {
         {/* CartDrawer, GlobalNavbar and MobileBottomNav stay fixed to the real viewport. */}
         <CartDrawer />
         <GlobalNavbar />
-        <MobileBottomNav />
+        <GlobalMobileBottomNav />
+        <GlobalMobileMenuOverlay />
         <ImmersiveSearchLayer />
         <ClientOnly>
           <VisualSearchLayer />
@@ -251,17 +306,21 @@ function App() {
               transition: 'width 420ms cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
-          <AssistantChat />
+          <GlobalAssistantChat />
           <BuyerGestureShell>
           <LayoutGroup id="buyer-product-transitions">
           <Suspense fallback={<PageLoader />}>
             <Routes>
             {/* ── Buyer / Storefront (SPA keep-alive + scroll cache) ── */}
+            <Route element={<BuyerShellGuard />}>
             <Route element={<SpaBuyerShell />}>
               <Route path="/" element={<HomeRouteGuard />} />
               <Route path="/search" element={<SearchResults />} />
               <Route path="/products" element={<SearchResults />} />
-              <Route path="/category/all" element={<SearchResults />} />
+              <Route path="/explore" element={<ExploreAll />} />
+              <Route path="/live" element={<LiveCommerceRouteGuard><LiveDiscover /></LiveCommerceRouteGuard>} />
+              <Route path="/live/:sessionId" element={<LiveCommerceRouteGuard><LiveSession /></LiveCommerceRouteGuard>} />
+              <Route path="/category" element={<CategoryBrowse />} />
               <Route path="/category/:slug" element={<CategoryBrowse />} />
               <Route path="/product/:slug" element={<BuyerProductDetail />} />
               <Route path="/products/:id" element={<BuyerProductDetail />} />
@@ -269,13 +328,17 @@ function App() {
               <Route path="/checkout/momo-wait" element={<MomoPaymentWait />} />
               <Route path="/payment/stripe-return" element={<StripeReturn />} />
               <Route path="/payment/paypal-return" element={<PayPalReturn />} />
+              <Route path="/payment/verify" element={<PaymentVerify />} />
               <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
               <Route path="/track/:orderId" element={<OrderTracking />} />
               <Route path="/track" element={<OrderTracking />} />
               <Route path="/account" element={<AccountRouteGuard />} />
               <Route path="/notifications" element={<BuyerNotifications />} />
               <Route path="/returns" element={<Returns />} />
-              <Route path="/help" element={<BuyerHome />} />
+              <Route path="/help/search" element={<HelpSearch />} />
+              <Route path="/help/:category/:article" element={<HelpArticle />} />
+              <Route path="/help/:category" element={<HelpCategory />} />
+              <Route path="/help" element={<HelpCenter />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/about" element={<About />} />
               <Route path="/profile" element={<Navigate to="/account" replace />} />
@@ -300,6 +363,7 @@ function App() {
               <Route path="/seller/pending" element={<SellerPending />} />
               <Route path="/become-seller" element={<BecomeSeller />} />
               <Route path="/cart" element={<Navigate to="/" replace />} />
+            </Route>
             </Route>
 
             {/* ── PWA system routes ── */}
@@ -333,13 +397,14 @@ function App() {
             />
             <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundRedirect />} />
             </Routes>
           </Suspense>
           </LayoutGroup>
           </BuyerGestureShell>
           </div>
         </div>
+        </StreamProvider>
       </BrowserRouter>
     </QueryProvider>
     </ThemeProvider>

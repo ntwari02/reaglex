@@ -3,7 +3,13 @@ import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Command as CmdIcon } from 'lucide-react';
 import { haptic } from '../haptics';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { openCommandPalette } from './CommandPalette';
+
+function openAssistantChat() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event('reaglex:assistant:open'));
+}
 
 const STORAGE_KEY = 'reaglex-fab-coachmark-dismissed';
 
@@ -29,6 +35,7 @@ function shouldHideFab(pathname: string): boolean {
 
 export default function AssistantFab() {
   const { pathname } = useLocation();
+  const isMobile = useIsMobile();
   const [expanded, setExpanded] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const hidden = shouldHideFab(pathname);
@@ -74,10 +81,10 @@ export default function AssistantFab() {
             exit={{ opacity: 0, x: 10 }}
             className="absolute right-[58px] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold"
             style={{
-              background: 'rgba(15,23,42,0.96)',
-              color: 'white',
-              border: '1px solid rgba(148,163,184,0.22)',
-              boxShadow: '0 12px 30px rgba(0,0,0,0.45)',
+              background: 'var(--ai-fab-hint-bg)',
+              color: 'var(--ai-fab-hint-text)',
+              border: '1px solid var(--ai-fab-hint-border)',
+              boxShadow: 'var(--ai-fab-hint-shadow)',
             }}
           >
             Press <kbd className="px-1 py-0.5 rounded border border-white/20 mx-1">Ctrl</kbd>
@@ -91,7 +98,8 @@ export default function AssistantFab() {
         aria-label="Open AI assistant and command palette"
         onClick={() => {
           haptic('selection');
-          openCommandPalette();
+          if (isMobile) openAssistantChat();
+          else openCommandPalette();
         }}
         whileTap={{ scale: 0.92 }}
         animate={{

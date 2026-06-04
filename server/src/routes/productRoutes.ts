@@ -6,6 +6,7 @@ import {
   getProductBySlug,
   toggleWishlist,
   getWishlistStatus,
+  listUserWishlist,
 } from '../controllers/productController';
 import { cacheMiddleware } from '../middleware/cache';
 import { authenticate, optionalAuthenticate } from '../middleware/auth';
@@ -26,6 +27,7 @@ router.post('/:productId/view', optionalAuthenticate, trackProductView);
 router.get('/:productId', optionalAuthenticate, getProductById);
 
 // Wishlist (like/save)
+router.get('/wishlist/mine', authenticate, listUserWishlist);
 router.get('/:productId/wishlist', optionalAuthenticate, getWishlistStatus);
 router.post('/:productId/wishlist', authenticate, toggleWishlist);
 

@@ -6,6 +6,14 @@ import { productAPI } from '../../services/api';
 import { homeFeedApi } from '../../services/homeFeedApi';
 import { SERVER_URL } from '../../lib/config';
 import { buyerProductPath } from '../../lib/productUrl';
+import { useHomeLayoutForSection } from '../../hooks/useHomeLayoutConfig';
+import '../../styles/home-layout-cards.css';
+
+function densityArticleClass(density) {
+  if (density === 'compact') return 'home-card-density--compact';
+  if (density === 'compact_expandable') return 'home-card-density--compact home-card-density--expandable';
+  return '';
+}
 
 const resolveImg = (src) => {
   if (!src) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
@@ -35,16 +43,19 @@ const RANK_STYLE = [
 ];
 
 /* ─── Single best seller card ────────────────────────────────────────────── */
-function BestCard({ product, rank }) {
+function BestCard({ product, rank, cardDensity = 'standard' }) {
+  const [expanded, setExpanded] = useState(false);
+  const expandable = cardDensity === 'compact_expandable';
   const img = resolveImg(product.thumbnail || product.images?.[0]);
   const rankStyle = RANK_STYLE[rank] || { bg: 'var(--bg-badge)', color: 'var(--text-muted)' };
 
   return (
     <motion.div
-      className="flex-shrink-0 group"
-      style={{ width: 'clamp(220px, 22vw, 260px)' }}
+      className={`flex-shrink-0 group ${densityArticleClass(cardDensity)} ${expandable && expanded ? 'home-card-density--expanded' : ''}`.trim()}
+      style={{ width: expandable && !expanded ? 'clamp(160px, 18vw, 200px)' : 'clamp(220px, 22vw, 260px)' }}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.25 }}
+      onClick={expandable ? () => setExpanded((v) => !v) : undefined}
     >
       <Link
         to={buyerProductPath(product)}
@@ -145,6 +156,20 @@ function BestCard({ product, rank }) {
 
 /* ─── Section ────────────────────────────────────────────────────────────── */
 export default function BestSellers() {
+  const { layout: layoutSettings } = useHomeLayoutForSection('bestsellers', 'desktop');
+  const layoutMode = layoutSettings?.mode || 'horizontal_carousel';
+  const autoScroll = layoutSettings?.autoScroll !== false;
+  const autoScrollStep = Number(layoutSettings?.autoScrollStep) || 0.65;
+  const duplicateLoop = layoutSettings?.duplicateLoop !== false;
+  const gridCols = layoutSettings?.gridColumns || 4;
+  const cardDensity = layoutSettings?.cardDensity || 'standard';
+  const gridClass =
+    gridCols === 2
+      ? 'grid grid-cols-2 gap-4'
+      : gridCols === 3
+        ? 'grid grid-cols-2 sm:grid-cols-3 gap-4'
+        : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4';
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -219,8 +244,9 @@ export default function BestSellers() {
     scrollRef.current.scrollBy({ left: dir * 280, behavior: 'smooth' });
   };
 
-  // Auto-slide with seamless loop (duplicated list)
+  // Auto-slide with seamless loop (duplicated list) — default on for desktop best sellers
   useEffect(() => {
+    if (layoutMode !== 'horizontal_carousel' || !autoScroll) return;
     if (loading || products.length < 2) return;
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const el = scrollRef.current;
@@ -228,16 +254,21 @@ export default function BestSellers() {
     const id = window.setInterval(() => {
       if (!scrollRef.current || isInteracting) return;
       const node = scrollRef.current;
-      node.scrollLeft += 0.65;
-      const half = node.scrollWidth / 2;
-      if (node.scrollLeft >= half) {
-        node.scrollLeft -= half;
+      node.scrollLeft += autoScrollStep;
+      if (duplicateLoop) {
+        const half = node.scrollWidth / 2;
+        if (node.scrollLeft >= half) {
+          node.scrollLeft -= half;
+        }
       }
     }, 16);
     return () => window.clearInterval(id);
-  }, [loading, products.length, isInteracting]);
+  }, [layoutMode, autoScroll, autoScrollStep, duplicateLoop, loading, products.length, isInteracting]);
 
-  const displayProducts = !loading && products.length > 1 ? [...products, ...products] : products;
+  const displayProducts =
+    layoutMode === 'horizontal_carousel' && duplicateLoop && !loading && products.length > 1
+      ? [...products, ...products]
+      : products;
 
   return (
     <section
@@ -274,7 +305,8 @@ export default function BestSellers() {
             </motion.h2>
           </div>
 
-          {/* Scroll arrows */}
+          {/* Scroll arrows (carousel mode) */}
+          {layoutMode === 'horizontal_carousel' && (
           <div className="hidden md:flex items-center gap-2">
             <button
               onClick={() => scroll(-1)}
@@ -301,10 +333,34 @@ export default function BestSellers() {
               <ChevronRight size={16} />
             </button>
           </div>
+          )}
         </div>
       </div>
 
-      {/* Horizontal scroll strip */}
+      {layoutMode === 'grid' ? (
+        <div className="px-4 sm:px-6 lg:px-10 xl:px-16">
+          {loading ? (
+            <div className={gridClass}>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl aspect-[0.75] animate-pulse"
+                  style={{ background: 'var(--bg-tertiary)' }}
+                />
+              ))}
+            </div>
+          ) : products.length > 0 ? (
+            <div className={gridClass}>
+              {products.map((p, i) => (
+                <div key={p._id} className="min-w-0">
+                  <BestCard product={p} rank={i} cardDensity={cardDensity} />
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+      /* Horizontal scroll strip (default) */
       <div style={{ position: 'relative' }}>
         {/* Futuristic side fades for slider depth */}
         <div
@@ -363,7 +419,7 @@ export default function BestSellers() {
             ))
           : products.length > 0
           ? displayProducts.map((p, i) => (
-              <BestCard key={`${p._id}-${i}`} product={p} rank={i % products.length} />
+              <BestCard key={`${p._id}-${i}`} product={p} rank={i % products.length} cardDensity={cardDensity} />
             ))
           : (
             <div
@@ -378,6 +434,7 @@ export default function BestSellers() {
           )}
         </div>
       </div>
+      )}
     </section>
   );
 }

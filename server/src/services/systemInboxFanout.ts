@@ -99,6 +99,10 @@ export async function createSystemInboxAndFanout(params: {
   targetSellerId?: mongoose.Types.ObjectId | string | null;
   createdBy: mongoose.Types.ObjectId | string;
   expiresAt?: Date | null;
+  actionUrl?: string;
+  actionText?: string;
+  actionRequired?: boolean;
+  metadata?: Record<string, unknown>;
 }): Promise<mongoose.Document | null> {
   const doc: Record<string, unknown> = {
     title: params.title.slice(0, 240),
@@ -110,6 +114,10 @@ export async function createSystemInboxAndFanout(params: {
     readBy: [],
   };
   if (params.expiresAt) doc.expiresAt = params.expiresAt;
+  if (params.actionUrl) doc.actionUrl = String(params.actionUrl).slice(0, 500);
+  if (params.actionText) doc.actionText = String(params.actionText).slice(0, 80);
+  if (params.actionRequired != null) doc.actionRequired = Boolean(params.actionRequired);
+  if (params.metadata && typeof params.metadata === 'object') doc.metadata = params.metadata;
   const tid = params.targetUserId ? String(params.targetUserId) : '';
   const sid = params.targetSellerId ? String(params.targetSellerId) : '';
   if (params.targetAudience === 'specific_user' && tid && mongoose.Types.ObjectId.isValid(tid)) {

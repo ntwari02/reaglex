@@ -8,7 +8,7 @@ import { useScrollChrome } from '../stores/scrollChromeStore';
 
 const TABS = [
   { id: 'home', icon: Home, label: 'Home', to: '/' },
-  { id: 'browse', icon: LayoutGrid, label: 'Categories', to: '/products' },
+  { id: 'browse', icon: LayoutGrid, label: 'Categories', to: '/category/all' },
   { id: 'cart', icon: ShoppingBag, label: 'Cart', to: null },
   { id: 'wishlist', icon: Heart, label: 'Saved', to: '/account?tab=wishlist' },
   { id: 'account', icon: User, label: 'Account', to: '/account' },
@@ -18,7 +18,12 @@ function activeTab(pathname, search) {
   const params = new URLSearchParams(search || '');
   const accountTab = params.get('tab');
   if (pathname === '/') return 'home';
-  if (pathname.startsWith('/products') || pathname.startsWith('/category') || pathname.startsWith('/search')) {
+  if (
+    pathname.startsWith('/products')
+    || pathname.startsWith('/category')
+    || pathname.startsWith('/search')
+    || pathname.startsWith('/explore')
+  ) {
     return 'browse';
   }
   if (
@@ -50,7 +55,7 @@ export default function MobileBottomNav() {
   const current = activeTab(location.pathname, location.search);
   const navHidden = useScrollChrome((s) => s.navHidden);
 
-  if (isBuyerChromeHidden(location.pathname)) return null;
+  if (isBuyerChromeHidden(location.pathname, location.search)) return null;
 
   const handlePress = (tab) => {
     if (tab.id === 'cart') {
@@ -72,8 +77,8 @@ export default function MobileBottomNav() {
     <motion.nav
       data-mobile-nav="buyer"
       className="md:hidden fixed bottom-0 left-0 right-0 z-[140] flex justify-center px-3 pointer-events-none"
-      animate={{ y: navHidden ? 100 : 0, opacity: navHidden ? 0 : 1 }}
-      transition={{ type: 'spring', stiffness: 440, damping: 36 }}
+      animate={{ y: navHidden ? 100 : 0, opacity: navHidden ? 0.92 : 1 }}
+      transition={{ type: 'tween', duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       style={{
         paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))',
       }}

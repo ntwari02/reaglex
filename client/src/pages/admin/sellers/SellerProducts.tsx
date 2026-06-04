@@ -1,4 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
+import { adminProductsAPI } from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 import {
   Package,
   Search,
@@ -36,77 +39,71 @@ interface Product {
   hasVariants: boolean;
 }
 
-const mockProducts: Product[] = [
-  {
-    id: 'PROD-001',
-    name: 'Wireless Bluetooth Headphones',
-    sku: 'WBH-001',
-    status: 'active',
-    stockStatus: 'in_stock',
-    price: 79.99,
-    stock: 245,
-    sales: 1234,
-    views: 5678,
-    rating: 4.5,
-    category: 'Electronics',
-    createdAt: '2024-01-15',
-    hasVariants: true,
-  },
-  {
-    id: 'PROD-002',
-    name: 'Smart Watch Pro',
-    sku: 'SWP-002',
-    status: 'pending',
-    stockStatus: 'in_stock',
-    price: 199.99,
-    stock: 0,
-    sales: 0,
-    views: 234,
-    rating: 0,
-    category: 'Electronics',
-    createdAt: '2024-03-10',
-    hasVariants: false,
-  },
-  {
-    id: 'PROD-003',
-    name: 'Laptop Stand Adjustable',
-    sku: 'LSA-003',
-    status: 'blocked',
-    stockStatus: 'low_stock',
-    price: 49.99,
-    stock: 5,
-    sales: 456,
-    views: 1234,
-    rating: 4.2,
-    category: 'Accessories',
-    createdAt: '2023-12-20',
-    hasVariants: false,
-  },
-  {
-    id: 'PROD-004',
-    name: 'USB-C Cable 2m',
-    sku: 'UCC-004',
-    status: 'active',
-    stockStatus: 'out_of_stock',
-    price: 12.99,
-    stock: 0,
-    sales: 892,
-    views: 3456,
-    rating: 4.7,
-    category: 'Accessories',
-    createdAt: '2023-11-05',
-    hasVariants: true,
-  },
-];
+function mapApiProduct(p: Record<string, unknown>): Product {
+  const stock = Number(p.stock ?? 0);
+  const apiStatus = String(p.status || 'active');
+  let stockStatus: StockStatus = 'in_stock';
+  if (apiStatus === 'out_of_stock' || stock === 0) stockStatus = 'out_of_stock';
+  else if (stock <= 5) stockStatus = 'low_stock';
+
+  let status: ProductStatus = 'active';
+  if (apiStatus === 'out_of_stock') status = 'active';
+  else if (['pending', 'blocked', 'rejected'].includes(apiStatus)) {
+    status = apiStatus as ProductStatus;
+  }
+
+  return {
+    id: String(p.id),
+    name: String(p.name || ''),
+    sku: String(p.sku || ''),
+    status,
+    stockStatus,
+    price: Number(p.price ?? 0),
+    stock,
+    sales: Number(p.sales ?? 0),
+    views: Number(p.views ?? 0),
+    rating: Number(p.rating ?? 0),
+    category: String(p.category || ''),
+    createdAt: String(p.dateAdded || ''),
+    hasVariants: Array.isArray(p.variants) && (p.variants as unknown[]).length > 0,
+  };
+}
 
 export default function SellerProducts({ sellerId }: SellerProductsProps) {
+  const showToast = useToastStore((s) => s.showToast);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatus | 'all'>('all');
   const [stockFilter, setStockFilter] = useState<StockStatus | 'all'>('all');
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
+  const loadProducts = useCallback(async () => {
+    if (!sellerId) return;
+    setLoading(true);
+    try {
+      const res = await adminProductsAPI.getProducts({
+        sellerId,
+        search: searchQuery || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        limit: 100,
+      });
+      setProducts((res.products || []).map((p) => mapApiProduct(p as Record<string, unknown>)));
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load products', 'error');
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [sellerId, searchQuery, statusFilter, showToast]);
+
+  useEffect(() => {
+    const t = window.setTimeout(loadProducts, 300);
+    return () => window.clearTimeout(t);
+  }, [loadProducts]);
+
   const filteredProducts = useMemo(() => {
-    return mockProducts.filter((product) => {
+    return products.filter((product) => {
       const matchesSearch =
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,7 +112,7 @@ export default function SellerProducts({ sellerId }: SellerProductsProps) {
       const matchesStock = stockFilter === 'all' || product.stockStatus === stockFilter;
       return matchesSearch && matchesStatus && matchesStock;
     });
-  }, [searchQuery, statusFilter, stockFilter]);
+  }, [products, searchQuery, statusFilter, stockFilter]);
 
   const toggleSelectProduct = (productId: string) => {
     setSelectedProducts((prev) => {
@@ -167,6 +164,7 @@ export default function SellerProducts({ sellerId }: SellerProductsProps) {
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Seller Products</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage all products from this seller</p>
         </div>
+        {loading && <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />}
         <div className="flex flex-wrap gap-2">
           {selectedProducts.size > 0 && (
             <>

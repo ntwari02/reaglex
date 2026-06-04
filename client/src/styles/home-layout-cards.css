@@ -1,0 +1,172 @@
+/* Product card density — default (no class) unchanged */
+
+.ex-card--compact.ex-rail-card,
+.ex-card--compact.ex-grid-card {
+  --ex-card-media-ratio: 0.72;
+}
+
+.ex-card--compact .ex-rail-card-media,
+.ex-card--compact .ex-grid-card-media {
+  aspect-ratio: var(--ex-card-media-ratio, 0.72);
+}
+
+.ex-card--compact .ex-rail-card-body,
+.ex-card--compact .ex-grid-card-hit {
+  padding: 0.35rem 0.45rem 0.5rem;
+}
+
+.ex-card--compact .ex-card-title,
+.ex-card--compact .ex-grid-card-tap h3,
+.ex-card--compact .ex-rail-card-body h3 {
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.ex-card--compact .ex-card-price {
+  font-size: 0.75rem;
+}
+
+.ex-card--compact .ex-card-actions,
+.ex-card--compact .ex-grid-card-actions {
+  transform: scale(0.92);
+  transform-origin: bottom center;
+}
+
+.ex-card--expandable {
+  cursor: pointer;
+  transition: max-height 0.28s ease, box-shadow 0.2s ease;
+  max-height: 11rem;
+  overflow: hidden;
+}
+
+.ex-card--expandable.ex-card--expanded {
+  max-height: 24rem;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+  z-index: 2;
+  position: relative;
+}
+
+.ex-card--expandable .ex-card-expand-hint {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.15rem 0;
+}
+
+.ex-card--expanded .ex-card-expand-hint {
+  display: none;
+}
+
+/* Admin live preview frame */
+.home-layout-preview-frame {
+  border: 2px solid var(--divider, #e5e7eb);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-page, #f8fafc);
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.home-layout-preview-frame--phone {
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+.home-layout-preview-frame--desktop {
+  max-width: 100%;
+}
+
+.home-layout-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #8b5cf6 18%, transparent);
+  color: #6d28d9;
+}
+
+.home-layout-preview-badge--live {
+  background: color-mix(in srgb, #10b981 20%, transparent);
+  color: #047857;
+}
+
+.home-layout-danger-panel {
+  border: 1px solid color-mix(in srgb, #dc2626 35%, var(--border-card, #e5e7eb));
+  border-radius: 16px;
+  padding: 20px;
+  background: color-mix(in srgb, #ef4444 6%, var(--bg-card, #fff));
+}
+
+/* Desktop home sections (TrendingProducts / BestSellers) */
+.home-card-density--compact {
+  transform: scale(0.92);
+  transform-origin: top center;
+}
+
+.home-card-density--compact.home-card-density--expandable {
+  max-height: 11rem;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.home-card-density--compact.home-card-density--expanded {
+  max-height: none;
+  transform: scale(1);
+  z-index: 2;
+  position: relative;
+}
+
+/* Trending Now — unified card radius (desktop) */
+.trending-now-section a.rounded-2xl {
+  border-radius: 16px;
+}
+
+/* Trending Now — first 4 horizontal rail, rest vertical grid */
+.trending-now-rail__item {
+  width: min(72vw, 220px);
+}
+
+@media (min-width: 768px) {
+  .trending-now-rail__item {
+    width: 200px;
+  }
+}
+
+.trend-card__price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.trend-card__cart-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  color: var(--text-on-accent, #fff);
+  background: var(--brand-primary);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 38%, transparent);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.trend-card__cart-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.trend-card__cart-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

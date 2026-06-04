@@ -7,23 +7,17 @@ export const useSellerAccess = () => {
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = !!user;
 
-  const isSeller =
-    user?.role === 'seller' ||
-    // legacy flags on profile, kept for compatibility
-    // @ts-expect-error legacy field
-    user?.isSeller === true ||
-    user?.seller_status === 'approved' ||
-    // @ts-expect-error legacy field
-    user?.seller_verified === true;
+  /** Route guards: only accounts with role `seller` may enter seller dashboard shell. */
+  const isSeller = user?.role === 'seller';
 
   const isSellerPending = user?.seller_status === 'pending';
 
-  const canAccessSellerPage = !!isSeller;
+  const canAccessSellerPage = isSeller;
 
   return {
     user,
     isLoggedIn,
-    isSeller: !!isSeller,
+    isSeller,
     isSellerPending: !!isSellerPending,
     canAccessSellerPage,
   };
@@ -58,4 +52,3 @@ export const useHandleSellerLink = () => {
 
   return handleSellerLink;
 };
-

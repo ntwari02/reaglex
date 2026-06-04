@@ -21,6 +21,7 @@ import ReturnsCases from '@/pages/seller/ReturnsCases';
 import Notifications from '@/components/dashboard/Notifications';
 import { DeviceApprovalPopup } from './DeviceApprovalPopup';
 import { useAuthStore } from '../stores/authStore';
+import { getDashboardPathForRole } from '../lib/authRouting';
 import { useSellerKycStatus, sellerVerificationBadgeLabel } from '@/hooks/useSellerKycStatus';
 import SellerKycOnboardingModal from '@/components/seller/SellerKycOnboardingModal';
 import SellerKycBanner from '@/components/seller/SellerKycBanner';
@@ -63,7 +64,7 @@ const SellerDashboard: React.FC = () => {
     }
 
     if (user.role !== 'seller') {
-      navigate('/');
+      navigate(getDashboardPathForRole(user.role), { replace: true });
       return;
     }
 
@@ -123,6 +124,7 @@ const SellerDashboard: React.FC = () => {
         title="Seller Hub"
         tier="Premium Tier"
         accentVariant="orange"
+        hub="seller"
       />
       
       <div className="flex-1 flex flex-col overflow-hidden">

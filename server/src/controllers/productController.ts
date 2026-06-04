@@ -9,6 +9,7 @@ import { recordRecommendationActivity } from '../services/recommendationEmail.se
 import { buyerVisibleProductFilter, isProductBuyerVisible } from '../utils/publicProductQuery';
 import { ensureProductHasSlug } from '../utils/productSlug';
 import { buildCategorySlugFilter } from '../constants/storefrontCategories';
+import { withResolvedProductPrice } from '../utils/productPricing';
 
 /** Public product listing & detail (buyer-visible + SEO slugs). */
 
@@ -29,11 +30,21 @@ function normalizeMediaUrl(maybeUrl: unknown): unknown {
   return maybeUrl;
 }
 
+function normalizeImageEntry(entry: unknown): unknown {
+  if (typeof entry === 'string') return normalizeMediaUrl(entry);
+  if (entry && typeof entry === 'object') {
+    const o = entry as Record<string, unknown>;
+    const url = o.url ?? o.src ?? o.secure_url ?? o.path;
+    if (typeof url === 'string') return normalizeMediaUrl(url);
+  }
+  return entry;
+}
+
 function normalizeProductMedia(product: any) {
   if (!product) return product;
 
   if (Array.isArray(product.images)) {
-    product.images = product.images.map(normalizeMediaUrl);
+    product.images = product.images.map(normalizeImageEntry).filter(Boolean);
   }
 
   // Some older data may store a single `image` field.
@@ -54,6 +65,10 @@ function normalizeProductMedia(product: any) {
   }
 
   return product;
+}
+
+function normalizeProductPricing(product: any) {
+  return withResolvedProductPrice(product || {});
 }
 
 /**
@@ -134,7 +149,7 @@ export async function listProducts(req: AuthenticatedRequest, res: Response) {
       Product.countDocuments(filter),
     ]);
 
-    const normalizedProducts = products.map((p) => normalizeProductMedia(p));
+    const normalizedProducts = products.map((p) => normalizeProductPricing(normalizeProductMedia(p)));
 
     return res.json({
       products: normalizedProducts,
@@ -205,7 +220,7 @@ async function enrichAndSendProduct(
   leanProduct: Record<string, unknown> | null,
   productIdForAnalytics: string,
 ) {
-  const product = normalizeProductMedia(leanProduct) as Record<string, unknown> | null;
+  const product = normalizeProductPricing(normalizeProductMedia(leanProduct)) as Record<string, unknown> | null;
 
   if (!product) {
     return res.status(404).json({ message: 'Product not found' });
@@ -257,14 +272,22 @@ async function enrichAndSendProduct(
     typeof verificationDoc?.aiChecks?.videoProofUrl === 'string'
       ? normalizeMediaUrl(verificationDoc.aiChecks.videoProofUrl)
       : undefined;
+  const directVideoUrl =
+    typeof (product as any)?.videoUrl === 'string' ? normalizeMediaUrl((product as any).videoUrl) : undefined;
   const hasDirectVideo =
-    typeof (product as any)?.videoUrl === 'string' && String((product as any).videoUrl).trim().length > 0;
+    typeof directVideoUrl === 'string' && directVideoUrl.trim().length > 0;
+  const resolvedVideoUrl = hasDirectVideo
+    ? directVideoUrl
+    : typeof verificationVideoUrl === 'string'
+      ? verificationVideoUrl
+      : undefined;
 
   return res.json({
     product: {
       ...product,
-      ...(hasDirectVideo ? {} : verificationVideoUrl ? { videoUrl: verificationVideoUrl } : {}),
-      verificationVideoUrl,
+      ...(resolvedVideoUrl ? { videoUrl: resolvedVideoUrl } : {}),
+      verificationVideoUrl: verificationVideoUrl || resolvedVideoUrl,
+      videoProofUrl: verificationVideoUrl || resolvedVideoUrl,
       verificationVideoUploaded: Boolean(verificationDoc?.aiChecks?.videoProofUploaded),
       ratingAverage: avgRating || (product as any)?.averageRating || (product as any)?.rating || 0,
       reviewCount: reviewCount || (product as any)?.totalReviews || (product as any)?.reviewCount || 0,
@@ -359,6 +382,11 @@ export async function getProductBySlug(req: AuthenticatedRequest, res: Response)
  */
 export async function toggleWishlist(req: AuthenticatedRequest, res: Response) {
   try {
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('product_wishlist'))) {
+      return res.status(503).json({ message: 'Wishlist is temporarily disabled', code: 'FEATURE_DISABLED' });
+    }
+
     const { productId } = req.params;
     if (!req.user?.id) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -395,6 +423,69 @@ export async function toggleWishlist(req: AuthenticatedRequest, res: Response) {
     }
     console.error('Toggle wishlist error:', error);
     return res.status(500).json({ message: 'Failed to update wishlist' });
+  }
+}
+
+/**
+ * List authenticated user's wishlist with product details.
+ * GET /api/products/wishlist/mine
+ */
+export async function listUserWishlist(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const { isSystemFeatureEnabled } = await import('../services/systemFeatureSettings.service');
+    if (!(await isSystemFeatureEnabled('product_wishlist'))) {
+      return res.json({ success: true, items: [] });
+    }
+    const uid = new mongoose.Types.ObjectId(String(req.user.id));
+    const rows = await ProductWishlist.find({ userId: uid })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+
+    const productIds = rows.map((r) => r.productId);
+    const products = await Product.find({ _id: { $in: productIds }, ...buyerVisibleProductFilter() })
+      .select('name slug price listingPriceAmount listingCurrency listingExchangeRate images averageRating totalReviews sellerId category')
+      .lean();
+    const pmap = new Map(products.map((p) => [String(p._id), p]));
+
+    const items = rows
+      .map((row) => {
+        const p = pmap.get(String(row.productId));
+        if (!p) return null;
+        const primaryImg = Array.isArray((p as any).images)
+          ? (p as any).images.find((i: { is_primary?: boolean }) => i?.is_primary) || (p as any).images[0]
+          : null;
+        const priced = normalizeProductPricing(p as any);
+        return {
+          id: String(row._id),
+          product_id: String(p._id),
+          created_at: row.createdAt,
+          product: {
+            id: String(p._id),
+            title: (priced as any).name,
+            name: (priced as any).name,
+            slug: (priced as any).slug,
+            price: (priced as any).price,
+            listingPriceAmount: (priced as any).listingPriceAmount,
+            listingCurrency: (priced as any).listingCurrency,
+            listingExchangeRate: (priced as any).listingExchangeRate,
+            image: primaryImg?.url || primaryImg?.secure_url || null,
+            images: (p as any).images,
+            averageRating: (p as any).averageRating,
+            reviewCount: (p as any).totalReviews,
+            category: (p as any).category,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    return res.json({ success: true, items });
+  } catch (error: any) {
+    console.error('List wishlist error:', error);
+    return res.status(500).json({ message: 'Failed to fetch wishlist' });
   }
 }
 

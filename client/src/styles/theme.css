@@ -221,6 +221,52 @@
   --footer-tooltip-bg:         #1c1c1c;
   --footer-tooltip-text:       #eceef8;
   --footer-sell-link-idle:     #8a8fa8;
+
+  /* ── AI Assistant (mobile sheet + chat window) ───────────────────────────── */
+  --ai-backdrop:               var(--bg-overlay);
+  --ai-sheet-bg:               linear-gradient(165deg, #ffffff 0%, #f7f7f8 55%, #f0f1f3 100%);
+  --ai-sheet-border:           var(--border-card);
+  --ai-sheet-shadow:           0 -12px 48px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+  --ai-sheet-handle:           var(--divider-strong);
+  --ai-hero-bg:                linear-gradient(
+    105deg,
+    color-mix(in srgb, #0d9488 14%, var(--card-bg)) 0%,
+    color-mix(in srgb, #0f766e 10%, var(--card-bg)) 38%,
+    var(--card-bg) 100%
+  );
+  --ai-hero-border:            rgba(45, 212, 191, 0.35);
+  --ai-hero-title:             var(--text-primary);
+  --ai-hero-sub:               var(--text-secondary);
+  --ai-hero-chevron:           var(--text-faint);
+  --ai-tile-bg:                var(--bg-secondary);
+  --ai-tile-border:            var(--border-card);
+  --ai-tile-icon-bg:           var(--bg-tertiary);
+  --ai-tile-label:             var(--text-primary);
+  --ai-tile-sub:               var(--text-muted);
+  --ai-section-label:          var(--text-faint);
+  --ai-action-title:           var(--text-primary);
+  --ai-action-sub:             var(--text-muted);
+  --ai-action-chevron:         var(--text-faint);
+  --ai-icon-btn-bg:            var(--bg-tertiary);
+  --ai-icon-btn-border:        var(--border-card);
+  --ai-icon-btn-color:         var(--text-secondary);
+  --ai-chat-window-shadow:       var(--shadow-xl);
+  --ai-chat-header-bg:         var(--card-bg);
+  --ai-chat-header-title:      var(--text-primary);
+  --ai-chat-header-online:     var(--badge-success-text);
+  --ai-online-ring:            var(--card-bg);
+  --ai-hdr-btn-bg:             var(--bg-tertiary);
+  --ai-hdr-btn-border:         var(--border-card);
+  --ai-hdr-btn-color:          var(--text-muted);
+  --ai-hdr-btn-hover-bg:       var(--bg-hover);
+  --ai-hdr-btn-hover-color:    var(--text-primary);
+  --ai-fallback-bg:            var(--badge-warning-bg);
+  --ai-fallback-text:          var(--badge-warning-text);
+  --ai-fallback-border:        var(--badge-warning-border);
+  --ai-fab-hint-bg:            var(--card-bg);
+  --ai-fab-hint-text:          var(--text-primary);
+  --ai-fab-hint-border:        var(--border-card);
+  --ai-fab-hint-shadow:        var(--shadow-lg);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -422,6 +468,57 @@
   --notif-type-system: #7eb0d8;
   --notif-type-message: #a78bfa;
   --notif-type-review: #fbbf24;
+
+  /* ── AI Assistant (mobile sheet + chat window) ───────────────────────────── */
+  --ai-backdrop:               rgba(6, 8, 14, 0.55);
+  --ai-sheet-bg:               linear-gradient(
+    165deg,
+    rgba(22, 26, 38, 0.94) 0%,
+    rgba(14, 17, 28, 0.96) 55%,
+    rgba(10, 12, 20, 0.98) 100%
+  );
+  --ai-sheet-border:           rgba(255, 255, 255, 0.08);
+  --ai-sheet-shadow:           0 -12px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  --ai-sheet-handle:           rgba(255, 255, 255, 0.2);
+  --ai-hero-bg:                linear-gradient(
+    105deg,
+    rgba(15, 118, 110, 0.72) 0%,
+    rgba(8, 78, 92, 0.58) 38%,
+    rgba(15, 23, 42, 0.88) 100%
+  );
+  --ai-hero-border:            rgba(45, 212, 191, 0.28);
+  --ai-hero-title:             #ffffff;
+  --ai-hero-sub:               rgba(255, 255, 255, 0.78);
+  --ai-hero-chevron:           rgba(255, 255, 255, 0.45);
+  --ai-tile-bg:                rgba(255, 255, 255, 0.04);
+  --ai-tile-border:            rgba(255, 255, 255, 0.06);
+  --ai-tile-icon-bg:           rgba(30, 35, 48, 0.92);
+  --ai-tile-label:             #f1f5f9;
+  --ai-tile-sub:               rgba(148, 163, 184, 0.9);
+  --ai-section-label:          rgba(100, 116, 139, 0.95);
+  --ai-action-title:           #f1f5f9;
+  --ai-action-sub:             rgba(148, 163, 184, 0.9);
+  --ai-action-chevron:         rgba(100, 116, 139, 0.75);
+  --ai-icon-btn-bg:            rgba(255, 255, 255, 0.07);
+  --ai-icon-btn-border:        rgba(255, 255, 255, 0.1);
+  --ai-icon-btn-color:         rgba(226, 232, 240, 0.9);
+  --ai-chat-window-shadow:       0 28px 80px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(249, 115, 22, 0.07), 0 0 60px rgba(249, 115, 22, 0.06);
+  --ai-chat-header-bg:         linear-gradient(135deg, rgba(10, 10, 22, 0.98) 0%, rgba(13, 15, 28, 0.97) 100%);
+  --ai-chat-header-title:      #f0f4ff;
+  --ai-chat-header-online:     #4ade80;
+  --ai-online-ring:            #0d0f1c;
+  --ai-hdr-btn-bg:             rgba(255, 255, 255, 0.06);
+  --ai-hdr-btn-border:         rgba(255, 255, 255, 0.1);
+  --ai-hdr-btn-color:          rgba(200, 210, 230, 0.7);
+  --ai-hdr-btn-hover-bg:       rgba(255, 255, 255, 0.14);
+  --ai-hdr-btn-hover-color:    #ffffff;
+  --ai-fallback-bg:            rgba(251, 191, 36, 0.12);
+  --ai-fallback-text:          #fbbf24;
+  --ai-fallback-border:        rgba(251, 191, 36, 0.2);
+  --ai-fab-hint-bg:            rgba(15, 23, 42, 0.96);
+  --ai-fab-hint-text:          #ffffff;
+  --ai-fab-hint-border:        rgba(148, 163, 184, 0.22);
+  --ai-fab-hint-shadow:        0 12px 30px rgba(0, 0, 0, 0.45);
 }
 
 /* Prevent flash when toggling theme (used by ThemeContext) */

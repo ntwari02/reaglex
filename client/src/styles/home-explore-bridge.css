@@ -1,0 +1,65 @@
+/* Home mobile sections — Explore All card layout inside buyer home */
+
+@media (max-width: 767px) {
+  .mob-home-ex {
+    --ex-surface: var(--card-bg);
+    --ex-surface-soft: color-mix(in srgb, var(--card-bg) 92%, var(--bg-tertiary));
+    --ex-border: color-mix(in srgb, var(--border-card) 70%, transparent);
+    --ex-border-subtle: color-mix(in srgb, var(--border-card) 45%, transparent);
+    --ex-shadow: 0 2px 12px color-mix(in srgb, var(--text-primary) 5%, transparent);
+    --ex-meta: var(--text-muted);
+    --ex-ai-hero-bg: color-mix(in srgb, var(--card-bg) 96%, var(--brand-tint));
+  }
+
+  .mob-home-ex-rail.ex-rail-wrap {
+    margin: 0 calc(-1 * var(--mob-space-4, 16px)) 10px;
+    padding: 0 var(--mob-space-4, 16px);
+  }
+
+  .mob-home-ex .ex-grid {
+    margin-top: 0;
+  }
+
+  /* Trending Now rail — same card shell as recently viewed (148px, --border-card) */
+  .mob-trending-rail .ex-rail-card {
+    flex: 0 0 148px;
+  }
+
+  /* Trending Now — unified 16px card radius (rail + grid) */
+  #mob-trending .rv-ymal-card__inner,
+  #mob-trending .ex-grid-card-hit {
+    border-radius: 16px;
+  }
+
+  #mob-trending .rv-ymal-card__media {
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .mob-home-ex .ex-price-cart-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .mob-home-ex .ex-card-price--inline {
+    margin-top: 0;
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+
+  .mob-home-ex .ex-grid-card--trending .ex-grid-card-hit:has(.ex-price-cart-row) .ex-card-actions {
+    display: none;
+  }
+
+  .ex-skeleton-ai-hero {
+    height: 108px;
+    margin-bottom: 10px;
+    border-radius: 14px;
+  }
+}

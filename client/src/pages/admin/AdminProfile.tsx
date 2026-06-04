@@ -90,7 +90,7 @@ const DEFAULT_NOTIFICATIONS = {
 
 export function AdminProfile() {
   const navigate = useNavigate();
-  const { user, logout, setUser } = useAuthStore();
+  const { user, signOut, setUser } = useAuthStore();
   const { theme, toggleTheme, currency, language, setCurrency, setLanguage } = useTheme();
 
   const [showEditModal, setShowEditModal] = useState(false);

@@ -6,6 +6,7 @@ import { ShoppingBag, Briefcase, Loader2 } from 'lucide-react';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_BASE_URL } from '../lib/config';
+import { getDashboardPathForRole } from '../lib/authRouting';
 
 export function SelectRole() {
   const navigate = useNavigate();
@@ -121,11 +122,7 @@ export function SelectRole() {
         'success'
       );
 
-      if (role === 'seller') {
-        navigate('/seller');
-      } else {
-        navigate('/');
-      }
+      navigate(getDashboardPathForRole(role));
     } catch (err: any) {
       console.error('Role selection error:', err);
       showToast(err.message || 'Failed to complete registration', 'error');

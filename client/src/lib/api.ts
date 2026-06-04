@@ -965,11 +965,12 @@ export const adminFinanceAPI = {
       revenueStreams: Record<string, number>;
     }>);
   },
-  getPayouts: (params?: { section?: string; status?: string; search?: string; page?: number; limit?: number }) => {
+  getPayouts: (params?: { section?: string; status?: string; search?: string; sellerId?: string; page?: number; limit?: number }) => {
     const sp = new URLSearchParams();
     if (params?.section) sp.append('section', params.section);
     if (params?.status) sp.append('status', params.status);
     if (params?.search) sp.append('search', params.search);
+    if (params?.sellerId) sp.append('sellerId', params.sellerId);
     if (params?.page) sp.append('page', String(params.page));
     if (params?.limit) sp.append('limit', String(params.limit));
     const q = sp.toString() ? `?${sp.toString()}` : '';
@@ -1169,6 +1170,7 @@ export const adminSupportAPI = {
     category?: string;
     priority?: string;
     search?: string;
+    sellerId?: string;
     page?: number;
     limit?: number;
     sortBy?: string;
@@ -1179,6 +1181,7 @@ export const adminSupportAPI = {
     if (params?.category) sp.append('category', params.category);
     if (params?.priority) sp.append('priority', params.priority);
     if (params?.search) sp.append('search', params.search);
+    if (params?.sellerId) sp.append('sellerId', params.sellerId);
     if (params?.page) sp.append('page', String(params.page));
     if (params?.limit) sp.append('limit', String(params.limit));
     if (params?.sortBy) sp.append('sortBy', params.sortBy);
@@ -1214,10 +1217,11 @@ export const adminSupportAPI = {
       body: JSON.stringify(body),
     }).then(handleResponse<{ message: string; ticket: any }>),
 
-  getDisputes: (params?: { status?: string; type?: string; page?: number; limit?: number }) => {
+  getDisputes: (params?: { status?: string; type?: string; sellerId?: string; page?: number; limit?: number }) => {
     const sp = new URLSearchParams();
     if (params?.status) sp.append('status', params.status);
     if (params?.type) sp.append('type', params.type);
+    if (params?.sellerId) sp.append('sellerId', params.sellerId);
     if (params?.page) sp.append('page', String(params.page));
     if (params?.limit) sp.append('limit', String(params.limit));
     const q = sp.toString() ? `?${sp.toString()}` : '';
@@ -1415,6 +1419,47 @@ export const adminLogisticsAPI = {
       headers: getAuthHeaders(),
       credentials: 'include',
     }).then(handleResponse<{ message: string }>),
+
+  getDestinations: () =>
+    fetch(`${LOGISTICS_BASE}/destinations`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ destinations: any[] }>),
+  createDestination: (body: Record<string, unknown>) =>
+    fetch(`${LOGISTICS_BASE}/destinations`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ destination: any }>),
+  updateDestination: (id: string, body: Record<string, unknown>) =>
+    fetch(`${LOGISTICS_BASE}/destinations/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ destination: any }>),
+  deleteDestination: (id: string) =>
+    fetch(`${LOGISTICS_BASE}/destinations/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ message: string }>),
+
+  getPlatformPolicy: () =>
+    fetch(`${LOGISTICS_BASE}/platform-policy`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ policy: any; context: any }>),
+  updatePlatformPolicy: (body: Record<string, unknown>) =>
+    fetch(`${LOGISTICS_BASE}/platform-policy`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ policy: any; context: any }>),
 
   getDrivers: (params?: { search?: string }) => {
     const q = params?.search ? `?search=${encodeURIComponent(params.search)}` : '';
@@ -2014,6 +2059,35 @@ export const adminSiteContentAPI = {
       credentials: 'include',
       body: JSON.stringify({ slides }),
     }).then(handleResponse<{ ok: boolean; slides: any[] }>),
+  getHomeProductLayout: () =>
+    fetch(`${ADMIN_SITE_BASE}/home-product-layout`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<any>),
+  putHomeProductLayout: (sections: unknown) =>
+    fetch(`${ADMIN_SITE_BASE}/home-product-layout`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ sections }),
+    }).then(handleResponse<any>),
+  resetHomeProductLayout: () =>
+    fetch(`${ADMIN_SITE_BASE}/home-product-layout/reset`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<any>),
+  publishHomeProductLayout: (body: {
+    superAdminPassword: string;
+    acknowledgment: string;
+    confirmPhrase: string;
+  }) =>
+    fetch(`${ADMIN_SITE_BASE}/home-product-layout/publish`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<any>),
 };
 
 const PUBLIC_CONTENT_BASE = `${API_BASE_URL}/public`;
@@ -2026,6 +2100,10 @@ export const publicSiteContentAPI = {
   getHomePromoBanners: () =>
     fetch(`${PUBLIC_CONTENT_BASE}/home-promo-banners`, { credentials: 'include' }).then(
       handleResponse<{ banners: any[] }>,
+    ),
+  getHomeProductLayout: () =>
+    fetch(`${PUBLIC_CONTENT_BASE}/home-product-layout`, { credentials: 'include' }).then(
+      handleResponse<{ sections: Record<string, unknown> }>,
     ),
 };
 
@@ -2309,6 +2387,24 @@ export const adminOrdersAPI = {
       credentials: 'include',
       body: JSON.stringify(body),
     }).then(handleResponse<{ order: any }>),
+
+  completeOrder: (
+    orderId: string,
+    body?: { releasePayout?: boolean; trackingNumber?: string },
+  ) =>
+    fetch(`${ADMIN_ORDERS_BASE}/${orderId}/complete`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body || {}),
+    }).then(
+      handleResponse<{
+        order: any;
+        escrowReleased: boolean;
+        notificationsSent: boolean;
+        message: string;
+      }>,
+    ),
 
   getOrderLogs: (orderId: string) =>
     fetch(`${ADMIN_ORDERS_BASE}/${orderId}/logs`, {
@@ -2707,6 +2803,82 @@ export const adminMarketingAPI = {
       credentials: 'include',
       body: JSON.stringify(body),
     }).then(handleResponse<{ budgetLimit: number; spamProtection: boolean; smtp: any; sms: any; push: any }>),
+
+  getAutomationOverview: () =>
+    fetch(`${MARKETING_BASE}/automation/overview`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(
+      handleResponse<{
+        globalEnabled: boolean;
+        dailyEmailCap: number;
+        email: {
+          richTemplatesEnabled: boolean;
+          geminiMarketingCopy: boolean;
+          geminiTransactionalPolish: boolean;
+          geminiSellerNotifications: boolean;
+        };
+        system: { emailProviderConfigured: boolean; geminiApiConfigured: boolean };
+        pushDeviceCount: number;
+        pushEnabledUserCount: number;
+        flows: Array<{
+          key: string;
+          label: string;
+          description: string;
+          enabled: boolean;
+          pushEnabled: boolean;
+          lastRunAt: string | null;
+          lastRunSent: number;
+          lastRunSkipped: number;
+          lastRunFailed: number;
+          lastError: string;
+          stats7d: { sent: number; skipped: number; failed: number; opens: number; clicks: number };
+        }>;
+      }>,
+    ),
+
+  updateAutomationGlobals: (body: Record<string, unknown>) =>
+    fetch(`${MARKETING_BASE}/automation/globals`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(
+      handleResponse<{
+        globalEnabled: boolean;
+        dailyEmailCap: number;
+        email: {
+          richTemplatesEnabled: boolean;
+          geminiMarketingCopy: boolean;
+          geminiTransactionalPolish: boolean;
+          geminiSellerNotifications: boolean;
+        };
+      }>,
+    ),
+
+  updateAutomationFlow: (flow: string, body: { enabled?: boolean; pushEnabled?: boolean }) =>
+    fetch(`${MARKETING_BASE}/automation/flows/${encodeURIComponent(flow)}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ flow: string; enabled: boolean; pushEnabled: boolean }>),
+
+  runAutomationFlow: (flow: string) =>
+    fetch(`${MARKETING_BASE}/automation/flows/${encodeURIComponent(flow)}/run`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ sent: number; skipped: number; failed: number }>),
+
+  testAutomationEmail: (email: string) =>
+    fetch(`${MARKETING_BASE}/automation/test-email`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ email }),
+    }).then(handleResponse<{ result: unknown; user: { id: string; email: string } }>),
 };
 
 /**
@@ -3033,6 +3205,19 @@ export const buyerReturnsAPI = {
       credentials: 'include',
       body: JSON.stringify(body),
     }).then(handleResponse<{ message: string; chat: any[] }>),
+  listMyReviews: () =>
+    fetch(`${BUYER_RETURNS_BASE}/post-delivery/reviews`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    }).then(handleResponse<{ reviews: any[] }>),
+  submitReview: (body: { orderId: string; productId: string; rating: number; message?: string }) =>
+    fetch(`${BUYER_RETURNS_BASE}/post-delivery/reviews`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    }).then(handleResponse<{ success: boolean; review: any; reward?: { points: number } }>),
 };
 
 const SELLER_RETURNS_BASE = `${API_BASE_URL}/seller/returns`;

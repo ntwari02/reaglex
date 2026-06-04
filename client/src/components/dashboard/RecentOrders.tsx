@@ -18,13 +18,7 @@ interface RecentOrdersProps {
 const RecentOrders: React.FC<RecentOrdersProps> = ({ orders: ordersProp = [] }) => {
   const navigate = useNavigate();
   
-  const orders: Order[] = ordersProp.length > 0 ? ordersProp : [
-    { id: '#ORD-2847', customer: 'Alice Johnson', amount: '$124.99', status: 'processing', time: '5m ago' },
-    { id: '#ORD-2846', customer: 'Bob Smith', amount: '$89.50', status: 'shipped', time: '12m ago' },
-    { id: '#ORD-2845', customer: 'Carol White', amount: '$256.00', status: 'delivered', time: '1h ago' },
-    { id: '#ORD-2844', customer: 'David Brown', amount: '$43.25', status: 'processing', time: '2h ago' },
-    { id: '#ORD-2843', customer: 'Eve Davis', amount: '$178.99', status: 'shipped', time: '3h ago' },
-  ];
+  const orders: Order[] = ordersProp;
 
   const statusColors: Record<string, string> = {
     processing: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -48,7 +42,15 @@ const RecentOrders: React.FC<RecentOrdersProps> = ({ orders: ordersProp = [] }) 
       </div>
 
       <div className="space-y-3 overflow-y-auto overflow-x-hidden scroll-smooth flex-1 pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full">
-        {orders.map((order, index) => (
+        {orders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center px-4">
+            <Package className="w-10 h-10 text-gray-400 dark:text-gray-500 mb-3" />
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No orders yet</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              New orders will appear here as customers purchase from your store.
+            </p>
+          </div>
+        ) : orders.map((order, index) => (
           <motion.div
             key={order.id}
             initial={{ opacity: 0, x: -20 }}

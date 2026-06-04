@@ -1,22 +1,53 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package, Heart, MapPin, CreditCard, Star, RotateCcw, User, ChevronRight,
   Truck, CheckCircle, Clock, ShoppingBag, Shield, ArrowUpRight, Edit3, Plus,
   Settings, LogOut, LayoutGrid, List, ChevronDown, Eye, Headphones, X, Copy,
-  Trash2, Check, Search, Upload, ArrowLeft,
+  Trash2, Check, Search, Upload, ArrowLeft, Gift,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import AccountSettingsDashboard from '../components/AccountSettingsDashboard';
+import BuyerReferralPanel from '../components/buyer/BuyerReferralPanel';
+import AccountMobileLayout from '../components/account/AccountMobileLayout';
+import SecuritySettingsSheet from '../components/account/SecuritySettingsSheet';
 import { useAuthStore } from '../stores/authStore';
 import { useRecentlyViewed } from '../stores/recentlyViewedStore';
 import { useWishlistStore } from '../stores/wishlistStore';
+import BuyerReviewsPanel from '../components/buyer/BuyerReviewsPanel';
+import { buyerReturnsAPI } from '@/lib/api';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { useToastStore } from '../stores/toastStore';
-import api, { paymentAPI } from '../services/api';
+import { useSystemFeatures } from '../hooks/useSystemFeatures';
+import api, { orderAPI, paymentAPI } from '../services/api';
+import { formatCurrency } from '../lib/utils';
 
 import { SERVER_URL } from '../lib/config';
+
+function fmtOrderMoney(amount, currency = 'RWF') {
+  const n = Number(amount) || 0;
+  const c = ['USD', 'EUR', 'RWF', 'KES'].includes(String(currency).toUpperCase())
+    ? String(currency).toUpperCase()
+    : 'RWF';
+  if (c === 'RWF') return `RWF ${Math.round(n).toLocaleString('en-RW')}`;
+  return formatCurrency(n, c);
+}
+
+function canBuyerCancelOrder(order) {
+  const st = String(order?.status || '').toLowerCase();
+  if (['cancelled', 'shipped', 'delivered', 'completed'].includes(st)) return false;
+  const escrow = String(order?.escrow?.status || order?.escrowStatus || '').toUpperCase();
+  const pm = String(
+    order?.payment_method || order?.paymentMethod || order?.payment?.method || '',
+  ).toLowerCase();
+  const isCod = pm.includes('cash') || pm === 'cash_on_delivery';
+  if (isCod) return ['pending', 'processing', 'paused'].includes(st);
+  if (escrow === 'ESCROW_HOLD' && ['pending', 'processing', 'paused', 'paid'].includes(st)) {
+    return true;
+  }
+  return ['pending', 'processing', 'paused'].includes(st) && (!escrow || escrow === 'PENDING');
+}
 import { buyerProductPath } from '../lib/productUrl';
 const PRIMARY = 'var(--brand-primary)';
 const resolveImg = (src) => {
@@ -26,6 +57,7 @@ const resolveImg = (src) => {
 
 const STATUS = {
   delivered: { bg: 'var(--badge-success-bg)', color: 'var(--badge-success-text)', label: 'Delivered', icon: CheckCircle },
+  completed: { bg: 'var(--badge-success-bg)', color: 'var(--badge-success-text)', label: 'Completed', icon: CheckCircle },
   shipped: { bg: 'var(--badge-info-bg)', color: 'var(--badge-info-text)', label: 'Shipped', icon: Truck },
   processing: { bg: 'var(--tab-active-bg)', color: 'var(--brand-orange-text)', label: 'Processing', icon: Clock },
   pending: { bg: 'var(--badge-warning-bg)', color: 'var(--badge-warning-text)', label: 'Pending', icon: Clock },
@@ -55,6 +87,7 @@ const TAB_CONFIG = [
   { id: 'wishlist', label: 'Wishlist', icon: Heart },
   { id: 'addresses', label: 'Addresses', icon: MapPin },
   { id: 'payments', label: 'Payment Methods', icon: CreditCard },
+  { id: 'referral', label: 'Invite Friends', icon: Gift },
   { id: 'reviews', label: 'My Reviews', icon: Star },
   { id: 'returns', label: 'Returns', icon: RotateCcw },
   { id: 'settings', label: 'Account Settings', icon: Settings },
@@ -1244,11 +1277,28 @@ export default function BuyerDashboard() {
   const tab = rawTab === 'payment' ? 'payments' : rawTab;
   const setTab = (t) => setSp((prev) => { const n = new URLSearchParams(prev); n.set('tab', t); return n; });
 
+  const { isEnabled, loading: featuresLoading } = useSystemFeatures();
+  const accountTabs = useMemo(() => {
+    if (featuresLoading) return TAB_CONFIG;
+    return TAB_CONFIG.filter((t) => {
+      if (t.id === 'wishlist' && !isEnabled('product_wishlist')) return false;
+      if (t.id === 'referral' && !isEnabled('buyer_referrals')) return false;
+      if (t.id === 'reviews' && !isEnabled('product_reviews')) return false;
+      return true;
+    });
+  }, [featuresLoading, isEnabled]);
+
+  useEffect(() => {
+    if (featuresLoading) return;
+    if (!accountTabs.some((t) => t.id === tab)) setTab('overview');
+  }, [featuresLoading, accountTabs, tab, setTab]);
+
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
   const recentItems = useRecentlyViewed((s) => s.items);
   const clearRecent = useRecentlyViewed((s) => s.clear);
   const wishlistItems = useWishlistStore((s) => s.items);
+  const fetchWishlist = useWishlistStore((s) => s.fetchWishlist);
   const removeFromWishlist = useWishlistStore((s) => s.removeFromWishlist);
   const addItem = useBuyerCart((s) => s.addItem);
 
@@ -1261,6 +1311,8 @@ export default function BuyerDashboard() {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState(null);
+  const [confirmReceiptTarget, setConfirmReceiptTarget] = useState(null);
+  const [confirmReceiptLoading, setConfirmReceiptLoading] = useState(false);
   const [wishlistSearch, setWishlistSearch] = useState('');
   const [wishlistSortOpen, setWishlistSortOpen] = useState(false);
   const [reviewsFilter, setReviewsFilter] = useState('all');
@@ -1298,6 +1350,8 @@ export default function BuyerDashboard() {
   const [showMobileLeftFade, setShowMobileLeftFade] = useState(false);
   const [showMobileRightFade, setShowMobileRightFade] = useState(false);
   const [mobileNavHintDismissed, setMobileNavHintDismissed] = useState(false);
+  const [securitySheetOpen, setSecuritySheetOpen] = useState(false);
+  const [cancelLoadingId, setCancelLoadingId] = useState(null);
 
   const mapApiOrderToUi = (order) => {
     if (!order) return null;
@@ -1312,14 +1366,29 @@ export default function BuyerDashboard() {
     const itemsCount = Array.isArray(order.items)
       ? order.items.reduce((sum, item) => sum + (item.quantity || 0), 0)
       : 0;
+    const mongoId = String(order.id || order._id || '');
+    const orderNumber = order.order_number || order.orderNumber || mongoId;
+
+    const currency =
+      order.currency ||
+      order.payment?.currency ||
+      order.currencySnapshot?.currency ||
+      'RWF';
 
     return {
-      id: order.order_number || order.orderNumber || order.id,
+      mongoId,
+      id: orderNumber,
       date,
       status: order.status || 'processing',
       items: itemsCount,
       total: order.total || 0,
+      currency,
+      escrowStatus: order.escrow?.status || order.escrow_status || '',
+      paymentMethod: order.payment_method || order.paymentMethod || order.payment?.method || '',
       seller: order.seller?.name || 'Unknown Seller',
+      canConfirmReceipt: Boolean(order.can_confirm_receipt),
+      canCancel: canBuyerCancelOrder(order),
+      estimatedDelivery: order.estimated_delivery || order.estimated_delivery_to,
     };
   };
 
@@ -1452,52 +1521,117 @@ export default function BuyerDashboard() {
 
   useEffect(() => {
     if (!user?.id) return;
+    void fetchWishlist(user.id);
+  }, [user?.id, fetchWishlist]);
+
+  useEffect(() => {
+    if (sp.get('placed') !== 'cod') return;
+    showToast('Order placed! Pay cash when your delivery arrives.', 'success');
+    setSp((prev) => {
+      const n = new URLSearchParams(prev);
+      n.delete('placed');
+      return n;
+    });
+  }, [sp, setSp, showToast]);
+
+  const refreshOrders = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await api.get('/orders', { params: { limit: 50 } });
+      const rawOrders = res.data?.orders || res.data?.data?.orders || [];
+      setOrders(rawOrders.map(mapApiOrderToUi).filter(Boolean));
+    } catch (err) {
+      console.error('Failed to refresh orders', err);
+    }
+  };
+
+  const handleConfirmReceipt = async () => {
+    if (!confirmReceiptTarget?.mongoId) return;
+    try {
+      setConfirmReceiptLoading(true);
+      await orderAPI.confirmReceipt(confirmReceiptTarget.mongoId);
+      showToast('Delivery confirmed. Thank you!', 'success');
+      setConfirmReceiptTarget(null);
+      await refreshOrders();
+    } catch (err) {
+      const message = err?.response?.data?.message || 'Could not confirm delivery. Try again.';
+      showToast(message, 'error');
+    } finally {
+      setConfirmReceiptLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async (orderRow) => {
+    if (!orderRow?.mongoId || cancelLoadingId) return;
+    const paidOnline =
+      String(orderRow.escrowStatus || '').toUpperCase() === 'ESCROW_HOLD' ||
+      String(orderRow.paymentMethod || '').toLowerCase().includes('momo') ||
+      String(orderRow.paymentMethod || '').toLowerCase().includes('flutterwave');
+    const isCod =
+      String(orderRow.paymentMethod || '').toLowerCase().includes('cash') ||
+      String(orderRow.paymentMethod || '') === 'cash_on_delivery';
+    const confirmMsg = paidOnline && !isCod
+      ? `Cancel order #${orderRow.id}? If you already paid, we will start a refund to your original payment method.`
+      : `Cancel order #${orderRow.id}?`;
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      setCancelLoadingId(orderRow.mongoId);
+      const res = await orderAPI.cancel(orderRow.mongoId);
+      const refundMsg = res?.refund?.message || res?.message;
+      showToast(
+        refundMsg || 'Order cancelled.',
+        'success',
+      );
+      await refreshOrders();
+    } catch (err) {
+      const message =
+        err?.response?.data?.message ||
+        'Could not cancel this order. Try Returns & Refunds or contact support.';
+      showToast(message, 'error');
+    } finally {
+      setCancelLoadingId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
     const fetchReturns = async () => {
       try {
-        const res = await api.get('/buyer/disputes', { params: { limit: 50 } });
-        const raw = res.data?.disputes || [];
-        const mapped = raw.map(mapApiDisputeToReturn).filter(Boolean);
+        const res = await buyerReturnsAPI.listCases();
+        const raw = res?.cases || [];
+        const mapped = raw.map((c) => ({
+          id: c.caseNumber || c.id || c._id,
+          mongoId: String(c._id || c.id || ''),
+          orderId: c.orderId,
+          status: String(c.status || 'SUBMITTED').toUpperCase(),
+          reason: c.reasonLabel || c.reason || 'Return request',
+          refundAmount: c.refundAmount,
+          createdAt: c.createdAt,
+        }));
         setReturns(mapped);
       } catch (err) {
-        console.error('Failed to load returns/disputes', err);
+        console.error('Failed to load return cases', err);
         setReturns([]);
-      } finally {
-        // no-op
       }
     };
     fetchReturns();
   }, [user?.id]);
 
   const handleSubmitReturnRequest = async () => {
-    const selectedOrder = orders.find((o) => o.id === newReturnSelectedOrderId);
-    const payload = {
-      orderId: selectedOrder?.id,
-      type: 'return',
-      reason: newReturnReason,
-      description: newReturnDescription || newReturnReason,
-      priority: 'medium',
-    };
-    if (!payload.orderId) {
-      showToast('Please select a valid order before submitting.', 'error');
+    const selectedOrder = orders.find(
+      (o) => o.id === newReturnSelectedOrderId || o.mongoId === newReturnSelectedOrderId,
+    );
+    if (!selectedOrder?.mongoId) {
+      showToast('Please select a valid order before continuing.', 'error');
       return;
     }
-    try {
-      await api.post('/buyer/disputes', payload);
-      showToast('Return request submitted successfully.', 'success');
-      setNewReturnOpen(false);
-      setNewReturnStep(1);
-      setNewReturnSelectedOrderId(null);
-      setNewReturnReason('');
-      setNewReturnDescription('');
-      setNewReturnPhotos([]);
-      const res = await api.get('/buyer/disputes', { params: { limit: 50 } });
-      const raw = res.data?.disputes || [];
-      setReturns(raw.map(mapApiDisputeToReturn).filter(Boolean));
-    } catch (err) {
-      console.error('Failed to submit return request', err);
-      const message = err?.response?.data?.message || 'Failed to submit return request. Please try again.';
-      showToast(message, 'error');
-    }
+    setNewReturnOpen(false);
+    setNewReturnStep(1);
+    setNewReturnSelectedOrderId(null);
+    setNewReturnReason('');
+    setNewReturnDescription('');
+    setNewReturnPhotos([]);
+    navigate(`/returns?order=${selectedOrder.mongoId}`);
   };
 
   useEffect(() => {
@@ -1593,7 +1727,7 @@ export default function BuyerDashboard() {
     ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:') ? rawAvatar : `${SERVER_URL}${rawAvatar.startsWith('/') ? rawAvatar : `/${rawAvatar}`}`)
     : '';
   const hasAvatar = !!avatarSrc;
-  const tabLabel = TAB_CONFIG.find((t) => t.id === tab)?.label || 'Overview';
+  const tabLabel = accountTabs.find((t) => t.id === tab)?.label || 'Overview';
   const isAddressesTab = tab === 'addresses';
   const isPaymentsTab = tab === 'payments';
 
@@ -1621,9 +1755,9 @@ export default function BuyerDashboard() {
   });
 
   return (
-    <BuyerLayout>
+    <BuyerLayout focused={tab === 'settings'}>
       <div
-        className="buyer-account-mobile min-h-screen"
+        className={`buyer-account-mobile min-h-screen${tab === 'settings' ? ' is-settings-tab' : ''}`}
         style={{ background: 'var(--bg-page)', color: 'var(--text-primary)', position: 'relative' }}
       >
         {/* Subtle full-page dot grid */}
@@ -1765,10 +1899,29 @@ export default function BuyerDashboard() {
           </div>
         </motion.div>
 
+        <AccountMobileLayout
+          activeTab={tab}
+          onTabChange={setTab}
+          onBackToHub={() => setTab('overview')}
+          displayName={displayName}
+          email={user.email}
+          initials={initials}
+          avatarSrc={hasAvatar ? avatarSrc : null}
+          orderCount={orderCount}
+          wishlistCount={savedCount}
+          onLogout={handleLogout}
+          tabLabel={tabLabel}
+          onOpenSecurity={() => setSecuritySheetOpen(true)}
+        />
+        <SecuritySettingsSheet
+          open={securitySheetOpen}
+          onClose={() => setSecuritySheetOpen(false)}
+        />
+
         {/* ═══ TIER 2: Main layout — sidebar + content ═══ */}
         <div className="account-main-pad w-full" style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 22, paddingBottom: 40 }}>
-          {/* Mobile: horizontal tab bar */}
-          <div className="mb-5 lg:hidden">
+          {/* Mobile: horizontal tab bar (legacy — hidden on mobile via CSS) */}
+          <div className="account-mobile-tabs-legacy mb-5 lg:hidden">
             <div className="flex items-center justify-between mb-2 px-0.5">
               <p
                 style={{
@@ -1837,7 +1990,7 @@ export default function BuyerDashboard() {
                 className="flex items-center gap-2 overflow-x-auto pb-3"
                 style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
               >
-                {TAB_CONFIG.map((t) => {
+                {accountTabs.map((t) => {
                   const isActive = tab === t.id;
                   const Icon = t.icon;
                   return (
@@ -1974,7 +2127,7 @@ export default function BuyerDashboard() {
 
                 {/* Navigation */}
                 <nav style={{ paddingTop: 6, paddingBottom: 6 }}>
-                  {TAB_CONFIG.map((t) => {
+                  {accountTabs.map((t) => {
                     const isActive = tab === t.id;
                     const Icon = t.icon;
                     const badge =
@@ -2100,7 +2253,7 @@ export default function BuyerDashboard() {
             </aside>
 
             {/* ═══ Main content area ═══ */}
-            <main className="flex-1 min-w-0 space-y-6">
+            <main className={`flex-1 min-w-0 space-y-6${tab === 'overview' ? ' rx-acc-mobile-hidden' : ''}`}>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={tab}
@@ -2158,6 +2311,36 @@ export default function BuyerDashboard() {
                         ))}
                       </div>
 
+                      <motion.button
+                        type="button"
+                        onClick={() => setTab('referral')}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        className="w-full text-left rounded-2xl p-5 flex items-center justify-between gap-4"
+                        style={{
+                          background: 'linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 12%, var(--card-bg)), var(--card-bg))',
+                          border: '1px solid color-mix(in srgb, var(--brand-primary) 28%, var(--card-border))',
+                        }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span
+                            className="w-12 h-12 rounded-xl flex items-center justify-center"
+                            style={{ background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)' }}
+                          >
+                            <Gift size={22} style={{ color: 'var(--brand-primary)' }} />
+                          </span>
+                          <div>
+                            <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                              Invite friends & earn rewards
+                            </p>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                              Get your personal link and referral code to share
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight size={20} style={{ color: 'var(--brand-primary)' }} />
+                      </motion.button>
+
                       {/* Recent Orders */}
                       <Card>
                         <CardHeader
@@ -2208,7 +2391,7 @@ export default function BuyerDashboard() {
                                         background: `${s.bg}33`, color: s.color,
                                         border: `1px solid ${s.color}30`,
                                       }}>{s.label}</span>
-                                      <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>${o.total.toFixed(2)}</span>
+                                      <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{fmtOrderMoney(o.total, o.currency)}</span>
                                       <Link to={`/track/${o.id}`}><ChevronRight style={{ width: 14, height: 14, color: 'var(--text-faint)' }} /></Link>
                                     </div>
                                   </div>
@@ -2371,10 +2554,42 @@ export default function BuyerDashboard() {
                               </div>
                               <div style={{ height: 1, background: 'var(--divider)', marginBottom: 14 }} />
                               <div className="flex items-center justify-between">
-                                <p style={{ fontWeight: 800, fontSize: 16, color: PRIMARY }}>${o.total.toFixed(2)}</p>
-                                <div className="flex gap-2">
+                                <p style={{ fontWeight: 800, fontSize: 16, color: PRIMARY }}>{fmtOrderMoney(o.total, o.currency)}</p>
+                                <div className="flex gap-2 flex-wrap justify-end">
+                                  {o.canCancel && (
+                                    <motion.button
+                                      type="button"
+                                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                      disabled={cancelLoadingId === o.mongoId}
+                                      onClick={() => handleCancelOrder(o)}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        padding: '7px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
+                                        background: 'var(--badge-error-bg)', color: 'var(--badge-error-text)',
+                                        border: '1px solid color-mix(in srgb, var(--badge-error-text) 25%, transparent)',
+                                        cursor: cancelLoadingId === o.mongoId ? 'wait' : 'pointer',
+                                        opacity: cancelLoadingId === o.mongoId ? 0.7 : 1,
+                                      }}
+                                    >
+                                      <X style={{ width: 13, height: 13 }} /> Cancel
+                                    </motion.button>
+                                  )}
+                                  {o.canConfirmReceipt && (
+                                    <motion.button
+                                      type="button"
+                                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                      onClick={() => setConfirmReceiptTarget(o)}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        padding: '7px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
+                                        background: PRIMARY, color: '#fff', border: 'none', cursor: 'pointer',
+                                      }}
+                                    >
+                                      <CheckCircle style={{ width: 13, height: 13 }} /> Confirm delivery
+                                    </motion.button>
+                                  )}
                                   {o.status !== 'cancelled' && (
-                                    <Link to={`/track/${o.id}`}>
+                                    <Link to={`/track/${o.mongoId || o.id}`}>
                                       <motion.button
                                         whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                                         style={{
@@ -2389,7 +2604,7 @@ export default function BuyerDashboard() {
                                       </motion.button>
                                     </Link>
                                   )}
-                                  <Link to={`/returns?order=${o.id}`}>
+                                  <Link to={`/returns?order=${o.mongoId || o.id}`}>
                                     <motion.button
                                       whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                                       style={{
@@ -2988,6 +3203,17 @@ export default function BuyerDashboard() {
 
                   {/* ── PAYMENT METHODS ── */}
                   {tab === 'payments' && <PaymentsTabContent />}
+
+                  {tab === 'referral' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35 }}
+                    >
+                      <BuyerReferralPanel />
+                    </motion.div>
+                  )}
+
                   {false && (
                     <div className="space-y-6">
                       {/* Escrow wallet balance card */}
@@ -3956,9 +4182,7 @@ export default function BuyerDashboard() {
                           </select>
                         </div>
                       </div>
-                      <Card className="py-12">
-                        <EmptyState icon={Star} title="No reviews yet" sub="After your order is delivered, you'll be able to leave a review here." />
-                      </Card>
+                      <BuyerReviewsPanel filter={reviewsFilter} sort={reviewsSort === 'rating' ? 'newest' : reviewsSort} />
                     </div>
                   )}
 
@@ -3998,10 +4222,18 @@ export default function BuyerDashboard() {
                               className="text-sm"
                               style={{ color: 'rgba(255,255,255,0.6)' }}
                             >
-                              Returns are accepted within 30 days for eligible items.
+                              Start a return in a few steps — pick items, add photos, track refund status.
                             </p>
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => navigate('/returns')}
+                          className="rounded-xl px-5 py-2.5 text-sm font-bold text-white shrink-0"
+                          style={{ background: PRIMARY }}
+                        >
+                          Start a return
+                        </button>
                         <div className="flex flex-wrap gap-2">
                           {[
                             '↩ 30-Day Returns',
@@ -4358,7 +4590,7 @@ export default function BuyerDashboard() {
                                           color: '#16a34a',
                                         }}
                                       >
-                                        ${ret.refundAmount.toFixed(2)} Refunded
+                                        {fmtOrderMoney(ret.refundAmount)} Refunded
                                       </span>
                                     )}
                                     <span
@@ -4568,8 +4800,12 @@ export default function BuyerDashboard() {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                      className="rx-settings-2026"
                     >
-                      <AccountSettingsDashboard />
+                      <AccountSettingsDashboard
+                        onOpenSecurityMobile={() => setSecuritySheetOpen(true)}
+                        onBack={() => setTab('overview')}
+                      />
                     </motion.div>
                   )}
                 </motion.div>
@@ -4786,7 +5022,7 @@ export default function BuyerDashboard() {
                                   className="text-[11px]"
                                   style={{ color: 'var(--text-muted)' }}
                                 >
-                                  {o.items} item(s) · ${o.total.toFixed(2)} ·{' '}
+                                  {o.items} item(s) · {fmtOrderMoney(o.total, o.currency)} ·{' '}
                                   {o.seller}
                                 </p>
                               </div>
@@ -5104,7 +5340,19 @@ export default function BuyerDashboard() {
                         className="text-right text-xs font-semibold"
                         style={{ color: '#16a34a' }}
                       >
-                        Est. refund: $29.00
+                        Est. refund:{' '}
+                        {fmtOrderMoney(
+                          orders.find(
+                            (o) =>
+                              o.id === newReturnSelectedOrderId ||
+                              o.mongoId === newReturnSelectedOrderId,
+                          )?.total || 0,
+                          orders.find(
+                            (o) =>
+                              o.id === newReturnSelectedOrderId ||
+                              o.mongoId === newReturnSelectedOrderId,
+                          )?.currency,
+                        )}
                       </div>
                     </div>
                     <p
@@ -5373,9 +5621,7 @@ export default function BuyerDashboard() {
                   >
                     {activeReturn.resolution} ·{' '}
                     {activeReturn.refundAmount
-                      ? `$${activeReturn.refundAmount.toFixed(
-                          2
-                        )} estimated refund in 3-5 business days.`
+                      ? `${fmtOrderMoney(activeReturn.refundAmount)} estimated refund in 3-5 business days.`
                       : 'Estimated within 3-5 business days.'}
                   </p>
                 </div>
@@ -5384,6 +5630,50 @@ export default function BuyerDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {confirmReceiptTarget && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          role="dialog"
+          aria-modal="true"
+          onClick={() => !confirmReceiptLoading && setConfirmReceiptTarget(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl p-6 shadow-xl"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+              Confirm delivery?
+            </p>
+            <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
+              Order <strong>{confirmReceiptTarget.id}</strong> — once confirmed, payment is released to the seller.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                disabled={confirmReceiptLoading}
+                onClick={() => setConfirmReceiptTarget(null)}
+                className="flex-1 py-3 rounded-xl font-semibold border"
+                style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={confirmReceiptLoading}
+                onClick={handleConfirmReceipt}
+                className="flex-1 py-3 rounded-xl font-semibold text-white"
+                style={{ background: PRIMARY }}
+              >
+                {confirmReceiptLoading ? 'Confirming…' : 'Yes, I received it'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       </div>{/* close position:relative z-1 wrapper */}
     </BuyerLayout>
   );

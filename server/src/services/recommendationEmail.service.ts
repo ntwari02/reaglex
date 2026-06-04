@@ -6,10 +6,11 @@ import { User } from '../models/User';
 import { RecommendationActivity, RecommendationActivityType } from '../models/RecommendationActivity';
 import { RecommendationEmailPreference } from '../models/RecommendationEmailPreference';
 import { RecommendationEmailHistory } from '../models/RecommendationEmailHistory';
+import { generateMarketingEmailCopy } from '../email/emailCopyAi.service';
+import { buildMarketingEmailContent } from '../email/marketingEmailBuilder';
 import { sendRecommendationDealsEmail } from './emailService';
 import { getClientUrl } from '../config/publicEnv';
 import { buyerVisibleProductFilter } from '../utils/publicProductQuery';
-import { formatUsdAsCurrency } from '../utils/money';
 import { getPersonalizationGate } from './personalizationGate.service';
 import {
   isMarketingFlowEnabled,
@@ -17,6 +18,14 @@ import {
   recordFlowRun,
 } from '../models/MarketingAutomationSettings';
 import { safeSendPushToUser } from './pushNotificationService';
+import { assertBuyerMarketingEligible } from './marketingRecipient.service';
+import {
+  assertRecommendationLaneSend,
+  getBuyerMarketingActivityTier,
+  getRecentMarketingCopyContext,
+  listBuyersInRecommendationSendWindow,
+} from './marketingEmailOrchestration.service';
+import { marketingDayKey } from '../email/copyEngine';
 
 const CLIENT_URL = getClientUrl();
 const APP_NAME = process.env.APP_NAME || 'Reaglex';
@@ -28,7 +37,6 @@ function getIntEnv(name: string, fallback: number) {
 const MAX_RECOMMENDATIONS = getIntEnv('RECOMMENDATION_EMAIL_MAX_PRODUCTS', 12);
 const ACTIVITY_LOOKBACK_DAYS = 45;
 const RECENT_PURCHASE_EXCLUDE_DAYS = 30;
-const DEFAULT_DAILY_MARKETING_CAP = 1;
 const RECENCY_HALF_LIFE_DAYS = 10; // smaller = more weight on recent behavior
 const MAX_PER_CATEGORY_IN_EMAIL = 2;
 
@@ -57,18 +65,6 @@ function recencyMultiplier(eventAt?: Date | null): number {
 function shouldSendByFrequency(pref: { frequency: 'daily' | 'weekly'; lastSentAt?: Date | null }) {
   const minDays = pref.frequency === 'daily' ? 1 : 7;
   return daysSince(pref.lastSentAt) >= minDays;
-}
-
-async function isOverDailyMarketingCap(userId: string): Promise<boolean> {
-  const cap = getIntEnv('DAILY_MARKETING_EMAIL_CAP', DEFAULT_DAILY_MARKETING_CAP);
-  if (cap <= 0) return false;
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const count = await RecommendationEmailHistory.countDocuments({
-    userId: new mongoose.Types.ObjectId(userId),
-    status: 'sent',
-    sentAt: { $gte: since },
-  });
-  return count >= cap;
 }
 
 function sameSet(a: string[], b: string[]) {
@@ -107,6 +103,8 @@ export async function recordRecommendationActivity(input: {
   meta?: Record<string, unknown>;
 }) {
   if (!input.userId) return;
+  const eligible = await assertBuyerMarketingEligible(input.userId);
+  if (!eligible.ok) return;
   const payload: Record<string, unknown> = {
     userId: input.userId,
     eventType: input.eventType,
@@ -363,20 +361,32 @@ export async function generateRecommendationsForUser(userId: string) {
 }
 
 export async function sendRecommendationEmailToUser(userId: string) {
+  const gate = await assertBuyerMarketingEligible(userId, {
+    checkDailyCap: true,
+    requirePreferenceEnabled: true,
+  });
+  if (!gate.ok) return { success: false, reason: gate.reason };
   const user = await User.findById(userId).select('fullName email preferences').lean();
   if (!user?.email) return { success: false, reason: 'no_email' };
   const { pref, products } = await generateRecommendationsForUser(userId);
   if (!pref) return { success: false, reason: 'no_preference' };
   if (!pref.enabled || pref.unsubscribed || pref.suppressed) return { success: false, reason: 'disabled' };
-  if (!shouldSendByFrequency(pref)) return { success: false, reason: 'frequency_not_due' };
-  if (!products.length) return { success: false, reason: 'no_products' };
 
-  // Global safety: cap marketing emails per user per 24h (prevents spam across flows).
-  if (await isOverDailyMarketingCap(userId)) {
-    return { success: false, reason: 'daily_cap' };
+  const tier = await getBuyerMarketingActivityTier(userId);
+  if (tier !== 'cold' && pref.frequency === 'weekly') {
+    pref.frequency = 'daily';
+    await pref.save();
+  }
+  if (tier === 'cold' && !shouldSendByFrequency(pref)) {
+    return { success: false, reason: 'frequency_not_due' };
   }
 
-  const gate = await getPersonalizationGate(userId);
+  const laneGate = await assertRecommendationLaneSend(userId, 'recommendation');
+  if (!laneGate.ok) return { success: false, reason: laneGate.reason };
+
+  if (!products.length) return { success: false, reason: 'no_products' };
+
+  const personalizationGate = await getPersonalizationGate(userId);
 
   // Dedupe: avoid sending the exact same batch repeatedly (common after restarts / limited catalog).
   const currentIds = products.map((p: any) => String(p._id));
@@ -400,57 +410,62 @@ export async function sendRecommendationEmailToUser(userId: string) {
     return { success: false, reason: 'duplicate_batch' };
   }
 
-  const subject = `Special deals just for you, ${String((user as any).fullName || 'shopper').split(' ')[0]}`;
+  const firstName = String((user as any).fullName || 'shopper').split(' ')[0];
+  const copyContext = await getRecentMarketingCopyContext(userId);
+  const copy = await generateMarketingEmailCopy({
+    userId,
+    firstName,
+    campaign: 'recommendation',
+    mode: pref.mode === 'deals_only' ? 'deals_only' : 'mixed',
+    allowPersonalized: personalizationGate.allowPersonalized,
+    recentSubjects: copyContext.subjects,
+    recentCampaigns: copyContext.campaigns,
+    copyDayKey: marketingDayKey(),
+    products: products.map((p: any) => ({
+      id: String(p._id),
+      name: String(p.name || ''),
+      category: p.category ? String(p.category) : undefined,
+      reason: String(p.reason || ''),
+      discount: Number(p.discount || 0),
+    })),
+  });
   const history = await RecommendationEmailHistory.create({
     userId,
     email: user.email,
     campaign: 'recommendation',
-    subject,
+    subject: copy.subject,
     frequency: pref.frequency,
     mode: pref.mode,
     productIds: products.map((p: any) => p._id),
     products: products.map((p: any) => ({ productId: p._id, score: Number(p.score || 0), reason: String(p.reason || 'Recommended deal') })),
     status: 'sent',
-    error: gate.allowPersonalized ? undefined : `low_confidence:${gate.confidenceScore}:${gate.confidenceReason}`,
+    error: personalizationGate.allowPersonalized ? undefined : `low_confidence:${personalizationGate.confidenceScore}:${personalizationGate.confidenceReason}`,
   });
 
   const unsubscribeUrl = `${CLIENT_URL}/recommendations/unsubscribe/${pref.unsubscribeToken}`;
   const preferencesUrl = `${CLIENT_URL}/account?tab=settings&section=notifications`;
   const API_URL = ((process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL || CLIENT_URL) || '').replace(/\/$/, '');
-
-  // Display currency (AliExpress-style):
-  // - Prefer user pinned currency; otherwise default USD.
   const displayCurrency = String((user as any)?.preferences?.currency || 'USD').toUpperCase();
-  const emailProducts = products.map((p: any) => ({
-    id: String(p._id),
-    name: p.name,
-    imageUrl: Array.isArray(p.images) && p.images[0]
-      ? String(p.images[0]).startsWith('http')
-        ? String(p.images[0])
-        : `${process.env.SERVER_URL || ''}${String(p.images[0]).startsWith('/') ? p.images[0] : `/${p.images[0]}`}`
-      : '',
-    price: Number(p.price || 0),
-    priceText: '', // filled below
-    discount: Number(p.discount || 0),
-    description: String(p.description || '').slice(0, 120),
-    viewUrl: `${API_URL}/api/recommendation-emails/track/click/${history._id}/${p._id}`,
-  }));
-
-  // Fill formatted price text with conversion (best-effort).
-  for (const ep of emailProducts as any[]) {
-    const conv = await formatUsdAsCurrency(Number(ep.price || 0), displayCurrency);
-    ep.priceText = conv.formatted;
-  }
+  const { products: emailProducts } = await buildMarketingEmailContent({
+    userId,
+    firstName,
+    campaign: 'recommendation',
+    mode: pref.mode === 'deals_only' ? 'deals_only' : 'mixed',
+    allowPersonalized: personalizationGate.allowPersonalized,
+    products: products as any[],
+    historyId: String(history._id),
+    displayCurrency,
+    serverUrl: API_URL,
+    copy,
+  });
 
   const sendResult = await sendRecommendationDealsEmail({
     to: user.email,
-    name: String((user as any).fullName || 'there').split(' ')[0],
-    subject,
-    intro: !gate.allowPersonalized
-      ? 'Trending picks based on popular items and your recent activity.'
-      : pref.mode === 'deals_only'
-      ? 'Hand-picked deal drops you can grab today.'
-      : 'We picked these based on your wishlist, views, and shopping activity.',
+    name: firstName,
+    subject: copy.subject,
+    headline: copy.headline,
+    intro: copy.intro,
+    shopCtaLabel: copy.ctaLabel,
     products: emailProducts,
     unsubscribeUrl,
     preferencesUrl,
@@ -485,19 +500,16 @@ export async function sendRecommendationEmailToUser(userId: string) {
 export async function runRecommendationEmailJob(): Promise<{ sent: number; skipped: number; failed: number }> {
   const stats = { sent: 0, skipped: 0, failed: 0 };
   if (!(await isMarketingFlowEnabled('recommendation'))) return stats;
-  const maxPerRun = getIntEnv('RECOMMENDATION_EMAIL_RUN_MAX_USERS', 400);
-  const users = await User.find({ role: 'buyer', accountStatus: { $ne: 'banned' } })
-    .select('_id')
-    .limit(maxPerRun)
-    .lean();
-  for (const u of users as any[]) {
+  const maxPerRun = getIntEnv('RECOMMENDATION_EMAIL_RUN_MAX_USERS', 120);
+  const dueUserIds = await listBuyersInRecommendationSendWindow(maxPerRun);
+  for (const userId of dueUserIds) {
     try {
-      const result = await sendRecommendationEmailToUser(String(u._id));
+      const result = await sendRecommendationEmailToUser(userId);
       if (result?.success) stats.sent += 1;
       else stats.skipped += 1;
     } catch (err) {
       stats.failed += 1;
-      console.error('[recommendation-email] user failed', String(u._id), err);
+      console.error('[recommendation-email] user failed', userId, err);
     }
   }
   return stats;
@@ -513,11 +525,11 @@ let recommendationWorkerStarted = false;
 export function startRecommendationEmailWorker() {
   if (recommendationWorkerStarted) return;
   recommendationWorkerStarted = true;
-  const hourly = 60 * 60 * 1000;
+  const tickMs = getIntEnv('RECOMMENDATION_EMAIL_TICK_MINUTES', 15) * 60 * 1000;
   void runRecommendationOnce();
   setInterval(() => {
     void runRecommendationOnce();
-  }, hourly);
-  console.log(`[recommendation-email] worker started (${APP_NAME})`);
+  }, tickMs);
+  console.log(`[recommendation-email] worker started (${APP_NAME}, tick=${tickMs / 60000}m, profile windows)`);
 }
 

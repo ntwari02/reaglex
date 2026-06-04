@@ -1,0 +1,470 @@
+/* ── Upcoming Drops — theme-aware cinematic teaser (mobile) ───────────────── */
+
+.up-section {
+  width: 100%;
+  margin: 18px 0 8px;
+  padding: 0 14px;
+  box-sizing: border-box;
+}
+
+html[data-theme='light'] .up-section,
+:root:not([data-theme='dark']) .up-section {
+  --up-card-grad: linear-gradient(135deg, #f2f5fa 0%, #e8edf4 45%, #dfe6ef 100%);
+  --up-card-title: var(--text-primary);
+  --up-card-desc: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  --up-countdown-bg: color-mix(in srgb, var(--text-primary) 6%, var(--card-bg));
+  --up-countdown-border: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  --up-glow: color-mix(in srgb, var(--brand-primary) 18%, transparent);
+  --up-card-shadow: 0 10px 30px color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+html[data-theme='dark'] .up-section {
+  --up-card-grad: linear-gradient(135deg, #081018 0%, #0e1624 45%, #141922 100%);
+  --up-card-title: #ffffff;
+  --up-card-desc: rgba(255, 255, 255, 0.62);
+  --up-countdown-bg: rgba(255, 255, 255, 0.06);
+  --up-countdown-border: rgba(255, 255, 255, 0.08);
+  --up-glow: color-mix(in srgb, var(--brand-primary) 14%, transparent);
+  --up-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+
+.up-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 40px;
+  max-height: 48px;
+  margin-bottom: 10px;
+}
+
+.up-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.up-title {
+  margin: 0;
+  font-family: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+}
+
+.up-subtitle {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.up-view-all {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: transparent;
+  text-decoration: none;
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.up-view-all:active {
+  opacity: 0.72;
+  transform: scale(0.97);
+}
+
+.up-track-wrap {
+  overflow: hidden;
+  margin: 0 -2px;
+}
+
+.up-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.up-track::-webkit-scrollbar {
+  display: none;
+}
+
+.up-card {
+  position: relative;
+  flex: 0 0 220px;
+  width: 220px;
+  height: 158px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--up-card-grad);
+  box-shadow: var(--up-card-shadow);
+  scroll-snap-align: start;
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.up-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 88% 88%, var(--up-glow), transparent 68%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.up-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.up-card:active {
+  transform: translateY(-2px);
+}
+
+.up-card--skel {
+  background: var(--card-bg);
+  animation: up-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes up-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.up-card-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  padding: 12px;
+  text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.up-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 58%;
+  min-width: 0;
+}
+
+.up-badge {
+  align-self: flex-start;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff8a1f, #ff6b00);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.up-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--up-card-title);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.up-card-desc {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--up-card-desc);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.up-countdown {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--up-countdown-bg);
+  border: 1px solid var(--up-countdown-border);
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--up-card-title);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  width: fit-content;
+}
+
+.up-notify-btn {
+  align-self: flex-start;
+  height: 30px;
+  padding: 0 14px;
+  margin-top: auto;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+  cursor: pointer;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.up-notify-btn:active {
+  transform: scale(0.96);
+}
+
+.up-card-visual {
+  position: relative;
+  width: 42%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.up-glow {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--up-glow), transparent 70%);
+  filter: blur(18px);
+}
+
+.up-product-img {
+  position: relative;
+  z-index: 1;
+  height: 112px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: bottom right;
+  filter: drop-shadow(0 8px 16px color-mix(in srgb, var(--text-primary) 18%, transparent));
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.up-card:hover .up-product-img,
+.up-card:active .up-product-img {
+  transform: scale(1.02);
+}
+
+/* Hello carousel upcoming teaser */
+.up-hero-slide {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+  min-height: 140px;
+}
+
+@media (max-width: 767px) {
+  .mob-page .up-hero-slide {
+    min-height: 260px;
+  }
+
+  .mob-page .up-hero-slide-inner {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+
+  .mob-page .up-hero-title {
+    font-size: 17px;
+  }
+
+  .mob-page .up-hero-img {
+    max-height: none;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+}
+
+html[data-theme='light'] .up-hero-slide,
+.up-hero-slide[data-theme-mode='light'] {
+  --up-hero-grad: linear-gradient(120deg, #f0f4fa 0%, #e4ebf4 50%, #d8e2ee 100%);
+  --up-hero-title: var(--text-primary);
+  --up-hero-sub: var(--text-secondary);
+  --up-hero-eyebrow: color-mix(in srgb, var(--text-muted) 90%, transparent);
+}
+
+html[data-theme='dark'] .up-hero-slide,
+.up-hero-slide[data-theme-mode='dark'] {
+  --up-hero-grad: linear-gradient(120deg, #081018 0%, #101a28 55%, #161f2c 100%);
+  --up-hero-title: #fff;
+  --up-hero-sub: rgba(255, 255, 255, 0.62);
+  --up-hero-eyebrow: rgba(255, 255, 255, 0.5);
+}
+
+.up-hero-slide-mesh {
+  position: absolute;
+  inset: 0;
+  background: var(--up-hero-grad);
+}
+
+.up-hero-slide-mesh::after {
+  content: '';
+  position: absolute;
+  right: -10%;
+  bottom: -20%;
+  width: 55%;
+  height: 80%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 12%, transparent), transparent 70%);
+  filter: blur(24px);
+}
+
+.up-hero-slide-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  padding: 16px 18px;
+  gap: 8px;
+}
+
+.up-hero-slide-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.up-hero-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--up-hero-eyebrow);
+}
+
+.up-hero-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--up-hero-title);
+}
+
+.up-hero-accent {
+  color: var(--brand-primary);
+}
+
+.up-hero-sub {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--up-hero-sub);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.up-hero-countdown {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  margin-top: 2px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, Menlo, monospace;
+  color: var(--up-hero-title);
+  background: color-mix(in srgb, var(--text-primary) 6%, var(--card-bg));
+  border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
+  width: fit-content;
+}
+
+.up-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-top: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+.up-hero-visual {
+  position: relative;
+  width: 38%;
+  min-width: 100px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.up-hero-glow {
+  position: absolute;
+  bottom: 10%;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 16%, transparent), transparent);
+  filter: blur(16px);
+}
+
+.up-hero-img {
+  position: relative;
+  z-index: 1;
+  max-height: 118px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px color-mix(in srgb, var(--text-primary) 20%, transparent));
+}
+
+/* Explore All — full-width upcoming feed */
+.up-explore-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 12px 20px;
+}
+
+.up-explore-feed .up-card {
+  flex: none;
+  width: 100%;
+  max-width: 100%;
+  height: 178px;
+}

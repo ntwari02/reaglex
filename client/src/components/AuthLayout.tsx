@@ -81,14 +81,14 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
   if (hideHeader) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center p-4 sm:p-6"
+        className="min-h-[100dvh] flex items-center justify-center p-3 sm:p-6"
         style={{
           background: 'var(--bg-page)',
           minHeight: '100vh',
         }}
       >
         <div
-          className="w-full max-w-md rounded-2xl px-5 sm:px-7 py-6 sm:py-8"
+          className="w-full max-w-md rounded-xl sm:rounded-2xl px-4 sm:px-7 py-5 sm:py-8"
           style={{
             background: isDark ? 'var(--card-bg)' : '#ffffff',
             boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.25)' : '0 4px 24px rgba(0,0,0,0.08)',
@@ -110,7 +110,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
         style={{ background: 'transparent' }}
       >
         <Navbar />
-        <main className="auth-main-stage flex-1 flex items-stretch justify-center px-3 sm:px-6 lg:px-10 pb-6 pt-[116px] sm:pt-[132px] lg:pt-[150px]">
+        <main className="auth-main-stage flex-1 flex items-stretch justify-center px-2 sm:px-6 lg:px-10 pb-4 sm:pb-6 pt-[max(5.5rem,calc(env(safe-area-inset-top,0px)+4.25rem))] sm:pt-[132px] lg:pt-[150px]">
           <div
             className="auth-shell-surface w-full max-w-6xl xl:max-w-7xl flex rounded-2xl overflow-hidden shadow-2xl"
             style={{
@@ -388,7 +388,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
               >
                 <div className="auth-mobile-app-glow auth-mobile-app-glow--orange" />
                 <div className="auth-mobile-app-glow auth-mobile-app-glow--violet" />
-                <div className="relative z-10 flex items-center justify-between mb-3 px-1 sm:px-2">
+                <div className="auth-mobile-chrome-legacy relative z-10 flex items-center justify-between mb-3 px-1 sm:px-2 max-lg:hidden">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -398,9 +398,8 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                     {t('auth.reaglexSecure')}
                   </p>
                 </div>
-                <div className="relative z-10 px-1.5 sm:px-2">
-                {/* Seller / buyer toggle */}
-                <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <div className="relative z-10 px-1 sm:px-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
                   <div>
                     <p
                       className="text-[11px] font-semibold uppercase tracking-[0.16em] mb-1"
@@ -424,14 +423,14 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
 
                   {/* Sign In / Register segmented toggle */}
                   <div
-                    className="inline-flex items-center px-1 py-1 rounded-[14px] text-[12px] font-semibold"
+                    className="inline-flex w-full sm:w-auto items-center px-1 py-1 rounded-[14px] text-[12px] font-semibold"
                     style={{
                       background: 'var(--bg-tertiary)',
                     }}
                   >
                     <Link
                       to={authBasePath ? `${authBasePath}?tab=login` : '/login'}
-                      className="relative px-3 py-1.5 rounded-[10px] transition-all"
+                      className="relative flex-1 sm:flex-none text-center px-3 py-2 sm:py-1.5 rounded-[10px] transition-all min-h-[44px] sm:min-h-0 inline-flex items-center justify-center"
                       style={{
                         background:
                           tab === 'login'
@@ -455,7 +454,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                     </Link>
                     <Link
                       to={authBasePath ? `${authBasePath}?tab=signup` : '/signup'}
-                      className="relative px-3 py-1.5 rounded-[10px] transition-all"
+                      className="relative flex-1 sm:flex-none text-center px-3 py-2 sm:py-1.5 rounded-[10px] transition-all min-h-[44px] sm:min-h-0 inline-flex items-center justify-center"
                       style={{
                         background:
                           tab === 'signup'

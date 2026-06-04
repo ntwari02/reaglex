@@ -1,0 +1,120 @@
+/* Hello Casual — compact home carousel (split copy + full-bleed image) */
+
+.premium-casual-slide--compact {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.premium-casual-slide--compact .premium-casual-slide__mesh {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-theme='light'] .premium-casual-slide--compact .premium-casual-slide__mesh,
+.premium-casual-slide--compact[data-theme-mode='light'] .premium-casual-slide__mesh {
+  background: linear-gradient(118deg, #f4f6fa 0%, #e8edf4 48%, #dfe6f0 100%);
+}
+
+html[data-theme='dark'] .premium-casual-slide--compact .premium-casual-slide__mesh,
+.premium-casual-slide--compact[data-theme-mode='dark'] .premium-casual-slide__mesh {
+  background: linear-gradient(118deg, #0c121a 0%, #121a26 52%, #181f2b 100%);
+}
+
+.premium-casual-slide--compact .premium-casual-slide__mesh::after {
+  content: '';
+  position: absolute;
+  right: -8%;
+  bottom: -18%;
+  width: 50%;
+  height: 75%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 14%, transparent), transparent 72%);
+  filter: blur(20px);
+}
+
+.premium-casual-slide--compact .premium-casual-slide__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 100%;
+  min-height: inherit;
+  padding: 0;
+}
+
+.premium-casual-slide--compact .premium-casual-slide__copy {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 54%;
+  min-width: 0;
+  max-width: 54%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 16px 12px 16px 16px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--card-bg, #fff) 96%, transparent) 0%,
+    color-mix(in srgb, var(--card-bg, #fff) 72%, transparent) 62%,
+    transparent 100%
+  );
+}
+
+html[data-theme='dark'] .premium-casual-slide--compact .premium-casual-slide__copy,
+.premium-casual-slide--compact[data-theme-mode='dark'] .premium-casual-slide__copy {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, #0c121a 94%, transparent) 0%,
+    color-mix(in srgb, #0c121a 68%, transparent) 62%,
+    transparent 100%
+  );
+}
+
+.premium-casual-slide--compact .premium-casual-slide__visual {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.premium-casual-slide--compact .premium-casual-slide__img,
+.premium-casual-slide--compact .premium-casual-slide__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 0;
+  filter: none;
+}
+
+.premium-casual-slide--compact .premium-casual-slide__video {
+  max-height: none;
+}
+
+/* Full-width hero — image fills the card */
+.premium-casual-slide--full .premium-casual-slide__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.premium-casual-slide--full .premium-casual-slide__img,
+.premium-casual-slide--full .premium-casual-slide__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--casual-img-pos, center top);
+}
+
+@media (min-width: 768px) {
+  .premium-casual-slide--full .premium-casual-slide__img,
+  .premium-casual-slide--full .premium-casual-slide__video {
+    object-fit: cover;
+    object-position: var(--casual-img-pos, center 28%);
+  }
+}

@@ -9,12 +9,12 @@ import {
   Check,
   Lock,
   ShoppingBag,
-  ArrowLeft,
   Smartphone,
   Shield,
   Wallet,
+  Banknote,
 } from 'lucide-react';
-import BuyerLayout from '../components/buyer/BuyerLayout';
+import CheckoutFocusLayout from '../components/checkout/CheckoutFocusLayout';
 import { useBuyerCart } from '../stores/buyerCartStore';
 import { paymentAPI, orderAPI, productAPI, shippingAPI } from '../services/api';
 import { useTranslation } from '../i18n/useTranslation';
@@ -37,6 +37,32 @@ const STEPS = [
 const inp =
   'w-full px-4 py-2.5 rounded-xl text-sm outline-none border bg-[var(--card-bg)] placeholder-gray-400 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_18%,transparent)] transition';
 const inpStyle = { borderColor: 'var(--divider)' };
+
+/** Must match server `fingerprintShippingAddress`. */
+function fingerprintCheckoutAddress(address) {
+  return [
+    address.street?.toLowerCase().trim(),
+    address.city?.toLowerCase().trim(),
+    address.zip?.toLowerCase().trim(),
+    String(address.country || '').toUpperCase().trim(),
+  ].join('|');
+}
+
+function resolveShippingTotals(quote, methodsByGroup) {
+  const byGroup = {};
+  let totalShipping = 0;
+  for (const g of quote?.groups || []) {
+    const mk = methodsByGroup[g.groupKey] || 'standard';
+    const m =
+      (g.methods || []).find((x) => x.key === mk && x.enabled) ||
+      (g.methods || []).find((x) => x.key === mk) ||
+      (g.methods || []).find((x) => x.key === 'standard');
+    const amt = Number(m?.price ?? 0);
+    byGroup[g.groupKey] = amt;
+    totalShipping += amt;
+  }
+  return { byGroup, totalShipping: Math.round(totalShipping * 100) / 100 };
+}
 
 export default function Checkout() {
   const { t } = useTranslation();
@@ -79,6 +105,29 @@ export default function Checkout() {
     mtn_momo: 'RWF',
   });
   const [gwLoaded, setGwLoaded] = useState(false);
+  const [codEnabled, setCodEnabled] = useState(false);
+  const [salesTaxRate, setSalesTaxRate] = useState(0.18);
+  const [loginHint, setLoginHint] = useState(false);
+
+  useEffect(() => {
+    shippingAPI
+      .getPlatformContext()
+      .then((ctx) => {
+        setCodEnabled(ctx?.policy?.codEnabled !== false);
+        const rate = Number(ctx?.policy?.salesTaxRate);
+        if (Number.isFinite(rate) && rate >= 0 && rate <= 1) setSalesTaxRate(rate);
+      })
+      .catch(() => {
+        setCodEnabled(false);
+        setSalesTaxRate(0.18);
+      });
+  }, []);
+
+  const codEligible = useMemo(() => {
+    if (!codEnabled) return false;
+    const c = String(address.country || shippingPreviewLocation?.country || '').toUpperCase();
+    return c === 'RW' || c === 'RWA' || c.includes('RWANDA');
+  }, [codEnabled, address.country, shippingPreviewLocation?.country]);
 
   const loadGateways = useCallback(() => {
     fetch(`${API_BASE_URL}/public/payment-gateways?t=${Date.now()}`, { cache: 'no-store' })
@@ -102,18 +151,16 @@ export default function Checkout() {
           mtn_momo: ['RWF', 'USD', 'EUR'].includes(momoOrderCurrency) ? momoOrderCurrency : 'RWF',
         });
       })
-      .catch(() =>
-        {
-          setGateways({
-            flutterwave: true,
-            mtn_momo: false,
-            stripe: false,
-            paypal: false,
-            airtel_money: false,
-          });
-          setGatewayOrderCurrency({ mtn_momo: 'RWF' });
-        }
-      )
+      .catch(() => {
+        setGateways({
+          flutterwave: false,
+          mtn_momo: false,
+          stripe: false,
+          paypal: false,
+          airtel_money: false,
+        });
+        setGatewayOrderCurrency({ mtn_momo: 'RWF' });
+      })
       .finally(() => setGwLoaded(true));
   }, []);
 
@@ -169,9 +216,12 @@ export default function Checkout() {
     if (!shippingPreviewLocation?.country && !shippingPreviewLocation?.city) return;
     setAddress((a) => ({
       ...a,
-      country: a.country?.trim() ? a.country : shippingPreviewLocation.country,
+      country:
+        a.country?.trim()
+          ? a.country
+          : shippingPreviewLocation.country || shippingPreviewLocation.countryCode || 'RW',
       city: a.city?.trim() ? a.city : shippingPreviewLocation.city,
-      state: a.state?.trim() ? a.state : shippingPreviewLocation.state || '',
+      state: a.state?.trim() ? a.state : shippingPreviewLocation.state || shippingPreviewLocation.region || '',
       zip: a.zip?.trim() ? a.zip : shippingPreviewLocation.zip || '',
     }));
   }, [shippingPreviewLocation]);
@@ -189,10 +239,15 @@ export default function Checkout() {
     }
   }, [gwLoaded, gateways, checkoutProvider]);
 
+  const resolvedShipping = useMemo(
+    () => resolveShippingTotals(shippingQuote, shippingMethodsByGroup),
+    [shippingQuote, shippingMethodsByGroup],
+  );
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const shippingCost = Number(shippingQuote?.totalShipping) || 0;
-  const tax = subtotal * 0.1;
-  const total = subtotal + shippingCost + tax;
+  const shippingCost = resolvedShipping.totalShipping;
+  const tax = Math.round(subtotal * salesTaxRate * 100) / 100;
+  const total = Math.round((subtotal + shippingCost + tax) * 100) / 100;
+  const vatLabel = `VAT (${Math.round(salesTaxRate * 100)}%)`;
 
   const quoteFingerprint = useMemo(() => {
     const hasFull =
@@ -233,6 +288,7 @@ export default function Checkout() {
           const intelligence = await orderAPI.checkoutIntelligence({
             lines,
             strategy: 'lowest_cost',
+            selectedMethods: shippingMethodsByGroup,
             shippingAddress: hasFull
               ? {
                   full_name: fullName,
@@ -272,7 +328,7 @@ export default function Checkout() {
           };
           const suggestedMethods = intelligence?.optimization?.selectedMethods || {};
           if (Object.keys(suggestedMethods).length) {
-            setShippingMethodsByGroup((prev) => ({ ...suggestedMethods, ...prev }));
+            setShippingMethodsByGroup((prev) => ({ ...prev, ...suggestedMethods }));
           }
         } else {
           data = await shippingAPI.estimate({
@@ -323,7 +379,10 @@ export default function Checkout() {
     gateways.mtn_momo ||
     gateways.stripe ||
     gateways.paypal ||
-    gateways.airtel_money;
+    gateways.airtel_money ||
+    codEligible;
+
+  const canProceedToReview = anyGatewayEnabled && (checkoutProvider !== 'cod' || codEligible);
 
   const nextStep = () => setStep((s) => Math.min(4, s + 1));
   const prevStep = () => setStep((s) => Math.max(1, s - 1));
@@ -331,26 +390,32 @@ export default function Checkout() {
   const placeOrder = async () => {
     if (!agreedTerms) return alert(t('checkout.errors.agreeTerms'));
     if (!user?.id) {
+      setLoginHint(true);
       navigate(`/auth?tab=login&redirect=${encodeURIComponent('/checkout')}`);
       return;
     }
+    const isCod = checkoutProvider === 'cod';
     const gwOk = (k) => {
+      if (k === 'cod') return codEligible;
       if (k === 'momo') return gateways.mtn_momo;
       if (k === 'airtel') return gateways.airtel_money;
       return gateways[k];
     };
     if (!gwOk(checkoutProvider)) {
-      return alert(t('checkout.errors.gatewayDisabled'));
+      return alert(isCod ? 'Cash on delivery is not available for this address.' : t('checkout.errors.gatewayDisabled'));
     }
-    if (checkoutProvider === 'momo') {
+    if (!isCod && checkoutProvider === 'momo') {
       const ph = (momoPhone || address.phone || '').trim();
       if (!ph) return alert(t('checkout.errors.momoPhoneRequired'));
     }
-    if (checkoutProvider === 'airtel') {
+    if (!isCod && checkoutProvider === 'airtel') {
       const ph = (airtelPhone || address.phone || '').trim();
       if (!ph) return alert(t('checkout.errors.airtelPhoneRequired'));
     }
 
+    if (shippingQuoteLoading) {
+      return alert(t('checkout.errors.shippingNotReady'));
+    }
     if (shippingQuoteErr) {
       return alert(shippingQuoteErr);
     }
@@ -359,6 +424,13 @@ export default function Checkout() {
     }
     if (shippingQuote?.isEstimate) {
       return alert(t('checkout.errors.finalizeShippingAddress'));
+    }
+    const liveAddressFp = fingerprintCheckoutAddress(address);
+    if (
+      shippingQuote?.addressFingerprint &&
+      liveAddressFp !== shippingQuote.addressFingerprint
+    ) {
+      return alert(t('checkout.errors.shippingQuoteChanged'));
     }
     if (
       !address.street?.trim() ||
@@ -393,13 +465,19 @@ export default function Checkout() {
         const p = productById.get(line.id);
         const sid = String(p.sellerId);
         if (!linesBySeller.has(sid)) linesBySeller.set(sid, []);
-        linesBySeller.get(sid).push({ product_id: line.id, quantity: line.quantity });
+        linesBySeller.get(sid).push({
+          product_id: line.id,
+          quantity: line.quantity,
+          ...(line.variantSku ? { variant_id: line.variantSku } : {}),
+        });
       }
 
       const sellerGroups = [...linesBySeller.entries()].map(([sellerId, orderItems]) => ({
         sellerId,
         items: orderItems,
         subtotal: orderItems.reduce((s, it) => {
+          const cartLine = items.find((l) => l.id === it.product_id && (!it.variant_id || l.variantSku === it.variant_id));
+          if (cartLine?.price) return s + cartLine.price * it.quantity;
           const pr = productById.get(it.product_id);
           return s + (pr ? pr.price * it.quantity : 0);
         }, 0),
@@ -413,13 +491,10 @@ export default function Checkout() {
         }
       }
 
-      const byGroup = {};
-      for (const g of shippingQuote?.groups || []) {
-        const mk = shippingMethodsPayload[g.groupKey] || 'standard';
-        const m = (g.methods || []).find((x) => x.key === mk && x.enabled);
-        const amt = m?.freeShippingApplied ? 0 : Number(m?.price ?? 0);
-        byGroup[g.groupKey] = amt;
-      }
+      const { byGroup, totalShipping: lockTotalShipping } = resolveShippingTotals(
+        shippingQuote,
+        shippingMethodsPayload,
+      );
 
       const createRes = await orderAPI.create({
         sellerGroups,
@@ -433,8 +508,9 @@ export default function Checkout() {
           postal_code: address.zip,
           country: address.country,
         },
-        paymentMethod:
-          checkoutProvider === 'momo'
+        paymentMethod: isCod
+          ? 'cash_on_delivery'
+          : checkoutProvider === 'momo'
             ? gatewayOrderCurrency.mtn_momo
             : checkoutProvider === 'airtel'
               ? 'RWF'
@@ -446,7 +522,7 @@ export default function Checkout() {
           shippingQuote?.addressFingerprint && shippingQuote.isEstimate === false
             ? {
                 addressFingerprint: shippingQuote.addressFingerprint,
-                totalShipping: Number(shippingQuote.totalShipping) || 0,
+                totalShipping: lockTotalShipping,
                 byGroup,
               }
             : undefined,
@@ -459,6 +535,19 @@ export default function Checkout() {
       }
 
       createdOrders = orders;
+
+      if (createRes?.skipPaymentInit || createRes?.paymentMode === 'cod') {
+        clearCart();
+        setPlacing(false);
+        navigate('/account?tab=orders&placed=cod', {
+          state: {
+            message: 'Order placed! Pay cash when your delivery arrives.',
+            orderNumbers: orders.map((o) => o.orderNumber || o.id),
+          },
+        });
+        return;
+      }
+
       try {
         if (orders.length > 1 && typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem(
@@ -518,7 +607,7 @@ export default function Checkout() {
       setPlacing(false);
       const msg = err?.response?.data?.message || err?.message || t('checkout.errors.paymentInitFailed');
       if (err?.response?.status === 409) {
-        alert(t('checkout.errors.shippingQuoteChanged'));
+        alert(msg || t('checkout.errors.shippingQuoteChanged'));
       } else {
         alert(msg);
       }
@@ -527,8 +616,8 @@ export default function Checkout() {
 
   if (items.length === 0)
     return (
-      <BuyerLayout>
-        <div className="flex h-[70vh] flex-col items-center justify-center gap-4">
+      <CheckoutFocusLayout backTo="/">
+        <div className="flex min-h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] flex-col items-center justify-center gap-4 px-4">
           <ShoppingBag className="h-14 w-14" style={{ color: 'var(--divider)' }} />
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
             {t('checkout.emptyCart')}
@@ -542,21 +631,12 @@ export default function Checkout() {
             </button>
           </Link>
         </div>
-      </BuyerLayout>
+      </CheckoutFocusLayout>
     );
 
   return (
-    <BuyerLayout>
-      <div className="w-full px-4 py-8 sm:px-6 lg:px-10 xl:px-16">
-        <motion.button
-          whileHover={{ x: -3 }}
-          onClick={() => navigate(-1)}
-          className="mb-6 flex items-center gap-2 text-sm font-semibold"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <ArrowLeft className="h-4 w-4" /> {t('checkout.backToCart')}
-        </motion.button>
-
+    <CheckoutFocusLayout>
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
         <div className="mb-8 flex items-center justify-between">
           {STEPS.map((s, i) => (
             <div key={s.id} className="flex flex-1 items-center">
@@ -918,6 +998,32 @@ export default function Checkout() {
                           </p>
                         </button>
                       )}
+                      {codEligible && (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutProvider('cod')}
+                          className="flex flex-col rounded-2xl border-2 p-5 text-left transition hover:shadow-md sm:col-span-2"
+                          style={{
+                            borderColor: checkoutProvider === 'cod' ? 'var(--brand-primary)' : 'var(--divider)',
+                            background: checkoutProvider === 'cod' ? 'var(--brand-tint)' : 'var(--card-bg)',
+                          }}
+                        >
+                          <div className="mb-3 flex items-center gap-2">
+                            <div
+                              className="flex h-10 w-10 items-center justify-center rounded-xl"
+                              style={{ background: 'linear-gradient(135deg,#059669,#047857)' }}
+                            >
+                              <Banknote className="h-5 w-5 text-white" />
+                            </div>
+                            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
+                              Pay on delivery (Cash)
+                            </span>
+                          </div>
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                            Popular in Rwanda — pay the driver or seller when you receive your order. No mobile money needed now.
+                          </p>
+                        </button>
+                      )}
                     </div>
                     {!anyGatewayEnabled && gwLoaded && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -971,6 +1077,11 @@ export default function Checkout() {
                         {t('checkout.paypalHosted')}
                       </div>
                     )}
+                    {checkoutProvider === 'cod' && (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100">
+                        You will pay in cash (RWF) when the order arrives. Keep your phone nearby for delivery updates.
+                      </div>
+                    )}
                     <div className="flex gap-3 pt-2">
                       <button
                         onClick={prevStep}
@@ -983,7 +1094,7 @@ export default function Checkout() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={nextStep}
-                        disabled={!anyGatewayEnabled}
+                        disabled={!canProceedToReview}
                         className="flex-1 rounded-2xl py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                         style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
                       >
@@ -1145,7 +1256,7 @@ export default function Checkout() {
           </div>
 
           <div
-            className="sticky top-20 h-fit space-y-4 rounded-2xl p-5"
+            className="sticky top-[calc(3.25rem+env(safe-area-inset-top,0px))] h-fit space-y-4 rounded-2xl p-5 lg:top-6"
             style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-card)' }}
           >
             <h3 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
@@ -1210,7 +1321,7 @@ export default function Checkout() {
                 <span>{fmtMoney(shippingCost)}</span>
               </div>
               <div className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
-                <span>{t('checkout.tax10')}</span>
+                <span>{vatLabel}</span>
                 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {fmtMoney(tax)}
                 </span>
@@ -1226,6 +1337,6 @@ export default function Checkout() {
           </div>
         </div>
       </div>
-    </BuyerLayout>
+    </CheckoutFocusLayout>
   );
 }

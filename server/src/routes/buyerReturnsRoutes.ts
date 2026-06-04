@@ -15,6 +15,7 @@ import {
   listReturnCases,
   createInstantResolution,
   submitRewardedReview,
+  listMyReviews,
   submitSatisfactionResponse,
   uploadReturnEvidence,
 } from '../controllers/buyerReturnsController';
@@ -53,6 +54,7 @@ router.get('/post-delivery/rewards', getBuyerRewardsSummary);
 router.get('/post-delivery/:orderId/satisfaction-prompts', getSmartSatisfactionPrompts);
 router.post('/post-delivery/:orderId/satisfaction-response', submitSatisfactionResponse);
 router.post('/post-delivery/:orderId/instant-resolution', createInstantResolution);
+router.get('/post-delivery/reviews', listMyReviews);
 router.post('/post-delivery/reviews', submitRewardedReview);
 router.get('/cases', listReturnCases);
 router.get('/cases/:caseId', getReturnCase);

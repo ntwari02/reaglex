@@ -15,15 +15,30 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { subscriptionApi } from '@/services/subscriptionApi';
 import { useToastStore } from '@/stores/toastStore';
+import { useSystemFeatures } from '@/hooks/useSystemFeatures';
 import BoostAnalyticsMiniPanel from '@/components/seller/BoostAnalyticsMiniPanel';
+import SubscriptionPaymentFlow from '@/components/seller/SubscriptionPaymentFlow';
+import '@/styles/seller-subscription.css';
 
 type TabId = 'plan' | 'billing' | 'payment';
 type Cycle = 'monthly' | 'annual';
 
-interface ApiTier {
+interface ApiPlan {
   id: string;
+  tierId?: string;
   name: string;
+  displayName?: string;
   price: number;
+  billingCycles?: { monthly: number; annual: number };
+  currency?: string;
+  features?: string[];
+  marketingFeatures?: string[];
+  popular?: boolean;
+  current?: boolean;
+  limits?: {
+    products?: string;
+    productBoost?: { enabled: boolean; monthlyLimit: number | null; unlimited: boolean };
+  };
 }
 
 interface ApiInvoice {
@@ -36,72 +51,13 @@ interface ApiInvoice {
   plan?: string;
 }
 
-const PLAN_CONTENT = {
-  starter: {
-    name: 'Starter',
-    monthly: 0,
-    annual: 0,
-    badge: null,
-    features: [
-      'Up to 50 products',
-      'Basic analytics',
-      'Email support',
-      'Standard payment processing',
-      'No product boosting',
-      'Standard search ranking',
-      'No homepage placement',
-    ],
-    boostLimit: 0,
-  },
-  premium: {
-    name: 'Premium',
-    monthly: 29.99,
-    annual: 23.99,
-    badge: 'Most Popular',
-    features: [
-      'Unlimited products',
-      'Advanced analytics',
-      'Priority support',
-      'Fast payment processing',
-      'Custom branding',
-      'API access',
-      'Product boost included',
-      'Up to 10 products boosted per month',
-      'Priority search ranking',
-      'Category page spotlight',
-      'Boost analytics dashboard',
-    ],
-    boostLimit: 10,
-  },
-  enterprise: {
-    name: 'Enterprise',
-    monthly: 99.99,
-    annual: 79.99,
-    badge: null,
-    features: [
-      'Unlimited everything',
-      'Real-time analytics',
-      '24/7 dedicated support',
-      'Instant payments',
-      'White-label solution',
-      'Advanced API',
-      'Custom integrations',
-      'Full product boost access',
-      'Unlimited boosts',
-      'Homepage featured placement',
-      'Top-of-search guaranteed',
-      'Cross-category promotion',
-      'Dedicated boost manager',
-    ],
-    boostLimit: Number.POSITIVE_INFINITY,
-  },
-} as const;
-
 const SubscriptionTiers: React.FC = () => {
   const { showToast } = useToastStore();
+  const { isEnabled, loading: featuresLoading } = useSystemFeatures();
+  const subscriptionsOn = featuresLoading || isEnabled('seller_subscriptions');
   const [activeTab, setActiveTab] = useState<TabId>('plan');
   const [cycle, setCycle] = useState<Cycle>('monthly');
-  const [tiers, setTiers] = useState<ApiTier[]>([]);
+  const [plans, setPlans] = useState<ApiPlan[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [invoices, setInvoices] = useState<ApiInvoice[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
@@ -135,7 +91,7 @@ const SubscriptionTiers: React.FC = () => {
         subscriptionApi.getPlans(),
         subscriptionApi.getCurrentSubscription().catch(() => ({ subscription: null })),
       ]);
-      setTiers(plansRes.plans || []);
+      setPlans(plansRes.plans || []);
       setCurrentSubscription(subRes.subscription || null);
       const pmRes = await subscriptionApi.getPaymentMethods().catch(() => ({ paymentMethods: [] as any[] }));
       const list = pmRes.paymentMethods || [];
@@ -188,21 +144,23 @@ const SubscriptionTiers: React.FC = () => {
     fetchMethods();
   }, [activeTab, showToast]);
 
-  const currentPlanName = String(
-    currentSubscription?.name || currentSubscription?.plan || 'Starter'
-  ).toLowerCase();
-  const currentPlanKey = currentPlanName.includes('enterprise')
-    ? 'enterprise'
-    : currentPlanName.includes('premium')
-    ? 'premium'
-    : 'starter';
+  const currentTierId =
+    currentSubscription?.tierId ||
+    plans.find((p) => p.current)?.id ||
+    plans.find((p) => p.current)?.tierId ||
+    '';
 
-  const boostLimit =
-    PLAN_CONTENT[currentPlanKey as keyof typeof PLAN_CONTENT].boostLimit;
+  const currentPlan = plans.find((p) => p.id === currentTierId || p.tierId === currentTierId);
+
+  const boostLimit = currentSubscription?.limits?.productBoost?.unlimited
+    ? Number.POSITIVE_INFINITY
+    : currentSubscription?.limits?.productBoost?.monthlyLimit ??
+      currentSubscription?.entitlements?.productBoostMonthlyLimit ??
+      currentPlan?.limits?.productBoost?.monthlyLimit ??
+      0;
+
   const boostUsed = Number(
-    currentSubscription?.boostUsage?.used ??
-      currentSubscription?.boostedProductsThisMonth ??
-      3
+    currentSubscription?.boostUsage?.used ?? 0,
   );
   const boostLimitDisplay = Number.isFinite(boostLimit) ? boostLimit : Math.max(boostUsed, 1);
   const boostPercent = Math.max(
@@ -216,7 +174,11 @@ const SubscriptionTiers: React.FC = () => {
           currentSubscription?.nextBillingDate || currentSubscription?.renewalDate
         ).toLocaleDateString()
       : 'N/A';
-  const currentPrice = Number(currentSubscription?.price ?? PLAN_CONTENT[currentPlanKey as keyof typeof PLAN_CONTENT].monthly);
+  const currentPrice = Number(
+    cycle === 'monthly'
+      ? currentSubscription?.price ?? currentPlan?.billingCycles?.monthly ?? currentPlan?.price ?? 0
+      : currentPlan?.billingCycles?.annual ?? currentSubscription?.price ?? 0,
+  );
 
   const visibleInvoices = useMemo(() => {
     const list = [...invoices];
@@ -228,28 +190,26 @@ const SubscriptionTiers: React.FC = () => {
     return list;
   }, [invoices, billingSort]);
 
-  const findTierIdByPlanKey = (key: keyof typeof PLAN_CONTENT) => {
-    const label = PLAN_CONTENT[key].name.toLowerCase();
-    return tiers.find((t) => t.name?.toLowerCase().includes(label))?.id || null;
-  };
-
-  const handleUpgrade = async (planKey: keyof typeof PLAN_CONTENT) => {
-    if (planKey === 'starter') {
-      showToast('Starter plan is free forever.', 'info');
+  const handleUpgrade = async (tierId: string, planName: string, planPrice: number) => {
+    if (!subscriptionsOn) {
+      showToast('New subscription purchases are temporarily disabled by the platform.', 'error');
       return;
     }
-    const tierId = findTierIdByPlanKey(planKey);
+    if (planPrice <= 0 && currentTierId === tierId) {
+      showToast('You are already on this plan.', 'info');
+      return;
+    }
     if (!tierId) {
       showToast('Plan is not available right now. Please refresh and try again.', 'error');
       return;
     }
     try {
-      setUpgradingPlanKey(planKey);
+      setUpgradingPlanKey(tierId);
       let methodId = selectedUpgradePaymentMethodId;
       if (!methodId && paymentMethods.length > 0) {
         methodId = paymentMethods.find((m: any) => m?.isDefault)?.id || paymentMethods[0]?.id || '';
       }
-      const result = await subscriptionApi.upgradeSubscription(tierId, methodId || undefined);
+      const result = await subscriptionApi.upgradeSubscription(tierId, methodId || undefined, cycle);
       if (!result.success) {
         if (result.error?.requiresPaymentMethod) {
           showToast('Add a payment method first to upgrade to a paid plan.', 'info');
@@ -260,7 +220,7 @@ const SubscriptionTiers: React.FC = () => {
         showToast(result.error?.message || 'Failed to upgrade', 'error');
         return;
       }
-      showToast(`Successfully upgraded to ${PLAN_CONTENT[planKey].name}.`, 'success');
+      showToast(`Successfully upgraded to ${planName}.`, 'success');
       await fetchPlansAndSubscription();
     } catch (error: any) {
       showToast(error.message || 'Failed to upgrade subscription', 'error');
@@ -385,39 +345,39 @@ const SubscriptionTiers: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Crown className="w-7 h-7 text-red-500" />
-            Subscription & Billing
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage plans, billing, payment methods, and product boost performance in one place.
+    <div className="slx-sub-root space-y-6">
+      <div className="slx-sub-header">
+        <h1 className="slx-sub-title flex items-center gap-2">
+          <Crown className="w-8 h-8 text-red-500" />
+          Subscription & Billing
+        </h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
+          Plans, invoices, and payment methods are managed by Reaglex. Contact support if you need help with billing.
+        </p>
+        {!subscriptionsOn && (
+          <p className="mt-3 text-sm font-semibold text-amber-800 dark:text-amber-300 rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 max-w-2xl">
+            New plan purchases are paused platform-wide. Your current plan stays active until it expires.
           </p>
-        </div>
+        )}
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="inline-flex min-w-full sm:min-w-0 gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
-          {[
-            { id: 'plan', label: 'Current Plan' },
-            { id: 'billing', label: 'Billing History' },
-            { id: 'payment', label: 'Payment Methods' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabId)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-r from-red-500 to-[var(--brand-primary)] text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <SubscriptionPaymentFlow activeStep={activeTab === 'payment' ? 2 : activeTab === 'billing' ? 4 : 1} />
+
+      <div className="slx-sub-tabs">
+        {[
+          { id: 'plan', label: 'Current Plan' },
+          { id: 'billing', label: 'Billing History' },
+          { id: 'payment', label: 'Payment Methods' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id as TabId)}
+            className={`slx-sub-tab${activeTab === tab.id ? ' is-active' : ''}`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'plan' && (
@@ -428,7 +388,7 @@ const SubscriptionTiers: React.FC = () => {
                 Active Plan
               </p>
               <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
-                {PLAN_CONTENT[currentPlanKey as keyof typeof PLAN_CONTENT].name}
+                {currentPlan?.displayName || currentPlan?.name || currentSubscription?.name || '—'}
               </p>
               <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <p>Renewal date: {renewalDate}</p>
@@ -488,7 +448,7 @@ const SubscriptionTiers: React.FC = () => {
           <BoostAnalyticsMiniPanel
             boostUsed={boostUsed}
             boostLimit={boostLimitDisplay}
-            planKey={currentPlanKey}
+            planKey={currentTierId || 'default'}
           />
 
           {(loadingPlans || loadingSubscription) ? (
@@ -497,44 +457,52 @@ const SubscriptionTiers: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {(Object.keys(PLAN_CONTENT) as Array<keyof typeof PLAN_CONTENT>).map((key) => {
-                const plan = PLAN_CONTENT[key];
-                const isCurrent = currentPlanKey === key;
-                const isPremium = key === 'premium';
-                const price = cycle === 'monthly' ? plan.monthly : plan.annual;
+              {plans.map((plan) => {
+                const tierId = plan.id || plan.tierId || '';
+                const isCurrent = plan.current || tierId === currentTierId;
+                const isPopular = Boolean(plan.popular);
+                const price =
+                  cycle === 'monthly'
+                    ? Number(plan.billingCycles?.monthly ?? plan.price ?? 0)
+                    : Number(plan.billingCycles?.annual ?? plan.price ?? 0);
+                const featureList = plan.marketingFeatures?.length
+                  ? plan.marketingFeatures
+                  : plan.features || [];
                 return (
                   <div
-                    key={key}
+                    key={tierId}
                     className={`rounded-2xl border p-5 bg-white dark:bg-gray-900 ${
-                      isPremium
+                      isPopular
                         ? 'border-red-400 dark:border-red-500 shadow-lg shadow-red-500/10'
                         : 'border-gray-200 dark:border-gray-700'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h3>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        {plan.displayName || plan.name}
+                      </h3>
                       {isCurrent && (
                         <span className="text-[11px] px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
                           Current Plan
                         </span>
                       )}
                     </div>
-                    {plan.badge && (
+                    {isPopular && (
                       <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-[var(--brand-primary)] px-2.5 py-1 text-[11px] font-semibold text-white">
                         <Sparkles className="w-3 h-3" />
-                        {plan.badge}
+                        Most Popular
                       </div>
                     )}
                     <div className="mt-3">
                       <p className="text-3xl font-bold text-gray-900 dark:text-white">
                         ${price.toFixed(2)}
                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          /{cycle === 'monthly' ? 'month' : 'month billed annually'}
+                          /{cycle === 'monthly' ? 'month' : 'year'}
                         </span>
                       </p>
                     </div>
                     <ul className="mt-4 space-y-2 text-sm">
-                      {plan.features.map((feature) => (
+                      {featureList.map((feature) => (
                         <li key={feature} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
                           <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                           <span>{feature}</span>
@@ -542,15 +510,17 @@ const SubscriptionTiers: React.FC = () => {
                       ))}
                     </ul>
                     <Button
-                      onClick={() => handleUpgrade(key)}
-                      disabled={isCurrent || upgradingPlanKey === key}
+                      onClick={() =>
+                        handleUpgrade(tierId, plan.displayName || plan.name, price)
+                      }
+                      disabled={!subscriptionsOn || isCurrent || upgradingPlanKey === tierId}
                       className={`mt-5 w-full ${
                         isCurrent
                           ? 'bg-gray-600 hover:bg-gray-600'
                           : 'bg-gradient-to-r from-red-500 to-[var(--brand-primary)] hover:from-red-600 hover:to-[var(--brand-primary-hover)]'
                       }`}
                     >
-                      {upgradingPlanKey === key ? (
+                      {upgradingPlanKey === tierId ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Processing
@@ -598,8 +568,10 @@ const SubscriptionTiers: React.FC = () => {
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
             <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Billing History</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Invoices, plan charges and payment statuses.</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Billing log</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Every subscription charge is recorded as an invoice below. Paid rows match your default payment method and admin gateway config.
+                </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <select

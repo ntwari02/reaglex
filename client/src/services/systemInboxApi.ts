@@ -15,6 +15,18 @@ export type SystemInboxRow = {
   priority: string;
   actionUrl?: string;
   actionText?: string;
+  metadata?: {
+    category?: string;
+    tone?: string;
+    eventKey?: string;
+    entityId?: string;
+    productThumbnails?: string[];
+    visualStyle?: {
+      showProductPreview?: boolean;
+      compact?: boolean;
+      thumbnailCount?: number;
+    };
+  };
   createdAt: string;
   readBy?: string[];
 };

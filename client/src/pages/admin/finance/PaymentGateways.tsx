@@ -8,6 +8,7 @@ type GatewayStatus = 'online' | 'offline' | 'issues';
 type FieldMeta = { name: string; label: string; kind: 'text' | 'secret' | 'url'; hint?: string; group?: string };
 
 const CONFIGURE_INTRO_BY_KEY: Record<string, string> = {
+  offline: 'Manual / offline payments — no API keys. Enable for COD or bank transfer workflows.',
   flutterwave:
     'Public key, secret key, encryption key, webhook URL, and webhook secret hash (verif-hash). Stored encrypted; never commit these to source control.',
   mtn_momo:
@@ -30,6 +31,8 @@ interface Gateway {
   maskedSummary?: Record<string, string>;
   suggestedWebhookUrl?: string;
   isConfigured?: boolean;
+  checkoutMethod?: string;
+  supportsOnlineCheckout?: boolean;
   apiKeyMasked?: string;
   webhookUrl?: string;
   lastChecked?: string;
@@ -71,6 +74,7 @@ export default function PaymentGateways() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const fallbackGateways: Gateway[] = [
+    { id: 'offline', key: 'offline', name: 'Offline / Manual', type: 'Manual', status: 'offline', isEnabled: false, fieldMeta: [], supportsOnlineCheckout: false },
     { id: 'flutterwave', key: 'flutterwave', name: 'Flutterwave', type: 'Payment Gateway', status: 'offline', isEnabled: false, fieldMeta: mergeFieldMetaFromApi('flutterwave', []) },
     { id: 'mtn_momo', key: 'mtn_momo', name: 'MTN Mobile Money', type: 'Mobile Money', status: 'offline', isEnabled: false, fieldMeta: mergeFieldMetaFromApi('mtn_momo', []) },
     { id: 'airtel_money', key: 'airtel_money', name: 'Airtel Money', type: 'Mobile Money', status: 'offline', isEnabled: false, fieldMeta: mergeFieldMetaFromApi('airtel_money', []) },
@@ -97,6 +101,8 @@ export default function PaymentGateways() {
             maskedSummary: g.maskedSummary || {},
             suggestedWebhookUrl: g.suggestedWebhookUrl,
             isConfigured: g.isConfigured,
+            checkoutMethod: g.checkoutMethod,
+            supportsOnlineCheckout: g.supportsOnlineCheckout,
             apiKeyMasked: g.apiKeyMasked,
             webhookUrl: g.webhookUrl,
             lastChecked: g.lastChecked ? new Date(g.lastChecked).toLocaleString() : undefined,

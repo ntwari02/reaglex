@@ -4,8 +4,7 @@ import { AuthTokenPayload } from '../utils/generateToken';
 import { User } from '../models/User';
 import { ActiveSession } from '../models/ActiveSession';
 import { noteUserRequest } from '../services/systemMonitor.service';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+import { getJwtSecret } from '../config/jwtSecret';
 // Updating `ActiveSession.lastActiveAt` performs a DB write.
 // Throttle this to reduce latency under load.
 const SESSION_TOUCH_MIN_MS =
@@ -37,7 +36,7 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthTokenPayload & { jti?: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as AuthTokenPayload & { jti?: string };
     
     // Check if user account is still active
     const user = await User.findById(decoded.id).select('accountStatus role');
@@ -68,8 +67,9 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
       }
     }
     
-    req.user = decoded;
-    noteUserRequest(String(decoded.id), decoded.role);
+    // Always use the role from the database — JWT may be stale after role changes.
+    req.user = { ...decoded, role: user.role };
+    noteUserRequest(String(decoded.id), user.role);
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Invalid or expired token', code: 'AUTH_INVALID' });
@@ -77,13 +77,41 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
 }
 
 export function authorize(...allowedRoles: string[]) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const dbUser = await User.findById(req.user.id).select('role accountStatus');
+    if (!dbUser) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    if (dbUser.accountStatus === 'inactive' || dbUser.accountStatus === 'banned') {
+      return res.status(403).json({
+        message: 'Your account has been deactivated. Please contact support for assistance.',
+      });
+    }
+
+    req.user = { ...req.user, role: dbUser.role };
+
+    if (!allowedRoles.includes(dbUser.role)) {
       return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+    }
+
+    if (dbUser.role === 'admin') {
+      const path = req.originalUrl.split('?')[0];
+      const { canAccessAdminApiPath, isAdminProtectedApiPath } = await import(
+        '../services/adminAccess.service'
+      );
+      if (isAdminProtectedApiPath(path)) {
+        const ok = await canAccessAdminApiPath(req.user.id, req.method, path);
+        if (!ok) {
+          return res.status(403).json({
+            message: 'You do not have permission to access this admin area.',
+            code: 'ADMIN_SCOPE_DENIED',
+          });
+        }
+      }
     }
 
     next();
@@ -113,7 +141,7 @@ export async function optionalAuthenticate(
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthTokenPayload & { jti?: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as AuthTokenPayload & { jti?: string };
     const user = await User.findById(decoded.id).select('accountStatus role');
     if (!user) {
       return next();
@@ -134,7 +162,7 @@ export async function optionalAuthenticate(
       }
     }
 
-    req.user = decoded;
+    req.user = { ...decoded, role: user.role };
   } catch {
     // treat as guest
   }

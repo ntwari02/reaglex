@@ -1,48 +1,177 @@
-import { useState, useRef, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, Truck, Home, MapPin, ArrowLeft, FileText, Cog,
-  Copy, Warehouse, ChevronRight, Download,
+  Copy, Loader2, Search,
 } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
 import { useToastStore } from '../stores/toastStore';
+import { useAuthStore } from '../stores/authStore';
+import { orderAPI } from '../services/api';
+import { SERVER_URL } from '../lib/config';
+import { formatOrderMoney } from '../lib/formatOrderMoney';
 
 const PRIMARY = 'var(--brand-primary)';
 const SUCCESS = 'var(--text-in-stock)';
 const EASE = [0.25, 0.46, 0.45, 0.94];
 
-const PROGRESS_STEPS = [
-  { id: 1, key: 'placed', label: 'Order Placed', icon: FileText },
-  { id: 2, key: 'processing', label: 'Processing', icon: Cog },
-  { id: 3, key: 'shipped', label: 'Shipped', icon: Truck },
-  { id: 4, key: 'out', label: 'Out for Delivery', icon: MapPin },
-  { id: 5, key: 'delivered', label: 'Delivered', icon: Home },
-];
+const STATUS_STEP_INDEX = {
+  pending: 0,
+  processing: 1,
+  packed: 1,
+  paid: 1,
+  shipped: 2,
+  delivered: 4,
+  completed: 4,
+  cancelled: 0,
+};
 
-const TIMELINE_STEPS = [
-  { id: 1, label: 'Order Placed', icon: FileText, date: 'Feb 28, 2026 · 9:14 AM', done: true, active: false, sub: 'We received your order and payment is in escrow.' },
-  { id: 2, label: 'Processing', icon: Cog, date: 'Feb 28, 2026 · 11:30 AM', done: true, active: false, sub: 'Seller is preparing your order.' },
-  { id: 3, label: 'Shipped', icon: Truck, date: 'Mar 1, 2026 · 2:00 PM', done: false, active: true, sub: 'Your order is on the way.', tracking: 'XK-8423-9912' },
-  { id: 4, label: 'Out for Delivery', icon: MapPin, date: 'Expected Mar 5', done: false, active: false, sub: 'Almost there! Your order will arrive today.', expected: true },
-  { id: 5, label: 'Delivered', icon: Home, date: 'Expected Mar 5', done: false, active: false, sub: 'Confirm delivery to release funds to the seller.', expected: true },
-];
+function resolveImg(src) {
+  if (!src) return '';
+  if (src.startsWith('http')) return src;
+  return `${SERVER_URL}${src}`;
+}
 
-const ORDER_SUMMARY_ITEMS = [
-  { name: 'Adidas Nova 3', variant: 'Size M · Black', qty: 1, price: 29, image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=120&q=80' },
-];
+function normalizeOrder(data) {
+  const o = data?.order || data;
+  if (!o) return null;
+  const currency = o.currency || o.payment?.currency || 'RWF';
+  return {
+    ...o,
+    id: o.id || o._id,
+    order_number: o.order_number || o.orderNumber,
+    status: String(o.status || 'processing').toLowerCase(),
+    tracking_number: o.tracking_number || o.trackingNumber,
+    can_confirm_receipt: o.can_confirm_receipt ?? o.canConfirmReceipt,
+    payment_method: o.payment_method || o.paymentMethod,
+    subtotal: o.subtotal,
+    shipping: o.shipping,
+    tax: o.tax,
+    total: o.total,
+    currency,
+    items: o.items || [],
+    timeline: o.timeline || [],
+  };
+}
 
 export default function OrderTracking() {
   const { orderId } = useParams();
-  const displayOrderId = orderId || 'ORD-1002';
+  const navigate = useNavigate();
   const showToast = useToastStore((s) => s.showToast);
+  const user = useAuthStore((s) => s.user);
 
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [progressWidth, setProgressWidth] = useState(0);
   const [confirmModal, setConfirmModal] = useState(false);
   const [confirmSuccess, setConfirmSuccess] = useState(false);
-  const [notifications, setNotifications] = useState({ sms: true, email: true, push: false });
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
-  const currentStepIndex = 2; // Shipped = index 2 (0-based)
+  const [guestMode, setGuestMode] = useState(!user && !orderId);
+  const [guestForm, setGuestForm] = useState({ orderNumber: '', email: '', phone: '' });
+  const [guestSearching, setGuestSearching] = useState(false);
+
+  const loadOrder = useCallback(async () => {
+    if (!orderId) {
+      setLoading(false);
+      setGuestMode(!user);
+      return;
+    }
+    if (!user) {
+      setGuestMode(true);
+      setGuestForm((f) => ({ ...f, orderNumber: orderId }));
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const data = await orderAPI.getById(orderId);
+      setOrder(normalizeOrder(data));
+      setGuestMode(false);
+    } catch (err) {
+      setLoadError(err?.response?.data?.message || 'Could not load order');
+      setOrder(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId, user]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
+
+  const searchGuestOrder = async (e) => {
+    e?.preventDefault();
+    const num = guestForm.orderNumber.trim();
+    const email = guestForm.email.trim();
+    const phone = guestForm.phone.trim();
+    if (!num || (!email && !phone)) {
+      showToast('Enter order number and email or phone', 'error');
+      return;
+    }
+    setGuestSearching(true);
+    setLoadError(null);
+    try {
+      const data = await orderAPI.trackByNumber(num, { email: email || undefined, phone: phone || undefined });
+      setOrder(normalizeOrder(data));
+      setGuestMode(false);
+      navigate(`/track/${encodeURIComponent(num)}`, { replace: true });
+    } catch (err) {
+      setLoadError(err?.response?.data?.message || 'Order not found. Check your details.');
+      setOrder(null);
+    } finally {
+      setGuestSearching(false);
+    }
+  };
+
+  const displayOrderId = order?.order_number || orderId || guestForm.orderNumber || '—';
+  const status = String(order?.status || 'processing').toLowerCase();
+  const isCod = String(order?.payment_method || '').toLowerCase().includes('cash');
+  const isDelivered = status === 'delivered';
+  const canConfirm = Boolean(order?.can_confirm_receipt) && user;
+  const currentStepIndex = STATUS_STEP_INDEX[status] ?? 1;
+  const trackingNumber = order?.tracking_number || '—';
+  const mongoId = String(order?.id || orderId || '');
+
+  const timelineSteps = useMemo(() => {
+    const apiTimeline = Array.isArray(order?.timeline) ? order.timeline : [];
+    const defaults = [
+      { key: 'placed', label: 'Order placed', icon: FileText },
+      { key: 'processing', label: 'Preparing', icon: Cog },
+      { key: 'shipped', label: 'Shipped', icon: Truck },
+      { key: 'out', label: 'On the way', icon: MapPin },
+      { key: 'delivered', label: isCod ? 'Delivered — pay cash' : 'Delivered', icon: Home },
+    ];
+    const statusOrder = ['pending', 'processing', 'shipped', 'delivered', 'completed'];
+    const currentIdx = statusOrder.indexOf(status);
+
+    return defaults.map((step, idx) => {
+      const match = apiTimeline.find((t) =>
+        String(t.status || '').toLowerCase().includes(step.key === 'out' ? 'ship' : step.key),
+      );
+      const done = idx <= Math.max(currentIdx, currentStepIndex);
+      const active = idx === currentStepIndex;
+      return {
+        ...step,
+        date: match?.date
+          ? new Date(match.date).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : active
+            ? 'In progress'
+            : '—',
+        done,
+        active,
+        sub:
+          step.key === 'delivered' && isCod
+            ? 'Have exact cash ready for the driver.'
+            : step.key === 'delivered' && canConfirm
+              ? 'Confirm receipt when you have your package.'
+              : '',
+      };
+    });
+  }, [order, status, currentStepIndex, canConfirm, isCod]);
 
   useEffect(() => {
     const duration = 1500;
@@ -52,7 +181,7 @@ export default function OrderTracking() {
     const tick = () => {
       const elapsed = Date.now() - start;
       const t = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 2);
+      const eased = 1 - (1 - t) ** 2;
       setProgressWidth(eased * targetPercent);
       if (t < 1) requestAnimationFrame(tick);
     };
@@ -61,17 +190,123 @@ export default function OrderTracking() {
   }, [currentStepIndex]);
 
   const copyTracking = () => {
-    navigator.clipboard.writeText('XK-8423-9912');
-    showToast('Copied! ✓', 'success', 2000);
+    if (!trackingNumber || trackingNumber === '—') return;
+    navigator.clipboard.writeText(trackingNumber);
+    showToast('Tracking number copied', 'success', 2000);
   };
 
-  const handleConfirmDelivery = () => {
-    setConfirmSuccess(true);
-    showToast('Delivery confirmed. Thank you!', 'success');
-    setTimeout(() => { setConfirmModal(false); setConfirmSuccess(false); }, 1800);
+  const handleConfirmDelivery = async () => {
+    const id = mongoId;
+    try {
+      setConfirmLoading(true);
+      await orderAPI.confirmReceipt(id);
+      setConfirmSuccess(true);
+      showToast(isCod ? 'Delivery confirmed. Thank you!' : 'Delivery confirmed — seller notified.', 'success');
+      await loadOrder();
+      setTimeout(() => {
+        setConfirmModal(false);
+        setConfirmSuccess(false);
+      }, 1800);
+    } catch (err) {
+      showToast(err?.response?.data?.message || 'Could not confirm delivery', 'error');
+    } finally {
+      setConfirmLoading(false);
+    }
   };
 
-  const isDelivered = false;
+  const firstItem = order?.items?.[0];
+
+  if (loading) {
+    return (
+      <BuyerLayout>
+        <div className="min-h-[50vh] flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: PRIMARY }} />
+        </div>
+      </BuyerLayout>
+    );
+  }
+
+  if (guestMode && !order) {
+    return (
+      <BuyerLayout>
+        <div className="max-w-md mx-auto px-4 py-12">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold mb-6" style={{ color: PRIMARY }}>
+            <ArrowLeft className="w-4 h-4" /> Home
+          </Link>
+          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Track your order</h1>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+            Enter your order number and the email or phone used at checkout.
+          </p>
+          <form onSubmit={searchGuestOrder} className="space-y-4 rounded-2xl border p-5" style={{ borderColor: 'var(--divider)', background: 'var(--card-bg)' }}>
+            <label className="block text-sm">
+              Order number
+              <input
+                required
+                value={guestForm.orderNumber}
+                onChange={(e) => setGuestForm((f) => ({ ...f, orderNumber: e.target.value }))}
+                placeholder="e.g. RX-20260326-001"
+                className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
+                style={{ borderColor: 'var(--input-border)', background: 'var(--input-bg)' }}
+              />
+            </label>
+            <label className="block text-sm">
+              Email (optional if phone provided)
+              <input
+                type="email"
+                value={guestForm.email}
+                onChange={(e) => setGuestForm((f) => ({ ...f, email: e.target.value }))}
+                className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
+                style={{ borderColor: 'var(--input-border)', background: 'var(--input-bg)' }}
+              />
+            </label>
+            <label className="block text-sm">
+              Phone (optional if email provided)
+              <input
+                value={guestForm.phone}
+                onChange={(e) => setGuestForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="+250..."
+                className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
+                style={{ borderColor: 'var(--input-border)', background: 'var(--input-bg)' }}
+              />
+            </label>
+            {loadError && <p className="text-sm text-red-600">{loadError}</p>}
+            <button
+              type="submit"
+              disabled={guestSearching}
+              className="w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white disabled:opacity-50"
+              style={{ background: PRIMARY }}
+            >
+              {guestSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              Track order
+            </button>
+          </form>
+          <p className="text-center text-sm mt-6" style={{ color: 'var(--text-muted)' }}>
+            Have an account?{' '}
+            <Link to="/auth?tab=login" className="font-semibold" style={{ color: PRIMARY }}>
+              Sign in
+            </Link>{' '}
+            for full order history.
+          </p>
+        </div>
+      </BuyerLayout>
+    );
+  }
+
+  if (loadError || !order) {
+    return (
+      <BuyerLayout>
+        <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 px-4">
+          <p style={{ color: 'var(--text-muted)' }}>{loadError || 'Order not found'}</p>
+          <button type="button" onClick={() => { setGuestMode(true); setLoadError(null); }} className="text-sm font-semibold" style={{ color: PRIMARY }}>
+            Try guest tracking
+          </button>
+          <Link to="/account?tab=orders" className="text-sm font-semibold" style={{ color: PRIMARY }}>
+            ← My Orders
+          </Link>
+        </div>
+      </BuyerLayout>
+    );
+  }
 
   return (
     <BuyerLayout>
@@ -80,7 +315,7 @@ export default function OrderTracking() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: EASE, delay: 0 }}
+          transition={{ duration: 0.4, ease: EASE }}
           className="w-full px-4 sm:px-8 py-6 flex items-center justify-between flex-wrap gap-4"
           style={{
             minHeight: 120,
@@ -89,490 +324,211 @@ export default function OrderTracking() {
           }}
         >
           <div>
-            <Link to="/account?tab=orders" className="inline-flex items-center gap-2 text-sm font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.8)' }}>
-              <ArrowLeft className="w-4 h-4" /> My Orders
+            <Link to={user ? '/account?tab=orders' : '/'} className="inline-flex items-center gap-2 text-sm font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <ArrowLeft className="w-4 h-4" /> {user ? 'My Orders' : 'Home'}
             </Link>
-            <h1 className="text-2xl font-bold text-white" style={{ fontSize: 28 }}>Track Order</h1>
-            <p className="text-sm mt-0.5" style={{ color: PRIMARY }}>Order #{displayOrderId}</p>
-            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.7)' }}>Home › My Orders › Track Order</p>
+            <h1 className="text-2xl font-bold text-white">Track order</h1>
+            <p className="text-sm mt-0.5" style={{ color: PRIMARY }}>#{displayOrderId}</p>
+            {isCod && (
+              <p className="text-xs mt-1 text-white/80">Cash on delivery — pay when you receive the package</p>
+            )}
           </div>
-          <div className="flex items-center gap-4">
-            <motion.span className="text-4xl" animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}>🚚</motion.span>
-            <span
-              className="px-4 py-2 rounded-full text-sm font-bold text-white track-pulse-ring"
-              style={{ background: PRIMARY, boxShadow: 'var(--shadow-cta)' }}
-            >
-              In Transit
-            </span>
+          <div className="px-3 py-1.5 rounded-full text-sm font-bold capitalize" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
+            {status.replace(/_/g, ' ')}
           </div>
         </motion.div>
 
-        {/* ═══ TIER 2: 2-column layout ═══ */}
-        <div className="w-full px-4 sm:px-6 md:px-8 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6" style={{ paddingLeft: 'max(16px, 32px)', paddingRight: 'max(16px, 32px)' }}>
-          {/* ═══ LEFT COLUMN (60%) ═══ */}
-          <motion.div
-            initial={{ opacity: 0, x: -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, ease: EASE, delay: 0.1 }}
-            className="space-y-6"
-          >
-            {/* ═══ TIER 3: Delivery Progress card ═══ */}
-            <div
-              className="rounded-2xl p-6 bg-[var(--card-bg)] overflow-hidden track-card track-main-card"
-              style={{ boxShadow: 'var(--shadow-md)' }}
-            >
-              <h2 className="font-bold text-base mb-6" style={{ color: 'var(--text-primary)' }}>Delivery Progress</h2>
-
-              {/* Horizontal step progress bar - scrollable on small screens */}
-              <div className="mb-8 relative overflow-x-auto scrollbar-hide">
-                <div className="flex justify-between relative z-10 min-w-[320px]">
-                  {PROGRESS_STEPS.map((step, i) => {
-                    const completed = i < currentStepIndex;
-                    const current = i === currentStepIndex;
-                    const Icon = step.icon;
-                    return (
-                      <div key={step.key} className="flex flex-col items-center flex-1">
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.3 + i * 0.05, type: 'spring', stiffness: 400 }}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${current ? 'track-pulse-ring' : ''} track-step-circle`}
-                          style={{
-                            background: current || completed ? PRIMARY : 'var(--bg-tertiary)',
-                            boxShadow: current
-                              ? 'var(--shadow-cta-hover)'
-                              : completed
-                              ? '0 0 0 4px color-mix(in srgb, var(--brand-primary) 18%, transparent)'
-                              : 'none',
-                          }}
-                        >
-                          {completed && !current ? <Check className="w-5 h-5 text-white" /> : null}
-                          {current ? (
-                            <Truck className="w-5 h-5 text-white" />
-                          ) : !completed ? (
-                            <Icon className="w-5 h-5" style={{ color: 'var(--text-faint)' }} />
-                          ) : null}
-                        </motion.div>
-                        <span
-                          className="text-[10px] mt-2 text-center font-medium max-w-[70px]"
-                          style={{
-                            color: current
-                              ? 'var(--text-primary)'
-                              : completed
-                              ? 'var(--text-muted)'
-                              : 'var(--text-faint)',
-                            fontWeight: current ? 600 : 500,
-                          }}
-                        >
-                          {step.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div
-                  className="absolute top-5 left-0 right-0 h-0.5 rounded"
-                  style={{ marginLeft: '5%', marginRight: '5%', width: '90%', background: 'var(--divider)' }}
-                />
-                <motion.div
-                  className="absolute top-5 left-0 h-0.5 rounded"
-                  style={{ background: PRIMARY, left: '5%' }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressWidth * 0.9}%` }}
-                  transition={{ duration: 1.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                />
-              </div>
-
-              {/* Vertical timeline */}
-              <div className="relative">
-                <div
-                  className="absolute left-6 top-0 bottom-0 w-0.5"
-                  style={{ borderRadius: 2, background: 'var(--divider)' }}
-                />
-                {TIMELINE_STEPS.map((step, i) => (
-                  <motion.div
-                    key={step.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + i * 0.15, duration: 0.4, ease: EASE }}
-                    className={`flex gap-4 pb-8 last:pb-0 relative timeline-row ${
-                      step.active ? 'timeline-row-current' : step.done ? 'timeline-row-completed' : 'timeline-row-pending'
-                    }`}
-                  >
-                    <div
-                      className="relative z-10 flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center timeline-icon"
-                      style={{
-                        background: step.done || step.active ? PRIMARY : 'var(--bg-tertiary)',
-                        boxShadow: step.active
-                          ? 'var(--shadow-cta-hover)'
-                          : step.done
-                          ? 'var(--shadow-cta)'
-                          : 'none',
-                      }}
-                    >
-                      {step.done ? (
-                        <Check className="w-6 h-6 text-white" />
-                      ) : (
-                        <step.icon
-                          className="w-6 h-6"
-                          style={{ color: step.active || step.done ? 'var(--text-on-accent)' : 'var(--text-faint)' }}
-                        />
-                      )}
-                    </div>
-                    <div className="pt-1 flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p
-                            className="font-bold text-sm"
-                            style={{
-                              color: step.done || step.active ? 'var(--text-primary)' : 'var(--text-muted)',
-                              fontSize: 15,
-                            }}
-                          >
-                            {step.label}
-                          </p>
-                          {step.active && (
-                            <span
-                              className="px-2 py-0.5 rounded-full text-xs font-bold text-white"
-                              style={{ background: PRIMARY }}
-                            >
-                              CURRENT
-                            </span>
-                          )}
-                        </div>
-                        <p
-                          className="text-xs"
-                          style={{ color: 'var(--text-faint)', fontStyle: step.expected ? 'italic' : 'normal' }}
-                        >
-                          {step.date}
-                        </p>
-                      </div>
-                      {(step.done || step.active) && step.sub && (
-                        <p
-                          className="text-sm mt-1"
-                          style={{
-                            color: step.active ? 'var(--text-secondary)' : 'var(--text-muted)',
-                            fontSize: 13,
-                          }}
-                        >
-                          {step.sub}
-                        </p>
-                      )}
-                      {step.tracking && (
-                        <button type="button" onClick={copyTracking} className="inline-flex items-center gap-1 mt-2 text-sm font-medium hover:underline" style={{ color: PRIMARY }}>
-                          Tracking: {step.tracking} <Copy className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+          {firstItem && (
+            <div className="rounded-2xl p-4 flex gap-3" style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-md)' }}>
+              {firstItem.product_image && (
+                <img src={resolveImg(firstItem.product_image)} alt="" className="w-16 h-16 rounded-xl object-cover" />
+              )}
+              <div>
+                <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{firstItem.product_title || firstItem.name}</p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  Qty {firstItem.quantity}
+                </p>
               </div>
             </div>
+          )}
 
-            {/* ═══ TIER 4: Live map section ═══ */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.4, ease: EASE }}
-              className="rounded-2xl overflow-hidden bg-[var(--card-bg)] relative track-card"
-              style={{ boxShadow: 'var(--shadow-md)', minHeight: 200 }}
-            >
-              <div className="p-4 relative h-[160px] sm:h-[180px] md:h-[200px]">
-                <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-                  <line
-                    x1="10%"
-                    y1="50%"
-                    x2="90%"
-                    y2="50%"
-                    stroke="var(--divider)"
-                    strokeWidth="3"
-                    strokeDasharray="8 6"
-                  />
-                  <line x1="10%" y1="50%" x2="60%" y2="50%" stroke={PRIMARY} strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                <div className="absolute left-[8%] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center shadow-lg">
-                  <Warehouse className="w-5 h-5 text-white" />
-                </div>
-                <div
-                  className="absolute left-[60%] top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[var(--card-bg)] shadow-lg track-map-truck flex items-center justify-center"
-                  style={{
-                    boxShadow: 'var(--shadow-cta-hover)',
-                  }}
-                >
-                  <Truck className="w-6 h-6" style={{ color: PRIMARY }} />
-                </div>
-                <div className="absolute right-[8%] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-green-600 flex items-center justify-center shadow-lg">
-                  <Home className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              <div className="px-4 pb-4 border-t border-[var(--divider)] pt-3">
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  📦 Your package is on its way from Kigali → Delivery Address
-                </p>
-                <p className="text-sm font-bold mt-1" style={{ color: PRIMARY }}>
-                  Estimated delivery: Mar 5, 2026
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-
-            {/* ═══ RIGHT COLUMN (40%) ═══ */}
-          <motion.div
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, ease: EASE, delay: 0.2 }}
-            className="space-y-6"
-          >
-            {/* ═══ TIER 5: Order Summary card ═══ */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 bg-[var(--card-bg)] track-card"
-              style={{ boxShadow: 'var(--shadow-md)' }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
-                  Order Summary
-                </h3>
-                <span
-                  className="px-2.5 py-1 rounded-full text-xs font-bold"
-                  style={{
-                    background: 'var(--brand-tint)',
-                    color: 'var(--brand-primary)',
-                    boxShadow: 'inset 0 0 0 1px var(--status-orange-ring)',
-                  }}
-                >
-                  {displayOrderId}
-                </span>
-              </div>
-              {ORDER_SUMMARY_ITEMS.map((item) => (
-                <div key={item.name} className="flex gap-3 py-3 border-b border-[var(--divider)]">
-                  <img
-                    src={item.image}
-                    alt=""
-                    className="w-15 h-15 rounded-lg object-cover flex-shrink-0"
-                    style={{ width: 60, height: 60, background: 'var(--bg-tertiary)' }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {item.name}
-                    </p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {item.variant}
-                    </p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                      {item.qty} × ${item.price.toFixed(2)}
-                    </p>
-                  </div>
-                  <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                    ${(item.qty * item.price).toFixed(2)}
-                  </p>
-                </div>
-              ))}
-              <div className="space-y-2 pt-3 text-sm">
-                <div className="flex justify-between" style={{ color: 'var(--text-secondary)' }}>
+          {Number(order?.total) > 0 && (
+            <div className="rounded-2xl p-5 space-y-2" style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-md)' }}>
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>
+                Payment summary
+              </p>
+              {order.subtotal != null && (
+                <div className="flex justify-between text-sm" style={{ color: 'var(--text-muted)' }}>
                   <span>Subtotal</span>
-                  <span>$29.00</span>
-                </div>
-                <div className="flex justify-between" style={{ color: 'var(--text-secondary)' }}>
-                  <span>Shipping</span>
-                  <span className="text-green-600">Free ✓</span>
-                </div>
-                <div className="flex justify-between" style={{ color: 'var(--text-secondary)' }}>
-                  <span>Escrow Fee</span>
-                  <span>$0.00</span>
-                </div>
-                <div className="flex justify-between font-bold text-base pt-2">
-                  <span style={{ color: 'var(--text-primary)' }}>Total</span>
-                  <span style={{ color: PRIMARY }}>$29.00</span>
-                </div>
-              </div>
-              <Link to={`/account?tab=orders`} className="inline-flex items-center gap-1 mt-3 text-sm font-semibold" style={{ color: PRIMARY }}>View Full Order <ChevronRight className="w-4 h-4" /></Link>
-            </motion.div>
-
-            {/* Seller card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.05, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 bg-[var(--card-bg)] transition-shadow hover:shadow-lg track-card"
-              style={{ boxShadow: 'var(--shadow-md)' }}
-            >
-              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>SELLER</p>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg" style={{ background: 'linear-gradient(135deg,#7c3aed,#a78bfa)' }}>P</div>
-                <div>
-                  <p className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
-                    Premium Store
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    ⭐ 4.9 · 247 sales
-                  </p>
-                  <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-in-stock)' }}>🟢 Online Now</p>
-                </div>
-              </div>
-              <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
-                Quality products with fast shipping.
-              </p>
-              <Link to="/search" className="inline-block mt-3 text-sm font-semibold" style={{ color: PRIMARY }}>Visit Store →</Link>
-            </motion.div>
-
-            {/* Shipping To */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 bg-[var(--card-bg)] track-card"
-              style={{ boxShadow: 'var(--shadow-md)' }}
-            >
-              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>Shipping To</p>
-              <div className="flex gap-2">
-                <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: PRIMARY }} />
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                    John Doe
-                  </p>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    123 Main Street, City, State 12345
-                  </p>
-                  <button type="button" className="text-xs mt-1 hover:underline" style={{ color: 'var(--text-muted)' }}>
-                    Change Address
-                  </button>
-                  <p className="text-sm font-bold mt-2 flex items-center gap-1" style={{ color: SUCCESS }}>📅 Expected by March 5, 2026</p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Escrow card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.15, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 border-l-4 flex gap-3"
-              style={{ background: 'color-mix(in srgb, var(--badge-success-bg) 55%, var(--card-bg))', borderLeftColor: SUCCESS }}
-            >
-              <motion.span className="text-2xl flex-shrink-0 track-lock-rock" style={{ display: 'inline-block' }}>🛡️</motion.span>
-              <div>
-                <p className="font-bold text-base" style={{ color: 'var(--badge-success-text)' }}>
-                  Escrow Protection Active
-                </p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Payment is held securely. Funds released when you confirm delivery.
-                </p>
-                <p className="text-xs font-semibold mt-3" style={{ color: 'var(--text-secondary)' }}>
-                  Funds released when: You confirm delivery
-                </p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="px-2 py-1 rounded-lg text-xs font-medium text-white" style={{ background: SUCCESS }}>Held ✓</span>
-                  <span className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: 'var(--bg-badge)', color: 'var(--text-muted)' }}>Delivered</span>
-                  <span className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: 'var(--bg-badge)', color: 'var(--text-muted)' }}>Released to Seller</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* ═══ TIER 6: Action buttons ═══ */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2, duration: 0.4, ease: EASE }}
-              className="space-y-3"
-            >
-              <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-                <motion.a href="https://www.dhl.com/track" target="_blank" rel="noopener noreferrer" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 min-w-0 sm:min-w-[140px] py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-shadow hover:shadow-lg" style={{ background: PRIMARY }}>
-                  🚚 Track on Carrier
-                </motion.a>
-                <motion.button type="button" onClick={() => isDelivered && setConfirmModal(true)} disabled={!isDelivered} whileHover={isDelivered ? { scale: 1.02 } : {}} whileTap={isDelivered ? { scale: 0.98 } : {}} className="flex-1 min-w-0 sm:min-w-[140px] py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-lg" style={{ background: isDelivered ? SUCCESS : 'var(--text-faint)' }}>
-                  ✓ Confirm Delivery
-                </motion.button>
-              </div>
-              <div className="flex flex-wrap gap-3 text-sm">
-                <Link to="/returns" className="px-3 py-2 rounded-xl border-2 font-medium hover:scale-[1.02] transition-transform" style={{ borderColor: 'var(--badge-error-text)', color: 'var(--badge-error-text)' }}>Request Return</Link>
-                <button type="button" className="px-3 py-2 rounded-xl border-2 border-gray-300 font-medium hover:scale-[1.02] transition-transform" style={{ color: 'var(--text-muted)' }}>Report Problem</button>
-                <button type="button" className="px-3 py-2 rounded-xl border-2 border-gray-300 font-medium hover:scale-[1.02] transition-transform flex items-center gap-1" style={{ color: 'var(--text-muted)' }}><Download className="w-4 h-4" /> Download Invoice</button>
-              </div>
-            </motion.div>
-
-            {/* ═══ TIER 7: Delivery Notifications ═══ */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.25, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5 bg-[var(--card-bg)] track-card"
-              style={{ boxShadow: 'var(--shadow-md)' }}
-            >
-              <h3 className="font-bold text-sm mb-4" style={{ color: 'var(--text-primary)' }}>
-                Delivery Notifications
-              </h3>
-              {['sms', 'email', 'push'].map((key) => (
-                <div key={key} className="flex items-center justify-between py-2">
-                  <span className="text-sm capitalize" style={{ color: 'var(--text-secondary)' }}>
-                    {key === 'sms'
-                      ? 'SMS updates'
-                      : key === 'email'
-                      ? 'Email updates'
-                      : 'Push notifications'}
+                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {formatOrderMoney(order.subtotal, order.currency)}
                   </span>
-                  <button type="button" onClick={() => setNotifications((n) => ({ ...n, [key]: !n[key] }))} className={`w-11 h-6 rounded-full transition-colors relative ${notifications[key] ? '' : 'bg-gray-300'}`} style={{ background: notifications[key] ? PRIMARY : undefined }}>
-                    <motion.span layout className="absolute top-1 w-4 h-4 rounded-full bg-[var(--card-bg)] shadow" style={{ left: notifications[key] ? 22 : 4 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
-                  </button>
                 </div>
-              ))}
-              <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                Get notified at: reaglerobust2020@gmail.com{' '}
-                <button type="button" className="underline ml-1" style={{ color: PRIMARY }}>
-                  Edit
-                </button>
-              </p>
-            </motion.div>
-
-            {/* ═══ TIER 8: Need Help ═══ */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.3, duration: 0.4, ease: EASE }}
-              className="rounded-2xl p-5"
-              style={{ background: 'color-mix(in srgb, var(--badge-info-bg) 50%, var(--card-bg))' }}
-            >
-              <h3 className="font-bold text-sm mb-3" style={{ color: 'var(--badge-info-text)' }}>Need Help with this order?</h3>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border transition-colors" style={{ color: 'var(--badge-info-text)', borderColor: 'var(--badge-info-border)' }}>📦 Where&apos;s my package?</button>
-                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border transition-colors" style={{ color: 'var(--badge-info-text)', borderColor: 'var(--badge-info-border)' }}>🔄 How to return?</button>
-                <button type="button" className="px-3 py-2 rounded-full text-sm font-medium bg-[var(--card-bg)]/80 hover:bg-[var(--card-bg)] border transition-colors" style={{ color: 'var(--badge-info-text)', borderColor: 'var(--badge-info-border)' }}>💬 Contact Support</button>
+              )}
+              {order.shipping != null && (
+                <div className="flex justify-between text-sm" style={{ color: 'var(--text-muted)' }}>
+                  <span>Shipping</span>
+                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {formatOrderMoney(order.shipping, order.currency)}
+                  </span>
+                </div>
+              )}
+              {order.tax != null && Number(order.tax) > 0 && (
+                <div className="flex justify-between text-sm" style={{ color: 'var(--text-muted)' }}>
+                  <span>VAT</span>
+                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {formatOrderMoney(order.tax, order.currency)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm font-bold border-t pt-2" style={{ borderColor: 'var(--divider)', color: 'var(--text-primary)' }}>
+                <span>Total</span>
+                <span style={{ color: PRIMARY }}>{formatOrderMoney(order.total, order.currency)}</span>
               </div>
-            </motion.div>
-          </motion.div>
+              {!isCod && String(order.payment_method || '').toLowerCase() !== 'cash_on_delivery' && (
+                <p className="text-xs pt-1" style={{ color: 'var(--badge-success-text)' }}>
+                  Paid online — funds held in escrow until you confirm delivery.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="rounded-2xl p-5 bg-[var(--card-bg)]" style={{ boxShadow: 'var(--shadow-md)' }}>
+            <div className="h-2 rounded-full overflow-hidden mb-6" style={{ background: 'var(--bg-tertiary)' }}>
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressWidth}%`, background: PRIMARY }} />
+            </div>
+            <div className="space-y-4">
+              {timelineSteps.map((step) => {
+                const Icon = step.icon;
+                return (
+                  <div key={step.key} className="flex gap-3">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: step.done ? PRIMARY : 'var(--bg-tertiary)',
+                        color: step.done ? '#fff' : 'var(--text-muted)',
+                      }}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{step.label}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{step.date}</p>
+                      {step.sub && <p className="text-xs mt-0.5 text-emerald-700">{step.sub}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {trackingNumber && trackingNumber !== '—' && (
+            <div className="rounded-2xl p-4 flex items-center justify-between gap-3" style={{ background: 'var(--card-bg)' }}>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>Tracking number</p>
+                <p className="font-mono font-bold" style={{ color: 'var(--text-primary)' }}>{trackingNumber}</p>
+              </div>
+              <button type="button" onClick={copyTracking} className="p-2 rounded-lg border" style={{ borderColor: 'var(--divider)' }} aria-label="Copy tracking">
+                <Copy className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            {user ? (
+              <motion.button
+                type="button"
+                onClick={() => canConfirm && setConfirmModal(true)}
+                disabled={!canConfirm || confirmLoading}
+                whileTap={canConfirm ? { scale: 0.98 } : {}}
+                className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: canConfirm ? SUCCESS : 'var(--text-faint)' }}
+              >
+                {confirmLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {canConfirm ? 'I received my order' : isDelivered ? 'Already confirmed' : 'Confirm when delivered'}
+              </motion.button>
+            ) : (
+              <Link
+                to={`/auth?tab=login&redirect=${encodeURIComponent(`/track/${orderId || displayOrderId}`)}`}
+                className="flex-1 py-3 rounded-xl font-semibold text-sm text-center text-white"
+                style={{ background: PRIMARY }}
+              >
+                Sign in to confirm delivery
+              </Link>
+            )}
+            {user && mongoId && (
+              <Link
+                to={`/returns?order=${mongoId}`}
+                className="flex-1 py-3 rounded-xl font-semibold text-sm text-center border-2"
+                style={{ borderColor: 'var(--badge-error-text)', color: 'var(--badge-error-text)' }}
+              >
+                Problem with this order?
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Confirm Delivery Modal */}
       <AnimatePresence>
         {confirmModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => !confirmSuccess && setConfirmModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2, ease: EASE }} className="rounded-2xl p-6 bg-[var(--card-bg)] shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+            onClick={() => !confirmSuccess && !confirmLoading && setConfirmModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="rounded-2xl p-6 bg-[var(--card-bg)] shadow-xl max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
               {!confirmSuccess ? (
                 <>
-                  <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Are you sure you received your order?</p>
-                  <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Once confirmed, payment is released to the seller.</p>
+                  <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                    Did you receive your order?
+                  </p>
+                  <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
+                    Order #{displayOrderId}
+                    {isCod ? ' — you should have paid cash to the driver.' : ' — payment will be released to the seller.'}
+                  </p>
                   <div className="flex gap-3 mt-6">
-                    <motion.button type="button" onClick={() => setConfirmModal(false)} className="flex-1 py-3 rounded-xl font-semibold border-2" style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}>Cancel</motion.button>
-                    <motion.button type="button" onClick={handleConfirmDelivery} className="flex-1 py-3 rounded-xl font-semibold text-white" style={{ background: PRIMARY }}>Yes, Confirm Receipt</motion.button>
+                    <button
+                      type="button"
+                      disabled={confirmLoading}
+                      onClick={() => setConfirmModal(false)}
+                      className="flex-1 py-3 rounded-xl font-semibold border-2"
+                      style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}
+                    >
+                      Not yet
+                    </button>
+                    <button
+                      type="button"
+                      disabled={confirmLoading}
+                      onClick={handleConfirmDelivery}
+                      className="flex-1 py-3 rounded-xl font-semibold text-white"
+                      style={{ background: PRIMARY }}
+                    >
+                      {confirmLoading ? 'Confirming…' : 'Yes, received'}
+                    </button>
                   </div>
                 </>
               ) : (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 20 }} className="py-6 flex flex-col items-center justify-center gap-3">
+                <div className="py-6 flex flex-col items-center gap-3">
                   <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: SUCCESS }}>
                     <Check className="w-8 h-8 text-white" strokeWidth={3} />
                   </div>
-                  <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Delivery confirmed!</p>
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Payment has been released to the seller.</p>
-                </motion.div>
+                  <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Thank you!</p>
+                </div>
               )}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
     </BuyerLayout>
   );
 }

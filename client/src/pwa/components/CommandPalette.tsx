@@ -261,7 +261,7 @@ function DesktopCommandPalette({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="hidden md:flex fixed inset-0 z-[100] items-start justify-center pt-[12vh] px-4"
-          style={{ background: 'rgba(5, 8, 19, 0.72)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'var(--bg-overlay)', backdropFilter: 'blur(8px)' }}
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) close();
           }}
@@ -271,37 +271,49 @@ function DesktopCommandPalette({
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -10, opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            className="w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl"
+            className="w-full max-w-2xl rounded-3xl overflow-hidden"
             style={{
-              background:
-                'linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(15,23,42,0.92) 100%)',
-              border: '1px solid rgba(148,163,184,0.20)',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.55)',
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border-card)',
+              boxShadow: 'var(--shadow-xl)',
             }}
           >
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
-              <Search className="h-5 w-5 text-white/60" />
+            <div
+              className="flex items-center gap-3 px-5 py-4"
+              style={{ borderBottom: '1px solid var(--divider)' }}
+            >
+              <Search className="h-5 w-5" style={{ color: 'var(--text-muted)' }} />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="Search Reaglex or ask AI…"
-                className="flex-1 bg-transparent text-base text-white placeholder:text-white/40 outline-none"
+                className="cmd-palette-input flex-1 bg-transparent text-base outline-none"
+                style={{ color: 'var(--text-primary)' }}
               />
-              <div className="hidden sm:flex items-center gap-1 rounded-md border border-white/15 px-1.5 py-0.5 text-[10px] font-bold text-white/55">
+              <div
+                className="hidden sm:flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold"
+                style={{
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-muted)',
+                }}
+              >
                 <CmdIcon className="h-3 w-3" /> K
               </div>
             </div>
             <div className="max-h-[55vh] overflow-y-auto py-2">
               {filtered.length === 0 && (
-                <div className="px-5 py-12 text-center text-sm text-white/55">
+                <div className="px-5 py-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
                   No results. Try a different keyword or ask the AI assistant.
                 </div>
               )}
               {grouped.map(([group, list]) => (
                 <div key={group} className="px-2 py-1">
-                  <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                  <p
+                    className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: 'var(--text-faint)' }}
+                  >
                     {group}
                   </p>
                   {list.map((item) => {
@@ -319,31 +331,32 @@ function DesktopCommandPalette({
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors"
                         style={{
-                          background: active
-                            ? 'linear-gradient(90deg, rgba(16,185,129,0.18), rgba(6,182,212,0.10))'
-                            : 'transparent',
-                          color: 'white',
+                          background: active ? 'var(--bg-active)' : 'transparent',
+                          color: 'var(--text-primary)',
                         }}
                       >
                         <span
                           className="flex h-9 w-9 items-center justify-center rounded-lg"
                           style={{
                             background: active
-                              ? 'linear-gradient(135deg, #10b981, #06b6d4)'
-                              : 'rgba(148,163,184,0.14)',
+                              ? 'var(--commerce-gradient-cta)'
+                              : 'var(--bg-tertiary)',
                           }}
                         >
-                          <Icon className="h-4 w-4 text-white" />
+                          <Icon
+                            className="h-4 w-4"
+                            style={{ color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)' }}
+                          />
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm font-semibold truncate">{item.title}</span>
                           {item.subtitle && (
-                            <span className="block text-xs text-white/55 truncate">
+                            <span className="block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                               {item.subtitle}
                             </span>
                           )}
                         </span>
-                        {active && <ArrowRight className="h-4 w-4 text-white/70" />}
+                        {active && <ArrowRight className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />}
                       </button>
                     );
                   })}
@@ -351,15 +364,18 @@ function DesktopCommandPalette({
               ))}
             </div>
             <div
-              className="flex items-center justify-between px-4 py-2 text-[11px] text-white/45"
-              style={{ borderTop: '1px solid rgba(148,163,184,0.15)' }}
+              className="flex items-center justify-between px-4 py-2 text-[11px]"
+              style={{
+                borderTop: '1px solid var(--divider)',
+                color: 'var(--text-faint)',
+              }}
             >
               <span>
-                <kbd className="rounded border border-white/15 px-1 py-0.5">↑↓</kbd>{' '}
-                <kbd className="rounded border border-white/15 px-1 py-0.5">↵</kbd> to navigate
+                <kbd className="rounded px-1 py-0.5" style={{ border: '1px solid var(--border-card)' }}>↑↓</kbd>{' '}
+                <kbd className="rounded px-1 py-0.5" style={{ border: '1px solid var(--border-card)' }}>↵</kbd> to navigate
               </span>
               <span>
-                <kbd className="rounded border border-white/15 px-1 py-0.5">Esc</kbd> to close
+                <kbd className="rounded px-1 py-0.5" style={{ border: '1px solid var(--border-card)' }}>Esc</kbd> to close
               </span>
             </div>
           </motion.div>

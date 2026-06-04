@@ -4,6 +4,7 @@ import { SystemNotification } from '../models/SystemNotification';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
 import { fanoutAfterSystemInboxCreate } from '../services/systemInboxFanout';
+import { checkSellerShippingReminders } from '../services/sellerNotificationService';
 
 const getCurrentUserOid = (req: AuthenticatedRequest): mongoose.Types.ObjectId | null => {
   if (!req.user?.id) return null;
@@ -84,8 +85,9 @@ export async function getNotifications(req: AuthenticatedRequest, res: Response)
       .limit(Number(limit))
       .lean();
 
-    // Do not mark items read on list fetch — that broke unread badges and "real" inbox behavior.
-    // Clients should call POST /:notificationId/read when the user actually opens an item.
+    if (role === 'seller') {
+      void checkSellerShippingReminders(String(userId));
+    }
 
     return res.json({ notifications });
   } catch (error: any) {

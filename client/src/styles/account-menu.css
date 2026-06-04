@@ -1,0 +1,220 @@
+.account-menu-root {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.account-menu-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-card);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.account-menu-trigger:active {
+  transform: scale(0.96);
+}
+
+.account-menu-trigger.is-open {
+  border-color: color-mix(in srgb, var(--brand-primary) 45%, var(--border-card));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 12%, transparent);
+}
+
+.account-menu-trigger--mobile {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  padding: 0;
+}
+
+.account-menu-trigger--mobile.is-open {
+  border: none;
+  box-shadow: none;
+  color: var(--text-primary);
+}
+
+.account-menu-trigger--mobile .account-menu-initial {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.account-menu-trigger--mobile .account-menu-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-menu-trigger--mobile:has(.account-menu-avatar) {
+  background: transparent;
+  border: none;
+}
+
+.account-menu-root:has(.account-menu-trigger--mobile) {
+  flex-shrink: 0;
+}
+
+.account-menu-trigger--desktop {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.account-menu-trigger--desktop:not(:has(.account-menu-avatar)) {
+  background: var(--brand-primary);
+  color: #fff;
+  border-color: transparent;
+}
+
+.account-menu-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.account-menu-initial {
+  font-size: 14px;
+  font-weight: 800;
+  color: inherit;
+}
+
+.account-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 250;
+  width: min(280px, calc(100vw - 24px));
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow-hover);
+  overflow: hidden;
+  transform-origin: top right;
+}
+
+.account-menu-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 12px;
+}
+
+.account-menu-user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.account-menu-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-menu-user-text {
+  min-width: 0;
+}
+
+.account-menu-user-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-menu-user-email {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-menu-divider {
+  height: 1px;
+  background: var(--divider);
+}
+
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  background: none;
+  border: none;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.account-menu-item:hover,
+.account-menu-item:focus-visible {
+  background: var(--brand-tint);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.account-menu-item--theme {
+  justify-content: flex-start;
+}
+
+.account-menu-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-menu-theme-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-card);
+}
+
+.account-menu-item--danger {
+  color: #ef4444;
+}
+
+.account-menu-item--danger:hover,
+.account-menu-item--danger:focus-visible {
+  background: color-mix(in srgb, #ef4444 8%, transparent);
+  color: #ef4444;
+}

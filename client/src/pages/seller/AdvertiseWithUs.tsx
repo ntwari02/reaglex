@@ -1,8 +1,45 @@
+import { useState } from 'react';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { motion } from 'framer-motion';
 import { Image, Mail, BarChart3, List, Target, UserCircle, Plug } from 'lucide-react';
+import { submitAdvertisingInquiry } from '../../services/sellerAdvertisingApi';
+import { useToastStore } from '../../stores/toastStore';
 
 export default function AdvertiseWithUs() {
+  const showToast = useToastStore((s) => s.showToast);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    companyName: '',
+    email: '',
+    budget: '',
+    adType: 'Banner Ads',
+    message: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.companyName.trim() || !form.email.trim()) {
+      showToast('Company name and email are required', 'error');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await submitAdvertisingInquiry({
+        companyName: form.companyName.trim(),
+        email: form.email.trim(),
+        budget: form.budget.trim() || undefined,
+        adType: form.adType,
+        message: form.message.trim() || undefined,
+      });
+      showToast(result.message || 'Inquiry submitted successfully', 'success');
+      setForm({ companyName: '', email: '', budget: '', adType: 'Banner Ads', message: '' });
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to submit inquiry', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <BuyerLayout>
       <main className="min-h-[60vh] w-full px-4 py-10 sm:px-6 lg:px-10 space-y-10">
@@ -21,7 +58,7 @@ export default function AdvertiseWithUs() {
               className="text-sm sm:text-base"
               style={{ color: 'rgba(241,245,249,0.8)' }}
             >
-              Reach 50,000+ active buyers across Rwanda with targeted campaigns that work.
+              Reach active buyers across Rwanda with targeted campaigns that work.
             </p>
           </div>
         </section>
@@ -122,39 +159,24 @@ export default function AdvertiseWithUs() {
                   </span>
                 )}
                 <div>
-                  <p
-                    className="text-base font-bold"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
+                  <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                     {pkg.name}
                   </p>
-                  <p
-                    className="text-2xl font-extrabold mt-1"
-                    style={{ color: 'var(--brand-primary)' }}
-                  >
+                  <p className="text-2xl font-extrabold mt-1" style={{ color: 'var(--brand-primary)' }}>
                     {pkg.price}
                   </p>
                 </div>
-                <ul className="space-y-3 flex-1">
-                  {pkg.features.map(({ text, icon: Icon }) => (
-                    <li
-                      key={text}
-                      className="flex items-center gap-3 text-[13px]"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      <span
-                        className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
-                        style={{ background: 'var(--brand-tint)', color: 'var(--brand-primary)' }}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </span>
-                      <span>{text}</span>
+                <ul className="space-y-2 flex-1">
+                  {pkg.features.map((f) => (
+                    <li key={f.text} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      <f.icon className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                      {f.text}
                     </li>
                   ))}
                 </ul>
                 <a
                   href="#get-started"
-                  className="mt-2 block w-full rounded-xl py-2.5 text-center text-sm font-semibold transition-all duration-200 hover:opacity-90"
+                  className="block text-center rounded-xl py-2.5 text-sm font-bold transition-all"
                   style={{
                     background: pkg.popular
                       ? 'var(--gradient-brand-cta)'
@@ -178,68 +200,59 @@ export default function AdvertiseWithUs() {
             Get Started
           </h2>
           <motion.form
+            onSubmit={handleSubmit}
             className="space-y-4 rounded-[20px] p-6 sm:p-8"
             style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-md)' }}
           >
             <div className="grid gap-4 md:grid-cols-2 text-sm">
               <div>
-                <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <label className="premium-input-label block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Company Name
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40"
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1.5px solid var(--divider, #e5e7eb)',
-                    color: 'var(--text-primary)',
-                  }}
+                  required
+                  value={form.companyName}
+                  onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
+                  className="premium-input w-full"
                   placeholder="Your company"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <label className="premium-input-label block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Email
                 </label>
                 <input
                   type="email"
-                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40"
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1.5px solid var(--divider, #e5e7eb)',
-                    color: 'var(--text-primary)',
-                  }}
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  className="premium-input w-full"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 text-sm">
               <div>
-                <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <label className="premium-input-label block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Budget (USD)
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40"
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1.5px solid var(--divider, #e5e7eb)',
-                    color: 'var(--text-primary)',
-                  }}
+                  value={form.budget}
+                  onChange={(e) => setForm((f) => ({ ...f, budget: e.target.value }))}
+                  className="premium-input w-full"
                   placeholder="e.g. $500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <label className="premium-input-label block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Preferred Ad Type
                 </label>
                 <select
-                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40 cursor-pointer"
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1.5px solid var(--divider, #e5e7eb)',
-                    color: 'var(--text-primary)',
-                  }}
+                  value={form.adType}
+                  onChange={(e) => setForm((f) => ({ ...f, adType: e.target.value }))}
+                  className="premium-input w-full cursor-pointer"
                 >
                   <option>Banner Ads</option>
                   <option>Featured Products</option>
@@ -251,29 +264,27 @@ export default function AdvertiseWithUs() {
               </div>
             </div>
             <div className="text-sm">
-              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              <label className="premium-input-label block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                 Message
               </label>
               <textarea
                 rows={4}
-                className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_40%,transparent)]/40 resize-y min-h-[100px]"
-                style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1.5px solid var(--divider, #e5e7eb)',
-                  color: 'var(--text-primary)',
-                }}
+                value={form.message}
+                onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+                className="premium-input w-full resize-y min-h-[100px]"
                 placeholder="Tell us about your goals and ideal campaign..."
               />
             </div>
             <button
-              type="button"
-              className="mt-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+              type="submit"
+              disabled={submitting}
+              className="mt-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60"
               style={{
                 background: 'var(--gradient-brand-cta)',
                 boxShadow: 'var(--shadow-cta-hover)',
               }}
             >
-              Get Started
+              {submitting ? 'Submitting…' : 'Get Started'}
             </button>
             <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
               No seller account required — any business can advertise with Reaglex.
@@ -284,4 +295,3 @@ export default function AdvertiseWithUs() {
     </BuyerLayout>
   );
 }
-

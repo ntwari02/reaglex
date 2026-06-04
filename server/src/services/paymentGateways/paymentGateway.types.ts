@@ -1,11 +1,21 @@
 /**
- * Pluggable checkout providers (server-side). Each adapter must use credentials
- * from paymentGatewayCredentials.service (DB + env merge), never hardcoded secrets.
+ * Pluggable checkout providers — keys align with `financial/paymentGatewayRegistry.ts`.
+ * Credentials: Admin → Finance → Payment Gateways (encrypted in DB, env fallback).
  */
 export type CheckoutProviderKey = 'flutterwave' | 'momo' | 'stripe' | 'paypal' | 'airtel';
 
+/** Admin / Mongo gateway config keys */
+export type PaymentGatewayConfigKey =
+  | 'offline'
+  | 'flutterwave'
+  | 'mtn_momo'
+  | 'airtel_money'
+  | 'stripe'
+  | 'paypal';
+
 export interface UnifiedPaymentInitResult {
   provider: CheckoutProviderKey;
-  /** Human-readable label for logs */
+  /** Human-readable label for TransactionLog */
   label: string;
+  gatewayKey: PaymentGatewayConfigKey;
 }

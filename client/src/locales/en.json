@@ -216,6 +216,7 @@
     "emptyCart": "Your cart is empty",
     "shopNow": "Shop Now",
     "backToCart": "Back to Cart",
+    "secureCheckout": "Secure checkout",
     "continueToDelivery": "Continue to Delivery ->",
     "multiPayNotice": "Multiple seller orders were created. Complete payment for the first order now; pay remaining sellers from your Orders page.",
     "reaglexShippingTitle": "Shipping",
@@ -244,7 +245,8 @@
     "placeOrder": "Place Order",
     "subtotal": "Subtotal",
     "shipping": "Shipping",
-    "tax10": "Tax (10%)",
+    "tax10": "VAT",
+    "taxVat": "VAT",
     "total": "Total",
     "escrowProtected": "Escrow-protected checkout",
     "paymentMethods": {
@@ -515,13 +517,24 @@
       "alerts": "Alerts",
       "orders": "Orders",
       "deals": "Deals",
-      "system": "System"
+      "system": "System",
+      "messages": "Messages",
+      "ai": "AI"
     },
+    "detailTitle": "Notification",
+    "backToList": "Back to list",
+    "fullMessage": "Details",
+    "orderProgress": "Order progress",
+    "orderRef": "Order",
+    "dealEnds": "Offer ends in",
+    "relatedItems": "Related",
     "actions": {
-      "trackOrder": "Track Order ->",
-      "shopNow": "Shop Now ->",
-      "completeProfile": "Complete Profile ->",
-      "reply": "Reply ->",
+      "trackOrder": "Track order",
+      "shopNow": "Shop now",
+      "watchLive": "Watch live",
+      "open": "Open",
+      "completeProfile": "Complete profile",
+      "reply": "Reply",
       "rateNow": "Rate now"
     }
   },

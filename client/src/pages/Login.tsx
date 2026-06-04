@@ -6,6 +6,7 @@ import { useToastStore } from '../stores/toastStore';
 import AuthLayout from '../components/AuthLayout';
 import { API_BASE_URL } from '../lib/config';
 import { authAPI } from '../lib/api';
+import { getDashboardPathForRole } from '../lib/authRouting';
 
 function hasSQLInjectionRisk(value: string): boolean {
   const pattern = /(;|--|\/\*|\*\/|\b(OR|AND)\b\s+\d+=\d+|\bxp_)/i;
@@ -53,7 +54,7 @@ export function Login() {
   const [otpVerifyLoading, setOtpVerifyLoading] = useState(false);
   const [otpVerifyError, setOtpVerifyError] = useState('');
   const otpVerificationRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const redirectRef = useRef<string>('/');
+  const redirectRef = useRef<string>('/login');
 
   // Show OAuth error when redirected back from Google with ?error=...
   useEffect(() => {
@@ -105,7 +106,7 @@ export function Login() {
           };
           setAuth(profile, result.token);
           if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
-          const redir = result.user.role === 'seller' ? '/seller' : result.user.role === 'admin' ? '/admin' : '/';
+          const redir = getDashboardPathForRole(result.user.role);
           showToast('Device approved. Welcome!', 'success');
           navigate(redir);
           return;
@@ -210,9 +211,7 @@ export function Login() {
       }
 
       const { user } = useAuthStore.getState();
-      if (user?.role === 'seller') redirectRef.current = '/seller';
-      else if (user?.role === 'admin') redirectRef.current = '/admin';
-      else redirectRef.current = '/';
+      redirectRef.current = getDashboardPathForRole(user?.role);
       setLoading(false);
       navigate(redirectRef.current);
     } catch (err: any) {
@@ -277,9 +276,7 @@ export function Login() {
       };
       setAuth(profile, token);
       if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
-      if (user.role === 'seller') redirectRef.current = '/seller';
-      else if (user.role === 'admin') redirectRef.current = '/admin';
-      else redirectRef.current = '/';
+      redirectRef.current = getDashboardPathForRole(user.role);
       showToast('Signed in successfully. Welcome back!', 'success');
       navigate(redirectRef.current);
     } catch (err: any) {
@@ -345,9 +342,7 @@ export function Login() {
       };
       setAuth(profile, token);
       if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
-      if (user.role === 'seller') redirectRef.current = '/seller';
-      else if (user.role === 'admin') redirectRef.current = '/admin';
-      else redirectRef.current = '/';
+      redirectRef.current = getDashboardPathForRole(user.role);
       showToast('2FA enabled. Welcome!', 'success');
       navigate(redirectRef.current);
     } catch (err: any) {
@@ -439,9 +434,7 @@ export function Login() {
       return;
     }
     const { user } = useAuthStore.getState();
-    if (user?.role === 'seller') redirectRef.current = '/seller';
-    else if (user?.role === 'admin') redirectRef.current = '/admin';
-    else redirectRef.current = '/';
+    redirectRef.current = getDashboardPathForRole(user?.role);
     showToast('Signed in with biometric. Welcome back!', 'success');
     navigate(redirectRef.current);
   };

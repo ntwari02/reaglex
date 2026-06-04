@@ -1,7 +1,9 @@
 import { ComplianceProfile } from '../models/ComplianceProfile';
 import { User } from '../models/User';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
-import { sendNotificationEmail, isEmailConfigured } from '../services/emailService';
+import { sendRichNotificationEmail, isEmailConfigured } from '../services/emailService';
+import { pickCta } from '../email/copyEngine';
+import { getClientUrl } from '../config/publicEnv';
 
 let started = false;
 
@@ -82,10 +84,17 @@ export function startComplianceCertificateReminderJob(): void {
           const admins = await User.find({ role: 'admin' }).select('email').limit(100).lean();
           for (const row of admins) {
             if (!row.email) continue;
-            await sendNotificationEmail({
+            await sendRichNotificationEmail({
               to: row.email,
               subject: payload.title,
-              body: payload.message,
+              name: 'Admin',
+              category: 'general',
+              headline: payload.title,
+              message: payload.message,
+              actionUrl: `${getClientUrl()}/admin`,
+              actionLabel: pickCta('general', row.email),
+              accent: payload.priority === 'high' ? 'warning' : 'brand',
+              preheader: payload.message.slice(0, 120),
             });
           }
         }

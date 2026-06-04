@@ -31,6 +31,16 @@ import {
   createException,
   updateExceptionStatus,
 } from '../controllers/adminLogisticsController';
+import {
+  adminListDestinations,
+  adminCreateDestination,
+  adminUpdateDestination,
+  adminDeleteDestination,
+} from '../controllers/deliveryDestinationController';
+import {
+  adminGetPlatformPolicy,
+  adminUpdatePlatformPolicy,
+} from '../controllers/platformShippingPolicyController';
 
 const router = Router();
 
@@ -47,6 +57,15 @@ router.get('/zones', getZones);
 router.post('/zones', createZone);
 router.patch('/zones/:zoneId', updateZone);
 router.delete('/zones/:zoneId', deleteZone);
+
+// Buyer delivery destinations (AliExpress-style "Deliver to …")
+router.get('/destinations', adminListDestinations);
+router.post('/destinations', adminCreateDestination);
+router.patch('/destinations/:id', adminUpdateDestination);
+router.delete('/destinations/:id', adminDeleteDestination);
+
+router.get('/platform-policy', adminGetPlatformPolicy);
+router.put('/platform-policy', adminUpdatePlatformPolicy);
 
 // Fleet drivers
 router.get('/drivers', getDrivers);

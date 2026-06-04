@@ -4,16 +4,30 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { User } from '../models/User';
 import { DEFAULT_REAGLEX_METHODS, defaultReaglexSellerShipping } from '../types/reaglexShipping.types';
 import { resolveSellerShippingConfig } from '../services/reaglexShipping.service';
+import {
+  applyPlatformPolicyToSellerConfig,
+  getPlatformShippingContext,
+  getPlatformShippingPolicy,
+} from '../services/platformShippingPolicy.service';
 
 export async function getSellerShippingSettings(req: AuthenticatedRequest, res: Response) {
   if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   try {
-    const u = await User.findById(req.user.id).select('reaglexSellerShipping').lean();
+    const [u, platform] = await Promise.all([
+      User.findById(req.user.id).select('reaglexSellerShipping').lean(),
+      getPlatformShippingContext(),
+    ]);
     const raw = (u as { reaglexSellerShipping?: unknown })?.reaglexSellerShipping;
     const merged = resolveSellerShippingConfig(raw);
-    return res.json({ settings: merged, saved: Boolean(raw) });
+    const policy = await getPlatformShippingPolicy();
+    const settings = applyPlatformPolicyToSellerConfig(merged, policy);
+    return res.json({
+      settings,
+      saved: Boolean(raw),
+      platform,
+    });
   } catch (e: any) {
     console.error('getSellerShippingSettings', e);
     return res.status(500).json({ message: 'Failed to load shipping settings' });
@@ -118,12 +132,19 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
       methods,
     };
 
-    await User.updateOne(
-      { _id: new mongoose.Types.ObjectId(req.user.id) },
-      { $set: { reaglexSellerShipping: settings } }
+    const policy = await getPlatformShippingPolicy();
+    const normalized = applyPlatformPolicyToSellerConfig(
+      resolveSellerShippingConfig(settings),
+      policy,
     );
 
-    return res.json({ success: true, settings });
+    await User.updateOne(
+      { _id: new mongoose.Types.ObjectId(req.user.id) },
+      { $set: { reaglexSellerShipping: normalized } },
+    );
+
+    const platform = await getPlatformShippingContext();
+    return res.json({ success: true, settings: normalized, platform });
   } catch (e: any) {
     console.error('putSellerShippingSettings', e);
     return res.status(500).json({ message: 'Failed to save shipping settings' });

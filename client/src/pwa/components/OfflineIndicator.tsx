@@ -25,13 +25,18 @@ export default function OfflineIndicator() {
     return undefined;
   }, [online]);
 
+  useEffect(() => {
+    if (online && queue.pending > 0 && !queue.flushing) {
+      void flushQueue();
+    }
+  }, [online, queue.pending, queue.flushing]);
+
   const showOffline = !online;
   const showSyncing = online && queue.flushing;
-  const showQueued = online && !queue.flushing && queue.pending > 0;
 
   return (
     <AnimatePresence>
-      {(showOffline || showSyncing || showQueued || showBackOnline) && (
+      {(showOffline || showSyncing || showBackOnline) && (
         <motion.div
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -61,17 +66,7 @@ export default function OfflineIndicator() {
               <span>Syncing {queue.pending} pending action{queue.pending > 1 ? 's' : ''}…</span>
             </>
           )}
-          {showQueued && (
-            <button
-              type="button"
-              onClick={() => void flushQueue()}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>{queue.pending} pending — tap to sync</span>
-            </button>
-          )}
-          {showBackOnline && !showSyncing && !showQueued && (
+          {showBackOnline && !showSyncing && (
             <>
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span>Back online</span>

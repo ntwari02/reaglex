@@ -5,6 +5,7 @@ import {
   type OrderOptimizationStrategy,
   type OptimizationCandidateGroup,
 } from './orderOptimizationEngine';
+import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
 
 export async function orchestrateCheckoutPlan(params: {
   lines: QuoteCartLine[];
@@ -19,20 +20,21 @@ export async function orchestrateCheckoutPlan(params: {
     country: string;
   };
   strategy?: OrderOptimizationStrategy;
+  selectedMethods?: Record<string, ReaglexShippingMethodKey>;
 }) {
   const strategy = params.strategy || 'lowest_cost';
-  const quote = await quoteReaglexShipments({
+  const initialQuote = await quoteReaglexShipments({
     lines: params.lines,
     shippingAddress: params.shippingAddress,
   });
 
-  const sellerIds = [...new Set(quote.groups.map((g) => g.sellerId))];
+  const sellerIds = [...new Set(initialQuote.groups.map((g) => g.sellerId))];
   const sellers = await User.find({ _id: { $in: sellerIds } })
     .select('isSellerVerified accountStatus warningCount')
     .lean();
   const sellerMap = new Map<string, any>(sellers.map((s) => [String(s._id), s]));
 
-  const candidates: OptimizationCandidateGroup[] = quote.groups.map((group) => {
+  const candidates: OptimizationCandidateGroup[] = initialQuote.groups.map((group) => {
     const seller = sellerMap.get(group.sellerId);
     const warningCount = Number(seller?.warningCount || 0);
     const isVerified = Boolean(seller?.isSellerVerified);
@@ -61,8 +63,22 @@ export async function orchestrateCheckoutPlan(params: {
     groups: candidates,
   });
 
+  const selectedMethods = {
+    ...optimized.selectedMethods,
+    ...(params.selectedMethods || {}),
+  };
+
+  const quote = await quoteReaglexShipments({
+    lines: params.lines,
+    shippingAddress: params.shippingAddress,
+    selectedMethods,
+  });
+
   return {
     quote,
-    optimized,
+    optimized: {
+      ...optimized,
+      selectedMethods,
+    },
   };
 }

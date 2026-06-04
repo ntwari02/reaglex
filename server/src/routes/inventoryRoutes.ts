@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { uploadProductImages } = require('../../config/cloudinary');
+const { uploadProductImages, uploadProductVideoProof } = require('../../config/cloudinary');
 import {
   listProducts,
   createProduct,
@@ -37,6 +37,12 @@ router.post('/products/upload-images', uploadProductImages, async (req: Request,
   return res.status(201).json({ urls, provider: 'cloudinary' });
 });
 
+router.post('/products/upload-video-proof', uploadProductVideoProof, async (req: Request, res: Response) => {
+  const file = (req as any).file as Express.Multer.File | undefined;
+  if (!file?.path) return res.status(400).json({ message: 'No video uploaded.' });
+  return res.status(201).json({ url: file.path, provider: 'cloudinary' });
+});
+
 // Warehouses
 router.get('/warehouses', listWarehouses);
 router.post('/warehouses', createWarehouse);
@@ -46,7 +52,9 @@ router.delete('/warehouses/:id', deleteWarehouse);
 // Stock history
 router.get('/history', listStockHistory);
 
-// Temporary endpoint to transfer all products to current seller (for testing/debugging)
-router.post('/products/transfer-all-to-me', transferAllProductsToMe);
+// Debug-only — never exposed in production
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/products/transfer-all-to-me', transferAllProductsToMe);
+}
 
 export default router;

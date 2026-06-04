@@ -2,6 +2,11 @@ import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import {
   adminListSubscriptionPlans,
+  adminListAllSubscriptionPlans,
+  adminCreateSubscriptionPlan,
+  adminUpdateSubscriptionPlan,
+  adminDeleteSubscriptionPlan,
+  adminListSubscriptionPaymentLogs,
   adminListSellerSubscriptions,
   adminGetSellerSubscription,
   adminAssignSellerTier,
@@ -21,6 +26,11 @@ router.use(authenticate);
 router.use(authorize('admin'));
 
 router.get('/plans', adminListSubscriptionPlans);
+router.get('/plans/catalog', adminListAllSubscriptionPlans);
+router.post('/plans', adminCreateSubscriptionPlan);
+router.patch('/plans/:tierId', adminUpdateSubscriptionPlan);
+router.delete('/plans/:tierId', adminDeleteSubscriptionPlan);
+router.get('/payment-logs', adminListSubscriptionPaymentLogs);
 router.get('/', adminListSellerSubscriptions);
 router.get('/seller/:userId', adminGetSellerSubscription);
 router.patch('/seller/:userId/tier', adminAssignSellerTier);

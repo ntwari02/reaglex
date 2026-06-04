@@ -2,6 +2,8 @@ import cron from 'node-cron';
 import { SellerSubscription } from '../models/SellerSubscription';
 import { calculateRenewalDate } from '../utils/subscriptionTransformers';
 import { chargeDefaultPaymentMethodForSubscription } from '../services/subscriptionBilling.service';
+import { evaluateEffectivePrice } from '../services/subscriptionPlan.service';
+import { deliverSellerNotification } from '../services/sellerNotificationService';
 
 function ensurePaymentMethodsArray(paymentMethods: unknown): any[] {
   if (!paymentMethods) return [];
@@ -35,7 +37,24 @@ cron.schedule('15 7 * * *', async () => {
         if (!defaultPaymentMethod) continue;
 
         const plan = subscription.current_plan as Record<string, any>;
-        const amount = Number(plan?.price ?? 0);
+        const cycle = plan?.billing_cycle === 'annual' ? 'annual' : 'monthly';
+        const discountApplied = plan?.discount_applied;
+        const catalogPlan = await import('../models/SubscriptionPlan').then((m) =>
+          m.getPlanByTierId(String(plan?.tier_id || '')),
+        );
+        const amount = catalogPlan
+          ? evaluateEffectivePrice(catalogPlan, {
+              billingCycle: cycle,
+              adminCoupon:
+                discountApplied && typeof discountApplied === 'object'
+                  ? {
+                      code: (discountApplied as any).code,
+                      percent_off: (discountApplied as any).percent_off,
+                      fixed_off: (discountApplied as any).fixed_off,
+                    }
+                  : null,
+            }).effectivePrice
+          : Number(plan?.effective_price ?? plan?.price ?? 0);
         if (amount <= 0) continue;
 
         const currency = String(plan?.currency || 'USD');
@@ -50,6 +69,14 @@ cron.schedule('15 7 * * *', async () => {
         if (!result.success) {
           // eslint-disable-next-line no-console
           console.warn(`[subscription-renewal] charge failed for ${subscription.user_id}:`, result.message);
+          void deliverSellerNotification(
+            'subscription_payment_failed',
+            {
+              sellerId: subscription.user_id.toString(),
+              planName: String(plan?.tier_name || ''),
+            },
+            subscription.user_id.toString(),
+          );
           continue;
         }
 
@@ -116,6 +143,19 @@ cron.schedule('15 7 * * *', async () => {
         subscription.markModified('metadata');
 
         await subscription.save();
+
+        void deliverSellerNotification(
+          'subscription_renewed',
+          {
+            sellerId: subscription.user_id.toString(),
+            planName: String(plan?.tier_name || ''),
+            amount,
+            currency,
+            renewalDate: newRenewal.toISOString().slice(0, 10),
+          },
+          subscription.user_id.toString(),
+        );
+
         // eslint-disable-next-line no-console
         console.log(`[subscription-renewal] renewed subscription ${subscription._id}`);
       } catch (err) {

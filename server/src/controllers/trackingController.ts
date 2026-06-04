@@ -6,6 +6,29 @@ import { Shipment, TrackingEvent, Courier, TrackingStatus } from '../models/Trac
 import { User } from '../models/User';
 import { Product } from '../models/Product';
 
+function normalizePhone(value: string | undefined | null): string {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function guestOwnsOrder(
+  order: { customerEmail?: string; customerPhone?: string },
+  email?: string,
+  phone?: string,
+): boolean {
+  const emailNorm = email?.trim().toLowerCase();
+  const phoneNorm = normalizePhone(phone);
+  if (!emailNorm && !phoneNorm) return false;
+  const emailMatch =
+    Boolean(emailNorm) &&
+    String(order.customerEmail || '')
+      .trim()
+      .toLowerCase() === emailNorm;
+  const phoneMatch =
+    Boolean(phoneNorm) &&
+    normalizePhone(order.customerPhone) === phoneNorm;
+  return emailMatch || phoneMatch;
+}
+
 /**
  * Track order by order number or tracking number
  * GET /api/track/:identifier
@@ -46,21 +69,24 @@ export async function trackOrder(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ message: 'Order or tracking number not found' });
     }
 
+    if (!order && shipment?.orderId) {
+      order = await Order.findById(shipment.orderId).lean();
+    }
+
     // If user is logged in, verify it's their order
     if (req.user) {
       const buyerId = new mongoose.Types.ObjectId(req.user.id);
-      if (order && order.buyerId.toString() !== buyerId.toString()) {
+      if (order && order.buyerId?.toString() !== buyerId.toString()) {
         return res.status(403).json({ message: 'Unauthorized to view this order' });
       }
     } else {
-      // For guest tracking, verify email or phone matches
-      if (order) {
-        if (email && order.customerEmail !== email) {
-          return res.status(403).json({ message: 'Email does not match order' });
-        }
-        if (phone && order.customerPhone !== phone) {
-          return res.status(403).json({ message: 'Phone does not match order' });
-        }
+      if (!order) {
+        return res.status(404).json({ message: 'Order or tracking number not found' });
+      }
+      if (!guestOwnsOrder(order, email, phone)) {
+        return res.status(403).json({
+          message: 'Email or phone required and must match the order to track as a guest',
+        });
       }
     }
 

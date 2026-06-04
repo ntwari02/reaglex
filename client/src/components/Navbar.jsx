@@ -3,8 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ShoppingBag, Heart, Bell, X, ChevronDown, ChevronRight,
-  Package, MapPin, CreditCard, Star, RotateCcw, Settings, LogOut, Clock, Flame,
-  Globe, DollarSign, HelpCircle, Sun, Moon, Shield, User, SlidersHorizontal, Camera,
+  Clock, Flame,
+  Globe, DollarSign, HelpCircle, SlidersHorizontal, Camera,
 } from 'lucide-react';
 import { useSellerAccess, useHandleSellerLink } from '../hooks/useSellerAccess';
 import { useBuyerCart } from '../stores/buyerCartStore';
@@ -21,6 +21,9 @@ import { useImmersiveSearch } from '../stores/immersiveSearchStore';
 import { useScrollChrome } from '../stores/scrollChromeStore';
 import { useMotionUi } from '../stores/motionUiStore';
 import MobileBuyerTopBar from './buyer/MobileBuyerTopBar';
+import AccountMenuButton from './header/AccountMenuButton';
+import DeliveryLocationBar from './delivery/DeliveryLocationBar';
+import '../styles/delivery-location.css';
 import {
   getRecentSearches,
   addRecentSearch,
@@ -71,7 +74,7 @@ const LANG_OPTIONS = [
 
 const NAV_LINKS = [
   { to: '/', labelKey: 'nav.home' },
-  { to: '/products', labelKey: 'footer.links.shop.allProducts' },
+  { to: '/category/all', labelKey: 'footer.links.shop.allProducts' },
   { to: '/search?sort=newest', labelKey: 'nav.newArrivals' },
   { to: '/search?sort=discount', labelKey: 'nav.deals', badge: 'HOT' },
   { to: '/search?sort=rating', labelKey: 'nav.topSellers' },
@@ -121,12 +124,18 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) 
         zIndex: 103,
       }}
     >
-      <p className="text-xs truncate topbar-text" style={{ maxWidth: 220 }}>
-        {t('header.freeShipping')} 🚚
-      </p>
+      <div className="flex items-center gap-3 min-w-0 flex-shrink-0 max-w-[28%]">
+        <p className="text-xs truncate topbar-text hidden lg:block" style={{ maxWidth: 160 }}>
+          {t('header.freeShipping')} 🚚
+        </p>
+      </div>
 
-      <div className="flex-1 flex justify-center min-w-0 mx-4">
-        <div className="overflow-hidden text-center">
+      <div className="flex-1 flex justify-center min-w-0 px-2">
+        <DeliveryLocationBar headerCenter />
+      </div>
+
+      <div className="flex items-center gap-3 flex-shrink-0 justify-end max-w-[44%]">
+        <div className="overflow-hidden text-center hidden xl:block max-w-[200px]">
           <AnimatePresence mode="wait">
             <motion.p
               key={announcementIndex}
@@ -134,15 +143,12 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) 
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3 }}
-              className="text-xs topbar-text"
+              className="text-xs topbar-text truncate"
             >
               {t(ANNOUNCEMENT_KEYS[announcementIndex])}
             </motion.p>
           </AnimatePresence>
         </div>
-      </div>
-
-      <div className="flex items-center gap-3 flex-shrink-0">
         <div className="relative" ref={langRef}>
           <button
             type="button"
@@ -259,20 +265,12 @@ function resolveImg(src) {
   return `${SERVER_URL}${src}`;
 }
 
-function resolveAvatar(src) {
-  if (!src) return null;
-  if (typeof src !== 'string') return null;
-  if (src.startsWith('http') || src.startsWith('data:')) return src;
-  return `${SERVER_URL}${src}`;
-}
-
 // ── Tier 2: Main header ───────────────────────────────────────────────────────
 function MainHeader({
   searchQuery, setSearchQuery, searchFocus, setSearchFocus, category, setCategory,
   language, currency, openAuth, user, signOut, onLogoutClick, cartCount, openCart, cartItems, wishlistCount,
   t,
 }) {
-  const { theme, toggleTheme } = useTheme();
   const openVisualSearch = useMotionUi((s) => s.openVisualSearch);
   const navigate = useNavigate();
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -283,13 +281,11 @@ function MainHeader({
   const [notifUnreadCount, setNotifUnreadCount] = useState(0);
   const [bellRing, setBellRing] = useState(false);
   const prevNotifUnreadRef = useRef(0);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [cartHoverOpen, setCartHoverOpen] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const searchRef = useRef(null);
   const suggestRef = useRef(null);
   const notifRef = useRef(null);
-  const profileRef = useRef(null);
   const cartRef = useRef(null);
   const categoryRef = useRef(null);
   const { isSeller, isLoggedIn, isSellerPending } = useSellerAccess();
@@ -436,7 +432,6 @@ function MainHeader({
     return () => window.removeEventListener('systemInboxUnreadRefresh', refresh);
   }, [user]);
 
-  useClickOutside(profileRef, () => setProfileOpen(false));
   useClickOutside(cartRef, () => setCartHoverOpen(false));
   useClickOutside(categoryRef, () => setCategoryDropdownOpen(false));
 
@@ -619,7 +614,7 @@ function MainHeader({
               onFocus={() => { setSearchFocus(true); setSuggestionsOpen(true); }}
               onBlur={() => setTimeout(() => setSearchFocus(false), 180)}
               placeholder={t('search.placeholder')}
-              className="w-full px-3 py-2 text-sm outline-none min-w-0 search-input bg-transparent"
+              className="premium-input-exempt w-full px-3 py-2 text-sm outline-none min-w-0 search-input bg-transparent"
               style={{ color: 'var(--text-primary)', letterSpacing: '0.01em' }}
             />
             <AnimatePresence>
@@ -849,21 +844,7 @@ function MainHeader({
       </form>
 
       {/* Right actions */}
-      <div className="flex items-center gap-2 md:gap-5 flex-shrink-0">
-        {/* Theme toggle — desktop only (Appearance lives under Account → Settings) */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="hidden md:flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full border border-gray-200 dark:border-gray-700 p-0 leading-none hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          aria-label={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
-          title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-yellow-400" />
-          ) : (
-            <Moon className="w-5 h-5 text-gray-600" />
-          )}
-        </button>
+      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
         <div className="relative hidden md:block" ref={notifRef}>
           <button
             type="button"
@@ -930,141 +911,11 @@ function MainHeader({
           </button>
         </div>
 
-        <div className="hidden md:block w-px h-6" style={{ background: 'var(--divider-strong)' }} />
-
-        {/* Profile / Login — desktop dropdown */}
-        <div className="relative hidden md:block" ref={profileRef}>
-          {user ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center justify-center w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] aspect-square rounded-full overflow-hidden flex-shrink-0 p-0 leading-none transition"
-                style={{ background: PRIMARY }}
-              >
-                {resolveAvatar(user.avatar_url) ? (
-                  <img
-                    src={resolveAvatar(user.avatar_url)}
-                    alt={user.full_name || 'Profile'}
-                    className="block w-full h-full object-cover rounded-full"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
-                ) : (
-                  <span className="text-white font-bold text-sm">
-                    {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </button>
-              <AnimatePresence>
-                {profileOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    className="absolute right-0 top-full mt-1 w-60 rounded-xl border py-3 z-[200]"
-                    style={{ background: 'var(--card-bg)', borderColor: 'var(--card-border)', boxShadow: 'var(--card-shadow-hover)' }}
-                  >
-                    <div className="px-4 pb-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: PRIMARY }}>
-                        {resolveAvatar(user.avatar_url) ? (
-                          <img
-                            src={resolveAvatar(user.avatar_url)}
-                            alt={user.full_name || 'Profile'}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        ) : (
-                          <span className="text-white font-bold text-sm">
-                            {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate text-gray-900 dark:text-white">{user.full_name || t('nav.profile')}</p>
-                        <p className="text-xs truncate text-gray-500 dark:text-gray-400">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-100 dark:border-gray-700 py-2">
-                      {[
-                        { icon: Package, labelKey: 'nav.orders', to: '/account?tab=orders' },
-                        { icon: Heart, labelKey: 'nav.wishlist', to: '/account?tab=wishlist' },
-                        { icon: MapPin, labelKey: 'account.addresses', to: '/account?tab=addresses' },
-                        { icon: CreditCard, labelKey: 'account.paymentMethods', to: '/account?tab=payment' },
-                        { icon: Star, labelKey: 'nav.messages', to: '/account?tab=reviews' },
-                        { icon: RotateCcw, labelKey: 'header.returns', to: '/returns' },
-                        { icon: Shield, labelKey: 'header.buyerProtection', to: '/buyer-protection' },
-                        { icon: Settings, labelKey: 'account.profileSettings', to: '/account?tab=settings&section=appearance' },
-                      ].map(({ icon: Icon, labelKey, to }) => (
-                        <Link
-                          key={labelKey}
-                          to={to}
-                          onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-[var(--brand-tint)] dark:hover:bg-[var(--brand-tint)] transition text-gray-700 dark:text-gray-300"
-                        >
-                          <Icon className="w-4 h-4 flex-shrink-0" /> {t(labelKey)}
-                        </Link>
-                      ))}
-                    </div>
-                    <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => { onLogoutClick(); setProfileOpen(false); }}
-                        className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition text-red-600 dark:text-red-400"
-                      >
-                        <LogOut className="w-4 h-4" /> {t('buttons.logout')}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => openAuth('login')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
-              style={{ background: PRIMARY }}
-            >
-              {t('header.loginRegister')}
-            </button>
-          )}
-        </div>
-
-        {/* Mobile: account avatar shortcut */}
-        {user ? (
-          <Link
-            to="/account"
-            className="md:hidden flex items-center justify-center w-8 h-8 min-w-[32px] rounded-full overflow-hidden flex-shrink-0 transition-opacity hover:opacity-90 active:opacity-95"
-            style={{ background: PRIMARY }}
-            aria-label={t('nav.profile')}
-          >
-            {resolveAvatar(user.avatar_url) ? (
-              <img
-                src={resolveAvatar(user.avatar_url)}
-                alt=""
-                className="block w-full h-full object-cover"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            ) : (
-              <span className="text-white font-bold text-sm">
-                {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-              </span>
-            )}
-          </Link>
-        ) : (
-          <Link
-            to="/auth?tab=login"
-            className="md:hidden flex items-center justify-center w-8 h-8 min-w-[32px] rounded-full border transition active:scale-[0.97]"
-            style={{
-              borderColor: 'var(--border-card)',
-              background: 'var(--bg-secondary)',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-            aria-label={t('header.loginRegister')}
-          >
-            <User className="w-4 h-4" strokeWidth={1.85} style={{ color: 'var(--text-muted)' }} />
-          </Link>
-        )}
+        <AccountMenuButton
+          variant="desktop"
+          onLogoutClick={onLogoutClick}
+          openAuth={openAuth}
+        />
       </div>
     </div>
   );
@@ -1139,10 +990,11 @@ function CategoryNav({ t }) {
 // ── Main Navbar export ───────────────────────────────────────────────────────
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isCategoryBrowse = /^\/category(\/|$)/.test(location.pathname);
   const { language, setLanguage, currency, setCurrency } = useTheme();
   const { t } = useTranslation();
   const openImmersiveSearch = useImmersiveSearch((s) => s.openSearch);
-  const openVisualSearch = useMotionUi((s) => s.openVisualSearch);
   const headerHidden = useScrollChrome((s) => s.headerHidden);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
@@ -1163,7 +1015,12 @@ export default function Navbar() {
   const openCart = useBuyerCart((s) => s.openCart);
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
   const wishlistItems = useWishlistStore((s) => s.items);
+  const fetchWishlist = useWishlistStore((s) => s.fetchWishlist);
   const wishlistCount = wishlistItems.length;
+
+  useEffect(() => {
+    if (user?.id) void fetchWishlist(user.id);
+  }, [user?.id, fetchWishlist]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -1176,7 +1033,7 @@ export default function Navbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-[100] flex flex-col transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:translate-y-0"
+      className="mob-storefront-header fixed top-0 left-0 right-0 z-[100] flex flex-col transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:translate-y-0"
       style={{
         background: 'color-mix(in srgb, var(--header-bg) 88%, transparent)',
         backdropFilter: 'blur(18px)',
@@ -1198,7 +1055,7 @@ export default function Navbar() {
 
       {/* Tier 2 */}
       <div
-        className="flex flex-col"
+        className="mob-header-tier flex flex-col"
         style={{
           background: 'var(--header-bg)',
           borderBottom: '1px solid var(--header-border)',
@@ -1227,74 +1084,49 @@ export default function Navbar() {
           t={t}
         />
 
-        <MobileBuyerTopBar />
+        <MobileBuyerTopBar
+          onLogoutClick={() => setShowLogoutConfirm(true)}
+          openAuth={openAuth}
+        />
 
-        {/* Mobile: compact search — AI commerce style */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            openImmersiveSearch(searchQuery);
-          }}
-          className="md:hidden px-3 pb-2"
-        >
-          <motion.div
-            role="button"
-            tabIndex={0}
-            onClick={() => openImmersiveSearch(searchQuery)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                openImmersiveSearch(searchQuery);
-              }
+        {/* Mobile: search — hidden on category browse (page has its own search) */}
+        {!isCategoryBrowse && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              openImmersiveSearch(searchQuery);
             }}
-            className="mob-search-bar flex items-center gap-1 min-h-[44px] max-h-[48px] rounded-xl px-1.5 pl-3 pr-1.5 transition-[box-shadow,border-color] duration-200 cursor-text"
-            style={{
-              background: 'var(--bg-secondary, #f1f3f5)',
-              border: '1px solid color-mix(in srgb, var(--border-card) 70%, transparent)',
-              boxShadow: '0 1px 6px rgba(15,23,42,0.04)',
-            }}
+            className="md:hidden mob-header-search-wrap"
           >
-            <Search className="w-4 h-4 flex-shrink-0" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden />
-            <input
-              type="search"
-              enterKeyHint="search"
-              readOnly
-              value={searchQuery}
-              placeholder="Search products, brands, stores..."
-              onFocus={() => openImmersiveSearch(searchQuery)}
-              className="flex-1 min-w-0 h-10 bg-transparent outline-none text-[14px] search-input pointer-events-none"
-              style={{ color: searchQuery ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: '-0.01em' }}
-            />
-            <button
+            <motion.button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openVisualSearch();
+              role="search"
+              onClick={() => openImmersiveSearch(searchQuery)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  openImmersiveSearch(searchQuery);
+                }
               }}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
-              style={{
-                background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)',
-                color: 'var(--brand-primary)',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label="Visual search"
+              className={`mob-search-bar mob-search-bar--2026 w-full text-left${searchQuery ? ' has-value' : ''}`}
+              aria-label="Search"
             >
-              <Camera className="w-4 h-4" strokeWidth={2} />
-            </button>
-            <Link
-              to="/products"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96]"
-              style={{
-                background: 'color-mix(in srgb, var(--brand-primary) 9%, transparent)',
-                color: 'var(--text-secondary)',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label={t('footer.links.shop.allProducts')}
-            >
-              <SlidersHorizontal className="w-4 h-4" strokeWidth={1.85} />
-            </Link>
-          </motion.div>
-        </form>
+              <Search className="mob-search-bar__icon" strokeWidth={2} aria-hidden />
+              <span className="mob-search-bar__placeholder">
+                {searchQuery || 'Search products, brands…'}
+              </span>
+              <Link
+                to="/category/all"
+                className="mob-search-filter-btn"
+                aria-label={t('footer.links.shop.allProducts')}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <SlidersHorizontal className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
+              </Link>
+            </motion.button>
+          </form>
+        )}
+
       </div>
 
       {/* Tier 3 */}

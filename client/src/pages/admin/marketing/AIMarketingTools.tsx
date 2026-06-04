@@ -11,6 +11,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { adminMarketingAPI } from '@/lib/api';
+import { usePlatformFeature } from '@/hooks/useSystemFeatures';
 
 const featureIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   'campaign-ideas': Lightbulb,
@@ -23,6 +24,7 @@ const featureIcons: Record<string, React.ComponentType<{ className?: string }>> 
 };
 
 export default function AIMarketingTools() {
+  const { enabled: marketingAiOn, loading: platformFeaturesLoading } = usePlatformFeature('marketing_ai_tools');
   const [aiEnabled, setAiEnabled] = useState(true);
   const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; enabled: boolean }>>([]);
   const [loading, setLoading] = useState(true);
@@ -47,10 +49,21 @@ export default function AIMarketingTools() {
     adminMarketingAPI.updateAISettings({ aiEnabled: next, features }).finally(() => setSaving(false));
   };
 
-  if (loading) {
+  if (loading || platformFeaturesLoading) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <p className="text-gray-500 dark:text-gray-400">Loading AI settings...</p>
+      </div>
+    );
+  }
+
+  if (!marketingAiOn) {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 dark:border-amber-900 dark:bg-amber-950/40">
+        <h2 className="text-lg font-semibold text-amber-900 dark:text-amber-100">Marketing AI tools are off</h2>
+        <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
+          Re-enable <strong>Marketing AI tools</strong> in Admin → System controls (danger zone) to use this panel.
+        </p>
       </div>
     );
   }

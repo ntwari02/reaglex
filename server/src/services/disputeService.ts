@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Order } from '../models/Order';
 import { Dispute } from '../models/Dispute';
 import { refundBuyer, releaseEscrow } from './escrowService';
+import { deliverSellerNotification } from './sellerNotificationService';
 
 export async function raiseDispute(
   orderId: string,
@@ -47,6 +48,17 @@ export async function raiseDispute(
     status: 'new',
     evidence: evidence || [],
   }).save();
+
+  void deliverSellerNotification(
+    'dispute_opened',
+    {
+      sellerId: String(order.sellerId),
+      orderId: String(order._id),
+      orderNumber: String(order.orderNumber || ''),
+      disputeNumber,
+    },
+    buyerId
+  );
 }
 
 export async function resolveDispute(

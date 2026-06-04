@@ -2,7 +2,23 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { trackRecommendationActivity } from '../services/recommendationEmailApi';
 
-const defaultShipPreview = { country: 'RW', city: 'Kigali', state: '', zip: '' };
+const defaultShipPreview = {
+  country: 'RW',
+  countryName: 'Rwanda',
+  city: 'Kigali',
+  state: '',
+  zip: '',
+  displayLabel: 'Kigali, Rwanda',
+};
+
+function cartLineKey(id, variantSku) {
+  return `${String(id)}::${String(variantSku || '').trim()}`;
+}
+
+function matchesLine(item, key) {
+  const k = item.cartKey || cartLineKey(item.id, item.variantSku);
+  return k === key || item.id === key;
+}
 
 export const useBuyerCart = create(
   persist(
@@ -15,9 +31,11 @@ export const useBuyerCart = create(
         set({
           shippingPreviewLocation: {
             country: String(loc.country || defaultShipPreview.country).trim() || defaultShipPreview.country,
+            countryName: String(loc.countryName || loc.country || defaultShipPreview.countryName).trim(),
             city: String(loc.city || defaultShipPreview.city).trim() || defaultShipPreview.city,
             state: String(loc.state ?? '').trim(),
             zip: String(loc.zip ?? '').trim(),
+            displayLabel: String(loc.displayLabel || '').trim(),
           },
         }),
       openCart:  () => set({ cartOpen: true }),
@@ -25,11 +43,15 @@ export const useBuyerCart = create(
 
       addItem: (product, quantity = 1) => {
         const items = get().items;
-        const existing = items.find((i) => i.id === product._id || i.id === product.id);
+        const id = product._id || product.id;
+        const variantSku = String(product.variantSku || product.sku || '').trim();
+        const key = cartLineKey(id, variantSku);
+        const existing = items.find((i) => matchesLine(i, key));
+        const unitPrice = Number(product.price) || 0;
         if (existing) {
           set({
             items: items.map((i) =>
-              i.id === existing.id ? { ...i, quantity: i.quantity + quantity } : i
+              matchesLine(i, key) ? { ...i, quantity: i.quantity + quantity, price: unitPrice || i.price } : i,
             ),
           });
         } else {
@@ -37,11 +59,15 @@ export const useBuyerCart = create(
             items: [
               ...items,
               {
-                id: product._id || product.id,
+                cartKey: key,
+                id,
                 title: product.title || product.name,
-                price: product.price,
+                price: unitPrice,
                 image: product.images?.[0] || product.image || '',
                 seller: product.seller?.storeName || product.sellerName || 'Seller',
+                variantSku: variantSku || undefined,
+                selectedColor: product.selectedColor,
+                selectedSize: product.selectedSize,
                 quantity,
               },
             ],
@@ -49,25 +75,25 @@ export const useBuyerCart = create(
         }
         void trackRecommendationActivity({
           eventType: 'cart_add',
-          productId: String(product?._id || product?.id || ''),
+          productId: String(id || ''),
           category: product?.category || '',
           tags: Array.isArray(product?.tags) ? product.tags : [],
-          meta: { quantity },
+          meta: { quantity, variantSku: variantSku || undefined },
         });
       },
 
-      removeItem: (id) => {
-        set({ items: get().items.filter((i) => i.id !== id) });
+      removeItem: (key) => {
+        set({ items: get().items.filter((i) => !matchesLine(i, key)) });
         void trackRecommendationActivity({
           eventType: 'cart_remove',
-          productId: String(id),
+          productId: String(key).split('::')[0] || String(key),
         });
       },
 
-      updateQuantity: (id, quantity) => {
-        if (quantity < 1) return get().removeItem(id);
+      updateQuantity: (key, quantity) => {
+        if (quantity < 1) return get().removeItem(key);
         set({
-          items: get().items.map((i) => (i.id === id ? { ...i, quantity } : i)),
+          items: get().items.map((i) => (matchesLine(i, key) ? { ...i, quantity } : i)),
         });
       },
 
@@ -75,14 +101,20 @@ export const useBuyerCart = create(
 
       /** Replace cart from cloud merge (cross-device sync). */
       replaceItems: (items, shippingPreviewLocation) => {
-        const next = (items || []).map((i) => ({
-          id: i.id || i.productId,
-          title: i.title || 'Product',
-          price: Number(i.price) || 0,
-          image: i.image || '',
-          seller: i.seller || 'Seller',
-          quantity: Math.max(1, Number(i.quantity) || 1),
-        }));
+        const next = (items || []).map((i) => {
+          const id = i.id || i.productId;
+          const variantSku = i.variantSku ? String(i.variantSku).trim() : undefined;
+          return {
+            cartKey: i.cartKey || cartLineKey(id, variantSku),
+            id,
+            title: i.title || 'Product',
+            price: Number(i.price) || 0,
+            image: i.image || '',
+            seller: i.seller || 'Seller',
+            variantSku,
+            quantity: Math.max(1, Number(i.quantity) || 1),
+          };
+        });
         const patch = { items: next };
         if (shippingPreviewLocation) {
           patch.shippingPreviewLocation = {

@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Award, Star, ShoppingBag } from 'lucide-react';
+import { Award, Star } from 'lucide-react';
+import MobileAddCta from './MobileAddCta';
 import { useBuyerCart } from '../../../stores/buyerCartStore';
 import { useCurrencyPricing } from '../../../hooks/useCurrencyPricing';
 import { useMotionUi } from '../../../stores/motionUiStore';
@@ -103,8 +104,9 @@ export default function BestSellerCarouselCard({ product, rank = 0, index = 0 })
             <p className="text-[14px] font-bold" style={{ color: 'var(--brand-primary)' }}>
               {currencyPricing.formatLocalWithUsd(price)}
             </p>
-            <button
-              type="button"
+            <MobileAddCta
+              variant="pill"
+              label="Add"
               disabled={stock <= 0}
               onClick={(e) => {
                 e.stopPropagation();
@@ -112,12 +114,7 @@ export default function BestSellerCarouselCard({ product, rank = 0, index = 0 })
                 addItem(product, 1);
                 flyFromCard();
               }}
-              className="rounded-full px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-40"
-              style={{ background: 'var(--brand-primary)' }}
-            >
-              <ShoppingBag size={12} className="inline mr-0.5 -mt-px" />
-              Add
-            </button>
+            />
           </div>
         </div>
       </button>

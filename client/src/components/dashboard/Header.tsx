@@ -48,6 +48,8 @@ interface HeaderProps {
   userName: string;
   userRole: string;
   accentVariant?: 'emerald' | 'orange';
+  onOpenIntelligenceSearch?: () => void;
+  showIntelligenceSearch?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -57,6 +59,8 @@ const Header: React.FC<HeaderProps> = ({
   userName,
   userRole,
   accentVariant = 'emerald',
+  onOpenIntelligenceSearch,
+  showIntelligenceSearch = false,
 }) => {
   const { theme, toggleTheme, language, setLanguage } = useTheme();
   const { t } = useTranslation();
@@ -87,12 +91,14 @@ const Header: React.FC<HeaderProps> = ({
     console.log('[Header] Has avatar:', hasAvatar);
   }, [user, avatarUrl, hasAvatar]);
 
-  const isSeller = location.pathname.startsWith('/seller');
-  const isAdmin = location.pathname.startsWith('/admin');
-  const mobileSubtitle = isSeller ? 'Seller Hub' : isAdmin ? 'Admin' : '';
+  const isSellerUser = user?.role === 'seller';
+  const isAdminUser = user?.role === 'admin';
+  const isSellerHub = isSellerUser && location.pathname.startsWith('/seller');
+  const isAdminHub = isAdminUser && location.pathname.startsWith('/admin');
+  const mobileSubtitle = isSellerHub ? 'Seller Hub' : isAdminHub ? 'Admin' : '';
 
   const refreshSystemInboxUnread = useCallback(() => {
-    if (!isSeller && !isAdmin) {
+    if (!isSellerHub && !isAdminHub) {
       setSystemInboxUnread(0);
       return;
     }
@@ -105,7 +111,7 @@ const Header: React.FC<HeaderProps> = ({
       .unreadCount()
       .then((c) => setSystemInboxUnread(Number.isFinite(c) ? c : 0))
       .catch(() => setSystemInboxUnread(0));
-  }, [isSeller, isAdmin]);
+  }, [isSellerHub, isAdminHub]);
 
   useEffect(() => {
     refreshSystemInboxUnread();
@@ -169,9 +175,9 @@ const Header: React.FC<HeaderProps> = ({
 
   const handleProfileClick = () => {
     // Determine profile route based on current path
-    if (isAdmin) {
+    if (isAdminUser) {
       navigate('/admin/settings');
-    } else if (isSeller) {
+    } else if (isSellerUser) {
       navigate('/seller/settings');
     } else {
       navigate('/profile');
@@ -198,8 +204,14 @@ const Header: React.FC<HeaderProps> = ({
       };
 
   return (
-    <header className="dashboard-header backdrop-blur-md border-b border-gray-200 dark:border-gray-700/30 px-4 md:px-6 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300">
-      <div className="flex items-center gap-4 flex-1">
+    <header
+      className={`dashboard-header backdrop-blur-md border-b border-gray-200 dark:border-gray-700/30 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300 ${
+        isAdminHub
+          ? 'px-3 py-2.5 sm:px-4 sm:py-3 md:px-6 md:py-4 lg:px-8'
+          : 'px-4 md:px-6 lg:px-8 py-4'
+      }`}
+    >
+      <div className={`flex items-center flex-1 min-w-0 ${isAdminHub ? 'gap-2 sm:gap-3 md:gap-4' : 'gap-4'}`}>
         <Button
           variant="ghost"
           size="icon"
@@ -211,37 +223,71 @@ const Header: React.FC<HeaderProps> = ({
         </Button>
 
         {/* Mobile title (matches screenshot vibe) */}
-        <div className="md:hidden flex flex-col leading-tight">
-          <span className="text-[15px] font-extrabold text-gray-900 dark:text-white">{mobileSubtitle || 'Dashboard'}</span>
-          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 truncate max-w-[190px]">
+        <div className="md:hidden flex flex-col leading-tight min-w-0 flex-1">
+          <span className="text-sm font-bold text-gray-900 dark:text-white sm:text-[15px]">{mobileSubtitle || 'Dashboard'}</span>
+          <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 truncate sm:text-[11px] sm:font-semibold">
             {userName}
           </span>
         </div>
 
-        <div className="hidden md:flex items-center flex-1 max-w-md">
-          <div className="relative w-full">
+        {isAdminHub && showIntelligenceSearch ? (
+          <button
+            type="button"
+            onClick={onOpenIntelligenceSearch}
+            className="md:hidden shrink-0 min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-600 dark:border-gray-700 dark:bg-dark-secondary/70 dark:text-gray-300"
+            aria-label="Search platform"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+        ) : null}
+
+        <div
+          className={`hidden md:flex items-center flex-1 max-w-md${showIntelligenceSearch ? ' intel-search-trigger' : ''}`}
+          onClick={showIntelligenceSearch ? onOpenIntelligenceSearch : undefined}
+          role={showIntelligenceSearch ? 'button' : undefined}
+          tabIndex={showIntelligenceSearch ? 0 : undefined}
+          onKeyDown={
+            showIntelligenceSearch
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') onOpenIntelligenceSearch?.();
+                }
+              : undefined
+          }
+        >
+          <motion.div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type="text"
-              placeholder={t('search.placeholderShort')}
-              className={`w-full bg-gray-100 dark:bg-dark-secondary/70 border border-gray-300 dark:border-[var(--border-card)] rounded-lg pl-10 pr-4 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-[var(--input-placeholder)] focus:outline-none focus:ring-2 ${accent.focusRing} focus:border-transparent transition-all`}
+              readOnly={showIntelligenceSearch}
+              placeholder={
+                showIntelligenceSearch ? 'Search platform… ⌘K' : t('search.placeholderShort')
+              }
+              onFocus={
+                showIntelligenceSearch
+                  ? (e) => {
+                      e.preventDefault();
+                      onOpenIntelligenceSearch?.();
+                    }
+                  : undefined
+              }
+              className={`w-full bg-gray-100 dark:bg-dark-secondary/70 border border-gray-300 dark:border-[var(--border-card)] rounded-lg pl-10 pr-4 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-[var(--input-placeholder)] focus:outline-none focus:ring-2 ${accent.focusRing} focus:border-transparent transition-all${showIntelligenceSearch ? ' cursor-pointer' : ''}`}
             />
-          </div>
+          </motion.div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center shrink-0 ${isAdminHub ? 'gap-1.5 sm:gap-2 md:gap-3' : 'gap-3'}`}>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
-          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+          className={`inline-flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors ${isAdminHub ? 'min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px]' : 'min-h-[44px] min-w-[44px]'}`}
           title={theme === 'dark' ? t('header.switchToLight') : t('header.switchToDark')}
         >
           {theme === 'dark' ? (
-            <Sun className="w-6 h-6 text-yellow-400" />
+            <Sun className={`text-yellow-400 ${isAdminHub ? 'w-5 h-5 md:w-6 md:h-6' : 'w-6 h-6'}`} />
           ) : (
-            <Moon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+            <Moon className={`text-gray-600 dark:text-gray-400 ${isAdminHub ? 'w-5 h-5 md:w-6 md:h-6' : 'w-6 h-6'}`} />
           )}
         </motion.button>
 
@@ -376,7 +422,7 @@ const Header: React.FC<HeaderProps> = ({
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {user?.email}
                     </p>
-                    {isSeller && (
+                    {isSellerUser && (
                       <div className="mt-1.5 flex items-center gap-1 text-xs">
                         {user?.seller_status === 'approved' ? (
                           <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
@@ -398,7 +444,23 @@ const Header: React.FC<HeaderProps> = ({
                     )}
                   </div>
                   <div className="py-1.5">
-                    {isSeller && (
+                    {isAdminUser && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigate('/admin');
+                            setShowUserMenu(false);
+                          }}
+                          className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          Admin dashboard
+                        </button>
+                        <div className="my-1.5 border-t border-gray-200 dark:border-gray-700" />
+                      </>
+                    )}
+                    {isSellerUser && (
                       <>
                         <button
                           onClick={() => {

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { MapPin, Truck, AlertCircle } from 'lucide-react';
+import { MapPin, Truck, AlertCircle, ChevronRight } from 'lucide-react';
+import { formatDeliverToLabel } from '../../hooks/useDeliveryDestinations';
 import { useCurrencyPricing } from '../../hooks/useCurrencyPricing';
 import { useTranslation } from '../../i18n/useTranslation';
 
@@ -44,30 +45,30 @@ export default function CartSummary({
           border: '1px solid var(--border-card)',
         }}
       >
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
-          <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-            {t('cart.shipToEstimate')}
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="text"
-            className="w-full px-3 py-2 rounded-xl text-xs outline-none border bg-[var(--card-bg)]"
-            style={{ borderColor: 'var(--divider)' }}
-            placeholder={t('checkout.fields.country')}
-            value={shippingPreviewLocation.country}
-            onChange={(e) => onChangeLocation({ ...shippingPreviewLocation, country: e.target.value })}
-          />
-          <input
-            type="text"
-            className="w-full px-3 py-2 rounded-xl text-xs outline-none border bg-[var(--card-bg)]"
-            style={{ borderColor: 'var(--divider)' }}
-            placeholder={t('checkout.fields.city')}
-            value={shippingPreviewLocation.city}
-            onChange={(e) => onChangeLocation({ ...shippingPreviewLocation, city: e.target.value })}
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() => onChangeLocation?.()}
+          className="w-full flex items-center justify-between gap-2 text-left"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <MapPin className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+            <div className="min-w-0">
+              <span className="text-[10px] block" style={{ color: 'var(--text-muted)' }}>
+                {t('cart.shipToEstimate')}
+              </span>
+              <span className="text-xs font-bold truncate block" style={{ color: 'var(--text-primary)' }}>
+                {shippingPreviewLocation?.displayLabel ||
+                  formatDeliverToLabel(shippingPreviewLocation)}
+              </span>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+        </button>
+        {quote?.deliveryEstimate && !loading && (
+          <p className="text-[11px] font-semibold" style={{ color: 'var(--brand-primary)' }}>
+            🚚 {quote.deliveryEstimate.displayLabel || `${quote.deliveryEstimate.etaDaysMin}–${quote.deliveryEstimate.etaDaysMax} days`}
+          </p>
+        )}
         <p className="text-[10px] leading-snug" style={{ color: 'var(--text-muted)' }}>
           {t('cart.shippingPreviewHint')}
         </p>

@@ -23,6 +23,7 @@ import {
   rejectPendingRequest,
   checkPendingRequest,
   approveDeviceByEmail,
+  sessionBootstrap,
 } from '../controllers/authController';
 import {
   webauthnRegisterOptions,
@@ -85,14 +86,31 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: 'Too many reset attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const checkPendingLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 60,
+  message: { message: 'Too many status checks. Please wait.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.post('/register', registerLimiter, register);
 router.post('/login', loginLimiter, login);
 router.get('/me', authenticate, me);
+router.get('/session-bootstrap', authenticate, sessionBootstrap);
 
 // Email: config, forgot password (rate-limited), reset password, verify email
 router.get('/email-config', emailConfig);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/reset-password', resetPasswordLimiter, resetPassword);
 router.post('/reset-password-otp', forgotPasswordLimiter, resetPasswordWithOtp);
 router.get('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerificationLimiter, resendVerification);
@@ -108,7 +126,7 @@ router.post('/setup-2fa/confirm', verify2FALimiter, setup2FAConfirm);
 router.get('/pending-login-requests', authenticate, getPendingLoginRequests);
 router.post('/approve-pending-request', authenticate, approvePendingRequest);
 router.post('/reject-pending-request', authenticate, rejectPendingRequest);
-router.get('/check-pending-request', checkPendingRequest);
+router.get('/check-pending-request', checkPendingLimiter, checkPendingRequest);
 router.get('/approve-device', approveDeviceByEmail);
 
 // Google OAuth routes

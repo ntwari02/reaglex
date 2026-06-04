@@ -9,6 +9,7 @@ import {
   estimateDeliveryPrediction,
 } from '../services/fulfillmentIntelligence.service';
 import { buildPickupCredentials } from '../services/pickupService';
+import { evaluateOrderDeliverySLA } from '../services/sellerDeliverySLA.service';
 
 // GET /api/seller/orders
 export async function getSellerOrders(req: AuthenticatedRequest, res: Response) {
@@ -78,6 +79,19 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
       $set: { status },
       $push: { timeline: timelineEntry },
     };
+    if (status === 'delivered') {
+      const graceHours = Number(process.env.ORDER_DELIVERED_GRACE_HOURS || 72);
+      update.$set.autoCompletion = {
+        ...(prior as any).autoCompletion,
+        deliveredAt: now,
+        eligibleAt: new Date(now.getTime() + graceHours * 3600000),
+        state: 'scheduled',
+      };
+    } else if (status === 'completed') {
+      update.$set['autoCompletion.state'] = 'completed';
+      update.$set['autoCompletion.completedAt'] = now;
+      update.$set['autoCompletion.completionSource'] = 'admin';
+    }
 
     if (reason && reason.trim()) {
       update.$push.notes = reason.trim();
@@ -101,11 +115,17 @@ export async function updateSellerOrderStatus(req: AuthenticatedRequest, res: Re
       }
       void notifyBuyerOrderStatusChange({
         buyerId: updated.buyerId,
+        orderId: String(updated._id),
         orderNumber: updated.orderNumber,
         newStatus: updated.status,
         previousStatus: prior.status,
         actorUserId: req.user.id,
       });
+      if (updated.status === 'delivered') {
+        void evaluateOrderDeliverySLA(updated).catch((e) =>
+          console.error('[sellerDeliverySLA] evaluate on delivered:', e),
+        );
+      }
     }
 
     return res.json({ order: updated });
@@ -192,6 +212,7 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
     if (prior.status !== updated.status) {
       void notifyBuyerOrderStatusChange({
         buyerId: updated.buyerId,
+        orderId: String(updated._id),
         orderNumber: updated.orderNumber,
         newStatus: updated.status,
         previousStatus: prior.status,

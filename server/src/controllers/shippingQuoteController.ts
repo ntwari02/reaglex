@@ -2,6 +2,10 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { quoteReaglexShipments } from '../services/reaglexShipping.service';
 import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
+import {
+  aggregateDeliveryEstimate,
+  findDeliveryDestination,
+} from '../services/deliveryDestination.service';
 
 function normalizeSelectedMethods(raw: unknown): Record<string, ReaglexShippingMethodKey> {
   const selectedMethods: Record<string, ReaglexShippingMethodKey> = {};
@@ -101,12 +105,27 @@ export async function postShippingQuote(req: AuthenticatedRequest, res: Response
       selectedMethods,
     });
 
+    const dest = await findDeliveryDestination(country, city);
+    const deliveryEstimate = aggregateDeliveryEstimate(out.groups, dest, {
+      city,
+      country: dest?.countryName || country,
+    });
+
     return res.json({
       groups: out.groups,
       totalShipping: out.totalShipping,
       addressFingerprint: out.addressFingerprint,
       warnings: out.warnings,
       isEstimate: estimate,
+      deliveryEstimate,
+      destination: dest
+        ? {
+            countryCode: dest.countryCode,
+            countryName: dest.countryName,
+            city: dest.city,
+            displayLabel: dest.displayLabel,
+          }
+        : null,
     });
   } catch (e: any) {
     console.error('postShippingQuote', e);
@@ -157,12 +176,27 @@ export async function postShippingEstimatePublic(req: any, res: Response) {
       selectedMethods,
     });
 
+    const deliveryDest = await findDeliveryDestination(country, city);
+    const deliveryEstimate = aggregateDeliveryEstimate(out.groups, deliveryDest, {
+      city,
+      country: deliveryDest?.countryName || country,
+    });
+
     return res.json({
       groups: out.groups,
       totalShipping: out.totalShipping,
       addressFingerprint: out.addressFingerprint,
       warnings: out.warnings,
       isEstimate: true,
+      deliveryEstimate,
+      destination: deliveryDest
+        ? {
+            countryCode: deliveryDest.countryCode,
+            countryName: deliveryDest.countryName,
+            city: deliveryDest.city,
+            displayLabel: deliveryDest.displayLabel,
+          }
+        : null,
     });
   } catch (e: any) {
     console.error('postShippingEstimatePublic', e);

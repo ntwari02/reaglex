@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Smartphone, CheckCircle, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
-import BuyerLayout from '../components/buyer/BuyerLayout';
+import { Smartphone, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import CheckoutFocusLayout from '../components/checkout/CheckoutFocusLayout';
 import { paymentAPI } from '../services/api';
 import { useTranslation } from '../i18n/useTranslation';
 
@@ -94,14 +94,8 @@ export default function MomoPaymentWait() {
   }, [referenceId, orderId, navigate, t, provider]);
 
   return (
-    <BuyerLayout>
-      <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-12">
-        <Link
-          to="/account"
-          className="mb-8 flex items-center gap-2 self-start text-sm font-semibold text-gray-500 hover:text-[var(--brand-primary)]"
-        >
-          <ArrowLeft className="h-4 w-4" /> {t('checkout.backToCart')}
-        </Link>
+    <CheckoutFocusLayout backTo="/checkout">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] max-w-lg flex-col items-center justify-center px-4 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -161,6 +155,6 @@ export default function MomoPaymentWait() {
           )}
         </motion.div>
       </div>
-    </BuyerLayout>
+    </CheckoutFocusLayout>
   );
 }

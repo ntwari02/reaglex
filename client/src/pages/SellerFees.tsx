@@ -2,24 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ArrowRight } from 'lucide-react';
 import BuyerLayout from '../components/buyer/BuyerLayout';
+import {
+  DEFAULT_SCHEDULE,
+  fetchFeeSchedule,
+  type FeeSchedule,
+  type FeeSchedulePaymentMethod,
+} from '../services/feeScheduleApi';
 
 type PaymentMethodKey = 'card' | 'mtn' | 'airtel' | 'bank_local' | 'bank_intl';
-
-const COMMISSION_RATE = 0.05;
-const PROCESSING_RATE = 0.014;
-
-const PAYMENT_METHODS: {
-  key: PaymentMethodKey;
-  label: string;
-  description: string;
-  rate: number;
-}[] = [
-  { key: 'card', label: '💳 Card (1.4%)', description: 'Visa, Mastercard and others', rate: PROCESSING_RATE },
-  { key: 'mtn', label: '📱 MTN MoMo (1.4%)', description: 'MTN Mobile Money', rate: PROCESSING_RATE },
-  { key: 'airtel', label: '📱 Airtel (1.4%)', description: 'Airtel Money', rate: PROCESSING_RATE },
-  { key: 'bank_local', label: '🏦 Bank Transfer (1.4%)', description: 'Local bank transfer', rate: PROCESSING_RATE },
-  { key: 'bank_intl', label: '🌍 Bank Transfer (1.4%)', description: 'International bank transfer', rate: PROCESSING_RATE },
-];
 
 function useAnimatedNumber(value: number, duration = 400) {
   const [display, setDisplay] = useState(value);
@@ -53,65 +43,30 @@ function useAnimatedNumber(value: number, duration = 400) {
   return display;
 }
 
-const FAQ_ITEMS = [
-  {
-    id: 'when-commission',
-    q: 'When exactly is commission charged?',
-    a: 'Commission is only charged when a buyer confirms delivery. If an order is cancelled or refunded before payout, no commission is charged.',
-  },
-  {
-    id: 'pass-fees',
-    q: 'Can I pass fees to buyers?',
-    a: 'No. All seller fees are paid by the seller. However, you can factor fees into your product pricing strategy.',
-  },
-  {
-    id: 'refunds',
-    q: 'What if my sale is refunded?',
-    a: 'If a refund is processed before payout, no fees are charged. If payout has already been sent, the commission is simply deducted from your next payout.',
-  },
-  {
-    id: 'trial',
-    q: 'Is there a free trial period?',
-    a: 'All sellers start on our free Starter tier with zero monthly costs. Growth tier includes a 14-day free trial when you upgrade.',
-  },
-  {
-    id: 'discounts',
-    q: 'How are fees calculated on discounts?',
-    a: 'Fees are calculated on the final sale price after all discount codes, coupons, or promotions are applied.',
-  },
-  {
-    id: 'rejected-orders',
-    q: 'Are there fees for rejected orders?',
-    a: 'No. If an order is rejected or cancelled before shipping, zero fees are charged to the seller.',
-  },
-  {
-    id: 'currencies',
-    q: 'What currencies are supported?',
-    a: 'All transactions are processed in USD. Mobile money payouts are converted at current exchange rates at the time of payout.',
-  },
-  {
-    id: 'fee-history',
-    q: 'Can I see fee history?',
-    a: 'Yes. Your Seller Dashboard includes a complete fee breakdown for every transaction in the Analytics tab.',
-  },
-  {
-    id: 'digital-products',
-    q: 'Are fees different for digital products?',
-    a: 'No. All product types have the same 5% commission rate. There are no additional digital product fees.',
-  },
-  {
-    id: 'tier-limits',
-    q: 'What happens if I exceed my tier?',
-    a: 'Starter sellers can always upgrade to Growth. There is no penalty for exceeding limits — you will simply be prompted to upgrade.',
-  },
-];
-
 export default function SellerFees() {
+  const [feeSchedule, setFeeSchedule] = useState<FeeSchedule>(DEFAULT_SCHEDULE);
   const [showSticky, setShowSticky] = useState(false);
   const [priceInput, setPriceInput] = useState<string>('29');
   const [quantity, setQuantity] = useState<number>(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKey>('card');
-  const [openFaqId, setOpenFaqId] = useState<string | null>(FAQ_ITEMS[0].id);
+  const faqItems =
+    feeSchedule.faq?.length > 0 ? feeSchedule.faq : DEFAULT_SCHEDULE.faq;
+  const [openFaqId, setOpenFaqId] = useState<string | null>(faqItems[0]?.id ?? null);
+
+  useEffect(() => {
+    fetchFeeSchedule().then((schedule) => {
+      setFeeSchedule(schedule);
+      if (schedule.faq?.[0]?.id) {
+        setOpenFaqId(schedule.faq[0].id);
+      }
+    });
+  }, []);
+
+  const paymentMethods = feeSchedule.paymentMethods as FeeSchedulePaymentMethod[];
+  const commissionRate = feeSchedule.commissionRate;
+  const defaultProcessingRate = feeSchedule.defaultProcessingRate;
+  const commissionLabel = `${feeSchedule.commissionPercent}%`;
+  const processingLabel = `${(defaultProcessingRate * 100).toFixed(1)}%`;
 
   const heroRef = useRef<HTMLDivElement | null>(null);
   const calculatorRef = useRef<HTMLDivElement | null>(null);
@@ -123,8 +78,8 @@ export default function SellerFees() {
   }, [priceInput]);
 
   const saleTotal = Math.max(0, parsedPrice * Math.max(1, quantity));
-  const paymentRate = PAYMENT_METHODS.find((m) => m.key === paymentMethod)?.rate ?? PROCESSING_RATE;
-  const commissionFee = saleTotal * COMMISSION_RATE;
+  const paymentRate = paymentMethods.find((m) => m.key === paymentMethod)?.rate ?? defaultProcessingRate;
+  const commissionFee = saleTotal * commissionRate;
   const processingFee = saleTotal * paymentRate;
   const payout = Math.max(0, saleTotal - commissionFee - processingFee);
   const keepPercent = saleTotal > 0 ? (payout / saleTotal) * 100 : 0;
@@ -190,7 +145,7 @@ export default function SellerFees() {
                 }}
               >
                 <p style={{ color: 'var(--text-secondary)' }}>
-                  📊 Fees: <strong>5% commission</strong> + <strong>1.4% processing</strong> · <strong>FREE listings</strong> · <strong>$0 monthly</strong>
+                  📊 Fees: <strong>{commissionLabel} commission</strong> + <strong>{processingLabel} processing</strong> · <strong>FREE listings</strong> · <strong>${feeSchedule.monthlyFeeUsd} monthly</strong>
                 </p>
                 <button
                   type="button"
@@ -1090,7 +1045,7 @@ export default function SellerFees() {
                             '0 0 0 1px rgba(148,163,184,0.35)',
                         }}
                       >
-                        {PAYMENT_METHODS.map((m) => (
+                        {paymentMethods.map((m) => (
                           <option
                             key={m.key}
                             value={m.key}
@@ -1104,7 +1059,7 @@ export default function SellerFees() {
                         className="text-xs"
                         style={{ color: 'rgba(255,255,255,0.6)' }}
                       >
-                        {PAYMENT_METHODS.find((m) => m.key === paymentMethod)
+                        {paymentMethods.find((m) => m.key === paymentMethod)
                           ?.description || ''}
                       </p>
                     </div>
@@ -1142,7 +1097,7 @@ export default function SellerFees() {
 
                     <div className="flex items-center justify-between text-sm">
                       <span style={{ color: 'rgba(255,255,255,0.7)' }}>
-                        Platform Commission (5%)
+                        Platform Commission ({commissionLabel})
                       </span>
                       <span
                         className="font-semibold"
@@ -1677,7 +1632,7 @@ export default function SellerFees() {
             </h2>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {[FAQ_ITEMS.slice(0, 5), FAQ_ITEMS.slice(5)].map((column, colIdx) => (
+              {[faqItems.slice(0, 5), faqItems.slice(5)].map((column, colIdx) => (
                 <div key={colIdx} className="space-y-3">
                   {column.map((item) => {
                     const open = openFaqId === item.id;

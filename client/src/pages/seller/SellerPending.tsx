@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import BuyerLayout from '../../components/buyer/BuyerLayout';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
+import { API_BASE_URL } from '../../lib/config';
 import {
   CheckCircle2, Clock, ShieldCheck, Rocket,
   BookOpen, DollarSign, Package, Mail, ExternalLink,
@@ -296,16 +297,46 @@ function StatPill({ label, children, color, accentBg }: { label: string; childre
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
+type OnboardingStep = {
+  id: string;
+  label: string;
+  sub: string;
+  status: 'done' | 'current' | 'pending';
+};
+
+const STEP_ICONS: Record<string, typeof CheckCircle2> = {
+  submitted: CheckCircle2,
+  review: Clock,
+  kyc: ShieldCheck,
+  active: Rocket,
+};
+
 export default function SellerPending() {
   const user      = useAuthStore((s) => s.user);
   const firstName = user?.full_name?.split(' ')[0] || 'there';
+  const [steps, setSteps] = useState<OnboardingStep[]>([]);
 
-  const steps = [
-    { icon: CheckCircle2, label: 'Application Submitted',  sub: 'Feb 28, 2026 · Received & logged',          status: 'done'    as const },
-    { icon: Clock,        label: 'Under Review',            sub: 'Our compliance team is verifying details',  status: 'current' as const },
-    { icon: ShieldCheck,  label: 'Identity Verification',   sub: 'Document review & fraud screening',         status: 'pending' as const },
-    { icon: Rocket,       label: 'Account Activated',       sub: 'Full dashboard access — start selling!',    status: 'pending' as const },
-  ];
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    fetch(`${API_BASE_URL}/seller/onboarding/status`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: 'include',
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.steps) && data.steps.length > 0) {
+          setSteps(data.steps);
+        }
+      })
+      .catch(() => {
+        setSteps([
+          { id: 'submitted', label: 'Application Submitted', sub: 'Received & logged', status: 'done' },
+          { id: 'review', label: 'Under Review', sub: 'Our compliance team is verifying details', status: 'current' },
+          { id: 'kyc', label: 'Identity Verification', sub: 'Document review & fraud screening', status: 'pending' },
+          { id: 'active', label: 'Account Activated', sub: 'Full dashboard access — start selling!', status: 'pending' },
+        ]);
+      });
+  }, []);
 
   const actions = [
     { icon: BookOpen,    title: 'Seller Guidelines',  desc: 'Understand policies, listing rules, and marketplace best practices.', href: '/seller/guidelines', linkLabel: 'Read guidelines',    color: BLUE   },
@@ -516,15 +547,20 @@ export default function SellerPending() {
 
                 {/* Steps */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  {steps.map((step, idx) => (
+                  {(steps.length > 0 ? steps : [
+                    { id: 'submitted', label: 'Application Submitted', sub: 'Loading…', status: 'done' as const },
+                    { id: 'review', label: 'Under Review', sub: 'Loading…', status: 'current' as const },
+                    { id: 'kyc', label: 'Identity Verification', sub: 'Loading…', status: 'pending' as const },
+                    { id: 'active', label: 'Account Activated', sub: 'Loading…', status: 'pending' as const },
+                  ]).map((step, idx, arr) => (
                     <TimelineStep
-                      key={step.label}
-                      icon={step.icon}
+                      key={step.id}
+                      icon={STEP_ICONS[step.id] || Clock}
                       label={step.label}
                       sub={step.sub}
                       status={step.status}
                       delay={0.1 + idx * 0.1}
-                      isLast={idx === steps.length - 1}
+                      isLast={idx === arr.length - 1}
                     />
                   ))}
                 </div>

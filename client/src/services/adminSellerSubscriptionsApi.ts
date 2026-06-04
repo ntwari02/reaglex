@@ -188,4 +188,77 @@ export const adminSellerSubscriptionsApi = {
     );
     return json<{ message: string; simulated?: boolean }>(res);
   },
+
+  async listPlanCatalog() {
+    const res = await fetch(`${API_BASE_URL}/admin/seller-subscriptions/plans/catalog`, {
+      headers: authHeaders(),
+      credentials: 'include',
+    });
+    return json<{ plans: Array<Record<string, unknown>> }>(res);
+  },
+
+  async createPlan(body: Record<string, unknown>) {
+    const res = await fetch(`${API_BASE_URL}/admin/seller-subscriptions/plans`, {
+      method: 'POST',
+      headers: authHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    return json<{ message: string; plan: Record<string, unknown> }>(res);
+  },
+
+  async updatePlan(tierId: string, body: Record<string, unknown>) {
+    const res = await fetch(`${API_BASE_URL}/admin/seller-subscriptions/plans/${encodeURIComponent(tierId)}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    return json<{ message: string; plan: Record<string, unknown> }>(res);
+  },
+
+  async deletePlan(tierId: string, hard = false) {
+    const res = await fetch(
+      `${API_BASE_URL}/admin/seller-subscriptions/plans/${encodeURIComponent(tierId)}?hard=${hard}`,
+      {
+        method: 'DELETE',
+        headers: authHeaders(),
+        credentials: 'include',
+      },
+    );
+    return json<{ message: string }>(res);
+  },
+
+  async listPaymentLogs(params: { page?: number; limit?: number; status?: string; search?: string }) {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set('page', String(params.page));
+    if (params.limit) qs.set('limit', String(params.limit));
+    if (params.status) qs.set('status', params.status);
+    if (params.search) qs.set('search', params.search);
+    const res = await fetch(`${API_BASE_URL}/admin/seller-subscriptions/payment-logs?${qs}`, {
+      headers: authHeaders(),
+      credentials: 'include',
+    });
+    return json<{
+      items: Array<{
+        id: string;
+        sellerUserId: string;
+        sellerEmail: string;
+        sellerName: string;
+        storeName: string;
+        type: string;
+        amount: number;
+        currency: string;
+        status: string;
+        planName: string;
+        transactionId: string | null;
+        invoiceNumber: string | null;
+        occurredAt: string;
+      }>;
+      total: number;
+      page: number;
+      limit: number;
+      summary: { totalAmount: number; paidCount: number; failedCount: number };
+    }>(res);
+  },
 };

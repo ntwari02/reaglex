@@ -1,0 +1,232 @@
+/* AliExpress-inspired PDP blocks — color rail + review gallery */
+
+.pd2-ali-block {
+  margin-bottom: 14px;
+}
+
+.pd2-ali-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pd2-ali-block__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pd2-ali-block__title span {
+  font-weight: 600;
+  color: var(--brand-primary);
+}
+
+.pd2-ali-block__link {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.pd2-color-rail {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.pd2-color-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.pd2-color-chip {
+  flex: 0 0 auto;
+  width: 72px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  scroll-snap-align: start;
+  touch-action: manipulation;
+}
+
+.pd2-color-chip__img {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--border-card);
+  background: var(--bg-tertiary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pd2-color-chip[data-active='true'] .pd2-color-chip__img {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 1px var(--brand-primary);
+}
+
+.pd2-color-chip__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pd2-color-chip__badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.pd2-color-chip__label {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.2;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd2-color-chip[data-active='true'] .pd2-color-chip__label {
+  color: var(--text-primary);
+}
+
+.pd2-review-gallery-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.pd2-review-gallery-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Desktop/laptop only — mobile keeps horizontal scroll rails */
+@media (min-width: 1024px) {
+  .pd2-color-rail,
+  .pd2-review-gallery-rail {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+}
+
+.pd2-review-gallery-item {
+  flex: 0 0 auto;
+  width: 108px;
+  height: 144px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  scroll-snap-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pd2-review-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pd2-variant-price-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pd2-variant-price-hint strong {
+  color: var(--brand-primary);
+  font-weight: 800;
+}
+
+.pd2-ali-commerce-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.pd2-gallery-strip__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.pd2-gallery-strip__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pd2-gallery-strip__title span {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.pd2-gallery-strip__count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.pd2-ali-commitments__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pd2-ali-commitments__list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.pd2-ali-commitments__list li svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--brand-primary);
+}

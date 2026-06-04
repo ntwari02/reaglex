@@ -4,6 +4,16 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { SellerSubscription } from '../models/SellerSubscription';
 import { User } from '../models/User';
 import { getPlanByTierId, getPlansFromDB, IPlan } from '../models/SubscriptionPlan';
+import {
+  createPlan,
+  deletePlan,
+  getAllPlansForAdmin,
+  planFeaturesFromPlan,
+  planMarketingBullets,
+  updatePlan,
+  type PlanUpsertInput,
+} from '../services/subscriptionPlan.service';
+import { deliverSellerNotification } from '../services/sellerNotificationService';
 import { calculateRenewalDate } from '../utils/subscriptionTransformers';
 import { createSystemInboxAndFanout } from '../services/systemInboxFanout';
 
@@ -36,22 +46,13 @@ async function notifySellerAndAdmins(opts: {
   }
 }
 
-function planFeaturesFromPlan(plan: IPlan) {
-  return {
-    product_limit: plan.limits.products.is_unlimited ? 'unlimited' : plan.limits.products.display,
-    product_limit_numeric: plan.limits.products.limit,
-    storage_limit: plan.limits.storage.limit_display,
-    storage_limit_bytes: plan.limits.storage.limit_bytes,
-    analytics_enabled: plan.limits.analytics.enabled,
-    priority_support: plan.limits.support_level !== 'email',
-    custom_branding: plan.limits.custom_branding,
-    api_access: plan.limits.api_calls_per_month > 0,
-    fast_payment_processing: true,
-    white_label: plan.limits.white_label,
-    advanced_api: plan.limits.api_calls_per_month > 10000,
-    custom_integrations: false,
-    dedicated_support: plan.limits.support_level === 'dedicated_24_7',
-  };
+function planMarketingBulletsLocal(p: IPlan): string[] {
+  return planMarketingBullets(p);
+}
+
+// legacy alias kept for minimal diff in this file
+function planFeaturesFromPlanLocal(plan: IPlan) {
+  return planFeaturesFromPlan(plan);
 }
 
 function pushAudit(
@@ -77,24 +78,6 @@ function pushAudit(
   sub.markModified('audit_logs');
 }
 
-function planMarketingBullets(p: IPlan): string[] {
-  const out: string[] = [];
-  if (p.limits?.products?.is_unlimited) out.push('Unlimited products');
-  else if (p.limits?.products?.display) out.push(`Up to ${p.limits.products.display} products`);
-  if (p.limits?.analytics?.enabled) out.push('Advanced analytics');
-  const sup = p.limits?.support_level || '';
-  if (sup && sup !== 'email') out.push('Priority support');
-  out.push('Fast payment processing');
-  if (p.limits?.custom_branding) out.push('Custom branding');
-  if ((p.limits?.api_calls_per_month ?? 0) > 0) out.push('API access');
-  if (p.features?.length) {
-    for (const f of p.features.slice(0, 6)) {
-      if (!out.includes(f)) out.push(f);
-    }
-  }
-  return out.slice(0, 8);
-}
-
 export async function adminListSubscriptionPlans(req: AuthenticatedRequest, res: Response) {
   try {
     const plans = await getPlansFromDB();
@@ -113,7 +96,7 @@ export async function adminListSubscriptionPlans(req: AuthenticatedRequest, res:
         is_visible: p.is_visible,
         is_popular: p.is_popular,
         trial_days: p.trial_days,
-        features: planMarketingBullets(p),
+        features: planMarketingBulletsLocal(p),
         limits: {
           products: p.limits?.products,
           storage: p.limits?.storage,
@@ -300,7 +283,7 @@ export async function adminAssignSellerTier(req: AuthenticatedRequest, res: Resp
     };
     subscription.markModified('current_plan');
 
-    subscription.plan_features = planFeaturesFromPlan(newPlan);
+    subscription.plan_features = planFeaturesFromPlanLocal(newPlan);
     subscription.markModified('plan_features');
 
     subscription.is_active = true;
@@ -316,6 +299,15 @@ export async function adminAssignSellerTier(req: AuthenticatedRequest, res: Resp
     pushAudit(subscription, adminId, 'assign_tier', 'current_plan.tier_id', oldTier, tierId);
 
     await subscription.save();
+    void deliverSellerNotification(
+      'subscription_plan_changed',
+      {
+        sellerId: userId,
+        planName: newPlan.tier_name,
+        previousPlanName: oldTier || undefined,
+      },
+      adminId,
+    );
     await notifySellerAndAdmins({
       sellerUserId: userId,
       adminId,
@@ -617,7 +609,8 @@ export async function adminOverrideSellerLimits(req: AuthenticatedRequest, res: 
 export async function adminApplySellerCoupon(req: AuthenticatedRequest, res: Response) {
   try {
     const { userId } = req.params;
-    const code = String((req.body as { code?: string }).code || '').trim().slice(0, 64);
+    const body = req.body as { code?: string; percentOff?: number; fixedOff?: number };
+    const code = String(body.code || '').trim().slice(0, 64);
     if (!code) return res.status(400).json({ message: 'code is required' });
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid user id' });
@@ -625,12 +618,23 @@ export async function adminApplySellerCoupon(req: AuthenticatedRequest, res: Res
     const subscription = await SellerSubscription.findOne({ user_id: new mongoose.Types.ObjectId(userId) });
     if (!subscription) return res.status(404).json({ message: 'Subscription not found' });
     const adminId = String(req.user!.id);
+    const discountPayload: Record<string, unknown> = {
+      code,
+      applied_by_admin: true,
+      applied_at: new Date(),
+    };
+    if (body.percentOff != null && Number(body.percentOff) > 0) {
+      discountPayload.percent_off = Math.min(100, Number(body.percentOff));
+    }
+    if (body.fixedOff != null && Number(body.fixedOff) > 0) {
+      discountPayload.fixed_off = Number(body.fixedOff);
+    }
     subscription.current_plan = {
       ...subscription.current_plan,
-      discount_applied: { code, applied_by_admin: true, applied_at: new Date() } as any,
+      discount_applied: discountPayload as any,
     };
     subscription.markModified('current_plan');
-    pushAudit(subscription, adminId, 'coupon', 'current_plan.discount_applied', null, code);
+    pushAudit(subscription, adminId, 'coupon', 'current_plan.discount_applied', null, discountPayload);
     subscription.metadata = {
       ...subscription.metadata,
       updated_at: new Date(),
@@ -678,5 +682,171 @@ export async function adminRetrySellerPayment(req: AuthenticatedRequest, res: Re
   } catch (e: any) {
     console.error('adminRetrySellerPayment:', e);
     return res.status(500).json({ message: 'Failed to record retry' });
+  }
+}
+
+export async function adminListAllSubscriptionPlans(req: AuthenticatedRequest, res: Response) {
+  try {
+    const plans = await getAllPlansForAdmin();
+    return res.json({ plans });
+  } catch (e: any) {
+    console.error('adminListAllSubscriptionPlans:', e);
+    return res.status(500).json({ message: 'Failed to load plan catalog' });
+  }
+}
+
+export async function adminCreateSubscriptionPlan(req: AuthenticatedRequest, res: Response) {
+  try {
+    const body = req.body as PlanUpsertInput;
+    if (!body.tier_name?.trim() || !body.name?.trim()) {
+      return res.status(400).json({ message: 'tier_name and name are required' });
+    }
+    const plan = await createPlan(body);
+    return res.status(201).json({ message: 'Plan created', plan });
+  } catch (e: any) {
+    console.error('adminCreateSubscriptionPlan:', e);
+    return res.status(400).json({ message: e.message || 'Failed to create plan' });
+  }
+}
+
+export async function adminUpdateSubscriptionPlan(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { tierId } = req.params;
+    const body = req.body as PlanUpsertInput;
+    const plan = await updatePlan(tierId, body);
+    return res.json({ message: 'Plan updated', plan });
+  } catch (e: any) {
+    console.error('adminUpdateSubscriptionPlan:', e);
+    return res.status(400).json({ message: e.message || 'Failed to update plan' });
+  }
+}
+
+export async function adminDeleteSubscriptionPlan(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { tierId } = req.params;
+    const hard = String(req.query.hard || '') === 'true';
+    await deletePlan(tierId, hard);
+    return res.json({ message: hard ? 'Plan removed' : 'Plan deactivated' });
+  } catch (e: any) {
+    console.error('adminDeleteSubscriptionPlan:', e);
+    return res.status(400).json({ message: e.message || 'Failed to delete plan' });
+  }
+}
+
+export async function adminListSubscriptionPaymentLogs(req: AuthenticatedRequest, res: Response) {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 25));
+    const status = String(req.query.status || '').trim().toLowerCase();
+    const search = String(req.query.search || '').trim().toLowerCase();
+
+    const subs = await SellerSubscription.find({})
+      .select('user_id store_name billing_history financial_events current_plan')
+      .lean();
+
+    const userIds = subs.map((s) => s.user_id).filter(Boolean);
+    const users = await User.find({ _id: { $in: userIds } })
+      .select('email fullName')
+      .lean();
+    const umap = new Map(users.map((u) => [String(u._id), u]));
+
+    type LogRow = {
+      id: string;
+      sellerUserId: string;
+      sellerEmail: string;
+      sellerName: string;
+      storeName: string;
+      type: string;
+      amount: number;
+      currency: string;
+      status: string;
+      planName: string;
+      tierId: string;
+      transactionId: string | null;
+      gatewayRef: string | null;
+      invoiceNumber: string | null;
+      occurredAt: string;
+      source: 'billing_history' | 'financial_event';
+    };
+
+    const rows: LogRow[] = [];
+
+    for (const sub of subs as any[]) {
+      const u = umap.get(String(sub.user_id));
+      const billing = Array.isArray(sub.billing_history) ? sub.billing_history : [];
+      for (const inv of billing) {
+        rows.push({
+          id: `bill_${inv.invoice_id || inv.transaction_id || Math.random()}`,
+          sellerUserId: String(sub.user_id),
+          sellerEmail: u?.email || '',
+          sellerName: u?.fullName || '',
+          storeName: sub.store_name || '',
+          type: 'subscription_charge',
+          amount: Number(inv.subscription_amount ?? inv.amount ?? 0),
+          currency: String(inv.currency || sub.current_plan?.currency || 'USD'),
+          status: String(inv.status || 'unknown'),
+          planName: String(inv.plan_name || sub.current_plan?.tier_name || ''),
+          tierId: String(inv.plan_id || sub.current_plan?.tier_id || ''),
+          transactionId: inv.transaction_id ? String(inv.transaction_id) : null,
+          gatewayRef: inv.gateway_ref ? String(inv.gateway_ref) : null,
+          invoiceNumber: inv.invoice_number ? String(inv.invoice_number) : null,
+          occurredAt: new Date(inv.payment_date || inv.date || inv.created_at || Date.now()).toISOString(),
+          source: 'billing_history',
+        });
+      }
+
+      const events = Array.isArray(sub.financial_events) ? sub.financial_events : [];
+      for (const evt of events) {
+        if (String(evt.type || '').toLowerCase() !== 'subscription') continue;
+        rows.push({
+          id: `evt_${evt.event_id || Math.random()}`,
+          sellerUserId: String(sub.user_id),
+          sellerEmail: u?.email || '',
+          sellerName: u?.fullName || '',
+          storeName: sub.store_name || '',
+          type: String(evt.subtype || 'subscription'),
+          amount: Number(evt.amount ?? 0),
+          currency: String(evt.currency || sub.current_plan?.currency || 'USD'),
+          status: String(evt.status || 'unknown'),
+          planName: String(sub.current_plan?.tier_name || ''),
+          tierId: String(sub.current_plan?.tier_id || ''),
+          transactionId: evt.gateway_ref ? String(evt.gateway_ref) : null,
+          gatewayRef: evt.gateway_ref ? String(evt.gateway_ref) : null,
+          invoiceNumber: null,
+          occurredAt: new Date(evt.processed_at || evt.created_at || Date.now()).toISOString(),
+          source: 'financial_event',
+        });
+      }
+    }
+
+    rows.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+
+    let filtered = rows;
+    if (status) filtered = filtered.filter((r) => r.status.toLowerCase() === status);
+    if (search) {
+      filtered = filtered.filter(
+        (r) =>
+          r.sellerEmail.toLowerCase().includes(search) ||
+          r.sellerName.toLowerCase().includes(search) ||
+          r.storeName.toLowerCase().includes(search) ||
+          (r.transactionId || '').toLowerCase().includes(search) ||
+          (r.invoiceNumber || '').toLowerCase().includes(search) ||
+          r.planName.toLowerCase().includes(search),
+      );
+    }
+
+    const total = filtered.length;
+    const items = filtered.slice((page - 1) * limit, page * limit);
+
+    const summary = {
+      totalAmount: filtered.filter((r) => r.status === 'paid').reduce((s, r) => s + r.amount, 0),
+      paidCount: filtered.filter((r) => r.status === 'paid').length,
+      failedCount: filtered.filter((r) => r.status === 'failed').length,
+    };
+
+    return res.json({ items, total, page, limit, summary });
+  } catch (e: any) {
+    console.error('adminListSubscriptionPaymentLogs:', e);
+    return res.status(500).json({ message: 'Failed to load payment logs' });
   }
 }

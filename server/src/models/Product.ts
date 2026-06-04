@@ -2,12 +2,16 @@ import mongoose, { Schema, Document, HydratedDocument } from 'mongoose';
 
 export type InventoryStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 export type PublicationStatus = 'published' | 'pending_verification' | 'draft';
+export type ListingMode = 'live' | 'upcoming';
 
 export interface ProductVariant {
   color?: string;
   size?: string;
   sku: string;
   stock: number;
+  /** Canonical USD unit price when this variant differs from base product.price. */
+  priceUsd?: number;
+  compareAtPriceUsd?: number;
   /** Optional commerce-facing metadata (PDP swatches/thumbnails/badges). */
   label?: string;
   thumbnailUrl?: string;
@@ -53,6 +57,10 @@ export interface IProduct extends Document {
   status: InventoryStatus;
   /** Buyer storefront visibility — pending_verification when seller KYC is incomplete. */
   publicationStatus?: PublicationStatus;
+  /** `upcoming` = visible in drops / notify list; not purchasable until launchAt. */
+  listingMode?: ListingMode;
+  /** When listingMode is upcoming — product goes live at this time. */
+  launchAt?: Date;
   location?: string;
   images?: string[];
   /** Optional product hero video. */
@@ -146,6 +154,13 @@ const productSchema = new Schema<IProduct>(
       default: 'published',
       index: true,
     },
+    listingMode: {
+      type: String,
+      enum: ['live', 'upcoming'],
+      default: 'live',
+      index: true,
+    },
+    launchAt: { type: Date, index: true, sparse: true },
     location: { type: String, trim: true },
     images: [{ type: String, trim: true }],
     videoUrl: { type: String, trim: true },
@@ -156,6 +171,8 @@ const productSchema = new Schema<IProduct>(
         size: { type: String, trim: true },
         sku: { type: String, required: true, trim: true },
         stock: { type: Number, required: true, default: 0 },
+        priceUsd: { type: Number, min: 0 },
+        compareAtPriceUsd: { type: Number, min: 0 },
         label: { type: String, trim: true },
         thumbnailUrl: { type: String, trim: true },
         swatchHex: { type: String, trim: true },

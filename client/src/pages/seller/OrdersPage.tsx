@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
 import { API_BASE_URL } from '@/lib/config';
+import { useToastStore } from '@/stores/toastStore';
 
 const SELLER_ORDERS_API = `${API_BASE_URL}/seller/orders`;
 
@@ -48,6 +49,7 @@ interface Order {
 }
 
 const OrdersPage: React.FC = () => {
+  const showToast = useToastStore((s) => s.showToast);
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -337,13 +339,36 @@ const OrdersPage: React.FC = () => {
 
   const selectedOrders = orders.filter((order) => selectedOrderIds.includes(order.id));
 
-  const handleConfirmBulkShipping = () => {
+  const handleConfirmBulkShipping = async () => {
     if (!selectedOrders.length) return;
-    // This is a frontend-only stub for carrier API integration.
-    // Here you would call your shipping provider (UPS/FedEx/DHL, etc.)
-    // and sync tracking numbers back into your system.
-    console.log('Generate labels via carrier:', bulkCarrier, 'for orders:', selectedOrders);
-    setShowBulkShippingModal(false);
+    const token = localStorage.getItem('auth_token');
+    try {
+      const response = await fetch(`${SELLER_ORDERS_API}/bulk-process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          orderIds: selectedOrders.map((o) => o.id),
+          action: 'print_labels',
+          carrier: bulkCarrier,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.message || 'Failed to process bulk shipping');
+      }
+      showToast(
+        `Label batch queued for ${data?.processed ?? selectedOrders.length} order(s). Add tracking per order when ready.`,
+        'success',
+      );
+      setShowBulkShippingModal(false);
+      await fetchOrders();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Bulk shipping failed', 'error');
+    }
   };
 
   return (
@@ -802,8 +827,7 @@ const OrdersPage: React.FC = () => {
             </div>
             <div className="space-y-2">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                This demo uses a frontend-only stub. In production, this is where you'd call your
-                carrier API to create labels and sync tracking numbers back to each order.
+                Marks selected orders for label printing ({bulkCarrier.toUpperCase()}). Enter tracking on each order after labels are created.
               </p>
             </div>
             <div className="flex justify-end gap-3 pt-2">

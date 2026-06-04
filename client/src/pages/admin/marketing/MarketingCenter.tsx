@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useAdminHubTab } from '@/hooks/useAdminHubTab';
 import {
   LayoutDashboard,
+  LayoutGrid,
   Megaphone,
   Ticket,
   Users,
@@ -14,6 +16,7 @@ import {
   Settings,
   Image,
   TrendingUp,
+  MailCheck,
 } from 'lucide-react';
 import MarketingDashboard from './MarketingDashboard';
 import CampaignManagement from './CampaignManagement';
@@ -30,6 +33,10 @@ import AffiliateProgramManagement from './AffiliateProgramManagement';
 import MarketingAnalyticsSuite from './MarketingAnalyticsSuite';
 import AIMarketingTools from './AIMarketingTools';
 import MarketingSettings from './MarketingSettings';
+import MarketingEmailAutomation from './MarketingEmailAutomation';
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader';
+import { AdminHubTabs } from '@/components/admin/layout/AdminHubTabs';
+import { adminMobileClasses } from '@/components/admin/layout/adminMobileClasses';
 
 type TabId =
   | 'dashboard'
@@ -37,6 +44,7 @@ type TabId =
   | 'coupons'
   | 'segmentation'
   | 'messaging'
+  | 'email-automation'
   | 'abandoned-cart'
   | 'promotions'
   | 'ads'
@@ -48,8 +56,27 @@ type TabId =
   | 'ai-tools'
   | 'settings';
 
+const MARKETING_TABS = [
+  'dashboard',
+  'campaigns',
+  'coupons',
+  'segmentation',
+  'messaging',
+  'email-automation',
+  'abandoned-cart',
+  'promotions',
+  'ads',
+  'creatives',
+  'hero-carousel',
+  'referral',
+  'affiliate',
+  'analytics',
+  'ai-tools',
+  'settings',
+] as const;
+
 export default function MarketingCenter() {
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const { activeTab, setActiveTab } = useAdminHubTab<TabId>('marketing', 'dashboard', MARKETING_TABS);
 
   const tabs = [
     { id: 'dashboard' as TabId, label: 'Dashboard', icon: LayoutDashboard },
@@ -57,6 +84,7 @@ export default function MarketingCenter() {
     { id: 'coupons' as TabId, label: 'Coupons', icon: Ticket },
     { id: 'segmentation' as TabId, label: 'Segmentation', icon: Users },
     { id: 'messaging' as TabId, label: 'Messaging', icon: MessageSquare },
+    { id: 'email-automation' as TabId, label: 'Email automation', icon: MailCheck },
     { id: 'abandoned-cart' as TabId, label: 'Abandoned Cart', icon: ShoppingCart },
     { id: 'promotions' as TabId, label: 'Promotions', icon: Star },
     { id: 'ads' as TabId, label: 'Ads & Social', icon: Share2 },
@@ -81,6 +109,8 @@ export default function MarketingCenter() {
         return <CustomerSegmentation />;
       case 'messaging':
         return <MarketingMessagingTools />;
+      case 'email-automation':
+        return <MarketingEmailAutomation />;
       case 'abandoned-cart':
         return <AbandonedCartRecovery />;
       case 'promotions':
@@ -107,42 +137,15 @@ export default function MarketingCenter() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Marketing Center</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Manage campaigns, promotions, customer engagement, and marketing analytics
-        </p>
-      </div>
+    <div className={adminMobileClasses.pageShell}>
+      <AdminPageHeader
+        title="Marketing Center"
+        description="Manage campaigns, promotions, customer engagement, and marketing analytics"
+      />
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-800 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700">
-        <div className="flex gap-1 min-w-max">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <AdminHubTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Tab Content */}
-      <div className="min-h-[calc(100vh-200px)] overflow-x-hidden scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:dark:bg-gray-700">
-        {renderTabContent()}
-      </div>
+      <div className={adminMobileClasses.hubTabContent}>{renderTabContent()}</div>
     </div>
   );
 }

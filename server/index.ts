@@ -30,6 +30,7 @@ import analyticsRoutes from './src/routes/analyticsRoutes';
 import productRoutes from './src/routes/productRoutes';
 import buyerOrderRoutes from './src/routes/buyerOrderRoutes';
 import buyerCartRoutes from './src/routes/buyerCartRoutes';
+import couponRoutes from './src/routes/couponRoutes';
 import shippingRoutes from './src/routes/shippingRoutes';
 import inboxRoutes from './src/routes/inboxRoutes';
 import buyerInboxRoutes from './src/routes/buyerInboxRoutes';
@@ -40,6 +41,7 @@ import blogRoutes from './src/routes/blogRoutes';
 import affiliateRoutes from './src/routes/affiliateRoutes';
 import trackingRoutes from './src/routes/trackingRoutes';
 import adminRoutes from './src/routes/adminRoutes';
+import adminStaffRoutes from './src/routes/adminStaffRoutes';
 import adminFinanceRoutes from './src/routes/adminFinanceRoutes';
 import adminSupportRoutes from './src/routes/adminSupportRoutes';
 import adminLogisticsRoutes from './src/routes/adminLogisticsRoutes';
@@ -51,7 +53,10 @@ import adminProductsRoutes from './src/routes/adminProductsRoutes';
 import adminOrdersRoutes from './src/routes/adminOrdersRoutes';
 import adminComplianceRoutes from './src/routes/adminComplianceRoutes';
 import adminReturnsRoutes from './src/routes/adminReturnsRoutes';
+import adminSystemFeaturesRoutes from './src/routes/adminSystemFeaturesRoutes';
+import systemFeaturesPublicRoutes from './src/routes/systemFeaturesPublicRoutes';
 import adminSellerSubscriptionRoutes from './src/routes/adminSellerSubscriptionRoutes';
+import adminIntelligenceSearchRoutes from './src/routes/adminIntelligenceSearchRoutes';
 import publicContentRoutes from './src/routes/publicContentRoutes';
 import adminSiteContentRoutes from './src/routes/adminSiteContentRoutes';
 import { startScheduledNotificationWorker } from './src/jobs/scheduledNotificationWorker';
@@ -65,6 +70,7 @@ import assistantRoutes from './src/routes/assistantRoutes';
 import aiChatRoutes from './src/routes/aiChatRoutes';
 import aiAgentRoutes from './src/routes/aiAgentRoutes';
 import buyerNotificationRoutes from './src/routes/buyerNotificationRoutes';
+import buyerReferralRoutes from './src/routes/buyerReferralRoutes';
 import { sanitizeInput } from './src/middleware/sanitizeInput';
 import './src/jobs/escrowJobs';
 import './src/jobs/subscriptionRenewalJob';
@@ -88,17 +94,51 @@ import { startBuyerInsightWorker } from './src/jobs/buyerInsightWorker';
 import { startLifecycleEmailWorker } from './src/jobs/lifecycleEmailWorker';
 import { startCartPulseEmailWorker } from './src/jobs/cartPulseEmailWorker';
 import { startBrowseAbandonEmailWorker } from './src/jobs/browseAbandonEmailWorker';
+import { startOrderFulfillmentGuardWorker } from './src/jobs/orderFulfillmentGuardWorker';
+import { startDeliveryAutoCompleteWorker } from './src/jobs/deliveryAutoCompleteWorker';
+import { startSellerDeliverySLAWorker } from './src/jobs/sellerDeliverySLAWorker';
 import { startComplianceCertificateReminderJob } from './src/jobs/complianceCertificateReminderJob';
 import pushDeviceRoutes from './src/routes/pushDeviceRoutes';
 import warehouseRoutes from './src/routes/warehouseRoutes';
 import pickupRoutes from './src/routes/pickupRoutes';
 import marketplaceInnovationRoutes from './src/routes/marketplaceInnovationRoutes';
+import liveCommerceRoutes from './src/routes/liveCommerceRoutes';
 import { logMicroblinkStartupCheck } from './src/services/microblink.service';
+import { assertJwtSecretForProduction } from './src/config/jwtSecret';
 
 const app = express();
 const httpServer = createServer(app);
 const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || '';
+
+try {
+  assertJwtSecretForProduction();
+} catch (err: unknown) {
+  console.error('❌', err instanceof Error ? err.message : err);
+  process.exit(1);
+}
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  process.exit(1);
+});
+
+async function runStartupStep(label: string, fn: () => void | Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[startup] ${label} failed:`, message);
+    if (err instanceof Error && err.stack) {
+      console.error(err.stack);
+    }
+  }
+}
 
 // Render and other reverse proxies set `X-Forwarded-For`.
 // IMPORTANT: use a hop count (not boolean `true`) to avoid
@@ -146,7 +186,7 @@ app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }), strip
 app.use(express.json());
 app.use(sanitizeInput);
 app.use(cookieParser());
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // System monitor: sample API latency & errors (additive, in-memory).
 app.use((req, res, next) => {
@@ -198,8 +238,18 @@ app.use((req, res, next) => {
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: false,
+    contentSecurityPolicy:
+      process.env.NODE_ENV === 'production'
+        ? {
+            useDefaults: true,
+            directives: {
+              defaultSrc: ["'none'"],
+              frameAncestors: ["'none'"],
+            },
+          }
+        : false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true } : false,
   }),
 );
 app.use(compression({ threshold: 1024 }));
@@ -257,6 +307,7 @@ app.use('/api/seller/inbox', inboxRoutes);
 app.use('/api/buyer/inbox', buyerInboxRoutes);
 // Buyer notification routes
 app.use('/api/buyer/notifications', buyerNotificationRoutes);
+app.use('/api/buyer/referral', buyerReferralRoutes);
 // Buyer dispute routes
 app.use('/api/buyer/disputes', buyerDisputeRoutes);
 app.use('/api/buyer/returns', buyerReturnsRoutes);
@@ -282,9 +333,11 @@ app.use('/api/track', trackingRoutes);
 // Buyer order routes
 app.use('/api/orders', buyerOrderRoutes);
 app.use('/api/buyer/cart', buyerCartRoutes);
+app.use('/api/coupons', couponRoutes);
 // Shipping (quotes)
 app.use('/api/shipping', shippingRoutes);
 // Admin routes
+app.use('/api/admin/staff', adminStaffRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/kyc-queues', adminKycQueueRoutes);
 app.use('/api/admin/finance', adminFinanceRoutes);
@@ -298,7 +351,10 @@ app.use('/api/admin/products', adminProductsRoutes);
 app.use('/api/admin/orders', adminOrdersRoutes);
 app.use('/api/admin/compliance', adminComplianceRoutes);
 app.use('/api/admin/returns', adminReturnsRoutes);
+app.use('/api/admin/system-features', adminSystemFeaturesRoutes);
+app.use('/api/platform', systemFeaturesPublicRoutes);
 app.use('/api/admin/seller-subscriptions', adminSellerSubscriptionRoutes);
+app.use('/api/admin/intelligence', adminIntelligenceSearchRoutes);
 app.use('/api/admin/site', adminSiteContentRoutes);
 // Payments & escrow routes
 app.use('/api/payments', paymentRoutes);
@@ -318,6 +374,7 @@ app.use('/api/push', pushDeviceRoutes);
 app.use('/api/warehouse', warehouseRoutes);
 app.use('/api/pickup', pickupRoutes);
 app.use('/api/marketplace', marketplaceInnovationRoutes);
+app.use('/api/live-commerce', liveCommerceRoutes);
 
 // SEO endpoints (robots + sitemap)
 app.use(seoRoutes);
@@ -368,8 +425,8 @@ const connectDB = async () => {
       connectTimeoutMS: 10000,
       retryWrites: true,
       retryReads: true,
-      maxPoolSize: 20,
-      minPoolSize: 5,
+      maxPoolSize: process.env.NODE_ENV === 'production' ? 10 : 20,
+      minPoolSize: process.env.NODE_ENV === 'production' ? 0 : 5,
       maxIdleTimeMS: 45000,
       heartbeatFrequencyMS: 10000,
     };
@@ -404,36 +461,70 @@ const connectDB = async () => {
     
     console.log('✅ Connected to MongoDB');
 
-    startScheduledNotificationWorker();
-    startRecommendationEmailWorker();
-    startAbandonedCartEmailWorker();
-    startBuyerInsightWorker();
-    startLifecycleEmailWorker();
-    startCartPulseEmailWorker();
-    startBrowseAbandonEmailWorker();
-    startExchangeRateWorker();
-    startComplianceCertificateReminderJob();
-    startMarketplaceAIWorker();
+    await runStartupStep('system monitor config', async () => {
+      const { hydrateMonitorSettingsFromDb } = await import('./src/services/systemMonitor.service');
+      await hydrateMonitorSettingsFromDb();
+    });
 
-    // Initialize WebSocket server
+    await runStartupStep('payment gateways', async () => {
+      const { ensureCorePaymentGateways } = await import('./src/services/paymentGateway.service');
+      await ensureCorePaymentGateways();
+      console.log('✅ Payment gateways registry synced');
+    });
+
+    await runStartupStep('background workers', async () => {
+      startScheduledNotificationWorker();
+      startRecommendationEmailWorker();
+      startAbandonedCartEmailWorker();
+      startBuyerInsightWorker();
+      startLifecycleEmailWorker();
+      startCartPulseEmailWorker();
+      startBrowseAbandonEmailWorker();
+      startOrderFulfillmentGuardWorker();
+      startDeliveryAutoCompleteWorker();
+      startSellerDeliverySLAWorker();
+      startExchangeRateWorker();
+      startComplianceCertificateReminderJob();
+      startMarketplaceAIWorker();
+      console.log('✅ Background workers started');
+    });
+
+    if (process.env.MEILISEARCH_HOST?.trim()) {
+      void import('./src/search/intelligenceIndex.service')
+        .then(({ syncIntelligenceIndex }) =>
+          syncIntelligenceIndex({ perType: 200 })
+            .then((r) => console.log(`✅ Intelligence search index: ${r.indexed} documents`))
+            .catch((e) => console.warn('[intelligence-search] index sync skipped:', e?.message)),
+        )
+        .catch((e) => console.warn('[intelligence-search] module load skipped:', e?.message));
+    }
+
+    void import('./src/queues/intelligenceIndex.queue')
+      .then(({ startIntelligenceIndexWorker }) => startIntelligenceIndexWorker())
+      .catch((e) => console.warn('[intelligence-index] worker skipped:', e?.message));
+
     websocketService.initialize(httpServer);
-    
-    // Start HTTP server (WebSocket is attached to it)
-    httpServer.listen(PORT, () => {
-      console.log(`🚀 Server listening on port ${PORT}`);
-      console.log(`📡 WebSocket server ready`);
+
+    await new Promise<void>((resolve, reject) => {
+      httpServer.once('error', (listenErr: NodeJS.ErrnoException) => {
+        console.error('❌ HTTP server failed to start:', listenErr.message);
+        reject(listenErr);
+      });
+      httpServer.listen(PORT, HOST, () => {
+        console.log(`🚀 Server listening on ${HOST}:${PORT}`);
+        console.log('📡 WebSocket server ready');
+        keepAlive();
+        resolve();
+      });
     });
   } catch (err: any) {
-    console.error('❌ MongoDB connection error:', err.message || err);
+    console.error('❌ Startup failed:', err?.message || err);
+    if (err?.stack) console.error(err.stack);
     process.exit(1);
   }
 };
 
 connectDB();
-
-// Best-effort keepalive pings. Note: Render free tier can still suspend the service;
-// this helps keep it warm while it is running.
-keepAlive();
 
 
 

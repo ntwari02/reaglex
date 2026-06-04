@@ -40,6 +40,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
+import { enrichSellerNotification } from '@/lib/sellerNotificationPresentation';
+import SellerNotificationCard from '@/components/seller/SellerNotificationCard';
+import { useNavigate } from 'react-router-dom';
 import SellerGuidancePanel from '@/components/seller/SellerGuidancePanel';
 import { API_BASE_URL, resolveAssetUrl } from '@/lib/config';
 
@@ -159,6 +162,7 @@ interface SystemNotification {
 const SupportCenter: React.FC = () => {
   const { showToast } = useToastStore();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'tickets' | 'knowledge' | 'disputes' | 'health' | 'notifications' | 'contact'>('knowledge');
   
   // Ticket management state
@@ -202,14 +206,9 @@ const SupportCenter: React.FC = () => {
   // Live chat state
   const [showChatModal, setShowChatModal] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'support'; timestamp: Date }>>([
-    {
-      id: '1',
-      text: 'Hello! 👋 Welcome to REAGLE-X Support. How can I help you today?',
-      sender: 'support',
-      timestamp: new Date(),
-    },
-  ]);
+  const [chatMessages, setChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'support'; timestamp: Date }>>([]);
+  const [chatTicketId, setChatTicketId] = useState<string | null>(null);
+  const [chatSending, setChatSending] = useState(false);
   
   // Filters and search
   const [searchQuery, setSearchQuery] = useState('');
@@ -488,30 +487,93 @@ const SupportCenter: React.FC = () => {
     }
   };
 
-  // Handle chat message sending
-  const handleSendChatMessage = () => {
-    if (!chatMessage.trim()) return;
-    
-    const userMessage = {
-      id: Date.now().toString(),
-      text: chatMessage.trim(),
-      sender: 'user' as const,
-      timestamp: new Date(),
-    };
-    
-    setChatMessages((prev) => [...prev, userMessage]);
+  const mapTicketMessagesToChat = (ticket: SupportTicket) => {
+    const rows = Array.isArray(ticket.messages) ? ticket.messages : [];
+    return rows.map((m, i) => ({
+      id: `${ticket._id}-${i}`,
+      text: m.message,
+      sender: (m.senderRole === 'seller' ? 'user' : 'support') as 'user' | 'support',
+      timestamp: new Date(m.createdAt),
+    }));
+  };
+
+  // Live chat → creates/updates a real support ticket
+  const handleSendChatMessage = async () => {
+    if (!chatMessage.trim() || chatSending) return;
+
+    const text = chatMessage.trim();
     setChatMessage('');
-    
-    // Simulate support response (in real app, this would be a WebSocket or API call)
-    setTimeout(() => {
-      const supportMessage = {
-        id: (Date.now() + 1).toString(),
-        text: 'Thank you for your message. Our support team will respond shortly. In the meantime, you can also create a support ticket for more complex issues.',
-        sender: 'support' as const,
-        timestamp: new Date(),
-      };
-      setChatMessages((prev) => [...prev, supportMessage]);
-    }, 1500);
+    setChatSending(true);
+
+    const token = localStorage.getItem('auth_token');
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+    try {
+      if (!chatTicketId) {
+        const response = await fetch(`${API_BASE}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...headers },
+          credentials: 'include',
+          body: JSON.stringify({
+            subject: 'Live chat',
+            category: 'other',
+            priority: 'medium',
+            description: text,
+            tags: ['live-chat'],
+          }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.message || 'Failed to start chat');
+        }
+        const data = await response.json();
+        const ticket = data.ticket as SupportTicket;
+        setChatTicketId(ticket._id);
+        setChatMessages(mapTicketMessagesToChat(ticket));
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: `ack-${Date.now()}`,
+            text: 'Your message was logged as a support ticket. Our team will reply here and by email.',
+            sender: 'support',
+            timestamp: new Date(),
+          },
+        ]);
+        fetchTickets();
+        fetchStats();
+      } else {
+        const formData = new FormData();
+        formData.append('message', text);
+        const response = await fetch(`${API_BASE}/${chatTicketId}/messages`, {
+          method: 'POST',
+          headers,
+          body: formData,
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.message || 'Failed to send message');
+        }
+        await fetchTicket(chatTicketId);
+        const refreshed = await fetch(`${API_BASE}/${chatTicketId}`, {
+          headers,
+          credentials: 'include',
+        }).then((r) => (r.ok ? r.json() : null));
+        if (refreshed?.ticket) {
+          setChatMessages(mapTicketMessagesToChat(refreshed.ticket));
+        } else {
+          setChatMessages((prev) => [
+            ...prev,
+            { id: Date.now().toString(), text, sender: 'user', timestamp: new Date() },
+          ]);
+        }
+      }
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to send chat message', 'error');
+      setChatMessage(text);
+    } finally {
+      setChatSending(false);
+    }
   };
 
   // Handle file selection
@@ -742,7 +804,9 @@ const SupportCenter: React.FC = () => {
       
       if (!response.ok) throw new Error('Failed to fetch notifications');
       const data = await response.json();
-      setNotifications(data.notifications || []);
+      const rows = Array.isArray(data.notifications) ? data.notifications : [];
+      const uid = user?.id || '';
+      setNotifications(rows.map((n: SystemNotification) => enrichSellerNotification(n, uid)));
     } catch (error: any) {
       console.error('Failed to fetch notifications:', error);
     }
@@ -1274,35 +1338,19 @@ const SupportCenter: React.FC = () => {
                 <p className="text-gray-600 dark:text-gray-400">No notifications</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {notifications.map((notification) => (
-                  <div key={notification._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-900/40">
-                        <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{notification.title}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{notification.message}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span>{formatDate(notification.createdAt)}</span>
-                          {notification.actionRequired && (
-                            <span className="text-gray-600 dark:text-gray-400 font-semibold">Action Required</span>
-                          )}
-                        </div>
-                        {notification.actionUrl && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-2"
-                            onClick={() => window.location.href = notification.actionUrl!}
-                          >
-                            {notification.actionText || 'Take Action'}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              <div className="sln-feed p-2">
+                {notifications.map((notification: any, index: number) => (
+                  <SellerNotificationCard
+                    key={notification.id || notification._id}
+                    notification={notification}
+                    index={index}
+                    onOpen={(id) => {
+                      const row = notifications.find(
+                        (n: any) => n.id === id || n._id === id,
+                      );
+                      if (row?.actionLink) navigate(row.actionLink);
+                    }}
+                  />
                 ))}
               </div>
             )}

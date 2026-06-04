@@ -1,14 +1,19 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, Bell, ShoppingBag } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Menu, Bell, ShoppingCart } from 'lucide-react';
 import { useBuyerCart } from '../../stores/buyerCartStore';
 import { useAuthStore } from '../../stores/authStore';
 import { buyerNotificationsApi } from '../../services/buyerNotificationsApi';
 import NotificationsDropdown from '../NotificationsDropdown';
-import MobileBuyerMenu from './MobileBuyerMenu';
+import AccountMenuButton from '../header/AccountMenuButton';
+import DeliveryLocationBar from '../delivery/DeliveryLocationBar';
 
-export default function MobileBuyerTopBar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+const MOB_ICON = 22;
+const MOB_STROKE = 1.75;
+import '../../styles/delivery-location.css';
+import { useMobileMenuOverlay } from '../../stores/mobileMenuOverlayStore';
+
+export default function MobileBuyerTopBar({ onLogoutClick, openAuth }) {
+  const openMenu = useMobileMenuOverlay((s) => s.open);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const notifRef = useRef(null);
@@ -40,46 +45,33 @@ export default function MobileBuyerTopBar() {
 
   return (
     <>
-      <div className="md:hidden relative flex items-center justify-between gap-2 w-full px-3 min-h-[44px] max-h-[48px] py-1">
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg active:scale-95 transition-transform"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-          aria-label="Open menu"
-        >
-          <Menu size={20} strokeWidth={1.85} style={{ color: 'var(--text-primary)' }} />
-        </button>
-
-        <Link to="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-          <img
-            src="/logo.jpg"
-            alt=""
-            className="h-7 w-7 rounded-full object-cover"
-            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
-          />
-          <span
-            className="text-[15px] font-extrabold tracking-[0.06em]"
-            style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}
+      <div className="md:hidden mob-header-row w-full">
+        <div className="mob-header-row__left">
+          <button
+            type="button"
+            onClick={openMenu}
+            className="mob-header-icon-btn"
+            aria-label="Open menu"
           >
-            REAG<span style={{ color: 'var(--brand-primary)' }}>LEX</span>
-          </span>
-        </Link>
+            <Menu size={MOB_ICON} strokeWidth={MOB_STROKE} aria-hidden />
+          </button>
+        </div>
 
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div className="mob-header-row__center">
+          <DeliveryLocationBar headerCenter />
+        </div>
+
+        <div className="mob-header-row__right">
           <div className="relative" ref={notifRef}>
             <button
               type="button"
-              onClick={() => setNotifOpen(!notifOpen)}
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg active:scale-95 transition-transform"
+              onClick={() => setNotifOpen((v) => !v)}
+              className="mob-header-icon-btn"
               aria-label="Notifications"
             >
-              <Bell size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
+              <Bell size={MOB_ICON} strokeWidth={MOB_STROKE} aria-hidden />
               {notifCount > 0 && (
-                <span
-                  className="absolute top-1 right-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-0.5 text-[9px] font-bold text-white"
-                  style={{ background: 'var(--brand-primary)' }}
-                >
+                <span className="mob-header-badge">
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
@@ -95,24 +87,24 @@ export default function MobileBuyerTopBar() {
             type="button"
             data-cart-target="badge"
             onClick={openCart}
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg active:scale-95 transition-transform"
+            className="mob-header-icon-btn"
             aria-label="Cart"
           >
-            <ShoppingBag size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
+            <ShoppingCart size={MOB_ICON} strokeWidth={MOB_STROKE} aria-hidden />
             {cartCount > 0 && (
-              <span
-                data-cart-target="badge"
-                className="absolute top-1 right-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-0.5 text-[9px] font-bold text-white"
-                style={{ background: 'var(--brand-primary)' }}
-              >
+              <span data-cart-target="badge" className="mob-header-badge">
                 {cartCount > 9 ? '9+' : cartCount}
               </span>
             )}
           </button>
+
+          <AccountMenuButton
+            variant="mobile"
+            onLogoutClick={onLogoutClick}
+            openAuth={openAuth}
+          />
         </div>
       </div>
-
-      <MobileBuyerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </>
   );
 }

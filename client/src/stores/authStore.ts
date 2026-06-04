@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type { Profile } from '../types';
 import { useToastStore } from './toastStore';
 import { authAPI } from '../lib/api';
+import { endSellerLiveOnLogout } from '../services/liveSessionCleanup';
+import { clearAuthSession } from '../lib/clearAuthSession';
+import { isValidRole } from '../lib/authRouting';
 
 let lastSessionReplacedToastAt = 0;
 
@@ -12,6 +15,7 @@ function mapBackendUserToProfile(data: any): Profile {
     email_verified: data.emailVerified ?? true,
     full_name: data.fullName,
     role: data.role,
+    adminAccess: data.adminAccess,
     seller_status: data.sellerVerificationStatus,
     seller_verified: data.isSellerVerified,
     kyc_verified: data.kycVerified ?? false,
@@ -47,16 +51,25 @@ export const useAuthStore = create<AuthState>((set) => ({
   loading: true,
   initialized: false,
 
-  setUser: (user) => set({ user, loading: false }),
+  setUser: (user) => set({ user, loading: false, initialized: true }),
 
   setUserAndToken: (user, token) => {
+    if (!isValidRole(user.role)) {
+      void clearAuthSession();
+      set({ user: null, loading: false, initialized: true });
+      return;
+    }
     localStorage.setItem('auth_token', token);
     localStorage.setItem('user', JSON.stringify(user));
-    // Ensure route guards consider the user ready immediately.
     set({ user, loading: false, initialized: true });
   },
 
   signOut: async (reason) => {
+    try {
+      await endSellerLiveOnLogout();
+    } catch {
+      /* best-effort */
+    }
     if (reason === 'SESSION_REPLACED') {
       const now = Date.now();
       if (now - lastSessionReplacedToastAt > 3000) {
@@ -66,17 +79,14 @@ export const useAuthStore = create<AuthState>((set) => ({
         lastSessionReplacedToastAt = now;
       }
     }
-    localStorage.removeItem('demo_user');
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth_token');
-    set({ user: null });
+    await clearAuthSession();
+    set({ user: null, loading: false, initialized: true });
   },
 
   login: async (email: string, password: string) => {
     try {
       const data = await authAPI.login(email, password);
 
-      // Seller/Admin with 2FA required: no token yet, caller must handle 2FA step
       if ('requires2FA' in data && data.requires2FA) {
         return {
           success: false,
@@ -98,9 +108,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if ('token' in data && data.token && 'user' in data && data.user) {
         const userProfile = mapBackendUserToProfile(data.user);
+        if (!isValidRole(userProfile.role)) {
+          await clearAuthSession();
+          return { success: false, error: 'Invalid account role. Please contact support.' };
+        }
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('user', JSON.stringify(userProfile));
-        set({ user: userProfile, loading: false });
+        set({ user: userProfile, loading: false, initialized: true });
         return { success: true };
       }
       return { success: false, error: 'Invalid response from server.' };
@@ -115,9 +129,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         };
       }
       if (error.message?.includes('deactivated')) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('auth_token');
-        set({ user: null });
+        await clearAuthSession();
+        set({ user: null, loading: false, initialized: true });
       }
       return { success: false, error: error.message || 'Network error. Please try again.' };
     }
@@ -134,20 +147,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.setItem('auth_token', result.token);
       }
       if (result.user) {
-        const userProfile: Profile = {
-          id: result.user.id?.toString() || result.user._id?.toString() || '',
-          email: result.user.email,
-          full_name: result.user.fullName,
-          role: result.user.role,
-          seller_status: result.user.sellerVerificationStatus,
-          seller_verified: result.user.isSellerVerified,
-          phone: result.user.phone,
-          avatar_url: result.user.avatarUrl,
-          created_at: result.user.createdAt || new Date().toISOString(),
-          updated_at: result.user.updatedAt || new Date().toISOString(),
-        };
+        const userProfile = mapBackendUserToProfile(result.user);
+        if (!isValidRole(userProfile.role)) {
+          await clearAuthSession();
+          return { success: false, error: 'Invalid account role.' };
+        }
         localStorage.setItem('user', JSON.stringify(userProfile));
-        set({ user: userProfile, loading: false });
+        set({ user: userProfile, loading: false, initialized: true });
       }
       return { success: true };
     } catch (error: any) {
@@ -157,7 +163,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   demoLogin: (email: string, name?: string) => {
-    // Create a mock user profile for demo purposes
     const demoUser: Profile = {
       id: 'demo-user-' + Date.now(),
       email: email,
@@ -168,124 +173,93 @@ export const useAuthStore = create<AuthState>((set) => ({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    
-    // Save to localStorage for persistence
+
     localStorage.setItem('demo_user', JSON.stringify(demoUser));
-    set({ user: demoUser, loading: false });
+    set({ user: demoUser, loading: false, initialized: true });
   },
 
   initialize: async () => {
     const initToken = localStorage.getItem('auth_token');
     const isStale = () => localStorage.getItem('auth_token') !== initToken;
 
+    set({ loading: true });
+
     try {
-      // Check for stored user from MongoDB backend
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
+      const token = initToken;
+      if (token) {
         try {
-          const user = JSON.parse(userStr);
-          const token = localStorage.getItem('auth_token');
-          
-          // Verify token is still valid by calling /me endpoint
-          if (token) {
-            try {
-              const data = await authAPI.getCurrentUser();
-              
-              // Map backend user to Profile format (MongoDB uses _id)
-              const userProfile: Profile = {
-                id: data.user._id?.toString() || data.user.id?.toString() || '',
-                email: data.user.email,
-                email_verified: data.user.emailVerified ?? true,
-                full_name: data.user.fullName,
-                role: data.user.role,
-                seller_status: data.user.sellerVerificationStatus,
-                seller_verified: data.user.isSellerVerified,
-                phone: data.user.phone,
-                avatar_url: data.user.avatarUrl,
-                created_at: data.user.createdAt || new Date().toISOString(),
-                updated_at: data.user.updatedAt || new Date().toISOString(),
-              };
-              // Update localStorage with fresh data
-              // If another flow updated the token while we were fetching, don't overwrite.
-              if (isStale()) {
-                set({ loading: false, initialized: true });
-                return;
-              }
-              localStorage.setItem('user', JSON.stringify(userProfile));
-              set({ user: userProfile, loading: false, initialized: true });
-              return;
-            } catch (e: any) {
-              // Token invalid, auth error, or account deactivated - clear storage
-              if (isStale()) {
-                set({ loading: false, initialized: true });
-                return;
-              }
-              if (
-                e?.status === 401 ||
-                e?.status === 403 ||
-                e?.code === 'SESSION_REPLACED' ||
-                e.message?.includes('401') ||
-                e.message?.includes('Authentication') ||
-                e.message?.includes('403') ||
-                e.message?.includes('deactivated') ||
-                e.message?.includes('session was replaced')
-              ) {
-                await useAuthStore.getState().signOut(e?.code === 'SESSION_REPLACED' ? 'SESSION_REPLACED' : undefined);
-                set({ user: null, loading: false, initialized: true });
-              } else {
-                // Network error, use stored user
-                set({ user, loading: false, initialized: true });
-              }
-              return;
-            }
-          } else {
-            if (isStale()) {
-              set({ loading: false, initialized: true });
-              return;
-            }
-            set({ user, loading: false, initialized: true });
-            return;
-          }
-        } catch (e) {
+          const data = await authAPI.getCurrentUser();
           if (isStale()) {
             set({ loading: false, initialized: true });
             return;
           }
-          localStorage.removeItem('user');
-          localStorage.removeItem('auth_token');
+
+          const userProfile = mapBackendUserToProfile(data.user);
+          if (!isValidRole(userProfile.role)) {
+            await clearAuthSession();
+            set({ user: null, loading: false, initialized: true });
+            return;
+          }
+
+          localStorage.setItem('user', JSON.stringify(userProfile));
+          set({ user: userProfile, loading: false, initialized: true });
+          return;
+        } catch (e: any) {
+          if (isStale()) {
+            set({ loading: false, initialized: true });
+            return;
+          }
+          const isAuthFailure =
+            e?.status === 401 ||
+            e?.status === 403 ||
+            e?.code === 'SESSION_REPLACED' ||
+            e.message?.includes('401') ||
+            e.message?.includes('Authentication') ||
+            e.message?.includes('403') ||
+            e.message?.includes('deactivated') ||
+            e.message?.includes('session was replaced');
+
+          if (isAuthFailure) {
+            await useAuthStore
+              .getState()
+              .signOut(e?.code === 'SESSION_REPLACED' ? 'SESSION_REPLACED' : undefined);
+            return;
+          }
+
+          // Never trust stale localStorage role on network/server errors.
+          await clearAuthSession();
+          set({ user: null, loading: false, initialized: true });
+          return;
         }
       }
 
-      // Check for demo user (fallback)
       const demoUserStr = localStorage.getItem('demo_user');
       if (demoUserStr) {
         try {
-          const demoUser = JSON.parse(demoUserStr);
+          const demoUser = JSON.parse(demoUserStr) as Profile;
           if (isStale()) {
             set({ loading: false, initialized: true });
             return;
           }
           set({ user: demoUser, loading: false, initialized: true });
           return;
-        } catch (e) {
+        } catch {
           localStorage.removeItem('demo_user');
         }
       }
 
-      // No user found, set to null
       if (isStale()) {
-        // Token/user changed since initialize started; don't wipe the verified user.
         set({ loading: false, initialized: true });
         return;
       }
       set({ user: null, loading: false, initialized: true });
     } catch (error) {
-      // If token changed while we were initializing, avoid overriding the latest auth state.
       if (isStale()) {
         set({ loading: false, initialized: true });
         return;
       }
       console.error('Error initializing auth:', error);
+      await clearAuthSession();
       set({ user: null, loading: false, initialized: true });
     }
   },

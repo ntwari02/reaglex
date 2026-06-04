@@ -208,7 +208,7 @@ export default function MobileAssistantSheet({ open, onClose }: MobileAssistantS
                       Get personalized help, deals, or suggestions
                     </span>
                   </span>
-                  <ChevronRight size={18} style={{ color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
+                  <ChevronRight size={18} className="ai-sheet-hero-chevron" />
                 </button>
 
                 <div className="ai-quick-grid">
@@ -278,7 +278,7 @@ export default function MobileAssistantSheet({ open, onClose }: MobileAssistantS
                   iconStyle={{ background: 'rgba(59, 130, 246, 0.18)', color: '#60a5fa' }}
                   title="Categories"
                   subtitle="Browse all categories"
-                  onClick={() => go(() => navigate('/products'))}
+                  onClick={() => go(() => navigate('/category/all'))}
                 />
                 <ActionRow
                   icon={Zap}
