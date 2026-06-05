@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
-  Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, Sun, Moon,
+  Eye, EyeOff, User, Mail, Lock, Check, ArrowRight, Sun, Moon, ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { useTheme } from '../contexts/ThemeContext';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
+import AuthFusionTabs from '../components/auth/AuthFusionTabs';
 import {
   AuthInput,
   ErrorBanner,
@@ -167,11 +168,11 @@ function LoginFormContent({
       <motion.form
       onSubmit={handleSubmit}
       {...motionProps}
-      className={`auth-mobile-form flex flex-col gap-3 sm:gap-5 ${shake && !reduceMotion ? 'auth-shake-anim' : ''}`}
+      className={`agf-form${shake && !reduceMotion ? ' agf-form--shake' : ''}`}
     >
-      <div className="auth-mobile-panel-heading mb-0 sm:mb-1">
-        <h2 className="auth-mobile-title text-xl sm:text-[26px] font-bold sm:font-black mb-0.5 sm:mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>Welcome back</h2>
-        <p className="auth-mobile-subtitle text-sm sm:text-[15px]" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
+      <div>
+        <h2 className="agf-heading">Welcome back 👋</h2>
+        <p className="agf-subheading">Sign in to your Reaglex account</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -216,42 +217,38 @@ function LoginFormContent({
           onBlur={() => setFocused(null)}
           rightEl={
             <button type="button" onClick={() => setShowPw(!showPw)}
-              className="p-1 rounded-lg transition-colors hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }} aria-label={showPw ? 'Hide password' : 'Show password'}>
+              className="agf-icon-btn" aria-label={showPw ? 'Hide password' : 'Show password'}>
               {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           }
           required
         />
-        <div className="flex items-center justify-end">
-          <Link to="/auth?tab=forgot" className="text-[12px] font-semibold hover:underline" style={{ color: PRIMARY }}>
-            Forgot password?
-          </Link>
-        </div>
       </div>
 
-      {/* Remember me */}
-      <label className="flex items-center gap-3 cursor-pointer select-none">
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={remember}
-          aria-label="Remember me on this device"
-          onClick={() => setRemember(!remember)}
-          onKeyDown={(e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-              e.preventDefault();
-              setRemember((r) => !r);
-            }
-          }}
-          className="auth-remember-toggle w-11 h-6 rounded-full transition-all flex-shrink-0 relative"
-          style={{ background: remember ? PRIMARY : 'var(--bg-tertiary)', boxShadow: `0 0 0 1.5px ${remember ? 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' : 'var(--divider)'}` }}
-        >
-          <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform"
-            style={{ transform: remember ? 'translateX(20px)' : 'translateX(0)' }} />
-        </button>
-        <span className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Remember me</span>
-      </label>
+      <div className="agf-row">
+        <label className="agf-remember">
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={remember}
+            aria-label="Remember me on this device"
+            onClick={() => setRemember(!remember)}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setRemember((r) => !r);
+              }
+            }}
+            className="agf-remember__toggle"
+          >
+            <span className="agf-remember__knob" />
+          </button>
+          Remember me
+        </label>
+        <Link to="/auth?tab=forgot" className="agf-link">
+          Forgot password?
+        </Link>
+      </div>
 
       <PrimaryBtn loading={loading} success={success}>
         {success ? <><Check size={17} /> Signed In</> : <>Sign In <ArrowRight size={16} /></>}
@@ -259,19 +256,21 @@ function LoginFormContent({
 
       <OrDivider />
 
-      <GoogleBtn
-        onClick={() => {
-          onOAuthBegin?.();
-          setError('');
-          setFieldErrors({});
-          sessionStorage.setItem('auth_oauth_role', role);
-          window.location.href = `${API_BASE}/auth/google?role=${role}`;
-        }}
-      />
+      <div className="agf-social-row">
+        <GoogleBtn
+          onClick={() => {
+            onOAuthBegin?.();
+            setError('');
+            setFieldErrors({});
+            sessionStorage.setItem('auth_oauth_role', role);
+            window.location.href = `${API_BASE}/auth/google?role=${role}`;
+          }}
+        />
+      </div>
 
-      <p className="text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-center text-[13px]" style={{ color: 'var(--agf-text-muted)' }}>
         No account?{' '}
-        <Link to="/auth?tab=signup" className="font-bold hover:underline" style={{ color: PRIMARY }}>
+        <Link to="/auth?tab=signup" className="agf-link">
           Create one free →
         </Link>
       </p>
@@ -442,17 +441,17 @@ function SignupFormContent({
     <motion.form
       onSubmit={handleSubmit}
       {...motionProps}
-      className={`auth-mobile-form flex flex-col gap-3 sm:gap-4 ${shake && !reduceMotion ? 'auth-shake-anim' : ''}`}
+      className={`agf-form${shake && !reduceMotion ? ' agf-form--shake' : ''}`}
     >
-      <div className="auth-mobile-panel-heading mb-0 sm:mb-1">
-        <h2 className="auth-mobile-title text-xl sm:text-[26px] font-bold sm:font-black mb-0.5 sm:mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>Create account</h2>
-        <p className="auth-mobile-subtitle text-sm sm:text-[15px]" style={{ color: 'var(--text-muted)' }}>Join buyers and sellers on Reaglex</p>
+      <div>
+        <h2 className="agf-heading">Create your account</h2>
+        <p className="agf-subheading">Join buyers and sellers on Reaglex</p>
       </div>
 
       <ErrorBanner message={error} />
 
       {/* Name + Email */}
-      <div className="auth-mobile-field-grid grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="agf-field-grid grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <AuthInput label="Full Name" name="name" autoComplete="name" value={fd.fullName} onChange={f('fullName')} placeholder="Your full name"
           error={fieldErrors['Full Name']}
           leftIcon={User} valid={fd.fullName.trim().length >= 2 && !fieldErrors['Full Name']}
@@ -472,7 +471,7 @@ function SignupFormContent({
           focused={focused === 'pw'} onFocus={() => setFocused('pw')} onBlur={() => setFocused(null)}
           rightEl={
             <button type="button" onClick={() => setShowPw(!showPw)}
-              className="p-1 rounded-lg hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)' }}
+              className="agf-icon-btn"
               aria-label={showPw ? 'Hide password' : 'Show password'}>
               {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -480,8 +479,8 @@ function SignupFormContent({
           required />
         {/* Strength bar */}
         {fd.password.length > 0 && (
-          <div className="flex items-center gap-2" aria-live="polite" aria-atomic="true">
-            <div className="flex gap-0.5 flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+          <div className="agf-pw-strength flex items-center gap-2" aria-live="polite" aria-atomic="true">
+            <div className="agf-pw-strength__bar flex gap-0.5 flex-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
               {[0,1,2,3].map((i) => (
                 <div key={i} className="flex-1 transition-all duration-300" style={{
                   background: [ERROR, 'var(--brand-primary)', 'var(--notif-type-review)', SUCCESS][i],
@@ -489,27 +488,26 @@ function SignupFormContent({
                 }} />
               ))}
             </div>
-            <span className="text-[11px] font-semibold w-14 text-right"
+            <span className="agf-pw-strength__label font-semibold text-right"
               style={{ color: strength.level <= 1 ? ERROR : strength.level === 2 ? 'var(--notif-type-review)' : SUCCESS }}>
               {strength.label}
             </span>
           </div>
         )}
-        {/* Password requirements */}
         {fd.password.length > 0 && (
-          <div className="grid grid-cols-2 gap-1">
+          <div className="agf-pw-reqs grid grid-cols-2">
             {[
               { ok: reqs.length,  label: '8+ chars'    },
               { ok: reqs.upper,   label: 'Uppercase'   },
               { ok: reqs.number,  label: 'Number'      },
               { ok: reqs.special, label: 'Special char'},
             ].map((r) => (
-              <div key={r.label} className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+              <div key={r.label} className={`agf-pw-req flex items-center${r.ok ? ' is-met' : ''}`}>
+                <span className="agf-pw-req__dot rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ background: r.ok ? 'var(--badge-success-bg)' : 'var(--bg-secondary)' }}>
                   {r.ok && <Check size={9} style={{ color: SUCCESS }} />}
                 </span>
-                <span className="text-[11px]" style={{ color: r.ok ? SUCCESS : 'var(--text-faint)' }}>{r.label}</span>
+                <span style={{ color: r.ok ? SUCCESS : undefined }}>{r.label}</span>
               </div>
             ))}
           </div>
@@ -525,7 +523,7 @@ function SignupFormContent({
         rightEl={
           pwMatch !== true
             ? <button type="button" onClick={() => setShowCPw(!showCPw)}
-                className="p-1 rounded-lg hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                className="agf-icon-btn" aria-label={showCPw ? 'Hide password' : 'Show password'}>
                 {showCPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             : undefined
@@ -534,11 +532,11 @@ function SignupFormContent({
 
       {/* Role selector */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }} id="auth-role-label">
+        <p className="agf-field__label mb-2" id="auth-role-label">
           Account type
         </p>
         <div
-          className="auth-role-segment"
+          className="agf-role-segment"
           role="group"
           aria-labelledby="auth-role-label"
           onKeyDown={(e) => {
@@ -552,7 +550,7 @@ function SignupFormContent({
               key={r}
               type="button"
               onClick={() => selectRole(r)}
-              className={`auth-role-segment__btn${role === r ? ' is-active' : ''}`}
+              className={`agf-role-segment__btn${role === r ? ' is-active' : ''}`}
               aria-pressed={role === r}
             >
               {r === 'buyer' ? 'Buyer' : 'Seller'}
@@ -581,7 +579,7 @@ function SignupFormContent({
       )}
 
       {/* Terms */}
-      <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer select-none">
+      <div className="agf-checkbox-row">
         <button
           type="button"
           role="checkbox"
@@ -594,36 +592,38 @@ function SignupFormContent({
               setAgreed((a) => !a);
             }
           }}
-          className="w-5 h-5 rounded-lg flex-shrink-0 mt-0.5 flex items-center justify-center transition-all"
-          style={{ background: agreed ? PRIMARY : 'var(--bg-secondary)', boxShadow: `0 0 0 1.5px ${agreed ? PRIMARY : 'var(--border-card)'}` }}>
-          {agreed && <Check size={12} className="text-white" />}
+          className="agf-checkbox"
+        >
+          {agreed && <Check size={11} className="text-white" aria-hidden />}
         </button>
-        <span className="text-[13px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        <span className="agf-checkbox__text">
           I agree to the{' '}
-          <a href="/terms" className="font-semibold hover:underline" style={{ color: PRIMARY }}>Terms of Service</a>
+          <a href="/terms">Terms of Service</a>
           {' '}&amp;{' '}
-          <a href="/privacy" className="font-semibold hover:underline" style={{ color: PRIMARY }}>Privacy Policy</a>
+          <a href="/privacy">Privacy Policy</a>
         </span>
-      </label>
+      </div>
 
       <PrimaryBtn disabled={!canSubmit} loading={loading}>
         {loading ? 'Creating account…' : 'Create Account →'}
       </PrimaryBtn>
 
       <OrDivider />
-      <GoogleBtn
-        onClick={() => {
-          onOAuthBegin?.();
-          setError('');
-          setFieldErrors({});
-          sessionStorage.setItem('auth_oauth_role', role);
-          window.location.href = `${API_BASE}/auth/google?role=${role}`;
-        }}
-      />
+      <div className="agf-social-row">
+        <GoogleBtn
+          onClick={() => {
+            onOAuthBegin?.();
+            setError('');
+            setFieldErrors({});
+            sessionStorage.setItem('auth_oauth_role', role);
+            window.location.href = `${API_BASE}/auth/google?role=${role}`;
+          }}
+        />
+      </div>
 
-      <p className="text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-center text-[13px]" style={{ color: 'var(--agf-text-muted)' }}>
         Already have an account?{' '}
-        <Link to="/auth?tab=login" className="font-bold hover:underline" style={{ color: PRIMARY }}>Sign In</Link>
+        <Link to="/auth?tab=login" className="agf-link">Sign In</Link>
       </p>
     </motion.form>
   );
@@ -680,14 +680,14 @@ function ForgotFormContent({
     <motion.form
       onSubmit={handleSubmit}
       {...motionProps}
-      className="flex flex-col gap-5"
+      className="agf-form"
     >
       <div>
-        <Link to="/auth?tab=login" className="text-[12px] font-semibold hover:underline flex items-center gap-1 mb-4 w-fit" style={{ color: PRIMARY }}>
+        <Link to="/auth?tab=login" className="agf-link flex items-center gap-1 mb-4 w-fit">
           ← Back to Sign In
         </Link>
-        <h2 className="text-[26px] font-black mb-1" style={{ color: 'var(--text-primary)', lineHeight: 1.1 }}>Reset Password</h2>
-        <p className="text-[15px]" style={{ color: 'var(--text-muted)' }}>Enter your email and we'll send a 6-digit reset code.</p>
+        <h2 className="agf-heading">Reset password</h2>
+        <p className="agf-subheading">Enter your email and we&apos;ll send a 6-digit reset code.</p>
       </div>
       <ErrorBanner message={error} />
       <AuthInput
@@ -719,31 +719,17 @@ function ForgotFormContent({
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN AUTH PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
-const CARD_SHADOW_LIGHT = '0 32px 64px -12px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)';
-const CARD_SHADOW_DARK  = '0 32px 64px -12px rgba(0,0,0,0.55), 0 8px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)';
-
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
-  const reduceMotion = useReducedMotion();
   return (
-    <motion.button
-      type="button" onClick={toggleTheme}
-      whileHover={!reduceMotion ? { scale: 1.05 } : {}}
-      whileTap={!reduceMotion ? { scale: 0.95 } : {}}
-      className="auth-theme-toggle w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200"
-      style={{
-        background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
-        color: 'var(--text-primary)',
-        boxShadow: isDark
-          ? '0 0 0 1.5px rgba(255,255,255,0.14), 0 8px 20px rgba(0,0,0,0.28)'
-          : '0 0 0 1.5px rgba(15,23,42,0.1), 0 8px 20px rgba(15,23,42,0.08)',
-        backdropFilter: 'blur(8px)',
-      }}
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="agf-theme-btn"
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-    </motion.button>
+      {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
   );
 }
 
@@ -751,8 +737,6 @@ export default function AuthPage() {
   const navigate            = useNavigate();
   const [searchParams]      = useSearchParams();
   const { setUserAndToken, user, initialized, loading } = useAuthStore();
-  const { theme }           = useTheme();
-  const isDark              = theme === 'dark';
   const reduceMotion        = useReducedMotion();
   const [formEpoch, setFormEpoch] = useState(0);
 
@@ -1105,142 +1089,28 @@ export default function AuthPage() {
     resetRefs.current[Math.min(5, digits.length-1)]?.focus();
   };
 
-  const cardBg     = 'var(--card-bg)';
-  const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
-
-  /* ── RENDER ── */
-  const fadeIn = reduceMotion
-    ? { initial: false as const, animate: false as const, transition: { duration: 0 } }
-    : { initial: { opacity: 0, y: 28 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] as const } };
   const panelSlide = reduceMotion
     ? { initial: false as const, animate: false as const, exit: false as const, transition: { duration: 0 } }
-    : { initial: { opacity: 0, x: 12 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -12 }, transition: { duration: 0.22 } };
+    : { initial: { opacity: 0, x: 16 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -12 }, transition: { duration: 0.28 } };
+  const cardFade = reduceMotion
+    ? { initial: false as const, animate: false as const }
+    : { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45 } };
+
+  const showTabs = panel === 'auth' && validTab !== 'forgot';
+  const showCardFooter = panel === 'auth' || panel === 'otp' || panel === 'reset';
 
   return (
     <AuthPremiumLayout>
-      {/*
-        Mobile: card fills the right panel edge-to-edge with small margins.
-        Desktop (sm+): card is centred with max-width, floated in the panel.
-      */}
-      <div className="flex flex-col flex-1 min-h-0 w-full">
+      <div className="auth-fusion__toolbar">
+        <ThemeToggle />
+      </div>
 
-        {/* Card area */}
-        <div className="auth-mobile-card-wrap flex-1 flex flex-col items-stretch sm:items-center justify-start sm:justify-center min-h-0 w-full
-                        px-3 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10">
-          <motion.div
-            {...fadeIn}
-            className="auth-mobile-card w-full sm:max-w-[520px] relative overflow-hidden rounded-2xl sm:rounded-2xl flex-shrink-0"
-            style={{
-              background: cardBg,
-              boxShadow: cardShadow,
-              /* Futuristic accent border — top gradient line */
-              borderTop: `2px solid transparent`,
-              backgroundClip: 'padding-box',
-            }}
-          >
-            {/* Top accent line (gradient overlay) */}
-            <div className="auth-mobile-card-accent absolute top-0 left-0 right-0 pointer-events-none z-20" />
+      <motion.div className="auth-fusion__card" {...cardFade}>
+        {showTabs && <AuthFusionTabs activeTab={validTab} />}
 
-            <div
-              className="auth-card-deco-glow-tr absolute top-0 right-0 w-72 h-72"
-              style={{
-                background: 'radial-gradient(circle at top right, color-mix(in srgb, var(--brand-primary) 9%, transparent) 0%, transparent 60%)',
-              }}
-            />
-            <div
-              className="auth-card-deco-glow-bl absolute bottom-0 left-0 w-56 h-56"
-              style={{
-                background: 'radial-gradient(circle at bottom left, var(--navbar-violet-glow-soft) 0%, transparent 60%)',
-              }}
-            />
-            <div
-              className="auth-card-deco-dots absolute inset-0"
-              style={{
-                backgroundImage: `radial-gradient(circle, ${isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.018)'} 1px, transparent 1px)`,
-                backgroundSize: '22px 22px',
-              }}
-            />
-
-            {/* Padding wrapper */}
-            <div className="auth-mobile-card-inner relative z-10 p-4 sm:p-8">
-
-              <div className="auth-mobile-chrome flex items-center gap-1.5 mb-4 sm:mb-6 max-sm:hidden">
-                <span className="w-3 h-3 rounded-full" style={{ background: '#ff5f57' }} />
-                <span className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
-                <span className="w-3 h-3 rounded-full" style={{ background: '#28c840' }} />
-                <span className="text-[10px] font-bold tracking-[0.12em] uppercase ml-3"
-                  style={{ color: 'var(--text-faint)' }}>REAGLEX · SECURE</span>
-                <div className="ml-auto"><ThemeToggle /></div>
-              </div>
-
-              <div className="auth-mobile-theme-row flex items-center justify-end mb-3 sm:hidden">
-                <ThemeToggle />
-              </div>
-
-              <AnimatePresence mode="wait">
-
-                {/* ── AUTH (login/signup/forgot) panel ── */}
+        <AnimatePresence mode="wait">
                 {panel === 'auth' && (
                   <motion.div key="auth" {...panelSlide}>
-                    <div
-                      role="tablist"
-                      aria-label="Sign in or register"
-                      className="auth-mobile-tab-bar flex items-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl mb-4 sm:mb-7 relative"
-                      data-active-tab={validTab === 'signup' ? 'signup' : 'login'}
-                      style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
-                    >
-                      <Link
-                        role="tab"
-                        aria-selected={validTab === 'login' || validTab === 'forgot'}
-                        to="/auth?tab=login"
-                        className="auth-mobile-tab-link relative z-10 flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[13px] sm:text-[14px] font-bold transition-colors"
-                        style={{ color: (validTab === 'login' || validTab === 'forgot') ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                      >
-                        Sign In
-                      </Link>
-                      <Link
-                        role="tab"
-                        aria-selected={validTab === 'signup'}
-                        to="/auth?tab=signup"
-                        className="auth-mobile-tab-link relative z-10 flex-1 text-center py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[13px] sm:text-[14px] font-bold transition-colors"
-                        style={{ color: validTab === 'signup' ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                      >
-                        Register
-                      </Link>
-                      {!reduceMotion && (
-                        <motion.span
-                          layoutId="auth-v2-pill"
-                          className="auth-mobile-tab-pill absolute rounded-xl pointer-events-none"
-                          style={{
-                            background: 'var(--card-bg)',
-                            boxShadow: (validTab === 'login' || validTab === 'forgot')
-                              ? `var(--shadow-cta), 0 0 0 1px color-mix(in srgb, var(--brand-primary) 18%, transparent)`
-                              : `0 2px 12px var(--navbar-violet-glow-soft), 0 0 0 1px var(--navbar-violet-mix)`,
-                            top: 4,
-                            bottom: 4,
-                            width: 'calc(50% - 4px)',
-                          }}
-                          animate={{
-                            left: validTab === 'signup' ? 'calc(50%)' : 4,
-                          }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                        />
-                      )}
-                      {reduceMotion && (
-                        <span
-                          className="auth-mobile-tab-pill absolute rounded-xl pointer-events-none"
-                          aria-hidden
-                          style={{
-                            background: 'var(--card-bg)',
-                            top: 4,
-                            bottom: 4,
-                            width: 'calc(50% - 4px)',
-                            left: validTab === 'signup' ? 'calc(50%)' : 4,
-                          }}
-                        />
-                      )}
-                    </div>
-
                     <AnimatePresence mode="wait">
                       {validTab === 'forgot' && (
                         <motion.div
@@ -1293,27 +1163,19 @@ export default function AuthPage() {
 
                 {/* ── OTP PANEL ── */}
                 {panel === 'otp' && (
-                  <motion.div key="otp" {...panelSlide} className="flex flex-col items-center text-center">
-                    {/* Icon orb */}
-                    <div className="auth-otp-icon-wrap">
-                      <div className="auth-otp-icon-box mx-auto">
-                        <Mail size={32} style={{ color: PRIMARY }} aria-hidden />
-                      </div>
-                      {!reduceMotion && (
-                        <motion.div className="absolute inset-0 rounded-2xl pointer-events-none"
-                          animate={{ boxShadow: ['0 0 0 0 color-mix(in srgb, var(--brand-primary) 30%, transparent)', '0 0 0 10px transparent', '0 0 0 0 transparent'] }}
-                          transition={{ duration: 2, repeat: Infinity }} />
-                      )}
+                  <motion.div key="otp" {...panelSlide} className="agf-otp-wrap">
+                    <div className="agf-otp-icon">
+                      <Mail size={28} aria-hidden />
                     </div>
 
-                    <h2 className="auth-mobile-otp-title text-xl sm:text-[26px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Verify Email</h2>
-                    <p className="auth-mobile-subtitle text-sm sm:text-[14px] mb-4 sm:mb-6" style={{ color: 'var(--text-muted)', maxWidth: 320, margin: '0 auto' }}>
+                    <h2 className="agf-heading">Verify email</h2>
+                    <p className="agf-subheading agf-subheading--center">
                       We sent a 6-digit code to{' '}
-                      <span className="font-bold" style={{ color: PRIMARY }}>{otpEmail}</span>.
+                      <strong style={{ color: 'var(--agf-brand)' }}>{otpEmail}</strong>.
                       Check your inbox and spam folder.
                     </p>
 
-                    <div className="w-full max-w-[380px] mx-auto">
+                    <div className="agf-center-narrow">
                       <OtpInputs
                         digits={otpDigits}
                         inputRefs={otpRefs}
@@ -1326,22 +1188,22 @@ export default function AuthPage() {
                       />
 
                       {!otpError && (
-                        <p className="text-[12px] text-center mt-2" style={{ color: 'var(--text-muted)' }}>{expiryText}</p>
+                        <p className="agf-otp-meta text-center">{expiryText}</p>
                       )}
 
-                      <div className="text-center my-5">
+                      <div className="text-center my-4 sm:my-5">
                         {resendN >= 3 ? (
-                          <p className="text-[13px]" style={{ color: 'var(--badge-error-text)' }}>Too many attempts. Try again in 30 min.</p>
+                          <p className="agf-meta" style={{ color: 'var(--badge-error-text)' }}>Too many attempts. Try again in 30 min.</p>
                         ) : resendCd > 0 ? (
-                          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resendCd)}</p>
+                          <p className="agf-meta">Resend in {formatCountdown(resendCd)}</p>
                         ) : (
                           <button type="button" disabled={!canResend || sending}
                             onClick={async () => {
                               if (resendN >= 2) { setResendN(3); setResendLock(Date.now() + 30*60*1000); return; }
                               await sendOtp(otpEmail, 'resend');
                             }}
-                            className="text-[14px] font-bold hover:underline"
-                            style={{ color: PRIMARY, opacity: !canResend || sending ? 0.55 : 1 }}>
+                            className="agf-link"
+                            style={{ opacity: !canResend || sending ? 0.55 : 1 }}>
                             {sending ? 'Sending…' : 'Resend Code'}
                           </button>
                         )}
@@ -1360,28 +1222,25 @@ export default function AuthPage() {
                           setFormEpoch((e) => e + 1);
                           navigate('/auth?tab=login');
                         }}
-                        className="mt-5 text-[13px] font-bold hover:underline block mx-auto" style={{ color: PRIMARY }}>
+                        className="agf-link block mx-auto mt-5">
                         ← Back to Sign In
                       </button>
                     </div>
                   </motion.div>
                 )}
 
-                {/* ── RESET PANEL ── */}
                 {panel === 'reset' && (
-                  <motion.div key="reset" {...panelSlide} className="flex flex-col items-center text-center">
-                    <div className="auth-otp-icon-wrap">
-                      <div className="auth-otp-icon-box mx-auto">
-                        <Lock size={32} style={{ color: PRIMARY }} aria-hidden />
-                      </div>
+                  <motion.div key="reset" {...panelSlide} className="agf-otp-wrap">
+                    <div className="agf-otp-icon">
+                      <Lock size={28} aria-hidden />
                     </div>
-                    <h2 className="auth-mobile-otp-title text-xl sm:text-[26px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
-                    <p className="auth-mobile-subtitle text-sm sm:text-[14px] mb-4 sm:mb-6" style={{ color: 'var(--text-muted)', maxWidth: 320, margin: '0 auto' }}>
+                    <h2 className="agf-heading">Reset password</h2>
+                    <p className="agf-subheading agf-subheading--center">
                       Enter the 6-digit code sent to{' '}
-                      <span className="font-bold" style={{ color: PRIMARY }}>{resetEmail}</span>, then set a new password.
+                      <strong style={{ color: 'var(--agf-brand)' }}>{resetEmail}</strong>, then set a new password.
                     </p>
 
-                    <div className="w-full max-w-[400px] mx-auto">
+                    <div className="agf-center-narrow">
                       <OtpInputs
                         digits={resetDigits}
                         inputRefs={resetRefs}
@@ -1393,19 +1252,19 @@ export default function AuthPage() {
                         onPaste={handleResetPaste}
                       />
 
-                      <div className="text-center mt-3 mb-6">
+                      <div className="text-center mt-3 mb-5 sm:mb-6">
                         {resetResendN >= 3 ? (
-                          <p className="text-[13px]" style={{ color: 'var(--badge-error-text)' }}>Too many attempts.</p>
+                          <p className="agf-meta" style={{ color: 'var(--badge-error-text)' }}>Too many attempts.</p>
                         ) : resetResendCd > 0 ? (
-                          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Resend in {formatCountdown(resetResendCd)}</p>
+                          <p className="agf-meta">Resend in {formatCountdown(resetResendCd)}</p>
                         ) : (
                           <button type="button" disabled={!canResendReset}
                             onClick={async () => {
                               if (resetResendN >= 2) { setResetResendN(3); setResetResendLock(Date.now() + 30*60*1000); return; }
                               await sendResetOtp(resetEmail, 'resend');
                             }}
-                            className="text-[14px] font-bold hover:underline"
-                            style={{ color: PRIMARY, opacity: !canResendReset ? 0.55 : 1 }}>
+                            className="agf-link"
+                            style={{ opacity: !canResendReset ? 0.55 : 1 }}>
                             Resend Code
                           </button>
                         )}
@@ -1458,39 +1317,27 @@ export default function AuthPage() {
                           setFormEpoch((e) => e + 1);
                           navigate('/auth?tab=login');
                         }}
-                        className="mt-5 text-[13px] font-bold hover:underline block mx-auto" style={{ color: PRIMARY }}>
+                        className="agf-link block mx-auto mt-5">
                         ← Back to Sign In
                       </button>
                     </div>
                   </motion.div>
                 )}
 
-                {/* ── SUCCESS PANEL ── */}
                 {panel === 'success' && (
                   <motion.div
                     key="success"
-                    initial={reduceMotion ? false : { opacity: 0, scale: 0.94 }}
+                    initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
                     animate={reduceMotion ? false : { opacity: 1, scale: 1 }}
                     exit={reduceMotion ? false : { opacity: 0 }}
                     transition={{ duration: reduceMotion ? 0 : 0.3 }}
-                    className="flex flex-col items-center text-center py-4"
+                    className="agf-otp-wrap py-2"
                   >
-                    <div className="relative mb-6">
-                      <div className="auth-success-orb mx-auto">
-                        <svg width="44" height="34" viewBox="0 0 52 38" fill="none" aria-hidden>
-                          <path d="M6 20.5L20 34L46 6" stroke={SUCCESS} strokeWidth="6"
-                            strokeLinecap="round" strokeLinejoin="round"
-                            style={{ strokeDasharray: 80, strokeDashoffset: 80, animation: 'auth-check 650ms ease-out forwards' }} />
-                        </svg>
-                      </div>
-                      {!reduceMotion && (
-                        <motion.div className="absolute inset-0 rounded-full pointer-events-none"
-                          animate={{ boxShadow: ['0 0 0 0 rgba(16,185,129,0.3)', '0 0 0 14px rgba(16,185,129,0)', '0 0 0 0 rgba(16,185,129,0)'] }}
-                          transition={{ duration: 2, repeat: Infinity }} />
-                      )}
+                    <div className="agf-otp-icon mx-auto mb-4">
+                      <Check size={32} style={{ color: 'var(--badge-success-text)' }} aria-hidden />
                     </div>
-                    <h2 className="auth-mobile-otp-title text-xl sm:text-[28px] font-bold sm:font-black mb-2" style={{ color: 'var(--text-primary)' }}>Email Verified!</h2>
-                    <p className="auth-mobile-subtitle text-sm sm:text-[15px] mb-5 sm:mb-7" style={{ color: 'var(--text-muted)' }}>
+                    <h2 className="agf-heading">Email verified!</h2>
+                    <p className="agf-subheading mb-6">
                       Your account is ready. Welcome to Reaglex.
                     </p>
                     <PrimaryBtn type="button" onClick={() => {
@@ -1502,22 +1349,22 @@ export default function AuthPage() {
                   </motion.div>
                 )}
 
-              </AnimatePresence>
+        </AnimatePresence>
 
-              {/* Footer inside card — hide on signup (terms already in form) */}
-              {validTab !== 'signup' && (
-              <p className="auth-mobile-footer-legal mt-4 sm:mt-6 text-[11px] sm:text-[12px] text-center leading-relaxed"
-                style={{ color: 'var(--text-faint)' }}>
-                By continuing you agree to our{' '}
-                <a href="/terms" className="hover:underline font-semibold" style={{ color: PRIMARY }}>Terms of Service</a>
-                {' '}and{' '}
-                <a href="/privacy" className="hover:underline font-semibold" style={{ color: PRIMARY }}>Privacy Policy</a>.
-              </p>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      </div>
+        {showCardFooter && (
+          <div className="agf-card-footer">
+            <ShieldCheck size={14} aria-hidden />
+            Secure · Reliable · Built for the future
+          </div>
+        )}
+
+        {panel === 'auth' && validTab !== 'signup' && (
+          <p className="agf-legal">
+            By continuing you agree to our{' '}
+            <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
+          </p>
+        )}
+      </motion.div>
     </AuthPremiumLayout>
   );
 }

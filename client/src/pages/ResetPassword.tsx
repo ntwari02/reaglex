@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useTheme } from '../contexts/ThemeContext';
-import { Lock, Check, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Lock, Check, Eye, EyeOff } from 'lucide-react';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
+import AuthFusionCard from '../components/auth/AuthFusionCard';
+import { AuthInput, ErrorBanner, PrimaryBtn } from '../components/auth/AuthFormControls';
 
 import { API_BASE_URL } from '../lib/config';
-const PRIMARY = 'var(--brand-primary)';
+
 const SUCCESS = 'var(--badge-success-text)';
 
 function checkPasswordReqs(pw: string) {
@@ -23,12 +23,6 @@ export function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tokenFromUrl = searchParams.get('token');
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const cardBg = 'var(--card-bg)';
-  const cardShadow = isDark
-    ? '0 0 0 1px rgba(255,255,255,0.06), 0 24px 48px -12px rgba(0,0,0,0.5)'
-    : '0 0 0 1px rgba(0,0,0,0.04), 0 24px 48px -12px rgba(0,0,0,0.12)';
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -80,7 +74,7 @@ export function ResetPassword() {
       }
 
       setSuccess(true);
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate('/auth?tab=login'), 2000);
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -88,245 +82,148 @@ export function ResetPassword() {
     }
   };
 
+  const reqItems = [
+    { ok: reqs.length, label: 'At least 8 characters' },
+    { ok: reqs.upper, label: 'One uppercase letter' },
+    { ok: reqs.lower, label: 'One lowercase letter' },
+    { ok: reqs.number, label: 'One number' },
+    { ok: reqs.special, label: 'One special character' },
+  ];
+
   return (
     <AuthPremiumLayout>
-      <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
-        <div className="flex-shrink-0 flex justify-end items-center mb-2">
-          <ThemeToggle />
-        </div>
+      <AuthFusionCard>
+        <Link to="/auth?tab=login" className="agf-link inline-flex mb-3">
+          ← Back to Sign In
+        </Link>
 
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-auto">
-          <motion.div
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="auth-mobile-app-card w-full max-w-[520px] rounded-[24px] p-5 sm:p-6 flex flex-col overflow-hidden"
-            style={{ background: cardBg, boxShadow: cardShadow }}
-          >
-            <div className="auth-mobile-app-glow auth-mobile-app-glow--orange" />
-            <div className="auth-mobile-app-glow auth-mobile-app-glow--violet" />
-            <div className="relative z-10 flex items-center justify-between mb-3 px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="w-2 h-2 rounded-full bg-rose-400" />
-              </div>
-              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-faint)' }}>
-                Reaglex Secure
-              </p>
+        {success ? (
+          <div className="text-center py-2">
+            <div className="agf-otp-icon mx-auto">
+              <Check size={28} style={{ color: SUCCESS }} aria-hidden />
             </div>
-            <div className="relative z-10">
-            <Link to="/auth?tab=login" className="text-[12px] font-medium hover:underline mb-4 block" style={{ color: PRIMARY }}>
-              ← Back to Sign In
-            </Link>
-
-            <h2 className="text-[22px] font-extrabold mb-0.5" style={{ color: 'var(--text-primary)' }}>
-              Set New Password
+            <h2 className="agf-heading" style={{ color: SUCCESS }}>
+              Password reset successful!
             </h2>
-            <p className="text-[13px] mb-5" style={{ color: 'var(--text-muted)' }}>
+            <p className="agf-subheading agf-subheading--center">Redirecting to sign in…</p>
+          </div>
+        ) : (
+          <>
+            <h2 className="agf-heading">Set New Password</h2>
+            <p className="agf-subheading">
               Use the link from your reset email to set a new password. If your link expired, request a new one.
             </p>
 
             {!tokenFromUrl?.trim() && (
-              <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-200 text-sm">
-                This page is only valid when opened from the link in your reset email. If your link expired or you arrived here by mistake,{' '}
-                <Link to="/forgot-password" className="font-semibold underline hover:no-underline">request a new reset link</Link>.
+              <div
+                className="agf-error-banner mb-4"
+                style={{
+                  background: 'var(--badge-warning-bg, rgba(245, 158, 11, 0.12))',
+                  borderColor: 'var(--badge-warning-border, rgba(245, 158, 11, 0.35))',
+                  color: 'var(--badge-warning-text, #b45309)',
+                }}
+              >
+                This page is only valid when opened from the link in your reset email.{' '}
+                <Link to="/forgot-password" className="agf-link font-semibold">
+                  Request a new reset link
+                </Link>
               </div>
             )}
 
-            {success ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-4">
-                <div className="text-2xl mb-2">✓</div>
-                <p className="font-bold text-lg mb-1" style={{ color: SUCCESS }}>Password reset successful!</p>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Redirecting to sign in...</p>
-              </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                {error && (
-                  <div className="text-sm p-3 rounded-[12px]" style={{ background: 'var(--badge-error-bg)', color: 'var(--badge-error-text)' }}>
-                    {error}
-                  </div>
-                )}
+            <form onSubmit={handleSubmit} className="agf-form">
+              <ErrorBanner message={error} />
 
-                <PremiumStyleInput
-                  label="New Password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={setPassword}
-                  placeholder="Create a strong password"
-                  leftIcon={Lock}
-                  focused={focused === 'password'}
-                  onFocus={() => setFocused('password')}
-                  onBlur={() => setFocused(null)}
-                  valid={isPasswordValid}
-                  rightEl={
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="p-1 rounded hover:opacity-80"
-                      style={{ color: 'var(--text-muted)' }}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  }
-                />
+              <AuthInput
+                label="New Password"
+                name="new-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={password}
+                onChange={setPassword}
+                placeholder="Create a strong password"
+                leftIcon={Lock}
+                focused={focused === 'password'}
+                onFocus={() => setFocused('password')}
+                onBlur={() => setFocused(null)}
+                valid={isPasswordValid}
+                rightEl={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="agf-icon-btn"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+                required
+              />
 
-                <div className="rounded-[12px] p-3 space-y-2" style={{ background: 'var(--bg-tertiary)' }}>
-                  <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-                    Password requirements
-                  </p>
-                  <ReqItem valid={reqs.length} text="At least 8 characters" />
-                  <ReqItem valid={reqs.upper} text="One uppercase letter" />
-                  <ReqItem valid={reqs.lower} text="One lowercase letter" />
-                  <ReqItem valid={reqs.number} text="One number" />
-                  <ReqItem valid={reqs.special} text="One special character" />
+              {password.length > 0 && (
+                <div className="agf-pw-reqs flex flex-col" style={{ gap: '0.35rem' }}>
+                  <p className="agf-field__label mb-1">Password requirements</p>
+                  {reqItems.map((r) => (
+                    <div key={r.label} className={`agf-pw-req flex items-center${r.ok ? ' is-met' : ''}`}>
+                      <span className="agf-pw-req__dot rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: r.ok ? 'var(--badge-success-bg)' : 'var(--bg-secondary)' }}>
+                        {r.ok && <Check size={9} style={{ color: SUCCESS }} />}
+                      </span>
+                      <span style={{ color: r.ok ? SUCCESS : undefined }}>{r.label}</span>
+                    </div>
+                  ))}
                 </div>
+              )}
 
-                <PremiumStyleInput
-                  label="Confirm Password"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={setConfirmPassword}
-                  placeholder="Confirm your password"
-                  leftIcon={Lock}
-                  focused={focused === 'confirm'}
-                  onFocus={() => setFocused('confirm')}
-                  onBlur={() => setFocused(null)}
-                  valid={match === true}
-                  rightEl={
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="p-1 rounded hover:opacity-80"
-                      style={{ color: 'var(--text-muted)' }}
-                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  }
-                />
+              <AuthInput
+                label="Confirm Password"
+                name="confirm-password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder="Confirm your password"
+                leftIcon={Lock}
+                focused={focused === 'confirm'}
+                onFocus={() => setFocused('confirm')}
+                onBlur={() => setFocused(null)}
+                valid={match === true}
+                error={match === false ? "Passwords don't match" : undefined}
+                rightEl={
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="agf-icon-btn"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+                required
+              />
 
-                <motion.button
-                  type="submit"
-                  disabled={loading || success || !isPasswordValid || !confirmPassword || password !== confirmPassword || !tokenFromUrl?.trim()}
-                  className="w-full h-[48px] rounded-[14px] font-bold text-[15px] flex items-center justify-center gap-2 border-none cursor-pointer transition-all"
-                  style={{
-                    background: 'var(--gradient-brand-cta)',
-                    color: 'var(--text-on-accent)',
-                    boxShadow: 'var(--shadow-cta-hover)',
-                  }}
-                  whileHover={!loading ? { y: -2, boxShadow: 'var(--shadow-cta-hover)' } : {}}
-                  whileTap={!loading ? { y: 0 } : {}}
-                >
-                  {loading && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  {!loading && <>Reset Password <ArrowRight className="w-4 h-4" /></>}
-                </motion.button>
-              </form>
-            )}
-            </div>
-          </motion.div>
-        </div>
+              <PrimaryBtn
+                loading={loading}
+                disabled={
+                  loading ||
+                  !isPasswordValid ||
+                  !confirmPassword ||
+                  password !== confirmPassword ||
+                  !tokenFromUrl?.trim()
+                }
+              >
+                {loading ? 'Resetting…' : 'Reset Password →'}
+              </PrimaryBtn>
+            </form>
+          </>
+        )}
+      </AuthFusionCard>
 
-        <p className="flex-shrink-0 mt-4 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
-          Remember your password? <Link to="/auth?tab=login" className="font-semibold hover:underline" style={{ color: PRIMARY }}>Sign In</Link>
-        </p>
-      </div>
+      <p className="agf-caption agf-caption--link">
+        Remember your password?{' '}
+        <Link to="/auth?tab=login" className="agf-link">
+          Sign In
+        </Link>
+      </p>
     </AuthPremiumLayout>
-  );
-}
-
-function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
-  return (
-    <button
-      type="button"
-      onClick={() => toggleTheme()}
-      className="w-9 h-9 rounded-xl flex items-center justify-center border-none cursor-pointer transition-all hover:opacity-90"
-      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', boxShadow: '0 0 0 1px var(--divider)' }}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-    >
-      {isDark ? '☀️' : '🌙'}
-    </button>
-  );
-}
-
-function ReqItem({ valid, text }: { valid: boolean; text: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      {valid ? <Check className="w-4 h-4 flex-shrink-0" style={{ color: SUCCESS }} /> : <span className="w-4 h-4 rounded-full border-2 flex-shrink-0" style={{ borderColor: 'var(--text-faint)' }} />}
-      <span className="text-[13px]" style={{ color: valid ? SUCCESS : 'var(--text-muted)' }}>{text}</span>
-    </div>
-  );
-}
-
-function PremiumStyleInput({
-  label,
-  type,
-  value,
-  onChange,
-  placeholder,
-  leftIcon: LeftIcon,
-  focused,
-  onFocus,
-  onBlur,
-  valid,
-  rightEl,
-  maxLength,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  leftIcon: React.ComponentType<{ className?: string }>;
-  focused?: boolean;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  valid?: boolean;
-  rightEl?: React.ReactNode;
-  maxLength?: number;
-}) {
-  const ring = valid
-    ? '0 0 0 2px rgba(16,185,129,0.40)'
-    : focused
-      ? '0 0 0 2.5px color-mix(in srgb, var(--brand-primary) 50%, transparent)'
-      : '0 0 0 1.5px rgba(0,0,0,0.08)';
-  const bg = valid ? 'rgba(16,185,129,0.03)' : focused ? 'var(--card-bg)' : 'var(--bg-secondary)';
-
-  return (
-    <div className="mb-0">
-      <label className="block font-bold uppercase tracking-wider text-[11px] mb-1" style={{ color: 'var(--text-primary)' }}>
-        {label} *
-      </label>
-      <div className="relative">
-        {LeftIcon && (
-          <span
-            className="absolute top-1/2 -translate-y-1/2 left-3 flex items-center justify-center transition-colors"
-            style={{ color: focused ? PRIMARY : 'var(--text-muted)' }}
-          >
-            <LeftIcon className="w-4 h-4" />
-          </span>
-        )}
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          className="w-full h-[42px] text-[14px] pl-10 pr-10 rounded-[12px] outline-none transition-all"
-          style={{ background: bg, boxShadow: ring, color: 'var(--text-primary)' }}
-        />
-        {rightEl && <div className="absolute top-1/2 -translate-y-1/2 right-3">{rightEl}</div>}
-        {valid && !rightEl && (
-          <span className="absolute top-1/2 -translate-y-1/2 right-3">
-            <Check className="w-4 h-4" style={{ color: SUCCESS }} />
-          </span>
-        )}
-      </div>
-    </div>
   );
 }

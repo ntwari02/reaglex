@@ -76,12 +76,34 @@ function CollageSkeleton({ labelId }) {
 /**
  * Reusable hero product mosaic — DB images only, lazy-loaded, text captions on every tile.
  */
+function SlideTile({ product, index, reduceMotion }) {
+  const href = buyerProductPath(product);
+  const name = String(product.title || product.name || 'Product').slice(0, 40);
+  const alt = productImageAltText(product);
+  const img = getProductHeroImage(product);
+  const price = formatPrice(product);
+  if (!img) return null;
+
+  return (
+    <li className="hpc-slide-tile">
+      <Link to={href} className="hpc-slide-tile__link">
+        <img src={img} alt={alt} loading={index < 3 ? 'eager' : 'lazy'} decoding="async" className="hpc-slide-tile__img" />
+        <span className="hpc-slide-tile__meta">
+          <span className="hpc-slide-tile__name">{name}</span>
+          {price && <span className="hpc-slide-tile__price">{price}</span>}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
 export default function HeroProductCollage({
   products = [],
   loading = false,
   reduceMotion = false,
   label = 'HD product collection',
   className = '',
+  variant = 'grid',
 }) {
   const labelId = 'hpc-showcase-label';
 
@@ -98,6 +120,40 @@ export default function HeroProductCollage({
   }
 
   const withImages = products.filter((p) => getProductHeroImage(p));
+
+  if (variant === 'slide' && withImages.length > 0) {
+    const loop = [...withImages, ...withImages];
+    return (
+      <motion.div
+        className={`hpc-showcase hpc-showcase--slide ${className}`.trim()}
+        initial={reduceMotion ? false : { opacity: 0, x: 24 }}
+        animate={reduceMotion ? false : { opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.08, ease: EASE }}
+        aria-labelledby={labelId}
+      >
+        <p id={labelId} className="hpc-showcase-label">
+          <Images size={12} strokeWidth={2.25} aria-hidden />
+          {label}
+        </p>
+        <div className="hpc-slide-viewport">
+          <ul
+            className={`hpc-slide-track${reduceMotion ? ' hpc-slide-track--paused' : ''}`}
+            aria-label="Featured products from catalog"
+          >
+            {loop.map((p, i) => (
+              <SlideTile
+                key={`${String(p._id || p.id || i)}-${i}`}
+                product={p}
+                index={i}
+                reduceMotion={reduceMotion}
+              />
+            ))}
+          </ul>
+        </div>
+      </motion.div>
+    );
+  }
+
   const featured = withImages[0];
   const thumbs = withImages.slice(1, 5);
 

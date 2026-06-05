@@ -12,6 +12,15 @@ import '../../styles/futuristic-hero.css';
 
 const EASE = [0.22, 1, 0.36, 1];
 
+const contentVariants = (reduceMotion) =>
+  reduceMotion
+    ? { initial: false, animate: false }
+    : {
+        initial: { opacity: 0, x: 32 },
+        animate: { opacity: 1, x: 0 },
+        transition: { duration: 0.55, ease: EASE },
+      };
+
 export default function FuturisticHero({ className = '', compact = false }) {
   const reduceMotion = useReducedMotion();
   const { enabled: heroOn } = usePlatformFeature('hero_carousel');
@@ -22,6 +31,7 @@ export default function FuturisticHero({ className = '', compact = false }) {
   if (!heroOn) return null;
 
   const sectionClass = `fx-hero${compact ? ' fx-hero--compact' : ''} ${className}`.trim();
+  const slide = contentVariants(reduceMotion);
   const statusMsg = loading
     ? 'Loading featured product gallery.'
     : ready
@@ -34,17 +44,21 @@ export default function FuturisticHero({ className = '', compact = false }) {
         {statusMsg}
       </p>
 
+      <div className="fx-hero__slide-bg" aria-hidden>
+        <div className="fx-hero__slide-track">
+          <span className="fx-hero__slide-panel" />
+          <span className="fx-hero__slide-panel" />
+          <span className="fx-hero__slide-panel" />
+        </div>
+      </div>
       <div className="fx-hero__grid-bg" aria-hidden />
-      <div className="fx-hero__orb fx-hero__orb--1" aria-hidden />
-      <div className="fx-hero__orb fx-hero__orb--2" aria-hidden />
-      <div className="fx-hero__orb fx-hero__orb--3" aria-hidden />
 
-      <div className="fx-hero__inner">
+      <motion.div className="fx-hero__inner" {...slide}>
         <div className="fx-hero__copy">
           <motion.span
             className="fx-hero__badge"
-            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-            animate={reduceMotion ? false : { opacity: 1, y: 0 }}
+            initial={reduceMotion ? false : { opacity: 0, x: 20 }}
+            animate={reduceMotion ? false : { opacity: 1, x: 0 }}
             transition={{ duration: 0.45, ease: EASE }}
           >
             <span className="fx-hero__badge-dot" aria-hidden />
@@ -54,36 +68,35 @@ export default function FuturisticHero({ className = '', compact = false }) {
           <motion.h1
             id="fx-hero-heading"
             className="fx-hero__title"
-            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-            animate={reduceMotion ? false : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.05, ease: EASE }}
+            initial={reduceMotion ? false : { opacity: 0, x: 24 }}
+            animate={reduceMotion ? false : { opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.04, ease: EASE }}
           >
-            Shop the future{' '}
-            <span className="fx-hero__title-accent">with escrow protection</span>
+            <span className="fx-hero__title-line">Shop with confidence.</span>
+            <span className="fx-hero__title-line">Escrow-protected checkout.</span>
           </motion.h1>
 
           <motion.p
             className="fx-hero__subtitle"
-            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={reduceMotion ? false : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.1, ease: EASE }}
+            initial={reduceMotion ? false : { opacity: 0, x: 16 }}
+            animate={reduceMotion ? false : { opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, delay: 0.08, ease: EASE }}
           >
-            Discover verified sellers, HD product imagery from our live catalog, and checkout built
-            for trust — fast, secure, and conversion-ready.
+            Verified sellers, live catalog imagery, and a minimal checkout built for trust.
           </motion.p>
 
           <motion.div
             className="fx-hero__ctas"
-            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-            animate={reduceMotion ? false : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.12, ease: EASE }}
+            initial={reduceMotion ? false : { opacity: 0, x: 16 }}
+            animate={reduceMotion ? false : { opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, delay: 0.1, ease: EASE }}
           >
             <Link to="/category/all" className="fx-hero__btn fx-hero__btn--primary">
-              Explore featured products
+              Explore products
               <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
             </Link>
             <Link to="/search?sort=discount" className="fx-hero__btn fx-hero__btn--ghost">
-              View best deals
+              Best deals
             </Link>
           </motion.div>
 
@@ -91,12 +104,12 @@ export default function FuturisticHero({ className = '', compact = false }) {
             className="fx-hero__trust"
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={reduceMotion ? false : { opacity: 1 }}
-            transition={{ duration: 0.45, delay: 0.18, ease: EASE }}
+            transition={{ duration: 0.4, delay: 0.14, ease: EASE }}
             aria-label="Trust and safety highlights"
           >
             <li className="fx-hero__trust-item">
               <ShieldCheck size={14} strokeWidth={2} aria-hidden />
-              Escrow-protected checkout
+              Escrow checkout
             </li>
             <li className="fx-hero__trust-item">
               <Sparkles size={14} strokeWidth={2} aria-hidden />
@@ -109,15 +122,21 @@ export default function FuturisticHero({ className = '', compact = false }) {
           </motion.ul>
         </div>
 
-        <div className="fx-hero__collage-wrap">
+        <motion.div
+          className="fx-hero__collage-wrap"
+          initial={reduceMotion ? false : { opacity: 0, x: 40 }}
+          animate={reduceMotion ? false : { opacity: 1, x: 0 }}
+          transition={{ duration: 0.55, delay: 0.06, ease: EASE }}
+        >
           <HeroProductCollage
             products={ready ? products : []}
             loading={loading || !ready}
             reduceMotion={reduceMotion}
-            label="Explore featured products"
+            variant="slide"
+            label="Featured from catalog"
           />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {!loading && !ready && products.length < MIN_HERO_PRODUCTS && (
         <p className="fx-hero__empty">

@@ -1,14 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Loader2, ArrowRight, RefreshCw, Sparkles } from 'lucide-react';
+import { Mail, Loader2, ArrowRight, RefreshCw } from 'lucide-react';
 import { useToastStore } from '../stores/toastStore';
 import { useAuthStore } from '../stores/authStore';
 import { authAPI } from '../lib/api';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
-import { useTheme } from '../contexts/ThemeContext';
-
-const PRIMARY = 'var(--brand-primary)';
-
+import AuthFusionCard from '../components/auth/AuthFusionCard';
 export function VerifyEmailPending() {
   const [searchParams] = useSearchParams();
   const emailFromUrl = searchParams.get('email') || '';
@@ -22,6 +19,7 @@ export function VerifyEmailPending() {
   const user = useAuthStore((s) => s.user);
 
   const email = emailFromUrl;
+
   const handleResend = async (isAuto = false) => {
     if (!email || resendLoading) return;
     if (!isAuto && cooldown > 0) return;
@@ -32,8 +30,9 @@ export function VerifyEmailPending() {
         showToast('New link sent — check your inbox', 'success');
       }
       setCooldown(60);
-    } catch (e: any) {
-      if (!isAuto) showToast(e.message || 'Failed to resend. Try again later.', 'error');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to resend. Try again later.';
+      if (!isAuto) showToast(message, 'error');
     } finally {
       setResendLoading(false);
     }
@@ -48,8 +47,6 @@ export function VerifyEmailPending() {
   }, [cooldown]);
 
   useEffect(() => {
-    // If the user is already verified (e.g., they clicked the link in another tab),
-    // immediately redirect to the right dashboard to avoid "re-gaining" this page.
     if (user?.email_verified === true) {
       if (user.role === 'seller') navigate('/seller', { replace: true });
       else if (user.role === 'admin') navigate('/admin', { replace: true });
@@ -58,7 +55,6 @@ export function VerifyEmailPending() {
   }, [user?.email_verified, user?.role, navigate]);
 
   useEffect(() => {
-    // For Google signup path, automatically send verification link on arrival.
     if (source !== 'google') return;
     if (alreadySent) return;
     if (!email) return;
@@ -73,122 +69,72 @@ export function VerifyEmailPending() {
     window.open('https://mail.google.com/mail/u/0/#search/in%3Ainbox', '_blank', 'noopener,noreferrer');
   };
 
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const CARD_SHADOW_LIGHT =
-    '0 25px 50px -12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)';
-  const CARD_SHADOW_DARK =
-    '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)';
-  const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
-  const cardBg = 'var(--card-bg)';
-
   return (
-    <AuthPremiumLayout currentView="pending">
-      <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-auto px-4">
-          <div
-            className="w-full max-w-[480px] rounded-[24px] p-7 sm:p-8 flex flex-col overflow-hidden relative"
-            style={{ background: cardBg, boxShadow: cardShadow }}
-          >
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg text-white"
-                style={{ background: 'var(--gradient-brand-cta)', boxShadow: 'var(--shadow-cta)' }}
-              >
-                <Mail className="w-10 h-10" strokeWidth={1.8} />
-              </div>
-              <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-amber-950">
-                <Sparkles className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </div>
+    <AuthPremiumLayout>
+      <AuthFusionCard>
+        <div className="agf-otp-icon mx-auto">
+          <Mail size={28} aria-hidden />
+        </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 dark:text-white mb-2 tracking-tight">
-            Check your email
-          </h1>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-            {source === 'google'
-              ? "We've sent a verification link to your Google account email. Click the link to verify and sign in."
-              : "We've sent a verification link to your email. Click the link in the message to verify your account and sign in."}
-          </p>
+        <h1 className="agf-heading text-center">Check your email</h1>
+        <p className="agf-subheading agf-subheading--center">
+          {source === 'google'
+            ? "We've sent a verification link to your Google account email. Click the link to verify and sign in."
+            : "We've sent a verification link to your email. Click the link in the message to verify your account and sign in."}
+        </p>
 
-          {email && (
-            <p
-              className="text-center text-sm font-medium rounded-xl py-3 px-4 mb-4 break-all border"
-              style={{
-                color: 'var(--brand-primary)',
-                background: 'var(--brand-tint-strong)',
-                borderColor: 'var(--brand-border-subtle)',
-              }}
-            >
-              {email}
-            </p>
-          )}
+        {email && <p className="agf-email-chip">{email}</p>}
 
+        <div className="agf-form">
           <Link
             to={email ? `/verify-otp?email=${encodeURIComponent(email)}` : '/verify-otp'}
-            className="mb-4 w-full flex items-center justify-center gap-2 py-4 px-4 rounded-xl font-bold text-[var(--text-on-accent)] transition-all shadow-lg hover:shadow-xl hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_45%,transparent)] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-            style={{ background: 'var(--gradient-brand-cta)' }}
+            className="agf-btn-primary inline-flex items-center justify-center gap-2 no-underline"
+            style={{ textDecoration: 'none' }}
           >
             Enter 6-digit code — recommended
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight size={16} aria-hidden />
           </Link>
-          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mb-6">
-            Use the verification code from your email for the fastest path. Prefer clicking a link in the message? Use the options below.
+
+          <p className="agf-meta text-center">
+            Use the verification code from your email for the fastest path. Prefer a link in the message? Use the options below.
           </p>
 
-          <p className="text-center text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          <p className="agf-field__label text-center" style={{ marginBottom: 0 }}>
             Or verify using email link
           </p>
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={openInbox}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold text-[var(--text-on-accent)] transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_45%,transparent)] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-              style={{ background: 'var(--gradient-brand-cta)' }}
-            >
-              Open inbox & use link
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={resendLoading || cooldown > 0}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium border-2 transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--brand-primary)_35%,transparent)] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-              style={{
-                borderColor: 'var(--brand-border-subtle)',
-                color: PRIMARY,
-                background: 'var(--brand-tint)',
-              }}
-            >
-              {resendLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              {resendLoading
-                ? 'Sending…'
-                : cooldown > 0
-                  ? `Resend verification link (${cooldown}s)`
-                  : 'Resend verification link'}
-            </button>
-          </div>
-          </div>
 
-          <p className="text-center text-xs text-gray-500 dark:text-gray-500 mt-6">
-            Link expires in 24 hours. Can't find it? Check spam or promotions.
-          </p>
+          <button type="button" onClick={openInbox} className="agf-btn-primary">
+            Open inbox &amp; use link
+            <ArrowRight size={16} aria-hidden />
+          </button>
 
-          <Link
-            to="/auth?tab=login"
-            className="mt-6 block text-center text-sm font-medium transition-colors"
-            style={{ color: PRIMARY }}
+          <button
+            type="button"
+            onClick={() => handleResend(false)}
+            disabled={resendLoading || cooldown > 0}
+            className="agf-btn-outline"
           >
-            Back to sign in
-          </Link>
+            {resendLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+            ) : (
+              <RefreshCw className="w-4 h-4" aria-hidden />
+            )}
+            {resendLoading
+              ? 'Sending…'
+              : cooldown > 0
+                ? `Resend verification link (${cooldown}s)`
+                : 'Resend verification link'}
+          </button>
         </div>
-      </div>
+
+        <p className="agf-caption text-center mt-4">
+          Link expires in 24 hours. Can&apos;t find it? Check spam or promotions.
+        </p>
+
+        <Link to="/auth?tab=login" className="agf-link block text-center mt-4">
+          Back to sign in
+        </Link>
+      </AuthFusionCard>
     </AuthPremiumLayout>
   );
 }

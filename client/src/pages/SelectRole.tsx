@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { ShoppingBag, Briefcase, Loader2 } from 'lucide-react';
 import AuthPremiumLayout from '../components/AuthPremiumLayout';
-import { useTheme } from '../contexts/ThemeContext';
+import AuthFusionCard from '../components/auth/AuthFusionCard';
 import { API_BASE_URL } from '../lib/config';
 import { getDashboardPathForRole } from '../lib/authRouting';
 
@@ -131,105 +131,65 @@ export function SelectRole() {
     }
   };
 
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const CARD_SHADOW_LIGHT = '0 25px 50px -12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)';
-  const CARD_SHADOW_DARK = '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)';
-  const cardShadow = isDark ? CARD_SHADOW_DARK : CARD_SHADOW_LIGHT;
-  const cardBg = 'var(--card-bg)';
-
   return (
     <AuthPremiumLayout>
-      <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100%]">
-        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-auto">
-          <div
-            className="w-full max-w-[640px] rounded-[24px] p-6 sm:p-8 flex flex-col overflow-hidden"
-            style={{ background: cardBg, boxShadow: cardShadow }}
+      <AuthFusionCard>
+        <h2 className="agf-heading text-center">Choose Your Account Type</h2>
+        {googleName && (
+          <p className="agf-subheading text-center">
+            Welcome, <strong style={{ color: 'var(--agf-brand)' }}>{googleName}</strong>!
+          </p>
+        )}
+        <p className="agf-subheading agf-subheading--center">
+          {googleName
+            ? `Your account will be created with the name "${googleName}" from your Google account.`
+            : 'Select how you want to use Reaglex'}
+        </p>
+
+        <div className="agf-role-picker">
+          <button
+            type="button"
+            onClick={() => handleRoleSelection('buyer')}
+            disabled={loading}
+            className={`agf-role-picker__option${selectedRole === 'buyer' ? ' is-selected' : ''}`}
+            aria-pressed={selectedRole === 'buyer'}
           >
-            <div className="text-center mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Choose Your Account Type
-              </h2>
-              {googleName && (
-                <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
-                  Welcome, <span className="font-semibold" style={{ color: 'var(--brand-primary)' }}>{googleName}</span>!
-                </p>
+            <span className="agf-role-picker__icon">
+              <ShoppingBag aria-hidden />
+            </span>
+            <span>
+              <span className="agf-role-picker__title">Buyer</span>
+              <span className="agf-role-picker__desc block">Shop and purchase products from sellers</span>
+              {selectedRole === 'buyer' && loading && (
+                <Loader2 className="w-4 h-4 animate-spin mt-2" style={{ color: 'var(--agf-brand)' }} aria-hidden />
               )}
-              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
-                {googleName
-                  ? `Your account will be created with the name "${googleName}" from your Google account.`
-                  : 'Select how you want to use Reaglex'}
-              </p>
-            </div>
+            </span>
+          </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            {/* Buyer Option */}
-            <button
-              onClick={() => handleRoleSelection('buyer')}
-              disabled={loading}
-              className={`relative p-6 rounded-xl border-2 transition-all ${
-                selectedRole === 'buyer'
-                  ? 'border-[var(--brand-primary)] bg-[var(--brand-tint)]'
-                  : 'border-gray-300 dark:border-gray-700 hover:border-[var(--brand-primary-hover)] bg-white dark:bg-gray-800'
-              } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className={`p-4 rounded-full mb-4 ${
-                  selectedRole === 'buyer'
-                    ? 'bg-[var(--brand-primary)] text-[var(--text-on-accent)]'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                }`}>
-                  <ShoppingBag className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Buyer
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Shop and purchase products from sellers
-                </p>
-                {selectedRole === 'buyer' && loading && (
-                  <Loader2 className="w-5 h-5 animate-spin mt-3 text-[var(--brand-primary)]" />
-                )}
-              </div>
-            </button>
-
-            {/* Seller Option */}
-            <button
-              onClick={() => handleRoleSelection('seller')}
-              disabled={loading}
-              className={`relative p-6 rounded-xl border-2 transition-all ${
-                selectedRole === 'seller'
-                  ? 'border-[var(--brand-primary)] bg-[var(--brand-tint)]'
-                  : 'border-gray-300 dark:border-gray-700 hover:border-[var(--brand-primary-hover)] bg-white dark:bg-gray-800'
-              } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className={`p-4 rounded-full mb-4 ${
-                  selectedRole === 'seller'
-                    ? 'bg-[var(--brand-primary)] text-[var(--text-on-accent)]'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                }`}>
-                  <Briefcase className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Seller
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Sell products and manage your store
-                </p>
-                {selectedRole === 'seller' && loading && (
-                  <Loader2 className="w-5 h-5 animate-spin mt-3 text-[var(--brand-primary)]" />
-                )}
-              </div>
-            </button>
-            </div>
-
-            <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">
-              You can change this later in your profile settings.
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleRoleSelection('seller')}
+            disabled={loading}
+            className={`agf-role-picker__option${selectedRole === 'seller' ? ' is-selected' : ''}`}
+            aria-pressed={selectedRole === 'seller'}
+          >
+            <span className="agf-role-picker__icon">
+              <Briefcase aria-hidden />
+            </span>
+            <span>
+              <span className="agf-role-picker__title">Seller</span>
+              <span className="agf-role-picker__desc block">Sell products and manage your store</span>
+              {selectedRole === 'seller' && loading && (
+                <Loader2 className="w-4 h-4 animate-spin mt-2" style={{ color: 'var(--agf-brand)' }} aria-hidden />
+              )}
+            </span>
+          </button>
         </div>
-      </div>
+
+        <p className="agf-caption text-center mt-4">
+          You can change this later in your profile settings.
+        </p>
+      </AuthFusionCard>
     </AuthPremiumLayout>
   );
 }

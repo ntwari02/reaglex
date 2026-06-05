@@ -11,9 +11,8 @@
 @import './styles/seller-live-studio.css';
 @import './styles/seller-notifications.css';
 @import './styles/admin-mobile.css';
-@import './styles/auth-mobile-premium.css';
-@import './styles/auth-premium.css';
-@import './styles/auth-typography.css';
+@import './styles/auth-fusion.css';
+@import './styles/auth-fusion-mobile.css';
 @import './styles/premium-input.css';
 
 /* Mea Culpa – auth brand panel */
