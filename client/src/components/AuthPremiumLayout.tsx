@@ -77,7 +77,7 @@ export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) 
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="auth-fusion__logo-mark" aria-hidden>
-            R
+            S
           </div>
           <p className="auth-fusion__logo-word">SPACILLY</p>
           <p className="auth-fusion__logo-tag">TRADE · TRUST · GROW</p>
@@ -96,7 +96,7 @@ export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) 
         <AuthCircuitPattern className="auth-fusion__main-circuit" />
 
         <div className="auth-fusion__mobile-brand" aria-hidden>
-          <div className="auth-fusion__logo-mark">R</div>
+          <div className="auth-fusion__logo-mark">S</div>
           <p className="auth-fusion__logo-word">SPACILLY</p>
         </div>
 

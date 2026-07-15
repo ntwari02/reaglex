@@ -189,7 +189,7 @@ export async function recordFlowRun(
           },
         },
       ],
-      { upsert: true },
+      { upsert: true, updatePipeline: true },
     );
     invalidateMarketingAutomationSettingsCache();
   } catch (e) {

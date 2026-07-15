@@ -472,7 +472,7 @@ function MainHeader({
               className="spacilly-logo-font font-bold block leading-tight"
               style={{ fontSize: 20, color: 'var(--text-primary)' }}
             >
-              Reag<span style={{ color: PRIMARY }}>lex</span>
+              Spac<span style={{ color: PRIMARY }}>illy</span>
             </span>
             <span
               className="text-[10px] block leading-tight"

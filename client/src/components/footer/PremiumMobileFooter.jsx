@@ -235,7 +235,7 @@ export default function PremiumMobileFooter() {
           <header className="rx-mfooter-head">
             <Link to="/" className="rx-mfooter-brand">
               <span className="rx-mfooter-logo-mark" aria-hidden>
-                R
+                S
               </span>
               <span className="rx-mfooter-logo-text">Spacilly</span>
             </Link>

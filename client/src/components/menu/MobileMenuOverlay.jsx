@@ -162,9 +162,9 @@ export default function MobileMenuOverlay() {
             >
               <header className="mmo-header">
                 <div className="mmo-brand-row">
-                  <span className="mmo-logo-mark">R</span>
+                  <span className="mmo-logo-mark">S</span>
                   <span className="mmo-brand-text">
-                    REAG<span className="mmo-brand-accent">LEX</span>
+                    SPAC<span className="mmo-brand-accent">ILLY</span>
                   </span>
                 </div>
                 <button type="button" className="mmo-close" onClick={close} aria-label="Close">
