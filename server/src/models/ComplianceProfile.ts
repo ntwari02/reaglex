@@ -227,7 +227,7 @@ const complianceProfileSchema = new Schema<IComplianceProfile>(
       registrationNumber: { type: String, trim: true },
       country: { type: String, trim: true, default: 'Rwanda' },
       primaryContactEmail: { type: String, trim: true },
-      brandingName: { type: String, trim: true, default: 'Reaglex' },
+      brandingName: { type: String, trim: true, default: 'Spacilly' },
       brandingLogoUrl: { type: String, trim: true },
     },
     registrationStatus: {

@@ -12,7 +12,7 @@ import { generateAuthToken } from '../utils/generateToken';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { getClientUrl } from '../config/publicEnv';
 
-const rpName = process.env.WEBAUTHN_RP_NAME || 'Reaglex';
+const rpName = process.env.WEBAUTHN_RP_NAME || 'Spacilly';
 const rpID = process.env.WEBAUTHN_RP_ID || 'localhost';
 const origin = (process.env.WEBAUTHN_ORIGIN || '').trim() || getClientUrl();
 

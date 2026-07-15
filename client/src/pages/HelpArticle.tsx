@@ -45,7 +45,7 @@ export default function HelpArticle() {
             Overview
           </h2>
           <p style={{ color: 'var(--text-secondary)' }}>
-            Reaglex escrow protects both buyers and sellers by holding funds in a secure
+            Spacilly escrow protects both buyers and sellers by holding funds in a secure
             account until the order is delivered and confirmed. Instead of paying the
             seller directly, you pay into escrow, and the money is only released when
             everyone is satisfied.

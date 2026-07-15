@@ -350,9 +350,9 @@ export default function SearchResults() {
     origin,
     pathname: location.pathname,
     searchParams: params,
-    allProductsTitle: 'All products | Reaglex',
+    allProductsTitle: 'All products | Spacilly',
     allProductsDescription:
-      'Browse Reaglex products from verified sellers — escrow-protected checkout and buyer protection.',
+      'Browse Spacilly products from verified sellers — escrow-protected checkout and buyer protection.',
   });
   const hreflangAlternates = (() => {
     if (!origin || seoPolicy.noIndexFlag) return undefined;
@@ -364,7 +364,7 @@ export default function SearchResults() {
         {
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
-          name: seoPolicy.title.replace(/\s\|\sReaglex$/, ''),
+          name: seoPolicy.title.replace(/\s\|\sSpacilly$/, ''),
           url: seoPolicy.canonicalUrl,
         },
       ]
@@ -512,8 +512,8 @@ export default function SearchResults() {
 
   // Page title
   useEffect(() => {
-    document.title = q ? `${t('search.resultsFor')} '${q}' — Reaglex` : `${t('home.exploreAllProducts')} — Reaglex`;
-    return () => { document.title = 'Reaglex'; };
+    document.title = q ? `${t('search.resultsFor')} '${q}' — Spacilly` : `${t('home.exploreAllProducts')} — Spacilly`;
+    return () => { document.title = 'Spacilly'; };
   }, [q, t]);
 
   // Keep search input in sync with URL q when navigating to this page with query

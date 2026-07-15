@@ -321,7 +321,7 @@ export async function exportRegistrationPackPdf(req: AuthenticatedRequest, res: 
   try {
     const profile = await getOrCreateProfile();
     const checklist = buildMissingChecklist(profile.toObject());
-    const brand = profile.complianceProfile?.brandingName || profile.complianceProfile?.tradeName || 'Reaglex';
+    const brand = profile.complianceProfile?.brandingName || profile.complianceProfile?.tradeName || 'Spacilly';
     const strictQuery = String(req.query.strict || '').toLowerCase();
     const strictRequested = strictQuery === '1' || strictQuery === 'true' || strictQuery === 'yes';
     if (strictRequested) {
@@ -377,7 +377,7 @@ export async function exportRegistrationPackPdf(req: AuthenticatedRequest, res: 
     ];
     const pdf = buildSimplePdf(lines);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="reaglex-compliance-pack-${new Date().toISOString().slice(0, 10)}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="spacilly-compliance-pack-${new Date().toISOString().slice(0, 10)}.pdf"`);
     return res.send(pdf);
   } catch (error: any) {
     return res.status(500).json({ message: error?.message || 'Failed to export PDF pack' });

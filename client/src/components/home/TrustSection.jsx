@@ -7,7 +7,7 @@ const PILLARS = [
   {
     icon: BadgeCheck,
     title: 'Verified Sellers',
-    desc: 'Every seller is identity-verified and reviewed before listing products on Reaglex.',
+    desc: 'Every seller is identity-verified and reviewed before listing products on Spacilly.',
     accent: 'var(--text-in-stock)',
   },
   {
@@ -116,7 +116,7 @@ export default function TrustSection() {
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
         >
-          Why Reaglex
+          Why Spacilly
         </motion.p>
         <motion.h2
           className="font-black leading-none mb-4"
@@ -139,7 +139,7 @@ export default function TrustSection() {
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 0.16 }}
         >
-          We built every layer of Reaglex to protect buyers and empower honest sellers. Your trust is our most valuable asset.
+          We built every layer of Spacilly to protect buyers and empower honest sellers. Your trust is our most valuable asset.
         </motion.p>
       </div>
 

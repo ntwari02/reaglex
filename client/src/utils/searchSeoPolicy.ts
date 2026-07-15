@@ -97,13 +97,13 @@ export function computeSearchListingSeo(args: {
   const canonicalUrl = `${origin}${canonicalPath}`;
   const description =
     q && !thinQ
-      ? `Browse products matching “${q.slice(0, 120)}” on Reaglex — verified sellers and secure checkout.`
+      ? `Browse products matching “${q.slice(0, 120)}” on Spacilly — verified sellers and secure checkout.`
       : allProductsDescription;
   const title =
     q && !thinQ
-      ? `Search: ${q.slice(0, 60)} | Reaglex`
+      ? `Search: ${q.slice(0, 60)} | Spacilly`
       : category && category !== 'All Categories'
-        ? `${category} | Reaglex`
+        ? `${category} | Spacilly`
         : allProductsTitle;
 
   return {

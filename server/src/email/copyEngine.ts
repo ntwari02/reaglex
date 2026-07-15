@@ -195,7 +195,7 @@ export function browseAbandonSubject(name: string, userId: string, dayKey?: stri
 
 const WINBACK_SUBJECTS = [
   (n: string) => `We miss you, ${n} — fresh picks inside`,
-  (n: string) => `${n}, see what’s new on Reaglex`,
+  (n: string) => `${n}, see what’s new on Spacilly`,
   (n: string) => `Your marketplace feed has updates, ${n}`,
 ];
 

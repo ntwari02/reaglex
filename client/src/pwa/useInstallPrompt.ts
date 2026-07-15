@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 /**
  * Captures the `beforeinstallprompt` event so the app can offer a custom
- * "Install Reaglex" button matching the rest of the UI (instead of the
+ * "Install Spacilly" button matching the rest of the UI (instead of the
  * generic browser prompt).
  */
 type BeforeInstallPromptEvent = Event & {
@@ -10,8 +10,8 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
-const DISMISS_KEY = 'reaglex-install-dismissed-at';
-const DISMISS_PERMANENT_KEY = 'reaglex-install-dismissed-permanent';
+const DISMISS_KEY = 'spacilly-install-dismissed-at';
+const DISMISS_PERMANENT_KEY = 'spacilly-install-dismissed-permanent';
 const DISMISS_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 2 weeks
 
 function readDismissed(): boolean {

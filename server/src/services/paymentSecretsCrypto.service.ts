@@ -16,7 +16,7 @@ function deriveKey(): Buffer {
     const u = Buffer.from(raw, 'utf8');
     if (u.length >= 32) return u.subarray(0, 32);
   }
-  const fallback = raw || 'reaglex-dev-only-set-PAYMENT_SECRETS_MASTER_KEY';
+  const fallback = raw || 'spacilly-dev-only-set-PAYMENT_SECRETS_MASTER_KEY';
   if (process.env.NODE_ENV === 'production' && !raw) {
     // eslint-disable-next-line no-console
     console.warn(

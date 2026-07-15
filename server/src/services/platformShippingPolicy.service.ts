@@ -7,7 +7,7 @@ import {
   findDeliveryDestination,
 } from './deliveryDestination.service';
 import { invalidatePlatformTaxCache } from './platformTax.service';
-import type { ReaglexSellerShippingConfig, ReaglexShippingMethodRule } from '../types/reaglexShipping.types';
+import type { SpacillySellerShippingConfig, SpacillyShippingMethodRule } from '../types/spacillyShipping.types';
 
 const POLICY_ID = 'platform-rw';
 
@@ -114,9 +114,9 @@ export function platformZoneSurcharge(
 }
 
 export function applyPlatformPolicyToSellerConfig(
-  sellerCfg: ReaglexSellerShippingConfig,
+  sellerCfg: SpacillySellerShippingConfig,
   policy: IPlatformShippingPolicy,
-): ReaglexSellerShippingConfig {
+): SpacillySellerShippingConfig {
   const limits = policy.feeLimits;
   const eta = policy.etaLimits;
   const allowed = new Set((policy.enabledMethods || ['standard', 'express', 'pickup']).map(String));
@@ -158,10 +158,10 @@ export function applyPlatformPolicyToSellerConfig(
 }
 
 function normalizeMethodEta(
-  m: ReaglexShippingMethodRule,
+  m: SpacillyShippingMethodRule,
   etaMin: number,
   etaMax: number,
-): ReaglexShippingMethodRule {
+): SpacillyShippingMethodRule {
   const days = Number(m.estimatedDays ?? m.etaDaysMax ?? 3);
   const min = clamp(Number(m.etaDaysMin ?? Math.max(etaMin, days - 1)), etaMin, etaMax);
   const max = clamp(Number(m.etaDaysMax ?? days), min, etaMax);
@@ -170,8 +170,8 @@ function normalizeMethodEta(
 
 export async function resolveEffectiveSellerConfig(
   rawSeller: unknown,
-  resolveFn: (raw: unknown) => ReaglexSellerShippingConfig,
-): Promise<{ cfg: ReaglexSellerShippingConfig; policy: IPlatformShippingPolicy; platformZones: any[] }> {
+  resolveFn: (raw: unknown) => SpacillySellerShippingConfig,
+): Promise<{ cfg: SpacillySellerShippingConfig; policy: IPlatformShippingPolicy; platformZones: any[] }> {
   const policy = await getPlatformShippingPolicy();
   const platformCtx = await getPlatformShippingContext();
   const base = resolveFn(rawSeller);

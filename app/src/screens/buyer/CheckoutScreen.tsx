@@ -22,7 +22,7 @@ import type { BuyerStackParamList } from '../../navigation/BuyerNavigator';
 
 type Nav = NativeStackNavigationProp<BuyerStackParamList>;
 
-const UNPAID_KEY = 'reaglex_unpaid_order_ids';
+const UNPAID_KEY = 'spacilly_unpaid_order_ids';
 
 export default function CheckoutScreen() {
   const nav = useNavigation<Nav>();

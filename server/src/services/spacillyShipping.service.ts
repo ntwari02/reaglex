@@ -10,11 +10,11 @@ import {
   type LatLng,
 } from './openRouteService';
 import {
-  type ReaglexSellerShippingConfig,
-  type ReaglexShippingMethodKey,
-  type ReaglexShippingMethodRule,
-  defaultReaglexSellerShipping,
-} from '../types/reaglexShipping.types';
+  type SpacillySellerShippingConfig,
+  type SpacillyShippingMethodKey,
+  type SpacillyShippingMethodRule,
+  defaultSpacillySellerShipping,
+} from '../types/spacillyShipping.types';
 import {
   applyDestinationEtaToMethods,
   findDeliveryDestination,
@@ -54,9 +54,9 @@ export function parseShipmentGroupKey(key: string): { sellerId: string; warehous
 }
 
 function mergeMethodRule(
-  cfg: ReaglexSellerShippingConfig,
-  key: ReaglexShippingMethodKey
-): ReaglexShippingMethodRule & {
+  cfg: SpacillySellerShippingConfig,
+  key: SpacillyShippingMethodKey
+): SpacillyShippingMethodRule & {
   baseFee: number;
   ratePerKm: number;
   handlingFee: number;
@@ -100,10 +100,10 @@ function mergeMethodRule(
   };
 }
 
-export function resolveSellerShippingConfig(raw: unknown): ReaglexSellerShippingConfig {
-  const base = defaultReaglexSellerShipping();
+export function resolveSellerShippingConfig(raw: unknown): SpacillySellerShippingConfig {
+  const base = defaultSpacillySellerShipping();
   if (!raw || typeof raw !== 'object') return base;
-  const r = raw as Partial<ReaglexSellerShippingConfig>;
+  const r = raw as Partial<SpacillySellerShippingConfig>;
   return {
     enabled: r.enabled !== false,
     currency: String(r.currency || base.currency),
@@ -138,7 +138,7 @@ export function resolveSellerShippingConfig(raw: unknown): ReaglexSellerShipping
           surcharge: Number(z.surcharge || 0),
         }))
       : [],
-    methods: Array.isArray(r.methods) && r.methods.length ? (r.methods as ReaglexShippingMethodRule[]) : base.methods,
+    methods: Array.isArray(r.methods) && r.methods.length ? (r.methods as SpacillyShippingMethodRule[]) : base.methods,
   };
 }
 
@@ -159,7 +159,7 @@ async function getCachedOrComputeDistance(origin: LatLng, dest: LatLng): Promise
   return { distanceKm, source };
 }
 
-function zoneSurchargeForCountry(cfg: ReaglexSellerShippingConfig, country: string): number {
+function zoneSurchargeForCountry(cfg: SpacillySellerShippingConfig, country: string): number {
   const c = String(country || '').toUpperCase();
   if (!c) return 0;
   let add = 0;
@@ -170,8 +170,8 @@ function zoneSurchargeForCountry(cfg: ReaglexSellerShippingConfig, country: stri
 }
 
 export function computeMethodPrice(params: {
-  cfg: ReaglexSellerShippingConfig;
-  methodKey: ReaglexShippingMethodKey;
+  cfg: SpacillySellerShippingConfig;
+  methodKey: SpacillyShippingMethodKey;
   distanceKm: number;
   groupSubtotal: number;
   cartSubtotal: number;
@@ -269,7 +269,7 @@ export type ShipmentGroupQuote = {
   distanceKm: number;
   distanceSource: string;
   methods: Array<{
-    key: ReaglexShippingMethodKey;
+    key: SpacillyShippingMethodKey;
     label: string;
     enabled: boolean;
     price: number;
@@ -300,7 +300,7 @@ export async function buildShipmentGroupsFromLines(
   return map;
 }
 
-export async function quoteReaglexShipments(params: {
+export async function quoteSpacillyShipments(params: {
   lines: QuoteCartLine[];
   shippingAddress: {
     full_name: string;
@@ -312,7 +312,7 @@ export async function quoteReaglexShipments(params: {
     postal_code?: string;
     country: string;
   };
-  selectedMethods?: Record<string, ReaglexShippingMethodKey>;
+  selectedMethods?: Record<string, SpacillyShippingMethodKey>;
 }): Promise<{
   groups: ShipmentGroupQuote[];
   totalShipping: number;
@@ -366,7 +366,7 @@ export async function quoteReaglexShipments(params: {
 
   const platformCtx = await getPlatformShippingContext();
   const policy = platformCtx.policy;
-  const platformFreeRaw = process.env.REAGLEX_PLATFORM_FREE_SHIPPING_THRESHOLD;
+  const platformFreeRaw = process.env.SPACILLY_PLATFORM_FREE_SHIPPING_THRESHOLD;
   const platformFreeThreshold =
     policy.platformFreeShippingThreshold ??
     (platformFreeRaw != null && String(platformFreeRaw).trim() !== ''
@@ -377,8 +377,8 @@ export async function quoteReaglexShipments(params: {
   let totalShipping = 0;
 
   for (const [groupKey, g] of groupMap) {
-    const seller = await User.findById(g.sellerId).select('reaglexSellerShipping fullName').lean();
-    const rawCfg = resolveSellerShippingConfig((seller as { reaglexSellerShipping?: unknown })?.reaglexSellerShipping);
+    const seller = await User.findById(g.sellerId).select('spacillySellerShipping fullName').lean();
+    const rawCfg = resolveSellerShippingConfig((seller as { spacillySellerShipping?: unknown })?.spacillySellerShipping);
     const cfg = applyPlatformPolicyToSellerConfig(rawCfg, policy as any);
     const externalZoneSurcharge = policy.sellerCanDefineZones
       ? undefined
@@ -415,7 +415,7 @@ export async function quoteReaglexShipments(params: {
     }
 
     const methodEntries: ShipmentGroupQuote['methods'] = [];
-    const keys: ReaglexShippingMethodKey[] = ['standard', 'express', 'pickup'];
+    const keys: SpacillyShippingMethodKey[] = ['standard', 'express', 'pickup'];
     const selected = params.selectedMethods?.[groupKey] || 'standard';
 
     for (const key of keys) {
@@ -489,17 +489,17 @@ export async function computeShippingForOrderGroup(params: {
     postal_code?: string;
     country: string;
   };
-  methodKey: ReaglexShippingMethodKey;
+  methodKey: SpacillyShippingMethodKey;
 }): Promise<{
   snapshot: Record<string, unknown>;
   shippingTotal: number;
 }> {
-  const sellerCfgDoc = await User.findById(params.sellerId).select('reaglexSellerShipping').lean();
+  const sellerCfgDoc = await User.findById(params.sellerId).select('spacillySellerShipping').lean();
   const sellerCfg = resolveSellerShippingConfig(
-    (sellerCfgDoc as { reaglexSellerShipping?: unknown })?.reaglexSellerShipping
+    (sellerCfgDoc as { spacillySellerShipping?: unknown })?.spacillySellerShipping
   );
 
-  const q = await quoteReaglexShipments({
+  const q = await quoteSpacillyShipments({
     lines: params.lines,
     shippingAddress: params.shippingAddress,
     selectedMethods: { [makeShipmentGroupKey(params.sellerId, params.warehouseId)]: params.methodKey },
@@ -528,8 +528,8 @@ export async function computeShippingForOrderGroup(params: {
     cartSubtotal: q.groups.reduce((s, x) => s + x.subtotal, 0),
     buyerCountry: String(params.shippingAddress.country || '').toUpperCase(),
     platformFreeThreshold:
-      process.env.REAGLEX_PLATFORM_FREE_SHIPPING_THRESHOLD != null
-        ? Number(process.env.REAGLEX_PLATFORM_FREE_SHIPPING_THRESHOLD)
+      process.env.SPACILLY_PLATFORM_FREE_SHIPPING_THRESHOLD != null
+        ? Number(process.env.SPACILLY_PLATFORM_FREE_SHIPPING_THRESHOLD)
         : undefined,
   });
 

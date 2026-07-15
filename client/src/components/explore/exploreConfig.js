@@ -51,7 +51,7 @@ export const EXPLORE_SECTION_COPY = {
   all: { title: 'Smart discovery', sub: 'Mixed feed · intelligently curated for you' },
   trending: {
     today: { title: 'Trending Today', sub: 'What shoppers love right now' },
-    week: { title: 'Trending This Week', sub: 'Momentum picks across Reaglex' },
+    week: { title: 'Trending This Week', sub: 'Momentum picks across Spacilly' },
     rising: { title: 'Fast Rising', sub: 'Products climbing the charts' },
     near: { title: 'Near You', sub: 'Popular in your area' },
   },

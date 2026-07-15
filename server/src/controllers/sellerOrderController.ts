@@ -165,8 +165,8 @@ export async function updateSellerOrderTracking(req: AuthenticatedRequest, res: 
     const update: any = {
       $set: {
         trackingNumber: trackingNumber || '',
-        'reaglexShipping.trackingNumber': trackingNumber || '',
-        'reaglexShipping.shipmentStatus': shouldMarkShipped ? 'shipped' : 'pending',
+        'spacillyShipping.trackingNumber': trackingNumber || '',
+        'spacillyShipping.shipmentStatus': shouldMarkShipped ? 'shipped' : 'pending',
         deliveryPrediction: {
           expected: new Date(prediction.expected),
           confidence: prediction.confidence,
@@ -286,12 +286,12 @@ export async function bulkProcessSellerOrders(req: AuthenticatedRequest, res: Re
       if (action === 'ship') {
         update.$set = {
           status: 'shipped',
-          'reaglexShipping.shipmentStatus': 'shipped',
+          'spacillyShipping.shipmentStatus': 'shipped',
         };
       }
       if (action === 'print_labels') {
         update.$set = {
-          'reaglexShipping.shipmentStatus': String((order as any)?.reaglexShipping?.shipmentStatus || 'pending'),
+          'spacillyShipping.shipmentStatus': String((order as any)?.spacillyShipping?.shipmentStatus || 'pending'),
         };
       }
       const updated = await Order.findByIdAndUpdate(order._id, update, { new: true }).lean();

@@ -8,7 +8,7 @@ export default function PlatformSettings() {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'legal' | 'payment'>('general');
   const [settings, setSettings] = useState({
     // General
-    platformName: 'REAGLEX',
+    platformName: 'SPACILLY',
     platformEmail: 'reaglerobust2020@gmail.com',
     platformPhone: '+250787057751',
     timezone: 'UTC',

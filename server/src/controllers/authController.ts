@@ -27,7 +27,7 @@ import { ensureReferralCodeForUser, applyReferralCodeOnRegister } from '../servi
 import { formatUserWithAdminAccess } from '../services/adminAccess.service';
 import type { IUser } from '../models/User';
 
-const APP_NAME = process.env.APP_NAME || 'Reaglex';
+const APP_NAME = process.env.APP_NAME || 'Spacilly';
 
 function serializeAuthUser(user: InstanceType<typeof User>) {
   const doc =

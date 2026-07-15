@@ -1,5 +1,5 @@
 /**
- * Central product filtering and sorting for Reaglex.
+ * Central product filtering and sorting for Spacilly.
  * Used by SearchResults and any client-side product lists.
  * @param {Array} products - List of product objects
  * @param {Object} filters - { search, minPrice, maxPrice, minRating, categories[], freeShipping, sellers[], sort }
@@ -59,7 +59,7 @@ export function filterProducts(products, filters = {}) {
   return sorted;
 }
 
-const VIEW_KEY = 'reaglex_search_view_mode';
+const VIEW_KEY = 'spacilly_search_view_mode';
 export function getSavedViewMode() {
   try {
     const v = localStorage.getItem(VIEW_KEY);
@@ -74,7 +74,7 @@ export function setSavedViewMode(mode) {
   } catch {}
 }
 
-const RECENT_KEY = 'reaglex_recent_searches';
+const RECENT_KEY = 'spacilly_recent_searches';
 const MAX_RECENT = 8;
 export function getRecentSearches() {
   try {

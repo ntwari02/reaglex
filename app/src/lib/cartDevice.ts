@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DEVICE_KEY = 'reaglex_device_id';
+const DEVICE_KEY = 'spacilly_device_id';
 
 function randomId() {
   return `dev_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;

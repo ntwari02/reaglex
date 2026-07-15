@@ -75,7 +75,7 @@ export function calculateFees(orderTotal: number, processor: CheckoutPaymentProc
     sellerReceives,
     breakdown: {
       gross: orderTotal,
-      reaglexCommission: platformFee,
+      spacillyCommission: platformFee,
       processingFee: flutterwaveFee,
       netToSeller: sellerReceives,
     },
@@ -448,7 +448,7 @@ export async function initializePayment(
       currency: cfgCur,
       externalId: order._id.toString(),
       payerMsisdn: msisdn,
-      payerMessage: `Reaglex ${order.orderNumber}`,
+      payerMessage: `Spacilly ${order.orderNumber}`,
       payeeNote: `Order ${order.orderNumber}`,
     });
 
@@ -538,7 +538,7 @@ export async function initializePayment(
     throw new Error('CLIENT_URL is not set; cannot build payment redirect URL');
   }
 
-  const txRef = `REAGLEX-${order._id}-${Date.now()}`;
+  const txRef = `SPACILLY-${order._id}-${Date.now()}`;
 
   const payload: any = {
     tx_ref: txRef,
@@ -551,7 +551,7 @@ export async function initializePayment(
       name: buyer.fullName,
     },
     customizations: {
-      title: 'Reaglex Payment',
+      title: 'Spacilly Payment',
       description: `Order ${order._id}`,
       logo: `${siteBase}/logo.jpg`,
     },

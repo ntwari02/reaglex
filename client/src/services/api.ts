@@ -149,7 +149,7 @@ export const orderAPI = {
     api.post('/orders/checkout-intelligence', body).then((r) => r.data),
 };
 
-/** Reaglex multi-seller distance-based shipping quotes (buyer). */
+/** Spacilly multi-seller distance-based shipping quotes (buyer). */
 export const shippingAPI = {
   /** Admin-configured cities/countries for “Deliver to …” picker */
   getDestinations: () => publicApi.get('/shipping/destinations').then((r) => r.data),

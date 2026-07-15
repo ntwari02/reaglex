@@ -27,7 +27,7 @@ flowchart TB
 
     subgraph PHASE4A["PHASE 4A — ONLINE PAYMENT (FLUTTERWAVE)"]
         direction TB
-        FW1["POST /api/payments/initialize<br/>paymentMethod: flutterwave"] --> FW2["Flutterwave Payment.initiate()<br/>tx_ref: REAGLEX-orderId-timestamp"]
+        FW1["POST /api/payments/initialize<br/>paymentMethod: flutterwave"] --> FW2["Flutterwave Payment.initiate()<br/>tx_ref: SPACILLY-orderId-timestamp"]
         FW2 --> FW3["Buyer redirected to<br/>Flutterwave hosted checkout"]
         FW3 --> FW4["Buyer pays<br/>(card / bank / mobile money)"]
         FW4 --> FW5{"Confirmation path"}

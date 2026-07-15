@@ -114,9 +114,9 @@ export interface IOrderPayout {
   sellerSubaccountId?: string;
 }
 
-export type ReaglexShipmentStatus = 'pending' | 'ready_for_pickup' | 'shipped' | 'delivered' | 'failed';
+export type SpacillyShipmentStatus = 'pending' | 'ready_for_pickup' | 'shipped' | 'delivered' | 'failed';
 
-export interface IOrderReaglexShipping {
+export interface IOrderSpacillyShipping {
   version: number;
   groupKey?: string;
   sellerId?: string;
@@ -137,7 +137,7 @@ export interface IOrderReaglexShipping {
   estimatedDeliveryFrom?: Date;
   estimatedDeliveryTo?: Date;
   trackingNumber?: string;
-  shipmentStatus?: ReaglexShipmentStatus;
+  shipmentStatus?: SpacillyShipmentStatus;
   deliveryProofUrl?: string;
 }
 
@@ -184,7 +184,7 @@ export interface IOrder extends Document {
     lastChangeReason?: string;
   };
   carrier?: string;
-  reaglexShipping?: IOrderReaglexShipping;
+  spacillyShipping?: IOrderSpacillyShipping;
   orderOptimization?: {
     strategy: 'lowest_cost' | 'fastest_delivery' | 'green_shipping';
     aiConfidence: number;
@@ -368,7 +368,7 @@ const orderTimelineSchema = new Schema<IOrderTimelineEntry>(
   { _id: false }
 );
 
-const reaglexOrderShippingSchema = new Schema(
+const spacillyOrderShippingSchema = new Schema(
   {
     version: { type: Number, default: 1 },
     groupKey: { type: String },
@@ -552,7 +552,7 @@ const orderSchema = new Schema<IOrder>(
       stockRestoredAt: { type: Date },
       lastChangeReason: { type: String },
     },
-    reaglexShipping: { type: reaglexOrderShippingSchema },
+    spacillyShipping: { type: spacillyOrderShippingSchema },
     orderOptimization: {
       strategy: { type: String, enum: ['lowest_cost', 'fastest_delivery', 'green_shipping'] },
       aiConfidence: { type: Number },

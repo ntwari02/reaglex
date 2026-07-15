@@ -113,7 +113,7 @@ export default function MobileAssistantSheet({ open, onClose }: MobileAssistantS
 
   const openChat = (query?: string) => {
     window.dispatchEvent(
-      new CustomEvent('reaglex:assistant:open', { detail: query ? { query } : undefined }),
+      new CustomEvent('spacilly:assistant:open', { detail: query ? { query } : undefined }),
     );
     onClose();
   };
@@ -163,7 +163,7 @@ export default function MobileAssistantSheet({ open, onClose }: MobileAssistantS
                     <p className="ai-sheet-user-name">
                       {displayName} 👋
                     </p>
-                    <p className="ai-sheet-user-greet">Welcome back to Reaglex</p>
+                    <p className="ai-sheet-user-greet">Welcome back to Spacilly</p>
                   </div>
                   <div className="ai-sheet-header-actions">
                     <button
@@ -337,7 +337,7 @@ export default function MobileAssistantSheet({ open, onClose }: MobileAssistantS
                 <ActionRow
                   icon={Bot}
                   iconStyle={{ background: 'rgba(148, 163, 184, 0.12)', color: '#e2e8f0' }}
-                  title="Reaglex AI Assistant"
+                  title="Spacilly AI Assistant"
                   subtitle="Get help instantly"
                   onClick={() => {
                     haptic('selection');

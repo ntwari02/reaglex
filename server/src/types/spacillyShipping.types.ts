@@ -1,4 +1,4 @@
-export type ReaglexShippingMethodKey =
+export type SpacillyShippingMethodKey =
   | 'standard'
   | 'express'
   | 'overnight'
@@ -7,7 +7,7 @@ export type ReaglexShippingMethodKey =
   | 'flat_rate'
   | 'local_delivery';
 
-export interface ReaglexWarehouse {
+export interface SpacillyWarehouse {
   warehouseId: string;
   label: string;
   address?: string;
@@ -21,7 +21,7 @@ export interface ReaglexWarehouse {
   pickupAvailable?: boolean;
 }
 
-export interface ReaglexShippingDefaults {
+export interface SpacillyShippingDefaults {
   baseFee: number;
   ratePerKm: number;
   handlingFee: number;
@@ -29,7 +29,7 @@ export interface ReaglexShippingDefaults {
   freeShippingThreshold?: number;
 }
 
-export interface ReaglexShippingZone {
+export interface SpacillyShippingZone {
   id: string;
   name: string;
   countryCodes: string[];
@@ -37,8 +37,8 @@ export interface ReaglexShippingZone {
   surcharge: number;
 }
 
-export interface ReaglexShippingMethodRule {
-  key: ReaglexShippingMethodKey;
+export interface SpacillyShippingMethodRule {
+  key: SpacillyShippingMethodKey;
   enabled: boolean;
   label?: string;
   description?: string;
@@ -58,16 +58,16 @@ export interface ReaglexShippingMethodRule {
   expressDistanceMultiplier?: number;
 }
 
-export interface ReaglexSellerShippingConfig {
+export interface SpacillySellerShippingConfig {
   enabled: boolean;
   currency: string;
-  warehouses: ReaglexWarehouse[];
-  defaults: ReaglexShippingDefaults;
-  zones: ReaglexShippingZone[];
-  methods: ReaglexShippingMethodRule[];
+  warehouses: SpacillyWarehouse[];
+  defaults: SpacillyShippingDefaults;
+  zones: SpacillyShippingZone[];
+  methods: SpacillyShippingMethodRule[];
 }
 
-export const DEFAULT_REAGLEX_METHODS: ReaglexShippingMethodRule[] = [
+export const DEFAULT_SPACILLY_METHODS: SpacillyShippingMethodRule[] = [
   {
     key: 'standard',
     enabled: true,
@@ -122,7 +122,7 @@ export const DEFAULT_REAGLEX_METHODS: ReaglexShippingMethodRule[] = [
   },
 ];
 
-export function defaultReaglexSellerShipping(): ReaglexSellerShippingConfig {
+export function defaultSpacillySellerShipping(): SpacillySellerShippingConfig {
   return {
     enabled: true,
     currency: 'USD',
@@ -145,6 +145,6 @@ export function defaultReaglexSellerShipping(): ReaglexSellerShippingConfig {
       freeShippingThreshold: undefined,
     },
     zones: [],
-    methods: DEFAULT_REAGLEX_METHODS,
+    methods: DEFAULT_SPACILLY_METHODS,
   };
 }

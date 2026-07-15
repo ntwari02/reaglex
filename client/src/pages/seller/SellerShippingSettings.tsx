@@ -376,7 +376,7 @@ const SellerShippingSettings: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Shipping Settings</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Set your warehouse and rates within Reaglex Rwanda platform rules. Buyers choose delivery city in the site header.
+            Set your warehouse and rates within Spacilly Rwanda platform rules. Buyers choose delivery city in the site header.
           </p>
         </div>
         <Button type="button" disabled={saving} onClick={save} className="ship-save-top-btn rounded-lg bg-[var(--brand-primary)] px-5">
@@ -389,7 +389,7 @@ const SellerShippingSettings: React.FC = () => {
         <section className="ship-card border-emerald-200 bg-emerald-50/40">
           <div className="ship-card-body space-y-3">
             <p className="text-sm font-semibold text-emerald-900">
-              Reaglex {platform.policy?.marketName || 'Rwanda'} — shared delivery network
+              Spacilly {platform.policy?.marketName || 'Rwanda'} — shared delivery network
             </p>
             <p className="text-xs text-emerald-800">
               Admin manages cities ({platform.destinations?.length || 0}) and zones ({platform.zones?.length || 0}).
@@ -602,7 +602,7 @@ const SellerShippingSettings: React.FC = () => {
         <div className="ship-card-head">
           <h2 className="text-lg font-semibold text-gray-900">Shipping Methods</h2>
           <p className="text-xs text-gray-500">
-            Only methods enabled by Reaglex admin appear here. ETA days must stay within platform limits (
+            Only methods enabled by Spacilly admin appear here. ETA days must stay within platform limits (
             {platform?.policy?.etaLimits?.min ?? 1}–{platform?.policy?.etaLimits?.max ?? 21} days).
           </p>
         </div>
@@ -675,7 +675,7 @@ const SellerShippingSettings: React.FC = () => {
             <p className="text-xs text-gray-500">
               {platform?.policy?.sellerCanDefineZones
                 ? 'Apply country-based surcharges when needed.'
-                : 'Managed by Reaglex admin — platform zones apply to all sellers.'}
+                : 'Managed by Spacilly admin — platform zones apply to all sellers.'}
             </p>
           </div>
         {!platform?.policy?.sellerCanDefineZones ? null : (

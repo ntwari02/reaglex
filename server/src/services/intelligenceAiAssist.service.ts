@@ -167,7 +167,7 @@ export async function buildIntelligenceAiInsight(input: {
   resultCount: number;
   hitSummaries: Array<{ type: string; title: string; subtitle: string; status?: string }>;
 }): Promise<IntelligenceAiInsight | null> {
-  const system = `You are Reaglex Smart Admin Assistant — an operational intelligence helper (not a chatbot).
+  const system = `You are Spacilly Smart Admin Assistant — an operational intelligence helper (not a chatbot).
 You do NOT access the database. You only interpret the admin query and the search hits already returned.
 Write like a calm, modern support lead: short, human, no jargon, no robotic repetition.
 Vary wording each time; never reuse the same opening phrase.
@@ -216,7 +216,7 @@ export async function buildTypingAiHint(
 ): Promise<{ hint: string; extractedTerms: string[] } | null> {
   if (!GEMINI_API_KEY || query.trim().length < 4) return null;
 
-  const system = `You are Reaglex Smart Admin Assistant while the admin types in intelligence search.
+  const system = `You are Spacilly Smart Admin Assistant while the admin types in intelligence search.
 Return JSON: { "hint": "one fresh, specific sentence about what to look for — vary phrasing", "extractedTerms": ["phone, email, order id, payment ref if present"] }
 Be concise, professional, operational. No chatbot tone. Do not invent data.`;
 

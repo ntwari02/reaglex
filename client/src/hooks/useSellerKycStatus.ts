@@ -44,7 +44,7 @@ export type SellerKycUpdatedEventDetail = {
 };
 
 const VERIFIED_TOAST =
-  'Verification completed successfully. Your products can now be published on Reaglex.';
+  'Verification completed successfully. Your products can now be published on Spacilly.';
 
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('auth_token');

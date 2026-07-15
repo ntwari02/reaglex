@@ -44,18 +44,18 @@ function safeList(input: unknown, fallback: string[]): string[] {
 function sanitizeOutput(json: any, mode: 'generate' | 'improve'): NotificationCopyOutput {
   const fallbackSubject =
     mode === 'generate'
-      ? ['Update from Reaglex', 'Important marketplace update', 'Action needed on Reaglex']
-      : ['Improved update from Reaglex', 'Clearer notification update'];
+      ? ['Update from Spacilly', 'Important marketplace update', 'Action needed on Spacilly']
+      : ['Improved update from Spacilly', 'Clearer notification update'];
   const fallbackMessages =
     mode === 'generate'
       ? [
-          'Hello {{username}}, your marketplace update is ready. Please review details in your Reaglex account.',
-          'Hi {{username}}, we have an update for your activity on Reaglex. Open your account to continue.',
-          'Hello {{username}}, there is a new update related to your Reaglex activity. Please check now.',
+          'Hello {{username}}, your marketplace update is ready. Please review details in your Spacilly account.',
+          'Hi {{username}}, we have an update for your activity on Spacilly. Open your account to continue.',
+          'Hello {{username}}, there is a new update related to your Spacilly activity. Please check now.',
         ]
       : [
-          'Hello {{username}}, here is an improved version of your notification. Please review in Reaglex.',
-          'Hi {{username}}, your notification has been refined for clarity and impact. Check Reaglex for details.',
+          'Hello {{username}}, here is an improved version of your notification. Please review in Spacilly.',
+          'Hi {{username}}, your notification has been refined for clarity and impact. Check Spacilly for details.',
         ];
   return {
     subject: safeList(json?.subject, fallbackSubject).slice(0, mode === 'generate' ? 3 : 2),
@@ -152,7 +152,7 @@ export async function generateNotificationCopy(input: NotificationCopyGenerateIn
   ).filter(Boolean);
 
   const system = [
-    'You are Reaglex notification copywriter AI.',
+    'You are Spacilly notification copywriter AI.',
     'Write concise, trustworthy marketplace notifications.',
     'Avoid spammy language and hype.',
     'Respect selected tone and context.',
@@ -179,7 +179,7 @@ export async function generateNotificationCopy(input: NotificationCopyGenerateIn
 
 export async function improveNotificationCopy(input: NotificationCopyImproveInput): Promise<NotificationCopyOutput> {
   const system = [
-    'You improve existing Reaglex notification copy.',
+    'You improve existing Spacilly notification copy.',
     'Keep original intent.',
     'Make it clearer, tighter, and more engaging.',
     'No spam, no excessive urgency.',

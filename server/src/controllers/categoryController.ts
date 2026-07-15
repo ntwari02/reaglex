@@ -45,7 +45,7 @@ export async function getCategoryPublic(req: AuthenticatedRequest, res: Response
         : {
             slug,
             name: slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-            description: `Browse products in this category on Reaglex.`,
+            description: `Browse products in this category on Spacilly.`,
             productCount,
           },
     });

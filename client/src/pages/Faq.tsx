@@ -31,7 +31,7 @@ const ITEMS: { id: string; q: string; a: string }[] = [
   },
   {
     id: 'seller',
-    q: 'How do I sell on Reaglex?',
+    q: 'How do I sell on Spacilly?',
     a: 'Use Become a seller to apply. Once approved, you can list products, manage orders from the seller dashboard, and access seller help resources.',
   },
   {
@@ -68,8 +68,8 @@ export default function Faq() {
   return (
     <BuyerLayout>
       <PageSeo
-        title="FAQ — Reaglex help center"
-        description="Frequently asked questions about Reaglex orders, returns, payments, escrow protection, and seller onboarding."
+        title="FAQ — Spacilly help center"
+        description="Frequently asked questions about Spacilly orders, returns, payments, escrow protection, and seller onboarding."
         canonicalUrl={canonicalUrl}
         ogType="website"
         jsonLd={faqJsonLd}

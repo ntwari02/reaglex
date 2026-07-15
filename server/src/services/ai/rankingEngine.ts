@@ -215,7 +215,7 @@ function freeDeliveryScore(product: IProduct): number {
   const flag =
     Boolean((product as any).freeShipping) ||
     Boolean((product as any).fastDelivery) ||
-    Boolean((product as any).reaglexShipping?.enabled);
+    Boolean((product as any).spacillyShipping?.enabled);
   return flag ? 1 : 0;
 }
 

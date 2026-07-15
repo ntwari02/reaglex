@@ -1,5 +1,5 @@
 /**
- * Semantic colors aligned with `client/src/styles/theme.css` (Reaglex buyer storefront).
+ * Semantic colors aligned with `client/src/styles/theme.css` (Spacilly buyer storefront).
  * Light uses vivid orange #f97316; dark uses softened brand #D97736 per web dark theme.
  */
 import { Platform } from 'react-native';
@@ -95,7 +95,7 @@ export const fontSerif = fontBody;
 
 export const fontSans = fontBody;
 
-/** Reaglex logo wordmark only (web uses Mea Culpa via custom font). */
+/** Spacilly logo wordmark only (web uses Mea Culpa via custom font). */
 export const fontLogo = Platform.select({
   ios: 'Times New Roman',
   android: 'serif',

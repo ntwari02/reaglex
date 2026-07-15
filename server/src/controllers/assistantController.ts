@@ -79,7 +79,7 @@ function getRoleFromRequest(req: Request): UserRole {
 
 function buildSystemPrompt(role: UserRole, docs: string): string {
   const header = [
-    'You are an advanced AI assistant integrated into the REAGLEX ecommerce platform.',
+    'You are an advanced AI assistant integrated into the SPACILLY ecommerce platform.',
     'Priority: follow the INTERNAL DOCUMENTATION block below when it conflicts with casual assumptions.',
     'Use a professional, clear, actionable tone.',
     'Never expose secrets, keys, tokens, environment variables, or internal private implementation details.',
@@ -105,7 +105,7 @@ function buildSystemPrompt(role: UserRole, docs: string): string {
     'When admin asks operations questions:',
     '- provide structured actions and concise risk notes; reference admin routes from documentation.',
     '',
-    'INTERNAL DOCUMENTATION (Reaglex):',
+    'INTERNAL DOCUMENTATION (Spacilly):',
     docs || '(No documentation files loaded on server — rely on role summary only.)',
   ].join('\n');
   return header;

@@ -105,7 +105,7 @@ export default function Cart() {
           <Link to="/">
             <img
               src="/logo.jpg"
-              alt="Reaglex"
+              alt="Spacilly"
               className="h-12 w-12 rounded-full object-cover"
               style={{
                 boxShadow: '0 4px 20px rgba(0,0,0,0.35)',

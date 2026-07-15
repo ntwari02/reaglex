@@ -40,7 +40,7 @@ interface ChatMessage {
   paymentReferenceId?: string;
 }
 
-const LEGACY_STORAGE_KEY = 'reaglex_unified_assistant_chat';
+const LEGACY_STORAGE_KEY = 'spacilly_unified_assistant_chat';
 const MAX_MESSAGES = 50;
 const SEND_COOLDOWN_MS = 10_000;
 const PRIMARY = 'var(--commerce-brand-primary)';
@@ -61,7 +61,7 @@ const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
   from: 'bot',
   ts: 'Just now',
-  text: "Hi there! 👋 I'm REAGLEX AI — your intelligent shopping assistant.\n\nI can help you with:\n· Finding the perfect product\n· Order tracking & status\n· Shipping & delivery info\n· Returns & refunds\n· Checkout & payments\n\nWhat can I help you with today?",
+  text: "Hi there! 👋 I'm SPACILLY AI — your intelligent shopping assistant.\n\nI can help you with:\n· Finding the perfect product\n· Order tracking & status\n· Shipping & delivery info\n· Returns & refunds\n· Checkout & payments\n\nWhat can I help you with today?",
 };
 
 /* ── Gemini Icon ─────────────────────────────────────────────────────────── */
@@ -206,11 +206,11 @@ export default function AssistantChat() {
       const q = (e as CustomEvent<{ query?: string }>)?.detail?.query;
       if (typeof q === 'string' && q.trim()) setInput(q.trim());
     };
-    window.addEventListener('reaglex:assistant:open', h as EventListener);
-    window.addEventListener('reaglex-open-help-chat', h as EventListener);
+    window.addEventListener('spacilly:assistant:open', h as EventListener);
+    window.addEventListener('spacilly-open-help-chat', h as EventListener);
     return () => {
-      window.removeEventListener('reaglex:assistant:open', h as EventListener);
-      window.removeEventListener('reaglex-open-help-chat', h as EventListener);
+      window.removeEventListener('spacilly:assistant:open', h as EventListener);
+      window.removeEventListener('spacilly-open-help-chat', h as EventListener);
     };
   }, []);
 
@@ -251,7 +251,7 @@ export default function AssistantChat() {
 
   /* ── Inject styles & animations ── */
   useEffect(() => {
-    const styleId = 'reaglex-ai-chat-styles';
+    const styleId = 'spacilly-ai-chat-styles';
     let style = document.getElementById(styleId) as HTMLStyleElement | null;
     if (!style) {
       style = document.createElement('style');
@@ -692,7 +692,7 @@ export default function AssistantChat() {
                   <span className="ai-online-dot" aria-hidden />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div className="ai-chat-header__title">REAGLEX AI</div>
+                  <div className="ai-chat-header__title">SPACILLY AI</div>
                   <div className="ai-chat-header__meta">
                     <span className="ai-chat-header__online">● Online</span>
                     {poweredByModel && (

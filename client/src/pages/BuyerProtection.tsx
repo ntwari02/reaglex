@@ -44,7 +44,7 @@ const HOW_STEPS = [
     num: 1,
     icon: '🛒',
     title: 'Browse & Purchase',
-    desc: 'Find what you love and place your order. Pay securely through Reaglex.',
+    desc: 'Find what you love and place your order. Pay securely through Spacilly.',
     badge: 'SSL Encrypted',
     gradient: 'var(--gradient-brand-cta)',
   },
@@ -88,21 +88,21 @@ const TESTIMONIALS = [
     location: 'Kigali',
     refunded: '$89 Refunded',
     quote:
-      'I ordered a phone but received a completely different model. I opened a dispute and within 24 hours Reaglex refunded me fully. Amazing protection!',
+      'I ordered a phone but received a completely different model. I opened a dispute and within 24 hours Spacilly refunded me fully. Amazing protection!',
   },
   {
     name: 'Jean P.',
     location: 'Musanze',
     refunded: '$45 Refunded',
     quote:
-      'The seller never shipped my order. Reaglex investigated and refunded me the same day I filed. Incredible!',
+      'The seller never shipped my order. Spacilly investigated and refunded me the same day I filed. Incredible!',
   },
   {
     name: 'Grace N.',
     location: 'Butare',
     refunded: '$120 Refunded',
     quote:
-      'Received a fake branded bag. Sent photos as evidence and Reaglex confirmed it was fake. Full refund plus the seller was removed from the platform!',
+      'Received a fake branded bag. Sent photos as evidence and Spacilly confirmed it was fake. Full refund plus the seller was removed from the platform!',
   },
   {
     name: 'Eric T.',
@@ -288,7 +288,7 @@ function BuyerProtection() {
                 className="mx-auto max-w-xl text-base"
                 style={{ color: 'var(--hero-marketing-subtitle)', fontSize: 16 }}
               >
-                Every purchase on Reaglex is backed by our comprehensive Buyer Protection
+                Every purchase on Spacilly is backed by our comprehensive Buyer Protection
                 program. Your money is always safe.
               </p>
             </div>
@@ -414,14 +414,14 @@ function BuyerProtection() {
                   className="text-base"
                   style={{ color: 'rgba(255,255,255,0.80)', lineHeight: 1.8 }}
                 >
-                  Reaglex Buyer Protection is our commitment to every shopper on our
+                  Spacilly Buyer Protection is our commitment to every shopper on our
                   platform.
                 </p>
                 <p
                   className="text-sm"
                   style={{ color: 'rgba(255,255,255,0.70)', lineHeight: 1.8 }}
                 >
-                  When you shop on Reaglex, your payment is held securely in escrow — never
+                  When you shop on Spacilly, your payment is held securely in escrow — never
                   sent directly to the seller until you confirm you&apos;re satisfied.
                 </p>
                 <p
@@ -817,11 +817,11 @@ function BuyerProtection() {
                     ],
                     [
                       'Prohibited items',
-                      'Purchases of items banned by Reaglex policy.',
+                      'Purchases of items banned by Spacilly policy.',
                     ],
                     [
                       'Transactions off-platform',
-                      'Deals made outside Reaglex or paid off-site.',
+                      'Deals made outside Spacilly or paid off-site.',
                     ],
                     [
                       'Claims after 30 days',
@@ -923,7 +923,7 @@ function BuyerProtection() {
                         className="text-sm font-bold"
                         style={{ color: '#e5e7eb' }}
                       >
-                        Reaglex Escrow
+                        Spacilly Escrow
                       </p>
                       <p
                         className="mt-1 text-xs"
@@ -1206,7 +1206,7 @@ function BuyerProtection() {
                     className="text-xs"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    All Reaglex Buyers
+                    All Spacilly Buyers
                   </p>
                   <span
                     className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
@@ -1327,7 +1327,7 @@ function BuyerProtection() {
                     className="text-xs"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    Reaglex Pro Members
+                    Spacilly Pro Members
                   </p>
                   <span
                     className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
@@ -1475,7 +1475,7 @@ function BuyerProtection() {
               className="text-2xl md:text-[26px] font-bold"
               style={{ color: 'var(--text-primary)' }}
             >
-              🏆 Why Trust Reaglex?
+              🏆 Why Trust Spacilly?
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[

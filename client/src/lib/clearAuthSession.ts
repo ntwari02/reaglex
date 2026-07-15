@@ -4,11 +4,11 @@ const AUTH_LOCAL_KEYS = [
   'auth_token',
   'user',
   'demo_user',
-  'reaglex_auth_remember',
+  'spacilly_auth_remember',
 ] as const;
 
-const LEGACY_CHAT_KEY = 'reaglex_unified_assistant_chat';
-const CHAT_KEY_PREFIX = 'reaglex_assistant_chat_';
+const LEGACY_CHAT_KEY = 'spacilly_unified_assistant_chat';
+const CHAT_KEY_PREFIX = 'spacilly_assistant_chat_';
 
 /** Remove assistant chat blobs for all users on this device. */
 export function clearAssistantChatStorage(): void {
@@ -41,7 +41,7 @@ function clearAuthSessionStorage(): void {
       const key = window.sessionStorage.key(i);
       if (!key) continue;
       if (
-        key.startsWith('reaglex_auth') ||
+        key.startsWith('spacilly_auth') ||
         key.startsWith('auth_') ||
         key.includes('auth_token')
       ) {
@@ -61,7 +61,7 @@ export async function clearAuthSession(options?: { keepRememberMe?: boolean }): 
 
   if (typeof window !== 'undefined') {
     AUTH_LOCAL_KEYS.forEach((key) => {
-      if (options?.keepRememberMe && key === 'reaglex_auth_remember') return;
+      if (options?.keepRememberMe && key === 'spacilly_auth_remember') return;
       window.localStorage.removeItem(key);
     });
   }

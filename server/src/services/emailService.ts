@@ -24,7 +24,7 @@ function getEnv(key: string, fallback = ''): string {
 }
 
 const CLIENT_URL = getClientUrl();
-const APP_NAME = getEnv('APP_NAME') || 'Reaglex';
+const APP_NAME = getEnv('APP_NAME') || 'Spacilly';
 const EMAIL_PROVIDER = getEnv('EMAIL_PROVIDER', 'smtp').toLowerCase();
 
 let transporter: nodemailer.Transporter | null = null;

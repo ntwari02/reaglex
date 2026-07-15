@@ -74,7 +74,7 @@ function computeTrustBonuses(settings: {
   };
 }
 
-const IDENTITY_KYC_FOLDER = 'reaglex/sellers/identity-kyc';
+const IDENTITY_KYC_FOLDER = 'spacilly/sellers/identity-kyc';
 
 async function persistIdentityImage(file?: Express.Multer.File): Promise<string | undefined> {
   if (!file?.buffer?.length) return undefined;

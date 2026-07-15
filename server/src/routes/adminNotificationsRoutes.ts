@@ -58,14 +58,14 @@ function formatComposerHtml(subj: string, msg: string): string {
 <html>
 <body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
   <div style="background:#00BFA5;padding:16px;border-radius:8px 8px 0 0">
-    <h1 style="color:white;margin:0;font-size:20px">Reaglex</h1>
+    <h1 style="color:white;margin:0;font-size:20px">Spacilly</h1>
   </div>
   <div style="background:#f9fafb;padding:24px;border-radius:0 0 8px 8px">
     <h2 style="color:#111827">${safeSubj}</h2>
     <p style="color:#374151;line-height:1.7">${safeBody}</p>
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
     <p style="color:#9ca3af;font-size:12px">
-      Reaglex Marketplace · Kigali, Rwanda<br>
+      Spacilly · Kigali, Rwanda<br>
       <a href="{{unsubscribe_url}}" style="color:#9ca3af">Unsubscribe</a>
     </p>
   </div>
@@ -163,7 +163,7 @@ async function sendBulkComposerEmails(
   const from =
     process.env.EMAIL_FROM?.trim() ||
     process.env.RESEND_FROM_EMAIL?.trim() ||
-    'Reaglex <noreply@reaglex.com>';
+    'Spacilly <noreply@spacilly.com>';
 
   if (EMAIL_PROVIDER === 'resend') {
     const client = getResendClient();
@@ -291,7 +291,7 @@ router.post('/generate-ai', async (req: AuthenticatedRequest, res: Response) => 
   }
 
   const userPromptBase = `You are an expert notification copywriter for 
-      Reaglex, Rwanda's #1 marketplace for buyers and verified 
+      Spacilly, Rwanda's #1 marketplace for buyers and verified 
       sellers. Write in ${tone || 'professional'} tone.
 
       Generate exactly 2 subject lines and 2 message bodies for 

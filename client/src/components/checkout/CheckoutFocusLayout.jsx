@@ -51,10 +51,10 @@ export default function CheckoutFocusLayout({
             <span className="hidden sm:inline">{t(backLabelKey)}</span>
           </button>
 
-          <Link to="/" className="justify-self-center" aria-label="Reaglex home">
+          <Link to="/" className="justify-self-center" aria-label="Spacilly home">
             <img
               src="/logo.jpg"
-              alt="Reaglex"
+              alt="Spacilly"
               className="h-9 w-9 rounded-full object-cover"
               style={{ boxShadow: 'var(--shadow-card)' }}
             />

@@ -14,7 +14,7 @@ type CookiePrefs = {
   version: '1.0';
 };
 
-const STORAGE_KEY = 'reaglex-cookie-prefs';
+const STORAGE_KEY = 'spacilly-cookie-prefs';
 
 const DEFAULT_PREFS: CookiePrefs = {
   essential: true,
@@ -321,7 +321,7 @@ function CookieSettings() {
                 className="mx-auto max-w-xl text-base"
                 style={{ color: 'var(--hero-marketing-subtitle)', fontSize: 16 }}
               >
-                Control how Reaglex uses cookies to personalize your experience. Your
+                Control how Spacilly uses cookies to personalize your experience. Your
                 preferences are saved instantly.
               </p>
             </div>
@@ -457,7 +457,7 @@ function CookieSettings() {
                   className="text-sm md:text-[15px]"
                   style={{ color: 'rgba(255,255,255,0.80)', lineHeight: 1.8 }}
                 >
-                  Cookies are small text files stored on your device when you visit Reaglex.
+                  Cookies are small text files stored on your device when you visit Spacilly.
                   They help us remember your preferences and improve your experience.
                 </p>
                 <p
@@ -472,7 +472,7 @@ function CookieSettings() {
                     'Remember your cart items',
                     'Show relevant products',
                     'Improve site performance',
-                    'Analyze how you use Reaglex',
+                    'Analyze how you use Spacilly',
                     'Personalize your experience',
                   ].map((item) => (
                     <li key={item} className="flex gap-2">
@@ -599,7 +599,7 @@ function CookieSettings() {
                 type="essential"
                 title="Essential Cookies"
                 subtitle="Required for the site to function"
-                description="These cookies are necessary for Reaglex to function properly. They enable core features like security, network management, and account access. You cannot disable these."
+                description="These cookies are necessary for Spacilly to function properly. They enable core features like security, network management, and account access. You cannot disable these."
                 icon="🔒"
                 iconGradient="linear-gradient(135deg,#059669,#047857)"
                 cookiesCount={8}
@@ -608,14 +608,14 @@ function CookieSettings() {
                   { label: 'Always Active', tone: 'success' },
                 ]}
                 cookies={[
-                  ['session_id', 'Login session', 'Session', 'Reaglex'],
-                  ['csrf_token', 'Security', 'Session', 'Reaglex'],
-                  ['cart_data', 'Shopping cart', '7 days', 'Reaglex'],
-                  ['auth_token', 'Authentication', '30 days', 'Reaglex'],
-                  ['user_prefs', 'UI preferences', '1 year', 'Reaglex'],
-                  ['lang', 'Language', '1 year', 'Reaglex'],
-                  ['currency', 'Currency pref', '1 year', 'Reaglex'],
-                  ['theme', 'Dark/light mode', '1 year', 'Reaglex'],
+                  ['session_id', 'Login session', 'Session', 'Spacilly'],
+                  ['csrf_token', 'Security', 'Session', 'Spacilly'],
+                  ['cart_data', 'Shopping cart', '7 days', 'Spacilly'],
+                  ['auth_token', 'Authentication', '30 days', 'Spacilly'],
+                  ['user_prefs', 'UI preferences', '1 year', 'Spacilly'],
+                  ['lang', 'Language', '1 year', 'Spacilly'],
+                  ['currency', 'Currency pref', '1 year', 'Spacilly'],
+                  ['theme', 'Dark/light mode', '1 year', 'Spacilly'],
                 ]}
                 value={prefs.essential}
                 locked
@@ -630,8 +630,8 @@ function CookieSettings() {
               <CategoryCard
                 type="analytics"
                 title="Analytics Cookies"
-                subtitle="Help us understand how you use Reaglex"
-                description="These cookies collect anonymous information about how visitors use Reaglex. This helps us improve the site, fix bugs, and understand which features are most useful. All data is anonymized."
+                subtitle="Help us understand how you use Spacilly"
+                description="These cookies collect anonymous information about how visitors use Spacilly. This helps us improve the site, fix bugs, and understand which features are most useful. All data is anonymized."
                 icon="📊"
                 iconGradient="var(--accent-marketing-gradient)"
                 cookiesCount={6}
@@ -640,9 +640,9 @@ function CookieSettings() {
                   ['_ga', 'Google Analytics', '2 years', 'Google'],
                   ['_gid', 'Analytics session', '24hrs', 'Google'],
                   ['_gat', 'Rate limiting', '1 min', 'Google'],
-                  ['reaglex_analytics', 'Page views', '30 days', 'Reaglex'],
-                  ['session_duration', 'Time on site', 'Session', 'Reaglex'],
-                  ['feature_usage', 'Feature tracking', '90 days', 'Reaglex'],
+                  ['spacilly_analytics', 'Page views', '30 days', 'Spacilly'],
+                  ['session_duration', 'Time on site', 'Session', 'Spacilly'],
+                  ['feature_usage', 'Feature tracking', '90 days', 'Spacilly'],
                 ]}
                 value={prefs.analytics}
                 expanded={expanded.analytics}
@@ -679,9 +679,9 @@ function CookieSettings() {
                 cookies={[
                   ['_fbp', 'Facebook pixel', '90 days', 'Meta'],
                   ['ad_session', 'Ad tracking', 'Session', 'Google'],
-                  ['retarget', 'Retargeting', '30 days', 'Reaglex'],
-                  ['promo_seen', 'Promotion tracking', '7 days', 'Reaglex'],
-                  ['campaign_id', 'Campaign source', '30 days', 'Reaglex'],
+                  ['retarget', 'Retargeting', '30 days', 'Spacilly'],
+                  ['promo_seen', 'Promotion tracking', '7 days', 'Spacilly'],
+                  ['campaign_id', 'Campaign source', '30 days', 'Spacilly'],
                 ]}
                 value={prefs.marketing}
                 expanded={expanded.marketing}
@@ -714,13 +714,13 @@ function CookieSettings() {
                 cookiesCount={7}
                 badges={[{ label: '7 cookies', tone: 'neutral' }]}
                 cookies={[
-                  ['recently_viewed', 'Product history', '30 days', 'Reaglex'],
-                  ['wishlist_temp', 'Temp wishlist', '7 days', 'Reaglex'],
-                  ['search_history', 'Search queries', '30 days', 'Reaglex'],
-                  ['recommendations', 'Product recs', '14 days', 'Reaglex'],
-                  ['category_pref', 'Category interest', '60 days', 'Reaglex'],
-                  ['price_filter', 'Last used filters', '7 days', 'Reaglex'],
-                  ['sort_pref', 'Sort preference', '30 days', 'Reaglex'],
+                  ['recently_viewed', 'Product history', '30 days', 'Spacilly'],
+                  ['wishlist_temp', 'Temp wishlist', '7 days', 'Spacilly'],
+                  ['search_history', 'Search queries', '30 days', 'Spacilly'],
+                  ['recommendations', 'Product recs', '14 days', 'Spacilly'],
+                  ['category_pref', 'Category interest', '60 days', 'Spacilly'],
+                  ['price_filter', 'Last used filters', '7 days', 'Spacilly'],
+                  ['sort_pref', 'Sort preference', '30 days', 'Spacilly'],
                 ]}
                 value={prefs.personalization}
                 expanded={expanded.personalization}
@@ -761,7 +761,7 @@ function CookieSettings() {
                   ['fb_login', 'Facebook login', '90 days', 'Meta'],
                   ['google_login', 'Google login', '1 year', 'Google'],
                   ['whatsapp_share', 'Share tracking', '7 days', 'Meta'],
-                  ['social_session', 'Social auth', 'Session', 'Reaglex'],
+                  ['social_session', 'Social auth', 'Session', 'Spacilly'],
                 ]}
                 value={prefs.social}
                 expanded={expanded.social}
@@ -783,9 +783,9 @@ function CookieSettings() {
                 badges={[{ label: '4 cookies', tone: 'neutral' }]}
                 cookies={[
                   ['cdn_pref', 'CDN routing', '7 days', 'Cloudflare'],
-                  ['perf_monitor', 'Performance data', '1 day', 'Reaglex'],
-                  ['error_log', 'Error tracking', '30 days', 'Reaglex'],
-                  ['load_balance', 'Server routing', 'Session', 'Reaglex'],
+                  ['perf_monitor', 'Performance data', '1 day', 'Spacilly'],
+                  ['error_log', 'Error tracking', '30 days', 'Spacilly'],
+                  ['load_balance', 'Server routing', 'Session', 'Spacilly'],
                 ]}
                 value={prefs.performance}
                 expanded={expanded.performance}
@@ -1106,7 +1106,7 @@ function CookieSettings() {
                 className="mt-1 text-sm"
                 style={{ color: 'var(--text-muted)' }}
               >
-                External services that may set cookies on Reaglex.
+                External services that may set cookies on Spacilly.
               </p>
             </div>
             <div
@@ -1282,7 +1282,7 @@ function CookieSettings() {
                     className="rounded-full px-3 py-1 text-[11px]"
                     style={{ background: 'var(--card-bg)', color: 'var(--text-muted)' }}
                   >
-                    reaglex.com
+                    spacilly.com
                   </div>
                   <div className="w-10" />
                 </div>
@@ -1302,7 +1302,7 @@ function CookieSettings() {
                             className="font-semibold"
                             style={{ color: '#ffffff' }}
                           >
-                            We use cookies to improve your experience on Reaglex.
+                            We use cookies to improve your experience on Spacilly.
                           </p>
                           <button
                             type="button"
@@ -1426,7 +1426,7 @@ function CookieSettings() {
                 icon="🗑️"
                 color="#f59e0b"
                 title="Clear All My Cookies"
-                description="Removes all Reaglex cookies from your browser. You'll be logged out and preferences reset."
+                description="Removes all Spacilly cookies from your browser. You'll be logged out and preferences reset."
                 buttonLabel="Clear Cookies"
                 onClick={() => setPendingDangerAction('clear-cookies')}
               />
@@ -1442,7 +1442,7 @@ function CookieSettings() {
                 icon="🚨"
                 color="#f87171"
                 title="Delete All My Data"
-                description="Permanently deletes ALL data Reaglex holds about you including cookies, account data and history."
+                description="Permanently deletes ALL data Spacilly holds about you including cookies, account data and history."
                 buttonLabel="Delete Everything"
                 onClick={() => setPendingDangerAction('delete-data')}
               />
@@ -1491,7 +1491,7 @@ function CookieSettings() {
                     className="pt-1 text-[12px]"
                     style={{ color: 'rgba(255,255,255,0.40)' }}
                   >
-                    🔒 Reaglex is committed to GDPR compliance and data privacy.
+                    🔒 Spacilly is committed to GDPR compliance and data privacy.
                   </p>
                 </div>
               </div>
@@ -1633,7 +1633,7 @@ function CookieSettings() {
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   {pendingDangerAction === 'clear-cookies' &&
-                    "This will clear Reaglex cookies from this browser. You'll be logged out and preferences reset."}
+                    "This will clear Spacilly cookies from this browser. You'll be logged out and preferences reset."}
                   {pendingDangerAction === 'reset-prefs' &&
                     'This will reset all cookie preferences back to their default values.'}
                   {pendingDangerAction === 'delete-data' &&

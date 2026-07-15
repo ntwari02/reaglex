@@ -28,7 +28,7 @@ export default function HomeHero({ colors, theme }: Props) {
           Shop the future
         </Text>
         <Text style={[styles.sub, { color: colors.textMuted }]}>
-          Premium products, buyer protection, and delivery you can track — same marketplace as reaglex.com.
+          Premium products, buyer protection, and delivery you can track — same marketplace as spacilly.com.
         </Text>
       </View>
     </LinearGradient>

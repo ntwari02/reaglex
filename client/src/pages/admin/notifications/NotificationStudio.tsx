@@ -65,7 +65,7 @@ const QUICK_PROMPTS = [
   'Create escrow release message.',
 ];
 
-const STUDIO_DRAFT_KEY = 'reaglex_notification_studio_drafts_v1';
+const STUDIO_DRAFT_KEY = 'spacilly_notification_studio_drafts_v1';
 
 type DraftVersion = { id: string; at: string; subject: string; body: string; channel: Channel };
 
@@ -325,7 +325,7 @@ export default function NotificationStudio() {
             action,
             channel,
             subject,
-            body: body || extra || 'Notification for Reaglex users.',
+            body: body || extra || 'Notification for Spacilly users.',
             tone,
             targetLanguage: action === 'translate' ? translateLang : undefined,
             extraInstruction: extra,
@@ -820,7 +820,7 @@ export default function NotificationStudio() {
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] font-mono uppercase tracking-[0.35em] mb-1.5" style={{ color: 'var(--brand-primary)' }}>
-            Reaglex · broadcast
+            Spacilly · broadcast
           </p>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3 flex-wrap">
             <span className="relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-2xl overflow-hidden shrink-0">

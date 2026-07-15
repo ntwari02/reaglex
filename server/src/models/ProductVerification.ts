@@ -6,7 +6,7 @@ export type RiskLevel = 'low' | 'medium' | 'high';
 export interface IProductVerification extends Document {
   productId: mongoose.Types.ObjectId;
   sellerId: mongoose.Types.ObjectId;
-  reaglexProductId: string;
+  spacillyProductId: string;
   identifiers: {
     barcode?: string;
     ean?: string;
@@ -73,7 +73,7 @@ const productVerificationSchema = new Schema<IProductVerification>(
   {
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true, unique: true, index: true },
     sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    reaglexProductId: { type: String, required: true, index: true },
+    spacillyProductId: { type: String, required: true, index: true },
     identifiers: {
       barcode: { type: String, trim: true },
       ean: { type: String, trim: true },

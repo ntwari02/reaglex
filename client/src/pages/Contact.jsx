@@ -103,10 +103,10 @@ export default function Contact() {
   const contactJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ContactPage',
-    name: 'Contact Reaglex',
+    name: 'Contact Spacilly',
     url: canonicalUrl,
     description:
-      'Reach Reaglex support for order, payment, escrow, return, and seller inquiries — typical email response within 24 hours.',
+      'Reach Spacilly support for order, payment, escrow, return, and seller inquiries — typical email response within 24 hours.',
     ...(origin
       ? {
           isPartOf: { '@id': `${origin}/#website` },
@@ -290,8 +290,8 @@ export default function Contact() {
   return (
     <BuyerLayout>
       <PageSeo
-        title="Contact Reaglex — buyer & seller support"
-        description="Reach Reaglex for order, payment, escrow, return, and seller inquiries. Typical email reply within 24 hours; live chat in under 2 minutes."
+        title="Contact Spacilly — buyer & seller support"
+        description="Reach Spacilly for order, payment, escrow, return, and seller inquiries. Typical email reply within 24 hours; live chat in under 2 minutes."
         canonicalUrl={canonicalUrl}
         ogImage={origin ? `${origin}/logo.jpg` : undefined}
         ogType="website"
@@ -389,7 +389,7 @@ export default function Contact() {
                     background: 'var(--gradient-brand-cta)',
                     boxShadow: 'var(--shadow-cta)',
                   }}
-                  onClick={() => window.dispatchEvent(new Event('reaglex:assistant:open'))}
+                  onClick={() => window.dispatchEvent(new Event('spacilly:assistant:open'))}
                 >
                   Start Chatting →
                 </motion.button>

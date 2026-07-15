@@ -103,7 +103,7 @@ const exchangeNodeCache = new NodeCache({
   stdTTL: Math.max(60, Math.floor(Number(process.env.EXCHANGE_RATE_REFRESH_MS || 5 * 60 * 1000) / 1000)),
   useClones: false,
 });
-const NODE_CACHE_KEY = 'reaglex:usd_rates_snapshot';
+const NODE_CACHE_KEY = 'spacilly:usd_rates_snapshot';
 
 function safeRound(value: number, mode: 'round' | 'ceil' = 'round'): number {
   return mode === 'ceil' ? Math.ceil(value) : Math.round(value);

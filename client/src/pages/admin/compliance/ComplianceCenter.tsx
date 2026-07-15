@@ -98,7 +98,7 @@ export default function ComplianceCenter() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `reaglex-compliance-pack-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `spacilly-compliance-pack-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
@@ -112,7 +112,7 @@ export default function ComplianceCenter() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `reaglex-compliance-pack-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `spacilly-compliance-pack-${new Date().toISOString().slice(0, 10)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
@@ -226,7 +226,7 @@ export default function ComplianceCenter() {
       <div className="grid gap-4 md:grid-cols-2">
         <input
           className="rounded-xl border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-          placeholder="Brand name for PDF (e.g. Reaglex)"
+          placeholder="Brand name for PDF (e.g. Spacilly)"
           value={profile.complianceProfile?.brandingName || ''}
           onChange={(e) =>
             setProfile((p: any) => ({

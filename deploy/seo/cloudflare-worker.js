@@ -1,20 +1,20 @@
 /**
- * Reaglex — Cloudflare Worker edge router.
+ * Spacilly — Cloudflare Worker edge router.
  *
  * Detects search engine + social bots and proxies them to the SEO SSR origin
  * (real HTML + JSON-LD + canonical/hreflang). Humans are routed to the SPA
  * origin (Vercel / static host).
  *
  * Bind these environment vars in the Worker:
- *   SPA_ORIGIN       e.g. https://reaglex.vercel.app
- *   SEO_SSR_ORIGIN   e.g. https://seo-ssr.reaglex.com
+ *   SPA_ORIGIN       e.g. https://spacilly.vercel.app
+ *   SEO_SSR_ORIGIN   e.g. https://seo-ssr.spacilly.com
  *
  * Optional:
  *   SEO_SSR_DISABLE  "1" — kill switch (forces SPA for all traffic)
  *
  * Recommended Worker route:
- *   reaglex.com/*
- *   www.reaglex.com/*
+ *   spacilly.com/*
+ *   www.spacilly.com/*
  */
 
 const BOT_REGEX =
@@ -51,7 +51,7 @@ export default {
     init.headers.set('x-forwarded-host', url.host);
     init.headers.set('x-forwarded-proto', url.protocol.replace(':', ''));
     if (upstream === seoOrigin && seoOrigin) {
-      init.headers.set('x-reaglex-bot', '1');
+      init.headers.set('x-spacilly-bot', '1');
     }
 
     const cacheKey = new Request(proxyUrl, { method: 'GET' });
@@ -75,7 +75,7 @@ export default {
     const out = new Response(resp.body, resp);
     const vary = out.headers.get('vary');
     out.headers.set('vary', vary ? `${vary}, User-Agent` : 'User-Agent');
-    out.headers.set('x-reaglex-edge', isBot ? 'bot' : 'human');
+    out.headers.set('x-spacilly-edge', isBot ? 'bot' : 'human');
     return out;
   },
 };

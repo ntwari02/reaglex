@@ -212,7 +212,7 @@ export function refreshTerminalIntelNow(): void {
 }
 
 function rebuildTerminalIntelBuffers(): void {
-  const appName = process.env.APP_NAME || 'Reaglex';
+  const appName = process.env.APP_NAME || 'Spacilly';
 
   const svcLines: string[] = [
     formatLine(`======== ${appName.toUpperCase()} · RUNTIME ========`),

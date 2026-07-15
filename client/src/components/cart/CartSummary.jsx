@@ -108,9 +108,9 @@ export default function CartSummary({
                 <li key={g.groupKey} className="flex justify-between gap-2" style={{ color: 'var(--text-secondary)' }}>
                   <span className="truncate">
                     {g.warehouseLabel}
-                    {std?.freeShippingApplied ? ` · ${t('checkout.reaglexFree')}` : ''}
+                    {std?.freeShippingApplied ? ` · ${t('checkout.spacillyFree')}` : ''}
                   </span>
-                  <span className="font-semibold shrink-0">{std?.freeShippingApplied ? t('checkout.reaglexFree') : fmt(price)}</span>
+                  <span className="font-semibold shrink-0">{std?.freeShippingApplied ? t('checkout.spacillyFree') : fmt(price)}</span>
                 </li>
               );
             })}

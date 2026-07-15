@@ -14,7 +14,7 @@ import {
   MOCK_RECENT,
   getMockSearchResults,
 } from '../../lib/mockSearch';
-const RECENT_KEY = 'reaglex_recent_searches';
+const RECENT_KEY = 'spacilly_recent_searches';
 
 function getRecent() {
   try {

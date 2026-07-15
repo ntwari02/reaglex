@@ -20,7 +20,7 @@ type CategoryMeta = { slug: string; name: string; description: string; productCo
 const ALL_META: CategoryMeta = {
   slug: 'all',
   name: 'All categories',
-  description: 'Browse every product from verified sellers on Reaglex.',
+  description: 'Browse every product from verified sellers on Spacilly.',
 };
 
 function normalizeSlug(raw: string | undefined): string {
@@ -181,7 +181,7 @@ export default function CategoryBrowse() {
     return <Navigate to="/category/all" replace />;
   }
 
-  const titleBase = meta ? `${meta.name} | Reaglex` : 'Categories | Reaglex';
+  const titleBase = meta ? `${meta.name} | Spacilly` : 'Categories | Spacilly';
   const title = page > 1 ? `${titleBase} — Page ${page}` : titleBase;
   const pageTitle = meta?.name || 'Categories';
   const resultLabel = qParam.trim()
@@ -194,10 +194,10 @@ export default function CategoryBrowse() {
         title={title}
         description={
           meta?.description ||
-          `Browse ${meta?.name || 'products'} from verified sellers on Reaglex.`
+          `Browse ${meta?.name || 'products'} from verified sellers on Spacilly.`
         }
         canonicalUrl={canonicalUrl || undefined}
-        keywords={meta ? `${meta.name}, buy online, Reaglex marketplace` : undefined}
+        keywords={meta ? `${meta.name}, buy online, Spacilly marketplace` : undefined}
         ogType="website"
         jsonLd={jsonLd}
         hreflangAlternates={hreflangAlternates}

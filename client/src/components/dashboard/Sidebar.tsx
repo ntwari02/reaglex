@@ -79,7 +79,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { isEnabled, loading: featuresLoading } = useSystemFeatures();
-  const sellerSupportEmail = 'reaglexltd@gmail.com';
+  const sellerSupportEmail = 'spacillyltd@gmail.com';
   const sellerDefaultMenuItems: MenuItem[] = [
     { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'inventory', label: t('header.inventory'), icon: Package },
@@ -87,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'disputes', label: t('sidebar.disputes'), icon: AlertTriangle },
     { id: 'returns', label: 'Returns', icon: RotateCcw },
     { id: 'products', label: t('header.products'), icon: Box },
-    { id: 'shipping', label: t('sidebar.shippingReaglex'), icon: Truck },
+    { id: 'shipping', label: t('sidebar.shippingSpacilly'), icon: Truck },
     { id: 'collections', label: t('sidebar.collections'), icon: FolderKanban },
     { id: 'analytics', label: t('header.analytics'), icon: BarChart3 },
     { id: 'subscription', label: t('sidebar.subscription'), icon: Crown },

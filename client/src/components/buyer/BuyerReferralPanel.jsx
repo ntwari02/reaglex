@@ -63,7 +63,7 @@ export default function BuyerReferralPanel() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join me on Reaglex',
+          title: 'Join me on Spacilly',
           text: `Use my referral code ${data.referralCode} or open this link to sign up.`,
           url: data.shareLink,
         });
@@ -92,7 +92,7 @@ export default function BuyerReferralPanel() {
             Referral program is not active right now
           </p>
           <p className="text-sm mt-2">
-            When Reaglex turns invites back on, your personal link and code will appear here.
+            When Spacilly turns invites back on, your personal link and code will appear here.
           </p>
         </div>
       </div>
@@ -108,7 +108,7 @@ export default function BuyerReferralPanel() {
         transition={{ duration: 0.35 }}
       >
         <p className="rx-ref-kicker">Invite friends</p>
-        <h2 className="rx-ref-title">Share Reaglex, earn rewards</h2>
+        <h2 className="rx-ref-title">Share Spacilly, earn rewards</h2>
         <p className="rx-ref-sub">
           Send your link or code. When a friend signs up and completes their first paid order, you earn a
           reward — tracked automatically in your account.

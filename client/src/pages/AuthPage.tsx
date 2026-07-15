@@ -172,7 +172,7 @@ function LoginFormContent({
     >
       <div>
         <h2 className="agf-heading">Welcome back 👋</h2>
-        <p className="agf-subheading">Sign in to your Reaglex account</p>
+        <p className="agf-subheading">Sign in to your Spacilly account</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -445,7 +445,7 @@ function SignupFormContent({
     >
       <div>
         <h2 className="agf-heading">Create your account</h2>
-        <p className="agf-subheading">Join buyers and sellers on Reaglex</p>
+        <p className="agf-subheading">Join buyers and sellers on Spacilly</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -1338,7 +1338,7 @@ export default function AuthPage() {
                     </div>
                     <h2 className="agf-heading">Email verified!</h2>
                     <p className="agf-subheading mb-6">
-                      Your account is ready. Welcome to Reaglex.
+                      Your account is ready. Welcome to Spacilly.
                     </p>
                     <PrimaryBtn type="button" onClick={() => {
                       const { user } = useAuthStore.getState();

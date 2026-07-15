@@ -201,7 +201,7 @@ function ReturnsPolicySection() {
                 ['⏰ 30-Day Window', 'Return within 30 days of delivery'],
                 ['💰 Refund Decision', 'Approved refunds are returned to your original payment method'],
                 ['📦 Return Shipping', 'Return shipping costs are paid by the buyer'],
-                ['🛡️ Buyer Protection', 'Protected by Reaglex escrow'],
+                ['🛡️ Buyer Protection', 'Protected by Spacilly escrow'],
               ].map(([title, desc]) => (
                 <div
                   key={title}
@@ -407,8 +407,8 @@ function PaymentsTabContent() {
 
     setSubmittingDispute(true);
     const disputeId = `DSP-${Date.now().toString().slice(-8)}-${Math.floor(Math.random() * 900 + 100)}`;
-    const disputeCount = Number(localStorage.getItem('reaglex_dispute_count') || '0') + 1;
-    localStorage.setItem('reaglex_dispute_count', String(disputeCount));
+    const disputeCount = Number(localStorage.getItem('spacilly_dispute_count') || '0') + 1;
+    localStorage.setItem('spacilly_dispute_count', String(disputeCount));
     const riskScore = Math.min(95, 20 + disputeCount * 15 + (disputeForm.evidence.length >= 3 ? 10 : 0));
     const freezeSeller = disputeCount >= 3;
     const timeline = [
@@ -535,7 +535,7 @@ function PaymentsTabContent() {
                 <p className="mt-1 text-[24px] font-bold leading-none text-[var(--text-primary)]">
                   <CurrencyCountUp value={227.49} />
                 </p>
-                <p className="text-[11px] mt-1 text-[var(--text-faint)]">All time on Reaglex</p>
+                <p className="text-[11px] mt-1 text-[var(--text-faint)]">All time on Spacilly</p>
                 <p className="text-[11px] mt-1 font-semibold text-emerald-600">+ $29 this month</p>
               </div>
             </div>
@@ -2421,7 +2421,7 @@ export default function BuyerDashboard() {
                         </div>
                         <div>
                           <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 5, color: 'var(--accent-marketing-text)' }}>Buyer Protection Active</p>
-                          <p style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' }}>Every purchase on Reaglex is protected by escrow. Funds are only released when you confirm delivery.</p>
+                          <p style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)' }}>Every purchase on Spacilly is protected by escrow. Funds are only released when you confirm delivery.</p>
                         </div>
                       </div>
                     </div>
@@ -3241,7 +3241,7 @@ export default function BuyerDashboard() {
                                 <p className="mt-1 text-[26px] font-bold leading-none text-[var(--text-primary)]">
                                   <CurrencyCountUp value={227.49} />
                                 </p>
-                                <p className="text-[11px] mt-1 text-[var(--text-faint)]">All time on Reaglex</p>
+                                <p className="text-[11px] mt-1 text-[var(--text-faint)]">All time on Spacilly</p>
                                 <p className="text-[11px] mt-1 font-medium text-green-500">+ $29 this month</p>
                               </div>
                             </div>
@@ -3469,7 +3469,7 @@ export default function BuyerDashboard() {
                                 >
                                   <div className="h-full flex flex-col justify-between px-4 py-3 text-white text-xs">
                                     <div className="flex items-center justify-between">
-                                      <span className="text-[10px] uppercase tracking-[0.18em] opacity-70">Reaglex Wallet</span>
+                                      <span className="text-[10px] uppercase tracking-[0.18em] opacity-70">Spacilly Wallet</span>
                                       <span className="font-black text-base tracking-[0.18em]">VISA</span>
                                     </div>
                                     <div>
@@ -3745,7 +3745,7 @@ export default function BuyerDashboard() {
                           <div className="rounded-2xl p-5 grid grid-cols-1 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border-l-4 border-emerald-500 transition-colors duration-300">
                             <div>
                               <p className="font-bold text-base flex items-center gap-2 text-green-700 dark:text-green-400">
-                                🛡️ How Reaglex Escrow Works
+                                🛡️ How Spacilly Escrow Works
                               </p>
                               <div className="mt-3 flex items-center flex-wrap gap-2 text-xs">
                                 {[
@@ -3809,7 +3809,7 @@ export default function BuyerDashboard() {
                                 <span>$100.00</span>
                               </div>
                               <div className="flex justify-between">
-                                <span>Reaglex fee (5%)</span>
+                                <span>Spacilly fee (5%)</span>
                                 <span>- $5.00</span>
                               </div>
                               <div className="flex justify-between">
@@ -4012,7 +4012,7 @@ export default function BuyerDashboard() {
                                       style={{ background: 'linear-gradient(135deg,#0f172a,#1f2937)' }}
                                     >
                                       <div className="flex items-center justify-between">
-                                        <span className="text-[10px] uppercase tracking-[0.18em] opacity-80">Reaglex Secure</span>
+                                        <span className="text-[10px] uppercase tracking-[0.18em] opacity-80">Spacilly Secure</span>
                                         <span className="font-black text-lg tracking-[0.25em]">VISA</span>
                                       </div>
                                       <div>

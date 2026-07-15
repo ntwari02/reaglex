@@ -8,10 +8,10 @@ import { openCommandPalette } from './CommandPalette';
 
 function openAssistantChat() {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new Event('reaglex:assistant:open'));
+  window.dispatchEvent(new Event('spacilly:assistant:open'));
 }
 
-const STORAGE_KEY = 'reaglex-fab-coachmark-dismissed';
+const STORAGE_KEY = 'spacilly-fab-coachmark-dismissed';
 
 /**
  * Compact floating action that gives users one-tap access to the global

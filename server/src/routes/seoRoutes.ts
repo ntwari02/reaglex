@@ -346,7 +346,7 @@ router.get('/sitemap-images.xml', async (req: Request, res: Response) => {
         .filter((u): u is string => Boolean(u));
       if (!images.length) continue;
 
-      const caption = xmlEscape(String((p as any).name || 'Reaglex product').slice(0, 200));
+      const caption = xmlEscape(String((p as any).name || 'Spacilly product').slice(0, 200));
       const imageXml = images
         .map(
           (img) =>

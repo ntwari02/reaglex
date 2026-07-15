@@ -47,7 +47,7 @@ function applyTheme(theme: Theme) {
 
   // Persist for next page load (matched by index.html script)
   try {
-    localStorage.setItem('reaglex-theme', theme);
+    localStorage.setItem('spacilly-theme', theme);
   } catch {}
 
   // Re-enable transitions after paint
@@ -64,7 +64,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Read initial theme from localStorage or DOM (anti-flash script already applied it)
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
-      const stored = localStorage.getItem('reaglex-theme') as Theme;
+      const stored = localStorage.getItem('spacilly-theme') as Theme;
       if (stored === 'dark' || stored === 'light') return stored;
     } catch {}
 
@@ -128,7 +128,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
               const dbTheme = profileData.preferences.theme as Theme;
               setThemeState(dbTheme);
               try {
-                localStorage.setItem('reaglex-theme', dbTheme);
+                localStorage.setItem('spacilly-theme', dbTheme);
               } catch {}
             }
             if (profileData.preferences.language) {
@@ -162,7 +162,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const handler = (e: MediaQueryListEvent) => {
       // Only follow OS preference when user hasn't explicitly chosen a theme
       try {
-        if (!localStorage.getItem('reaglex-theme')) {
+        if (!localStorage.getItem('spacilly-theme')) {
           setThemeState(e.matches ? 'dark' : 'light');
         }
       } catch {
@@ -180,7 +180,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = (next: Theme) => {
     setThemeState(next);
     try {
-      localStorage.setItem('reaglex-theme', next);
+      localStorage.setItem('spacilly-theme', next);
     } catch {}
   };
 

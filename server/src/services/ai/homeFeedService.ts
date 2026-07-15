@@ -588,7 +588,7 @@ async function buildHeroSection(
 
   return {
     id: 'hero',
-    title: profile ? 'Your daily picks' : 'Welcome to Reaglex',
+    title: profile ? 'Your daily picks' : 'Welcome to Spacilly',
     subtitle: 'Refreshes throughout the day as your taste evolves',
     layout: 'hero',
     products: cards,

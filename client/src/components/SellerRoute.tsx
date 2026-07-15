@@ -50,7 +50,7 @@ function SellerAccessDenied() {
             className="text-sm"
             style={{ color: 'var(--text-muted)' }}
           >
-            This page is only accessible to approved Reaglex sellers. Join thousands of
+            This page is only accessible to approved Spacilly sellers. Join thousands of
             sellers already earning on our platform.
           </p>
         </div>

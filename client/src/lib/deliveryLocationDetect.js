@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'reaglex_detected_delivery_v1';
+const STORAGE_KEY = 'spacilly_detected_delivery_v1';
 const STORAGE_TTL_MS = 6 * 60 * 60 * 1000;
 
 function haversineKm(lat1, lon1, lat2, lon2) {

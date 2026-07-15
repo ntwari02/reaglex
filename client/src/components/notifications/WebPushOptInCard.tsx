@@ -128,7 +128,7 @@ export default function WebPushOptInCard() {
               ? 'Notifications are blocked in this browser. Update your browser settings to enable them.'
               : subscribed
               ? 'You\u2019ll get order updates, deal alerts and recovery reminders even when this tab is closed.'
-              : 'Receive order updates, deal alerts and cart reminders directly in your browser \u2014 even when Reaglex isn\u2019t open.'}
+              : 'Receive order updates, deal alerts and cart reminders directly in your browser \u2014 even when Spacilly isn\u2019t open.'}
           </p>
           {message && (
             <p

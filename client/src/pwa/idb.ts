@@ -5,7 +5,7 @@
  *  - cache lightweight key/value pairs (last seen home feed, etc.)
  */
 
-const DB_NAME = 'reaglex-pwa';
+const DB_NAME = 'spacilly-pwa';
 const DB_VERSION = 1;
 
 export type StoreName = 'kv' | 'queue' | 'drafts';

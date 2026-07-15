@@ -1,14 +1,14 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { quoteReaglexShipments } from '../services/reaglexShipping.service';
-import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
+import { quoteSpacillyShipments } from '../services/spacillyShipping.service';
+import type { SpacillyShippingMethodKey } from '../types/spacillyShipping.types';
 import {
   aggregateDeliveryEstimate,
   findDeliveryDestination,
 } from '../services/deliveryDestination.service';
 
-function normalizeSelectedMethods(raw: unknown): Record<string, ReaglexShippingMethodKey> {
-  const selectedMethods: Record<string, ReaglexShippingMethodKey> = {};
+function normalizeSelectedMethods(raw: unknown): Record<string, SpacillyShippingMethodKey> {
+  const selectedMethods: Record<string, SpacillyShippingMethodKey> = {};
   if (raw && typeof raw === 'object') {
     for (const [k, v] of Object.entries(raw as Record<string, string>)) {
       const m = String(v || 'standard').toLowerCase();
@@ -65,7 +65,7 @@ export async function postShippingQuote(req: AuthenticatedRequest, res: Response
     const country = String(sh.country || '').trim();
     const city = String(sh.city || '').trim();
 
-    let shippingAddress: Parameters<typeof quoteReaglexShipments>[0]['shippingAddress'];
+    let shippingAddress: Parameters<typeof quoteSpacillyShipments>[0]['shippingAddress'];
 
     if (estimate) {
       if (!country || !city) {
@@ -99,7 +99,7 @@ export async function postShippingQuote(req: AuthenticatedRequest, res: Response
 
     const selectedMethods = normalizeSelectedMethods(body.selectedMethods);
 
-    const out = await quoteReaglexShipments({
+    const out = await quoteSpacillyShipments({
       lines,
       shippingAddress,
       selectedMethods,
@@ -170,7 +170,7 @@ export async function postShippingEstimatePublic(req: any, res: Response) {
 
     const selectedMethods = normalizeSelectedMethods(body.selectedMethods);
 
-    const out = await quoteReaglexShipments({
+    const out = await quoteSpacillyShipments({
       lines,
       shippingAddress,
       selectedMethods,

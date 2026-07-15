@@ -54,11 +54,11 @@ export async function createPayPalCheckoutOrder(order: IOrder): Promise<{ approv
         {
           amount: { currency_code: currency, value },
           custom_id: order._id.toString(),
-          description: `Reaglex ${order.orderNumber}`,
+          description: `Spacilly ${order.orderNumber}`,
         },
       ],
       application_context: {
-        brand_name: 'Reaglex',
+        brand_name: 'Spacilly',
         landing_page: 'NO_PREFERENCE',
         user_action: 'PAY_NOW',
         return_url: `${siteBase.replace(/\/$/, '')}/payment/paypal-return?orderId=${encodeURIComponent(order._id.toString())}`,

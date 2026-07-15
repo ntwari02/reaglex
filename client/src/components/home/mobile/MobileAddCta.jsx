@@ -2,7 +2,7 @@ import { Plus, ShoppingCart } from 'lucide-react';
 
 /**
  * Compact mobile add-to-cart control (icon or pill).
- * Matches Reaglex brand CTA: --brand-primary, ~26–30px touch target.
+ * Matches Spacilly brand CTA: --brand-primary, ~26–30px touch target.
  */
 export default function MobileAddCta({
   onClick,

@@ -1,4 +1,4 @@
-const DEVICE_KEY = 'reaglex_device_id';
+const DEVICE_KEY = 'spacilly_device_id';
 
 function randomId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();

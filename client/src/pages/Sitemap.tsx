@@ -98,7 +98,7 @@ export default function Sitemap() {
     () => ({
       '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: 'Reaglex sitemap',
+      name: 'Spacilly sitemap',
       url: canonicalUrl,
     }),
     [canonicalUrl],
@@ -107,8 +107,8 @@ export default function Sitemap() {
   return (
     <BuyerLayout>
       <PageSeo
-        title="Sitemap | Reaglex marketplace"
-        description="Reaglex HTML sitemap — quick links to categories, account areas, help center, seller resources, and legal pages."
+        title="Sitemap | Spacilly marketplace"
+        description="Spacilly HTML sitemap — quick links to categories, account areas, help center, seller resources, and legal pages."
         canonicalUrl={canonicalUrl}
         ogType="website"
         jsonLd={sitemapJsonLd}
@@ -142,7 +142,7 @@ export default function Sitemap() {
             </motion.div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Sitemap</h1>
             <p className="text-base sm:text-lg" style={{ color: 'var(--text-secondary)' }}>
-              Quick links to main areas of Reaglex. Crawlers can also fetch the machine sitemap at{' '}
+              Quick links to main areas of Spacilly. Crawlers can also fetch the machine sitemap at{' '}
               <a
                 href="/sitemap.xml"
                 className="underline"

@@ -53,7 +53,7 @@ router.post('/:disputeId/response', submitSellerResponse);
 router.post(
   '/:disputeId/evidence',
   disputeUpload.array('files', 10),
-  cloudinaryUploadBuffers('reaglex/disputes'),
+  cloudinaryUploadBuffers('spacilly/disputes'),
   uploadEvidence,
 );
 

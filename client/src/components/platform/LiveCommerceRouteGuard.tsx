@@ -8,7 +8,7 @@ export default function LiveCommerceRouteGuard({ children }: { children: React.R
 
   useEffect(() => {
     if (!loading && !isEnabled('live_commerce')) {
-      document.title = 'Reaglex';
+      document.title = 'Spacilly';
     }
   }, [loading, isEnabled]);
 

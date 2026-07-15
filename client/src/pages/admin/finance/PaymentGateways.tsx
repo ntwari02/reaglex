@@ -187,8 +187,8 @@ export default function PaymentGateways() {
         );
         void loadGateways(true);
         try {
-          window.dispatchEvent(new CustomEvent('reaglex:payment-gateways-changed'));
-          const bc = new BroadcastChannel('reaglex-payment-gateways');
+          window.dispatchEvent(new CustomEvent('spacilly:payment-gateways-changed'));
+          const bc = new BroadcastChannel('spacilly-payment-gateways');
           bc.postMessage({ type: 'changed', at: Date.now() });
           bc.close();
         } catch {
@@ -527,8 +527,8 @@ export default function PaymentGateways() {
                         setShowConfigModal(false);
                         void loadGateways(true);
                         try {
-                          window.dispatchEvent(new CustomEvent('reaglex:payment-gateways-changed'));
-                          const bc = new BroadcastChannel('reaglex-payment-gateways');
+                          window.dispatchEvent(new CustomEvent('spacilly:payment-gateways-changed'));
+                          const bc = new BroadcastChannel('spacilly-payment-gateways');
                           bc.postMessage({ type: 'changed', at: Date.now() });
                           bc.close();
                         } catch {

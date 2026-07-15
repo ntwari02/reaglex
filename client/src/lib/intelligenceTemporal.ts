@@ -49,7 +49,7 @@ export interface RecentIntelligenceView {
   viewedAt: number;
 }
 
-const RECENT_KEY = 'reaglex_admin_intel_recent_v1';
+const RECENT_KEY = 'spacilly_admin_intel_recent_v1';
 const MAX_RECENT = 8;
 
 const UNRESOLVED = /\b(pending|processing|open|delayed|dispute|failed|unpaid|investigating|active|escalat|review|hold|refund|return)\b/i;

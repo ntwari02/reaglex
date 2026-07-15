@@ -26,7 +26,7 @@ function ensureVapidConfigured(): boolean {
   const prv = String(process.env.VAPID_PRIVATE_KEY || '').trim();
   const subject =
     String(process.env.VAPID_SUBJECT || process.env.VAPID_CONTACT || '').trim() ||
-    'mailto:notifications@reaglex.com';
+    'mailto:notifications@spacilly.com';
   if (!pub || !prv) return false;
   try {
     webpush.setVapidDetails(subject, pub, prv);

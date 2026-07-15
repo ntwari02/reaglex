@@ -670,7 +670,7 @@ export default function SellerPending() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', position: 'relative' }}>
               <a
-                href="mailto:seller-support@reaglex.com"
+                href="mailto:seller-support@spacilly.com"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '9px 18px', borderRadius: 10,
@@ -682,7 +682,7 @@ export default function SellerPending() {
                 onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'color-mix(in srgb, var(--brand-primary) 9%, transparent)'; }}
               >
                 <Mail style={{ width: 14, height: 14 }} />
-                seller-support@reaglex.com
+                seller-support@spacilly.com
               </a>
               <Link to="/" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,

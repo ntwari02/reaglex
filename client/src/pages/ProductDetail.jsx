@@ -212,8 +212,8 @@ export default function ProductDetail() {
   const seoBundle = useMemo(() => {
     if (!product) {
       return {
-        title: slugParam ? `${slugParam.replace(/-/g, ' ')} | Reaglex` : 'Product | Reaglex',
-        description: 'View product details on Reaglex marketplace.',
+        title: slugParam ? `${slugParam.replace(/-/g, ' ')} | Spacilly` : 'Product | Spacilly',
+        description: 'View product details on Spacilly marketplace.',
         keywords: undefined,
         jsonLd: undefined,
       };
@@ -301,7 +301,7 @@ export default function ProductDetail() {
     const reviewList = Array.isArray(product?.reviews)
       ? product.reviews.slice(0, 5).map((r) => ({
           '@type': 'Review',
-          author: { '@type': 'Person', name: r?.author || r?.userName || 'Reaglex shopper' },
+          author: { '@type': 'Person', name: r?.author || r?.userName || 'Spacilly shopper' },
           datePublished: r?.createdAt || undefined,
           reviewRating: {
             '@type': 'Rating',
@@ -322,7 +322,7 @@ export default function ProductDetail() {
         : {}),
       ...(product?.mpn ? { mpn: String(product.mpn) } : {}),
       image: images.slice(0, 6).map(resolveImage),
-      brand: { '@type': 'Brand', name: product?.brand || 'Reaglex' },
+      brand: { '@type': 'Brand', name: product?.brand || 'Spacilly' },
       category,
       itemCondition:
         product?.condition === 'used'
@@ -342,7 +342,7 @@ export default function ProductDetail() {
           new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString().slice(0, 10),
         seller: {
           '@type': 'Organization',
-          name: product?.sellerName || product?.brand || 'Reaglex',
+          name: product?.sellerName || product?.brand || 'Spacilly',
         },
         shippingDetails,
         hasMerchantReturnPolicy: returnPolicy,
@@ -361,11 +361,11 @@ export default function ProductDetail() {
     };
 
     return {
-      title: product?.seoTitle || `${title} | Reaglex`,
+      title: product?.seoTitle || `${title} | Spacilly`,
       description:
         product?.seoDescription ||
         product?.description?.replace?.(/<[^>]+>/g, '')?.slice?.(0, 160) ||
-        `Buy ${title} on Reaglex.`,
+        `Buy ${title} on Spacilly.`,
       keywords: product?.seoKeywords,
       jsonLd: [breadcrumbs, productLd],
     };
@@ -659,7 +659,7 @@ export default function ProductDetail() {
   const handleShare = async (method) => {
     const url  = encodeURIComponent(window.location.href);
     const name = product?.title || product?.name || 'Product';
-    const text = encodeURIComponent(`Check out "${name}" on Reaglex!`);
+    const text = encodeURIComponent(`Check out "${name}" on Spacilly!`);
     if (method === 'copy') {
       await navigator.clipboard.writeText(window.location.href);
       setShared(true); setTimeout(() => setShared(false), 2000);
@@ -719,7 +719,7 @@ export default function ProductDetail() {
   /* ── error (only when nothing to show and fetch failed) ── */
   if ((productQueryError || error) && !hasPageShell) return (
     <BuyerLayout noHeaderPad>
-      <PageSeo title="Product not found | Reaglex" description={error || 'Product not found.'} canonicalUrl={canonicalUrl} noIndex />
+      <PageSeo title="Product not found | Spacilly" description={error || 'Product not found.'} canonicalUrl={canonicalUrl} noIndex />
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <span className="text-6xl">😕</span>
         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{error || 'Product not found.'}</p>
@@ -734,7 +734,7 @@ export default function ProductDetail() {
 
   if (!hasPageShell) return (
     <BuyerLayout noHeaderPad>
-      <PageSeo title="Product not found | Reaglex" description="Product not found." canonicalUrl={canonicalUrl} noIndex />
+      <PageSeo title="Product not found | Spacilly" description="Product not found." canonicalUrl={canonicalUrl} noIndex />
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ background: 'var(--bg-page)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <span className="text-6xl">😕</span>
         <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Product not found.</p>
@@ -813,7 +813,7 @@ export default function ProductDetail() {
     : '';
 
   const specs = [
-    { prop: 'Brand',          value: p.brand    || 'Reaglex'     },
+    { prop: 'Brand',          value: p.brand    || 'Spacilly'     },
     { prop: 'SKU',            value: p.sku      || resolvedId    },
     { prop: 'Category',       value: category                          },
     { prop: 'Material',       value: p.material || 'Cotton blend'},
@@ -1394,7 +1394,7 @@ export default function ProductDetail() {
 
               {(p?.shippingInfo?.costLabel || p?.returnPolicy?.label || p?.securityNote) && (
                 <section className="pd2-ali-block pd2-ali-commitments" aria-label="Store commitments">
-                  <p className="pd2-ali-block__title">Reaglex commitment</p>
+                  <p className="pd2-ali-block__title">Spacilly commitment</p>
                   <ul className="pd2-ali-commitments__list">
                     {(p?.shippingInfo?.costLabel || p?.shippingInfo?.estimatedDeliveryLabel) && (
                       <li>

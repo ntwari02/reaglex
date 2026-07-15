@@ -50,15 +50,15 @@ function clampRating(value: number, min = 1, max = 5): number {
 export function resolveEstimatedDeliveryAt(order: {
   createdAt?: Date;
   date?: Date;
-  reaglexShipping?: { estimatedDeliveryTo?: Date; estimatedDeliveryFrom?: Date };
+  spacillyShipping?: { estimatedDeliveryTo?: Date; estimatedDeliveryFrom?: Date };
   deliveryPrediction?: { expected?: Date };
   fulfillment?: { carrierOptions?: Array<{ estimatedDays?: number }> };
 }): Date {
-  const to = order.reaglexShipping?.estimatedDeliveryTo;
+  const to = order.spacillyShipping?.estimatedDeliveryTo;
   if (to) return new Date(to);
   const expected = order.deliveryPrediction?.expected;
   if (expected) return new Date(expected);
-  const from = order.reaglexShipping?.estimatedDeliveryFrom;
+  const from = order.spacillyShipping?.estimatedDeliveryFrom;
   if (from) {
     const end = new Date(from);
     end.setDate(end.getDate() + 2);

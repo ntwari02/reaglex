@@ -29,7 +29,7 @@ import { isMarketingFlowEnabled } from '../models/MarketingAutomationSettings';
 import { assertBuyerMarketingEligible } from '../services/marketingRecipient.service';
 
 const CLIENT_URL = getClientUrl();
-const APP_NAME = process.env.APP_NAME || 'Reaglex';
+const APP_NAME = process.env.APP_NAME || 'Spacilly';
 const WORKER_INTERVAL_MS = 60 * 1000;
 
 function getBoolEnv(name: string, fallback: boolean) {

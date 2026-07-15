@@ -143,7 +143,7 @@ export function SelectRole() {
         <p className="agf-subheading agf-subheading--center">
           {googleName
             ? `Your account will be created with the name "${googleName}" from your Google account.`
-            : 'Select how you want to use Reaglex'}
+            : 'Select how you want to use Spacilly'}
         </p>
 
         <div className="agf-role-picker">

@@ -176,7 +176,7 @@ export function ProductCard({ product, index = 0, onViewProduct, compact = false
                 borderColor: verificationStatus === 'verified' ? 'var(--badge-success-border)' : 'var(--badge-warning-border)',
               }}
             >
-              {verificationStatus === 'verified' ? 'Verified by Reaglex' : 'Verification Pending'}
+              {verificationStatus === 'verified' ? 'Verified by Spacilly' : 'Verification Pending'}
             </div>
           )}
           <h3

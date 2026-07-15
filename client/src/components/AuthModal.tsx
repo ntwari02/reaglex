@@ -47,7 +47,7 @@ function LeftPanel() {
   return (
     <div className="auth-modal-aside hidden md:flex flex-col justify-between p-8 w-[40%] min-w-0 relative overflow-hidden">
       <div className="relative z-10">
-        <div className="reaglex-logo-font text-white font-bold text-2xl tracking-tight">Reaglex</div>
+        <div className="spacilly-logo-font text-white font-bold text-2xl tracking-tight">Spacilly</div>
         <p className="text-white/90 text-sm mt-2">Smart shopping. Trusted sellers.</p>
       </div>
       <ul className="auth-modal-trust relative z-10 space-y-2.5">
@@ -225,7 +225,7 @@ function LoginForm({ onShake, formEpoch }: { onShake: () => void; formEpoch: num
     <form onSubmit={handleSubmit} className="space-y-4">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <h3 className="font-bold text-2xl" style={{ color: 'var(--text-primary)' }}>Welcome back</h3>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Sign in to your Reaglex account</p>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Sign in to your Spacilly account</p>
       </motion.div>
       {error && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs bg-red-50 border border-red-200" style={{ color: ERROR }}>
@@ -362,7 +362,7 @@ function SignupForm({ onShake, formEpoch }: { onShake: () => void; formEpoch: nu
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-4">
       <div className="text-4xl mb-3">🎉</div>
       <h3 className="font-bold text-2xl mb-1" style={{ color: SUCCESS }}>Account Created!</h3>
-      <p className="font-semibold text-lg mb-1" style={{ color: PRIMARY }}>Welcome to Reaglex, {fd.fullName.trim().split(/\s+/)[0] || 'there'}!</p>
+      <p className="font-semibold text-lg mb-1" style={{ color: PRIMARY }}>Welcome to Spacilly, {fd.fullName.trim().split(/\s+/)[0] || 'there'}!</p>
       <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Check your email to verify your account</p>
       <div className="flex flex-col sm:flex-row gap-2 justify-center">
         <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setTab('login')} className="px-5 py-2.5 rounded-xl font-semibold text-white" style={{ background: PRIMARY }}>Start Shopping →</motion.button>

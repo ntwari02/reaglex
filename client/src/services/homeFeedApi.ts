@@ -13,7 +13,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../lib/config';
 
-const SESSION_KEY = 'reaglex-mp-session';
+const SESSION_KEY = 'spacilly-mp-session';
 
 function getSessionId(): string {
   try {
@@ -108,7 +108,7 @@ export const homeFeedApi = {
   getFeed: async (params: { limit?: number } = {}): Promise<HomeFeed> => {
     const res = await client.get('/home/feed', {
       params,
-      headers: { 'X-Reaglex-Session': getSessionId(), ...getAuthHeader() },
+      headers: { 'X-Spacilly-Session': getSessionId(), ...getAuthHeader() },
       withCredentials: true,
     });
     return res.data;
@@ -118,7 +118,7 @@ export const homeFeedApi = {
   getSection: async (id: FeedSectionId, params: { limit?: number } = {}): Promise<FeedSection> => {
     const res = await client.get(`/home/section/${encodeURIComponent(id)}`, {
       params,
-      headers: { 'X-Reaglex-Session': getSessionId(), ...getAuthHeader() },
+      headers: { 'X-Spacilly-Session': getSessionId(), ...getAuthHeader() },
       withCredentials: true,
     });
     return res.data;
@@ -141,7 +141,7 @@ export const homeFeedApi = {
         return;
       }
       void client.post('/home/track', JSON.parse(body), {
-        headers: { 'X-Reaglex-Session': getSessionId(), ...getAuthHeader() },
+        headers: { 'X-Spacilly-Session': getSessionId(), ...getAuthHeader() },
         withCredentials: true,
       });
     } catch {

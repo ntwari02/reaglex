@@ -22,7 +22,7 @@ async function tick(): Promise<{ evaluated: number }> {
     },
   })
     .select(
-      '_id orderNumber sellerId status createdAt updatedAt timeline reaglexShipping deliveryPrediction fulfillment autoCompletion deliverySLA',
+      '_id orderNumber sellerId status createdAt updatedAt timeline spacillyShipping deliveryPrediction fulfillment autoCompletion deliverySLA',
     )
     .limit(80)
     .lean();

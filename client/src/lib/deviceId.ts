@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'reaglex_device_id';
+const STORAGE_KEY = 'spacilly_device_id';
 
 /** Persistent device id for session security (admin/seller single-device). */
 export function getDeviceId(): string {

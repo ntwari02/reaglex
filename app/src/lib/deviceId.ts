@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'reaglex_device_id';
+const STORAGE_KEY = 'spacilly_device_id';
 
 let cached: string | null = null;
 

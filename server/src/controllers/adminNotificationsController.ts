@@ -367,7 +367,7 @@ export async function runNotificationABTest(req: AuthenticatedRequest, res: Resp
         const actionUrl = process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/` : '/';
         await sendNotificationEmail({
           to: recipientValue,
-          subject: chosen.subject || 'Reaglex update',
+          subject: chosen.subject || 'Spacilly update',
           body: chosen.message,
           name: 'there',
           actionUrl,
@@ -375,7 +375,7 @@ export async function runNotificationABTest(req: AuthenticatedRequest, res: Resp
           rich: {
             name: 'there',
             category: 'marketing',
-            headline: chosen.subject || 'Reaglex update',
+            headline: chosen.subject || 'Spacilly update',
             message: chosen.message || '',
             actionUrl,
             actionLabel: pickCta('marketing', `${recipientValue}:${variant}`),
@@ -385,7 +385,7 @@ export async function runNotificationABTest(req: AuthenticatedRequest, res: Resp
         });
       } else if (type === 'inapp' && req.user?.id) {
         await createSystemInboxAndFanout({
-          title: (chosen.subject || 'Reaglex update').slice(0, 220),
+          title: (chosen.subject || 'Spacilly update').slice(0, 220),
           message: chosen.message,
           type: 'system_announcement',
           priority: 'medium',
@@ -398,7 +398,7 @@ export async function runNotificationABTest(req: AuthenticatedRequest, res: Resp
       const log = await SentNotificationLog.create({
         recipient: recipientValue,
         type,
-        subject: chosen.subject || 'Reaglex update',
+        subject: chosen.subject || 'Spacilly update',
         body: chosen.message,
         status: 'sent',
         sentAt: new Date(),

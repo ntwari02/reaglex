@@ -782,7 +782,7 @@ function buildSystemPrompt(ctx: AgentContext, docs: string): string {
   const safePath = ctx.currentPath ? String(ctx.currentPath) : '/';
   const role = ctx.role;
   return [
-    'You are the official REAGLEX Unified Assistant.',
+    'You are the official SPACILLY Unified Assistant.',
     'You are a helpful assistant that can call ONLY server-side tools when needed.',
     'State:',
     `- role: ${role}`,

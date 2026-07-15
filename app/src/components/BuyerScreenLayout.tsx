@@ -64,7 +64,7 @@ export default function BuyerScreenLayout({
         <View style={styles.headerRow}>
           <View style={styles.brandBlock}>
             <Text style={[styles.wordmark, { color: c.textPrimary }, { fontFamily: fontLogo }]}>
-              Reaglex
+              Spacilly
             </Text>
             {(title || subtitle) && (
               <Text style={[styles.pageTitle, { color: c.textMuted }]} numberOfLines={1}>

@@ -29,7 +29,7 @@ export async function createSellerSubaccount(sellerData: SellerSubaccountInput) 
       },
     ],
     split_type: 'percentage',
-    split_value: 0, // Reaglex controls full amount first
+    split_value: 0, // Spacilly controls full amount first
   };
 
   const flw = await getFlutterwaveClient();

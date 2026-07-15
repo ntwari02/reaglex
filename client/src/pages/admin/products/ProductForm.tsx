@@ -523,7 +523,7 @@ export default function ProductForm({ product, onClose, onSave }: ProductFormPro
                     value={verificationInput.qrCode}
                     onChange={(e) => setVerificationInput((p) => ({ ...p, qrCode: e.target.value }))}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    placeholder="Reaglex trust QR code"
+                    placeholder="Spacilly trust QR code"
                   />
                 </div>
                 <div>

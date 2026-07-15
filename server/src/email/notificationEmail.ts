@@ -42,7 +42,7 @@ const CATEGORY_ACCENT: Partial<Record<EmailCategory, EmailAccent>> = {
 };
 
 export function getRichNotificationEmailHtml(options: RichNotificationOptions): string {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const seed = `${options.category}:${options.headline}:${options.name}`;
   const greeting = timeGreeting(options.name);
   const cta = options.actionLabel || pickCta(options.category, seed);

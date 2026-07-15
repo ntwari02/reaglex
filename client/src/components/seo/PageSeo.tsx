@@ -55,7 +55,7 @@ export function PageSeo({
       ))}
 
       <meta property="og:type" content={ogType} />
-      <meta property="og:site_name" content="Reaglex" />
+      <meta property="og:site_name" content="Spacilly" />
       <meta property="og:title" content={title} />
       {description ? <meta property="og:description" content={description} /> : null}
       {canonicalUrl ? <meta property="og:url" content={canonicalUrl} /> : null}

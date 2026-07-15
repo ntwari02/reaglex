@@ -127,7 +127,7 @@ export function generateOrderStatusEmail(input: OrderStatusEmailInput): OrderSta
         'If you have questions, reply to this email or contact support from your account.',
         '',
         'Thank you,',
-        'Reaglex Support',
+        'Spacilly Support',
       ].join('\n'),
     };
   }
@@ -145,7 +145,7 @@ export function generateOrderStatusEmail(input: OrderStatusEmailInput): OrderSta
         'The amount should appear on your statement according to your bank or mobile money provider.',
         '',
         'Thank you for your patience,',
-        'Reaglex Support',
+        'Spacilly Support',
       ].join('\n'),
     };
   }
@@ -163,7 +163,7 @@ export function generateOrderStatusEmail(input: OrderStatusEmailInput): OrderSta
         '',
         `The seller (${input.seller_name || 'your seller'}) has been paid for this order.`,
         '',
-        'Thank you for shopping with Reaglex.',
+        'Thank you for shopping with Spacilly.',
       ].join('\n'),
     };
   }
@@ -186,7 +186,7 @@ export function generateOrderStatusEmail(input: OrderStatusEmailInput): OrderSta
         '',
         'We hope everything meets your expectations.',
         '',
-        'Reaglex',
+        'Spacilly',
       ]
         .filter(Boolean)
         .join('\n'),
@@ -205,7 +205,7 @@ export function generateOrderStatusEmail(input: OrderStatusEmailInput): OrderSta
         '',
         'Seller payment is still being processed. We will notify you when the order is fully closed.',
         '',
-        'Reaglex',
+        'Spacilly',
       ].join('\n'),
     };
   }
@@ -218,7 +218,7 @@ export function generateOrderStatusEmail(input: OrderStatusEmailInput): OrderSta
       `There is an update on ${ref}.`,
       totalNote,
       '',
-      'Reaglex',
+      'Spacilly',
     ].join('\n'),
   };
 }
@@ -237,7 +237,7 @@ export function generateSellerPayoutEmail(input: OrderStatusEmailInput): OrderSt
       '',
       'Funds should arrive according to your payout method.',
       '',
-      'Reaglex Seller Hub',
+      'Spacilly Seller Hub',
     ]
       .filter(Boolean)
       .join('\n'),

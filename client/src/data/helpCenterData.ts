@@ -105,8 +105,8 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 export const HELP_ARTICLES: HelpArticle[] = [
   {
     id: 'escrow-how-it-works',
-    slug: 'how-does-reaglex-escrow-work',
-    title: 'How does Reaglex escrow work?',
+    slug: 'how-does-spacilly-escrow-work',
+    title: 'How does Spacilly escrow work?',
     categoryId: 'escrow',
     readTime: '3 min read',
     helpfulCount: 892,
@@ -151,7 +151,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     readTime: '5 min read',
     helpfulCount: 1500,
     excerpt:
-      'Create your Reaglex store, verify your identity, and start listing products in minutes.',
+      'Create your Spacilly store, verify your identity, and start listing products in minutes.',
   },
   {
     id: 'payments-declined',

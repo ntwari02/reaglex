@@ -100,7 +100,7 @@ const staffMembers: StaffRecord[] = [
   {
     id: 'ADM-001',
     name: 'Brian Otieno',
-    email: 'brian@reaglex.com',
+    email: 'brian@spacilly.com',
     role: 'Operations',
     lastActive: '4m ago',
     mfa: true,
@@ -109,7 +109,7 @@ const staffMembers: StaffRecord[] = [
   {
     id: 'ADM-008',
     name: 'Mei Chen',
-    email: 'mei@reaglex.com',
+    email: 'mei@spacilly.com',
     role: 'Finance',
     lastActive: 'Locked 1h ago',
     mfa: false,
@@ -118,7 +118,7 @@ const staffMembers: StaffRecord[] = [
   {
     id: 'ADM-014',
     name: 'Lamia Yusuf',
-    email: 'lamia@reaglex.com',
+    email: 'lamia@spacilly.com',
     role: 'Support',
     lastActive: '19m ago',
     mfa: true,
@@ -701,7 +701,7 @@ export default function UserManagement() {
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-500">Users • Intelligence</p>
           <h1 className="admin-page-title">User Management Hub</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Control buyers, staff, and authorization policies across the Reaglex platform.
+            Control buyers, staff, and authorization policies across the Spacilly platform.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

@@ -1,4 +1,4 @@
-const RECENT_KEY = 'reaglex_recent_searches';
+const RECENT_KEY = 'spacilly_recent_searches';
 const MAX_RECENT = 8;
 
 export function getRecentSearches() {

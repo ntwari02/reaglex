@@ -84,7 +84,7 @@ export default function Checkout() {
     zip: '',
     country: '',
   });
-  /** Reaglex: per shipment group `sellerId|warehouseId` → standard | express | pickup */
+  /** Spacilly: per shipment group `sellerId|warehouseId` → standard | express | pickup */
   const [shippingMethodsByGroup, setShippingMethodsByGroup] = useState({});
   const [shippingQuote, setShippingQuote] = useState(null);
   const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
@@ -175,10 +175,10 @@ export default function Checkout() {
     const onAdminGw = () => loadGateways();
     window.addEventListener('focus', loadGateways);
     document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('reaglex:payment-gateways-changed', onAdminGw);
+    window.addEventListener('spacilly:payment-gateways-changed', onAdminGw);
     let bc;
     try {
-      bc = new BroadcastChannel('reaglex-payment-gateways');
+      bc = new BroadcastChannel('spacilly-payment-gateways');
       bc.onmessage = () => loadGateways();
     } catch {
       /* ignore */
@@ -186,7 +186,7 @@ export default function Checkout() {
     return () => {
       window.removeEventListener('focus', loadGateways);
       document.removeEventListener('visibilitychange', onVis);
-      window.removeEventListener('reaglex:payment-gateways-changed', onAdminGw);
+      window.removeEventListener('spacilly:payment-gateways-changed', onAdminGw);
       try {
         bc?.close();
       } catch {
@@ -551,7 +551,7 @@ export default function Checkout() {
       try {
         if (orders.length > 1 && typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem(
-            'reaglex_unpaid_order_ids',
+            'spacilly_unpaid_order_ids',
             JSON.stringify(orders.slice(1).map((o) => String(o.id || o._id)))
           );
         }
@@ -719,14 +719,14 @@ export default function Checkout() {
                 {step === 2 && (
                   <div className="space-y-3">
                     <h2 className="mb-4 text-lg font-black" style={{ color: 'var(--text-primary)' }}>
-                      🚚 {t('checkout.reaglexShippingTitle')}
+                      🚚 {t('checkout.spacillyShippingTitle')}
                     </h2>
                     <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                      {t('checkout.reaglexShippingIntro')}
+                      {t('checkout.spacillyShippingIntro')}
                     </p>
                     {shippingQuoteLoading && (
                       <div className="rounded-xl p-4 text-sm" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
-                        {t('checkout.reaglexShippingLoading')}
+                        {t('checkout.spacillyShippingLoading')}
                       </div>
                     )}
                     {shippingQuoteErr && (
@@ -768,10 +768,10 @@ export default function Checkout() {
                               {g.warehouseLabel}
                             </p>
                             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                              {t('checkout.reaglexSellerGroup')}{' '}
+                              {t('checkout.spacillySellerGroup')}{' '}
                               <span className="font-mono">{String(g.sellerId).slice(-6)}</span>
                               {' · '}
-                              {g.distanceKm} km {t('checkout.reaglexByRoad')}
+                              {g.distanceKm} km {t('checkout.spacillyByRoad')}
                             </p>
                           </div>
                           <Truck className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--brand-primary)' }} />
@@ -787,7 +787,7 @@ export default function Checkout() {
                           ))}
                         </ul>
                         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                          {t('checkout.reaglexChooseMethod')}
+                          {t('checkout.spacillyChooseMethod')}
                         </p>
                         <div className="flex flex-col gap-2">
                           {(g.methods || []).map((m) => {
@@ -811,19 +811,19 @@ export default function Checkout() {
                                     <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                                       {m.label}
                                       {m.key === 'pickup' && m.pickupAvailable ? (
-                                        <span className="ml-2 text-[10px] font-bold text-emerald-600"> {t('checkout.reaglexPickupBadge')}</span>
+                                        <span className="ml-2 text-[10px] font-bold text-emerald-600"> {t('checkout.spacillyPickupBadge')}</span>
                                       ) : null}
                                     </p>
                                     <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                                      {m.etaDaysMin}–{m.etaDaysMax} {t('checkout.reaglexEtaDays')}
+                                      {m.etaDaysMin}–{m.etaDaysMax} {t('checkout.spacillyEtaDays')}
                                       {m.freeShippingThreshold != null && m.freeShippingThreshold > 0
-                                        ? ` · ${t('checkout.reaglexFreePrefix')} ${fmtMoney(m.freeShippingThreshold)}`
+                                        ? ` · ${t('checkout.spacillyFreePrefix')} ${fmtMoney(m.freeShippingThreshold)}`
                                         : ''}
                                     </p>
                                   </div>
                                   <div className="text-right">
                                     <p className="font-bold" style={{ color: 'var(--brand-primary)' }}>
-                                      {m.freeShippingApplied ? t('checkout.reaglexFree') : fmtMoney(m.price)}
+                                      {m.freeShippingApplied ? t('checkout.spacillyFree') : fmtMoney(m.price)}
                                     </p>
                                   </div>
                                 </button>
@@ -1125,7 +1125,7 @@ export default function Checkout() {
                     {shippingQuote?.groups?.length > 0 && (
                       <div className="mb-4 rounded-xl border p-3 text-xs" style={{ borderColor: 'var(--divider)', background: 'var(--bg-tertiary)' }}>
                         <p className="mb-2 font-bold" style={{ color: 'var(--text-primary)' }}>
-                          {t('checkout.reaglexShippingBreakdown')}
+                          {t('checkout.spacillyShippingBreakdown')}
                         </p>
                         <ul className="space-y-2">
                           {shippingQuote.groups.map((g) => {
@@ -1137,7 +1137,7 @@ export default function Checkout() {
                                   {g.warehouseLabel} · {mk}
                                 </span>
                                 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                                  {m?.freeShippingApplied ? t('checkout.reaglexFree') : fmtMoney(m?.price ?? 0)}
+                                  {m?.freeShippingApplied ? t('checkout.spacillyFree') : fmtMoney(m?.price ?? 0)}
                                 </span>
                               </li>
                             );
@@ -1297,11 +1297,11 @@ export default function Checkout() {
                 </span>
               </div>
               <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                {t('checkout.reaglexShippingBreakdown')}
+                {t('checkout.spacillyShippingBreakdown')}
               </p>
               {shippingQuoteLoading && (
                 <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {t('checkout.reaglexShippingLoading')}
+                  {t('checkout.spacillyShippingLoading')}
                 </div>
               )}
               {(shippingQuote?.groups || []).map((g) => {
@@ -1311,7 +1311,7 @@ export default function Checkout() {
                   <div key={`sum-${g.groupKey}`} className="flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
                     <span className="max-w-[58%] truncate">{g.warehouseLabel}</span>
                     <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {m?.freeShippingApplied ? t('checkout.reaglexFree') : fmtMoney(m?.price ?? 0)}
+                      {m?.freeShippingApplied ? t('checkout.spacillyFree') : fmtMoney(m?.price ?? 0)}
                     </span>
                   </div>
                 );

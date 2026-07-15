@@ -74,7 +74,7 @@ export function Login() {
 
   // Load remembered identifier
   useEffect(() => {
-    const remembered = localStorage.getItem('reaglex_auth_remember');
+    const remembered = localStorage.getItem('spacilly_auth_remember');
     if (remembered) {
       setIdentifier(remembered);
       setRememberMe(true);
@@ -105,7 +105,7 @@ export function Login() {
             updated_at: result.user.updatedAt || new Date().toISOString(),
           };
           setAuth(profile, result.token);
-          if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
+          if (rememberMe) localStorage.setItem('spacilly_auth_remember', identifier);
           const redir = getDashboardPathForRole(result.user.role);
           showToast('Device approved. Welcome!', 'success');
           navigate(redir);
@@ -205,9 +205,9 @@ export function Login() {
       }
 
       if (rememberMe) {
-        localStorage.setItem('reaglex_auth_remember', identifier);
+        localStorage.setItem('spacilly_auth_remember', identifier);
       } else {
-        localStorage.removeItem('reaglex_auth_remember');
+        localStorage.removeItem('spacilly_auth_remember');
       }
 
       const { user } = useAuthStore.getState();
@@ -275,7 +275,7 @@ export function Login() {
         updated_at: user.updatedAt || new Date().toISOString(),
       };
       setAuth(profile, token);
-      if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
+      if (rememberMe) localStorage.setItem('spacilly_auth_remember', identifier);
       redirectRef.current = getDashboardPathForRole(user.role);
       showToast('Signed in successfully. Welcome back!', 'success');
       navigate(redirectRef.current);
@@ -341,7 +341,7 @@ export function Login() {
         updated_at: user.updatedAt || new Date().toISOString(),
       };
       setAuth(profile, token);
-      if (rememberMe) localStorage.setItem('reaglex_auth_remember', identifier);
+      if (rememberMe) localStorage.setItem('spacilly_auth_remember', identifier);
       redirectRef.current = getDashboardPathForRole(user.role);
       showToast('2FA enabled. Welcome!', 'success');
       navigate(redirectRef.current);

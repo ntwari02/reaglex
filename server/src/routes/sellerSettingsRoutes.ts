@@ -330,7 +330,7 @@ router.post(
       next();
     });
   },
-  cloudinaryUploadBuffers('reaglex/shops/verification'),
+  cloudinaryUploadBuffers('spacilly/shops/verification'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!req.file) {

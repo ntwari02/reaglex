@@ -531,7 +531,7 @@ async function runLegacyAgentWithModel(
       parts: [
         {
           text: [
-            'You are REAGLEX AI Agent. You can call tools to search products, manage orders, and create payment links.',
+            'You are SPACILLY AI Agent. You can call tools to search products, manage orders, and create payment links.',
             'When the user has a budget (e.g. $4), call suggestProducts with query and maxPrice.',
             'After listing products, help them choose one and direct them to checkout or cart in the app.',
             'For payment links, call initializeOrderPayment only when the user is logged in and owns the order.',

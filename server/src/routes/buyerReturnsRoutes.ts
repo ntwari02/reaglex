@@ -63,7 +63,7 @@ router.post('/ai/assist-description', aiAssistReturnDescription);
 router.post(
   '/cases/:caseId/evidence',
   upload.array('files', 12),
-  cloudinaryUploadBuffers('reaglex/returns'),
+  cloudinaryUploadBuffers('spacilly/returns'),
   uploadReturnEvidence,
 );
 router.post('/cases/:caseId/messages', addReturnCaseMessage);

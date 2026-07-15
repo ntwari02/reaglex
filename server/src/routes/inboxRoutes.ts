@@ -186,7 +186,7 @@ router.post('/threads', createThread);
 router.post(
   '/upload',
   inboxUpload.array('attachments', 5),
-  cloudinaryUploadBuffers('reaglex/inbox'),
+  cloudinaryUploadBuffers('spacilly/inbox'),
   (req: AuthenticatedRequest, res) => {
   try {
     if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
@@ -240,7 +240,7 @@ router.post(
 router.post(
   '/threads/:threadId/messages',
   inboxUpload.array('attachments', 5),
-  cloudinaryUploadBuffers('reaglex/inbox'),
+  cloudinaryUploadBuffers('spacilly/inbox'),
   async (req: AuthenticatedRequest, res) => {
   try {
     // Handle file uploads first - convert to attachment objects with full metadata

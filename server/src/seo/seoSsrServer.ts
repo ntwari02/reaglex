@@ -116,7 +116,7 @@ function productToJsonLd(args: {
   const reviewCount = Number(product?.totalReviews ?? product?.reviewCount ?? 0) || 0;
 
   const sku = product?.sku || product?._id || '';
-  const brandName = product?.brand || product?.seller?.storeName || product?.sellerName || 'Reaglex';
+  const brandName = product?.brand || product?.seller?.storeName || product?.sellerName || 'Spacilly';
 
   return {
     '@context': 'https://schema.org',
@@ -191,7 +191,7 @@ function buildSeoHtml(args: {
     <meta name="robots" content="index,follow" />
 
     <meta property="og:type" content="product" />
-    <meta property="og:site_name" content="Reaglex" />
+    <meta property="og:site_name" content="Spacilly" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     ${ogImage ? `<meta property="og:image" content="${ogImage}" />` : ''}
@@ -215,7 +215,7 @@ function buildSeoHtml(args: {
           ? `<p><strong>${escapeHtml(priceText || '')}</strong>${availabilityText ? ` - ${escapeHtml(availabilityText)}` : ''}</p>`
           : ''
       }
-      <p><a href="${escapeHtml(canonicalUrl)}">Open in Reaglex</a></p>
+      <p><a href="${escapeHtml(canonicalUrl)}">Open in Spacilly</a></p>
     </main>
   </body>
 </html>`;
@@ -245,7 +245,7 @@ async function sendProductSeoPage(
 
     const title = product?.seoTitle || product?.name || product?.title || 'Product';
     const description =
-    product?.seoDescription || product?.description || `Buy ${title} on Reaglex — escrow-protected marketplace.`;
+    product?.seoDescription || product?.description || `Buy ${title} on Spacilly — escrow-protected marketplace.`;
 
     const images = extractPrimaryImages(product);
     const primaryImage = images[0];
@@ -287,7 +287,7 @@ async function sendProductSeoPage(
 
     const html = buildSeoHtml({
       canonicalUrl,
-    title: `${title} | Reaglex`,
+    title: `${title} | Spacilly`,
       description,
       openGraphImage: primaryImage,
       twitterImage: primaryImage,
@@ -328,7 +328,7 @@ function buildMarketingPageHtml(args: {
     <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
     <meta name="robots" content="${escapeHtml(robots)}" />
     <meta property="og:type" content="${escapeHtml(ogType)}" />
-    <meta property="og:site_name" content="Reaglex" />
+    <meta property="og:site_name" content="Spacilly" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     ${og ? `<meta property="og:image" content="${og}" /><meta property="og:image:secure_url" content="${og}" />` : ''}
@@ -442,7 +442,7 @@ app.get('/', async (req: Request, res: Response) => {
     const og = `${publicBase}/logo.jpg`;
     const html = buildMarketingPageHtml({
       canonicalUrl,
-      title: 'Reaglex — Escrow-protected marketplace',
+      title: 'Spacilly — Escrow-protected marketplace',
       description:
         'Shop trending products from verified sellers with buyer protection, secure checkout, and global-friendly delivery.',
       robots: 'index,follow',
@@ -452,11 +452,11 @@ app.get('/', async (req: Request, res: Response) => {
         {
           '@context': 'https://schema.org',
           '@type': 'WebSite',
-          name: 'Reaglex',
+          name: 'Spacilly',
           url: canonicalUrl,
         },
       ],
-      bodyInner: `<h1>Reaglex marketplace</h1><p>Browse electronics, fashion, home, sports, beauty, and more with escrow-backed checkout.</p><p><a href="${escapeHtml(`${publicBase}/products`)}">View all products</a></p>`,
+      bodyInner: `<h1>Spacilly marketplace</h1><p>Browse electronics, fashion, home, sports, beauty, and more with escrow-backed checkout.</p><p><a href="${escapeHtml(`${publicBase}/products`)}">View all products</a></p>`,
     });
     cache.set(cacheKey, { html, expiresAt: now + CACHE_TTL_MS });
     res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=86400');
@@ -480,7 +480,7 @@ app.get('/products', async (req: Request, res: Response) => {
     const canonicalUrl = `${publicBase}/products`;
     const html = buildMarketingPageHtml({
       canonicalUrl,
-      title: 'All products | Reaglex',
+      title: 'All products | Spacilly',
       description: 'Explore in-stock listings from verified sellers — filter by category, price, and rating.',
       robots: 'index,follow',
       ogType: 'website',
@@ -530,8 +530,8 @@ app.get('/category/:slug', async (req: Request, res: Response) => {
 
     const publicBase = getPublicBaseUrl(req);
     const canonicalUrl = `${publicBase}/category/${encodeURIComponent(slug)}`;
-    const title = `${cat.name} | Reaglex`;
-    const description = cat.description || `Shop ${cat.name} on Reaglex.`;
+    const title = `${cat.name} | Spacilly`;
+    const description = cat.description || `Shop ${cat.name} on Spacilly.`;
     const breadcrumb = {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
@@ -558,7 +558,7 @@ app.get('/category/:slug', async (req: Request, res: Response) => {
       ogType: 'website',
       ogImage: `${publicBase}/logo.jpg`,
       jsonLd: [breadcrumb, collection],
-      bodyInner: `<h1>${escapeHtml(cat.name)}</h1><p>${escapeHtml(description)}</p><p>${Number(cat.productCount || 0)} products</p><p><a href="${escapeHtml(canonicalUrl)}">Open category in Reaglex</a></p>`,
+      bodyInner: `<h1>${escapeHtml(cat.name)}</h1><p>${escapeHtml(description)}</p><p>${Number(cat.productCount || 0)} products</p><p><a href="${escapeHtml(canonicalUrl)}">Open category in Spacilly</a></p>`,
     });
     cache.set(cacheKey, { html, expiresAt: now + CACHE_TTL_MS });
     res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=86400');
@@ -574,12 +574,12 @@ app.get('/search', (req: Request, res: Response) => {
   const canonicalUrl = `${publicBase}/search`;
   const html = buildMarketingPageHtml({
     canonicalUrl,
-    title: 'Search | Reaglex',
-    description: 'Search Reaglex products. Filtered and low-signal search URLs may be excluded from indexing.',
+    title: 'Search | Spacilly',
+    description: 'Search Spacilly products. Filtered and low-signal search URLs may be excluded from indexing.',
     robots: 'noindex,follow',
     ogType: 'website',
     jsonLd: [],
-    bodyInner: `<h1>Search</h1><p>Use the search field in the Reaglex app to find products.</p>`,
+    bodyInner: `<h1>Search</h1><p>Use the search field in the Spacilly app to find products.</p>`,
   });
   res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=3600');
   res.type('text/html').send(html);

@@ -105,7 +105,7 @@ export default function MobileMenuOverlay() {
           { icon: MessageSquare, label: t('nav.messages'), to: '/account?tab=messages', badge: messageCount },
           { icon: Settings, label: t('nav.settings'), to: '/account?tab=settings' },
           { icon: HelpCircle, label: `${t('nav.help')} & Support`, to: '/help' },
-          { icon: Info, label: t('footer.links.shop.aboutReaglex'), to: '/about' },
+          { icon: Info, label: t('footer.links.shop.aboutSpacilly'), to: '/about' },
           { icon: Store, label: t('header.becomeSeller'), to: '/become-seller' },
         ],
       },

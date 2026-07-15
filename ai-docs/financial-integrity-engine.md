@@ -1,4 +1,4 @@
-# REAGLEX Financial Integrity + Payment Intelligence
+# SPACILLY Financial Integrity + Payment Intelligence
 
 **Status:** Architecture v1 (grounded in current codebase)  
 **North star:** No amount of money — even **1 FRW** — should disappear, mismatch, duplicate, or drift without immediate detection, explanation, isolation, and actionable diagnostics.
@@ -7,7 +7,7 @@
 
 ## 0. Current state (baseline)
 
-REAGLEX today is a **pragmatic marketplace escrow** stack:
+SPACILLY today is a **pragmatic marketplace escrow** stack:
 
 | Layer | What exists | Integrity gap |
 |-------|-------------|-----------------|
@@ -374,7 +374,7 @@ Output stored on `investigations.rcaHypothesis` with `confidence` and `evidenceE
 
 ---
 
-## 9. Integration plan (REAGLEX-specific)
+## 9. Integration plan (SPACILLY-specific)
 
 ### Phase 0 — Foundation (week 1–2)
 
@@ -649,4 +649,4 @@ client/src/pages/admin/finance/InvestigationDetail.tsx
 
 ---
 
-*This document is the source of truth for REAGLEX payment intelligence. Update version when phases ship.*
+*This document is the source of truth for SPACILLY payment intelligence. Update version when phases ship.*

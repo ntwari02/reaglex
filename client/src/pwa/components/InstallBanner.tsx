@@ -42,7 +42,7 @@ export default function InstallBanner() {
 
             <div className="pwa-install-card__text">
               <p id="pwa-install-title" className="pwa-install-card__title">
-                Install Reaglex
+                Install Spacilly
               </p>
               <p id="pwa-install-desc" className="pwa-install-card__sub">
                 Quick access from your home screen

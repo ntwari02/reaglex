@@ -32,7 +32,7 @@ export default function OrderConfirmation() {
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem('reaglex_unpaid_order_ids');
+      const raw = sessionStorage.getItem('spacilly_unpaid_order_ids');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length) setUnpaidIds(parsed);

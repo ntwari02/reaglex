@@ -3,7 +3,7 @@
  *
  * Workflow:
  *  1. Service worker intercepts a non-GET API call while offline and posts
- *     a `REAGLEX_QUEUE_REQUEST` message to active clients.
+ *     a `SPACILLY_QUEUE_REQUEST` message to active clients.
  *  2. The page persists the request into IndexedDB via `enqueueRequest`.
  *  3. When connection returns (or the SW receives a background sync event)
  *     we replay each queued request in order, dropping ones that succeed
@@ -55,7 +55,7 @@ export async function queueWriteRequest(input: {
     try {
       const reg = await navigator.serviceWorker.ready;
       // @ts-ignore — older types don't include sync
-      await reg.sync?.register('reaglex-offline-queue');
+      await reg.sync?.register('spacilly-offline-queue');
     } catch {
       /* ignore */
     }
@@ -125,9 +125,9 @@ export function installOfflineQueueBridge() {
   navigator.serviceWorker?.addEventListener?.('message', (event) => {
     const data = (event as MessageEvent).data;
     if (!data) return;
-    if (data.type === 'REAGLEX_QUEUE_REQUEST' && data.request) {
+    if (data.type === 'SPACILLY_QUEUE_REQUEST' && data.request) {
       void queueWriteRequest(data.request);
-    } else if (data.type === 'REAGLEX_FLUSH_QUEUE') {
+    } else if (data.type === 'SPACILLY_FLUSH_QUEUE') {
       void flushQueue();
     }
   });

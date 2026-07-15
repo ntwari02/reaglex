@@ -86,7 +86,7 @@ const ACCORDION_SECTIONS = [
     icon: Building2,
     tone: 'blue',
     links: [
-      { label: 'About Reaglex', to: '/about', icon: Building2 },
+      { label: 'About Spacilly', to: '/about', icon: Building2 },
       { label: 'Careers', to: '/about', icon: Users },
       { label: 'Press', to: '/about', icon: Globe },
       { label: 'Blog', to: '/about', icon: LayoutGrid },
@@ -143,7 +143,7 @@ function AccordionLink({ link, onSellerClick }) {
       <button
         type="button"
         className="rx-mfooter-link-row w-full"
-        onClick={() => window.dispatchEvent(new Event('reaglex:assistant:open'))}
+        onClick={() => window.dispatchEvent(new Event('spacilly:assistant:open'))}
       >
         <span className="rx-mfooter-link-icon">
           <Headphones size={14} />
@@ -237,7 +237,7 @@ export default function PremiumMobileFooter() {
               <span className="rx-mfooter-logo-mark" aria-hidden>
                 R
               </span>
-              <span className="rx-mfooter-logo-text">Reaglex</span>
+              <span className="rx-mfooter-logo-text">Spacilly</span>
             </Link>
             <button type="button" className="rx-mfooter-top-btn" onClick={scrollTop} aria-label="Back to top">
               <ArrowUp size={18} strokeWidth={2.5} />
@@ -406,7 +406,7 @@ export default function PremiumMobileFooter() {
           </div>
 
           <div className="rx-mfooter-bottom">
-            <p className="rx-mfooter-copy">© {year} Reaglex. All rights reserved.</p>
+            <p className="rx-mfooter-copy">© {year} Spacilly. All rights reserved.</p>
             <button type="button" className="rx-mfooter-back" onClick={scrollTop}>
               <span>Back to top</span>
               <span className="rx-mfooter-back-arrow">

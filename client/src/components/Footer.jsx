@@ -175,7 +175,7 @@ const SELL_LINKS = [
 ];
 
 const SUPPORT_LINKS = [
-  { labelKey: 'footer.links.shop.aboutReaglex', href: '/about' },
+  { labelKey: 'footer.links.shop.aboutSpacilly', href: '/about' },
   { labelKey: 'header.helpCenter', href: '/help' },
   { labelKey: 'footer.links.support.contactUs', href: '/contact' },
   { labelKey: 'nav.trackOrder', href: '/track' },
@@ -389,11 +389,11 @@ export default function Footer() {
               >
                 <img
                   src="/logo.jpg"
-                  alt="Reaglex"
+                  alt="Spacilly"
                   className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                 />
-                <span className="reaglex-logo-font font-bold text-2xl tracking-wide" style={{ color: 'var(--footer-on-dark-heading)' }}>
-                  Reaglex
+                <span className="spacilly-logo-font font-bold text-2xl tracking-wide" style={{ color: 'var(--footer-on-dark-heading)' }}>
+                  Spacilly
                 </span>
               </Link>
               <p className="text-sm font-medium mb-1" style={{ color: 'var(--footer-on-dark-body)' }}>
@@ -500,7 +500,7 @@ export default function Footer() {
                       <button
                         key={labelKey}
                         type="button"
-                        onClick={() => window.dispatchEvent(new Event('reaglex:assistant:open'))}
+                        onClick={() => window.dispatchEvent(new Event('spacilly:assistant:open'))}
                         className="text-sm mb-1 text-left"
                         style={{ color: 'var(--footer-on-dark-body)', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
                       >
@@ -561,7 +561,7 @@ export default function Footer() {
         }}
       >
         <p className="footer-bottom-text text-[13px] order-2 sm:order-1 text-center sm:text-left" style={{ color: 'var(--footer-on-dark-body)' }}>
-          © {currentYear} <span className="reaglex-logo-font" style={{ fontWeight: 700, fontSize: '1.05em' }}>Reaglex</span>. {t('footer.rightsReservedPrefix')} <span className="footer-heart">❤️</span> {t('footer.rightsReservedSuffix')}
+          © {currentYear} <span className="spacilly-logo-font" style={{ fontWeight: 700, fontSize: '1.05em' }}>Spacilly</span>. {t('footer.rightsReservedPrefix')} <span className="footer-heart">❤️</span> {t('footer.rightsReservedSuffix')}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2 order-1 sm:order-2">
           {PAYMENT_ICONS.map((payment) => (

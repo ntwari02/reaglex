@@ -30,7 +30,7 @@ const SECTIONS: Section[] = [
     id: 'prohibited',
     title: 'Prohibited Items List',
     icon: '⛔',
-    body: 'Items that break the law or Reaglex policy are strictly forbidden. See the list below for examples.',
+    body: 'Items that break the law or Spacilly policy are strictly forbidden. See the list below for examples.',
   },
   {
     id: 'shipping',
@@ -111,7 +111,7 @@ function renderSectionContent(sectionId: string) {
                   marginBottom: 4,
                 }}
               >
-                👋 Welcome to Reaglex Seller Program!
+                👋 Welcome to Spacilly Seller Program!
               </p>
               <p
                 style={{
@@ -119,7 +119,7 @@ function renderSectionContent(sectionId: string) {
                   color: 'var(--text-muted)',
                 }}
               >
-                By selling on Reaglex you agree to follow all guidelines below. Read carefully.
+                By selling on Spacilly you agree to follow all guidelines below. Read carefully.
               </p>
             </div>
           </motion.div>
@@ -1149,8 +1149,8 @@ function renderSectionContent(sectionId: string) {
                 style={{ color: 'var(--brand-orange-text)' }}
               >
                 📧{' '}
-                <a href="mailto:compliance@reaglex.com" style={{ color: 'var(--brand-orange-text)' }}>
-                  compliance@reaglex.com
+                <a href="mailto:compliance@spacilly.com" style={{ color: 'var(--brand-orange-text)' }}>
+                  compliance@spacilly.com
                 </a>
               </p>
             </div>
@@ -1866,7 +1866,7 @@ function renderSectionContent(sectionId: string) {
                     className="text-xs font-semibold"
                     style={{ color: '#fed7aa' }}
                   >
-                    REAGLEX ESCROW 🔒
+                    SPACILLY ESCROW 🔒
                   </p>
                   <p
                     className="text-[11px]"
@@ -2036,7 +2036,7 @@ function renderSectionContent(sectionId: string) {
                   className="space-y-1.5 text-[11px]"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  <li>✓ Use Reaglex checkout only</li>
+                  <li>✓ Use Spacilly checkout only</li>
                   <li>✓ Keep payment records</li>
                   <li>✓ Report suspicious requests</li>
                   <li>✓ Verify buyer payment before ship</li>
@@ -2115,8 +2115,8 @@ function renderSectionContent(sectionId: string) {
                 className="text-[11px]"
                 style={{ color: 'var(--link-color)' }}
               >
-                You are responsible for declaring all Reaglex income to your local tax authority.
-                Reaglex may provide annual earnings statements.
+                You are responsible for declaring all Spacilly income to your local tax authority.
+                Spacilly may provide annual earnings statements.
               </p>
             </div>
           </motion.div>
@@ -2293,7 +2293,7 @@ function renderSectionContent(sectionId: string) {
                 {
                   icon: '🤝',
                   title: 'Integrity',
-                  desc: 'Be honest in everything you do on Reaglex.',
+                  desc: 'Be honest in everything you do on Spacilly.',
                 },
                 {
                   icon: '🎯',
@@ -2313,7 +2313,7 @@ function renderSectionContent(sectionId: string) {
                 {
                   icon: '🌍',
                   title: 'Community',
-                  desc: 'Help Reaglex grow as a trusted market.',
+                  desc: 'Help Spacilly grow as a trusted market.',
                 },
               ].map((item) => (
                 <div
@@ -2918,7 +2918,7 @@ export default function SellerGuidelines() {
               className="text-sm sm:text-base"
               style={{ color: 'var(--guidelines-hero-subtitle)' }}
             >
-              Everything you need to know to sell successfully on Reaglex.
+              Everything you need to know to sell successfully on Spacilly.
             </p>
           </div>
         </section>
@@ -2964,7 +2964,7 @@ export default function SellerGuidelines() {
               className="text-sm"
               style={{ color: 'var(--text-muted)' }}
             >
-              Expand each section to learn how to sell safely and successfully on Reaglex.
+              Expand each section to learn how to sell safely and successfully on Spacilly.
             </p>
           </div>
 

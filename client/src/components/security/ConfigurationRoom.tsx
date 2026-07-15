@@ -114,7 +114,7 @@ function mapGatewayToApiEntry(g: any): ApiEntry {
     lastSyncAt: g.lastChecked || new Date().toISOString(),
     riskAlerts: issues.length ? issues : ['No active risk alerts'],
     supportsWebhook: true,
-    allowedOrigins: ['https://www.reaglex.com'],
+    allowedOrigins: ['https://www.spacilly.com'],
     loggingLevel: 'info',
     callbackUrl: g.suggestedWebhookUrl || g.webhookUrl || '',
   };
@@ -122,7 +122,7 @@ function mapGatewayToApiEntry(g: any): ApiEntry {
 
 const defaultHeaders = [
   { key: 'Content-Type', value: 'application/json' },
-  { key: 'X-Reaglex-Client', value: 'admin-control-room' },
+  { key: 'X-Spacilly-Client', value: 'admin-control-room' },
 ];
 
 const ctaStyle = {

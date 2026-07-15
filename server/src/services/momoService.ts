@@ -170,7 +170,7 @@ export async function requestToPay(input: {
       partyIdType: 'MSISDN',
       partyId: input.payerMsisdn,
     },
-    payerMessage: input.payerMessage || 'Reaglex order',
+    payerMessage: input.payerMessage || 'Spacilly order',
     payeeNote: input.payeeNote || `Order ${input.externalId}`,
   };
   if (callbackUrl) {

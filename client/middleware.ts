@@ -1,11 +1,11 @@
 /**
- * Vercel Edge Middleware — crawler-aware rendering for Reaglex.
+ * Vercel Edge Middleware — crawler-aware rendering for Spacilly.
  *
  * Routes search-engine + social bots to the SEO SSR server (real HTML + JSON-LD),
  * while humans continue to hit the SPA shell (`/index.html`).
  *
  * Required env var on the Vercel project:
- *   SEO_SSR_ORIGIN   e.g. https://reaglex-seo.onrender.com
+ *   SEO_SSR_ORIGIN   e.g. https://spacilly-seo.onrender.com
  *
  * Optional:
  *   SEO_SSR_DISABLE  "1" disables proxying (kill switch)
@@ -60,11 +60,11 @@ export default async function middleware(request: Request): Promise<Response | u
       method: 'GET',
       redirect: 'manual',
       headers: {
-        'user-agent': ua || 'ReaglexEdgeProxy/1.0',
+        'user-agent': ua || 'SpacillyEdgeProxy/1.0',
         'accept': 'text/html,application/xhtml+xml',
         'x-forwarded-host': url.host,
         'x-forwarded-proto': url.protocol.replace(':', ''),
-        'x-reaglex-bot': '1',
+        'x-spacilly-bot': '1',
       },
     });
 
@@ -76,7 +76,7 @@ export default async function middleware(request: Request): Promise<Response | u
     if (!headers.get('cache-control')) {
       headers.set('cache-control', 'public, max-age=120, stale-while-revalidate=86400');
     }
-    headers.set('x-reaglex-seo', '1');
+    headers.set('x-spacilly-seo', '1');
     headers.set('vary', [headers.get('vary'), 'User-Agent'].filter(Boolean).join(', '));
 
     return new Response(upstream.body, {

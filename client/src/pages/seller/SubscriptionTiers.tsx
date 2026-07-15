@@ -352,7 +352,7 @@ const SubscriptionTiers: React.FC = () => {
           Subscription & Billing
         </h1>
         <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
-          Plans, invoices, and payment methods are managed by Reaglex. Contact support if you need help with billing.
+          Plans, invoices, and payment methods are managed by Spacilly. Contact support if you need help with billing.
         </p>
         {!subscriptionsOn && (
           <p className="mt-3 text-sm font-semibold text-amber-800 dark:text-amber-300 rounded-lg border border-amber-300/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 max-w-2xl">

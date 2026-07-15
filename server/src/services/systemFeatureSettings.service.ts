@@ -21,7 +21,7 @@ function unlockSecret(): string {
     process.env.SYSTEM_FEATURES_UNLOCK_SECRET ||
     process.env.JWT_SECRET ||
     process.env.SESSION_SECRET ||
-    'reaglex-dev-system-features'
+    'spacilly-dev-system-features'
   );
 }
 

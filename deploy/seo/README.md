@@ -1,4 +1,4 @@
-# Reaglex SEO edge & deployment
+# Spacilly SEO edge & deployment
 
 This folder contains reverse-proxy and edge configurations that complete the
 crawler-aware rendering pipeline.
@@ -37,7 +37,7 @@ Order of preference:
 3. **`nginx.conf` / `Caddyfile`** — bare-metal / VPS reverse proxy.
 
 All adapters set `Vary: User-Agent`, send `X-Forwarded-Host`, mark bot responses
-with `X-Reaglex-SEO`, and never proxy `/api/`, `/uploads/`, or static asset URLs.
+with `X-Spacilly-SEO`, and never proxy `/api/`, `/uploads/`, or static asset URLs.
 
 ## Important headers
 
@@ -46,7 +46,7 @@ with `X-Reaglex-SEO`, and never proxy `/api/`, `/uploads/`, or static asset URLs
   revalidating. Tuned for crawler workloads (no human session leakage).
 - `Vary: User-Agent` — guarantees the SPA shell is never served to bots from a
   shared cache and vice-versa.
-- `X-Reaglex-Bot: 1` — propagated upstream to the SSR origin so it can log /
+- `X-Spacilly-Bot: 1` — propagated upstream to the SSR origin so it can log /
   rate-limit per UA bucket.
 
 ## Environment
@@ -64,14 +64,14 @@ with `X-Reaglex-SEO`, and never proxy `/api/`, `/uploads/`, or static asset URLs
 
 ```bash
 # Human shell (SPA)
-curl -sI https://reaglex.com/product/red-running-shoes
+curl -sI https://spacilly.com/product/red-running-shoes
 
 # Bot HTML
 curl -sI -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" \
-     https://reaglex.com/product/red-running-shoes
+     https://spacilly.com/product/red-running-shoes
 
 # Category hub (should return 200 from SSR with JSON-LD + canonical)
-curl -sI -A "facebookexternalhit/1.1" https://reaglex.com/category/electronics
+curl -sI -A "facebookexternalhit/1.1" https://spacilly.com/category/electronics
 ```
 
 Expected on bot requests:
@@ -81,5 +81,5 @@ HTTP/2 200
 content-type: text/html
 cache-control: public, max-age=120, stale-while-revalidate=86400
 vary: User-Agent
-x-reaglex-seo: 1
+x-spacilly-seo: 1
 ```

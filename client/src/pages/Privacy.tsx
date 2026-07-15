@@ -42,7 +42,7 @@ export default function Privacy() {
               Privacy Policy
             </h1>
             <p className="text-base sm:text-lg mb-2" style={{ color: 'var(--hero-marketing-subtitle)' }}>
-              How Reaglex collects, uses, and protects your information.
+              How Spacilly collects, uses, and protects your information.
             </p>
             <p className="text-sm" style={{ color: 'var(--hero-marketing-subtitle)' }}>
               Last updated: {LAST_UPDATED}

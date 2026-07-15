@@ -14,7 +14,7 @@
 import { API_BASE_URL } from './config';
 
 const SW_URL = '/sw.js';
-const SUBSCRIBED_KEY = 'reaglex-web-push-subscribed';
+const SUBSCRIBED_KEY = 'spacilly-web-push-subscribed';
 
 export type WebPushConfig = {
   enabled: boolean;
@@ -56,7 +56,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       try {
         navigator.serviceWorker.addEventListener('message', (event) => {
           const data = event?.data;
-          if (data?.type === 'REAGLEX_NAVIGATE' && typeof data.url === 'string') {
+          if (data?.type === 'SPACILLY_NAVIGATE' && typeof data.url === 'string') {
             try {
               const url = new URL(data.url, window.location.origin);
               if (url.origin === window.location.origin) {

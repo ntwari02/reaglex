@@ -27,17 +27,17 @@ export default function PaymentVerify() {
         const out = await paymentAPI.verify(transactionId, orderId);
         if (cancelled) return;
         if (out?.success) {
-          const unpaidRaw = sessionStorage.getItem('reaglex_unpaid_order_ids');
+          const unpaidRaw = sessionStorage.getItem('spacilly_unpaid_order_ids');
           if (unpaidRaw) {
             try {
               const rest = JSON.parse(unpaidRaw);
               if (Array.isArray(rest) && rest.length) {
-                sessionStorage.setItem('reaglex_unpaid_order_ids', JSON.stringify(rest));
+                sessionStorage.setItem('spacilly_unpaid_order_ids', JSON.stringify(rest));
               } else {
-                sessionStorage.removeItem('reaglex_unpaid_order_ids');
+                sessionStorage.removeItem('spacilly_unpaid_order_ids');
               }
             } catch {
-              sessionStorage.removeItem('reaglex_unpaid_order_ids');
+              sessionStorage.removeItem('spacilly_unpaid_order_ids');
             }
           }
           navigate(`/order-confirmation/${encodeURIComponent(orderId)}`, { replace: true });

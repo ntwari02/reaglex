@@ -34,7 +34,7 @@ export default function PwaRoot() {
     function onMessage(event: MessageEvent) {
       const data = event?.data;
       if (!data) return;
-      if (data.type === 'REAGLEX_NAVIGATE' && typeof data.url === 'string') {
+      if (data.type === 'SPACILLY_NAVIGATE' && typeof data.url === 'string') {
         try {
           const url = new URL(data.url, window.location.origin);
           if (url.origin === window.location.origin) {
@@ -44,7 +44,7 @@ export default function PwaRoot() {
           /* ignore */
         }
       }
-      if (data.type === 'REAGLEX_RESUBSCRIBE_PUSH') {
+      if (data.type === 'SPACILLY_RESUBSCRIBE_PUSH') {
         // Lazily re-import to keep this module light.
         void import('../lib/webPush').then((m) => m.subscribeWebPush().catch(() => undefined));
       }

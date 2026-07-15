@@ -73,7 +73,7 @@ router.post('/', createTicket);
 router.post(
   '/upload',
   ticketUpload.array('attachments', 5),
-  cloudinaryUploadBuffers('reaglex/tickets'),
+  cloudinaryUploadBuffers('spacilly/tickets'),
   (req: AuthenticatedRequest, res) => {
   try {
     if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
@@ -102,7 +102,7 @@ router.post(
 router.post(
   '/:ticketId/messages',
   ticketUpload.array('attachments', 5),
-  cloudinaryUploadBuffers('reaglex/tickets'),
+  cloudinaryUploadBuffers('spacilly/tickets'),
   async (req: AuthenticatedRequest, res) => {
   try {
     // Handle file uploads first

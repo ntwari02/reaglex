@@ -18,7 +18,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_KEY = 'reaglex-theme';
+const THEME_KEY = 'spacilly-theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();

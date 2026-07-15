@@ -189,7 +189,7 @@ function fallbackMarketingCopy(input: MarketingCopyInput): MarketingCopyResult {
     }
     return {
       subject,
-      headline: 'Welcome back to Reaglex',
+      headline: 'Welcome back to Spacilly',
       intro: winbackIntro(userId, dayKey),
       ctaLabel: pickCta('recommendation', `${userId}:winback:${dayKey}`),
       productDescriptions,
@@ -255,7 +255,7 @@ export async function generateMarketingEmailCopy(input: MarketingCopyInput): Pro
   const recentCampaigns = (input.recentCampaigns || []).slice(0, 6);
 
   const system = [
-    'You write premium ecommerce marketing email copy for Reaglex marketplace.',
+    'You write premium ecommerce marketing email copy for Spacilly marketplace.',
     'Tone: warm, human, concise, never spammy.',
     'No fake urgency, no ALL CAPS hype, no "act now" clichés.',
     'Use the shopper first name naturally once.',

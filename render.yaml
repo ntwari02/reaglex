@@ -1,7 +1,7 @@
 # Render Blueprint — adjust service names and env groups to match your dashboard.
 services:
   - type: web
-    name: reaglex-api
+    name: spacilly-api
     runtime: node
     rootDir: server
     buildCommand: npm install && npm run build
@@ -22,7 +22,7 @@ services:
         sync: false
 
   - type: web
-    name: reaglex-web
+    name: spacilly-web
     runtime: static
     rootDir: client
     buildCommand: npm install && npm run build

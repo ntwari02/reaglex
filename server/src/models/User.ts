@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import type { ReaglexSellerShippingConfig } from '../types/reaglexShipping.types';
+import type { SpacillySellerShippingConfig } from '../types/spacillyShipping.types';
 
 export type UserRole = 'buyer' | 'seller' | 'admin';
 
@@ -135,8 +135,8 @@ export interface IUser extends Document {
   referralCode?: string;
   /** User who referred this account (reward triggers on referee's first paid order) */
   referredBy?: mongoose.Types.ObjectId;
-  /** Reaglex marketplace shipping (sellers): warehouses, zones, methods, fees. */
-  reaglexSellerShipping?: ReaglexSellerShippingConfig;
+  /** Spacilly marketplace shipping (sellers): warehouses, zones, methods, fees. */
+  spacillySellerShipping?: SpacillySellerShippingConfig;
   rewards?: {
     points: number;
     lifetimePoints: number;
@@ -240,7 +240,7 @@ const loginHistorySchema = new Schema<ILoginHistory>(
   { _id: false }
 );
 
-const reaglexWarehouseSchema = new Schema(
+const spacillyWarehouseSchema = new Schema(
   {
     warehouseId: { type: String, required: true, trim: true },
     label: { type: String, default: 'Warehouse' },
@@ -257,7 +257,7 @@ const reaglexWarehouseSchema = new Schema(
   { _id: false }
 );
 
-const reaglexShippingDefaultsSchema = new Schema(
+const spacillyShippingDefaultsSchema = new Schema(
   {
     baseFee: { type: Number, default: 5 },
     ratePerKm: { type: Number, default: 0.35 },
@@ -268,7 +268,7 @@ const reaglexShippingDefaultsSchema = new Schema(
   { _id: false }
 );
 
-const reaglexZoneSchema = new Schema(
+const spacillyZoneSchema = new Schema(
   {
     id: { type: String, required: true },
     name: { type: String, default: '' },
@@ -278,7 +278,7 @@ const reaglexZoneSchema = new Schema(
   { _id: false }
 );
 
-const reaglexMethodSchema = new Schema(
+const spacillyMethodSchema = new Schema(
   {
     key: { type: String, enum: ['standard', 'express', 'overnight', 'pickup', 'free', 'flat_rate', 'local_delivery'], required: true },
     enabled: { type: Boolean, default: true },
@@ -302,14 +302,14 @@ const reaglexMethodSchema = new Schema(
   { _id: false }
 );
 
-const reaglexSellerShippingSchema = new Schema(
+const spacillySellerShippingSchema = new Schema(
   {
     enabled: { type: Boolean, default: true },
     currency: { type: String, default: 'USD' },
-    warehouses: { type: [reaglexWarehouseSchema], default: [] },
-    defaults: { type: reaglexShippingDefaultsSchema, default: () => ({}) },
-    zones: { type: [reaglexZoneSchema], default: [] },
-    methods: { type: [reaglexMethodSchema], default: [] },
+    warehouses: { type: [spacillyWarehouseSchema], default: [] },
+    defaults: { type: spacillyShippingDefaultsSchema, default: () => ({}) },
+    zones: { type: [spacillyZoneSchema], default: [] },
+    methods: { type: [spacillyMethodSchema], default: [] },
   },
   { _id: false }
 );
@@ -422,7 +422,7 @@ const userSchema = new Schema<IUser>(
       sparse: true,
       index: true,
     },
-    reaglexSellerShipping: { type: reaglexSellerShippingSchema },
+    spacillySellerShipping: { type: spacillySellerShippingSchema },
     rewards: {
       points: { type: Number, default: 0 },
       lifetimePoints: { type: Number, default: 0 },

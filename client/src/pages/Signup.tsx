@@ -160,7 +160,7 @@ export function Signup() {
             className="text-[13px] sm:text-[14px]"
             style={{ color: 'var(--text-muted)' }}
           >
-            Join the Reaglex community
+            Join the Spacilly community
           </p>
         </div>
 

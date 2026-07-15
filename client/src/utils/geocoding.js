@@ -11,7 +11,7 @@ export const searchAddress = async (query) => {
 
     const res = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'Reaglex-Marketplace/1.0 (reaglexitd@gmail.com)',
+        'User-Agent': 'Spacilly-Marketplace/1.0 (spacillyitd@gmail.com)',
       },
     });
     if (!res.ok) return [];
@@ -40,7 +40,7 @@ export const reverseGeocode = async (lat, lng) => {
 
     const res = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'Reaglex-Marketplace/1.0 (reaglexitd@gmail.com)',
+        'User-Agent': 'Spacilly-Marketplace/1.0 (spacillyitd@gmail.com)',
       },
     });
     if (!res.ok) return '';

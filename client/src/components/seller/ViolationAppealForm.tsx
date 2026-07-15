@@ -178,8 +178,8 @@ export default function ViolationAppealForm() {
         </button>
         <p className="text-[11px]" style={{ color: 'var(--brand-orange-text)' }}>
           Or email{' '}
-          <a href="mailto:seller-appeals@reaglex.com" style={{ color: 'var(--brand-orange-text)' }}>
-            seller-appeals@reaglex.com
+          <a href="mailto:seller-appeals@spacilly.com" style={{ color: 'var(--brand-orange-text)' }}>
+            seller-appeals@spacilly.com
           </a>
         </p>
       </div>

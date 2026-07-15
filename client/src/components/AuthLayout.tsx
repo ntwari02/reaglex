@@ -162,7 +162,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
               <div className="relative z-10 space-y-6">
                 <div className="flex items-center gap-3">
                   <div>
-                    <p className="reaglex-logo-font text-white font-bold text-2xl tracking-tight">Reaglex</p>
+                    <p className="spacilly-logo-font text-white font-bold text-2xl tracking-tight">Spacilly</p>
                     <p
                       className="text-[13px]"
                       style={{ color: 'rgba(255,255,255,0.6)' }}
@@ -395,7 +395,7 @@ export default function AuthLayout({ tab, children, authBasePath, hideHeader }: 
                     <span className="w-2 h-2 rounded-full bg-rose-400" />
                   </div>
                   <p className="text-[10px] font-semibold tracking-[0.12em] uppercase" style={{ color: 'var(--text-faint)' }}>
-                    {t('auth.reaglexSecure')}
+                    {t('auth.spacillySecure')}
                   </p>
                 </div>
                 <div className="relative z-10 px-1 sm:px-2">

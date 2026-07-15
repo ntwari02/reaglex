@@ -78,7 +78,7 @@ router.post('/violations/appeals', submitViolationAppeal);
 router.post(
   '/violations/appeals/upload',
   appealUpload.array('attachments', 5),
-  cloudinaryUploadBuffers('reaglex/violation-appeals'),
+  cloudinaryUploadBuffers('spacilly/violation-appeals'),
   (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!req.files || (req.files as Express.Multer.File[]).length === 0) {

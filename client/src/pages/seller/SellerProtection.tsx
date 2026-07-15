@@ -48,7 +48,7 @@ export default function SellerProtection() {
                 className="text-xs"
                 style={{ color: 'var(--text-muted)' }}
               >
-                Reaglex steps in when there&apos;s a problem, investigates both sides,
+                Spacilly steps in when there&apos;s a problem, investigates both sides,
                 and protects you when you&apos;ve followed the rules.
               </p>
             </div>

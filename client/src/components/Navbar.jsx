@@ -232,7 +232,7 @@ function UtilityBar({ language, setLanguage, currencyDisplay, setCurrency, t }) 
           className="text-xs font-medium hover:opacity-90 transition"
           style={{ color: PRIMARY }}
         >
-          {t('header.sellOnReaglex')}
+          {t('header.sellOnSpacilly')}
         </Link>
         <Link
           to="/help"
@@ -463,13 +463,13 @@ function MainHeader({
         >
           <img
             src="/logo.jpg"
-            alt="Reaglex"
+            alt="Spacilly"
             className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover flex-shrink-0"
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
           />
           <div className="hidden sm:block">
             <span
-              className="reaglex-logo-font font-bold block leading-tight"
+              className="spacilly-logo-font font-bold block leading-tight"
               style={{ fontSize: 20, color: 'var(--text-primary)' }}
             >
               Reag<span style={{ color: PRIMARY }}>lex</span>

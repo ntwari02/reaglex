@@ -90,7 +90,7 @@ function mapGeminiToCopy(
 
 function buildSystemPrompt(): string {
   return [
-    'You write seller notifications for a modern ecommerce marketplace (Reaglex).',
+    'You write seller notifications for a modern ecommerce marketplace (Spacilly).',
     'Style: calm like Stripe, Notion, Linear — never alarmist or spammy.',
     'Message length: 8–22 words. Title: short and clear (max 8 words).',
     'Tones: soft | medium | operational | reassuring | clear-operational.',

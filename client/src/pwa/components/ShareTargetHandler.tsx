@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 /**
  * Receives `share_target` payloads from the OS share sheet (declared in
  * site.webmanifest). We map the incoming text/url to a product search so
- * users can quickly look up something they shared into Reaglex.
+ * users can quickly look up something they shared into Spacilly.
  *
  * Route: `/share`
  */

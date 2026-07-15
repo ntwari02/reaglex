@@ -20,13 +20,13 @@ export function SiteWideSchemas() {
     if (!origin) return '';
     const logoUrl = resolveAssetUrl('/logo.jpg') || `${origin}/logo.jpg`;
     const sameAs = [
-      'https://www.facebook.com/reaglex',
-      'https://twitter.com/reaglex',
-      'https://x.com/reaglex',
-      'https://www.linkedin.com/company/reaglex',
-      'https://www.instagram.com/reaglex',
-      'https://www.youtube.com/@reaglex',
-      'https://www.tiktok.com/@reaglex',
+      'https://www.facebook.com/spacilly',
+      'https://twitter.com/spacilly',
+      'https://x.com/spacilly',
+      'https://www.linkedin.com/company/spacilly',
+      'https://www.instagram.com/spacilly',
+      'https://www.youtube.com/@spacilly',
+      'https://www.tiktok.com/@spacilly',
     ];
 
     const payload = {
@@ -35,8 +35,8 @@ export function SiteWideSchemas() {
         {
           '@type': 'Organization',
           '@id': `${origin}/#organization`,
-          name: 'Reaglex',
-          alternateName: ['Reaglex Marketplace', 'Reagle-X'],
+          name: 'Spacilly',
+          alternateName: ['Spacilly Marketplace', 'Spacilly-X'],
           url: `${origin}/`,
           logo: {
             '@type': 'ImageObject',
@@ -47,7 +47,7 @@ export function SiteWideSchemas() {
           image: logoUrl,
           slogan: 'Escrow-protected marketplace',
           description:
-            'Reaglex is an escrow-protected ecommerce marketplace connecting buyers and verified sellers worldwide.',
+            'Spacilly is an escrow-protected ecommerce marketplace connecting buyers and verified sellers worldwide.',
           foundingDate: '2024-01-01',
           areaServed: ['RW', 'KE', 'UG', 'TZ', 'BI', 'CD', 'NG', 'ZA', 'US', 'GB', 'AE'],
           knowsLanguage: ['en', 'fr', 'rw', 'sw'],
@@ -55,14 +55,14 @@ export function SiteWideSchemas() {
             {
               '@type': 'ContactPoint',
               contactType: 'customer support',
-              email: 'support@reaglex.com',
+              email: 'support@spacilly.com',
               areaServed: 'Worldwide',
               availableLanguage: ['en', 'fr', 'rw', 'sw'],
             },
             {
               '@type': 'ContactPoint',
               contactType: 'sales',
-              email: 'sales@reaglex.com',
+              email: 'sales@spacilly.com',
               areaServed: 'Worldwide',
               availableLanguage: ['en'],
             },
@@ -73,8 +73,8 @@ export function SiteWideSchemas() {
           '@type': 'WebSite',
           '@id': `${origin}/#website`,
           url: `${origin}/`,
-          name: 'Reaglex',
-          alternateName: 'Reaglex Marketplace',
+          name: 'Spacilly',
+          alternateName: 'Spacilly Marketplace',
           publisher: { '@id': `${origin}/#organization` },
           inLanguage: ['en', 'fr', 'rw', 'sw'],
           potentialAction: [

@@ -2,8 +2,8 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { User } from '../models/User';
-import { DEFAULT_REAGLEX_METHODS, defaultReaglexSellerShipping } from '../types/reaglexShipping.types';
-import { resolveSellerShippingConfig } from '../services/reaglexShipping.service';
+import { DEFAULT_SPACILLY_METHODS, defaultSpacillySellerShipping } from '../types/spacillyShipping.types';
+import { resolveSellerShippingConfig } from '../services/spacillyShipping.service';
 import {
   applyPlatformPolicyToSellerConfig,
   getPlatformShippingContext,
@@ -16,10 +16,10 @@ export async function getSellerShippingSettings(req: AuthenticatedRequest, res: 
   }
   try {
     const [u, platform] = await Promise.all([
-      User.findById(req.user.id).select('reaglexSellerShipping').lean(),
+      User.findById(req.user.id).select('spacillySellerShipping').lean(),
       getPlatformShippingContext(),
     ]);
-    const raw = (u as { reaglexSellerShipping?: unknown })?.reaglexSellerShipping;
+    const raw = (u as { spacillySellerShipping?: unknown })?.spacillySellerShipping;
     const merged = resolveSellerShippingConfig(raw);
     const policy = await getPlatformShippingPolicy();
     const settings = applyPlatformPolicyToSellerConfig(merged, policy);
@@ -45,7 +45,7 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
       return res.status(400).json({ message: 'settings object required' });
     }
 
-    const base = defaultReaglexSellerShipping();
+    const base = defaultSpacillySellerShipping();
     const inc = incoming as Record<string, unknown>;
     const warehousesRaw = Array.isArray(inc.warehouses) ? inc.warehouses : base.warehouses;
     const warehouses = warehousesRaw.map((w: any) => ({
@@ -89,7 +89,7 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
         }))
       : [];
 
-    const allowedMethodKeys = new Set<string>(DEFAULT_REAGLEX_METHODS.map((m) => String(m.key)));
+    const allowedMethodKeys = new Set<string>(DEFAULT_SPACILLY_METHODS.map((m) => String(m.key)));
     const methods = Array.isArray(inc.methods)
       ? (inc.methods as any[]).map((m) => ({
           key: String(m.key),
@@ -140,7 +140,7 @@ export async function putSellerShippingSettings(req: AuthenticatedRequest, res: 
 
     await User.updateOne(
       { _id: new mongoose.Types.ObjectId(req.user.id) },
-      { $set: { reaglexSellerShipping: normalized } },
+      { $set: { spacillySellerShipping: normalized } },
     );
 
     const platform = await getPlatformShippingContext();

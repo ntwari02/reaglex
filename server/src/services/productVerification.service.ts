@@ -220,7 +220,7 @@ export async function runProductVerification(input: {
       $setOnInsert: {
         productId: product._id,
         sellerId: (product as any).sellerId,
-        reaglexProductId: (product as any).reaglexProductId,
+        spacillyProductId: (product as any).spacillyProductId,
       },
       $set: {
         identifiers: {
@@ -261,7 +261,7 @@ export async function runProductVerification(input: {
           required: status === 'flagged' || status === 'rejected' || riskLevel === 'high',
           status: status === 'flagged' || status === 'rejected' ? 'queued' : 'not_required',
         },
-        printableQrUrl: `${String(process.env.CLIENT_URL || '').replace(/\/$/, '')}/products/${product._id}?rxid=${encodeURIComponent(String((product as any).reaglexProductId || ''))}`,
+        printableQrUrl: `${String(process.env.CLIENT_URL || '').replace(/\/$/, '')}/products/${product._id}?rxid=${encodeURIComponent(String((product as any).spacillyProductId || ''))}`,
       },
       $push: {
         externalChecks: {

@@ -238,7 +238,7 @@ export default function BecomeSeller() {
               initial={{ opacity: 0, y: 16 }} animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.55, delay: 0.2 }}
             >
-              Join 50,000+ sellers on Reaglex. Launch your store, reach millions of buyers,
+              Join 50,000+ sellers on Spacilly. Launch your store, reach millions of buyers,
               and get paid fast — all from one powerful dashboard.
             </motion.p>
 

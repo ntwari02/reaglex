@@ -29,7 +29,7 @@ function bannerCopy(status: SellerKycStatus) {
     default:
       return {
         title: 'Identity verification incomplete',
-        body: `Products are saved but hidden from buyers (PENDING VERIFICATION). Complete KYC to publish on Reaglex.${pendingLine}`,
+        body: `Products are saved but hidden from buyers (PENDING VERIFICATION). Complete KYC to publish on Spacilly.${pendingLine}`,
       };
   }
 }

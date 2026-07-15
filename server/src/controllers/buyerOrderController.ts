@@ -27,8 +27,8 @@ import {
   buildShipmentGroupsFromLines,
   computeShippingForOrderGroup,
   fingerprintShippingAddress,
-} from '../services/reaglexShipping.service';
-import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
+} from '../services/spacillyShipping.service';
+import type { SpacillyShippingMethodKey } from '../types/spacillyShipping.types';
 import {
   evaluateOrderDeliverySLA,
   resolveEstimatedDeliveryAt,
@@ -97,7 +97,7 @@ function formatBuyerOrder(order: any) {
     updated_at: order.updatedAt,
     can_confirm_receipt: order.status === 'delivered',
     estimated_delivery: estimatedAt.toISOString(),
-    estimated_delivery_to: order.reaglexShipping?.estimatedDeliveryTo || estimatedAt.toISOString(),
+    estimated_delivery_to: order.spacillyShipping?.estimatedDeliveryTo || estimatedAt.toISOString(),
     auto_completion: order.autoCompletion || null,
     items: (order.items || []).map((item: any) => {
       const product = item.productId as any;
@@ -141,7 +141,7 @@ function formatBuyerOrder(order: any) {
       phone: order.customerPhone,
     },
     payment_method: order.paymentMethod,
-    tracking_number: order.trackingNumber || order.reaglexShipping?.trackingNumber,
+    tracking_number: order.trackingNumber || order.spacillyShipping?.trackingNumber,
     seller: {
       id: seller?._id || order.sellerId,
       name: seller?.fullName || seller?.name || 'Unknown Seller',
@@ -151,7 +151,7 @@ function formatBuyerOrder(order: any) {
   };
 }
 
-function normalizeShippingMethodKey(raw?: string): ReaglexShippingMethodKey {
+function normalizeShippingMethodKey(raw?: string): SpacillyShippingMethodKey {
   const m = String(raw || 'standard').toLowerCase();
   if (m === 'express' || m === 'overnight' || m === 'international') return 'express';
   if (m === 'pickup') return 'pickup';
@@ -162,7 +162,7 @@ function resolveMethodForGroup(
   shippingMethods: Record<string, string>,
   groupKey: string,
   sellerId: string
-): ReaglexShippingMethodKey {
+): SpacillyShippingMethodKey {
   if (shippingMethods[groupKey]) return normalizeShippingMethodKey(shippingMethods[groupKey]);
   if (shippingMethods[sellerId]) return normalizeShippingMethodKey(shippingMethods[sellerId]);
   return 'standard';
@@ -171,7 +171,7 @@ function resolveMethodForGroup(
 /**
  * Create order(s) from cart checkout
  * POST /api/orders
- * Creates one order per Reaglex shipment group (seller + warehouse).
+ * Creates one order per Spacilly shipment group (seller + warehouse).
  */
 export async function createOrder(req: AuthenticatedRequest, res: Response) {
   if (!req.user) {
@@ -565,7 +565,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
           country: shippingAddress.country,
         },
         paymentMethod: isCodCheckout ? 'cash_on_delivery' : paymentMethod,
-        reaglexShipping: p.fulfillmentType === 'shipping' ? (p.snapshot as any) : undefined,
+        spacillyShipping: p.fulfillmentType === 'shipping' ? (p.snapshot as any) : undefined,
         fulfillment: {
           type: p.fulfillmentType,
           pickupLocationId: fulfillment?.pickupLocationId,
@@ -704,7 +704,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response) {
         exchange_rate: (o as any).currencySnapshot?.exchangeRate ?? 1,
         locked_at: (o as any).currencySnapshot?.lockedAt ?? (o as any).createdAt,
         sellerId: String((o as any).sellerId),
-        reaglexShipping: (o as any).reaglexShipping,
+        spacillyShipping: (o as any).spacillyShipping,
         fulfillment: (o as any).fulfillment,
         orderOptimization: (o as any).orderOptimization,
       })),

@@ -60,7 +60,7 @@ export default function Home() {
   return (
     <BuyerLayout>
       <PageSeo
-        title="Reaglex – Shop with escrow protection"
+        title="Spacilly – Shop with escrow protection"
         description="Discover premium products from verified sellers. Secure payments, fast delivery, and buyer protection built in."
         canonicalUrl={origin ? `${origin}/` : undefined}
         ogImage={origin ? `${origin}/logo.jpg` : undefined}

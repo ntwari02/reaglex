@@ -43,10 +43,10 @@ export async function sendTestOpsNotification(targetEmail: string): Promise<{
   if (!isEmailConfigured()) {
     return { ok: false, message: 'Email is not configured on the server (RESEND or SMTP)' };
   }
-  const clientUrl = getClientUrl() || 'https://reaglex.com';
+  const clientUrl = getClientUrl() || 'https://spacilly.com';
   const result = await sendNotificationEmail({
     to: email,
-    subject: 'Reaglex system monitor — test alert',
+    subject: 'Spacilly system monitor — test alert',
     body: `This is a test notification from System Analysis.\n\nIf you receive this, ops email alerts are working.\n\nDashboard: ${clientUrl}/admin/system-analysis`,
     actionUrl: `${clientUrl}/admin/system-analysis`,
     actionLabel: 'Open System Analysis',
@@ -94,7 +94,7 @@ export async function notifyAdminsOfAlerts(alerts: SystemAlert[]): Promise<void>
       `Diagnosis source: ${diagnosis.source}`,
     ].join('\n');
 
-    const subject = `[Reaglex ${alert.level}] ${alert.title}`;
+    const subject = `[Spacilly ${alert.level}] ${alert.title}`;
 
     if (slack) {
       await postSlack(slack, `*${subject}*\n${body.slice(0, 3500)}`);

@@ -32,7 +32,7 @@ function doc(appName: string, headline: string, accent: EmailAccent, body: strin
 }
 
 export function getWelcomeEmailHtml(options: { name: string; loginUrl: string; appName?: string }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const greeting = timeGreeting(options.name);
   const intro = pickCta('auth_welcome', `welcome:${options.name}`);
   const body = [
@@ -55,7 +55,7 @@ export function getVerificationEmailHtml(options: {
   appName?: string;
   expiresIn?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const expires = options.expiresIn || '24 hours';
   const body = [
     `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
@@ -74,7 +74,7 @@ export function getVerificationOtpEmailHtml(options: {
   appName?: string;
   expiresIn?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const expires = options.expiresIn || '10 minutes';
   const body = [
     `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
@@ -91,7 +91,7 @@ export function getPasswordResetEmailHtml(options: {
   appName?: string;
   expiresIn?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const expires = options.expiresIn || '1 hour';
   const body = [
     `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
@@ -110,7 +110,7 @@ export function getPasswordResetOtpEmailHtml(options: {
   appName?: string;
   expiresIn?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const expires = options.expiresIn || '15 minutes';
   const body = [
     `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
@@ -130,7 +130,7 @@ export function getLoginNotificationEmailHtml(options: {
   loginUrl?: string;
   signedInAt?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const loginUrl = options.loginUrl || '#';
   const when = options.signedInAt || new Date().toUTCString();
   const body = [
@@ -154,7 +154,7 @@ export function getSecurityAlertEmailHtml(options: {
   appName?: string;
   loginUrl?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const loginUrl = options.loginUrl || '#';
   const body = [
     `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
@@ -172,7 +172,7 @@ export function getDeviceApprovalEmailHtml(options: {
   appName?: string;
   expiresIn?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const expires = options.expiresIn || '15 minutes';
   const body = [
     `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
@@ -198,7 +198,7 @@ export function getNotificationEmailHtml(options: {
   actionLabel?: string;
   name?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const plain = options.body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   return getRichNotificationEmailHtml({
     appName,
@@ -225,7 +225,7 @@ export function getRecommendationDealsEmailHtml(options: {
   openPixelUrl?: string;
   shopMoreUrl?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const shopUrl = options.shopMoreUrl || '/search?q=recommended';
   const shopCta = options.shopCtaLabel || pickCta('recommendation', options.name);
   const body = [
@@ -254,7 +254,7 @@ export function getAbandonedCartEmailHtml(options: {
   cartCtaLabel?: string;
   products: ProductCardInput[];
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const cartCta = options.cartCtaLabel || pickCta('cart', options.name);
   const body = [
     `<p style="margin:0 0 12px;font-size:16px;font-weight:600;">${timeGreeting(options.name)},</p>`,
@@ -280,7 +280,7 @@ export function getSubscriptionBillingEmailHtml(options: {
   actionUrl: string;
   actionLabel?: string;
 }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const accent =
     options.variant === 'payment_failed' ? 'danger' : options.variant === 'upgraded' ? 'success' : 'brand';
   const headlines: Record<typeof options.variant, string> = {
@@ -322,7 +322,7 @@ export function getSubscriptionBillingEmailHtml(options: {
 }
 
 export function getNewsletterWelcomeEmailHtml(options: { shopUrl: string; appName?: string }) {
-  const appName = options.appName || 'Reaglex';
+  const appName = options.appName || 'Spacilly';
   const body = [
     renderBodyParagraphs([
       'Thanks for subscribing — you’ll get curated deals, new arrivals, and marketplace highlights.',

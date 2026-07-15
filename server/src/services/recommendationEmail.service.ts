@@ -28,7 +28,7 @@ import {
 import { marketingDayKey } from '../email/copyEngine';
 
 const CLIENT_URL = getClientUrl();
-const APP_NAME = process.env.APP_NAME || 'Reaglex';
+const APP_NAME = process.env.APP_NAME || 'Spacilly';
 function getIntEnv(name: string, fallback: number) {
   const n = Number(process.env[name]);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;

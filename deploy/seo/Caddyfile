@@ -1,21 +1,21 @@
-# Reaglex — crawler-aware reverse proxy (Caddy v2)
+# Spacilly — crawler-aware reverse proxy (Caddy v2)
 # Place this on the edge fronting the SPA static build.
 #
 # Replace placeholders:
-#   reaglex.com                — your apex domain
+#   spacilly.com                — your apex domain
 #   {env.SEO_SSR_ORIGIN}       — e.g. https://seo-ssr.internal:5001
-#   {env.REAGLEX_API_ORIGIN}   — e.g. https://api.reaglex.com
+#   {env.SPACILLY_API_ORIGIN}   — e.g. https://api.spacilly.com
 #
 # Caddy automatically provisions TLS and applies the `Vary: User-Agent` header
 # so caches don't mix bot HTML with the SPA shell.
 
-(reaglex_bots) {
+(spacilly_bots) {
     expression `header_regexp('User-Agent', '(?i)(googlebot|bingbot|duckduckbot|yandex(bot|images)|baiduspider|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|telegrambot|whatsapp|pinterest|redditbot|applebot|gptbot|claudebot|perplexitybot|chrome-lighthouse)')`
 }
 
-reaglex.com, www.reaglex.com {
+spacilly.com, www.spacilly.com {
     encode zstd gzip
-    root * /var/www/reaglex-spa
+    root * /var/www/spacilly-spa
 
     @assets path *.js *.mjs *.css *.map *.png *.jpg *.jpeg *.gif *.webp *.avif *.ico *.svg *.woff *.woff2 *.ttf *.otf *.txt *.xml *.json
     handle @assets {
@@ -24,23 +24,23 @@ reaglex.com, www.reaglex.com {
     }
 
     handle_path /api/* {
-        reverse_proxy {env.REAGLEX_API_ORIGIN}
+        reverse_proxy {env.SPACILLY_API_ORIGIN}
     }
 
     handle_path /uploads/* {
-        reverse_proxy {env.REAGLEX_API_ORIGIN}
+        reverse_proxy {env.SPACILLY_API_ORIGIN}
     }
 
     @bots {
-        import reaglex_bots
+        import spacilly_bots
     }
     handle @bots {
         header +Vary "User-Agent"
-        header +X-Reaglex-SEO "1"
+        header +X-Spacilly-SEO "1"
         reverse_proxy {env.SEO_SSR_ORIGIN} {
             header_up Host {host}
             header_up X-Forwarded-Proto {scheme}
-            header_up X-Reaglex-Bot 1
+            header_up X-Spacilly-Bot 1
         }
     }
 

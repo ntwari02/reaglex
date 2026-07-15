@@ -1,4 +1,4 @@
-import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
+import type { SpacillyShippingMethodKey } from '../types/spacillyShipping.types';
 
 export type OrderOptimizationStrategy = 'lowest_cost' | 'fastest_delivery' | 'green_shipping';
 
@@ -8,7 +8,7 @@ export interface OptimizationCandidateGroup {
   warehouseId: string;
   distanceKm: number;
   methods: Array<{
-    key: ReaglexShippingMethodKey;
+    key: SpacillyShippingMethodKey;
     enabled: boolean;
     price: number;
     etaDaysMin: number;
@@ -21,10 +21,10 @@ export interface OptimizationCandidateGroup {
 }
 
 export interface OrderOptimizationResult {
-  selectedMethods: Record<string, ReaglexShippingMethodKey>;
+  selectedMethods: Record<string, SpacillyShippingMethodKey>;
   byGroup: Array<{
     groupKey: string;
-    selectedMethod: ReaglexShippingMethodKey;
+    selectedMethod: SpacillyShippingMethodKey;
     aiEstimatedDeliveryProbability: number;
     score: number;
   }>;
@@ -39,7 +39,7 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
-function methodCarbonPenalty(method: ReaglexShippingMethodKey): number {
+function methodCarbonPenalty(method: SpacillyShippingMethodKey): number {
   if (method === 'pickup') return 0.1;
   if (method === 'standard') return 0.5;
   return 0.9;
@@ -48,7 +48,7 @@ function methodCarbonPenalty(method: ReaglexShippingMethodKey): number {
 function estimateDeliveryProbability(input: {
   sellerPerformanceScore: number;
   sellerFraudRisk: number;
-  method: ReaglexShippingMethodKey;
+  method: SpacillyShippingMethodKey;
   etaDaysMax: number;
   inventoryAvailability: number;
 }): number {
@@ -91,7 +91,7 @@ export function optimizeOrderSplit(params: {
   strategy: OrderOptimizationStrategy;
   groups: OptimizationCandidateGroup[];
 }): OrderOptimizationResult {
-  const selectedMethods: Record<string, ReaglexShippingMethodKey> = {};
+  const selectedMethods: Record<string, SpacillyShippingMethodKey> = {};
   const byGroup: OrderOptimizationResult['byGroup'] = [];
 
   let baselineCost = 0;

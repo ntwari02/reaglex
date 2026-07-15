@@ -155,7 +155,7 @@ export default function Terms() {
               className="text-base sm:text-lg mb-2"
               style={{ color: 'var(--hero-marketing-subtitle)' }}
             >
-              Please read these terms carefully before using Reaglex.
+              Please read these terms carefully before using Spacilly.
             </motion.p>
             <motion.p
               initial={{ opacity: 0 }}
@@ -203,8 +203,8 @@ export default function Terms() {
           <main className="flex-1 min-w-0">
             <Section id="acceptance" title="Acceptance of Terms" icon={FileText}>
               <P>
-                Welcome to Reaglex. These Terms of Service (“Terms”) are a binding agreement between you and Reaglex
-                (“we,” “us,” or “our”) governing your access to and use of the Reaglex website, mobile applications,
+                Welcome to Spacilly. These Terms of Service (“Terms”) are a binding agreement between you and Spacilly
+                (“we,” “us,” or “our”) governing your access to and use of the Spacilly website, mobile applications,
                 and related services (collectively, the “Service”). By creating an account, browsing, or using the
                 Service in any way, you agree to be bound by these Terms and our Privacy Policy.
               </P>
@@ -218,7 +218,7 @@ export default function Terms() {
             <Section id="eligibility" title="Eligibility" icon={UserCheck}>
               <P>
                 You must be at least 18 years of age (or the age of majority in your jurisdiction) and have the legal
-                capacity to enter into a binding contract to use the Service. By using Reaglex, you represent and warrant
+                capacity to enter into a binding contract to use the Service. By using Spacilly, you represent and warrant
                 that you meet these requirements and that all information you provide is accurate and current.
               </P>
               <P>
@@ -243,14 +243,14 @@ export default function Terms() {
 
             <Section id="use-of-service" title="Use of the Service" icon={BookOpen}>
               <P>
-                Reaglex provides a platform that connects buyers and sellers. We do not take ownership of items sold
+                Spacilly provides a platform that connects buyers and sellers. We do not take ownership of items sold
                 on the platform; transactions are between buyers and sellers. We may facilitate payments, escrow, and
                 dispute resolution as described in these Terms and in our policies.
               </P>
               <P>You agree to use the Service only for lawful purposes and in accordance with these Terms. You must not:</P>
               <Ul>
                 <li>Use the Service in any way that violates applicable laws or regulations.</li>
-                <li>Infringe the intellectual property or other rights of Reaglex or any third party.</li>
+                <li>Infringe the intellectual property or other rights of Spacilly or any third party.</li>
                 <li>Transmit malware, spam, or any harmful or disruptive content.</li>
                 <li>Attempt to gain unauthorized access to the Service, other accounts, or our systems.</li>
                 <li>Use automated means (e.g., bots, scrapers) without our prior written permission.</li>
@@ -270,7 +270,7 @@ export default function Terms() {
                 confirms receipt or the dispute period expires.
               </P>
               <P>
-                Both buyers and sellers must communicate and resolve issues in good faith. Reaglex may step in to
+                Both buyers and sellers must communicate and resolve issues in good faith. Spacilly may step in to
                 mediate or resolve disputes in accordance with our dispute resolution process.
               </P>
             </Section>
@@ -294,7 +294,7 @@ export default function Terms() {
               <Ul>
                 <li>List or sell illegal, counterfeit, stolen, or prohibited items.</li>
                 <li>Misrepresent items, prices, or your identity or business.</li>
-                <li>Circumvent Reaglex (e.g., directing users to pay or communicate off-platform to avoid fees or policies).</li>
+                <li>Circumvent Spacilly (e.g., directing users to pay or communicate off-platform to avoid fees or policies).</li>
                 <li>Harass, abuse, or harm other users or our staff.</li>
                 <li>Manipulate reviews, ratings, or search results.</li>
                 <li>Collect or misuse other users’ data without consent.</li>
@@ -307,7 +307,7 @@ export default function Terms() {
 
             <Section id="intellectual-property" title="Intellectual Property" icon={Copy}>
               <P>
-                Reaglex and its logos, design, text, graphics, and other materials are owned by or licensed to us and
+                Spacilly and its logos, design, text, graphics, and other materials are owned by or licensed to us and
                 are protected by intellectual property laws. You may not copy, modify, distribute, or create derivative
                 works without our prior written consent. You retain ownership of content you submit (e.g., listings,
                 photos), but you grant us a worldwide, non-exclusive, royalty-free license to use, display, and
@@ -326,7 +326,7 @@ export default function Terms() {
 
             <Section id="limitation" title="Limitation of Liability" icon={Scale}>
               <P>
-                TO THE MAXIMUM EXTENT PERMITTED BY LAW, REAGLEX AND ITS AFFILIATES, OFFICERS, EMPLOYEES, AND AGENTS
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW, SPACILLY AND ITS AFFILIATES, OFFICERS, EMPLOYEES, AND AGENTS
                 SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES
                 (INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL) ARISING FROM YOUR USE OF OR INABILITY TO USE THE SERVICE
                 OR FROM ANY TRANSACTIONS BETWEEN USERS, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH
@@ -334,7 +334,7 @@ export default function Terms() {
               </P>
               <P>
                 OUR TOTAL LIABILITY FOR ANY CLAIMS ARISING OUT OF OR RELATED TO THESE TERMS OR THE SERVICE SHALL NOT
-                EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID TO REAGLEX IN THE TWELVE (12) MONTHS BEFORE THE CLAIM,
+                EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID TO SPACILLY IN THE TWELVE (12) MONTHS BEFORE THE CLAIM,
                 OR (B) ONE HUNDRED UNITED STATES DOLLARS (USD $100). SOME JURISDICTIONS DO NOT ALLOW CERTAIN
                 LIMITATIONS; IN SUCH CASES, OUR LIABILITY WILL BE LIMITED TO THE MAXIMUM EXTENT PERMITTED BY LAW.
               </P>
@@ -342,7 +342,7 @@ export default function Terms() {
 
             <Section id="indemnity" title="Indemnity" icon={Shield}>
               <P>
-                You agree to indemnify, defend, and hold harmless Reaglex and its affiliates, officers, employees, and
+                You agree to indemnify, defend, and hold harmless Spacilly and its affiliates, officers, employees, and
                 agents from and against any claims, damages, losses, liabilities, costs, and expenses (including
                 reasonable attorneys’ fees) arising from (a) your use of the Service, (b) your violation of these
                 Terms or any law, (c) your violation of any third-party rights, or (d) any dispute between you and
@@ -353,12 +353,12 @@ export default function Terms() {
             <Section id="disputes" title="Disputes & Resolution" icon={Gavel}>
               <P>
                 We encourage you to resolve disputes with other users directly. If you cannot, you may use our in-platform
-                dispute resolution process. For disputes between you and Reaglex, you agree to first contact us in good
+                dispute resolution process. For disputes between you and Spacilly, you agree to first contact us in good
                 faith. If the dispute is not resolved within sixty (60) days, either party may pursue the dispute in
                 accordance with the governing law and dispute resolution provisions below.
               </P>
               <P>
-                These Terms are governed by the laws of the jurisdiction in which Reaglex operates, without regard to
+                These Terms are governed by the laws of the jurisdiction in which Spacilly operates, without regard to
                 conflict of law principles. Any legal action shall be brought in the courts of that jurisdiction, and
                 you consent to personal jurisdiction there. Where permitted, you agree to waive any right to a jury trial
                 or to participate in a class action.
@@ -380,7 +380,7 @@ export default function Terms() {
             <Section id="general" title="General Provisions" icon={BookOpen}>
               <P>
                 <strong>Entire agreement:</strong> These Terms, together with our Privacy Policy and any other policies
-                we reference, constitute the entire agreement between you and Reaglex regarding the Service.
+                we reference, constitute the entire agreement between you and Spacilly regarding the Service.
               </P>
               <P>
                 <strong>Severability:</strong> If any provision of these Terms is held invalid or unenforceable, the
@@ -401,12 +401,12 @@ export default function Terms() {
                 For questions about these Terms or the Service, please contact us:
               </P>
               <ul className="list-none space-y-1 text-[15px]">
-                <li><strong>Reaglex</strong></li>
-                <li>Email: legal@reaglex.com (or the contact address published on our website)</li>
+                <li><strong>Spacilly</strong></li>
+                <li>Email: legal@spacilly.com (or the contact address published on our website)</li>
                 <li>Support: through the Help or Contact options in the Service</li>
               </ul>
               <P className="mt-4">
-                By using Reaglex, you acknowledge that you have read, understood, and agree to be bound by these Terms
+                By using Spacilly, you acknowledge that you have read, understood, and agree to be bound by these Terms
                 of Service.
               </P>
             </Section>

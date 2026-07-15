@@ -68,7 +68,7 @@ export function useSeo({
   twitter,
   noIndex = false,
   jsonLd,
-  jsonLdScriptId = 'reaglex-jsonld',
+  jsonLdScriptId = 'spacilly-jsonld',
 }) {
   useEffect(() => {
     if (!title) return;

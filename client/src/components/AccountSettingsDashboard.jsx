@@ -372,7 +372,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
       <div className="rx-settings-inner max-w-[1300px] mx-auto px-3 sm:px-5 lg:px-7 py-3 sm:py-6 space-y-4">
         <SettingsTopBar
           title={showMobileHub ? 'Settings' : sectionMeta.title}
-          subtitle={showMobileHub ? 'Manage your Reaglex account' : sectionMeta.sub}
+          subtitle={showMobileHub ? 'Manage your Spacilly account' : sectionMeta.sub}
           onBack={handleSettingsBack}
           backLabel={showMobileHub ? 'Back to account' : 'Back'}
         />
@@ -1024,7 +1024,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                     className="text-sm"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    Manage how and when Reaglex notifies you.
+                    Manage how and when Spacilly notifies you.
                   </p>
                 </div>
               </div>
@@ -1351,7 +1351,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
               <div className="min-w-0">
                 <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Appearance</h3>
                 <p className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                  Choose light or dark mode for Reaglex. Your selection stays on this device and syncs when you&apos;re signed in.
+                  Choose light or dark mode for Spacilly. Your selection stays on this device and syncs when you&apos;re signed in.
                 </p>
               </div>
             </div>
@@ -1423,7 +1423,7 @@ export default function AccountSettingsDashboard({ onOpenSecurityMobile, onBack 
                 </select>
               </div>
               <p className="text-xs rounded-xl px-3 py-2.5" style={{ background: 'var(--brand-tint)', color: 'var(--text-secondary)' }}>
-                Theme is controlled from the <strong style={{ color: 'var(--text-primary)' }}>Appearance</strong> tab for a consistent experience across Reaglex.
+                Theme is controlled from the <strong style={{ color: 'var(--text-primary)' }}>Appearance</strong> tab for a consistent experience across Spacilly.
               </p>
             </div>
             <h3 className="font-bold text-lg mt-8 mb-4" style={{ color: 'var(--text-primary)' }}>Privacy</h3>

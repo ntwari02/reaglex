@@ -88,7 +88,7 @@ function normalizeOut(parsed: Partial<StudioTransformOutput>, fallbackSubject: s
 
 function buildSystemPrompt(): string {
   return [
-    'You are Reaglex Notification Studio AI.',
+    'You are Spacilly Notification Studio AI.',
     'Produce trustworthy marketplace notification copy only.',
     'Reject or flag phishing, credential harvesting, fake urgency scams, and illegal content.',
     'Keep SMS under 300 characters when channel is sms; push title+body concise.',

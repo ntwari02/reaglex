@@ -1,11 +1,11 @@
 import { User } from '../models/User';
-import { quoteReaglexShipments, type QuoteCartLine } from './reaglexShipping.service';
+import { quoteSpacillyShipments, type QuoteCartLine } from './spacillyShipping.service';
 import {
   optimizeOrderSplit,
   type OrderOptimizationStrategy,
   type OptimizationCandidateGroup,
 } from './orderOptimizationEngine';
-import type { ReaglexShippingMethodKey } from '../types/reaglexShipping.types';
+import type { SpacillyShippingMethodKey } from '../types/spacillyShipping.types';
 
 export async function orchestrateCheckoutPlan(params: {
   lines: QuoteCartLine[];
@@ -20,10 +20,10 @@ export async function orchestrateCheckoutPlan(params: {
     country: string;
   };
   strategy?: OrderOptimizationStrategy;
-  selectedMethods?: Record<string, ReaglexShippingMethodKey>;
+  selectedMethods?: Record<string, SpacillyShippingMethodKey>;
 }) {
   const strategy = params.strategy || 'lowest_cost';
-  const initialQuote = await quoteReaglexShipments({
+  const initialQuote = await quoteSpacillyShipments({
     lines: params.lines,
     shippingAddress: params.shippingAddress,
   });
@@ -68,7 +68,7 @@ export async function orchestrateCheckoutPlan(params: {
     ...(params.selectedMethods || {}),
   };
 
-  const quote = await quoteReaglexShipments({
+  const quote = await quoteSpacillyShipments({
     lines: params.lines,
     shippingAddress: params.shippingAddress,
     selectedMethods,

@@ -67,7 +67,7 @@ import { RuleEffectiveness } from '../models/RuleEffectiveness';
 
 function ensureSessionId(req: AuthenticatedRequest): string {
   const candidate =
-    (req.headers['x-reaglex-session'] as string) ||
+    (req.headers['x-spacilly-session'] as string) ||
     (req.headers['x-session-id'] as string) ||
     (req.query?.sessionId as string) ||
     (req.body?.sessionId as string);
@@ -109,7 +109,7 @@ export async function getHomeFeed(req: AuthenticatedRequest, res: Response) {
     });
 
     // Send sessionId back so anonymous users can persist it on the client.
-    res.setHeader('X-Reaglex-Session', sessionId);
+    res.setHeader('X-Spacilly-Session', sessionId);
     return res.json(feed);
   } catch (err: any) {
     console.error('[marketplace-ai] feed failed', err);
@@ -139,7 +139,7 @@ export async function getHomeFeedSection(req: AuthenticatedRequest, res: Respons
       limitPerSection: limit,
     });
     if (!section) return res.json({ id, products: [] });
-    res.setHeader('X-Reaglex-Session', sessionId);
+    res.setHeader('X-Spacilly-Session', sessionId);
     return res.json(section);
   } catch (err: any) {
     console.error('[marketplace-ai] section failed', err);
@@ -168,7 +168,7 @@ export async function postBehaviorTrack(req: AuthenticatedRequest, res: Response
         timezoneOffsetMin: Number(req.body?.timezoneOffsetMin),
       },
     });
-    res.setHeader('X-Reaglex-Session', sessionId);
+    res.setHeader('X-Spacilly-Session', sessionId);
     return res.json({ ok: true });
   } catch (err: any) {
     console.error('[marketplace-ai] track failed', err);

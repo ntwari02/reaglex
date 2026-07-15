@@ -71,7 +71,7 @@ interface Product {
    seoTitle?: string;
    seoDescription?: string;
    seoKeywords?: string;
-  reaglexProductId?: string;
+  spacillyProductId?: string;
   verificationSummary?: {
     status: 'unverified' | 'pending' | 'verified' | 'flagged' | 'rejected';
     score: number;
@@ -266,7 +266,7 @@ const ProductManagement: React.FC = () => {
   seoTitle: p.seoTitle,
   seoDescription: p.seoDescription,
   seoKeywords: p.seoKeywords,
-  reaglexProductId: p.reaglexProductId,
+  spacillyProductId: p.spacillyProductId,
   verificationSummary: p.verificationSummary,
   });
 
@@ -1742,8 +1742,8 @@ const ProductManagement: React.FC = () => {
                         <span className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${getVerificationPill(product)}`}>
                           {(product.verificationSummary?.status || 'unverified').replace('_', ' ').toUpperCase()}
                         </span>
-                        {product.reaglexProductId && (
-                          <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400">{product.reaglexProductId}</span>
+                        {product.spacillyProductId && (
+                          <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400">{product.spacillyProductId}</span>
                         )}
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 text-sm transition-colors duration-300">
@@ -2942,7 +2942,7 @@ const ProductManagement: React.FC = () => {
             <section className="space-y-4">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-red-400" />
-                Reaglex Verification & Trust
+                Spacilly Verification & Trust
               </h3>
               <div className="rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                 <div className="flex flex-wrap items-center gap-3">

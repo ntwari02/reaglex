@@ -51,7 +51,7 @@ export async function createStripeCheckoutSession(order: IOrder, buyerEmail: str
           unit_amount: stripeUnitAmount(currency.toUpperCase(), payAmount),
           product_data: {
             name: `Order ${order.orderNumber}`,
-            description: `Reaglex order ${order._id}`,
+            description: `Spacilly order ${order._id}`,
           },
         },
         quantity: 1,

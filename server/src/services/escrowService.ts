@@ -49,7 +49,7 @@ export async function releaseEscrow(orderId: string, confirmedBy: string) {
     account_number: sellerWallet.accountNumber,
     amount: amountToSeller,
     currency: order.payment?.currency || 'USD',
-    narration: `Reaglex payout for Order ${order._id}`,
+    narration: `Spacilly payout for Order ${order._id}`,
     reference: `PAYOUT-${order._id}-${Date.now()}`,
     debit_currency: order.payment?.currency || 'USD',
     meta: {

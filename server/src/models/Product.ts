@@ -103,8 +103,8 @@ export interface IProduct extends Document {
   paymentSafetyNote?: string;
   serviceCommitments?: Array<{ title: string; description?: string; icon?: string }>;
   detailSections?: Array<{ title: string; content?: string }>;
-  reaglexProductId?: string;
-  /** Ships from this warehouse for Reaglex grouped shipping (seller-defined). */
+  spacillyProductId?: string;
+  /** Ships from this warehouse for Spacilly grouped shipping (seller-defined). */
   warehouseId?: string;
   fulfillmentType?: 'shipping' | 'pickup' | 'digital' | 'service';
   verificationSummary?: {
@@ -230,7 +230,7 @@ const productSchema = new Schema<IProduct>(
         content: { type: String, trim: true },
       },
     ],
-    reaglexProductId: { type: String, trim: true, unique: true, sparse: true, index: true },
+    spacillyProductId: { type: String, trim: true, unique: true, sparse: true, index: true },
     warehouseId: { type: String, trim: true, default: 'default', index: true },
     fulfillmentType: {
       type: String,
@@ -268,13 +268,13 @@ productSchema.index({ soldCount: -1, createdAt: -1 });
 productSchema.index({ wishlistCount: -1, createdAt: -1 });
 productSchema.index({ categorySlug: 1, status: 1, createdAt: -1 });
 
-function generateReaglexProductId() {
+function generateSpacillyProductId() {
   const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `RX-PROD-${Date.now().toString(36).toUpperCase()}${rand}`;
 }
 
-productSchema.pre('validate', function assignReaglexProductId() {
-  if (!this.reaglexProductId) this.reaglexProductId = generateReaglexProductId();
+productSchema.pre('validate', function assignSpacillyProductId() {
+  if (!this.spacillyProductId) this.spacillyProductId = generateSpacillyProductId();
 });
 
 productSchema.pre('validate', async function ensureSlug() {

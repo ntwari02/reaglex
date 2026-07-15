@@ -52,7 +52,7 @@ export default function AdvertiseWithUs() {
         >
           <div className="w-full text-center space-y-4">
             <p className="text-3xl sm:text-4xl font-extrabold text-white">
-              📢 Advertise with Reaglex
+              📢 Advertise with Spacilly
             </p>
             <p
               className="text-sm sm:text-base"
@@ -287,7 +287,7 @@ export default function AdvertiseWithUs() {
               {submitting ? 'Submitting…' : 'Get Started'}
             </button>
             <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-              No seller account required — any business can advertise with Reaglex.
+              No seller account required — any business can advertise with Spacilly.
             </p>
           </motion.form>
         </section>

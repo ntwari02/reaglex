@@ -1,4 +1,4 @@
-# REAGLEX — System Overview
+# SPACILLY — System Overview
 
 > **Source of truth:** This file is maintained for the platform AI assistant. If it conflicts with older code comments, **follow this documentation** and update code to match.
 

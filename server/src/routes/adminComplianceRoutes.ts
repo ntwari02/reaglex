@@ -42,7 +42,7 @@ router.post('/classification/evaluate', evaluateClassificationChecklist);
 router.get('/readiness', getRegistrationReadiness);
 router.get('/export-pack', exportRegistrationPack);
 router.get('/export-pack/pdf', exportRegistrationPackPdf);
-router.post('/upload', upload.single('file'), cloudinaryUploadBuffers('reaglex/compliance'), uploadComplianceDocument);
+router.post('/upload', upload.single('file'), cloudinaryUploadBuffers('spacilly/compliance'), uploadComplianceDocument);
 
 export default router;
 

@@ -6,7 +6,7 @@ export type AuthDraftScope = 'page' | 'modal';
 const VERSION = 'v1';
 
 function storageKey(scope: AuthDraftScope, flow: AuthDraftFlow) {
-  return `reaglex_auth_draft_${VERSION}_${scope}_${flow}`;
+  return `spacilly_auth_draft_${VERSION}_${scope}_${flow}`;
 }
 
 export type LoginDraft = {

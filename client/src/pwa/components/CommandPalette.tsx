@@ -31,7 +31,7 @@ type CommandItem = {
   action: () => void;
 };
 
-const COMMAND_OPEN_EVENT = 'reaglex:commandpalette:open';
+const COMMAND_OPEN_EVENT = 'spacilly:commandpalette:open';
 
 export function openCommandPalette() {
   if (typeof window === 'undefined') return;
@@ -90,7 +90,7 @@ function DesktopCommandPalette({
         keywords: 'ai assistant chat help support',
         action: () => {
           window.dispatchEvent(
-            new CustomEvent('reaglex:assistant:open', { detail: { query } }),
+            new CustomEvent('spacilly:assistant:open', { detail: { query } }),
           );
           close();
         },
@@ -288,7 +288,7 @@ function DesktopCommandPalette({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Search Reaglex or ask AI…"
+                placeholder="Search Spacilly or ask AI…"
                 className="cmd-palette-input flex-1 bg-transparent text-base outline-none"
                 style={{ color: 'var(--text-primary)' }}
               />

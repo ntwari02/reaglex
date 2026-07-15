@@ -71,7 +71,7 @@ const GUIDANCE_CONTENT: Record<SellerGuidanceContext, GuidanceConfig> = {
     subtitle:
       'From the Payment & Payout Rules section of the Seller Guidelines.',
     bullets: [
-      'Accept payments only through Reaglex checkout – never request off‑platform payments.',
+      'Accept payments only through Spacilly checkout – never request off‑platform payments.',
       'Keep payout details accurate and up to date; only use accounts you control.',
       'Understand payout schedule, minimums, and applicable fees before withdrawing.',
       'Always keep records for tax and compliance; you are responsible for reporting income.',
@@ -86,7 +86,7 @@ const GUIDANCE_CONTENT: Record<SellerGuidanceContext, GuidanceConfig> = {
       'Use a real identity or registered business and keep store information accurate.',
       'Never operate multiple seller accounts to manipulate reviews or fees.',
       'Do not engage in fraud, harassment, discrimination, or data misuse.',
-      'Report security issues or suspicious activity to Reaglex immediately.',
+      'Report security issues or suspicious activity to Spacilly immediately.',
     ],
     guidelineSectionId: 'conduct',
   },

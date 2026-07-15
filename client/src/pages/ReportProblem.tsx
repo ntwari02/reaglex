@@ -367,7 +367,7 @@ const ReportProblem = () => {
                 className="mx-auto max-w-xl text-base"
                 style={{ color: 'var(--hero-marketing-subtitle)', fontSize: 16 }}
               >
-                Help us keep Reaglex safe and fair for everyone. Reports are
+                Help us keep Spacilly safe and fair for everyone. Reports are
                 reviewed within 24 hours.
               </p>
             </div>
@@ -1398,7 +1398,7 @@ const ReportProblem = () => {
                         No reports yet
                       </p>
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        Help keep Reaglex safe by reporting any problems you find.
+                        Help keep Spacilly safe by reporting any problems you find.
                       </p>
                     </div>
                   ) : (

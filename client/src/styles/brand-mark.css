@@ -1,4 +1,4 @@
-.brand-mark-r {
+.brand-mark-s {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -21,23 +21,23 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.brand-mark-r:active {
+.brand-mark-s:active {
   transform: scale(0.94);
 }
 
 @media (max-width: 767px) {
-  .brand-mark-r {
+  .brand-mark-s {
     width: 30px;
     height: 30px;
     border-radius: 9px;
   }
 
-  .brand-mark-r__letter {
+  .brand-mark-s__letter {
     font-size: 1rem;
   }
 }
 
-.brand-mark-r__letter {
+.brand-mark-s__letter {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 1.125rem;
   font-weight: 800;

@@ -17,7 +17,7 @@ export async function estimateDeliveryPrediction(orderId: string) {
   const order = await Order.findById(orderId).lean();
   if (!order) throw new Error('Order not found');
 
-  const distanceKm = Number((order as any)?.reaglexShipping?.distanceKm || 40);
+  const distanceKm = Number((order as any)?.spacillyShipping?.distanceKm || 40);
   const baseDays = Math.max(1, Math.round(distanceKm / 120) + 2);
   const historicalDelayFactor = distanceKm > 350 ? 2 : distanceKm > 150 ? 1 : 0;
   const trafficFactor = distanceKm > 70 ? 1 : 0;
@@ -44,7 +44,7 @@ export async function compareCarriersForOrder(orderId: string): Promise<{
 }> {
   const order = await Order.findById(orderId).lean();
   if (!order) throw new Error('Order not found');
-  const distanceKm = Number((order as any)?.reaglexShipping?.distanceKm || 50);
+  const distanceKm = Number((order as any)?.spacillyShipping?.distanceKm || 50);
   const subtotal = Number(order.subtotal || 0);
 
   const options: CarrierQuote[] = [

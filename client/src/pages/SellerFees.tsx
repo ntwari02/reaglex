@@ -382,7 +382,7 @@ export default function SellerFees() {
                 className="mt-1 text-sm"
                 style={{ color: 'var(--text-muted)' }}
               >
-                Everything you need to know about selling on Reaglex.
+                Everything you need to know about selling on Spacilly.
               </p>
             </div>
 
@@ -632,7 +632,7 @@ export default function SellerFees() {
                         className="text-[13px]"
                         style={{ color: 'var(--text-muted)' }}
                       >
-                        Reaglex handles escrow and buyer protection at no cost to you as the seller.
+                        Spacilly handles escrow and buyer protection at no cost to you as the seller.
                       </p>
                     </div>
                   </div>
@@ -892,7 +892,7 @@ export default function SellerFees() {
                         className="text-[13px]"
                         style={{ color: 'var(--text-muted)' }}
                       >
-                        Only charged if Reaglex support finds the seller at fault after investigation.
+                        Only charged if Spacilly support finds the seller at fault after investigation.
                       </p>
                     </div>
                   </div>
@@ -1251,7 +1251,7 @@ export default function SellerFees() {
                     '✓ Basic analytics',
                     '✓ Standard support',
                     '✓ 5% commission',
-                    '✓ Reaglex badge',
+                    '✓ Spacilly badge',
                     '✗ Priority listing',
                     '✗ Featured store',
                     '✗ Bulk upload',
@@ -1348,7 +1348,7 @@ export default function SellerFees() {
                     '✓ Advanced analytics',
                     '✓ Priority support',
                     '✓ 4% commission (save 1%)',
-                    '✓ Reaglex Pro badge',
+                    '✓ Spacilly Pro badge',
                     '✓ Priority listing',
                     '✓ Featured store placement',
                     '✓ Bulk upload (CSV)',
@@ -1755,7 +1755,7 @@ export default function SellerFees() {
                     className="mx-auto max-w-2xl text-sm sm:text-base"
                     style={{ color: 'rgba(255,255,255,0.80)' }}
                   >
-                    Join 10,000+ sellers already earning on Reaglex. Zero monthly fees. Start today.
+                    Join 10,000+ sellers already earning on Spacilly. Zero monthly fees. Start today.
                   </p>
                 </div>
 

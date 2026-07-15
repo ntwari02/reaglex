@@ -113,7 +113,7 @@ export async function ogProductCard(req: Request, res: Response) {
   <rect width="100%" height="100%" fill="#0f172a"/>
   <text x="36" y="120" fill="#f8fafc" font-size="34" font-family="system-ui,Segoe UI,Roboto,sans-serif" font-weight="700">${escapeXml(title)}</text>
   <text x="36" y="190" fill="#38bdf8" font-size="28" font-family="system-ui,Segoe UI,Roboto,sans-serif" font-weight="700">${escapeXml(priceLine)}</text>
-  <text x="36" y="260" fill="#94a3b8" font-size="20" font-family="system-ui,Segoe UI,Roboto,sans-serif">Reaglex · Escrow-protected marketplace</text>
+  <text x="36" y="260" fill="#94a3b8" font-size="20" font-family="system-ui,Segoe UI,Roboto,sans-serif">Spacilly · Escrow-protected marketplace</text>
 </svg>`;
 
     const brandStrip = await sharpFn(Buffer.from(titleSvg)).png().toBuffer();

@@ -15,7 +15,7 @@ export const STOREFRONT_CATEGORIES: StorefrontCategoryDef[] = [
     displayName: 'Electronics',
     matchLabels: ['Electronics'],
     seoDescription:
-      'Shop electronics on Reaglex — phones, laptops, audio, and tech with buyer protection and escrow-friendly checkout.',
+      'Shop electronics on Spacilly — phones, laptops, audio, and tech with buyer protection and escrow-friendly checkout.',
   },
   {
     slug: 'clothing',
@@ -43,7 +43,7 @@ export const STOREFRONT_CATEGORIES: StorefrontCategoryDef[] = [
     displayName: 'Sports',
     matchLabels: ['Sports'],
     seoDescription:
-      'Sports gear, training equipment, and outdoor essentials from trusted Reaglex sellers.',
+      'Sports gear, training equipment, and outdoor essentials from trusted Spacilly sellers.',
   },
   {
     slug: 'beauty',
@@ -56,14 +56,14 @@ export const STOREFRONT_CATEGORIES: StorefrontCategoryDef[] = [
     slug: 'books',
     displayName: 'Books',
     matchLabels: ['Books'],
-    seoDescription: 'Books and learning titles — shop with confidence via Reaglex buyer protection.',
+    seoDescription: 'Books and learning titles — shop with confidence via Spacilly buyer protection.',
   },
   {
     slug: 'toys',
     displayName: 'Toys',
     matchLabels: ['Toys', 'Gaming'],
     seoDescription:
-      'Toys and games for all ages — verified listings and protected payments on Reaglex.',
+      'Toys and games for all ages — verified listings and protected payments on Spacilly.',
   },
   {
     slug: 'automotive',

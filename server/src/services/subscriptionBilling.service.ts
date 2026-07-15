@@ -179,7 +179,7 @@ export async function chargeDefaultPaymentMethodForSubscription(
       externalId,
       payerMsisdn: msisdn,
       payerMessage: description.slice(0, 135),
-      payeeNote: 'Reaglex subscription',
+      payeeNote: 'Spacilly subscription',
     });
 
     const deadline = Date.now() + MOMO_POLL_MAX_MS;

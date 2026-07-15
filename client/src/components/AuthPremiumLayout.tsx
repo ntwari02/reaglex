@@ -79,13 +79,13 @@ export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) 
           <div className="auth-fusion__logo-mark" aria-hidden>
             R
           </div>
-          <p className="auth-fusion__logo-word">REAGLEX</p>
+          <p className="auth-fusion__logo-word">SPACILLY</p>
           <p className="auth-fusion__logo-tag">TRADE · TRUST · GROW</p>
           <span className="auth-fusion__brand-shield">
             <Shield size={18} strokeWidth={2.25} aria-hidden />
           </span>
           <p className="auth-fusion__brand-desc">
-            Reaglex is the next-generation marketplace built for secure transactions and real
+            Spacilly is the next-generation marketplace built for secure transactions and real
             connections.
           </p>
         </motion.div>
@@ -97,7 +97,7 @@ export default function AuthPremiumLayout({ children }: AuthPremiumLayoutProps) 
 
         <div className="auth-fusion__mobile-brand" aria-hidden>
           <div className="auth-fusion__logo-mark">R</div>
-          <p className="auth-fusion__logo-word">REAGLEX</p>
+          <p className="auth-fusion__logo-word">SPACILLY</p>
         </div>
 
         <div className="auth-fusion__main-inner">{children}</div>

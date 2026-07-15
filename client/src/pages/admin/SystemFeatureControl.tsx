@@ -23,7 +23,7 @@ import {
 import { invalidateSystemFeaturesCache } from '@/hooks/useSystemFeatures';
 import '@/styles/admin-system-features.css';
 
-const GATE_SESSION_KEY = 'reaglex_system_controls_gate';
+const GATE_SESSION_KEY = 'spacilly_system_controls_gate';
 
 const CATEGORY_LABELS: Record<string, string> = {
   discovery: 'Discovery & recommendations',
