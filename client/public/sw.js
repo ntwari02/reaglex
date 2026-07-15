@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 /**
- * Reaglex PWA service worker (2026-grade).
+ * Spacilly PWA service worker (2026-grade).
  *
  * Responsibilities:
  *  - Web Push notifications with rich actions and click-through routing
@@ -14,12 +14,12 @@
  *  - SW update flow (skipWaiting on demand from the page)
  */
 
-const APP_NAME = 'Reaglex';
-const VERSION = 'reaglex-pwa-v2';
-const STATIC_CACHE = `reaglex-static-${VERSION}`;
-const IMAGE_CACHE = `reaglex-images-${VERSION}`;
-const API_CACHE = `reaglex-api-${VERSION}`;
-const RUNTIME_CACHE = `reaglex-runtime-${VERSION}`;
+const APP_NAME = 'Spacilly';
+const VERSION = 'spacilly-pwa-v3';
+const STATIC_CACHE = `spacilly-static-${VERSION}`;
+const IMAGE_CACHE = `spacilly-images-${VERSION}`;
+const API_CACHE = `spacilly-api-${VERSION}`;
+const RUNTIME_CACHE = `spacilly-runtime-${VERSION}`;
 const APP_SHELL = [
   '/',
   '/offline.html',
@@ -43,7 +43,7 @@ self.addEventListener('activate', (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => k.startsWith('reaglex-') && !ALL_CACHES.includes(k))
+          .filter((k) => (k.startsWith('spacilly-') || k.startsWith('reaglex-')) && !ALL_CACHES.includes(k))
           .map((k) => caches.delete(k)),
       );
       await self.clients.claim();
@@ -164,7 +164,7 @@ self.addEventListener('fetch', (event) => {
             });
             for (const c of clientsList) {
               c.postMessage({
-                type: 'REAGLEX_QUEUE_REQUEST',
+                type: 'SPACILLY_QUEUE_REQUEST',
                 request: { url, method, headers, body },
               });
             }
@@ -263,7 +263,7 @@ self.addEventListener('push', (event) => {
       category: payload.category || '',
       ...(payload.data || {}),
     },
-    tag: payload.tag || payload.category || 'reaglex',
+    tag: payload.tag || payload.category || 'spacilly',
     renotify: Boolean(payload.renotify),
     requireInteraction: Boolean(payload.requireInteraction),
     silent: Boolean(payload.silent),
@@ -292,7 +292,7 @@ self.addEventListener('notificationclick', (event) => {
             const u = new URL(client.url);
             const t = new URL(targetUrl, self.location.origin);
             if (u.origin === t.origin && 'focus' in client) {
-              client.postMessage({ type: 'REAGLEX_NAVIGATE', url: targetUrl });
+              client.postMessage({ type: 'SPACILLY_NAVIGATE', url: targetUrl });
               return client.focus();
             }
           } catch (_e) {
@@ -321,7 +321,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
           }).catch(() => {});
         }
         const clientsList = await self.clients.matchAll({ includeUncontrolled: true });
-        for (const c of clientsList) c.postMessage({ type: 'REAGLEX_RESUBSCRIBE_PUSH' });
+        for (const c of clientsList) c.postMessage({ type: 'SPACILLY_RESUBSCRIBE_PUSH' });
       } catch (_e) {
         /* ignore */
       }
@@ -330,14 +330,14 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 });
 
 // ---- Background sync ----
-// Pages can trigger sync via navigator.serviceWorker.ready.then(r => r.sync.register('reaglex-sync')).
+// Pages can trigger sync via navigator.serviceWorker.ready.then(r => r.sync.register('spacilly-sync')).
 
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'reaglex-sync' || event.tag === 'reaglex-offline-queue') {
+  if (event.tag === 'spacilly-sync' || event.tag === 'spacilly-offline-queue') {
     event.waitUntil(
       (async () => {
         const clientsList = await self.clients.matchAll({ includeUncontrolled: true });
-        for (const c of clientsList) c.postMessage({ type: 'REAGLEX_FLUSH_QUEUE' });
+        for (const c of clientsList) c.postMessage({ type: 'SPACILLY_FLUSH_QUEUE' });
       })(),
     );
   }
@@ -345,11 +345,11 @@ self.addEventListener('sync', (event) => {
 
 // ---- Periodic background sync (Chrome only, requires permission). ----
 self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'reaglex-refresh') {
+  if (event.tag === 'spacilly-refresh') {
     event.waitUntil(
       (async () => {
         const clientsList = await self.clients.matchAll({ includeUncontrolled: true });
-        for (const c of clientsList) c.postMessage({ type: 'REAGLEX_PERIODIC_REFRESH' });
+        for (const c of clientsList) c.postMessage({ type: 'SPACILLY_PERIODIC_REFRESH' });
       })(),
     );
   }

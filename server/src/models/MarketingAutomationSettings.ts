@@ -130,7 +130,7 @@ export async function isMarketingFlowEnabled(flow: MarketingFlowKey): Promise<bo
     if (!s.globalEnabled) return false;
     const f = s.flows?.[flow];
     if (!f) return true;
-    return Boolean(f.enabled);
+    return f.enabled !== false;
   } catch {
     return true;
   }
@@ -142,7 +142,7 @@ export async function isMarketingFlowPushEnabled(flow: MarketingFlowKey): Promis
     if (!s.globalEnabled) return false;
     const f = s.flows?.[flow];
     if (!f) return true;
-    return Boolean(f.pushEnabled);
+    return f.pushEnabled !== false;
   } catch {
     return true;
   }
@@ -172,16 +172,25 @@ export async function recordFlowRun(
   stats: { sent?: number; skipped?: number; failed?: number; error?: string },
 ): Promise<void> {
   try {
-    const doc = await getMarketingAutomationSettings();
-    const f = doc.flows[flow] || ({ enabled: true, pushEnabled: true } as IMarketingFlow);
-    f.lastRunAt = new Date();
-    f.lastRunSent = Number(stats.sent ?? 0);
-    f.lastRunSkipped = Number(stats.skipped ?? 0);
-    f.lastRunFailed = Number(stats.failed ?? 0);
-    f.lastError = String(stats.error ?? '');
-    doc.flows[flow] = f;
-    doc.markModified('flows');
-    await doc.save();
+    const flowPrefix = `flows.${flow}`;
+    await MarketingAutomationSettings.findOneAndUpdate(
+      {},
+      [
+        {
+          $set: {
+            [`${flowPrefix}.lastRunAt`]: new Date(),
+            [`${flowPrefix}.lastRunSent`]: Number(stats.sent ?? 0),
+            [`${flowPrefix}.lastRunSkipped`]: Number(stats.skipped ?? 0),
+            [`${flowPrefix}.lastRunFailed`]: Number(stats.failed ?? 0),
+            [`${flowPrefix}.lastError`]: String(stats.error ?? ''),
+            // Preserve admin toggles; only seed defaults when the subdocument is new/partial.
+            [`${flowPrefix}.enabled`]: { $ifNull: [`$${flowPrefix}.enabled`, true] },
+            [`${flowPrefix}.pushEnabled`]: { $ifNull: [`$${flowPrefix}.pushEnabled`, true] },
+          },
+        },
+      ],
+      { upsert: true },
+    );
     invalidateMarketingAutomationSettingsCache();
   } catch (e) {
     console.error('[marketing-automation] failed to record run', flow, e);

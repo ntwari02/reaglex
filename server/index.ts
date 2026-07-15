@@ -140,10 +140,7 @@ async function runStartupStep(label: string, fn: () => void | Promise<void>): Pr
   }
 }
 
-// Render and other reverse proxies set `X-Forwarded-For`.
-// IMPORTANT: use a hop count (not boolean `true`) to avoid
-// express-rate-limit blocking with "ERR_ERL_PERMISSIVE_TRUST_PROXY".
-// `1` = trust only the first proxy hop (Render).
+
 app.set('trust proxy', 1);
 
 // Basic validation to help during setup
@@ -270,7 +267,7 @@ app.use('/api', apiLimiter);
 app.get('/api/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
-    message: 'Reaglex API is running',
+    message: 'Spacilly API is running',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });

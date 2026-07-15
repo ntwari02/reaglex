@@ -9,10 +9,11 @@
  *    with API-aware rewrites + edge-friendly cache headers BEFORE Vite emits.
  *
  * Inputs (env, in order of precedence):
- *  - `REAGLEX_API_ORIGIN`           — preferred: https://api.reaglex.com
+ *  - `SPACILLY_API_ORIGIN`           — preferred: https://api.spacilly.com
  *  - `VITE_SERVER_URL`              — fallback (already used by the SPA bundle)
  *  - `VITE_SEO_SSR_URL`             — optional crawler SSR origin (per-product HTML)
- *  - `REAGLEX_SEO_SSR_ORIGIN`       — synonym of VITE_SEO_SSR_URL (server-side only)
+ *  - `SPACILLY_SEO_SSR_ORIGIN`       — synonym of VITE_SEO_SSR_URL (server-side only)
+ *  - `REAGLEX_API_ORIGIN` / `REAGLEX_SEO_SSR_ORIGIN` — legacy aliases (still supported)
  *
  * Safe fallback: when nothing is configured we emit a working SPA-only file
  * (so deploys never break), but log a loud warning so the operator wires it up.
@@ -53,6 +54,7 @@ loadDotEnvFile('.env.production');
 loadDotEnvFile('.env');
 
 const apiOrigin = (
+  process.env.SPACILLY_API_ORIGIN ||
   process.env.REAGLEX_API_ORIGIN ||
   process.env.VITE_SERVER_URL ||
   ''
@@ -60,6 +62,7 @@ const apiOrigin = (
   .trim()
   .replace(/\/$/, '');
 const seoSsrOrigin = (
+  process.env.SPACILLY_SEO_SSR_ORIGIN ||
   process.env.REAGLEX_SEO_SSR_ORIGIN ||
   process.env.VITE_SEO_SSR_URL ||
   ''
@@ -117,8 +120,8 @@ if (apiOrigin) {
   );
 } else {
   console.warn(
-    '[vercel] No REAGLEX_API_ORIGIN / VITE_SERVER_URL set — /sitemap.xml and /robots.txt will NOT proxy to the API. ' +
-      'Set REAGLEX_API_ORIGIN on Vercel before building to enable crawler discovery from the main domain.',
+    '[vercel] No SPACILLY_API_ORIGIN / VITE_SERVER_URL set — /sitemap.xml and /robots.txt will NOT proxy to the API. ' +
+      'Set SPACILLY_API_ORIGIN on Vercel before building to enable crawler discovery from the main domain.',
   );
 }
 

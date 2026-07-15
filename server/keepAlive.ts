@@ -6,7 +6,7 @@ function resolveSelfUrl(): string {
   if (externalUrl) return externalUrl;
   const hostname = (process.env.RENDER_EXTERNAL_HOSTNAME || '').trim();
   if (hostname) return `https://${hostname}`;
-  return 'https://reaglex.onrender.com';
+  return 'https://spacilly.onrender.com';
 }
 
 const SELF_URL = resolveSelfUrl();

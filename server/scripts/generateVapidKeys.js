@@ -19,7 +19,7 @@ const lines = [
   `VAPID_PUBLIC_KEY=${keys.publicKey}`,
   `VAPID_PRIVATE_KEY=${keys.privateKey}`,
   `# Optional: a mailto contact for push providers to reach you about issues.`,
-  `VAPID_SUBJECT=mailto:notifications@reaglex.com`,
+  `VAPID_SUBJECT=mailto:notifications@spacilly.com`,
 ];
 
 console.log(lines.join('\n'));

@@ -11,13 +11,13 @@ cloudinary.config({
 
 function resolveFolder(req) {
   const routePath = `${req.baseUrl || ''}${req.path || ''}`.toLowerCase();
-  if (routePath.includes('profile')) return 'reaglex/avatars';
-  if (routePath.includes('inventory') || routePath.includes('/products')) return 'reaglex/products';
-  if (routePath.includes('settings') || routePath.includes('/store/')) return 'reaglex/shops';
-  if (routePath.includes('blog')) return 'reaglex/blog';
-  if (routePath.includes('collections')) return 'reaglex/collections';
-  if (routePath.includes('banner')) return 'reaglex/banners';
-  return 'reaglex/general';
+  if (routePath.includes('profile')) return 'spacilly/avatars';
+  if (routePath.includes('inventory') || routePath.includes('/products')) return 'spacilly/products';
+  if (routePath.includes('settings') || routePath.includes('/store/')) return 'spacilly/shops';
+  if (routePath.includes('blog')) return 'spacilly/blog';
+  if (routePath.includes('collections')) return 'spacilly/collections';
+  if (routePath.includes('banner')) return 'spacilly/banners';
+  return 'spacilly/general';
 }
 
 // Storage engine — uploads directly to Cloudinary
@@ -81,7 +81,7 @@ const uploadProductImages = m10.array('images', 5);
 const videoProofStorage = new CloudinaryStorage({
   cloudinary,
   params: async () => ({
-    folder: 'reaglex/products/proof-videos',
+    folder: 'spacilly/products/proof-videos',
     resource_type: 'video',
     allowed_formats: ['mp4', 'webm', 'mov', 'm4v'],
     public_id: `proof-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,

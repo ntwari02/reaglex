@@ -1,7 +1,7 @@
 {
-  "name": "Reaglex — Escrow-protected marketplace",
-  "short_name": "Reaglex",
-  "description": "Shop on Reaglex: verified sellers, escrow-protected payments, global delivery, and buyer protection.",
+  "name": "Spacilly — Escrow-protected marketplace",
+  "short_name": "Spacilly",
+  "description": "Shop on Spacilly: verified sellers, escrow-protected payments, global delivery, and buyer protection.",
   "id": "/?source=pwa",
   "start_url": "/?source=pwa",
   "scope": "/",
@@ -82,7 +82,7 @@
   },
   "protocol_handlers": [
     {
-      "protocol": "web+reaglex",
+      "protocol": "web+spacilly",
       "url": "/deep?target=%s"
     }
   ],
