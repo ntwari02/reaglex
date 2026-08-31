@@ -1,6 +1,7 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { LayoutGroup } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { QueryProvider } from './providers/QueryProvider';
@@ -409,6 +410,7 @@ function App() {
       </BrowserRouter>
     </QueryProvider>
     </ThemeProvider>
+      <SpeedInsights />
     </HelmetProvider>
   );
 }
